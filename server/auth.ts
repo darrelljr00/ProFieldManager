@@ -89,12 +89,17 @@ export class AuthService {
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
   const token = req.headers.authorization?.replace('Bearer ', '') || req.cookies?.auth_token;
 
+  console.log("Auth middleware - token:", token ? "present" : "missing");
+  console.log("Auth middleware - cookies:", req.cookies);
+
   if (!token) {
     return res.status(401).json({ message: "Authentication required" });
   }
 
   AuthService.validateSession(token)
     .then((sessionData) => {
+      console.log("Session validation result:", sessionData ? "valid" : "invalid");
+      
       if (!sessionData) {
         return res.status(401).json({ message: "Invalid or expired session" });
       }
