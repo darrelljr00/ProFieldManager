@@ -50,6 +50,10 @@ export interface IStorage {
   getPayments(userId: number): Promise<(Payment & { invoice: Invoice & { customer: Customer } })[]>;
   createPayment(payment: InsertPayment): Promise<Payment>;
   getPaymentsByInvoice(invoiceId: number): Promise<Payment[]>;
+
+  // Settings methods
+  getSettings(category: string): Promise<Record<string, string>>;
+  updateSettings(category: string, settings: Record<string, string>): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {

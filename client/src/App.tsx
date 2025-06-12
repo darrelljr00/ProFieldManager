@@ -9,6 +9,7 @@ import Quotes from "@/pages/quotes";
 import Invoices from "@/pages/invoices";
 import Customers from "@/pages/customers";
 import Payments from "@/pages/payments";
+import Settings from "@/pages/settings";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -23,6 +24,7 @@ function Router() {
           <Route path="/invoices" component={Invoices} />
           <Route path="/customers" component={Customers} />
           <Route path="/payments" component={Payments} />
+          <Route path="/settings" component={Settings} />
           <Route component={NotFound} />
         </Switch>
       </div>
