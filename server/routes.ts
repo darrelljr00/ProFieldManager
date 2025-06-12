@@ -48,11 +48,153 @@ const twilioClient = twilio(
 );
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Mock authentication middleware for demo
+  // Authentication routes (public)
+  app.post("/api/auth/register", async (req, res) => {
+    try {
+      const validatedData = registerSchema.parse(req.body);
+      
+      // Check if user already exists
+      const existingUser = await storage.getUserByUsername(validatedData.username);
+      if (existingUser) {
+        return res.status(400).json({ message: "Username already exists" });
+      }
+
+      const existingEmail = await storage.getUserByEmail(validatedData.email);
+      if (existingEmail) {
+        return res.status(400).json({ message: "Email already exists" });
+      }
+
+      // Hash password and create user
+      const hashedPassword = await AuthService.hashPassword(validatedData.password);
+      const userData = {
+        ...validatedData,
+        password: hashedPassword,
+        role: "user",
+        isActive: true,
+        emailVerified: false,
+      };
+
+      const user = await storage.createUserAccount(userData);
+      
+      // Create session
+      const session = await AuthService.createSession(
+        user.id,
+        req.headers['user-agent'],
+        req.ip
+      );
+
+      res.cookie('auth_token', session.token, { 
+        httpOnly: true, 
+        secure: process.env.NODE_ENV === 'production', 
+        sameSite: 'strict',
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+      });
+
+      res.status(201).json({
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+        },
+        token: session.token,
+      });
+    } catch (error) {
+      if (error instanceof ZodError) {
+        return res.status(400).json({ message: error.errors[0].message });
+      }
+      console.error("Registration error:", error);
+      res.status(500).json({ message: "Registration failed" });
+    }
+  });
+
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const validatedData = loginSchema.parse(req.body);
+      
+      // Find user by username
+      const user = await storage.getUserByUsername(validatedData.username);
+      if (!user) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      // Verify password
+      const isValidPassword = await AuthService.verifyPassword(
+        validatedData.password,
+        user.password
+      );
+      
+      if (!isValidPassword) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      if (!user.isActive) {
+        return res.status(401).json({ message: "Account is deactivated" });
+      }
+
+      // Update last login
+      await AuthService.updateLastLogin(user.id);
+
+      // Create session
+      const session = await AuthService.createSession(
+        user.id,
+        req.headers['user-agent'],
+        req.ip
+      );
+
+      res.cookie('auth_token', session.token, { 
+        httpOnly: true, 
+        secure: process.env.NODE_ENV === 'production', 
+        sameSite: 'strict',
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+      });
+
+      res.json({
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+        },
+        token: session.token,
+      });
+    } catch (error) {
+      if (error instanceof ZodError) {
+        return res.status(400).json({ message: error.errors[0].message });
+      }
+      console.error("Login error:", error);
+      res.status(500).json({ message: "Login failed" });
+    }
+  });
+
+  app.post("/api/auth/logout", requireAuth, async (req, res) => {
+    try {
+      const token = req.headers.authorization?.replace('Bearer ', '') || req.cookies?.auth_token;
+      if (token) {
+        await AuthService.invalidateSession(token);
+      }
+      res.clearCookie('auth_token');
+      res.json({ message: "Logged out successfully" });
+    } catch (error) {
+      console.error("Logout error:", error);
+      res.status(500).json({ message: "Logout failed" });
+    }
+  });
+
+  app.get("/api/auth/me", requireAuth, async (req, res) => {
+    res.json({ user: req.user });
+  });
+
+  // Apply authentication middleware to all API routes except auth
   app.use('/api', (req, res, next) => {
-    // In a real app, this would validate JWT/session
-    req.user = { id: 1, username: 'demo', email: 'demo@example.com' };
-    next();
+    if (req.path.startsWith('/api/auth/')) {
+      return next();
+    }
+    return requireAuth(req, res, next);
   });
 
   // Seed database with sample data (development only)
@@ -626,6 +768,194 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "Status updated successfully" });
     } catch (error: any) {
       res.status(500).json({ message: "Error updating message status: " + error.message });
+    }
+  });
+
+  // User Management endpoints (Admin only)
+  
+  // Get all users
+  app.get("/api/admin/users", requireAdmin, async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      // Remove passwords from response
+      const safeUsers = users.map(user => ({
+        ...user,
+        password: undefined,
+      }));
+      res.json(safeUsers);
+    } catch (error: any) {
+      res.status(500).json({ message: "Error fetching users: " + error.message });
+    }
+  });
+
+  // Create new user (Admin only)
+  app.post("/api/admin/users", requireAdmin, async (req, res) => {
+    try {
+      const validatedData = registerSchema.parse(req.body);
+      
+      // Check if user already exists
+      const existingUser = await storage.getUserByUsername(validatedData.username);
+      if (existingUser) {
+        return res.status(400).json({ message: "Username already exists" });
+      }
+
+      const existingEmail = await storage.getUserByEmail(validatedData.email);
+      if (existingEmail) {
+        return res.status(400).json({ message: "Email already exists" });
+      }
+
+      // Hash password and create user
+      const hashedPassword = await AuthService.hashPassword(validatedData.password);
+      const userData = {
+        ...validatedData,
+        password: hashedPassword,
+        role: req.body.role || "user",
+        isActive: req.body.isActive !== false,
+        emailVerified: false,
+      };
+
+      const user = await storage.createUserAccount(userData);
+      
+      res.status(201).json({
+        ...user,
+        password: undefined, // Don't return password
+      });
+    } catch (error) {
+      if (error instanceof ZodError) {
+        return res.status(400).json({ message: error.errors[0].message });
+      }
+      console.error("User creation error:", error);
+      res.status(500).json({ message: "User creation failed" });
+    }
+  });
+
+  // Update user (Admin only)
+  app.put("/api/admin/users/:id", requireAdmin, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const { password, ...updateData } = req.body;
+
+      // If password is being updated, hash it
+      if (password) {
+        const hashedPassword = await AuthService.hashPassword(password);
+        await storage.updateUserPassword(userId, hashedPassword);
+      }
+
+      // Update other user data
+      const updatedUser = await storage.updateUser(userId, updateData);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      res.json({
+        ...updatedUser,
+        password: undefined, // Don't return password
+      });
+    } catch (error: any) {
+      console.error("User update error:", error);
+      res.status(500).json({ message: "User update failed" });
+    }
+  });
+
+  // Deactivate user (Admin only)
+  app.post("/api/admin/users/:id/deactivate", requireAdmin, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      await storage.deactivateUser(userId);
+      await AuthService.invalidateAllUserSessions(userId);
+      res.json({ message: "User deactivated successfully" });
+    } catch (error: any) {
+      res.status(500).json({ message: "Error deactivating user: " + error.message });
+    }
+  });
+
+  // Activate user (Admin only)
+  app.post("/api/admin/users/:id/activate", requireAdmin, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      await storage.activateUser(userId);
+      res.json({ message: "User activated successfully" });
+    } catch (error: any) {
+      res.status(500).json({ message: "Error activating user: " + error.message });
+    }
+  });
+
+  // Delete user (Admin only)
+  app.delete("/api/admin/users/:id", requireAdmin, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      
+      // Don't allow deleting self
+      if (userId === req.user?.id) {
+        return res.status(400).json({ message: "Cannot delete your own account" });
+      }
+
+      await AuthService.invalidateAllUserSessions(userId);
+      const deleted = await storage.deleteUser(userId);
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      res.json({ message: "User deleted successfully" });
+    } catch (error: any) {
+      res.status(500).json({ message: "Error deleting user: " + error.message });
+    }
+  });
+
+  // Change password (authenticated users)
+  app.post("/api/auth/change-password", requireAuth, async (req, res) => {
+    try {
+      const validatedData = changePasswordSchema.parse(req.body);
+      
+      // Get current user
+      const user = await storage.getUser(req.user!.id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Verify current password
+      const isValidPassword = await AuthService.verifyPassword(
+        validatedData.currentPassword,
+        user.password
+      );
+      
+      if (!isValidPassword) {
+        return res.status(400).json({ message: "Current password is incorrect" });
+      }
+
+      // Hash and update new password
+      const hashedPassword = await AuthService.hashPassword(validatedData.newPassword);
+      await storage.updateUserPassword(user.id, hashedPassword);
+
+      // Invalidate all sessions except current one
+      const currentToken = req.headers.authorization?.replace('Bearer ', '') || req.cookies?.auth_token;
+      await AuthService.invalidateAllUserSessions(user.id);
+      
+      // Create new session for current user
+      if (currentToken) {
+        const session = await AuthService.createSession(
+          user.id,
+          req.headers['user-agent'],
+          req.ip
+        );
+        
+        res.cookie('auth_token', session.token, { 
+          httpOnly: true, 
+          secure: process.env.NODE_ENV === 'production', 
+          sameSite: 'strict',
+          maxAge: 24 * 60 * 60 * 1000
+        });
+      }
+
+      res.json({ message: "Password changed successfully" });
+    } catch (error) {
+      if (error instanceof ZodError) {
+        return res.status(400).json({ message: error.errors[0].message });
+      }
+      console.error("Password change error:", error);
+      res.status(500).json({ message: "Password change failed" });
     }
   });
 

@@ -8,7 +8,8 @@ import {
   Settings,
   User,
   Quote,
-  MessageSquare
+  MessageSquare,
+  UserCog
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -19,6 +20,7 @@ const navigation = [
   { name: "Customers", href: "/customers", icon: Users },
   { name: "Payments", href: "/payments", icon: CreditCard },
   { name: "Text Messaging", href: "/messages", icon: MessageSquare },
+  { name: "User Management", href: "/users", icon: UserCog },
   { name: "Reports", href: "/reports", icon: FileBarChart },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
