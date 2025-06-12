@@ -8,8 +8,15 @@ import {
   insertInvoiceSchema, 
   insertQuoteSchema,
   insertMessageSchema,
-  type Message 
+  loginSchema,
+  registerSchema,
+  changePasswordSchema,
+  type Message,
+  type LoginData,
+  type RegisterData,
+  type ChangePasswordData 
 } from "@shared/schema";
+import { AuthService, requireAuth, requireAdmin, requireManagerOrAdmin } from "./auth";
 import { ZodError } from "zod";
 import { seedDatabase } from "./seed-data";
 
@@ -17,10 +24,13 @@ import { seedDatabase } from "./seed-data";
 declare global {
   namespace Express {
     interface Request {
-      user: {
+      user?: {
         id: number;
         username: string;
         email: string;
+        role?: string;
+        firstName?: string;
+        lastName?: string;
       };
     }
   }

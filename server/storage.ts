@@ -62,6 +62,17 @@ export interface IStorage {
   getMessages(userId: number): Promise<(Message & { customerName?: string })[]>;
   createMessage(message: InsertMessage): Promise<Message>;
   updateMessageStatus(twilioSid: string, status: string, errorCode?: string, errorMessage?: string): Promise<void>;
+
+  // User management methods
+  getAllUsers(): Promise<User[]>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  createUserAccount(userData: Omit<InsertUser, 'id' | 'createdAt' | 'updatedAt'>): Promise<User>;
+  updateUser(id: number, userData: Partial<User>): Promise<User | undefined>;
+  updateUserPassword(id: number, hashedPassword: string): Promise<void>;
+  deactivateUser(id: number): Promise<void>;
+  activateUser(id: number): Promise<void>;
+  deleteUser(id: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -515,6 +526,79 @@ export class DatabaseStorage implements IStorage {
         errorMessage 
       })
       .where(eq(messages.twilioSid, twilioSid));
+  }
+
+  // User management implementations
+  async getAllUsers(): Promise<User[]> {
+    return await db.select().from(users).orderBy(users.createdAt);
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user || undefined;
+  }
+
+  async createUserAccount(userData: Omit<InsertUser, 'id' | 'createdAt' | 'updatedAt'>): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values({
+        ...userData,
+        updatedAt: new Date(),
+      })
+      .returning();
+    return user;
+  }
+
+  async updateUser(id: number, userData: Partial<User>): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({
+        ...userData,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, id))
+      .returning();
+    return user || undefined;
+  }
+
+  async updateUserPassword(id: number, hashedPassword: string): Promise<void> {
+    await db
+      .update(users)
+      .set({ 
+        password: hashedPassword,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, id));
+  }
+
+  async deactivateUser(id: number): Promise<void> {
+    await db
+      .update(users)
+      .set({ 
+        isActive: false,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, id));
+  }
+
+  async activateUser(id: number): Promise<void> {
+    await db
+      .update(users)
+      .set({ 
+        isActive: true,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, id));
+  }
+
+  async deleteUser(id: number): Promise<boolean> {
+    const result = await db.delete(users).where(eq(users.id, id));
+    return result.rowCount > 0;
   }
 }
 

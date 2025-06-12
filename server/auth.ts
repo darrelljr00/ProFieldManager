@@ -2,7 +2,7 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { db } from "./db";
 import { users, userSessions } from "@shared/schema";
-import { eq, and, gt } from "drizzle-orm";
+import { eq, and, gt, sql } from "drizzle-orm";
 import type { Request, Response, NextFunction } from "express";
 
 export class AuthService {
@@ -50,7 +50,7 @@ export class AuthService {
       .where(
         and(
           eq(userSessions.token, token),
-          gt(userSessions.expiresAt, new Date()),
+          gt(userSessions.expiresAt, sql`now()`),
           eq(users.isActive, true)
         )
       )
@@ -81,7 +81,7 @@ export class AuthService {
   static async cleanExpiredSessions() {
     await db
       .delete(userSessions)
-      .where(gt(new Date(), userSessions.expiresAt));
+      .where(sql`${userSessions.expiresAt} < now()`);
   }
 }
 
@@ -136,17 +136,4 @@ export const requireAdmin = requireRole(['admin']);
 // Manager or admin access
 export const requireManagerOrAdmin = requireRole(['admin', 'manager']);
 
-declare global {
-  namespace Express {
-    interface Request {
-      user?: {
-        id: number;
-        username: string;
-        email: string;
-        role: string;
-        firstName?: string;
-        lastName?: string;
-      };
-    }
-  }
-}
+// Type declarations are handled in routes.ts to avoid conflicts
