@@ -49,6 +49,17 @@ type EmailSettings = {
   fromName: string;
 };
 
+type OcrSettings = {
+  ocrEnabled: boolean;
+  ocrProvider: string;
+  googleVisionApiKey: string;
+  awsAccessKeyId: string;
+  awsSecretAccessKey: string;
+  awsRegion: string;
+  azureSubscriptionKey: string;
+  azureEndpoint: string;
+};
+
 type TwilioSettings = {
   twilioEnabled: boolean;
   twilioAccountSid: string;
@@ -78,6 +89,10 @@ export default function Settings() {
 
   const { data: twilioSettings, isLoading: twilioLoading } = useQuery<TwilioSettings>({
     queryKey: ["/api/settings/twilio"],
+  });
+
+  const { data: ocrSettings, isLoading: ocrLoading } = useQuery<OcrSettings>({
+    queryKey: ["/api/settings/ocr"],
   });
 
   const paymentMutation = useMutation({
@@ -151,6 +166,25 @@ export default function Settings() {
       toast({
         title: "Error",
         description: error.message || "Failed to save Twilio settings",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const ocrMutation = useMutation({
+    mutationFn: (data: Partial<OcrSettings>) =>
+      apiRequest("PUT", "/api/settings/ocr", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/ocr"] });
+      toast({
+        title: "Success",
+        description: "OCR settings saved successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save OCR settings",
         variant: "destructive",
       });
     },
@@ -281,7 +315,23 @@ export default function Settings() {
     twilioMutation.mutate(data);
   };
 
-  if (paymentLoading || companyLoading || emailLoading || twilioLoading) {
+  const handleOcrSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const data: Partial<OcrSettings> = {
+      ocrEnabled: formData.get('ocrEnabled') === 'on',
+      ocrProvider: formData.get('ocrProvider') as string,
+      googleVisionApiKey: formData.get('googleVisionApiKey') as string,
+      awsAccessKeyId: formData.get('awsAccessKeyId') as string,
+      awsSecretAccessKey: formData.get('awsSecretAccessKey') as string,
+      awsRegion: formData.get('awsRegion') as string,
+      azureSubscriptionKey: formData.get('azureSubscriptionKey') as string,
+      azureEndpoint: formData.get('azureEndpoint') as string,
+    };
+    ocrMutation.mutate(data);
+  };
+
+  if (paymentLoading || companyLoading || emailLoading || twilioLoading || ocrLoading) {
     return (
       <div className="p-6">
         <div className="space-y-4">
@@ -300,11 +350,12 @@ export default function Settings() {
       </div>
 
       <Tabs defaultValue="payment" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="payment">Payment Processing</TabsTrigger>
           <TabsTrigger value="company">Company Info</TabsTrigger>
           <TabsTrigger value="email">Email Settings</TabsTrigger>
           <TabsTrigger value="sms">SMS Settings</TabsTrigger>
+          <TabsTrigger value="ocr">OCR Settings</TabsTrigger>
         </TabsList>
 
         <TabsContent value="payment">
