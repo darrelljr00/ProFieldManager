@@ -233,7 +233,7 @@ export default function ProjectDetail() {
     }
   };
 
-  if (projectLoading) {
+  if (projectLoading || !project) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
@@ -940,7 +940,7 @@ export default function ProjectDetail() {
           </div>
 
           <div className="grid gap-4">
-            {project.users.map(({ user, role }) => (
+            {(project.users || []).map(({ user, role }) => (
               <Card key={user.id}>
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
