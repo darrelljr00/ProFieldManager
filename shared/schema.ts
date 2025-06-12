@@ -83,13 +83,14 @@ export const insertCustomerSchema = createInsertSchema(customers).omit({
   createdAt: true,
 });
 
-export const insertInvoiceSchema = createInsertSchema(invoices).omit({
+export const insertInvoiceSchema = createInsertSchema(invoices, {
+  invoiceDate: z.string().transform((val) => new Date(val)),
+  dueDate: z.string().transform((val) => new Date(val)),
+}).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
 }).extend({
-  invoiceDate: z.string().transform((val) => new Date(val)),
-  dueDate: z.string().transform((val) => new Date(val)),
   lineItems: z.array(z.object({
     description: z.string().min(1),
     quantity: z.number().positive(),
