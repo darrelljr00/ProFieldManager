@@ -162,14 +162,24 @@ export function QuoteForm({ onSuccess }: QuoteFormProps) {
               <Label htmlFor="customerId">Customer</Label>
               <Select onValueChange={(value) => setFormData(prev => ({ ...prev, customerId: parseInt(value) }))}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a customer" />
+                  <SelectValue placeholder={customers.length === 0 ? "No customers available" : "Select a customer"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {customers.map((customer: Customer) => (
-                    <SelectItem key={customer.id} value={customer.id.toString()}>
-                      {customer.name}
-                    </SelectItem>
-                  ))}
+                  {customers.length === 0 ? (
+                    <div className="p-2 text-sm text-muted-foreground">
+                      <p>No customers found.</p>
+                      <p className="text-blue-600 cursor-pointer hover:underline" 
+                         onClick={() => window.location.href = '/customers'}>
+                        Create a customer first
+                      </p>
+                    </div>
+                  ) : (
+                    customers.map((customer: Customer) => (
+                      <SelectItem key={customer.id} value={customer.id.toString()}>
+                        {customer.name}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
