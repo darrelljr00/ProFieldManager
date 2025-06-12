@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, decimal, uuid } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, decimal, uuid, varchar } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -578,3 +578,79 @@ export const insertCalendarJobSchema = createInsertSchema(calendarJobs).omit({
 
 export type CalendarJob = typeof calendarJobs.$inferSelect;
 export type InsertCalendarJob = z.infer<typeof insertCalendarJobSchema>;
+
+// Internal messaging system
+export const internalMessages = pgTable("internal_messages", {
+  id: serial("id").primaryKey(),
+  senderId: integer("sender_id").notNull().references(() => users.id),
+  subject: text("subject").notNull(),
+  content: text("content").notNull(),
+  messageType: text("message_type").default("individual"), // individual, group, broadcast
+  priority: text("priority").default("normal"), // low, normal, high, urgent
+  parentMessageId: integer("parent_message_id").references((): any => internalMessages.id), // for replies
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const internalMessageRecipients = pgTable("internal_message_recipients", {
+  id: serial("id").primaryKey(),
+  messageId: integer("message_id").notNull().references(() => internalMessages.id),
+  recipientId: integer("recipient_id").notNull().references(() => users.id),
+  isRead: boolean("is_read").default(false),
+  readAt: timestamp("read_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const messageGroups = pgTable("message_groups", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  createdBy: integer("created_by").notNull().references(() => users.id),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const messageGroupMembers = pgTable("message_group_members", {
+  id: serial("id").primaryKey(),
+  groupId: integer("group_id").notNull().references(() => messageGroups.id),
+  userId: integer("user_id").notNull().references(() => users.id),
+  role: text("role").default("member"), // admin, member
+  joinedAt: timestamp("joined_at").defaultNow(),
+});
+
+// Internal message schemas
+export const insertInternalMessageSchema = createInsertSchema(internalMessages).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertInternalMessageRecipientSchema = createInsertSchema(internalMessageRecipients).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertMessageGroupSchema = createInsertSchema(messageGroups).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertMessageGroupMemberSchema = createInsertSchema(messageGroupMembers).omit({
+  id: true,
+  joinedAt: true,
+});
+
+// Internal message types
+export type InternalMessage = typeof internalMessages.$inferSelect;
+export type InsertInternalMessage = z.infer<typeof insertInternalMessageSchema>;
+
+export type InternalMessageRecipient = typeof internalMessageRecipients.$inferSelect;
+export type InsertInternalMessageRecipient = z.infer<typeof insertInternalMessageRecipientSchema>;
+
+export type MessageGroup = typeof messageGroups.$inferSelect;
+export type InsertMessageGroup = z.infer<typeof insertMessageGroupSchema>;
+
+export type MessageGroupMember = typeof messageGroupMembers.$inferSelect;
+export type InsertMessageGroupMember = z.infer<typeof insertMessageGroupMemberSchema>;
