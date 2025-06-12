@@ -2,7 +2,7 @@ import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import Stripe from "stripe";
 import { storage } from "./storage";
-import { insertCustomerSchema, insertInvoiceSchema } from "@shared/schema";
+import { insertCustomerSchema, insertInvoiceSchema, insertQuoteSchema } from "@shared/schema";
 import { ZodError } from "zod";
 import { seedDatabase } from "./seed-data";
 

@@ -61,6 +61,36 @@ export const invoiceLineItems = pgTable("invoice_line_items", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const quotes = pgTable("quotes", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  customerId: integer("customer_id").notNull().references(() => customers.id),
+  quoteNumber: text("quote_number").notNull(),
+  status: text("status").notNull().default("draft"), // draft, sent, accepted, rejected, expired
+  subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
+  taxRate: decimal("tax_rate", { precision: 5, scale: 2 }).default("0.00"),
+  taxAmount: decimal("tax_amount", { precision: 10, scale: 2 }).default("0.00"),
+  total: decimal("total", { precision: 10, scale: 2 }).notNull(),
+  currency: text("currency").notNull().default("USD"),
+  notes: text("notes"),
+  quoteDate: timestamp("quote_date").notNull(),
+  expiryDate: timestamp("expiry_date").notNull(),
+  acceptedAt: timestamp("accepted_at"),
+  convertedInvoiceId: integer("converted_invoice_id").references(() => invoices.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const quoteLineItems = pgTable("quote_line_items", {
+  id: serial("id").primaryKey(),
+  quoteId: integer("quote_id").notNull().references(() => quotes.id),
+  description: text("description").notNull(),
+  quantity: decimal("quantity", { precision: 10, scale: 2 }).notNull(),
+  rate: decimal("rate", { precision: 10, scale: 2 }).notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const payments = pgTable("payments", {
   id: serial("id").primaryKey(),
   invoiceId: integer("invoice_id").notNull().references(() => invoices.id),
@@ -99,6 +129,27 @@ export const insertInvoiceSchema = createInsertSchema(invoices, {
   })),
 });
 
+export const insertQuoteSchema = createInsertSchema(quotes, {
+  quoteDate: z.string().transform((val) => new Date(val)),
+  expiryDate: z.string().transform((val) => new Date(val)),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  lineItems: z.array(z.object({
+    description: z.string().min(1),
+    quantity: z.number().positive(),
+    rate: z.number().positive(),
+    amount: z.number().positive(),
+  })),
+});
+
+export const insertQuoteLineItemSchema = createInsertSchema(quoteLineItems).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertInvoiceLineItemSchema = createInsertSchema(invoiceLineItems).omit({
   id: true,
   createdAt: true,
@@ -121,6 +172,12 @@ export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
 
 export type InvoiceLineItem = typeof invoiceLineItems.$inferSelect;
 export type InsertInvoiceLineItem = z.infer<typeof insertInvoiceLineItemSchema>;
+
+export type Quote = typeof quotes.$inferSelect;
+export type InsertQuote = z.infer<typeof insertQuoteSchema>;
+
+export type QuoteLineItem = typeof quoteLineItems.$inferSelect;
+export type InsertQuoteLineItem = z.infer<typeof insertQuoteLineItemSchema>;
 
 export type Payment = typeof payments.$inferSelect;
 export type InsertPayment = z.infer<typeof insertPaymentSchema>;

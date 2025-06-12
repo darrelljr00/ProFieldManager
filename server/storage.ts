@@ -1,8 +1,8 @@
 import { 
-  users, customers, invoices, invoiceLineItems, payments,
+  users, customers, invoices, invoiceLineItems, payments, quotes, quoteLineItems,
   type User, type InsertUser, type Customer, type InsertCustomer,
   type Invoice, type InsertInvoice, type InvoiceLineItem, type InsertInvoiceLineItem,
-  type Payment, type InsertPayment
+  type Payment, type InsertPayment, type Quote, type InsertQuote, type QuoteLineItem
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql } from "drizzle-orm";
@@ -37,6 +37,14 @@ export interface IStorage {
     paidValue: number;
     overdueValue: number;
   }>;
+
+  // Quote methods
+  getQuotes(userId: number): Promise<(Quote & { customer: Customer, lineItems: QuoteLineItem[] })[]>;
+  getQuote(id: number, userId: number): Promise<(Quote & { customer: Customer, lineItems: QuoteLineItem[] }) | undefined>;
+  createQuote(quote: InsertQuote): Promise<Quote>;
+  updateQuote(id: number, userId: number, quote: Partial<Omit<InsertQuote, 'lineItems'>>): Promise<Quote | undefined>;
+  deleteQuote(id: number, userId: number): Promise<boolean>;
+  convertQuoteToInvoice(quoteId: number, userId: number): Promise<Invoice | undefined>;
 
   // Payment methods
   getPayments(userId: number): Promise<(Payment & { invoice: Invoice & { customer: Customer } })[]>;
@@ -257,6 +265,139 @@ export class DatabaseStorage implements IStorage {
     });
 
     return result;
+  }
+
+  async getQuotes(userId: number): Promise<(Quote & { customer: Customer, lineItems: QuoteLineItem[] })[]> {
+    const quotesWithCustomers = await db
+      .select()
+      .from(quotes)
+      .leftJoin(customers, eq(quotes.customerId, customers.id))
+      .where(eq(quotes.userId, userId))
+      .orderBy(desc(quotes.createdAt));
+
+    const result = [];
+    for (const row of quotesWithCustomers) {
+      if (row.quotes && row.customers) {
+        const lineItems = await db
+          .select()
+          .from(quoteLineItems)
+          .where(eq(quoteLineItems.quoteId, row.quotes.id));
+
+        result.push({
+          ...row.quotes,
+          customer: row.customers,
+          lineItems: lineItems
+        });
+      }
+    }
+
+    return result;
+  }
+
+  async getQuote(id: number, userId: number): Promise<(Quote & { customer: Customer, lineItems: QuoteLineItem[] }) | undefined> {
+    const [quoteWithCustomer] = await db
+      .select()
+      .from(quotes)
+      .leftJoin(customers, eq(quotes.customerId, customers.id))
+      .where(and(eq(quotes.id, id), eq(quotes.userId, userId)));
+
+    if (!quoteWithCustomer?.quotes || !quoteWithCustomer?.customers) {
+      return undefined;
+    }
+
+    const lineItems = await db
+      .select()
+      .from(quoteLineItems)
+      .where(eq(quoteLineItems.quoteId, id));
+
+    return {
+      ...quoteWithCustomer.quotes,
+      customer: quoteWithCustomer.customers,
+      lineItems: lineItems
+    };
+  }
+
+  async createQuote(quote: InsertQuote): Promise<Quote> {
+    const { lineItems, ...quoteData } = quote;
+    
+    const [newQuote] = await db
+      .insert(quotes)
+      .values(quoteData)
+      .returning();
+
+    // Insert line items
+    if (lineItems.length > 0) {
+      await db
+        .insert(quoteLineItems)
+        .values(lineItems.map(item => ({
+          quoteId: newQuote.id,
+          description: item.description,
+          quantity: item.quantity.toString(),
+          rate: item.rate.toString(),
+          amount: item.amount.toString(),
+        })));
+    }
+
+    return newQuote;
+  }
+
+  async updateQuote(id: number, userId: number, quote: Partial<Omit<InsertQuote, 'lineItems'>>): Promise<Quote | undefined> {
+    const [updated] = await db
+      .update(quotes)
+      .set(quote)
+      .where(and(eq(quotes.id, id), eq(quotes.userId, userId)))
+      .returning();
+    
+    return updated || undefined;
+  }
+
+  async deleteQuote(id: number, userId: number): Promise<boolean> {
+    // Delete line items first
+    await db.delete(quoteLineItems).where(eq(quoteLineItems.quoteId, id));
+    
+    // Delete quote
+    const result = await db
+      .delete(quotes)
+      .where(and(eq(quotes.id, id), eq(quotes.userId, userId)));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async convertQuoteToInvoice(quoteId: number, userId: number): Promise<Invoice | undefined> {
+    const quote = await this.getQuote(quoteId, userId);
+    if (!quote || quote.status !== 'accepted') {
+      return undefined;
+    }
+
+    // Create invoice from quote
+    const invoiceData: InsertInvoice = {
+      userId: quote.userId,
+      customerId: quote.customerId,
+      invoiceNumber: `INV-${Date.now()}`,
+      status: 'draft',
+      subtotal: quote.subtotal,
+      taxRate: quote.taxRate,
+      taxAmount: quote.taxAmount,
+      total: quote.total,
+      currency: quote.currency,
+      notes: quote.notes,
+      invoiceDate: new Date(),
+      dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+      lineItems: quote.lineItems.map(item => ({
+        description: item.description,
+        quantity: parseFloat(item.quantity),
+        rate: parseFloat(item.rate),
+        amount: parseFloat(item.amount)
+      }))
+    };
+
+    const newInvoice = await this.createInvoice(invoiceData);
+
+    // Update quote to mark as converted
+    await this.updateQuote(quoteId, userId, {
+      convertedInvoiceId: newInvoice.id
+    });
+
+    return newInvoice;
   }
 
   async getPayments(userId: number): Promise<(Payment & { invoice: Invoice & { customer: Customer } })[]> {
