@@ -6,6 +6,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Sidebar } from "@/components/sidebar";
 import { useAuth } from "@/hooks/useAuth";
 import Dashboard from "@/pages/dashboard";
+import Projects from "@/pages/projects";
+import ProjectDetail from "@/pages/project-detail";
 import Quotes from "@/pages/quotes";
 import Invoices from "@/pages/invoices";
 import Customers from "@/pages/customers";
@@ -26,6 +28,8 @@ function AuthenticatedApp() {
         <Switch>
           <Route path="/" component={Dashboard} />
           <Route path="/dashboard" component={Dashboard} />
+          <Route path="/projects" component={Projects} />
+          <Route path="/projects/:id" component={ProjectDetail} />
           <Route path="/quotes" component={Quotes} />
           <Route path="/invoices" component={Invoices} />
           <Route path="/customers" component={Customers} />

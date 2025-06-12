@@ -1,0 +1,623 @@
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRoute } from "wouter";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { 
+  Plus, 
+  Calendar, 
+  Users, 
+  CheckCircle, 
+  Clock, 
+  AlertCircle, 
+  FileText, 
+  Upload, 
+  Download,
+  Play,
+  Pause,
+  Edit,
+  Trash2,
+  MessageSquare,
+  ArrowLeft
+} from "lucide-react";
+import { Link } from "wouter";
+import type { Project, Customer, User, Task, ProjectFile, TimeEntry } from "@shared/schema";
+
+interface ProjectWithDetails extends Project {
+  users: { user: User; role: string }[];
+  customer?: Customer;
+}
+
+export default function ProjectDetail() {
+  const [match, params] = useRoute("/projects/:id");
+  const projectId = params?.id ? parseInt(params.id) : 0;
+  const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+  const [fileDialogOpen, setFileDialogOpen] = useState(false);
+  const [timeDialogOpen, setTimeDialogOpen] = useState(false);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const { data: project, isLoading: projectLoading } = useQuery<ProjectWithDetails>({
+    queryKey: ["/api/projects", projectId],
+    enabled: !!projectId,
+  });
+
+  const { data: tasks = [], isLoading: tasksLoading } = useQuery<Task[]>({
+    queryKey: ["/api/projects", projectId, "tasks"],
+    enabled: !!projectId,
+  });
+
+  const { data: files = [] } = useQuery<ProjectFile[]>({
+    queryKey: ["/api/projects", projectId, "files"],
+    enabled: !!projectId,
+  });
+
+  const { data: timeEntries = [] } = useQuery<TimeEntry[]>({
+    queryKey: ["/api/projects", projectId, "time"],
+    enabled: !!projectId,
+  });
+
+  const { data: users = [] } = useQuery<User[]>({
+    queryKey: ["/api/admin/users"],
+  });
+
+  const createTaskMutation = useMutation({
+    mutationFn: (data: any) => apiRequest("POST", `/api/projects/${projectId}/tasks`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId, "tasks"] });
+      setTaskDialogOpen(false);
+      toast({
+        title: "Success",
+        description: "Task created successfully",
+      });
+    },
+  });
+
+  const updateTaskMutation = useMutation({
+    mutationFn: ({ taskId, data }: { taskId: number; data: any }) => 
+      apiRequest("PUT", `/api/tasks/${taskId}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId, "tasks"] });
+      toast({
+        title: "Success",
+        description: "Task updated successfully",
+      });
+    },
+  });
+
+  const uploadFileMutation = useMutation({
+    mutationFn: (formData: FormData) => 
+      fetch(`/api/projects/${projectId}/files`, {
+        method: "POST",
+        body: formData,
+      }).then(res => res.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId, "files"] });
+      setFileDialogOpen(false);
+      toast({
+        title: "Success",
+        description: "File uploaded successfully",
+      });
+    },
+  });
+
+  const createTimeEntryMutation = useMutation({
+    mutationFn: (data: any) => apiRequest("POST", `/api/projects/${projectId}/time`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId, "time"] });
+      setTimeDialogOpen(false);
+      toast({
+        title: "Success",
+        description: "Time entry created successfully",
+      });
+    },
+  });
+
+  const handleCreateTask = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const data = {
+      title: formData.get("title"),
+      description: formData.get("description"),
+      priority: formData.get("priority") || "medium",
+      status: formData.get("status") || "todo",
+      assignedToId: formData.get("assignedToId") ? parseInt(formData.get("assignedToId") as string) : null,
+      dueDate: formData.get("dueDate") ? new Date(formData.get("dueDate") as string) : null,
+      estimatedHours: formData.get("estimatedHours") ? parseFloat(formData.get("estimatedHours") as string) : null,
+    };
+    createTaskMutation.mutate(data);
+  };
+
+  const handleFileUpload = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    uploadFileMutation.mutate(formData);
+  };
+
+  const handleCreateTimeEntry = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const data = {
+      description: formData.get("description"),
+      hours: parseFloat(formData.get("hours") as string),
+      date: new Date(formData.get("date") as string),
+      taskId: formData.get("taskId") ? parseInt(formData.get("taskId") as string) : null,
+      billable: formData.get("billable") === "on",
+    };
+    createTimeEntryMutation.mutate(data);
+  };
+
+  const getStatusColor = (status: string) => {
+    const colors: Record<string, "default" | "destructive" | "outline" | "secondary"> = {
+      todo: "outline",
+      "in-progress": "default",
+      review: "secondary",
+      completed: "secondary",
+    };
+    return colors[status] || "outline";
+  };
+
+  const getPriorityColor = (priority: string) => {
+    const colors: Record<string, "default" | "destructive" | "outline" | "secondary"> = {
+      low: "outline",
+      medium: "default",
+      high: "secondary",
+      urgent: "destructive",
+    };
+    return colors[priority] || "outline";
+  };
+
+  const getFileIcon = (fileType: string) => {
+    switch (fileType) {
+      case "image":
+        return "🖼️";
+      case "video":
+        return "🎥";
+      case "document":
+        return "📄";
+      default:
+        return "📎";
+    }
+  };
+
+  if (projectLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
+  if (!project) {
+    return (
+      <div className="container mx-auto p-6">
+        <Card>
+          <CardContent className="text-center py-12">
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Project not found</h3>
+            <p className="text-gray-600 mb-4">The project you're looking for doesn't exist or you don't have access to it.</p>
+            <Button asChild>
+              <Link href="/projects">Back to Projects</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto p-6">
+      <div className="mb-6">
+        <div className="flex items-center gap-4 mb-4">
+          <Button variant="ghost" size="sm" asChild>
+            <Link href="/projects">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Projects
+            </Link>
+          </Button>
+        </div>
+        
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">{project.name}</h1>
+            <div className="flex items-center space-x-4 mb-2">
+              <Badge variant={getStatusColor(project.status)}>{project.status}</Badge>
+              <Badge variant={getPriorityColor(project.priority)}>{project.priority}</Badge>
+              {project.customer && (
+                <span className="text-gray-600">Client: {project.customer.name}</span>
+              )}
+            </div>
+            {project.description && (
+              <p className="text-gray-600 max-w-2xl">{project.description}</p>
+            )}
+          </div>
+          
+          <div className="text-right">
+            <div className="mb-2">
+              <span className="text-sm text-gray-600">Progress</span>
+              <div className="flex items-center space-x-2 mt-1">
+                <Progress value={project.progress} className="w-32" />
+                <span className="text-sm font-medium">{project.progress}%</span>
+              </div>
+            </div>
+            {project.deadline && (
+              <div className="text-sm text-gray-600">
+                <Calendar className="h-4 w-4 inline mr-1" />
+                Due: {new Date(project.deadline).toLocaleDateString()}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <Tabs defaultValue="tasks" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="tasks">Tasks</TabsTrigger>
+          <TabsTrigger value="files">Files</TabsTrigger>
+          <TabsTrigger value="time">Time Tracking</TabsTrigger>
+          <TabsTrigger value="team">Team</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="tasks" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-semibold">Tasks</h2>
+            <Dialog open={taskDialogOpen} onOpenChange={setTaskDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Task
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Create New Task</DialogTitle>
+                  <DialogDescription>
+                    Add a new task to this project.
+                  </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleCreateTask} className="space-y-4">
+                  <div>
+                    <Label htmlFor="title">Task Title *</Label>
+                    <Input id="title" name="title" required />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea id="description" name="description" rows={3} />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="priority">Priority</Label>
+                      <Select name="priority" defaultValue="medium">
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="low">Low</SelectItem>
+                          <SelectItem value="medium">Medium</SelectItem>
+                          <SelectItem value="high">High</SelectItem>
+                          <SelectItem value="urgent">Urgent</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="status">Status</Label>
+                      <Select name="status" defaultValue="todo">
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="todo">To Do</SelectItem>
+                          <SelectItem value="in-progress">In Progress</SelectItem>
+                          <SelectItem value="review">Review</SelectItem>
+                          <SelectItem value="completed">Completed</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="assignedToId">Assign To</Label>
+                      <Select name="assignedToId">
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select user" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {project.users.map(({ user }) => (
+                            <SelectItem key={user.id} value={user.id.toString()}>
+                              {user.firstName} {user.lastName} ({user.username})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="estimatedHours">Estimated Hours</Label>
+                      <Input id="estimatedHours" name="estimatedHours" type="number" step="0.5" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="dueDate">Due Date</Label>
+                    <Input id="dueDate" name="dueDate" type="date" />
+                  </div>
+
+                  <div className="flex justify-end space-x-2">
+                    <Button type="button" variant="outline" onClick={() => setTaskDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button type="submit" disabled={createTaskMutation.isPending}>
+                      {createTaskMutation.isPending ? "Creating..." : "Create Task"}
+                    </Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          <div className="grid gap-4">
+            {tasks.map((task) => (
+              <Card key={task.id}>
+                <CardHeader className="pb-3">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="text-base">{task.title}</CardTitle>
+                      <div className="flex items-center space-x-2 mt-1">
+                        <Badge variant={getStatusColor(task.status)}>{task.status}</Badge>
+                        <Badge variant={getPriorityColor(task.priority)}>{task.priority}</Badge>
+                      </div>
+                    </div>
+                    <div className="flex space-x-1">
+                      <Button variant="ghost" size="sm">
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm">
+                        <MessageSquare className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+                {task.description && (
+                  <CardContent>
+                    <p className="text-gray-600 text-sm">{task.description}</p>
+                    {task.dueDate && (
+                      <div className="flex items-center text-sm text-gray-500 mt-2">
+                        <Calendar className="h-4 w-4 mr-1" />
+                        Due: {new Date(task.dueDate).toLocaleDateString()}
+                      </div>
+                    )}
+                  </CardContent>
+                )}
+              </Card>
+            ))}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="files" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-semibold">Project Files</h2>
+            <Dialog open={fileDialogOpen} onOpenChange={setFileDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload File
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Upload File</DialogTitle>
+                  <DialogDescription>
+                    Upload images, videos, documents or other files to this project.
+                  </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleFileUpload} className="space-y-4">
+                  <div>
+                    <Label htmlFor="file">File *</Label>
+                    <Input id="file" name="file" type="file" required accept="image/*,video/*,.pdf,.doc,.docx" />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="taskId">Related Task (Optional)</Label>
+                    <Select name="taskId">
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select task" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {tasks.map((task) => (
+                          <SelectItem key={task.id} value={task.id.toString()}>
+                            {task.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea id="description" name="description" rows={3} />
+                  </div>
+
+                  <div className="flex justify-end space-x-2">
+                    <Button type="button" variant="outline" onClick={() => setFileDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button type="submit" disabled={uploadFileMutation.isPending}>
+                      {uploadFileMutation.isPending ? "Uploading..." : "Upload"}
+                    </Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {files.map((file) => (
+              <Card key={file.id}>
+                <CardContent className="p-4">
+                  <div className="flex items-start space-x-3">
+                    <div className="text-2xl">{getFileIcon(file.fileType)}</div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-sm font-medium truncate">{file.originalName}</h4>
+                      <p className="text-xs text-gray-500">
+                        {(file.fileSize / 1024 / 1024).toFixed(2)} MB
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {new Date(file.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <Button variant="ghost" size="sm">
+                      <Download className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  {file.description && (
+                    <p className="text-xs text-gray-600 mt-2">{file.description}</p>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="time" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-semibold">Time Tracking</h2>
+            <Dialog open={timeDialogOpen} onOpenChange={setTimeDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Log Time
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Log Time Entry</DialogTitle>
+                  <DialogDescription>
+                    Record time spent on this project or a specific task.
+                  </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleCreateTimeEntry} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="hours">Hours *</Label>
+                      <Input id="hours" name="hours" type="number" step="0.25" required />
+                    </div>
+                    <div>
+                      <Label htmlFor="date">Date *</Label>
+                      <Input id="date" name="date" type="date" required defaultValue={new Date().toISOString().split('T')[0]} />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="taskId">Task (Optional)</Label>
+                    <Select name="taskId">
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select task" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {tasks.map((task) => (
+                          <SelectItem key={task.id} value={task.id.toString()}>
+                            {task.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea id="description" name="description" rows={3} placeholder="What did you work on?" />
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <input type="checkbox" id="billable" name="billable" className="rounded" defaultChecked />
+                    <Label htmlFor="billable">Billable</Label>
+                  </div>
+
+                  <div className="flex justify-end space-x-2">
+                    <Button type="button" variant="outline" onClick={() => setTimeDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button type="submit" disabled={createTimeEntryMutation.isPending}>
+                      {createTimeEntryMutation.isPending ? "Logging..." : "Log Time"}
+                    </Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Time Entries</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {timeEntries.map((entry) => (
+                  <div key={entry.id} className="flex justify-between items-center py-2 border-b last:border-b-0">
+                    <div>
+                      <div className="font-medium">{entry.hours} hours</div>
+                      <div className="text-sm text-gray-600">
+                        {new Date(entry.date).toLocaleDateString()}
+                        {entry.description && ` - ${entry.description}`}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      {entry.billable && (
+                        <Badge variant="outline" className="text-xs">Billable</Badge>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="team" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-semibold">Team Members</h2>
+            <Button>
+              <Users className="h-4 w-4 mr-2" />
+              Add Member
+            </Button>
+          </div>
+
+          <div className="grid gap-4">
+            {project.users.map(({ user, role }) => (
+              <Card key={user.id}>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <Avatar>
+                        <AvatarFallback>
+                          {user.firstName?.[0]}{user.lastName?.[0]}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <h4 className="font-medium">{user.firstName} {user.lastName}</h4>
+                        <p className="text-sm text-gray-600">{user.email}</p>
+                      </div>
+                    </div>
+                    <Badge variant="outline">{role}</Badge>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}

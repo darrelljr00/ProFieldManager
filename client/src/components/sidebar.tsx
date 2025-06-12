@@ -11,7 +11,8 @@ import {
   MessageSquare,
   UserCog,
   LogOut,
-  Shield
+  Shield,
+  FolderOpen
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -21,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: BarChart3 },
+  { name: "Projects", href: "/projects", icon: FolderOpen },
   { name: "Quotes", href: "/quotes", icon: Quote },
   { name: "Invoices", href: "/invoices", icon: FileText },
   { name: "Customers", href: "/customers", icon: Users },
