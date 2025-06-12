@@ -112,6 +112,21 @@ export const settings = pgTable("settings", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+export const messages = pgTable("messages", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  customerId: integer("customer_id").references(() => customers.id),
+  to: text("to").notNull(),
+  from: text("from").notNull(),
+  body: text("body").notNull(),
+  status: text("status").notNull(), // queued, sent, delivered, failed
+  direction: text("direction").notNull(), // inbound, outbound
+  twilioSid: text("twilio_sid"),
+  errorCode: text("error_code"),
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -176,6 +191,11 @@ export const insertSettingSchema = createInsertSchema(settings).omit({
   updatedAt: true,
 });
 
+export const insertMessageSchema = createInsertSchema(messages).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -200,3 +220,6 @@ export type InsertPayment = z.infer<typeof insertPaymentSchema>;
 
 export type Setting = typeof settings.$inferSelect;
 export type InsertSetting = z.infer<typeof insertSettingSchema>;
+
+export type Message = typeof messages.$inferSelect;
+export type InsertMessage = z.infer<typeof insertMessageSchema>;

@@ -7,7 +7,8 @@ import {
   FileBarChart, 
   Settings,
   User,
-  Quote
+  Quote,
+  MessageSquare
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -17,6 +18,7 @@ const navigation = [
   { name: "Invoices", href: "/invoices", icon: FileText },
   { name: "Customers", href: "/customers", icon: Users },
   { name: "Payments", href: "/payments", icon: CreditCard },
+  { name: "Text Messaging", href: "/messages", icon: MessageSquare },
   { name: "Reports", href: "/reports", icon: FileBarChart },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
