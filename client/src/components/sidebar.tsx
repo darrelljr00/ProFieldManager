@@ -6,7 +6,8 @@ import {
   CreditCard, 
   FileBarChart, 
   Settings,
-  User
+  User,
+  Quote
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 

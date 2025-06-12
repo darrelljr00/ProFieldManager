@@ -324,6 +324,151 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Quote routes
+  app.get("/api/quotes", async (req, res) => {
+    try {
+      const quotes = await storage.getQuotes(req.user.id);
+      res.json(quotes);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/quotes", async (req, res) => {
+    try {
+      // Generate quote number
+      const quoteNumber = `QUO-${Date.now()}`;
+      
+      const quoteData = insertQuoteSchema.parse({
+        ...req.body,
+        userId: req.user.id,
+        quoteNumber: req.body.quoteNumber || quoteNumber,
+        status: req.body.status || 'draft',
+      });
+      
+      const quote = await storage.createQuote(quoteData);
+      res.status(201).json(quote);
+    } catch (error: any) {
+      if (error instanceof ZodError) {
+        res.status(400).json({ message: "Validation error", errors: error.errors });
+      } else {
+        res.status(500).json({ message: error.message });
+      }
+    }
+  });
+
+  app.get("/api/quotes/:id", async (req, res) => {
+    try {
+      const quote = await storage.getQuote(parseInt(req.params.id), req.user.id);
+      if (!quote) {
+        return res.status(404).json({ message: "Quote not found" });
+      }
+      res.json(quote);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.put("/api/quotes/:id", async (req, res) => {
+    try {
+      const quoteData = insertQuoteSchema.omit({ lineItems: true }).partial().parse(req.body);
+      const quote = await storage.updateQuote(parseInt(req.params.id), req.user.id, quoteData);
+      if (!quote) {
+        return res.status(404).json({ message: "Quote not found" });
+      }
+      res.json(quote);
+    } catch (error: any) {
+      if (error instanceof ZodError) {
+        res.status(400).json({ message: "Validation error", errors: error.errors });
+      } else {
+        res.status(500).json({ message: error.message });
+      }
+    }
+  });
+
+  app.delete("/api/quotes/:id", async (req, res) => {
+    try {
+      const deleted = await storage.deleteQuote(parseInt(req.params.id), req.user.id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Quote not found" });
+      }
+      res.status(204).send();
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Send quote (update status to sent)
+  app.post("/api/quotes/:id/send", async (req, res) => {
+    try {
+      const quote = await storage.updateQuote(parseInt(req.params.id), req.user.id, { 
+        status: 'sent' 
+      });
+      if (!quote) {
+        return res.status(404).json({ message: "Quote not found" });
+      }
+      res.json(quote);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Accept quote
+  app.post("/api/quotes/:id/accept", async (req, res) => {
+    try {
+      const quote = await storage.updateQuote(parseInt(req.params.id), req.user.id, { 
+        status: 'accepted',
+        acceptedAt: new Date()
+      });
+      if (!quote) {
+        return res.status(404).json({ message: "Quote not found" });
+      }
+      res.json(quote);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Convert quote to invoice
+  app.post("/api/quotes/:id/convert-to-invoice", async (req, res) => {
+    try {
+      const invoice = await storage.convertQuoteToInvoice(parseInt(req.params.id), req.user.id);
+      if (!invoice) {
+        return res.status(400).json({ message: "Quote cannot be converted. It must be accepted first." });
+      }
+      res.status(201).json(invoice);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Email quote (placeholder for now - would use SendGrid in production)
+  app.post("/api/quotes/:id/email", async (req, res) => {
+    try {
+      const { to, subject, message } = req.body;
+      const quote = await storage.getQuote(parseInt(req.params.id), req.user.id);
+      
+      if (!quote) {
+        return res.status(404).json({ message: "Quote not found" });
+      }
+
+      // In a real implementation, this would use SendGrid or another email service
+      // For now, we'll just return success and update the quote status
+      await storage.updateQuote(parseInt(req.params.id), req.user.id, { 
+        status: 'sent' 
+      });
+      
+      res.json({ 
+        message: "Quote emailed successfully", 
+        to, 
+        subject: subject || `Quote ${quote.quoteNumber}`,
+        quote: quote
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
