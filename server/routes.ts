@@ -1,7 +1,10 @@
-import type { Express, Request } from "express";
+import express, { type Express, Request } from "express";
 import { createServer, type Server } from "http";
 import Stripe from "stripe";
 import twilio from "twilio";
+import multer from "multer";
+import path from "path";
+import fs from "fs/promises";
 import { storage } from "./storage";
 import { 
   insertCustomerSchema, 
@@ -46,6 +49,39 @@ const twilioClient = twilio(
   process.env.TWILIO_ACCOUNT_SID || "AC123456789abcdef123456789abcdef12",
   process.env.TWILIO_AUTH_TOKEN || "your_auth_token_here"
 );
+
+// Configure multer for file uploads
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: async (req, file, cb) => {
+      const uploadDir = './uploads';
+      try {
+        await fs.mkdir(uploadDir, { recursive: true });
+        cb(null, uploadDir);
+      } catch (error) {
+        cb(error, uploadDir);
+      }
+    },
+    filename: (req, file, cb) => {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      cb(null, 'logo-' + uniqueSuffix + path.extname(file.originalname));
+    }
+  }),
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png|gif|svg/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+    
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'));
+    }
+  },
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  }
+});
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication routes (public)
@@ -710,6 +746,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Error updating settings: " + error.message });
     }
   });
+
+  // Upload company logo
+  app.post("/api/upload/logo", requireAuth, upload.single('logo'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      // Delete old logo if it exists
+      const oldSettings = await storage.getSettings('company');
+      if (oldSettings.logo) {
+        try {
+          await fs.unlink(oldSettings.logo);
+        } catch (error) {
+          // Ignore if file doesn't exist
+        }
+      }
+
+      // Update company settings with new logo path
+      const logoPath = req.file.path;
+      await storage.updateSettings('company', { 
+        ...oldSettings,
+        logo: logoPath 
+      });
+
+      res.json({ 
+        message: "Logo uploaded successfully",
+        logoUrl: `/uploads/${req.file.filename}`
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: "Error uploading logo: " + error.message });
+    }
+  });
+
+  // Serve uploaded files (static files don't need auth for this use case)
+  app.use('/uploads', express.static('./uploads'));
 
   // SMS Messaging endpoints
   
