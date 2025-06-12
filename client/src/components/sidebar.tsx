@@ -14,7 +14,8 @@ import {
   Shield,
   FolderOpen,
   Receipt,
-  UserPlus
+  UserPlus,
+  Calendar
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -24,6 +25,7 @@ import { Badge } from "@/components/ui/badge";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: BarChart3 },
+  { name: "Calendar", href: "/calendar", icon: Calendar },
   { name: "Projects", href: "/projects", icon: FolderOpen },
   { name: "Leads", href: "/leads", icon: UserPlus },
   { name: "Expenses", href: "/expenses", icon: Receipt },

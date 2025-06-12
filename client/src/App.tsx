@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import Dashboard from "@/pages/dashboard";
 import Projects from "@/pages/projects";
 import ProjectDetail from "@/pages/project-detail";
+import CalendarPage from "@/pages/calendar";
 import Leads from "@/pages/leads";
 import Expenses from "@/pages/expenses";
 import Quotes from "@/pages/quotes";
@@ -30,6 +31,7 @@ function AuthenticatedApp() {
         <Switch>
           <Route path="/" component={Dashboard} />
           <Route path="/dashboard" component={Dashboard} />
+          <Route path="/calendar" component={CalendarPage} />
           <Route path="/projects" component={Projects} />
           <Route path="/projects/:id" component={ProjectDetail} />
           <Route path="/leads" component={Leads} />
