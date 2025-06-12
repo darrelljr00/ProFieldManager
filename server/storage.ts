@@ -110,7 +110,7 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .delete(customers)
       .where(and(eq(customers.id, id), eq(customers.userId, userId)));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   async getInvoices(userId: number): Promise<(Invoice & { customer: Customer, lineItems: InvoiceLineItem[] })[]> {
@@ -172,8 +172,11 @@ export class DatabaseStorage implements IStorage {
       await db
         .insert(invoiceLineItems)
         .values(lineItems.map(item => ({
-          ...item,
           invoiceId: newInvoice.id,
+          description: item.description,
+          quantity: item.quantity.toString(),
+          rate: item.rate.toString(),
+          amount: item.amount.toString(),
         })));
     }
 

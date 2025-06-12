@@ -1,13 +1,26 @@
-import type { Express } from "express";
+import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import Stripe from "stripe";
 import { storage } from "./storage";
 import { insertCustomerSchema, insertInvoiceSchema } from "@shared/schema";
 import { ZodError } from "zod";
 
-// Initialize Stripe
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: "2024-06-20",
+// Extend Express Request type to include user
+declare global {
+  namespace Express {
+    interface Request {
+      user: {
+        id: number;
+        username: string;
+        email: string;
+      };
+    }
+  }
+}
+
+// Initialize Stripe with test key for development
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_4eC39HqLyjWDarjtT1zdp7dc", {
+  apiVersion: "2025-05-28.basil",
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
