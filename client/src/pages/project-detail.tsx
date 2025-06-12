@@ -509,22 +509,62 @@ export default function ProjectDetail() {
             {files.map((file) => (
               <Card key={file.id}>
                 <CardContent className="p-4">
-                  <div className="flex items-start space-x-3">
-                    <div className="text-2xl">{getFileIcon(file.fileType)}</div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="text-sm font-medium truncate">{file.originalName}</h4>
-                      <p className="text-xs text-gray-500">
-                        {(file.fileSize / 1024 / 1024).toFixed(2)} MB
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {new Date(file.createdAt).toLocaleDateString()}
-                      </p>
+                  {file.fileType === "image" ? (
+                    <div className="space-y-3">
+                      <div className="aspect-video rounded-lg overflow-hidden bg-gray-100">
+                        <img 
+                          src={`/${file.filePath}`} 
+                          alt={file.originalName}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                            if (fallback) {
+                              fallback.style.display = 'flex';
+                            }
+                          }}
+                        />
+                        <div className="hidden w-full h-full items-center justify-center text-gray-400">
+                          <FileText className="h-8 w-8" />
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-sm font-medium truncate">{file.originalName}</h4>
+                          <p className="text-xs text-gray-500">
+                            {(file.fileSize / 1024 / 1024).toFixed(2)} MB • {new Date(file.createdAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <Button variant="ghost" size="sm" asChild>
+                          <a href={`/${file.filePath}`} download={file.originalName}>
+                            <Download className="h-4 w-4" />
+                          </a>
+                        </Button>
+                      </div>
+                      {file.description && (
+                        <p className="text-xs text-gray-600">{file.description}</p>
+                      )}
                     </div>
-                    <Button variant="ghost" size="sm">
-                      <Download className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  {file.description && (
+                  ) : (
+                    <div className="flex items-start space-x-3">
+                      <div className="text-2xl">{getFileIcon(file.fileType)}</div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-sm font-medium truncate">{file.originalName}</h4>
+                        <p className="text-xs text-gray-500">
+                          {(file.fileSize / 1024 / 1024).toFixed(2)} MB
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {new Date(file.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <Button variant="ghost" size="sm" asChild>
+                        <a href={`/${file.filePath}`} download={file.originalName}>
+                          <Download className="h-4 w-4" />
+                        </a>
+                      </Button>
+                    </div>
+                  )}
+                  {file.fileType !== "image" && file.description && (
                     <p className="text-xs text-gray-600 mt-2">{file.description}</p>
                   )}
                 </CardContent>
