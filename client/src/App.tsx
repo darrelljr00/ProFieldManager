@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Sidebar } from "@/components/sidebar";
+import { lazy, Suspense } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import Dashboard from "@/pages/dashboard";
 import Projects from "@/pages/projects";
@@ -15,7 +16,7 @@ import Quotes from "@/pages/quotes";
 import Invoices from "@/pages/invoices";
 import Customers from "@/pages/customers";
 import Payments from "@/pages/payments";
-import Messages from "@/pages/messages";
+import InternalMessages from "@/pages/internal-messages";
 import Users from "@/pages/users";
 import Settings from "@/pages/settings";
 import Login from "@/pages/login";
@@ -40,7 +41,7 @@ function AuthenticatedApp() {
           <Route path="/invoices" component={Invoices} />
           <Route path="/customers" component={Customers} />
           <Route path="/payments" component={Payments} />
-          <Route path="/internal-messages" component={lazy(() => import("./pages/internal-messages"))} />
+          <Route path="/internal-messages" component={InternalMessages} />
           {isAdmin && <Route path="/users" component={Users} />}
           <Route path="/settings" component={Settings} />
           <Route component={NotFound} />

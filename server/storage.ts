@@ -1405,6 +1405,241 @@ export class DatabaseStorage implements IStorage {
 
     return newProject;
   }
+
+  // Internal messaging system implementation
+  async getInternalMessages(userId: number): Promise<(InternalMessage & { sender: User, recipients: (InternalMessageRecipient & { user: User })[] })[]> {
+    const result = await pool.query(`
+      SELECT 
+        m.*,
+        s.id as sender_id, s.username as sender_username, s.first_name as sender_first_name, 
+        s.last_name as sender_last_name, s.email as sender_email, s.role as sender_role,
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'id', r.id,
+              'recipientId', r.recipient_id,
+              'isRead', r.is_read,
+              'readAt', r.read_at,
+              'user', json_build_object(
+                'id', u.id,
+                'username', u.username,
+                'firstName', u.first_name,
+                'lastName', u.last_name,
+                'email', u.email,
+                'role', u.role
+              )
+            )
+          ) FILTER (WHERE r.id IS NOT NULL), '[]'
+        ) as recipients
+      FROM internal_messages m
+      JOIN users s ON m.sender_id = s.id
+      LEFT JOIN internal_message_recipients r ON m.id = r.message_id
+      LEFT JOIN users u ON r.recipient_id = u.id
+      WHERE m.sender_id = $1 OR r.recipient_id = $1
+      GROUP BY m.id, s.id, s.username, s.first_name, s.last_name, s.email, s.role
+      ORDER BY m.created_at DESC
+    `, [userId]);
+
+    return result.rows.map(row => ({
+      id: row.id,
+      senderId: row.sender_id,
+      subject: row.subject,
+      content: row.content,
+      messageType: row.message_type,
+      priority: row.priority,
+      parentMessageId: row.parent_message_id,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      sender: {
+        id: row.sender_id,
+        username: row.sender_username,
+        firstName: row.sender_first_name,
+        lastName: row.sender_last_name,
+        email: row.sender_email,
+        role: row.sender_role
+      },
+      recipients: row.recipients
+    }));
+  }
+
+  async getInternalMessage(id: number, userId: number): Promise<(InternalMessage & { sender: User, recipients: (InternalMessageRecipient & { user: User })[] }) | undefined> {
+    const result = await pool.query(`
+      SELECT 
+        m.*,
+        s.id as sender_id, s.username as sender_username, s.first_name as sender_first_name, 
+        s.last_name as sender_last_name, s.email as sender_email, s.role as sender_role,
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'id', r.id,
+              'recipientId', r.recipient_id,
+              'isRead', r.is_read,
+              'readAt', r.read_at,
+              'user', json_build_object(
+                'id', u.id,
+                'username', u.username,
+                'firstName', u.first_name,
+                'lastName', u.last_name,
+                'email', u.email,
+                'role', u.role
+              )
+            )
+          ) FILTER (WHERE r.id IS NOT NULL), '[]'
+        ) as recipients
+      FROM internal_messages m
+      JOIN users s ON m.sender_id = s.id
+      LEFT JOIN internal_message_recipients r ON m.id = r.message_id
+      LEFT JOIN users u ON r.recipient_id = u.id
+      WHERE m.id = $1 AND (m.sender_id = $2 OR r.recipient_id = $2)
+      GROUP BY m.id, s.id, s.username, s.first_name, s.last_name, s.email, s.role
+    `, [id, userId]);
+
+    const row = result.rows[0];
+    if (!row) return undefined;
+
+    return {
+      id: row.id,
+      senderId: row.sender_id,
+      subject: row.subject,
+      content: row.content,
+      messageType: row.message_type,
+      priority: row.priority,
+      parentMessageId: row.parent_message_id,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      sender: {
+        id: row.sender_id,
+        username: row.sender_username,
+        firstName: row.sender_first_name,
+        lastName: row.sender_last_name,
+        email: row.sender_email,
+        role: row.sender_role
+      },
+      recipients: row.recipients
+    };
+  }
+
+  async createInternalMessage(message: InsertInternalMessage, recipientIds: number[]): Promise<InternalMessage> {
+    const messageResult = await pool.query(`
+      INSERT INTO internal_messages (sender_id, subject, content, message_type, priority, parent_message_id)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING *
+    `, [message.senderId, message.subject, message.content, message.messageType, message.priority, message.parentMessageId]);
+
+    const newMessage = messageResult.rows[0];
+
+    // Insert recipients
+    for (const recipientId of recipientIds) {
+      await pool.query(`
+        INSERT INTO internal_message_recipients (message_id, recipient_id)
+        VALUES ($1, $2)
+      `, [newMessage.id, recipientId]);
+    }
+
+    return newMessage;
+  }
+
+  async markMessageAsRead(messageId: number, userId: number): Promise<boolean> {
+    const result = await pool.query(`
+      UPDATE internal_message_recipients 
+      SET is_read = true, read_at = NOW()
+      WHERE message_id = $1 AND recipient_id = $2
+    `, [messageId, userId]);
+
+    return (result.rowCount || 0) > 0;
+  }
+
+  async deleteInternalMessage(id: number, userId: number): Promise<boolean> {
+    const result = await pool.query(`
+      DELETE FROM internal_messages 
+      WHERE id = $1 AND sender_id = $2
+    `, [id, userId]);
+
+    return (result.rowCount || 0) > 0;
+  }
+
+  // Message groups
+  async getMessageGroups(userId: number): Promise<(MessageGroup & { members: (MessageGroupMember & { user: User })[] })[]> {
+    const result = await pool.query(`
+      SELECT 
+        g.*,
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'id', m.id,
+              'userId', m.user_id,
+              'role', m.role,
+              'joinedAt', m.joined_at,
+              'user', json_build_object(
+                'id', u.id,
+                'username', u.username,
+                'firstName', u.first_name,
+                'lastName', u.last_name,
+                'email', u.email,
+                'role', u.role
+              )
+            )
+          ) FILTER (WHERE m.id IS NOT NULL), '[]'
+        ) as members
+      FROM message_groups g
+      LEFT JOIN message_group_members m ON g.id = m.group_id
+      LEFT JOIN users u ON m.user_id = u.id
+      WHERE g.created_by = $1 OR m.user_id = $1
+      GROUP BY g.id
+      ORDER BY g.created_at DESC
+    `, [userId]);
+
+    return result.rows.map(row => ({
+      id: row.id,
+      name: row.name,
+      description: row.description,
+      createdBy: row.created_by,
+      isActive: row.is_active,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      members: row.members
+    }));
+  }
+
+  async createMessageGroup(group: InsertMessageGroup): Promise<MessageGroup> {
+    const result = await pool.query(`
+      INSERT INTO message_groups (name, description, created_by)
+      VALUES ($1, $2, $3)
+      RETURNING *
+    `, [group.name, group.description, group.createdBy]);
+
+    return result.rows[0];
+  }
+
+  async addUserToGroup(groupId: number, userId: number, role: string = 'member'): Promise<MessageGroupMember> {
+    const result = await pool.query(`
+      INSERT INTO message_group_members (group_id, user_id, role)
+      VALUES ($1, $2, $3)
+      RETURNING *
+    `, [groupId, userId, role]);
+
+    return result.rows[0];
+  }
+
+  async removeUserFromGroup(groupId: number, userId: number): Promise<boolean> {
+    const result = await pool.query(`
+      DELETE FROM message_group_members 
+      WHERE group_id = $1 AND user_id = $2
+    `, [groupId, userId]);
+
+    return (result.rowCount || 0) > 0;
+  }
+
+  async sendGroupMessage(groupId: number, message: InsertInternalMessage): Promise<InternalMessage> {
+    // Get all group members
+    const membersResult = await pool.query(`
+      SELECT user_id FROM message_group_members WHERE group_id = $1
+    `, [groupId]);
+
+    const recipientIds = membersResult.rows.map(row => row.user_id);
+    
+    return this.createInternalMessage(message, recipientIds);
+  }
 }
 
 export const storage = new DatabaseStorage();
