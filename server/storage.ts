@@ -236,19 +236,22 @@ export class DatabaseStorage implements IStorage {
     };
 
     stats.forEach(stat => {
+      const total = parseFloat(stat.total.toString()) || 0;
+      const count = parseInt(stat.count.toString()) || 0;
+      
       switch (stat.status) {
         case 'paid':
-          result.paidInvoices = stat.count;
-          result.paidValue = stat.total;
-          result.totalRevenue += stat.total;
+          result.paidInvoices = count;
+          result.paidValue = total;
+          result.totalRevenue += total;
           break;
         case 'sent':
-          result.pendingInvoices = stat.count;
-          result.pendingValue = stat.total;
+          result.pendingInvoices = count;
+          result.pendingValue = total;
           break;
         case 'overdue':
-          result.overdueInvoices = stat.count;
-          result.overdueValue = stat.total;
+          result.overdueInvoices = count;
+          result.overdueValue = total;
           break;
       }
     });
