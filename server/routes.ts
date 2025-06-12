@@ -1101,7 +1101,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/projects", requireAuth, async (req, res) => {
     try {
       const userId = req.user!.id;
-      const projectData = { ...req.body, userId };
+      const { startDate, endDate, deadline, ...otherData } = req.body;
+      
+      const projectData = {
+        ...otherData,
+        userId,
+        startDate: startDate ? new Date(startDate) : null,
+        endDate: endDate ? new Date(endDate) : null,
+        deadline: deadline ? new Date(deadline) : null,
+      };
+      
       const project = await storage.createProject(projectData);
       res.status(201).json(project);
     } catch (error: any) {
@@ -1191,7 +1200,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const projectId = parseInt(req.params.id);
       const userId = req.user!.id;
-      const taskData = { ...req.body, projectId, createdById: userId };
+      const { dueDate, ...otherData } = req.body;
+      
+      const taskData = {
+        ...otherData,
+        projectId,
+        createdById: userId,
+        dueDate: dueDate ? new Date(dueDate) : null,
+      };
+      
       const task = await storage.createTask(taskData);
       res.status(201).json(task);
     } catch (error: any) {
@@ -1276,7 +1293,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const projectId = parseInt(req.params.id);
       const userId = req.user!.id;
-      const timeEntryData = { ...req.body, projectId, userId };
+      const { date, ...otherData } = req.body;
+      
+      const timeEntryData = {
+        ...otherData,
+        projectId,
+        userId,
+        date: date ? new Date(date) : new Date(),
+      };
+      
       const timeEntry = await storage.createTimeEntry(timeEntryData);
       res.status(201).json(timeEntry);
     } catch (error: any) {
