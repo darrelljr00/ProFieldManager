@@ -49,6 +49,14 @@ type EmailSettings = {
   fromName: string;
 };
 
+type TwilioSettings = {
+  twilioEnabled: boolean;
+  twilioAccountSid: string;
+  twilioAuthToken: string;
+  twilioPhoneNumber: string;
+  webhookUrl: string;
+};
+
 export default function Settings() {
   const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
@@ -64,6 +72,10 @@ export default function Settings() {
 
   const { data: emailSettings, isLoading: emailLoading } = useQuery<EmailSettings>({
     queryKey: ["/api/settings/email"],
+  });
+
+  const { data: twilioSettings, isLoading: twilioLoading } = useQuery<TwilioSettings>({
+    queryKey: ["/api/settings/twilio"],
   });
 
   const paymentMutation = useMutation({
@@ -118,6 +130,25 @@ export default function Settings() {
       toast({
         title: "Error",
         description: error.message || "Failed to save email settings",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const twilioMutation = useMutation({
+    mutationFn: (data: Partial<TwilioSettings>) =>
+      apiRequest("PUT", "/api/settings/twilio", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/twilio"] });
+      toast({
+        title: "Success",
+        description: "Twilio settings saved successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save Twilio settings",
         variant: "destructive",
       });
     },
@@ -181,7 +212,20 @@ export default function Settings() {
     emailMutation.mutate(data);
   };
 
-  if (paymentLoading || companyLoading || emailLoading) {
+  const handleTwilioSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const data: Partial<TwilioSettings> = {
+      twilioEnabled: formData.get('twilioEnabled') === 'on',
+      twilioAccountSid: formData.get('twilioAccountSid') as string,
+      twilioAuthToken: formData.get('twilioAuthToken') as string,
+      twilioPhoneNumber: formData.get('twilioPhoneNumber') as string,
+      webhookUrl: formData.get('webhookUrl') as string,
+    };
+    twilioMutation.mutate(data);
+  };
+
+  if (paymentLoading || companyLoading || emailLoading || twilioLoading) {
     return (
       <div className="p-6">
         <div className="space-y-4">
@@ -200,10 +244,11 @@ export default function Settings() {
       </div>
 
       <Tabs defaultValue="payment" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="payment">Payment Processing</TabsTrigger>
           <TabsTrigger value="company">Company Info</TabsTrigger>
           <TabsTrigger value="email">Email Settings</TabsTrigger>
+          <TabsTrigger value="sms">SMS Settings</TabsTrigger>
         </TabsList>
 
         <TabsContent value="payment">
@@ -636,6 +681,113 @@ export default function Settings() {
                   <Button type="submit" disabled={emailMutation.isPending}>
                     <Save className="h-4 w-4 mr-2" />
                     {emailMutation.isPending ? "Saving..." : "Save Email Settings"}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="sms">
+          <Card>
+            <CardHeader>
+              <CardTitle>SMS Settings</CardTitle>
+              <CardDescription>
+                Configure Twilio for SMS messaging functionality
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleTwilioSubmit} className="space-y-6">
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    name="twilioEnabled"
+                    id="twilioEnabled"
+                    defaultChecked={twilioSettings?.twilioEnabled}
+                  />
+                  <Label htmlFor="twilioEnabled">Enable Twilio SMS</Label>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="twilioAccountSid">Account SID</Label>
+                    <div className="relative">
+                      <Input
+                        id="twilioAccountSid"
+                        name="twilioAccountSid"
+                        type={showSecrets.twilioAccountSid ? "text" : "password"}
+                        placeholder="AC123456789abcdef123456789abcdef12"
+                        defaultValue={twilioSettings?.twilioAccountSid}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-1 top-1/2 -translate-y-1/2"
+                        onClick={() => toggleSecretVisibility('twilioAccountSid')}
+                      >
+                        {showSecrets.twilioAccountSid ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="twilioAuthToken">Auth Token</Label>
+                    <div className="relative">
+                      <Input
+                        id="twilioAuthToken"
+                        name="twilioAuthToken"
+                        type={showSecrets.twilioAuthToken ? "text" : "password"}
+                        placeholder="your_auth_token_here"
+                        defaultValue={twilioSettings?.twilioAuthToken}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-1 top-1/2 -translate-y-1/2"
+                        onClick={() => toggleSecretVisibility('twilioAuthToken')}
+                      >
+                        {showSecrets.twilioAuthToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="twilioPhoneNumber">Twilio Phone Number</Label>
+                    <Input
+                      id="twilioPhoneNumber"
+                      name="twilioPhoneNumber"
+                      placeholder="+15551234567"
+                      defaultValue={twilioSettings?.twilioPhoneNumber}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="webhookUrl">Webhook URL</Label>
+                    <Input
+                      id="webhookUrl"
+                      name="webhookUrl"
+                      placeholder="https://yourapp.com/api/messages/webhook"
+                      defaultValue={twilioSettings?.webhookUrl}
+                    />
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h4 className="font-medium text-blue-900 mb-2">Setup Instructions:</h4>
+                  <ol className="text-sm text-blue-800 space-y-1">
+                    <li>1. Create a Twilio account at <code>twilio.com</code></li>
+                    <li>2. Find your Account SID and Auth Token in the Console Dashboard</li>
+                    <li>3. Purchase a phone number from Twilio</li>
+                    <li>4. Configure your webhook URL in Twilio Console → Phone Numbers → Manage → Active Numbers</li>
+                    <li>5. Set webhook URL to: <code>/api/messages/webhook</code></li>
+                  </ol>
+                </div>
+
+                <div className="flex justify-end">
+                  <Button type="submit" disabled={twilioMutation.isPending}>
+                    <Save className="h-4 w-4 mr-2" />
+                    {twilioMutation.isPending ? "Saving..." : "Save SMS Settings"}
                   </Button>
                 </div>
               </form>
