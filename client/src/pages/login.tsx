@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -37,10 +37,16 @@ export default function LoginPage() {
   const [showRegisterDialog, setShowRegisterDialog] = useState(false);
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const loginMutation = useMutation({
-    mutationFn: (data: LoginData) => apiRequest("POST", "/api/auth/login", data),
+    mutationFn: async (data: LoginData) => {
+      const response = await apiRequest("POST", "/api/auth/login", data);
+      return response.json();
+    },
     onSuccess: (response) => {
+      // Invalidate auth queries to refresh user state
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
       toast({
         title: "Login Successful",
         description: `Welcome back, ${response.user.firstName || response.user.username}!`,
@@ -57,8 +63,13 @@ export default function LoginPage() {
   });
 
   const registerMutation = useMutation({
-    mutationFn: (data: RegisterData) => apiRequest("POST", "/api/auth/register", data),
+    mutationFn: async (data: RegisterData) => {
+      const response = await apiRequest("POST", "/api/auth/register", data);
+      return response.json();
+    },
     onSuccess: (response) => {
+      // Invalidate auth queries to refresh user state
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
       toast({
         title: "Registration Successful",
         description: `Welcome, ${response.user.firstName || response.user.username}!`,
