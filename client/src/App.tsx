@@ -40,7 +40,7 @@ function AuthenticatedApp() {
           <Route path="/invoices" component={Invoices} />
           <Route path="/customers" component={Customers} />
           <Route path="/payments" component={Payments} />
-          <Route path="/messages" component={Messages} />
+          <Route path="/internal-messages" component={lazy(() => import("./pages/internal-messages"))} />
           {isAdmin && <Route path="/users" component={Users} />}
           <Route path="/settings" component={Settings} />
           <Route component={NotFound} />

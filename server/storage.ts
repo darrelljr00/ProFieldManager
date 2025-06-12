@@ -2,6 +2,7 @@ import {
   users, customers, invoices, invoiceLineItems, payments, quotes, quoteLineItems, settings, messages,
   userSessions, userPermissions, projects, projectUsers, tasks, taskComments, projectFiles, timeEntries,
   expenses, expenseCategories, expenseReports, expenseReportItems, leads, calendarJobs,
+  internalMessages, internalMessageRecipients, messageGroups, messageGroupMembers,
   type User, type InsertUser, type Customer, type InsertCustomer,
   type Invoice, type InsertInvoice, type InvoiceLineItem, type InsertInvoiceLineItem,
   type Payment, type InsertPayment, type Quote, type InsertQuote, type QuoteLineItem,
@@ -12,7 +13,9 @@ import {
   type ProjectFile, type InsertProjectFile, type TimeEntry, type InsertTimeEntry,
   type Expense, type InsertExpense, type ExpenseCategory, type InsertExpenseCategory,
   type ExpenseReport, type InsertExpenseReport, type ExpenseReportItem, type InsertExpenseReportItem,
-  type Lead, type InsertLead, type CalendarJob, type InsertCalendarJob
+  type Lead, type InsertLead, type CalendarJob, type InsertCalendarJob,
+  type InternalMessage, type InsertInternalMessage, type InternalMessageRecipient, type InsertInternalMessageRecipient,
+  type MessageGroup, type InsertMessageGroup, type MessageGroupMember, type InsertMessageGroupMember
 } from "@shared/schema";
 import { db, pool } from "./db";
 import { eq, desc, and, sql, or, inArray } from "drizzle-orm";
@@ -152,6 +155,20 @@ export interface IStorage {
   updateCalendarJob(id: number, userId: number, job: Partial<InsertCalendarJob>): Promise<CalendarJob | undefined>;
   deleteCalendarJob(id: number, userId: number): Promise<boolean>;
   convertJobToProject(jobId: number, userId: number, projectData: Partial<InsertProject>): Promise<Project | undefined>;
+
+  // Internal messaging system
+  getInternalMessages(userId: number): Promise<(InternalMessage & { sender: User, recipients: (InternalMessageRecipient & { user: User })[] })[]>;
+  getInternalMessage(id: number, userId: number): Promise<(InternalMessage & { sender: User, recipients: (InternalMessageRecipient & { user: User })[] }) | undefined>;
+  createInternalMessage(message: InsertInternalMessage, recipientIds: number[]): Promise<InternalMessage>;
+  markMessageAsRead(messageId: number, userId: number): Promise<boolean>;
+  deleteInternalMessage(id: number, userId: number): Promise<boolean>;
+  
+  // Message groups
+  getMessageGroups(userId: number): Promise<(MessageGroup & { members: (MessageGroupMember & { user: User })[] })[]>;
+  createMessageGroup(group: InsertMessageGroup): Promise<MessageGroup>;
+  addUserToGroup(groupId: number, userId: number, role?: string): Promise<MessageGroupMember>;
+  removeUserFromGroup(groupId: number, userId: number): Promise<boolean>;
+  sendGroupMessage(groupId: number, message: InsertInternalMessage): Promise<InternalMessage>;
 }
 
 export class DatabaseStorage implements IStorage {
