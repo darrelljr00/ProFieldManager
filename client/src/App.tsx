@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Sidebar } from "@/components/sidebar";
+import { useAuth } from "@/hooks/useAuth";
 import Dashboard from "@/pages/dashboard";
 import Quotes from "@/pages/quotes";
 import Invoices from "@/pages/invoices";
@@ -12,9 +13,12 @@ import Payments from "@/pages/payments";
 import Messages from "@/pages/messages";
 import Users from "@/pages/users";
 import Settings from "@/pages/settings";
+import Login from "@/pages/login";
 import NotFound from "@/pages/not-found";
 
-function Router() {
+function AuthenticatedApp() {
+  const { isAdmin } = useAuth();
+  
   return (
     <div className="flex h-screen bg-gray-50">
       <Sidebar />
@@ -27,12 +31,35 @@ function Router() {
           <Route path="/customers" component={Customers} />
           <Route path="/payments" component={Payments} />
           <Route path="/messages" component={Messages} />
-          <Route path="/users" component={Users} />
+          {isAdmin && <Route path="/users" component={Users} />}
           <Route path="/settings" component={Settings} />
           <Route component={NotFound} />
         </Switch>
       </div>
     </div>
+  );
+}
+
+function Router() {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
+  return (
+    <Switch>
+      <Route path="/login" component={Login} />
+      {isAuthenticated ? (
+        <Route path="*" component={AuthenticatedApp} />
+      ) : (
+        <Route path="*" component={Login} />
+      )}
+    </Switch>
   );
 }
 

@@ -9,9 +9,15 @@ import {
   User,
   Quote,
   MessageSquare,
-  UserCog
+  UserCog,
+  LogOut,
+  Shield
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: BarChart3 },
@@ -27,6 +33,33 @@ const navigation = [
 
 export function Sidebar() {
   const [location] = useLocation();
+  const { user, logout, isAdmin } = useAuth();
+
+  const getInitials = (firstName?: string, lastName?: string, username?: string) => {
+    if (firstName && lastName) {
+      return `${firstName[0]}${lastName[0]}`.toUpperCase();
+    }
+    if (username) {
+      return username.slice(0, 2).toUpperCase();
+    }
+    return "U";
+  };
+
+  const getRoleBadge = (role: string) => {
+    const colors: Record<string, "default" | "destructive" | "outline" | "secondary"> = {
+      admin: "destructive",
+      manager: "secondary",
+      user: "outline"
+    };
+    return <Badge variant={colors[role] || "outline"} className="text-xs">{role}</Badge>;
+  };
+
+  const filteredNavigation = navigation.filter(item => {
+    if (item.href === "/users") {
+      return isAdmin;
+    }
+    return true;
+  });
 
   return (
     <div className="w-64 bg-white shadow-lg flex flex-col">
@@ -39,9 +72,37 @@ export function Sidebar() {
         </div>
       </div>
       
+      {/* User Info Section */}
+      {user && (
+        <div className="p-4 border-b border-gray-200">
+          <div className="flex items-center space-x-3">
+            <Avatar className="h-10 w-10">
+              <AvatarFallback className="bg-blue-100 text-blue-600">
+                {getInitials(user.firstName, user.lastName, user.username)}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-medium text-gray-900 truncate">
+                  {user.firstName && user.lastName 
+                    ? `${user.firstName} ${user.lastName}`
+                    : user.username
+                  }
+                </p>
+                {isAdmin && <Shield className="h-3 w-3 text-red-500" />}
+              </div>
+              <div className="flex items-center gap-2 mt-1">
+                <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                {getRoleBadge(user.role)}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <nav className="flex-1 p-4">
         <ul className="space-y-2">
-          {navigation.map((item) => {
+          {filteredNavigation.map((item) => {
             const isActive = location === item.href || (item.href === "/dashboard" && location === "/");
             return (
               <li key={item.name}>
@@ -62,16 +123,16 @@ export function Sidebar() {
         </ul>
       </nav>
       
+      {/* Logout Button */}
       <div className="p-4 border-t border-gray-200">
-        <div className="flex items-center">
-          <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-            <User className="w-4 h-4" />
-          </div>
-          <div className="ml-3">
-            <p className="text-sm font-medium text-gray-900">Demo User</p>
-            <p className="text-xs text-gray-500">demo@example.com</p>
-          </div>
-        </div>
+        <Button 
+          variant="ghost" 
+          className="w-full justify-start text-gray-600 hover:text-gray-900"
+          onClick={logout}
+        >
+          <LogOut className="mr-3 h-5 w-5" />
+          Sign Out
+        </Button>
       </div>
     </div>
   );
