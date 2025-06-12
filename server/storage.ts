@@ -1,6 +1,7 @@
 import { 
   users, customers, invoices, invoiceLineItems, payments, quotes, quoteLineItems, settings, messages,
   userSessions, userPermissions, projects, projectUsers, tasks, taskComments, projectFiles, timeEntries,
+  expenses, expenseCategories, expenseReports, expenseReportItems,
   type User, type InsertUser, type Customer, type InsertCustomer,
   type Invoice, type InsertInvoice, type InvoiceLineItem, type InsertInvoiceLineItem,
   type Payment, type InsertPayment, type Quote, type InsertQuote, type QuoteLineItem,
@@ -8,7 +9,9 @@ import {
   type UserSession, type InsertUserSession, type UserPermission, type InsertUserPermission,
   type Project, type InsertProject, type ProjectUser, type InsertProjectUser,
   type Task, type InsertTask, type TaskComment, type InsertTaskComment,
-  type ProjectFile, type InsertProjectFile, type TimeEntry, type InsertTimeEntry
+  type ProjectFile, type InsertProjectFile, type TimeEntry, type InsertTimeEntry,
+  type Expense, type InsertExpense, type ExpenseCategory, type InsertExpenseCategory,
+  type ExpenseReport, type InsertExpenseReport, type ExpenseReportItem, type InsertExpenseReportItem
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, or, inArray } from "drizzle-orm";
@@ -105,6 +108,30 @@ export interface IStorage {
   getTimeEntries(projectId: number, userId: number): Promise<(TimeEntry & { user: User, task?: Task })[]>;
   updateTimeEntry(id: number, userId: number, timeEntry: Partial<InsertTimeEntry>): Promise<TimeEntry | undefined>;
   deleteTimeEntry(id: number, userId: number): Promise<boolean>;
+
+  // Expense management methods
+  getExpenses(userId: number): Promise<(Expense & { project?: Project })[]>;
+  getExpense(id: number, userId: number): Promise<Expense | undefined>;
+  createExpense(expense: InsertExpense): Promise<Expense>;
+  updateExpense(id: number, userId: number, expense: Partial<InsertExpense>): Promise<Expense | undefined>;
+  deleteExpense(id: number, userId: number): Promise<boolean>;
+  approveExpense(id: number, approvedBy: number): Promise<boolean>;
+  
+  // Expense categories
+  getExpenseCategories(userId: number): Promise<ExpenseCategory[]>;
+  createExpenseCategory(category: InsertExpenseCategory): Promise<ExpenseCategory>;
+  updateExpenseCategory(id: number, userId: number, category: Partial<InsertExpenseCategory>): Promise<ExpenseCategory | undefined>;
+  deleteExpenseCategory(id: number, userId: number): Promise<boolean>;
+  
+  // Expense reports
+  getExpenseReports(userId: number): Promise<(ExpenseReport & { expenses?: Expense[] })[]>;
+  getExpenseReport(id: number, userId: number): Promise<(ExpenseReport & { expenses: Expense[] }) | undefined>;
+  createExpenseReport(report: InsertExpenseReport): Promise<ExpenseReport>;
+  updateExpenseReport(id: number, userId: number, report: Partial<InsertExpenseReport>): Promise<ExpenseReport | undefined>;
+  submitExpenseReport(id: number, userId: number): Promise<boolean>;
+  approveExpenseReport(id: number, approvedBy: number): Promise<boolean>;
+  addExpenseToReport(reportId: number, expenseId: number): Promise<boolean>;
+  removeExpenseFromReport(reportId: number, expenseId: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -931,6 +958,260 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .delete(timeEntries)
       .where(and(eq(timeEntries.id, id), eq(timeEntries.userId, userId)));
+
+    return result.rowCount > 0;
+  }
+
+  // Expense management methods
+  async getExpenses(userId: number): Promise<(Expense & { project?: Project })[]> {
+    const expenseList = await db
+      .select({
+        expense: expenses,
+        project: projects,
+      })
+      .from(expenses)
+      .leftJoin(projects, eq(expenses.projectId, projects.id))
+      .where(eq(expenses.userId, userId))
+      .orderBy(desc(expenses.expenseDate));
+
+    return expenseList.map(row => ({
+      ...row.expense,
+      project: row.project || undefined,
+    }));
+  }
+
+  async getExpense(id: number, userId: number): Promise<Expense | undefined> {
+    const [expense] = await db
+      .select()
+      .from(expenses)
+      .where(and(eq(expenses.id, id), eq(expenses.userId, userId)));
+
+    return expense;
+  }
+
+  async createExpense(expense: InsertExpense): Promise<Expense> {
+    const [newExpense] = await db
+      .insert(expenses)
+      .values(expense)
+      .returning();
+
+    return newExpense;
+  }
+
+  async updateExpense(id: number, userId: number, expense: Partial<InsertExpense>): Promise<Expense | undefined> {
+    const [updatedExpense] = await db
+      .update(expenses)
+      .set({ ...expense, updatedAt: new Date() })
+      .where(and(eq(expenses.id, id), eq(expenses.userId, userId)))
+      .returning();
+
+    return updatedExpense;
+  }
+
+  async deleteExpense(id: number, userId: number): Promise<boolean> {
+    const result = await db
+      .delete(expenses)
+      .where(and(eq(expenses.id, id), eq(expenses.userId, userId)));
+
+    return result.rowCount > 0;
+  }
+
+  async approveExpense(id: number, approvedBy: number): Promise<boolean> {
+    const [updatedExpense] = await db
+      .update(expenses)
+      .set({
+        status: "approved",
+        approvedBy,
+        approvedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(expenses.id, id))
+      .returning();
+
+    return !!updatedExpense;
+  }
+
+  // Expense categories
+  async getExpenseCategories(userId: number): Promise<ExpenseCategory[]> {
+    return await db
+      .select()
+      .from(expenseCategories)
+      .where(or(eq(expenseCategories.userId, userId), eq(expenseCategories.isDefault, true)))
+      .orderBy(expenseCategories.name);
+  }
+
+  async createExpenseCategory(category: InsertExpenseCategory): Promise<ExpenseCategory> {
+    const [newCategory] = await db
+      .insert(expenseCategories)
+      .values(category)
+      .returning();
+
+    return newCategory;
+  }
+
+  async updateExpenseCategory(id: number, userId: number, category: Partial<InsertExpenseCategory>): Promise<ExpenseCategory | undefined> {
+    const [updatedCategory] = await db
+      .update(expenseCategories)
+      .set(category)
+      .where(and(eq(expenseCategories.id, id), eq(expenseCategories.userId, userId)))
+      .returning();
+
+    return updatedCategory;
+  }
+
+  async deleteExpenseCategory(id: number, userId: number): Promise<boolean> {
+    const result = await db
+      .delete(expenseCategories)
+      .where(and(eq(expenseCategories.id, id), eq(expenseCategories.userId, userId)));
+
+    return result.rowCount > 0;
+  }
+
+  // Expense reports
+  async getExpenseReports(userId: number): Promise<(ExpenseReport & { expenses?: Expense[] })[]> {
+    const reports = await db
+      .select()
+      .from(expenseReports)
+      .where(eq(expenseReports.userId, userId))
+      .orderBy(desc(expenseReports.createdAt));
+
+    // Get expenses for each report
+    const reportsWithExpenses = await Promise.all(
+      reports.map(async (report) => {
+        const reportExpenses = await db
+          .select({ expense: expenses })
+          .from(expenseReportItems)
+          .leftJoin(expenses, eq(expenseReportItems.expenseId, expenses.id))
+          .where(eq(expenseReportItems.reportId, report.id));
+
+        return {
+          ...report,
+          expenses: reportExpenses.map(item => item.expense).filter(Boolean) as Expense[],
+        };
+      })
+    );
+
+    return reportsWithExpenses;
+  }
+
+  async getExpenseReport(id: number, userId: number): Promise<(ExpenseReport & { expenses: Expense[] }) | undefined> {
+    const [report] = await db
+      .select()
+      .from(expenseReports)
+      .where(and(eq(expenseReports.id, id), eq(expenseReports.userId, userId)));
+
+    if (!report) return undefined;
+
+    const reportExpenses = await db
+      .select({ expense: expenses })
+      .from(expenseReportItems)
+      .leftJoin(expenses, eq(expenseReportItems.expenseId, expenses.id))
+      .where(eq(expenseReportItems.reportId, id));
+
+    return {
+      ...report,
+      expenses: reportExpenses.map(item => item.expense).filter(Boolean) as Expense[],
+    };
+  }
+
+  async createExpenseReport(report: InsertExpenseReport): Promise<ExpenseReport> {
+    const [newReport] = await db
+      .insert(expenseReports)
+      .values(report)
+      .returning();
+
+    return newReport;
+  }
+
+  async updateExpenseReport(id: number, userId: number, report: Partial<InsertExpenseReport>): Promise<ExpenseReport | undefined> {
+    const [updatedReport] = await db
+      .update(expenseReports)
+      .set({ ...report, updatedAt: new Date() })
+      .where(and(eq(expenseReports.id, id), eq(expenseReports.userId, userId)))
+      .returning();
+
+    return updatedReport;
+  }
+
+  async submitExpenseReport(id: number, userId: number): Promise<boolean> {
+    const [updatedReport] = await db
+      .update(expenseReports)
+      .set({
+        status: "submitted",
+        submittedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(and(eq(expenseReports.id, id), eq(expenseReports.userId, userId)))
+      .returning();
+
+    return !!updatedReport;
+  }
+
+  async approveExpenseReport(id: number, approvedBy: number): Promise<boolean> {
+    const [updatedReport] = await db
+      .update(expenseReports)
+      .set({
+        status: "approved",
+        approvedBy,
+        approvedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(expenseReports.id, id))
+      .returning();
+
+    return !!updatedReport;
+  }
+
+  async addExpenseToReport(reportId: number, expenseId: number): Promise<boolean> {
+    try {
+      await db
+        .insert(expenseReportItems)
+        .values({ reportId, expenseId });
+
+      // Update report total
+      const reportExpenses = await db
+        .select({ amount: expenses.amount })
+        .from(expenseReportItems)
+        .leftJoin(expenses, eq(expenseReportItems.expenseId, expenses.id))
+        .where(eq(expenseReportItems.reportId, reportId));
+
+      const totalAmount = reportExpenses.reduce((sum, item) => {
+        return sum + parseFloat(item.amount || "0");
+      }, 0);
+
+      await db
+        .update(expenseReports)
+        .set({ totalAmount: totalAmount.toString(), updatedAt: new Date() })
+        .where(eq(expenseReports.id, reportId));
+
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async removeExpenseFromReport(reportId: number, expenseId: number): Promise<boolean> {
+    const result = await db
+      .delete(expenseReportItems)
+      .where(and(eq(expenseReportItems.reportId, reportId), eq(expenseReportItems.expenseId, expenseId)));
+
+    if (result.rowCount > 0) {
+      // Update report total
+      const reportExpenses = await db
+        .select({ amount: expenses.amount })
+        .from(expenseReportItems)
+        .leftJoin(expenses, eq(expenseReportItems.expenseId, expenses.id))
+        .where(eq(expenseReportItems.reportId, reportId));
+
+      const totalAmount = reportExpenses.reduce((sum, item) => {
+        return sum + parseFloat(item.amount || "0");
+      }, 0);
+
+      await db
+        .update(expenseReports)
+        .set({ totalAmount: totalAmount.toString(), updatedAt: new Date() })
+        .where(eq(expenseReports.id, reportId));
+    }
 
     return result.rowCount > 0;
   }

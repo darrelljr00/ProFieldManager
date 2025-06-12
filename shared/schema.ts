@@ -422,6 +422,102 @@ export type InsertProjectFile = z.infer<typeof insertProjectFileSchema>;
 export type TimeEntry = typeof timeEntries.$inferSelect;
 export type InsertTimeEntry = z.infer<typeof insertTimeEntrySchema>;
 
+// Expense tracking tables
+export const expenses = pgTable("expenses", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  projectId: integer("project_id").references(() => projects.id),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  currency: text("currency").notNull().default("USD"),
+  category: text("category").notNull(), // travel, meals, office_supplies, equipment, etc.
+  subcategory: text("subcategory"),
+  description: text("description").notNull(),
+  vendor: text("vendor"),
+  receiptUrl: text("receipt_url"),
+  receiptData: text("receipt_data"), // OCR extracted text
+  expenseDate: timestamp("expense_date").notNull(),
+  status: text("status").notNull().default("pending"), // pending, approved, rejected, reimbursed
+  isReimbursable: boolean("is_reimbursable").default(true),
+  tags: text("tags").array(),
+  notes: text("notes"),
+  approvedBy: integer("approved_by").references(() => users.id),
+  approvedAt: timestamp("approved_at"),
+  reimbursedAt: timestamp("reimbursed_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const expenseCategories = pgTable("expense_categories", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  name: text("name").notNull(),
+  description: text("description"),
+  isDefault: boolean("is_default").default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const expenseReports = pgTable("expense_reports", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  title: text("title").notNull(),
+  description: text("description"),
+  status: text("status").notNull().default("draft"), // draft, submitted, approved, rejected
+  totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull().default("0.00"),
+  submittedAt: timestamp("submitted_at"),
+  approvedBy: integer("approved_by").references(() => users.id),
+  approvedAt: timestamp("approved_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const expenseReportItems = pgTable("expense_report_items", {
+  id: serial("id").primaryKey(),
+  reportId: integer("report_id").notNull().references(() => expenseReports.id),
+  expenseId: integer("expense_id").notNull().references(() => expenses.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Schema validation
+export const insertExpenseSchema = createInsertSchema(expenses).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  approvedBy: true,
+  approvedAt: true,
+  reimbursedAt: true,
+});
+
+export const insertExpenseCategorySchema = createInsertSchema(expenseCategories).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertExpenseReportSchema = createInsertSchema(expenseReports).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  submittedAt: true,
+  approvedBy: true,
+  approvedAt: true,
+});
+
+export const insertExpenseReportItemSchema = createInsertSchema(expenseReportItems).omit({
+  id: true,
+  createdAt: true,
+});
+
 export type LoginData = z.infer<typeof loginSchema>;
 export type RegisterData = z.infer<typeof registerSchema>;
 export type ChangePasswordData = z.infer<typeof changePasswordSchema>;
+
+export type Expense = typeof expenses.$inferSelect;
+export type InsertExpense = z.infer<typeof insertExpenseSchema>;
+
+export type ExpenseCategory = typeof expenseCategories.$inferSelect;
+export type InsertExpenseCategory = z.infer<typeof insertExpenseCategorySchema>;
+
+export type ExpenseReport = typeof expenseReports.$inferSelect;
+export type InsertExpenseReport = z.infer<typeof insertExpenseReportSchema>;
+
+export type ExpenseReportItem = typeof expenseReportItems.$inferSelect;
+export type InsertExpenseReportItem = z.infer<typeof insertExpenseReportItemSchema>;
