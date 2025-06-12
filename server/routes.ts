@@ -201,6 +201,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/seed", async (req, res) => {
     try {
       await seedDatabase();
+      
+      // Also seed user accounts for testing
+      const existingUsers = await storage.getAllUsers();
+      if (existingUsers.length === 0) {
+        // Create admin user
+        const adminPassword = await AuthService.hashPassword("admin123");
+        await storage.createUserAccount({
+          username: "admin",
+          email: "admin@example.com",
+          password: adminPassword,
+          firstName: "System",
+          lastName: "Administrator",
+          role: "admin",
+          isActive: true,
+          emailVerified: true,
+        });
+
+        // Create manager user  
+        const managerPassword = await AuthService.hashPassword("manager123");
+        await storage.createUserAccount({
+          username: "manager",
+          email: "manager@example.com",
+          password: managerPassword,
+          firstName: "John",
+          lastName: "Manager",
+          role: "manager",
+          isActive: true,
+          emailVerified: true,
+        });
+
+        // Create regular user
+        const userPassword = await AuthService.hashPassword("user123");
+        await storage.createUserAccount({
+          username: "user",
+          email: "user@example.com",
+          password: userPassword,
+          firstName: "Jane",
+          lastName: "User",
+          role: "user",
+          isActive: true,
+          emailVerified: false,
+        });
+
+        console.log("✅ Created sample user accounts");
+        console.log("Admin: username=admin, password=admin123");
+        console.log("Manager: username=manager, password=manager123");
+        console.log("User: username=user, password=user123");
+      }
+      
       res.json({ message: "Database seeded successfully" });
     } catch (error: any) {
       res.status(500).json({ message: "Error seeding database: " + error.message });
