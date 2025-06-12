@@ -1625,6 +1625,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Leads API
+  app.get("/api/leads", requireAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const leads = await storage.getLeads(userId);
+      res.json(leads);
+    } catch (error: any) {
+      console.error("Error fetching leads:", error);
+      res.status(500).json({ message: "Failed to fetch leads" });
+    }
+  });
+
+  app.get("/api/leads/:id", requireAuth, async (req, res) => {
+    try {
+      const leadId = parseInt(req.params.id);
+      const userId = req.user!.id;
+      
+      const lead = await storage.getLead(leadId, userId);
+      
+      if (!lead) {
+        return res.status(404).json({ message: "Lead not found" });
+      }
+      
+      res.json(lead);
+    } catch (error: any) {
+      console.error("Error fetching lead:", error);
+      res.status(500).json({ message: "Failed to fetch lead" });
+    }
+  });
+
+  app.post("/api/leads", requireAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const leadData = req.body;
+      
+      const lead = await storage.createLead({
+        ...leadData,
+        userId,
+        leadPrice: leadData.leadPrice ? parseFloat(leadData.leadPrice) : null,
+        followUpDate: leadData.followUpDate ? new Date(leadData.followUpDate) : null,
+      });
+
+      res.status(201).json(lead);
+    } catch (error: any) {
+      console.error("Error creating lead:", error);
+      res.status(500).json({ message: "Failed to create lead" });
+    }
+  });
+
+  app.put("/api/leads/:id", requireAuth, async (req, res) => {
+    try {
+      const leadId = parseInt(req.params.id);
+      const userId = req.user!.id;
+      const leadData = req.body;
+      
+      const updatedLead = await storage.updateLead(leadId, userId, {
+        ...leadData,
+        leadPrice: leadData.leadPrice ? parseFloat(leadData.leadPrice) : null,
+        followUpDate: leadData.followUpDate ? new Date(leadData.followUpDate) : null,
+        contactedAt: leadData.contactedAt ? new Date(leadData.contactedAt) : null,
+      });
+      
+      if (!updatedLead) {
+        return res.status(404).json({ message: "Lead not found" });
+      }
+      
+      res.json(updatedLead);
+    } catch (error: any) {
+      console.error("Error updating lead:", error);
+      res.status(500).json({ message: "Failed to update lead" });
+    }
+  });
+
+  app.delete("/api/leads/:id", requireAuth, async (req, res) => {
+    try {
+      const leadId = parseInt(req.params.id);
+      const userId = req.user!.id;
+      
+      const success = await storage.deleteLead(leadId, userId);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Lead not found" });
+      }
+      
+      res.json({ message: "Lead deleted successfully" });
+    } catch (error: any) {
+      console.error("Error deleting lead:", error);
+      res.status(500).json({ message: "Failed to delete lead" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

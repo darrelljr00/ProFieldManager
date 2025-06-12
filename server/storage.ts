@@ -1,7 +1,7 @@
 import { 
   users, customers, invoices, invoiceLineItems, payments, quotes, quoteLineItems, settings, messages,
   userSessions, userPermissions, projects, projectUsers, tasks, taskComments, projectFiles, timeEntries,
-  expenses, expenseCategories, expenseReports, expenseReportItems,
+  expenses, expenseCategories, expenseReports, expenseReportItems, leads,
   type User, type InsertUser, type Customer, type InsertCustomer,
   type Invoice, type InsertInvoice, type InvoiceLineItem, type InsertInvoiceLineItem,
   type Payment, type InsertPayment, type Quote, type InsertQuote, type QuoteLineItem,
@@ -11,7 +11,8 @@ import {
   type Task, type InsertTask, type TaskComment, type InsertTaskComment,
   type ProjectFile, type InsertProjectFile, type TimeEntry, type InsertTimeEntry,
   type Expense, type InsertExpense, type ExpenseCategory, type InsertExpenseCategory,
-  type ExpenseReport, type InsertExpenseReport, type ExpenseReportItem, type InsertExpenseReportItem
+  type ExpenseReport, type InsertExpenseReport, type ExpenseReportItem, type InsertExpenseReportItem,
+  type Lead, type InsertLead
 } from "@shared/schema";
 import { db, pool } from "./db";
 import { eq, desc, and, sql, or, inArray } from "drizzle-orm";
@@ -136,6 +137,13 @@ export interface IStorage {
   // OCR settings
   getOcrSettings(): Promise<any>;
   updateOcrSettings(settings: any): Promise<void>;
+  
+  // Leads management
+  getLeads(userId: number): Promise<Lead[]>;
+  getLead(id: number, userId: number): Promise<Lead | undefined>;
+  createLead(lead: InsertLead): Promise<Lead>;
+  updateLead(id: number, userId: number, lead: Partial<InsertLead>): Promise<Lead | undefined>;
+  deleteLead(id: number, userId: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1247,6 +1255,42 @@ export class DatabaseStorage implements IStorage {
           updatedAt: new Date()
         }
       });
+  }
+
+  // Leads management implementation
+  async getLeads(userId: number): Promise<Lead[]> {
+    return await db.select()
+      .from(leads)
+      .where(eq(leads.userId, userId))
+      .orderBy(desc(leads.createdAt));
+  }
+
+  async getLead(id: number, userId: number): Promise<Lead | undefined> {
+    const [lead] = await db.select()
+      .from(leads)
+      .where(and(eq(leads.id, id), eq(leads.userId, userId)));
+    return lead;
+  }
+
+  async createLead(lead: InsertLead): Promise<Lead> {
+    const [newLead] = await db.insert(leads)
+      .values(lead)
+      .returning();
+    return newLead;
+  }
+
+  async updateLead(id: number, userId: number, leadData: Partial<InsertLead>): Promise<Lead | undefined> {
+    const [updated] = await db.update(leads)
+      .set({ ...leadData, updatedAt: new Date() })
+      .where(and(eq(leads.id, id), eq(leads.userId, userId)))
+      .returning();
+    return updated;
+  }
+
+  async deleteLead(id: number, userId: number): Promise<boolean> {
+    const result = await db.delete(leads)
+      .where(and(eq(leads.id, id), eq(leads.userId, userId)));
+    return result.rowCount > 0;
   }
 }
 

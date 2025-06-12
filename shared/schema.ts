@@ -521,3 +521,31 @@ export type InsertExpenseReport = z.infer<typeof insertExpenseReportSchema>;
 
 export type ExpenseReportItem = typeof expenseReportItems.$inferSelect;
 export type InsertExpenseReportItem = z.infer<typeof insertExpenseReportItemSchema>;
+
+// Leads table
+export const leads = pgTable("leads", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  name: text("name").notNull(),
+  phone: text("phone"),
+  email: text("email"),
+  serviceDescription: text("service_description").notNull(),
+  leadPrice: decimal("lead_price", { precision: 10, scale: 2 }),
+  leadSource: text("lead_source").notNull(), // referral, website, advertising, social_media, etc.
+  status: text("status").notNull().default("new"), // new, contacted, qualified, proposal_sent, won, lost
+  priority: text("priority").notNull().default("medium"), // low, medium, high
+  notes: text("notes"),
+  contactedAt: timestamp("contacted_at"),
+  followUpDate: timestamp("follow_up_date"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertLeadSchema = createInsertSchema(leads).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type Lead = typeof leads.$inferSelect;
+export type InsertLead = z.infer<typeof insertLeadSchema>;
