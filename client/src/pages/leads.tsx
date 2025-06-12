@@ -114,7 +114,7 @@ export default function Leads() {
       status: formData.get('status') as string,
       priority: formData.get('priority') as string,
       notes: formData.get('notes') as string,
-      followUpDate: formData.get('followUpDate') as string,
+      followUpDate: formData.get('followUpDate') as string || null,
     };
 
     if (selectedLead) {
