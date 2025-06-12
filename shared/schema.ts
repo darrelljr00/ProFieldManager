@@ -168,6 +168,10 @@ export const projects = pgTable("projects", {
   progress: integer("progress").default(0), // 0-100
   budget: decimal("budget", { precision: 10, scale: 2 }),
   customerId: integer("customer_id").references(() => customers.id),
+  contactName: text("contact_name"),
+  contactEmail: text("contact_email"),
+  contactPhone: text("contact_phone"),
+  contactCompany: text("contact_company"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

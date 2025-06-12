@@ -378,7 +378,7 @@ export default function ProjectDetail() {
                           <SelectValue placeholder="Select user" />
                         </SelectTrigger>
                         <SelectContent>
-                          {project.users.map(({ user }) => (
+                          {(project.users || []).map(({ user }) => (
                             <SelectItem key={user.id} value={user.id.toString()}>
                               {user.firstName} {user.lastName} ({user.username})
                             </SelectItem>
@@ -567,7 +567,7 @@ export default function ProjectDetail() {
                       </SelectTrigger>
                       <SelectContent>
                         {users
-                          .filter(user => !project.users.some(pu => pu.user.id === user.id))
+                          .filter(user => !(project.users || []).some(pu => pu.user.id === user.id))
                           .map((user) => (
                           <SelectItem key={user.id} value={user.id.toString()}>
                             {user.firstName} {user.lastName} ({user.username})
@@ -607,7 +607,7 @@ export default function ProjectDetail() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {project.users.map(({ user, role }) => (
+            {(project.users || []).map(({ user, role }) => (
               <Card key={user.id}>
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between">
@@ -643,7 +643,7 @@ export default function ProjectDetail() {
                 </CardContent>
               </Card>
             ))}
-            {project.users.length === 0 && (
+            {(!project.users || project.users.length === 0) && (
               <div className="col-span-full text-center py-8 text-gray-500">
                 No team members assigned yet. Add someone to get started!
               </div>
