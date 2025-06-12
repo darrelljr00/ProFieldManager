@@ -89,17 +89,12 @@ export class AuthService {
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
   const token = req.headers.authorization?.replace('Bearer ', '') || req.cookies?.auth_token;
 
-  console.log("Auth middleware - token:", token ? "present" : "missing");
-  console.log("Auth middleware - cookies:", req.cookies);
-
   if (!token) {
     return res.status(401).json({ message: "Authentication required" });
   }
 
   AuthService.validateSession(token)
     .then((sessionData) => {
-      console.log("Session validation result:", sessionData ? "valid" : "invalid");
-      
       if (!sessionData) {
         return res.status(401).json({ message: "Invalid or expired session" });
       }
@@ -110,8 +105,8 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
         username: sessionData.user.username,
         email: sessionData.user.email,
         role: sessionData.user.role || 'user',
-        firstName: sessionData.user.firstName,
-        lastName: sessionData.user.lastName,
+        firstName: sessionData.user.firstName || undefined,
+        lastName: sessionData.user.lastName || undefined,
       };
 
       next();
