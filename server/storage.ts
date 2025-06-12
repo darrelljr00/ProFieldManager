@@ -1,9 +1,11 @@
 import { 
   users, customers, invoices, invoiceLineItems, payments, quotes, quoteLineItems, settings, messages,
+  userSessions, userPermissions,
   type User, type InsertUser, type Customer, type InsertCustomer,
   type Invoice, type InsertInvoice, type InvoiceLineItem, type InsertInvoiceLineItem,
   type Payment, type InsertPayment, type Quote, type InsertQuote, type QuoteLineItem,
-  type Setting, type InsertSetting, type Message, type InsertMessage
+  type Setting, type InsertSetting, type Message, type InsertMessage,
+  type UserSession, type InsertUserSession, type UserPermission, type InsertUserPermission
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql } from "drizzle-orm";
