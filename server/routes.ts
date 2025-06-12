@@ -1838,6 +1838,166 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Internal Messages routes
+  app.get("/api/internal-messages", requireAuth, async (req, res) => {
+    try {
+      const messages = await storage.getInternalMessages(req.user!.id);
+      res.json(messages);
+    } catch (error: any) {
+      console.error("Error fetching internal messages:", error);
+      res.status(500).json({ message: "Failed to fetch internal messages" });
+    }
+  });
+
+  app.get("/api/internal-messages/:id", requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const message = await storage.getInternalMessage(id, req.user!.id);
+      if (!message) {
+        return res.status(404).json({ message: "Message not found" });
+      }
+      res.json(message);
+    } catch (error: any) {
+      console.error("Error fetching internal message:", error);
+      res.status(500).json({ message: "Failed to fetch internal message" });
+    }
+  });
+
+  app.post("/api/internal-messages", requireAuth, async (req, res) => {
+    try {
+      const { subject, content, priority = 'normal', messageType = 'individual', recipientIds = [], groupIds = [] } = req.body;
+      
+      let finalRecipientIds = recipientIds;
+      
+      // If it's a group message, get all group members
+      if (messageType === 'group' && groupIds.length > 0) {
+        for (const groupId of groupIds) {
+          const groupMessage = await storage.sendGroupMessage(groupId, {
+            senderId: req.user!.id,
+            subject,
+            content,
+            messageType: 'group',
+            priority
+          });
+          return res.json(groupMessage);
+        }
+      }
+      
+      // If it's a broadcast, get all users
+      if (messageType === 'broadcast') {
+        const allUsers = await storage.getUsers();
+        finalRecipientIds = allUsers.filter(u => u.id !== req.user!.id).map(u => u.id);
+      }
+
+      const message = await storage.createInternalMessage({
+        senderId: req.user!.id,
+        subject,
+        content,
+        messageType,
+        priority
+      }, finalRecipientIds);
+
+      res.json(message);
+    } catch (error: any) {
+      console.error("Error creating internal message:", error);
+      res.status(500).json({ message: "Failed to create internal message" });
+    }
+  });
+
+  app.put("/api/internal-messages/:id/read", requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.markMessageAsRead(id, req.user!.id);
+      if (!success) {
+        return res.status(404).json({ message: "Message not found or already read" });
+      }
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error marking message as read:", error);
+      res.status(500).json({ message: "Failed to mark message as read" });
+    }
+  });
+
+  app.delete("/api/internal-messages/:id", requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteInternalMessage(id, req.user!.id);
+      if (!success) {
+        return res.status(404).json({ message: "Message not found or not authorized" });
+      }
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting internal message:", error);
+      res.status(500).json({ message: "Failed to delete internal message" });
+    }
+  });
+
+  // Message Groups routes
+  app.get("/api/message-groups", requireAuth, async (req, res) => {
+    try {
+      const groups = await storage.getMessageGroups(req.user!.id);
+      res.json(groups);
+    } catch (error: any) {
+      console.error("Error fetching message groups:", error);
+      res.status(500).json({ message: "Failed to fetch message groups" });
+    }
+  });
+
+  app.post("/api/message-groups", requireAuth, async (req, res) => {
+    try {
+      const { name, description, memberIds = [] } = req.body;
+      
+      const group = await storage.createMessageGroup({
+        name,
+        description,
+        createdBy: req.user!.id
+      });
+
+      // Add creator as admin
+      await storage.addUserToGroup(group.id, req.user!.id, 'admin');
+      
+      // Add other members
+      for (const memberId of memberIds) {
+        await storage.addUserToGroup(group.id, memberId, 'member');
+      }
+
+      res.json(group);
+    } catch (error: any) {
+      console.error("Error creating message group:", error);
+      res.status(500).json({ message: "Failed to create message group" });
+    }
+  });
+
+  app.post("/api/message-groups/:id/members", requireAuth, async (req, res) => {
+    try {
+      const groupId = parseInt(req.params.id);
+      const { userId, role = 'member' } = req.body;
+      
+      const member = await storage.addUserToGroup(groupId, userId, role);
+      res.json(member);
+    } catch (error: any) {
+      console.error("Error adding user to group:", error);
+      res.status(500).json({ message: "Failed to add user to group" });
+    }
+  });
+
+  app.delete("/api/message-groups/:groupId/members/:userId", requireAuth, async (req, res) => {
+    try {
+      const groupId = parseInt(req.params.groupId);
+      const userId = parseInt(req.params.userId);
+      
+      const success = await storage.removeUserFromGroup(groupId, userId);
+      if (!success) {
+        return res.status(404).json({ message: "User not found in group" });
+      }
+      
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error removing user from group:", error);
+      res.status(500).json({ message: "Failed to remove user from group" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
