@@ -29,7 +29,12 @@ import {
   Edit,
   Trash2,
   MessageSquare,
-  ArrowLeft
+  ArrowLeft,
+  Mail,
+  Phone,
+  Building,
+  UserPlus,
+  UserMinus
 } from "lucide-react";
 import { Link } from "wouter";
 import type { Project, Customer, User, Task, ProjectFile, TimeEntry } from "@shared/schema";
@@ -45,6 +50,8 @@ export default function ProjectDetail() {
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [fileDialogOpen, setFileDialogOpen] = useState(false);
   const [timeDialogOpen, setTimeDialogOpen] = useState(false);
+  const [teamDialogOpen, setTeamDialogOpen] = useState(false);
+  const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -120,6 +127,41 @@ export default function ProjectDetail() {
       toast({
         title: "Success",
         description: "Time entry created successfully",
+      });
+    },
+  });
+
+  const addTeamMemberMutation = useMutation({
+    mutationFn: (data: any) => apiRequest("POST", `/api/projects/${projectId}/users`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId] });
+      setTeamDialogOpen(false);
+      toast({
+        title: "Success",
+        description: "Team member added successfully",
+      });
+    },
+  });
+
+  const removeTeamMemberMutation = useMutation({
+    mutationFn: (userId: number) => apiRequest("DELETE", `/api/projects/${projectId}/users/${userId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId] });
+      toast({
+        title: "Success",
+        description: "Team member removed successfully",
+      });
+    },
+  });
+
+  const updateContactMutation = useMutation({
+    mutationFn: (data: any) => apiRequest("PUT", `/api/projects/${projectId}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId] });
+      setContactDialogOpen(false);
+      toast({
+        title: "Success",
+        description: "Contact information updated successfully",
       });
     },
   });
@@ -263,9 +305,10 @@ export default function ProjectDetail() {
       <Tabs defaultValue="tasks" className="space-y-4">
         <TabsList>
           <TabsTrigger value="tasks">Tasks</TabsTrigger>
+          <TabsTrigger value="team">Team Members</TabsTrigger>
+          <TabsTrigger value="contact">Contact Info</TabsTrigger>
           <TabsTrigger value="files">Files</TabsTrigger>
           <TabsTrigger value="time">Time Tracking</TabsTrigger>
-          <TabsTrigger value="team">Team</TabsTrigger>
         </TabsList>
 
         <TabsContent value="tasks" className="space-y-4">
@@ -487,6 +530,308 @@ export default function ProjectDetail() {
                 </CardContent>
               </Card>
             ))}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="team" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-semibold">Team Members</h2>
+            <Dialog open={teamDialogOpen} onOpenChange={setTeamDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Add Member
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add Team Member</DialogTitle>
+                  <DialogDescription>
+                    Assign a user to this project with a specific role.
+                  </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={(e) => {
+                  e.preventDefault();
+                  const formData = new FormData(e.currentTarget);
+                  const userId = formData.get("userId") as string;
+                  const role = formData.get("role") as string;
+                  if (userId && role) {
+                    addTeamMemberMutation.mutate({ userId: parseInt(userId), role });
+                  }
+                }} className="space-y-4">
+                  <div>
+                    <Label htmlFor="userId">Select User *</Label>
+                    <Select name="userId" required>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose a user" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {users
+                          .filter(user => !project.users.some(pu => pu.user.id === user.id))
+                          .map((user) => (
+                          <SelectItem key={user.id} value={user.id.toString()}>
+                            {user.firstName} {user.lastName} ({user.username})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="role">Role *</Label>
+                    <Select name="role" required>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="lead">Project Lead</SelectItem>
+                        <SelectItem value="developer">Developer</SelectItem>
+                        <SelectItem value="designer">Designer</SelectItem>
+                        <SelectItem value="qa">Quality Assurance</SelectItem>
+                        <SelectItem value="collaborator">Collaborator</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex justify-end space-x-2">
+                    <Button type="button" variant="outline" onClick={() => setTeamDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button type="submit" disabled={addTeamMemberMutation.isPending}>
+                      {addTeamMemberMutation.isPending ? "Adding..." : "Add Member"}
+                    </Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {project.users.map(({ user, role }) => (
+              <Card key={user.id}>
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start space-x-3">
+                      <Avatar>
+                        <AvatarFallback>
+                          {user.firstName?.[0]}{user.lastName?.[0]}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <h4 className="font-medium">{user.firstName} {user.lastName}</h4>
+                        <p className="text-sm text-gray-600">@{user.username}</p>
+                        <Badge variant="outline" className="mt-1">
+                          {role}
+                        </Badge>
+                      </div>
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => removeTeamMemberMutation.mutate(user.id)}
+                      disabled={removeTeamMemberMutation.isPending}
+                    >
+                      <UserMinus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  {user.email && (
+                    <div className="mt-3 text-sm text-gray-600">
+                      <Mail className="h-3 w-3 inline mr-1" />
+                      {user.email}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+            {project.users.length === 0 && (
+              <div className="col-span-full text-center py-8 text-gray-500">
+                No team members assigned yet. Add someone to get started!
+              </div>
+            )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="contact" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-semibold">Contact Information</h2>
+            <Dialog open={contactDialogOpen} onOpenChange={setContactDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit Contact Info
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Update Contact Information</DialogTitle>
+                  <DialogDescription>
+                    Manage project contact details and client information.
+                  </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={(e) => {
+                  e.preventDefault();
+                  const formData = new FormData(e.currentTarget);
+                  const contactName = formData.get("contactName") as string;
+                  const contactEmail = formData.get("contactEmail") as string;
+                  const contactPhone = formData.get("contactPhone") as string;
+                  const contactCompany = formData.get("contactCompany") as string;
+                  
+                  updateContactMutation.mutate({
+                    contactName: contactName || null,
+                    contactEmail: contactEmail || null,
+                    contactPhone: contactPhone || null,
+                    contactCompany: contactCompany || null,
+                  });
+                }} className="space-y-4">
+                  <div>
+                    <Label htmlFor="contactName">Contact Name</Label>
+                    <Input 
+                      id="contactName" 
+                      name="contactName" 
+                      defaultValue={project.contactName || ''} 
+                      placeholder="John Doe"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="contactEmail">Contact Email</Label>
+                    <Input 
+                      id="contactEmail" 
+                      name="contactEmail" 
+                      type="email"
+                      defaultValue={project.contactEmail || ''} 
+                      placeholder="john@example.com"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="contactPhone">Contact Phone</Label>
+                    <Input 
+                      id="contactPhone" 
+                      name="contactPhone" 
+                      type="tel"
+                      defaultValue={project.contactPhone || ''} 
+                      placeholder="+1 (555) 123-4567"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="contactCompany">Company/Organization</Label>
+                    <Input 
+                      id="contactCompany" 
+                      name="contactCompany" 
+                      defaultValue={project.contactCompany || ''} 
+                      placeholder="Acme Corporation"
+                    />
+                  </div>
+
+                  <div className="flex justify-end space-x-2">
+                    <Button type="button" variant="outline" onClick={() => setContactDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button type="submit" disabled={updateContactMutation.isPending}>
+                      {updateContactMutation.isPending ? "Updating..." : "Update Contact"}
+                    </Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Building className="h-5 w-5 mr-2" />
+                  Project Contact
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {project.contactName ? (
+                  <div>
+                    <Label className="text-sm text-gray-600">Name</Label>
+                    <p className="font-medium">{project.contactName}</p>
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-sm">No contact name set</p>
+                )}
+                
+                {project.contactEmail && (
+                  <div>
+                    <Label className="text-sm text-gray-600">Email</Label>
+                    <p className="font-medium flex items-center">
+                      <Mail className="h-4 w-4 mr-2" />
+                      {project.contactEmail}
+                    </p>
+                  </div>
+                )}
+                
+                {project.contactPhone && (
+                  <div>
+                    <Label className="text-sm text-gray-600">Phone</Label>
+                    <p className="font-medium flex items-center">
+                      <Phone className="h-4 w-4 mr-2" />
+                      {project.contactPhone}
+                    </p>
+                  </div>
+                )}
+                
+                {project.contactCompany && (
+                  <div>
+                    <Label className="text-sm text-gray-600">Company</Label>
+                    <p className="font-medium flex items-center">
+                      <Building className="h-4 w-4 mr-2" />
+                      {project.contactCompany}
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Users className="h-5 w-5 mr-2" />
+                  Client Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {project.customer ? (
+                  <>
+                    <div>
+                      <Label className="text-sm text-gray-600">Client Name</Label>
+                      <p className="font-medium">{project.customer.name}</p>
+                    </div>
+                    {project.customer.email && (
+                      <div>
+                        <Label className="text-sm text-gray-600">Client Email</Label>
+                        <p className="font-medium flex items-center">
+                          <Mail className="h-4 w-4 mr-2" />
+                          {project.customer.email}
+                        </p>
+                      </div>
+                    )}
+                    {project.customer.phone && (
+                      <div>
+                        <Label className="text-sm text-gray-600">Client Phone</Label>
+                        <p className="font-medium flex items-center">
+                          <Phone className="h-4 w-4 mr-2" />
+                          {project.customer.phone}
+                        </p>
+                      </div>
+                    )}
+                    {project.customer.address && (
+                      <div>
+                        <Label className="text-sm text-gray-600">Address</Label>
+                        <p className="font-medium">{project.customer.address}</p>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-gray-500 text-sm">No client assigned to this project</p>
+                )}
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
 

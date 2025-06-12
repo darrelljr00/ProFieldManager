@@ -1198,6 +1198,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete("/api/projects/:id/users/:userId", requireAuth, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const userId = parseInt(req.params.userId);
+      const removed = await storage.removeUserFromProject(projectId, userId);
+      
+      if (!removed) {
+        return res.status(404).json({ message: "User not found in project" });
+      }
+      
+      res.json({ message: "User removed from project successfully" });
+    } catch (error: any) {
+      console.error("Error removing user from project:", error);
+      res.status(500).json({ message: "Failed to remove user from project" });
+    }
+  });
+
   // Tasks
   app.get("/api/projects/:id/tasks", requireAuth, async (req, res) => {
     try {
