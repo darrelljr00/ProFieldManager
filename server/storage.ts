@@ -1,14 +1,17 @@
 import { 
   users, customers, invoices, invoiceLineItems, payments, quotes, quoteLineItems, settings, messages,
-  userSessions, userPermissions,
+  userSessions, userPermissions, projects, projectUsers, tasks, taskComments, projectFiles, timeEntries,
   type User, type InsertUser, type Customer, type InsertCustomer,
   type Invoice, type InsertInvoice, type InvoiceLineItem, type InsertInvoiceLineItem,
   type Payment, type InsertPayment, type Quote, type InsertQuote, type QuoteLineItem,
   type Setting, type InsertSetting, type Message, type InsertMessage,
-  type UserSession, type InsertUserSession, type UserPermission, type InsertUserPermission
+  type UserSession, type InsertUserSession, type UserPermission, type InsertUserPermission,
+  type Project, type InsertProject, type ProjectUser, type InsertProjectUser,
+  type Task, type InsertTask, type TaskComment, type InsertTaskComment,
+  type ProjectFile, type InsertProjectFile, type TimeEntry, type InsertTimeEntry
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, sql } from "drizzle-orm";
+import { eq, desc, and, sql, or, inArray } from "drizzle-orm";
 
 export interface IStorage {
   // User methods
@@ -85,8 +88,8 @@ export interface IStorage {
   updateProjectProgress(projectId: number, progress: number): Promise<void>;
 
   // Task management methods
-  getTasks(projectId: number, userId: number): Promise<(Task & { assignedTo?: User, createdBy: User, comments: (TaskComment & { user: User })[], files: ProjectFile[] })[]>;
-  getTask(id: number, userId: number): Promise<(Task & { assignedTo?: User, createdBy: User, comments: (TaskComment & { user: User })[], files: ProjectFile[] }) | undefined>;
+  getTasks(projectId: number, userId: number): Promise<Task[]>;
+  getTask(id: number, userId: number): Promise<Task | undefined>;
   createTask(task: InsertTask): Promise<Task>;
   updateTask(id: number, userId: number, task: Partial<InsertTask>): Promise<Task | undefined>;
   deleteTask(id: number, userId: number): Promise<boolean>;
@@ -798,84 +801,22 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Task management methods
-  async getTasks(projectId: number, userId: number): Promise<(Task & { assignedTo?: User, createdBy: User, comments: (TaskComment & { user: User })[], files: ProjectFile[] })[]> {
-    const tasksData = await db
-      .select({
-        task: tasks,
-        assignedTo: users,
-        createdBy: users,
-      })
+  async getTasks(projectId: number, userId: number): Promise<Task[]> {
+    return await db
+      .select()
       .from(tasks)
-      .leftJoin(users, eq(tasks.assignedToId, users.id))
-      .innerJoin(users, eq(tasks.createdById, users.id))
       .where(eq(tasks.projectId, projectId))
       .orderBy(desc(tasks.createdAt));
-
-    const taskIds = tasksData.map(t => t.task.id);
-
-    const commentsData = await db
-      .select({
-        comment: taskComments,
-        user: users,
-      })
-      .from(taskComments)
-      .innerJoin(users, eq(taskComments.userId, users.id))
-      .where(inArray(taskComments.taskId, taskIds))
-      .orderBy(taskComments.createdAt);
-
-    const filesData = await db
-      .select()
-      .from(projectFiles)
-      .where(inArray(projectFiles.taskId, taskIds));
-
-    return tasksData.map(row => ({
-      ...row.task,
-      assignedTo: row.assignedTo || undefined,
-      createdBy: row.createdBy,
-      comments: commentsData
-        .filter(c => c.comment.taskId === row.task.id)
-        .map(c => ({ ...c.comment, user: c.user })),
-      files: filesData.filter(f => f.taskId === row.task.id),
-    }));
   }
 
-  async getTask(id: number, userId: number): Promise<(Task & { assignedTo?: User, createdBy: User, comments: (TaskComment & { user: User })[], files: ProjectFile[] }) | undefined> {
-    const taskData = await db
-      .select({
-        task: tasks,
-        assignedTo: users,
-        createdBy: users,
-      })
+  async getTask(id: number, userId: number): Promise<Task | undefined> {
+    const [task] = await db
+      .select()
       .from(tasks)
-      .leftJoin(users, eq(tasks.assignedToId, users.id))
-      .innerJoin(users, eq(tasks.createdById, users.id))
       .where(eq(tasks.id, id))
       .limit(1);
 
-    if (taskData.length === 0) return undefined;
-
-    const commentsData = await db
-      .select({
-        comment: taskComments,
-        user: users,
-      })
-      .from(taskComments)
-      .innerJoin(users, eq(taskComments.userId, users.id))
-      .where(eq(taskComments.taskId, id))
-      .orderBy(taskComments.createdAt);
-
-    const filesData = await db
-      .select()
-      .from(projectFiles)
-      .where(eq(projectFiles.taskId, id));
-
-    return {
-      ...taskData[0].task,
-      assignedTo: taskData[0].assignedTo || undefined,
-      createdBy: taskData[0].createdBy,
-      comments: commentsData.map(c => ({ ...c.comment, user: c.user })),
-      files: filesData,
-    };
+    return task;
   }
 
   async createTask(task: InsertTask): Promise<Task> {

@@ -1084,6 +1084,219 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Project Management API endpoints
+  
+  // Projects
+  app.get("/api/projects", requireAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const projects = await storage.getProjects(userId);
+      res.json(projects);
+    } catch (error: any) {
+      console.error("Error fetching projects:", error);
+      res.status(500).json({ message: "Failed to fetch projects" });
+    }
+  });
+
+  app.post("/api/projects", requireAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const projectData = { ...req.body, userId };
+      const project = await storage.createProject(projectData);
+      res.status(201).json(project);
+    } catch (error: any) {
+      console.error("Error creating project:", error);
+      res.status(500).json({ message: "Failed to create project" });
+    }
+  });
+
+  app.get("/api/projects/:id", requireAuth, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const userId = req.user!.id;
+      const project = await storage.getProject(projectId, userId);
+      
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      res.json(project);
+    } catch (error: any) {
+      console.error("Error fetching project:", error);
+      res.status(500).json({ message: "Failed to fetch project" });
+    }
+  });
+
+  app.put("/api/projects/:id", requireAuth, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const userId = req.user!.id;
+      const updatedProject = await storage.updateProject(projectId, userId, req.body);
+      
+      if (!updatedProject) {
+        return res.status(404).json({ message: "Project not found or access denied" });
+      }
+      
+      res.json(updatedProject);
+    } catch (error: any) {
+      console.error("Error updating project:", error);
+      res.status(500).json({ message: "Failed to update project" });
+    }
+  });
+
+  app.delete("/api/projects/:id", requireAuth, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const userId = req.user!.id;
+      const deleted = await storage.deleteProject(projectId, userId);
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      res.json({ message: "Project deleted successfully" });
+    } catch (error: any) {
+      console.error("Error deleting project:", error);
+      res.status(500).json({ message: "Failed to delete project" });
+    }
+  });
+
+  // Project Users
+  app.post("/api/projects/:id/users", requireAuth, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const projectUserData = { ...req.body, projectId };
+      const projectUser = await storage.addUserToProject(projectUserData);
+      res.status(201).json(projectUser);
+    } catch (error: any) {
+      console.error("Error adding user to project:", error);
+      res.status(500).json({ message: "Failed to add user to project" });
+    }
+  });
+
+  // Tasks
+  app.get("/api/projects/:id/tasks", requireAuth, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const userId = req.user!.id;
+      const tasks = await storage.getTasks(projectId, userId);
+      res.json(tasks);
+    } catch (error: any) {
+      console.error("Error fetching tasks:", error);
+      res.status(500).json({ message: "Failed to fetch tasks" });
+    }
+  });
+
+  app.post("/api/projects/:id/tasks", requireAuth, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const userId = req.user!.id;
+      const taskData = { ...req.body, projectId, createdById: userId };
+      const task = await storage.createTask(taskData);
+      res.status(201).json(task);
+    } catch (error: any) {
+      console.error("Error creating task:", error);
+      res.status(500).json({ message: "Failed to create task" });
+    }
+  });
+
+  app.put("/api/tasks/:id", requireAuth, async (req, res) => {
+    try {
+      const taskId = parseInt(req.params.id);
+      const userId = req.user!.id;
+      const updatedTask = await storage.updateTask(taskId, userId, req.body);
+      
+      if (!updatedTask) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+      
+      res.json(updatedTask);
+    } catch (error: any) {
+      console.error("Error updating task:", error);
+      res.status(500).json({ message: "Failed to update task" });
+    }
+  });
+
+  // File uploads (multer for handling multipart/form-data)
+  app.post("/api/projects/:id/files", requireAuth, upload.single('file'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      const projectId = parseInt(req.params.id);
+      const userId = req.user!.id;
+      const taskId = req.body.taskId ? parseInt(req.body.taskId) : null;
+
+      // Determine file type based on MIME type
+      let fileType = 'other';
+      if (req.file.mimetype.startsWith('image/')) {
+        fileType = 'image';
+      } else if (req.file.mimetype.startsWith('video/')) {
+        fileType = 'video';
+      } else if (req.file.mimetype.includes('pdf') || req.file.mimetype.includes('document')) {
+        fileType = 'document';
+      }
+
+      const fileData = {
+        projectId,
+        taskId,
+        uploadedById: userId,
+        fileName: req.file.filename,
+        originalName: req.file.originalname,
+        filePath: req.file.path,
+        fileSize: req.file.size,
+        mimeType: req.file.mimetype,
+        fileType,
+        description: req.body.description || null,
+      };
+
+      const projectFile = await storage.uploadProjectFile(fileData);
+      res.status(201).json(projectFile);
+    } catch (error: any) {
+      console.error("Error uploading file:", error);
+      res.status(500).json({ message: "Failed to upload file" });
+    }
+  });
+
+  app.get("/api/projects/:id/files", requireAuth, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const userId = req.user!.id;
+      const files = await storage.getProjectFiles(projectId, userId);
+      res.json(files);
+    } catch (error: any) {
+      console.error("Error fetching files:", error);
+      res.status(500).json({ message: "Failed to fetch files" });
+    }
+  });
+
+  // Time Entries
+  app.post("/api/projects/:id/time", requireAuth, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const userId = req.user!.id;
+      const timeEntryData = { ...req.body, projectId, userId };
+      const timeEntry = await storage.createTimeEntry(timeEntryData);
+      res.status(201).json(timeEntry);
+    } catch (error: any) {
+      console.error("Error creating time entry:", error);
+      res.status(500).json({ message: "Failed to create time entry" });
+    }
+  });
+
+  app.get("/api/projects/:id/time", requireAuth, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const userId = req.user!.id;
+      const timeEntries = await storage.getTimeEntries(projectId, userId);
+      res.json(timeEntries);
+    } catch (error: any) {
+      console.error("Error fetching time entries:", error);
+      res.status(500).json({ message: "Failed to fetch time entries" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
