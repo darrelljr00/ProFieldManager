@@ -697,13 +697,14 @@ export class DatabaseStorage implements IStorage {
 
     if (projectData.length === 0) return undefined;
 
-    // Check if user has access to this project
+    // Check if user has access to this project (either owner or team member)
     const hasAccess = await db
       .select()
       .from(projectUsers)
       .where(and(eq(projectUsers.projectId, id), eq(projectUsers.userId, userId)))
       .limit(1);
 
+    // Allow access if user is project owner OR is a team member
     if (hasAccess.length === 0 && projectData[0].project.userId !== userId) {
       return undefined;
     }
@@ -734,13 +735,18 @@ export class DatabaseStorage implements IStorage {
       .returning();
 
     // Add the project creator as owner
-    await db
-      .insert(projectUsers)
-      .values({
-        projectId: newProject.id,
-        userId: project.userId,
-        role: 'owner',
-      });
+    try {
+      await db
+        .insert(projectUsers)
+        .values({
+          projectId: newProject.id,
+          userId: project.userId,
+          role: 'owner',
+        });
+    } catch (error) {
+      console.error("Error adding project owner:", error);
+      // Continue without failing the project creation
+    }
 
     return newProject;
   }
