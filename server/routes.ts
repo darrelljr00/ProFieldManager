@@ -1407,6 +1407,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const expense = await storage.createExpense({
         ...expenseData,
         userId,
+        categoryId: expenseData.categoryId ? parseInt(expenseData.categoryId) : null,
+        projectId: expenseData.projectId ? parseInt(expenseData.projectId) : null,
         amount: parseFloat(expenseData.amount),
         expenseDate: new Date(expenseData.expenseDate),
         receiptUrl,

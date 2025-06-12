@@ -13,7 +13,7 @@ import {
   type Expense, type InsertExpense, type ExpenseCategory, type InsertExpenseCategory,
   type ExpenseReport, type InsertExpenseReport, type ExpenseReportItem, type InsertExpenseReportItem
 } from "@shared/schema";
-import { db } from "./db";
+import { db, pool } from "./db";
 import { eq, desc, and, sql, or, inArray } from "drizzle-orm";
 
 export interface IStorage {
@@ -1223,22 +1223,30 @@ export class DatabaseStorage implements IStorage {
   // OCR settings implementation
   async getOcrSettings(): Promise<any> {
     try {
-      const result = await pool.query(
-        "SELECT value FROM settings WHERE key = 'ocr_settings'"
-      );
-      return result.rows.length > 0 ? JSON.parse(result.rows[0].value) : {};
+      const [result] = await db.select()
+        .from(settings)
+        .where(eq(settings.key, 'ocr_settings'));
+      return result?.value ? JSON.parse(result.value) : {};
     } catch (error) {
       console.error("Error fetching OCR settings:", error);
       return {};
     }
   }
 
-  async updateOcrSettings(settings: any): Promise<void> {
-    await pool.query(
-      `INSERT INTO settings (key, value, updated_at) VALUES ('ocr_settings', $1, NOW())
-       ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = NOW()`,
-      [JSON.stringify(settings)]
-    );
+  async updateOcrSettings(settingsData: any): Promise<void> {
+    await db.insert(settings)
+      .values({
+        key: 'ocr_settings',
+        value: JSON.stringify(settingsData),
+        updatedAt: new Date()
+      })
+      .onConflictDoUpdate({
+        target: settings.key,
+        set: {
+          value: JSON.stringify(settingsData),
+          updatedAt: new Date()
+        }
+      });
   }
 }
 
