@@ -1727,6 +1727,117 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Calendar Jobs API
+  app.get("/api/calendar-jobs", requireAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const jobs = await storage.getCalendarJobs(userId);
+      res.json(jobs);
+    } catch (error: any) {
+      console.error("Error fetching calendar jobs:", error);
+      res.status(500).json({ message: "Failed to fetch calendar jobs" });
+    }
+  });
+
+  app.get("/api/calendar-jobs/:id", requireAuth, async (req, res) => {
+    try {
+      const jobId = parseInt(req.params.id);
+      const userId = req.user!.id;
+      
+      const job = await storage.getCalendarJob(jobId, userId);
+      
+      if (!job) {
+        return res.status(404).json({ message: "Calendar job not found" });
+      }
+      
+      res.json(job);
+    } catch (error: any) {
+      console.error("Error fetching calendar job:", error);
+      res.status(500).json({ message: "Failed to fetch calendar job" });
+    }
+  });
+
+  app.post("/api/calendar-jobs", requireAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const jobData = req.body;
+      
+      const job = await storage.createCalendarJob({
+        ...jobData,
+        userId,
+        startDate: new Date(jobData.startDate),
+        endDate: new Date(jobData.endDate),
+        estimatedValue: jobData.estimatedValue ? parseFloat(jobData.estimatedValue) : null,
+      });
+
+      res.status(201).json(job);
+    } catch (error: any) {
+      console.error("Error creating calendar job:", error);
+      res.status(500).json({ message: "Failed to create calendar job" });
+    }
+  });
+
+  app.put("/api/calendar-jobs/:id", requireAuth, async (req, res) => {
+    try {
+      const jobId = parseInt(req.params.id);
+      const userId = req.user!.id;
+      const jobData = req.body;
+      
+      const updatedJob = await storage.updateCalendarJob(jobId, userId, {
+        ...jobData,
+        startDate: jobData.startDate ? new Date(jobData.startDate) : undefined,
+        endDate: jobData.endDate ? new Date(jobData.endDate) : undefined,
+        estimatedValue: jobData.estimatedValue ? parseFloat(jobData.estimatedValue) : null,
+      });
+      
+      if (!updatedJob) {
+        return res.status(404).json({ message: "Calendar job not found" });
+      }
+      
+      res.json(updatedJob);
+    } catch (error: any) {
+      console.error("Error updating calendar job:", error);
+      res.status(500).json({ message: "Failed to update calendar job" });
+    }
+  });
+
+  app.delete("/api/calendar-jobs/:id", requireAuth, async (req, res) => {
+    try {
+      const jobId = parseInt(req.params.id);
+      const userId = req.user!.id;
+      
+      const success = await storage.deleteCalendarJob(jobId, userId);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Calendar job not found" });
+      }
+      
+      res.json({ message: "Calendar job deleted successfully" });
+    } catch (error: any) {
+      console.error("Error deleting calendar job:", error);
+      res.status(500).json({ message: "Failed to delete calendar job" });
+    }
+  });
+
+  app.post("/api/calendar-jobs/:id/convert-to-project", requireAuth, async (req, res) => {
+    try {
+      const jobId = parseInt(req.params.id);
+      const userId = req.user!.id;
+      const projectData = req.body;
+      
+      const project = await storage.convertJobToProject(jobId, userId, projectData);
+      
+      if (!project) {
+        return res.status(404).json({ message: "Calendar job not found" });
+      }
+      
+      res.json(project);
+    } catch (error: any) {
+      console.error("Error converting job to project:", error);
+      res.status(500).json({ message: "Failed to convert job to project" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

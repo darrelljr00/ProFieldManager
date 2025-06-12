@@ -1,7 +1,7 @@
 import { 
   users, customers, invoices, invoiceLineItems, payments, quotes, quoteLineItems, settings, messages,
   userSessions, userPermissions, projects, projectUsers, tasks, taskComments, projectFiles, timeEntries,
-  expenses, expenseCategories, expenseReports, expenseReportItems, leads,
+  expenses, expenseCategories, expenseReports, expenseReportItems, leads, calendarJobs,
   type User, type InsertUser, type Customer, type InsertCustomer,
   type Invoice, type InsertInvoice, type InvoiceLineItem, type InsertInvoiceLineItem,
   type Payment, type InsertPayment, type Quote, type InsertQuote, type QuoteLineItem,
@@ -12,7 +12,7 @@ import {
   type ProjectFile, type InsertProjectFile, type TimeEntry, type InsertTimeEntry,
   type Expense, type InsertExpense, type ExpenseCategory, type InsertExpenseCategory,
   type ExpenseReport, type InsertExpenseReport, type ExpenseReportItem, type InsertExpenseReportItem,
-  type Lead, type InsertLead
+  type Lead, type InsertLead, type CalendarJob, type InsertCalendarJob
 } from "@shared/schema";
 import { db, pool } from "./db";
 import { eq, desc, and, sql, or, inArray } from "drizzle-orm";
@@ -144,6 +144,14 @@ export interface IStorage {
   createLead(lead: InsertLead): Promise<Lead>;
   updateLead(id: number, userId: number, lead: Partial<InsertLead>): Promise<Lead | undefined>;
   deleteLead(id: number, userId: number): Promise<boolean>;
+  
+  // Calendar Jobs management
+  getCalendarJobs(userId: number): Promise<(CalendarJob & { customer?: Customer, lead?: Lead })[]>;
+  getCalendarJob(id: number, userId: number): Promise<(CalendarJob & { customer?: Customer, lead?: Lead }) | undefined>;
+  createCalendarJob(job: InsertCalendarJob): Promise<CalendarJob>;
+  updateCalendarJob(id: number, userId: number, job: Partial<InsertCalendarJob>): Promise<CalendarJob | undefined>;
+  deleteCalendarJob(id: number, userId: number): Promise<boolean>;
+  convertJobToProject(jobId: number, userId: number, projectData: Partial<InsertProject>): Promise<Project | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1291,6 +1299,94 @@ export class DatabaseStorage implements IStorage {
     const result = await db.delete(leads)
       .where(and(eq(leads.id, id), eq(leads.userId, userId)));
     return result.rowCount > 0;
+  }
+
+  // Calendar Jobs management implementation
+  async getCalendarJobs(userId: number): Promise<(CalendarJob & { customer?: Customer, lead?: Lead })[]> {
+    const jobs = await db.select({
+      job: calendarJobs,
+      customer: customers,
+      lead: leads,
+    })
+    .from(calendarJobs)
+    .leftJoin(customers, eq(calendarJobs.customerId, customers.id))
+    .leftJoin(leads, eq(calendarJobs.leadId, leads.id))
+    .where(eq(calendarJobs.userId, userId))
+    .orderBy(desc(calendarJobs.startDate));
+
+    return jobs.map(row => ({
+      ...row.job,
+      customer: row.customer || undefined,
+      lead: row.lead || undefined,
+    }));
+  }
+
+  async getCalendarJob(id: number, userId: number): Promise<(CalendarJob & { customer?: Customer, lead?: Lead }) | undefined> {
+    const [result] = await db.select({
+      job: calendarJobs,
+      customer: customers,
+      lead: leads,
+    })
+    .from(calendarJobs)
+    .leftJoin(customers, eq(calendarJobs.customerId, customers.id))
+    .leftJoin(leads, eq(calendarJobs.leadId, leads.id))
+    .where(and(eq(calendarJobs.id, id), eq(calendarJobs.userId, userId)));
+
+    if (!result) return undefined;
+
+    return {
+      ...result.job,
+      customer: result.customer || undefined,
+      lead: result.lead || undefined,
+    };
+  }
+
+  async createCalendarJob(job: InsertCalendarJob): Promise<CalendarJob> {
+    const [newJob] = await db.insert(calendarJobs)
+      .values(job)
+      .returning();
+    return newJob;
+  }
+
+  async updateCalendarJob(id: number, userId: number, jobData: Partial<InsertCalendarJob>): Promise<CalendarJob | undefined> {
+    const [updated] = await db.update(calendarJobs)
+      .set({ ...jobData, updatedAt: new Date() })
+      .where(and(eq(calendarJobs.id, id), eq(calendarJobs.userId, userId)))
+      .returning();
+    return updated;
+  }
+
+  async deleteCalendarJob(id: number, userId: number): Promise<boolean> {
+    const result = await db.delete(calendarJobs)
+      .where(and(eq(calendarJobs.id, id), eq(calendarJobs.userId, userId)));
+    return result.rowCount > 0;
+  }
+
+  async convertJobToProject(jobId: number, userId: number, projectData: Partial<InsertProject>): Promise<Project | undefined> {
+    const job = await this.getCalendarJob(jobId, userId);
+    if (!job) return undefined;
+
+    // Create the project
+    const newProject = await this.createProject({
+      name: projectData.name || job.title,
+      description: projectData.description || job.description || '',
+      customerId: job.customerId || projectData.customerId,
+      startDate: projectData.startDate || job.startDate,
+      endDate: projectData.endDate || job.endDate,
+      budget: projectData.budget || (job.estimatedValue ? parseFloat(job.estimatedValue) : undefined),
+      status: 'active',
+      priority: job.priority,
+      userId,
+      ...projectData,
+    });
+
+    // Update the job to mark it as converted
+    await this.updateCalendarJob(jobId, userId, {
+      status: 'converted',
+      convertedToProjectId: newProject.id,
+    });
+
+    return newProject;
   }
 }
 

@@ -549,3 +549,32 @@ export const insertLeadSchema = createInsertSchema(leads).omit({
 
 export type Lead = typeof leads.$inferSelect;
 export type InsertLead = z.infer<typeof insertLeadSchema>;
+
+// Calendar Jobs table
+export const calendarJobs = pgTable("calendar_jobs", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  customerId: integer("customer_id").references(() => customers.id),
+  leadId: integer("lead_id").references(() => leads.id),
+  title: text("title").notNull(),
+  description: text("description"),
+  location: text("location"),
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date").notNull(),
+  estimatedValue: decimal("estimated_value", { precision: 10, scale: 2 }),
+  status: text("status").notNull().default("scheduled"), // scheduled, in_progress, completed, converted, cancelled
+  priority: text("priority").notNull().default("medium"), // low, medium, high
+  notes: text("notes"),
+  convertedToProjectId: integer("converted_to_project_id").references(() => projects.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertCalendarJobSchema = createInsertSchema(calendarJobs).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type CalendarJob = typeof calendarJobs.$inferSelect;
+export type InsertCalendarJob = z.infer<typeof insertCalendarJobSchema>;
