@@ -1101,11 +1101,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/projects", requireAuth, async (req, res) => {
     try {
       const userId = req.user!.id;
-      const { startDate, endDate, deadline, ...otherData } = req.body;
+      const { startDate, endDate, deadline, budget, ...otherData } = req.body;
+      
+      // Validate budget if provided
+      let validatedBudget = null;
+      if (budget !== null && budget !== undefined && budget !== '') {
+        const budgetNumber = parseFloat(budget);
+        if (isNaN(budgetNumber)) {
+          return res.status(400).json({ message: "Invalid budget value" });
+        }
+        // Check if budget exceeds maximum allowed value (99,999,999.99)
+        if (budgetNumber >= 100000000) {
+          return res.status(400).json({ message: "Budget cannot exceed $99,999,999.99" });
+        }
+        validatedBudget = budgetNumber;
+      }
       
       const projectData = {
         ...otherData,
         userId,
+        budget: validatedBudget,
         startDate: startDate ? new Date(startDate) : null,
         endDate: endDate ? new Date(endDate) : null,
         deadline: deadline ? new Date(deadline) : null,

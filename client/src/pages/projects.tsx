@@ -225,6 +225,8 @@ export default function Projects() {
                   name="budget"
                   type="number"
                   step="0.01"
+                  min="0"
+                  max="99999999.99"
                   placeholder="0.00"
                 />
               </div>
