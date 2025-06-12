@@ -550,13 +550,65 @@ export default function Settings() {
                 </div>
 
                 <div>
-                  <Label htmlFor="companyLogo">Logo URL</Label>
-                  <Input
-                    id="companyLogo"
-                    name="companyLogo"
-                    placeholder="https://company.com/logo.png"
-                    defaultValue={companySettings?.companyLogo}
-                  />
+                  <Label>Company Logo</Label>
+                  <div className="space-y-4">
+                    {/* Current Logo Display */}
+                    {companySettings?.logo && !logoPreview && (
+                      <div className="flex items-center space-x-4">
+                        <img
+                          src={companySettings.logo.startsWith('/uploads') ? companySettings.logo : `/uploads/${companySettings.logo}`}
+                          alt="Current logo"
+                          className="h-16 w-16 object-contain border rounded"
+                        />
+                        <span className="text-sm text-muted-foreground">Current logo</span>
+                      </div>
+                    )}
+                    
+                    {/* Logo Preview */}
+                    {logoPreview && (
+                      <div className="flex items-center space-x-4">
+                        <img
+                          src={logoPreview}
+                          alt="Logo preview"
+                          className="h-16 w-16 object-contain border rounded"
+                        />
+                        <div className="flex space-x-2">
+                          <Button
+                            type="button"
+                            onClick={handleLogoUpload}
+                            disabled={logoUploadMutation.isPending}
+                            size="sm"
+                          >
+                            <Upload className="h-4 w-4 mr-2" />
+                            {logoUploadMutation.isPending ? "Uploading..." : "Upload"}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={removeLogo}
+                            size="sm"
+                          >
+                            <X className="h-4 w-4 mr-2" />
+                            Remove
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* File Input */}
+                    <div>
+                      <Input
+                        id="logoFile"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleLogoChange}
+                        className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/80"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Supported formats: JPG, PNG, GIF, SVG. Max size: 5MB
+                      </p>
+                    </div>
+                  </div>
                 </div>
 
                 <Separator />

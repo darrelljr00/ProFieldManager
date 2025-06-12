@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { type Quote, type Customer, type QuoteLineItem } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
@@ -50,6 +50,15 @@ export function QuotesTable({ quotes, isLoading }: QuotesTableProps) {
   const [emailMessage, setEmailMessage] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Fetch company settings for logo
+  const { data: companySettings } = useQuery<{
+    companyName?: string;
+    companyEmail?: string;
+    logo?: string;
+  }>({
+    queryKey: ["/api/settings/company"],
+  });
 
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status }: { id: number; status: string }) =>
@@ -274,6 +283,31 @@ export function QuotesTable({ quotes, isLoading }: QuotesTableProps) {
           </DialogHeader>
           {selectedQuote && (
             <div className="space-y-6">
+              {/* Company Header with Logo */}
+              {companySettings && (
+                <div className="flex items-center justify-between border-b pb-4">
+                  <div className="flex items-center space-x-4">
+                    {companySettings.logo && (
+                      <img
+                        src={companySettings.logo.startsWith('/uploads') ? companySettings.logo : `/uploads/${companySettings.logo}`}
+                        alt="Company logo"
+                        className="h-12 w-12 object-contain"
+                      />
+                    )}
+                    <div>
+                      <h3 className="text-lg font-semibold">{companySettings.companyName || 'Your Company'}</h3>
+                      {companySettings.companyEmail && (
+                        <p className="text-sm text-muted-foreground">{companySettings.companyEmail}</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <h2 className="text-2xl font-bold">QUOTE</h2>
+                    <p className="text-sm text-muted-foreground">#{selectedQuote.quoteNumber}</p>
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="font-semibold">Customer</Label>
