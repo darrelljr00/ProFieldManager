@@ -189,15 +189,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ user: req.user });
   });
 
-  // Apply authentication middleware to all API routes except auth
-  app.use('/api', (req, res, next) => {
-    if (req.path.startsWith('/api/auth/')) {
-      return next();
-    }
-    return requireAuth(req, res, next);
-  });
-
-  // Seed database with sample data (development only)
+  // Seed database with sample data (development only) - BEFORE auth middleware
   app.post("/api/seed", async (req, res) => {
     try {
       await seedDatabase();
@@ -254,6 +246,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       res.status(500).json({ message: "Error seeding database: " + error.message });
     }
+  });
+
+  // Apply authentication middleware to protected routes only
+  app.use('/api', (req, res, next) => {
+    // Skip auth for these routes
+    const publicRoutes = ['/api/auth/', '/api/seed'];
+    const isPublic = publicRoutes.some(route => req.path.startsWith(route) || req.path === route);
+    
+    if (isPublic) {
+      return next();
+    }
+    return requireAuth(req, res, next);
   });
 
   // Dashboard stats
