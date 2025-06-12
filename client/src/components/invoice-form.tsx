@@ -12,7 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Plus, Trash2 } from "lucide-react";
-import type { InsertInvoice } from "@shared/schema";
+import type { InsertInvoice, Customer } from "@shared/schema";
 
 const lineItemSchema = z.object({
   description: z.string().min(1, "Description is required"),
@@ -29,7 +29,7 @@ const invoiceSchema = z.object({
   notes: z.string().optional(),
   lineItems: z.array(lineItemSchema).min(1, "At least one line item is required"),
   subtotal: z.number(),
-  taxRate: z.number().min(0).max(1),
+  taxRate: z.number().min(0),
   taxAmount: z.number(),
   total: z.number(),
 });
@@ -47,7 +47,7 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
   const [taxRate, setTaxRate] = useState(0.1); // 10% default
   const { toast } = useToast();
 
-  const { data: customers } = useQuery({
+  const { data: customers = [] } = useQuery<Customer[]>({
     queryKey: ["/api/customers"],
   });
 
@@ -132,12 +132,14 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
     const invoiceData: InsertInvoice = {
       ...data,
       userId: 1, // This will be set by the backend from authenticated user
+      invoiceNumber: `INV-${Date.now()}`, // Generate invoice number
       invoiceDate: new Date(data.invoiceDate),
       dueDate: new Date(data.dueDate),
       subtotal: data.subtotal.toString(),
-      taxRate: data.taxRate.toString(),
+      taxRate: (taxRate * 100).toString(), // Convert to percentage
       taxAmount: data.taxAmount.toString(),
       total: data.total.toString(),
+      status: "draft", // Default status
     };
     
     createInvoiceMutation.mutate(invoiceData);
@@ -162,7 +164,7 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
                 <SelectValue placeholder="Select Customer" />
               </SelectTrigger>
               <SelectContent>
-                {customers?.map((customer) => (
+                {customers.map((customer: Customer) => (
                   <SelectItem key={customer.id} value={customer.id.toString()}>
                     {customer.name}
                   </SelectItem>
