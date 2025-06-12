@@ -129,6 +129,9 @@ export default function CalendarPage() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     
+    const customerIdValue = formData.get('customerId') as string;
+    const leadIdValue = formData.get('leadId') as string;
+    
     const jobData = {
       title: formData.get('title') as string,
       description: formData.get('description') as string,
@@ -136,8 +139,8 @@ export default function CalendarPage() {
       startDate: formData.get('startDate') as string,
       endDate: formData.get('endDate') as string,
       estimatedValue: formData.get('estimatedValue') as string,
-      customerId: formData.get('customerId') ? parseInt(formData.get('customerId') as string) : null,
-      leadId: formData.get('leadId') ? parseInt(formData.get('leadId') as string) : null,
+      customerId: customerIdValue && customerIdValue !== 'none' ? parseInt(customerIdValue) : null,
+      leadId: leadIdValue && leadIdValue !== 'none' ? parseInt(leadIdValue) : null,
       status: formData.get('status') as string,
       priority: formData.get('priority') as string,
       notes: formData.get('notes') as string,
@@ -319,12 +322,12 @@ export default function CalendarPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="customerId">Customer</Label>
-                  <Select name="customerId" defaultValue={selectedJob?.customerId?.toString() || ""}>
+                  <Select name="customerId" defaultValue={selectedJob?.customerId?.toString() || "none"}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select customer" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No customer</SelectItem>
+                      <SelectItem value="none">No customer</SelectItem>
                       {customers.map(customer => (
                         <SelectItem key={customer.id} value={customer.id.toString()}>
                           {customer.name}
@@ -335,12 +338,12 @@ export default function CalendarPage() {
                 </div>
                 <div>
                   <Label htmlFor="leadId">Lead</Label>
-                  <Select name="leadId" defaultValue={selectedJob?.leadId?.toString() || ""}>
+                  <Select name="leadId" defaultValue={selectedJob?.leadId?.toString() || "none"}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select lead" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No lead</SelectItem>
+                      <SelectItem value="none">No lead</SelectItem>
                       {leads.map(lead => (
                         <SelectItem key={lead.id} value={lead.id.toString()}>
                           {lead.name}
