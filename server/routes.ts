@@ -32,6 +32,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next();
   });
 
+  // Seed database with sample data (development only)
+  app.post("/api/seed", async (req, res) => {
+    try {
+      await seedDatabase();
+      res.json({ message: "Database seeded successfully" });
+    } catch (error: any) {
+      res.status(500).json({ message: "Error seeding database: " + error.message });
+    }
+  });
+
   // Dashboard stats
   app.get("/api/dashboard/stats", async (req, res) => {
     try {
