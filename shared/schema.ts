@@ -88,6 +88,8 @@ export const insertInvoiceSchema = createInsertSchema(invoices).omit({
   createdAt: true,
   updatedAt: true,
 }).extend({
+  invoiceDate: z.string().transform((val) => new Date(val)),
+  dueDate: z.string().transform((val) => new Date(val)),
   lineItems: z.array(z.object({
     description: z.string().min(1),
     quantity: z.number().positive(),

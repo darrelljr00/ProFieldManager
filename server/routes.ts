@@ -138,8 +138,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const invoiceData = insertInvoiceSchema.parse({
         ...req.body,
         userId: req.user.id,
-        invoiceNumber,
-        status: 'draft',
+        invoiceNumber: req.body.invoiceNumber || invoiceNumber,
+        status: req.body.status || 'draft',
       });
       
       const invoice = await storage.createInvoice(invoiceData);
