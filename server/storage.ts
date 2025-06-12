@@ -73,6 +73,35 @@ export interface IStorage {
   deactivateUser(id: number): Promise<void>;
   activateUser(id: number): Promise<void>;
   deleteUser(id: number): Promise<boolean>;
+
+  // Project management methods
+  getProjects(userId: number): Promise<(Project & { users: (ProjectUser & { user: User })[], taskCount: number, completedTasks: number })[]>;
+  getProject(id: number, userId: number): Promise<(Project & { users: (ProjectUser & { user: User })[], customer?: Customer }) | undefined>;
+  createProject(project: InsertProject): Promise<Project>;
+  updateProject(id: number, userId: number, project: Partial<InsertProject>): Promise<Project | undefined>;
+  deleteProject(id: number, userId: number): Promise<boolean>;
+  addUserToProject(projectUser: InsertProjectUser): Promise<ProjectUser>;
+  removeUserFromProject(projectId: number, userId: number): Promise<boolean>;
+  updateProjectProgress(projectId: number, progress: number): Promise<void>;
+
+  // Task management methods
+  getTasks(projectId: number, userId: number): Promise<(Task & { assignedTo?: User, createdBy: User, comments: (TaskComment & { user: User })[], files: ProjectFile[] })[]>;
+  getTask(id: number, userId: number): Promise<(Task & { assignedTo?: User, createdBy: User, comments: (TaskComment & { user: User })[], files: ProjectFile[] }) | undefined>;
+  createTask(task: InsertTask): Promise<Task>;
+  updateTask(id: number, userId: number, task: Partial<InsertTask>): Promise<Task | undefined>;
+  deleteTask(id: number, userId: number): Promise<boolean>;
+  addTaskComment(comment: InsertTaskComment): Promise<TaskComment>;
+  
+  // File management methods
+  uploadProjectFile(file: InsertProjectFile): Promise<ProjectFile>;
+  getProjectFiles(projectId: number, userId: number): Promise<ProjectFile[]>;
+  deleteProjectFile(id: number, userId: number): Promise<boolean>;
+  
+  // Time tracking methods
+  createTimeEntry(timeEntry: InsertTimeEntry): Promise<TimeEntry>;
+  getTimeEntries(projectId: number, userId: number): Promise<(TimeEntry & { user: User, task?: Task })[]>;
+  updateTimeEntry(id: number, userId: number, timeEntry: Partial<InsertTimeEntry>): Promise<TimeEntry | undefined>;
+  deleteTimeEntry(id: number, userId: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -598,6 +627,364 @@ export class DatabaseStorage implements IStorage {
 
   async deleteUser(id: number): Promise<boolean> {
     const result = await db.delete(users).where(eq(users.id, id));
+    return result.rowCount > 0;
+  }
+
+  // Project management methods
+  async getProjects(userId: number): Promise<(Project & { users: (ProjectUser & { user: User })[], taskCount: number, completedTasks: number })[]> {
+    const userProjects = await db
+      .select({
+        project: projects,
+        projectUser: projectUsers,
+        user: users,
+      })
+      .from(projects)
+      .leftJoin(projectUsers, eq(projects.id, projectUsers.projectId))
+      .leftJoin(users, eq(projectUsers.userId, users.id))
+      .where(or(
+        eq(projects.userId, userId),
+        eq(projectUsers.userId, userId)
+      ))
+      .orderBy(desc(projects.createdAt));
+
+    // Get task counts for each project
+    const projectTaskCounts = await db
+      .select({
+        projectId: tasks.projectId,
+        totalTasks: sql<number>`count(*)`,
+        completedTasks: sql<number>`count(case when ${tasks.status} = 'completed' then 1 end)`,
+      })
+      .from(tasks)
+      .groupBy(tasks.projectId);
+
+    const projectMap = new Map<number, Project & { users: (ProjectUser & { user: User })[], taskCount: number, completedTasks: number }>();
+
+    userProjects.forEach(row => {
+      if (!projectMap.has(row.project.id)) {
+        const taskData = projectTaskCounts.find(tc => tc.projectId === row.project.id);
+        projectMap.set(row.project.id, {
+          ...row.project,
+          users: [],
+          taskCount: taskData?.totalTasks || 0,
+          completedTasks: taskData?.completedTasks || 0,
+        });
+      }
+      
+      if (row.projectUser && row.user) {
+        projectMap.get(row.project.id)!.users.push({
+          ...row.projectUser,
+          user: row.user,
+        });
+      }
+    });
+
+    return Array.from(projectMap.values());
+  }
+
+  async getProject(id: number, userId: number): Promise<(Project & { users: (ProjectUser & { user: User })[], customer?: Customer }) | undefined> {
+    const projectData = await db
+      .select({
+        project: projects,
+        customer: customers,
+      })
+      .from(projects)
+      .leftJoin(customers, eq(projects.customerId, customers.id))
+      .where(eq(projects.id, id))
+      .limit(1);
+
+    if (projectData.length === 0) return undefined;
+
+    // Check if user has access to this project
+    const hasAccess = await db
+      .select()
+      .from(projectUsers)
+      .where(and(eq(projectUsers.projectId, id), eq(projectUsers.userId, userId)))
+      .limit(1);
+
+    if (hasAccess.length === 0 && projectData[0].project.userId !== userId) {
+      return undefined;
+    }
+
+    const projectUsersData = await db
+      .select({
+        projectUser: projectUsers,
+        user: users,
+      })
+      .from(projectUsers)
+      .innerJoin(users, eq(projectUsers.userId, users.id))
+      .where(eq(projectUsers.projectId, id));
+
+    return {
+      ...projectData[0].project,
+      users: projectUsersData.map(row => ({
+        ...row.projectUser,
+        user: row.user,
+      })),
+      customer: projectData[0].customer || undefined,
+    };
+  }
+
+  async createProject(project: InsertProject): Promise<Project> {
+    const [newProject] = await db
+      .insert(projects)
+      .values(project)
+      .returning();
+
+    // Add the project creator as owner
+    await db
+      .insert(projectUsers)
+      .values({
+        projectId: newProject.id,
+        userId: project.userId,
+        role: 'owner',
+      });
+
+    return newProject;
+  }
+
+  async updateProject(id: number, userId: number, project: Partial<InsertProject>): Promise<Project | undefined> {
+    // Check if user has permission to update
+    const hasAccess = await db
+      .select()
+      .from(projectUsers)
+      .where(and(
+        eq(projectUsers.projectId, id),
+        eq(projectUsers.userId, userId),
+        inArray(projectUsers.role, ['owner', 'manager'])
+      ))
+      .limit(1);
+
+    if (hasAccess.length === 0) return undefined;
+
+    const [updatedProject] = await db
+      .update(projects)
+      .set({ ...project, updatedAt: new Date() })
+      .where(eq(projects.id, id))
+      .returning();
+
+    return updatedProject;
+  }
+
+  async deleteProject(id: number, userId: number): Promise<boolean> {
+    const result = await db
+      .delete(projects)
+      .where(and(eq(projects.id, id), eq(projects.userId, userId)));
+
+    return result.rowCount > 0;
+  }
+
+  async addUserToProject(projectUser: InsertProjectUser): Promise<ProjectUser> {
+    const [newProjectUser] = await db
+      .insert(projectUsers)
+      .values(projectUser)
+      .returning();
+
+    return newProjectUser;
+  }
+
+  async removeUserFromProject(projectId: number, userId: number): Promise<boolean> {
+    const result = await db
+      .delete(projectUsers)
+      .where(and(eq(projectUsers.projectId, projectId), eq(projectUsers.userId, userId)));
+
+    return result.rowCount > 0;
+  }
+
+  async updateProjectProgress(projectId: number, progress: number): Promise<void> {
+    await db
+      .update(projects)
+      .set({ progress, updatedAt: new Date() })
+      .where(eq(projects.id, projectId));
+  }
+
+  // Task management methods
+  async getTasks(projectId: number, userId: number): Promise<(Task & { assignedTo?: User, createdBy: User, comments: (TaskComment & { user: User })[], files: ProjectFile[] })[]> {
+    const tasksData = await db
+      .select({
+        task: tasks,
+        assignedTo: users,
+        createdBy: users,
+      })
+      .from(tasks)
+      .leftJoin(users, eq(tasks.assignedToId, users.id))
+      .innerJoin(users, eq(tasks.createdById, users.id))
+      .where(eq(tasks.projectId, projectId))
+      .orderBy(desc(tasks.createdAt));
+
+    const taskIds = tasksData.map(t => t.task.id);
+
+    const commentsData = await db
+      .select({
+        comment: taskComments,
+        user: users,
+      })
+      .from(taskComments)
+      .innerJoin(users, eq(taskComments.userId, users.id))
+      .where(inArray(taskComments.taskId, taskIds))
+      .orderBy(taskComments.createdAt);
+
+    const filesData = await db
+      .select()
+      .from(projectFiles)
+      .where(inArray(projectFiles.taskId, taskIds));
+
+    return tasksData.map(row => ({
+      ...row.task,
+      assignedTo: row.assignedTo || undefined,
+      createdBy: row.createdBy,
+      comments: commentsData
+        .filter(c => c.comment.taskId === row.task.id)
+        .map(c => ({ ...c.comment, user: c.user })),
+      files: filesData.filter(f => f.taskId === row.task.id),
+    }));
+  }
+
+  async getTask(id: number, userId: number): Promise<(Task & { assignedTo?: User, createdBy: User, comments: (TaskComment & { user: User })[], files: ProjectFile[] }) | undefined> {
+    const taskData = await db
+      .select({
+        task: tasks,
+        assignedTo: users,
+        createdBy: users,
+      })
+      .from(tasks)
+      .leftJoin(users, eq(tasks.assignedToId, users.id))
+      .innerJoin(users, eq(tasks.createdById, users.id))
+      .where(eq(tasks.id, id))
+      .limit(1);
+
+    if (taskData.length === 0) return undefined;
+
+    const commentsData = await db
+      .select({
+        comment: taskComments,
+        user: users,
+      })
+      .from(taskComments)
+      .innerJoin(users, eq(taskComments.userId, users.id))
+      .where(eq(taskComments.taskId, id))
+      .orderBy(taskComments.createdAt);
+
+    const filesData = await db
+      .select()
+      .from(projectFiles)
+      .where(eq(projectFiles.taskId, id));
+
+    return {
+      ...taskData[0].task,
+      assignedTo: taskData[0].assignedTo || undefined,
+      createdBy: taskData[0].createdBy,
+      comments: commentsData.map(c => ({ ...c.comment, user: c.user })),
+      files: filesData,
+    };
+  }
+
+  async createTask(task: InsertTask): Promise<Task> {
+    const [newTask] = await db
+      .insert(tasks)
+      .values(task)
+      .returning();
+
+    return newTask;
+  }
+
+  async updateTask(id: number, userId: number, task: Partial<InsertTask>): Promise<Task | undefined> {
+    const [updatedTask] = await db
+      .update(tasks)
+      .set({ ...task, updatedAt: new Date() })
+      .where(eq(tasks.id, id))
+      .returning();
+
+    return updatedTask;
+  }
+
+  async deleteTask(id: number, userId: number): Promise<boolean> {
+    const result = await db
+      .delete(tasks)
+      .where(eq(tasks.id, id));
+
+    return result.rowCount > 0;
+  }
+
+  async addTaskComment(comment: InsertTaskComment): Promise<TaskComment> {
+    const [newComment] = await db
+      .insert(taskComments)
+      .values(comment)
+      .returning();
+
+    return newComment;
+  }
+
+  // File management methods
+  async uploadProjectFile(file: InsertProjectFile): Promise<ProjectFile> {
+    const [newFile] = await db
+      .insert(projectFiles)
+      .values(file)
+      .returning();
+
+    return newFile;
+  }
+
+  async getProjectFiles(projectId: number, userId: number): Promise<ProjectFile[]> {
+    return await db
+      .select()
+      .from(projectFiles)
+      .where(eq(projectFiles.projectId, projectId))
+      .orderBy(desc(projectFiles.createdAt));
+  }
+
+  async deleteProjectFile(id: number, userId: number): Promise<boolean> {
+    const result = await db
+      .delete(projectFiles)
+      .where(eq(projectFiles.id, id));
+
+    return result.rowCount > 0;
+  }
+
+  // Time tracking methods
+  async createTimeEntry(timeEntry: InsertTimeEntry): Promise<TimeEntry> {
+    const [newTimeEntry] = await db
+      .insert(timeEntries)
+      .values(timeEntry)
+      .returning();
+
+    return newTimeEntry;
+  }
+
+  async getTimeEntries(projectId: number, userId: number): Promise<(TimeEntry & { user: User, task?: Task })[]> {
+    const timeEntriesData = await db
+      .select({
+        timeEntry: timeEntries,
+        user: users,
+        task: tasks,
+      })
+      .from(timeEntries)
+      .innerJoin(users, eq(timeEntries.userId, users.id))
+      .leftJoin(tasks, eq(timeEntries.taskId, tasks.id))
+      .where(eq(timeEntries.projectId, projectId))
+      .orderBy(desc(timeEntries.date));
+
+    return timeEntriesData.map(row => ({
+      ...row.timeEntry,
+      user: row.user,
+      task: row.task || undefined,
+    }));
+  }
+
+  async updateTimeEntry(id: number, userId: number, timeEntry: Partial<InsertTimeEntry>): Promise<TimeEntry | undefined> {
+    const [updatedTimeEntry] = await db
+      .update(timeEntries)
+      .set(timeEntry)
+      .where(and(eq(timeEntries.id, id), eq(timeEntries.userId, userId)))
+      .returning();
+
+    return updatedTimeEntry;
+  }
+
+  async deleteTimeEntry(id: number, userId: number): Promise<boolean> {
+    const result = await db
+      .delete(timeEntries)
+      .where(and(eq(timeEntries.id, id), eq(timeEntries.userId, userId)));
+
     return result.rowCount > 0;
   }
 }
