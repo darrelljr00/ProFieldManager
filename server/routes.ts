@@ -1601,6 +1601,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // OCR Settings API
+  app.get("/api/settings/ocr", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const settings = await storage.getOcrSettings();
+      res.json(settings || {});
+    } catch (error: any) {
+      console.error("Error fetching OCR settings:", error);
+      res.status(500).json({ message: "Failed to fetch OCR settings" });
+    }
+  });
+
+  app.put("/api/settings/ocr", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const settings = req.body;
+      await storage.updateOcrSettings(settings);
+      res.json({ message: "OCR settings updated successfully" });
+    } catch (error: any) {
+      console.error("Error updating OCR settings:", error);
+      res.status(500).json({ message: "Failed to update OCR settings" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

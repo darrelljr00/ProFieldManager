@@ -132,6 +132,10 @@ export interface IStorage {
   approveExpenseReport(id: number, approvedBy: number): Promise<boolean>;
   addExpenseToReport(reportId: number, expenseId: number): Promise<boolean>;
   removeExpenseFromReport(reportId: number, expenseId: number): Promise<boolean>;
+  
+  // OCR settings
+  getOcrSettings(): Promise<any>;
+  updateOcrSettings(settings: any): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1214,6 +1218,27 @@ export class DatabaseStorage implements IStorage {
     }
 
     return result.rowCount > 0;
+  }
+
+  // OCR settings implementation
+  async getOcrSettings(): Promise<any> {
+    try {
+      const result = await pool.query(
+        "SELECT value FROM settings WHERE key = 'ocr_settings'"
+      );
+      return result.rows.length > 0 ? JSON.parse(result.rows[0].value) : {};
+    } catch (error) {
+      console.error("Error fetching OCR settings:", error);
+      return {};
+    }
+  }
+
+  async updateOcrSettings(settings: any): Promise<void> {
+    await pool.query(
+      `INSERT INTO settings (key, value, updated_at) VALUES ('ocr_settings', $1, NOW())
+       ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = NOW()`,
+      [JSON.stringify(settings)]
+    );
   }
 }
 

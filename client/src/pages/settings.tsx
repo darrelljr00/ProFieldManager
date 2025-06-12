@@ -953,6 +953,183 @@ export default function Settings() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="ocr">
+          <Card>
+            <CardHeader>
+              <CardTitle>OCR Settings</CardTitle>
+              <CardDescription>
+                Configure OCR providers for receipt scanning in expense tracking
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleOcrSubmit} className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-medium">Enable OCR</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Enable optical character recognition for receipt scanning
+                    </p>
+                  </div>
+                  <Switch
+                    name="ocrEnabled"
+                    defaultChecked={ocrSettings?.ocrEnabled}
+                  />
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="ocrProvider">OCR Provider</Label>
+                    <Select name="ocrProvider" defaultValue={ocrSettings?.ocrProvider || "google"}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select OCR provider" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="google">Google Vision API</SelectItem>
+                        <SelectItem value="aws">AWS Textract</SelectItem>
+                        <SelectItem value="azure">Azure Computer Vision</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Google Vision API Settings */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Google Vision API</h3>
+                  <div>
+                    <Label htmlFor="googleVisionApiKey">API Key</Label>
+                    <div className="relative">
+                      <Input
+                        id="googleVisionApiKey"
+                        name="googleVisionApiKey"
+                        type={showSecrets.googleVisionApiKey ? "text" : "password"}
+                        placeholder="Enter Google Vision API Key"
+                        defaultValue={ocrSettings?.googleVisionApiKey}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3"
+                        onClick={() => setShowSecrets(prev => ({ ...prev, googleVisionApiKey: !prev.googleVisionApiKey }))}
+                      >
+                        {showSecrets.googleVisionApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* AWS Textract Settings */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">AWS Textract</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="awsAccessKeyId">Access Key ID</Label>
+                      <div className="relative">
+                        <Input
+                          id="awsAccessKeyId"
+                          name="awsAccessKeyId"
+                          type={showSecrets.awsAccessKeyId ? "text" : "password"}
+                          placeholder="AKIA..."
+                          defaultValue={ocrSettings?.awsAccessKeyId}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-0 top-0 h-full px-3"
+                          onClick={() => setShowSecrets(prev => ({ ...prev, awsAccessKeyId: !prev.awsAccessKeyId }))}
+                        >
+                          {showSecrets.awsAccessKeyId ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="awsSecretAccessKey">Secret Access Key</Label>
+                      <div className="relative">
+                        <Input
+                          id="awsSecretAccessKey"
+                          name="awsSecretAccessKey"
+                          type={showSecrets.awsSecretAccessKey ? "text" : "password"}
+                          placeholder="Enter secret key"
+                          defaultValue={ocrSettings?.awsSecretAccessKey}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-0 top-0 h-full px-3"
+                          onClick={() => setShowSecrets(prev => ({ ...prev, awsSecretAccessKey: !prev.awsSecretAccessKey }))}
+                        >
+                          {showSecrets.awsSecretAccessKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="awsRegion">AWS Region</Label>
+                    <Input
+                      id="awsRegion"
+                      name="awsRegion"
+                      placeholder="us-east-1"
+                      defaultValue={ocrSettings?.awsRegion}
+                    />
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Azure Computer Vision Settings */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Azure Computer Vision</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="azureSubscriptionKey">Subscription Key</Label>
+                      <div className="relative">
+                        <Input
+                          id="azureSubscriptionKey"
+                          name="azureSubscriptionKey"
+                          type={showSecrets.azureSubscriptionKey ? "text" : "password"}
+                          placeholder="Enter subscription key"
+                          defaultValue={ocrSettings?.azureSubscriptionKey}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-0 top-0 h-full px-3"
+                          onClick={() => setShowSecrets(prev => ({ ...prev, azureSubscriptionKey: !prev.azureSubscriptionKey }))}
+                        >
+                          {showSecrets.azureSubscriptionKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="azureEndpoint">Endpoint</Label>
+                      <Input
+                        id="azureEndpoint"
+                        name="azureEndpoint"
+                        placeholder="https://region.api.cognitive.microsoft.com/"
+                        defaultValue={ocrSettings?.azureEndpoint}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end">
+                  <Button type="submit" disabled={ocrMutation.isPending}>
+                    <Save className="h-4 w-4 mr-2" />
+                    {ocrMutation.isPending ? "Saving..." : "Save OCR Settings"}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
     </div>
   );
