@@ -1,8 +1,9 @@
 import { 
-  users, customers, invoices, invoiceLineItems, payments, quotes, quoteLineItems,
+  users, customers, invoices, invoiceLineItems, payments, quotes, quoteLineItems, settings,
   type User, type InsertUser, type Customer, type InsertCustomer,
   type Invoice, type InsertInvoice, type InvoiceLineItem, type InsertInvoiceLineItem,
-  type Payment, type InsertPayment, type Quote, type InsertQuote, type QuoteLineItem
+  type Payment, type InsertPayment, type Quote, type InsertQuote, type QuoteLineItem,
+  type Setting, type InsertSetting
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql } from "drizzle-orm";
@@ -432,6 +433,45 @@ export class DatabaseStorage implements IStorage {
 
   async getPaymentsByInvoice(invoiceId: number): Promise<Payment[]> {
     return await db.select().from(payments).where(eq(payments.invoiceId, invoiceId));
+  }
+
+  async getSettings(category: string): Promise<Record<string, string>> {
+    const settingsRows = await db
+      .select()
+      .from(settings)
+      .where(eq(settings.category, category));
+    
+    const result: Record<string, string> = {};
+    for (const row of settingsRows) {
+      result[row.key] = row.value || '';
+    }
+    return result;
+  }
+
+  async updateSettings(category: string, settingsData: Record<string, string>): Promise<void> {
+    for (const [key, value] of Object.entries(settingsData)) {
+      const existing = await db
+        .select()
+        .from(settings)
+        .where(and(eq(settings.category, category), eq(settings.key, key)))
+        .limit(1);
+
+      if (existing.length > 0) {
+        await db
+          .update(settings)
+          .set({ value, updatedAt: new Date() })
+          .where(and(eq(settings.category, category), eq(settings.key, key)));
+      } else {
+        await db
+          .insert(settings)
+          .values({
+            category,
+            key,
+            value,
+            isSecret: key.toLowerCase().includes('secret') || key.toLowerCase().includes('key') || key.toLowerCase().includes('password')
+          });
+      }
+    }
   }
 }
 

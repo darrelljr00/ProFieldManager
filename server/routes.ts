@@ -469,6 +469,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get settings by category
+  app.get("/api/settings/:category", async (req, res) => {
+    try {
+      const category = req.params.category;
+      const settings = await storage.getSettings(category);
+      res.json(settings);
+    } catch (error: any) {
+      res.status(500).json({ message: "Error fetching settings: " + error.message });
+    }
+  });
+
+  // Update settings by category
+  app.put("/api/settings/:category", async (req, res) => {
+    try {
+      const category = req.params.category;
+      const settingsData = req.body;
+      
+      await storage.updateSettings(category, settingsData);
+      res.json({ message: "Settings updated successfully" });
+    } catch (error: any) {
+      res.status(500).json({ message: "Error updating settings: " + error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
