@@ -11,7 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Save, Eye, EyeOff } from "lucide-react";
+import { Save, Eye, EyeOff, Upload, X } from "lucide-react";
 
 type PaymentSettings = {
   stripeEnabled: boolean;
@@ -31,7 +31,7 @@ type CompanySettings = {
   companyPhone: string;
   companyAddress: string;
   companyWebsite: string;
-  companyLogo: string;
+  logo: string;
   taxRate: number;
   defaultCurrency: string;
   invoiceTerms: string;
@@ -59,6 +59,8 @@ type TwilioSettings = {
 
 export default function Settings() {
   const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -154,11 +156,66 @@ export default function Settings() {
     },
   });
 
+  const logoUploadMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('logo', file);
+      const response = await fetch('/api/upload/logo', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/company"] });
+      setLogoFile(null);
+      setLogoPreview(null);
+      toast({
+        title: "Success",
+        description: "Logo uploaded successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to upload logo",
+        variant: "destructive",
+      });
+    },
+  });
+
   const toggleSecretVisibility = (key: string) => {
     setShowSecrets(prev => ({
       ...prev,
       [key]: !prev[key]
     }));
+  };
+
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setLogoFile(file);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setLogoPreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleLogoUpload = () => {
+    if (logoFile) {
+      logoUploadMutation.mutate(logoFile);
+    }
+  };
+
+  const removeLogo = () => {
+    setLogoFile(null);
+    setLogoPreview(null);
   };
 
   const handlePaymentSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -187,7 +244,6 @@ export default function Settings() {
       companyPhone: formData.get('companyPhone') as string,
       companyAddress: formData.get('companyAddress') as string,
       companyWebsite: formData.get('companyWebsite') as string,
-      companyLogo: formData.get('companyLogo') as string,
       taxRate: parseFloat(formData.get('taxRate') as string) || 0,
       defaultCurrency: formData.get('defaultCurrency') as string,
       invoiceTerms: formData.get('invoiceTerms') as string,
