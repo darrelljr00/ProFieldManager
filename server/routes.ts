@@ -4,6 +4,7 @@ import Stripe from "stripe";
 import { storage } from "./storage";
 import { insertCustomerSchema, insertInvoiceSchema } from "@shared/schema";
 import { ZodError } from "zod";
+import { seedDatabase } from "./seed-data";
 
 // Extend Express Request type to include user
 declare global {

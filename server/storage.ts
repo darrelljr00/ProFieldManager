@@ -203,7 +203,7 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .delete(invoices)
       .where(and(eq(invoices.id, id), eq(invoices.userId, userId)));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   async getInvoiceStats(userId: number): Promise<{
