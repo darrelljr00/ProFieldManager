@@ -1361,6 +1361,246 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Expense management routes
+  app.get("/api/expenses", requireAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const expenses = await storage.getExpenses(userId);
+      res.json(expenses);
+    } catch (error: any) {
+      console.error("Error fetching expenses:", error);
+      res.status(500).json({ message: "Failed to fetch expenses" });
+    }
+  });
+
+  app.get("/api/expenses/:id", requireAuth, async (req, res) => {
+    try {
+      const expenseId = parseInt(req.params.id);
+      const userId = req.user!.id;
+      const expense = await storage.getExpense(expenseId, userId);
+      
+      if (!expense) {
+        return res.status(404).json({ message: "Expense not found" });
+      }
+      
+      res.json(expense);
+    } catch (error: any) {
+      console.error("Error fetching expense:", error);
+      res.status(500).json({ message: "Failed to fetch expense" });
+    }
+  });
+
+  app.post("/api/expenses", requireAuth, upload.single('receipt'), async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const expenseData = req.body;
+      
+      // Handle file upload
+      let receiptUrl = null;
+      let receiptData = null;
+      
+      if (req.file) {
+        receiptUrl = req.file.path;
+        receiptData = `Receipt uploaded: ${req.file.originalname}`;
+      }
+
+      const expense = await storage.createExpense({
+        ...expenseData,
+        userId,
+        amount: parseFloat(expenseData.amount),
+        expenseDate: new Date(expenseData.expenseDate),
+        receiptUrl,
+        receiptData,
+        tags: expenseData.tags ? expenseData.tags.split(',').map((tag: string) => tag.trim()) : [],
+      });
+
+      res.status(201).json(expense);
+    } catch (error: any) {
+      console.error("Error creating expense:", error);
+      res.status(500).json({ message: "Failed to create expense" });
+    }
+  });
+
+  app.put("/api/expenses/:id", requireAuth, async (req, res) => {
+    try {
+      const expenseId = parseInt(req.params.id);
+      const userId = req.user!.id;
+      const expenseData = req.body;
+
+      const expense = await storage.updateExpense(expenseId, userId, {
+        ...expenseData,
+        amount: expenseData.amount ? parseFloat(expenseData.amount) : undefined,
+        expenseDate: expenseData.expenseDate ? new Date(expenseData.expenseDate) : undefined,
+        tags: expenseData.tags ? expenseData.tags.split(',').map((tag: string) => tag.trim()) : undefined,
+      });
+
+      if (!expense) {
+        return res.status(404).json({ message: "Expense not found" });
+      }
+
+      res.json(expense);
+    } catch (error: any) {
+      console.error("Error updating expense:", error);
+      res.status(500).json({ message: "Failed to update expense" });
+    }
+  });
+
+  app.delete("/api/expenses/:id", requireAuth, async (req, res) => {
+    try {
+      const expenseId = parseInt(req.params.id);
+      const userId = req.user!.id;
+      
+      const success = await storage.deleteExpense(expenseId, userId);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Expense not found" });
+      }
+      
+      res.json({ message: "Expense deleted successfully" });
+    } catch (error: any) {
+      console.error("Error deleting expense:", error);
+      res.status(500).json({ message: "Failed to delete expense" });
+    }
+  });
+
+  app.post("/api/expenses/:id/approve", requireAuth, requireManagerOrAdmin, async (req, res) => {
+    try {
+      const expenseId = parseInt(req.params.id);
+      const approvedBy = req.user!.id;
+      
+      const success = await storage.approveExpense(expenseId, approvedBy);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Expense not found" });
+      }
+      
+      res.json({ message: "Expense approved successfully" });
+    } catch (error: any) {
+      console.error("Error approving expense:", error);
+      res.status(500).json({ message: "Failed to approve expense" });
+    }
+  });
+
+  // Expense categories
+  app.get("/api/expense-categories", requireAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const categories = await storage.getExpenseCategories(userId);
+      res.json(categories);
+    } catch (error: any) {
+      console.error("Error fetching expense categories:", error);
+      res.status(500).json({ message: "Failed to fetch expense categories" });
+    }
+  });
+
+  app.post("/api/expense-categories", requireAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const categoryData = req.body;
+
+      const category = await storage.createExpenseCategory({
+        ...categoryData,
+        userId,
+      });
+
+      res.status(201).json(category);
+    } catch (error: any) {
+      console.error("Error creating expense category:", error);
+      res.status(500).json({ message: "Failed to create expense category" });
+    }
+  });
+
+  // Expense reports
+  app.get("/api/expense-reports", requireAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const reports = await storage.getExpenseReports(userId);
+      res.json(reports);
+    } catch (error: any) {
+      console.error("Error fetching expense reports:", error);
+      res.status(500).json({ message: "Failed to fetch expense reports" });
+    }
+  });
+
+  app.post("/api/expense-reports", requireAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const reportData = req.body;
+
+      const report = await storage.createExpenseReport({
+        ...reportData,
+        userId,
+      });
+
+      res.status(201).json(report);
+    } catch (error: any) {
+      console.error("Error creating expense report:", error);
+      res.status(500).json({ message: "Failed to create expense report" });
+    }
+  });
+
+  app.post("/api/expense-reports/:id/submit", requireAuth, async (req, res) => {
+    try {
+      const reportId = parseInt(req.params.id);
+      const userId = req.user!.id;
+      
+      const success = await storage.submitExpenseReport(reportId, userId);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Expense report not found" });
+      }
+      
+      res.json({ message: "Expense report submitted successfully" });
+    } catch (error: any) {
+      console.error("Error submitting expense report:", error);
+      res.status(500).json({ message: "Failed to submit expense report" });
+    }
+  });
+
+  app.post("/api/expense-reports/:reportId/expenses/:expenseId", requireAuth, async (req, res) => {
+    try {
+      const reportId = parseInt(req.params.reportId);
+      const expenseId = parseInt(req.params.expenseId);
+      
+      const success = await storage.addExpenseToReport(reportId, expenseId);
+      
+      if (!success) {
+        return res.status(400).json({ message: "Failed to add expense to report" });
+      }
+      
+      res.json({ message: "Expense added to report successfully" });
+    } catch (error: any) {
+      console.error("Error adding expense to report:", error);
+      res.status(500).json({ message: "Failed to add expense to report" });
+    }
+  });
+
+  // OCR endpoint for receipt processing
+  app.post("/api/ocr/receipt", requireAuth, upload.single('receipt'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No receipt image provided" });
+      }
+
+      // This endpoint requires an OCR API key for full functionality
+      // For testing purposes, you can provide test data temporarily
+      res.json({
+        success: false,
+        message: "OCR service requires API configuration. Please provide OCR API credentials.",
+        testData: {
+          vendor: "Receipt Merchant",
+          amount: "25.99",
+          date: new Date().toISOString().split('T')[0],
+          category: "meals",
+          rawText: "Receipt text would appear here after OCR processing"
+        }
+      });
+    } catch (error: any) {
+      console.error("Error processing receipt:", error);
+      res.status(500).json({ message: "Failed to process receipt" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
