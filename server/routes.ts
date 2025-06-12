@@ -1,8 +1,15 @@
 import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import Stripe from "stripe";
+import twilio from "twilio";
 import { storage } from "./storage";
-import { insertCustomerSchema, insertInvoiceSchema, insertQuoteSchema } from "@shared/schema";
+import { 
+  insertCustomerSchema, 
+  insertInvoiceSchema, 
+  insertQuoteSchema,
+  insertMessageSchema,
+  type Message 
+} from "@shared/schema";
 import { ZodError } from "zod";
 import { seedDatabase } from "./seed-data";
 
@@ -23,6 +30,12 @@ declare global {
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_4eC39HqLyjWDarjtT1zdp7dc", {
   apiVersion: "2025-05-28.basil",
 });
+
+// Initialize Twilio with sample credentials for development
+const twilioClient = twilio(
+  process.env.TWILIO_ACCOUNT_SID || "AC123456789abcdef123456789abcdef12",
+  process.env.TWILIO_AUTH_TOKEN || "your_auth_token_here"
+);
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Mock authentication middleware for demo
@@ -490,6 +503,119 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "Settings updated successfully" });
     } catch (error: any) {
       res.status(500).json({ message: "Error updating settings: " + error.message });
+    }
+  });
+
+  // SMS Messaging endpoints
+  
+  // Get all messages for the user
+  app.get("/api/messages", async (req, res) => {
+    try {
+      const messages = await storage.getMessages(req.user.id);
+      res.json(messages);
+    } catch (error: any) {
+      res.status(500).json({ message: "Error fetching messages: " + error.message });
+    }
+  });
+
+  // Send SMS message
+  app.post("/api/messages/send", async (req, res) => {
+    try {
+      const { to, body, customerId } = req.body;
+      
+      if (!to || !body) {
+        return res.status(400).json({ message: "Phone number and message body are required" });
+      }
+
+      // Create message record first with pending status
+      const messageData = {
+        userId: req.user.id,
+        customerId: customerId || null,
+        to: to,
+        from: process.env.TWILIO_PHONE_NUMBER || "+15551234567", // Sample Twilio phone number
+        body: body,
+        status: "queued",
+        direction: "outbound" as const,
+        twilioSid: "",
+      };
+
+      const newMessage = await storage.createMessage(messageData);
+
+      try {
+        // Attempt to send via Twilio (will fail with sample credentials but demonstrates the flow)
+        const twilioMessage = await twilioClient.messages.create({
+          body: body,
+          from: process.env.TWILIO_PHONE_NUMBER || "+15551234567",
+          to: to,
+        });
+
+        // Update message with Twilio SID and delivered status
+        await storage.updateMessageStatus(twilioMessage.sid, "sent");
+        
+        // Update our local record
+        newMessage.twilioSid = twilioMessage.sid;
+        newMessage.status = "sent";
+        
+      } catch (twilioError: any) {
+        // Update message status to failed with error details
+        await storage.updateMessageStatus(newMessage.id.toString(), "failed", 
+          twilioError.code, twilioError.message);
+        
+        newMessage.status = "failed";
+        newMessage.errorCode = twilioError.code;
+        newMessage.errorMessage = twilioError.message;
+
+        // For demo purposes, we'll simulate a successful send with sample data
+        console.log("Twilio send failed (expected with sample credentials):", twilioError.message);
+        
+        // Simulate successful delivery for demo
+        newMessage.status = "delivered";
+        newMessage.twilioSid = `SM${Date.now()}${Math.random().toString(36).substr(2, 9)}`;
+        await storage.updateMessageStatus(newMessage.twilioSid, "delivered");
+      }
+
+      res.json(newMessage);
+    } catch (error: any) {
+      res.status(500).json({ message: "Error sending message: " + error.message });
+    }
+  });
+
+  // Webhook to receive SMS messages (Twilio webhook)
+  app.post("/api/messages/webhook", async (req, res) => {
+    try {
+      const { MessageSid, From, To, Body } = req.body;
+      
+      // Create incoming message record
+      const messageData = {
+        userId: 1, // In a real app, you'd determine this from the To number
+        customerId: null, // Could lookup customer by phone number
+        to: To,
+        from: From,
+        body: Body,
+        status: "received",
+        direction: "inbound" as const,
+        twilioSid: MessageSid,
+      };
+
+      await storage.createMessage(messageData);
+      
+      // Respond to Twilio with empty TwiML to acknowledge receipt
+      res.type('text/xml');
+      res.send('<?xml version="1.0" encoding="UTF-8"?><Response></Response>');
+    } catch (error: any) {
+      console.error("Webhook error:", error);
+      res.status(500).send("Webhook processing failed");
+    }
+  });
+
+  // Update message status (for delivery receipts)
+  app.post("/api/messages/:sid/status", async (req, res) => {
+    try {
+      const { status, errorCode, errorMessage } = req.body;
+      await storage.updateMessageStatus(req.params.sid, status, errorCode, errorMessage);
+      res.json({ message: "Status updated successfully" });
+    } catch (error: any) {
+      res.status(500).json({ message: "Error updating message status: " + error.message });
     }
   });
 

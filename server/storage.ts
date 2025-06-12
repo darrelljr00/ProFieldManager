@@ -1,9 +1,9 @@
 import { 
-  users, customers, invoices, invoiceLineItems, payments, quotes, quoteLineItems, settings,
+  users, customers, invoices, invoiceLineItems, payments, quotes, quoteLineItems, settings, messages,
   type User, type InsertUser, type Customer, type InsertCustomer,
   type Invoice, type InsertInvoice, type InvoiceLineItem, type InsertInvoiceLineItem,
   type Payment, type InsertPayment, type Quote, type InsertQuote, type QuoteLineItem,
-  type Setting, type InsertSetting
+  type Setting, type InsertSetting, type Message, type InsertMessage
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql } from "drizzle-orm";
@@ -55,6 +55,11 @@ export interface IStorage {
   // Settings methods
   getSettings(category: string): Promise<Record<string, string>>;
   updateSettings(category: string, settings: Record<string, string>): Promise<void>;
+
+  // Message methods
+  getMessages(userId: number): Promise<(Message & { customerName?: string })[]>;
+  createMessage(message: InsertMessage): Promise<Message>;
+  updateMessageStatus(twilioSid: string, status: string, errorCode?: string, errorMessage?: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -472,6 +477,42 @@ export class DatabaseStorage implements IStorage {
           });
       }
     }
+  }
+
+  async getMessages(userId: number): Promise<(Message & { customerName?: string })[]> {
+    const messagesWithCustomers = await db
+      .select({
+        message: messages,
+        customerName: customers.name,
+      })
+      .from(messages)
+      .leftJoin(customers, eq(messages.customerId, customers.id))
+      .where(eq(messages.userId, userId))
+      .orderBy(desc(messages.createdAt));
+
+    return messagesWithCustomers.map(row => ({
+      ...row.message,
+      customerName: row.customerName || undefined,
+    }));
+  }
+
+  async createMessage(message: InsertMessage): Promise<Message> {
+    const [newMessage] = await db
+      .insert(messages)
+      .values(message)
+      .returning();
+    return newMessage;
+  }
+
+  async updateMessageStatus(twilioSid: string, status: string, errorCode?: string, errorMessage?: string): Promise<void> {
+    await db
+      .update(messages)
+      .set({ 
+        status, 
+        errorCode, 
+        errorMessage 
+      })
+      .where(eq(messages.twilioSid, twilioSid));
   }
 }
 
