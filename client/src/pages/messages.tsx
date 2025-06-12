@@ -274,6 +274,39 @@ export default function Messages() {
                 </Button>
               </div>
             ) : (
+              <div className="mb-4 flex justify-between items-center">
+                <p className="text-sm text-muted-foreground">
+                  {messages.length} message{messages.length !== 1 ? 's' : ''} • Auto-refreshing every 5 seconds
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    // Simulate receiving a message for demo purposes
+                    const demoMessage = {
+                      to: "+15559876543",
+                      from: "+15551234567",
+                      body: "Thanks for the quote! When can we schedule the work?",
+                      status: "received",
+                      direction: "inbound" as const,
+                      twilioSid: `SM${Date.now()}${Math.random().toString(36).substr(2, 9)}`,
+                    };
+                    
+                    apiRequest("POST", "/api/messages/webhook", {
+                      MessageSid: demoMessage.twilioSid,
+                      From: demoMessage.from,
+                      To: demoMessage.to,
+                      Body: demoMessage.body,
+                    }).then(() => {
+                      queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
+                    });
+                  }}
+                >
+                  Simulate Incoming Message
+                </Button>
+              </div>
+            )}
+            {messages.length > 0 && (
               <ScrollArea className="h-[600px]">
                 <div className="space-y-4">
                   {messages.map((message) => (
