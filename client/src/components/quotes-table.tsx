@@ -193,14 +193,14 @@ export function QuotesTable({ quotes, isLoading }: QuotesTableProps) {
                 <TableRow key={quote.id}>
                   <TableCell className="font-medium">{quote.quoteNumber}</TableCell>
                   <TableCell>{quote.customer.name}</TableCell>
-                  <TableCell>{format(new Date(quote.issueDate), "MMM dd, yyyy")}</TableCell>
+                  <TableCell>{format(new Date(quote.quoteDate), "MMM dd, yyyy")}</TableCell>
                   <TableCell>{format(new Date(quote.expiryDate), "MMM dd, yyyy")}</TableCell>
                   <TableCell>
                     <Badge variant={getStatusBadgeVariant(quote.status)}>
                       {quote.status}
                     </Badge>
                   </TableCell>
-                  <TableCell>${quote.total.toFixed(2)}</TableCell>
+                  <TableCell>${parseFloat(quote.total).toFixed(2)}</TableCell>
                   <TableCell>
                     <div className="flex space-x-2">
                       <Button
@@ -286,8 +286,8 @@ export function QuotesTable({ quotes, isLoading }: QuotesTableProps) {
                   </Badge>
                 </div>
                 <div>
-                  <Label className="font-semibold">Issue Date</Label>
-                  <p>{format(new Date(selectedQuote.issueDate), "MMMM dd, yyyy")}</p>
+                  <Label className="font-semibold">Quote Date</Label>
+                  <p>{format(new Date(selectedQuote.quoteDate), "MMMM dd, yyyy")}</p>
                 </div>
                 <div>
                   <Label className="font-semibold">Expiry Date</Label>
@@ -302,24 +302,24 @@ export function QuotesTable({ quotes, isLoading }: QuotesTableProps) {
                     <TableRow>
                       <TableHead>Description</TableHead>
                       <TableHead>Quantity</TableHead>
-                      <TableHead>Unit Price</TableHead>
-                      <TableHead>Total</TableHead>
+                      <TableHead>Rate</TableHead>
+                      <TableHead>Amount</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {selectedQuote.lineItems.map((item, index) => (
                       <TableRow key={index}>
                         <TableCell>{item.description}</TableCell>
-                        <TableCell>{item.quantity}</TableCell>
-                        <TableCell>${item.unitPrice.toFixed(2)}</TableCell>
-                        <TableCell>${(item.quantity * item.unitPrice).toFixed(2)}</TableCell>
+                        <TableCell>{parseFloat(item.quantity).toFixed(0)}</TableCell>
+                        <TableCell>${parseFloat(item.rate).toFixed(2)}</TableCell>
+                        <TableCell>${parseFloat(item.amount).toFixed(2)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
                 <div className="flex justify-end mt-4">
                   <div className="text-lg font-semibold">
-                    Total: ${selectedQuote.total.toFixed(2)}
+                    Total: ${parseFloat(selectedQuote.total).toFixed(2)}
                   </div>
                 </div>
               </div>
