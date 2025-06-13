@@ -22,11 +22,13 @@ export function useAuth() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: user, isLoading, error } = useQuery<User>({
+  const { data: authData, isLoading, error } = useQuery<{user: User}>({
     queryKey: ["/api/auth/me"],
     retry: false,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
+
+  const user = authData?.user;
 
   const logoutMutation = useMutation({
     mutationFn: () => apiRequest("POST", "/api/auth/logout", {}),
