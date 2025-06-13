@@ -401,7 +401,6 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(quotes)
       .leftJoin(customers, eq(quotes.customerId, customers.id))
-      .where(eq(quotes.userId, userId))
       .orderBy(desc(quotes.createdAt));
 
     const result = [];
@@ -428,7 +427,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(quotes)
       .leftJoin(customers, eq(quotes.customerId, customers.id))
-      .where(and(eq(quotes.id, id), eq(quotes.userId, userId)));
+      .where(eq(quotes.id, id));
 
     if (!quoteWithCustomer?.quotes || !quoteWithCustomer?.customers) {
       return undefined;
@@ -487,7 +486,7 @@ export class DatabaseStorage implements IStorage {
     // Delete quote
     const result = await db
       .delete(quotes)
-      .where(and(eq(quotes.id, id), eq(quotes.userId, userId)));
+      .where(eq(quotes.id, id));
     return (result.rowCount ?? 0) > 0;
   }
 
@@ -1180,7 +1179,6 @@ export class DatabaseStorage implements IStorage {
     const reports = await db
       .select()
       .from(expenseReports)
-      .where(eq(expenseReports.userId, userId))
       .orderBy(desc(expenseReports.createdAt));
 
     // Get expenses for each report
@@ -1206,7 +1204,7 @@ export class DatabaseStorage implements IStorage {
     const [report] = await db
       .select()
       .from(expenseReports)
-      .where(and(eq(expenseReports.id, id), eq(expenseReports.userId, userId)));
+      .where(eq(expenseReports.id, id));
 
     if (!report) return undefined;
 
@@ -1235,7 +1233,7 @@ export class DatabaseStorage implements IStorage {
     const [updatedReport] = await db
       .update(expenseReports)
       .set({ ...report, updatedAt: new Date() })
-      .where(and(eq(expenseReports.id, id), eq(expenseReports.userId, userId)))
+      .where(eq(expenseReports.id, id))
       .returning();
 
     return updatedReport;
@@ -1249,7 +1247,7 @@ export class DatabaseStorage implements IStorage {
         submittedAt: new Date(),
         updatedAt: new Date(),
       })
-      .where(and(eq(expenseReports.id, id), eq(expenseReports.userId, userId)))
+      .where(eq(expenseReports.id, id))
       .returning();
 
     return !!updatedReport;
