@@ -59,7 +59,7 @@ const upload = multer({
         await fs.mkdir(uploadDir, { recursive: true });
         cb(null, uploadDir);
       } catch (error) {
-        cb(error, uploadDir);
+        cb(error as Error, uploadDir);
       }
     },
     filename: (req, file, cb) => {
@@ -307,10 +307,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return requireAuth(req, res, next);
   });
 
+  // Type assertion helper for authenticated routes
+  function getAuthenticatedUser(req: Request) {
+    if (!req.user) {
+      throw new Error('User not authenticated');
+    }
+    return req.user;
+  }
+
   // Dashboard stats
   app.get("/api/dashboard/stats", async (req, res) => {
     try {
-      const stats = await storage.getInvoiceStats(req.user.id);
+      const stats = await storage.getInvoiceStats(req.user!.id);
       res.json(stats);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -320,7 +328,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Customer routes
   app.get("/api/customers", async (req, res) => {
     try {
-      const customers = await storage.getCustomers(req.user.id);
+      const customers = await storage.getCustomers(req.user!.id);
       res.json(customers);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
