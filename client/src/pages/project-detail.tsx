@@ -138,7 +138,7 @@ export default function ProjectDetail() {
   });
 
   const createTimeEntryMutation = useMutation({
-    mutationFn: (data: any) => apiRequest("POST", `/api/projects/${projectId}/time`, data),
+    mutationFn: (data: any) => apiRequest(`/api/projects/${projectId}/time`, "POST", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId, "time"] });
       setTimeDialogOpen(false);
