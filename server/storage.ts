@@ -1751,19 +1751,34 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateSystemSetting(key: string, value: string): Promise<void> {
-    await db.insert(settings)
-      .values({
-        key: `system_${key}`,
-        value,
-        updatedAt: new Date()
-      })
-      .onConflictDoUpdate({
-        target: settings.key,
-        set: {
+    const settingKey = `system_${key}`;
+    
+    // Check if setting exists
+    const existing = await db
+      .select()
+      .from(settings)
+      .where(eq(settings.key, settingKey))
+      .limit(1);
+
+    if (existing.length > 0) {
+      // Update existing setting
+      await db
+        .update(settings)
+        .set({
           value,
           updatedAt: new Date()
-        }
+        })
+        .where(eq(settings.key, settingKey));
+    } else {
+      // Insert new setting
+      await db.insert(settings).values({
+        category: 'system',
+        key: settingKey,
+        value,
+        createdAt: new Date(),
+        updatedAt: new Date()
       });
+    }
   }
 
   // Activity logs for admin monitoring
