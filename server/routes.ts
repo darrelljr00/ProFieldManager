@@ -915,6 +915,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get users for messaging (authenticated users only)
+  app.get("/api/users", requireAuth, async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      // Remove passwords and sensitive info from response
+      const safeUsers = users.map(user => ({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+      }));
+      res.json(safeUsers);
+    } catch (error: any) {
+      res.status(500).json({ message: "Error fetching users: " + error.message });
+    }
+  });
+
   // User Management endpoints (Admin only)
   
   // Get all users
