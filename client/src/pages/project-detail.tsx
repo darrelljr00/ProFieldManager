@@ -107,17 +107,32 @@ export default function ProjectDetail() {
   });
 
   const uploadFileMutation = useMutation({
-    mutationFn: (formData: FormData) => 
-      fetch(`/api/projects/${projectId}/files`, {
+    mutationFn: async (formData: FormData) => {
+      const response = await fetch(`/api/projects/${projectId}/files`, {
         method: "POST",
         body: formData,
-      }).then(res => res.json()),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Upload failed' }));
+        throw new Error(errorData.message || 'Upload failed');
+      }
+      
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId, "files"] });
       setFileDialogOpen(false);
       toast({
         title: "Success",
         description: "File uploaded successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Upload Failed",
+        description: error.message,
+        variant: "destructive",
       });
     },
   });
@@ -476,18 +491,14 @@ export default function ProjectDetail() {
                   
                   <div>
                     <Label htmlFor="taskId">Related Task (Optional)</Label>
-                    <Select name="taskId">
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select task" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {tasks.map((task) => (
-                          <SelectItem key={task.id} value={task.id.toString()}>
-                            {task.title}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <select name="taskId" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+                      <option value="">Select a task</option>
+                      {tasks.map((task) => (
+                        <option key={task.id} value={task.id.toString()}>
+                          {task.title}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   <div>
