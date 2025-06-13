@@ -218,7 +218,15 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
             <div className="p-3">
               <div className="flex items-start justify-between">
                 <div className="flex-1 min-w-0">
-                  <h4 className="text-sm font-medium truncate">{file.originalName}</h4>
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-sm font-medium truncate">{file.originalName}</h4>
+                    {file.annotations && file.annotations.length > 0 && (
+                      <Badge variant="secondary" className="text-xs">
+                        <Edit3 className="h-3 w-3 mr-1" />
+                        Annotated
+                      </Badge>
+                    )}
+                  </div>
                   <div className="flex items-center justify-between mt-1">
                     <p className="text-xs text-gray-500">
                       {formatFileSize(file.fileSize)}
@@ -462,8 +470,6 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
                             annotatedImageUrl
                           });
                         }}
-                        projectId={projectId}
-                        imageName={selectedMedia.originalName}
                       />
                     )}
                   </TabsContent>

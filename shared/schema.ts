@@ -232,7 +232,10 @@ export const projectFiles = pgTable("project_files", {
   mimeType: text("mime_type").notNull(),
   fileType: text("file_type").notNull(), // image, video, document, other
   description: text("description"),
+  annotations: text("annotations"), // JSON string of annotations
+  annotatedImageUrl: text("annotated_image_url"), // URL of annotated image version
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 export const timeEntries = pgTable("time_entries", {

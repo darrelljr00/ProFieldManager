@@ -122,6 +122,7 @@ export interface IStorage {
   getProjectFiles(projectId: number, userId: number): Promise<ProjectFile[]>;
   getProjectFile(id: number, userId: number): Promise<ProjectFile | undefined>;
   deleteProjectFile(id: number, userId: number): Promise<boolean>;
+  saveFileAnnotations(fileId: number, userId: number, annotations: any[], annotatedImageUrl: string): Promise<any | null>;
   
   // Time tracking methods
   createTimeEntry(timeEntry: InsertTimeEntry): Promise<TimeEntry>;
@@ -1974,6 +1975,20 @@ export class DatabaseStorage implements IStorage {
       .returning();
 
     return updatedImage || null;
+  }
+
+  async saveFileAnnotations(fileId: number, userId: number, annotations: any[], annotatedImageUrl: string): Promise<any | null> {
+    const [updatedFile] = await db
+      .update(projectFiles)
+      .set({
+        annotations: JSON.stringify(annotations),
+        annotatedImageUrl,
+        updatedAt: new Date()
+      })
+      .where(and(eq(projectFiles.id, fileId), eq(projectFiles.userId, userId)))
+      .returning();
+
+    return updatedFile || null;
   }
 
   async deleteImage(imageId: number, userId: number): Promise<boolean> {

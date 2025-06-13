@@ -2466,6 +2466,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post('/api/files/annotations', requireAuth, async (req, res) => {
+    try {
+      const { fileId, annotations, annotatedImageUrl } = req.body;
+      const userId = req.user!.id;
+      
+      const updatedFile = await storage.saveFileAnnotations(fileId, userId, annotations, annotatedImageUrl);
+      
+      if (!updatedFile) {
+        return res.status(404).json({ message: 'File not found' });
+      }
+      
+      res.json(updatedFile);
+    } catch (error: any) {
+      console.error('Error saving file annotations:', error);
+      res.status(500).json({ message: 'Failed to save file annotations' });
+    }
+  });
+
   app.delete('/api/images/:id', requireAuth, async (req, res) => {
     try {
       const imageId = parseInt(req.params.id);
