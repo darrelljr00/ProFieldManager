@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -244,7 +244,10 @@ export function MediaGallery({ files }: MediaGalleryProps) {
 
       {/* Lightbox */}
       <Dialog open={!!selectedMedia} onOpenChange={() => setSelectedMedia(null)}>
-        <DialogContent className="max-w-6xl w-full h-[90vh] p-0">
+        <DialogContent className="max-w-6xl w-full h-[90vh] p-0" aria-describedby="media-preview-description">
+          <DialogTitle className="sr-only">
+            {selectedMedia?.originalName || 'Media Preview'}
+          </DialogTitle>
           {selectedMedia && (
             <div className="flex flex-col h-full">
               {/* Header */}
@@ -317,6 +320,9 @@ export function MediaGallery({ files }: MediaGalleryProps) {
               </div>
 
               {/* Description */}
+              <div id="media-preview-description" className="sr-only">
+                Viewing {selectedMedia.fileType} file: {selectedMedia.originalName}
+              </div>
               {selectedMedia.description && (
                 <div className="p-4 border-t bg-white">
                   <p className="text-sm text-gray-600">{selectedMedia.description}</p>
