@@ -2,7 +2,7 @@ import {
   users, customers, invoices, invoiceLineItems, payments, quotes, quoteLineItems, settings, messages,
   userSessions, userPermissions, projects, projectUsers, tasks, taskComments, projectFiles, timeEntries,
   expenses, expenseCategories, expenseReports, expenseReportItems, gasCards, gasCardAssignments, leads, calendarJobs,
-  internalMessages, internalMessageRecipients, messageGroups, messageGroupMembers,
+  internalMessages, internalMessageRecipients, messageGroups, messageGroupMembers, images, imageAnnotations,
   type User, type InsertUser, type Customer, type InsertCustomer,
   type Invoice, type InsertInvoice, type InvoiceLineItem, type InsertInvoiceLineItem,
   type Payment, type InsertPayment, type Quote, type InsertQuote, type QuoteLineItem,
@@ -185,6 +185,17 @@ export interface IStorage {
   addUserToGroup(groupId: number, userId: number, role?: string): Promise<MessageGroupMember>;
   removeUserFromGroup(groupId: number, userId: number): Promise<boolean>;
   sendGroupMessage(groupId: number, message: InsertInternalMessage): Promise<InternalMessage>;
+
+  // Image management
+  getImages(userId: number): Promise<any[]>;
+  saveImageAnnotations(imageId: number, userId: number, annotations: any[], annotatedImageUrl: string): Promise<any | null>;
+  deleteImage(imageId: number, userId: number): Promise<boolean>;
+
+  // SMS functionality (placeholder methods)
+  getSmsMessages(): Promise<any[]>;
+  createSmsMessage(data: any): Promise<any>;
+  getSmsTemplates(): Promise<any[]>;
+  createSmsTemplate(data: any): Promise<any>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1908,16 +1919,16 @@ export class DatabaseStorage implements IStorage {
 
   // Activity logs for admin monitoring
   async getActivityLogs(): Promise<any[]> {
-    const users = await db.select({
-      id: this.users.id,
-      username: this.users.username,
-      lastLoginAt: this.users.lastLoginAt
-    }).from(this.users)
-    .where(isNotNull(this.users.lastLoginAt))
-    .orderBy(desc(this.users.lastLoginAt))
+    const userResults = await db.select({
+      id: users.id,
+      username: users.username,
+      lastLoginAt: users.lastLoginAt
+    }).from(users)
+    .where(isNotNull(users.lastLoginAt))
+    .orderBy(desc(users.lastLoginAt))
     .limit(20);
     
-    return users.map((user, index) => ({
+    return userResults.map((user, index) => ({
       id: index + 1,
       userId: user.id,
       username: user.username,
@@ -1926,6 +1937,68 @@ export class DatabaseStorage implements IStorage {
       timestamp: user.lastLoginAt?.toISOString() || new Date().toISOString(),
       ipAddress: '127.0.0.1'
     }));
+  }
+
+  // Image management methods
+  async getImages(userId: number): Promise<any[]> {
+    const result = await db.select({
+      id: images.id,
+      filename: images.filename,
+      originalName: images.originalName,
+      mimeType: images.mimeType,
+      size: images.size,
+      description: images.description,
+      annotations: images.annotations,
+      annotatedImageUrl: images.annotatedImageUrl,
+      uploadDate: images.createdAt,
+      projectId: images.projectId,
+      projectName: projects.name
+    })
+    .from(images)
+    .leftJoin(projects, eq(images.projectId, projects.id))
+    .where(eq(images.userId, userId))
+    .orderBy(desc(images.createdAt));
+
+    return result;
+  }
+
+  async saveImageAnnotations(imageId: number, userId: number, annotations: any[], annotatedImageUrl: string): Promise<any | null> {
+    const [updatedImage] = await db
+      .update(images)
+      .set({
+        annotations: JSON.stringify(annotations),
+        annotatedImageUrl,
+        updatedAt: new Date()
+      })
+      .where(and(eq(images.id, imageId), eq(images.userId, userId)))
+      .returning();
+
+    return updatedImage || null;
+  }
+
+  async deleteImage(imageId: number, userId: number): Promise<boolean> {
+    const result = await db
+      .delete(images)
+      .where(and(eq(images.id, imageId), eq(images.userId, userId)));
+
+    return result.rowCount > 0;
+  }
+
+  // SMS functionality placeholder methods
+  async getSmsMessages(): Promise<any[]> {
+    return [];
+  }
+
+  async createSmsMessage(data: any): Promise<any> {
+    return { id: Date.now(), ...data };
+  }
+
+  async getSmsTemplates(): Promise<any[]> {
+    return [];
+  }
+
+  async createSmsTemplate(data: any): Promise<any> {
+    return { id: Date.now(), ...data };
   }
 }
 

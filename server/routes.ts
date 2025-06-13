@@ -2436,6 +2436,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Image management routes
+  app.get('/api/images', requireAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const images = await storage.getImages(userId);
+      res.json(images);
+    } catch (error: any) {
+      console.error('Error fetching images:', error);
+      res.status(500).json({ message: 'Failed to fetch images' });
+    }
+  });
+
+  app.post('/api/images/annotations', requireAuth, async (req, res) => {
+    try {
+      const { imageId, annotations, annotatedImageUrl } = req.body;
+      const userId = req.user!.id;
+      
+      const updatedImage = await storage.saveImageAnnotations(imageId, userId, annotations, annotatedImageUrl);
+      
+      if (!updatedImage) {
+        return res.status(404).json({ message: 'Image not found' });
+      }
+      
+      res.json(updatedImage);
+    } catch (error: any) {
+      console.error('Error saving annotations:', error);
+      res.status(500).json({ message: 'Failed to save annotations' });
+    }
+  });
+
+  app.delete('/api/images/:id', requireAuth, async (req, res) => {
+    try {
+      const imageId = parseInt(req.params.id);
+      const userId = req.user!.id;
+      
+      const success = await storage.deleteImage(imageId, userId);
+      
+      if (!success) {
+        return res.status(404).json({ message: 'Image not found' });
+      }
+      
+      res.json({ message: 'Image deleted successfully' });
+    } catch (error: any) {
+      console.error('Error deleting image:', error);
+      res.status(500).json({ message: 'Failed to delete image' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
