@@ -172,6 +172,11 @@ export const projects = pgTable("projects", {
   contactEmail: text("contact_email"),
   contactPhone: text("contact_phone"),
   contactCompany: text("contact_company"),
+  address: text("address"),
+  city: text("city"),
+  state: text("state"),
+  zipCode: text("zip_code"),
+  country: text("country").default("US"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

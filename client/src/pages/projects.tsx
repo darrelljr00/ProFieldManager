@@ -11,9 +11,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Calendar, Users, CheckCircle, Clock, AlertCircle, Folder, Settings } from "lucide-react";
+import { Plus, Calendar, Users, CheckCircle, Clock, AlertCircle, Folder, Settings, MapPin } from "lucide-react";
 import { Link } from "wouter";
 import type { Project, Customer, User } from "@shared/schema";
+import { DirectionsButton } from "@/components/google-maps";
 
 interface ProjectWithDetails extends Project {
   users: { user: User }[];
@@ -66,6 +67,11 @@ export default function Projects() {
       startDate: formData.get("startDate") ? new Date(formData.get("startDate") as string) : null,
       deadline: formData.get("deadline") ? new Date(formData.get("deadline") as string) : null,
       budget: formData.get("budget") ? parseFloat(formData.get("budget") as string) : null,
+      address: formData.get("address"),
+      city: formData.get("city"),
+      state: formData.get("state"),
+      zipCode: formData.get("zipCode"),
+      country: "US",
     };
     createProjectMutation.mutate(data);
   };
@@ -231,6 +237,42 @@ export default function Projects() {
                 />
               </div>
 
+              <div>
+                <Label htmlFor="address">Project Address</Label>
+                <Input
+                  id="address"
+                  name="address"
+                  placeholder="Street address"
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="city">City</Label>
+                  <Input
+                    id="city"
+                    name="city"
+                    placeholder="City"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="state">State</Label>
+                  <Input
+                    id="state"
+                    name="state"
+                    placeholder="State"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="zipCode">ZIP Code</Label>
+                  <Input
+                    id="zipCode"
+                    name="zipCode"
+                    placeholder="ZIP Code"
+                  />
+                </div>
+              </div>
+
               <div className="flex justify-end space-x-2 pt-4">
                 <Button type="button" variant="outline" onClick={() => setCreateDialogOpen(false)}>
                   Cancel
@@ -303,6 +345,24 @@ export default function Projects() {
                     <div className="flex items-center text-sm text-gray-600">
                       <Calendar className="h-4 w-4 mr-2" />
                       Due: {new Date(project.deadline).toLocaleDateString()}
+                    </div>
+                  )}
+
+                  {(project.address || project.city) && (
+                    <div className="flex items-center justify-between text-sm text-gray-600">
+                      <div className="flex items-center">
+                        <MapPin className="h-4 w-4 mr-2" />
+                        <span className="truncate">
+                          {[project.address, project.city, project.state].filter(Boolean).join(", ")}
+                        </span>
+                      </div>
+                      <DirectionsButton
+                        address={project.address}
+                        city={project.city}
+                        state={project.state}
+                        zipCode={project.zipCode}
+                        className="ml-2"
+                      />
                     </div>
                   )}
 
