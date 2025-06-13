@@ -19,9 +19,11 @@ import {
   Search,
   Edit3,
   Download,
-  Trash2
+  Trash2,
+  Palette
 } from "lucide-react";
 import { ImageAnnotation } from "@/components/image-annotation";
+import { PhotoEditor } from "@/components/photo-editor";
 
 interface ImageFile {
   id: number;
@@ -44,6 +46,7 @@ export default function ImageGallery() {
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadProjectId, setUploadProjectId] = useState<string>("");
+  const [isPhotoEditorOpen, setIsPhotoEditorOpen] = useState(false);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
