@@ -35,6 +35,7 @@ const navigation = [
   { name: "Payments", href: "/payments", icon: CreditCard },
   { name: "Team Messages", href: "/internal-messages", icon: MessageSquare },
   { name: "User Management", href: "/users", icon: UserCog },
+  { name: "Admin Settings", href: "/admin-settings", icon: Shield },
   { name: "Reports", href: "/reports", icon: FileBarChart },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
@@ -63,7 +64,7 @@ export function Sidebar() {
   };
 
   const filteredNavigation = navigation.filter(item => {
-    if (item.href === "/users") {
+    if (item.href === "/users" || item.href === "/admin-settings") {
       return isAdmin;
     }
     return true;
