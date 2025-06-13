@@ -40,6 +40,7 @@ import {
 import { Link } from "wouter";
 import type { Project, Customer, User, Task, ProjectFile, TimeEntry } from "@shared/schema";
 import { DirectionsButton } from "@/components/google-maps";
+import { MediaGallery } from "@/components/media-gallery";
 
 interface ProjectWithDetails extends Project {
   users: { user: User; role: string }[];
@@ -513,23 +514,14 @@ export default function ProjectDetail() {
                 <CardContent className="p-4">
                   {file.fileType === "image" ? (
                     <div className="space-y-3">
-                      <div className="aspect-video rounded-lg overflow-hidden bg-gray-100">
-                        <img 
-                          src={`/${file.filePath}`} 
-                          alt={file.originalName}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none';
-                            const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-                            if (fallback) {
-                              fallback.style.display = 'flex';
-                            }
-                          }}
-                        />
-                        <div className="hidden w-full h-full items-center justify-center text-gray-400">
-                          <FileText className="h-8 w-8" />
-                        </div>
-                      </div>
+                      <ImagePreview
+                        src={`/${file.filePath}`}
+                        alt={file.originalName}
+                        fileName={file.originalName}
+                        fileSize={file.fileSize}
+                        uploadDate={file.createdAt.toString()}
+                        description={file.description || undefined}
+                      />
                       <div className="flex items-center justify-between">
                         <div className="flex-1 min-w-0">
                           <h4 className="text-sm font-medium truncate">{file.originalName}</h4>
