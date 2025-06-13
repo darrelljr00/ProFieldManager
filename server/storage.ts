@@ -1727,7 +1727,13 @@ export class DatabaseStorage implements IStorage {
       passwordMinLength: 8,
       maxLoginAttempts: 5,
       requireStrongPassword: true,
-      enableTwoFactor: false
+      enableTwoFactor: false,
+      enableImageCompression: false,
+      imageQuality: 80,
+      maxImageWidth: 1920,
+      maxImageHeight: 1080,
+      compressionFormat: 'jpeg',
+      enableThumbnails: false
     };
     
     settingsData.forEach(setting => {

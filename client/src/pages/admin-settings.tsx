@@ -405,6 +405,124 @@ export default function AdminSettingsPage() {
               </div>
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Image Compression Settings
+              </CardTitle>
+              <CardDescription>
+                Configure automatic image compression for uploaded files
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="enableImageCompression">Enable Image Compression</Label>
+                  <Switch
+                    id="enableImageCompression"
+                    checked={systemSettings?.enableImageCompression || false}
+                    onCheckedChange={(checked) => 
+                      handleSystemSettingChange("enableImageCompression", checked.toString())
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Automatically compress images to reduce file size
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="imageQuality">Image Quality (%)</Label>
+                  <Input
+                    id="imageQuality"
+                    type="number"
+                    min="10"
+                    max="100"
+                    defaultValue={systemSettings?.imageQuality || 80}
+                    onBlur={(e) => 
+                      handleSystemSettingChange("imageQuality", e.target.value)
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Higher values mean better quality but larger files
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="maxImageWidth">Max Image Width (px)</Label>
+                  <Input
+                    id="maxImageWidth"
+                    type="number"
+                    min="100"
+                    max="5000"
+                    defaultValue={systemSettings?.maxImageWidth || 1920}
+                    onBlur={(e) => 
+                      handleSystemSettingChange("maxImageWidth", e.target.value)
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Images wider than this will be resized
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="maxImageHeight">Max Image Height (px)</Label>
+                  <Input
+                    id="maxImageHeight"
+                    type="number"
+                    min="100"
+                    max="5000"
+                    defaultValue={systemSettings?.maxImageHeight || 1080}
+                    onBlur={(e) => 
+                      handleSystemSettingChange("maxImageHeight", e.target.value)
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Images taller than this will be resized
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="compressionFormat">Output Format</Label>
+                  <Select
+                    value={systemSettings?.compressionFormat || "jpeg"}
+                    onValueChange={(value) => 
+                      handleSystemSettingChange("compressionFormat", value)
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select format" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="jpeg">JPEG</SelectItem>
+                      <SelectItem value="webp">WebP</SelectItem>
+                      <SelectItem value="png">PNG</SelectItem>
+                      <SelectItem value="original">Keep Original</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    WebP offers best compression, JPEG is most compatible
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="enableThumbnails">Generate Thumbnails</Label>
+                  <Switch
+                    id="enableThumbnails"
+                    checked={systemSettings?.enableThumbnails || false}
+                    onCheckedChange={(checked) => 
+                      handleSystemSettingChange("enableThumbnails", checked.toString())
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Create small thumbnail versions of images
+                  </p>
+                </div>
+              </div>
+              <div className="pt-4 border-t">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <AlertTriangle className="h-4 w-4" />
+                  Changes will apply to newly uploaded images only
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="security" className="space-y-6">
