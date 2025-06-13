@@ -90,7 +90,7 @@ const upload = multer({
     }
   },
   limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit
+    fileSize: 50 * 1024 * 1024 // 50MB limit
   }
 });
 
@@ -1354,7 +1354,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         uploadedById: userId,
         fileName: req.file.filename,
         originalName: req.file.originalname,
-        filePath: req.file.path,
+        filePath: req.file.path.replace('./uploads/', 'uploads/'),
         fileSize: req.file.size,
         mimeType: req.file.mimetype,
         fileType,
