@@ -70,7 +70,10 @@ export default function GasCards() {
 
   // Create gas card mutation
   const createGasCardMutation = useMutation({
-    mutationFn: (data: any) => apiRequest('/api/gas-cards', 'POST', data),
+    mutationFn: async (data: any) => {
+      const response = await apiRequest('/api/gas-cards', 'POST', data);
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/gas-cards'] });
       setCardDialogOpen(false);
@@ -84,7 +87,10 @@ export default function GasCards() {
 
   // Create assignment mutation
   const createAssignmentMutation = useMutation({
-    mutationFn: (data: any) => apiRequest('/api/gas-card-assignments', 'POST', data),
+    mutationFn: async (data: any) => {
+      const response = await apiRequest('/api/gas-card-assignments', 'POST', data);
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/gas-card-assignments'] });
       queryClient.invalidateQueries({ queryKey: ['/api/gas-card-assignments/active'] });
@@ -99,7 +105,10 @@ export default function GasCards() {
 
   // Return gas card mutation
   const returnGasCardMutation = useMutation({
-    mutationFn: (assignmentId: number) => apiRequest(`/api/gas-card-assignments/${assignmentId}/return`, 'PUT', { returnedDate: new Date() }),
+    mutationFn: async (assignmentId: number) => {
+      const response = await apiRequest(`/api/gas-card-assignments/${assignmentId}/return`, 'PUT', { returnedDate: new Date() });
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/gas-card-assignments'] });
       queryClient.invalidateQueries({ queryKey: ['/api/gas-card-assignments/active'] });
