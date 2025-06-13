@@ -41,7 +41,7 @@ export default function Leads() {
 
   const createMutation = useMutation({
     mutationFn: (data: Partial<InsertLead>) => 
-      apiRequest("POST", "/api/leads", data),
+      apiRequest("/api/leads", "POST", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
       setIsDialogOpen(false);
@@ -62,7 +62,7 @@ export default function Leads() {
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: Partial<InsertLead> }) =>
-      apiRequest("PUT", `/api/leads/${id}`, data),
+      apiRequest(`/api/leads/${id}`, "PUT", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
       setIsDialogOpen(false);
@@ -83,7 +83,7 @@ export default function Leads() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => 
-      apiRequest("DELETE", `/api/leads/${id}`),
+      apiRequest(`/api/leads/${id}`, "DELETE"),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
       toast({
