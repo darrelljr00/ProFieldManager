@@ -508,63 +508,7 @@ export default function ProjectDetail() {
             </Dialog>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {files.map((file) => (
-              <Card key={file.id}>
-                <CardContent className="p-4">
-                  {file.fileType === "image" ? (
-                    <div className="space-y-3">
-                      <ImagePreview
-                        src={`/${file.filePath}`}
-                        alt={file.originalName}
-                        fileName={file.originalName}
-                        fileSize={file.fileSize}
-                        uploadDate={file.createdAt.toString()}
-                        description={file.description || undefined}
-                      />
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1 min-w-0">
-                          <h4 className="text-sm font-medium truncate">{file.originalName}</h4>
-                          <p className="text-xs text-gray-500">
-                            {(file.fileSize / 1024 / 1024).toFixed(2)} MB • {new Date(file.createdAt).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <Button variant="ghost" size="sm" asChild>
-                          <a href={`/${file.filePath}`} download={file.originalName}>
-                            <Download className="h-4 w-4" />
-                          </a>
-                        </Button>
-                      </div>
-                      {file.description && (
-                        <p className="text-xs text-gray-600">{file.description}</p>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="flex items-start space-x-3">
-                      <div className="text-2xl">{getFileIcon(file.fileType)}</div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-medium truncate">{file.originalName}</h4>
-                        <p className="text-xs text-gray-500">
-                          {(file.fileSize / 1024 / 1024).toFixed(2)} MB
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {new Date(file.createdAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <Button variant="ghost" size="sm" asChild>
-                        <a href={`/${file.filePath}`} download={file.originalName}>
-                          <Download className="h-4 w-4" />
-                        </a>
-                      </Button>
-                    </div>
-                  )}
-                  {file.fileType !== "image" && file.description && (
-                    <p className="text-xs text-gray-600 mt-2">{file.description}</p>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <MediaGallery files={files} />
         </TabsContent>
 
         <TabsContent value="team" className="space-y-4">

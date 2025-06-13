@@ -25,7 +25,7 @@ interface MediaFile {
   fileSize: number;
   fileType: string;
   mimeType: string;
-  description?: string;
+  description?: string | null;
   createdAt: string;
 }
 
@@ -226,7 +226,7 @@ export function MediaGallery({ files }: MediaGalleryProps) {
         <div className="flex items-center gap-4 text-sm text-gray-600">
           {imageFiles.length > 0 && <span>{imageFiles.length} images</span>}
           {videoFiles.length > 0 && <span>{videoFiles.length} videos</span>}
-          {documentFiles.length > 0 && <span>{documentFiles.length} documents</span>
+          {documentFiles.length > 0 && <span>{documentFiles.length} documents</span>}
         </div>
       </div>
 
