@@ -39,7 +39,8 @@ const navigation = [
     hasSubmenu: true,
     items: [
       { name: "All Expenses", href: "/expenses" },
-      { name: "Expense Reports", href: "/expense-reports" }
+      { name: "Expense Reports", href: "/expense-reports" },
+      { name: "Gas Cards", href: "/gas-cards" }
     ]
   },
   { name: "Quotes", href: "/quotes", icon: Quote },
