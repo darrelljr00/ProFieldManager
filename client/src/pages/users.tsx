@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { 
   Table,
   TableBody,
@@ -44,6 +45,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
 import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { 
   Users, 
   UserPlus, 
   Edit, 
@@ -55,7 +64,16 @@ import {
   EyeOff,
   CheckCircle,
   XCircle,
-  Clock
+  Clock,
+  MoreHorizontal,
+  Filter,
+  Download,
+  Upload,
+  Settings,
+  BarChart3,
+  UserCheck,
+  UserX,
+  Search
 } from "lucide-react";
 
 type User = {
@@ -75,13 +93,22 @@ export default function UsersPage() {
   const [showNewUserDialog, setShowNewUserDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [showBulkDialog, setShowBulkDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
   const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
+  const [searchQuery, setSearchQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: users = [], isLoading } = useQuery<User[]>({
     queryKey: ["/api/admin/users"],
+  });
+
+  const { data: userStats } = useQuery({
+    queryKey: ["/api/admin/users/stats"],
   });
 
   const createUserMutation = useMutation({
@@ -147,6 +174,7 @@ export default function UsersPage() {
     mutationFn: (id: number) => apiRequest("DELETE", `/api/admin/users/${id}`, {}),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users/stats"] });
       toast({
         title: "Success",
         description: "User deleted successfully",
@@ -156,6 +184,28 @@ export default function UsersPage() {
       toast({
         title: "Error",
         description: error.message || "Failed to delete user",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const bulkActionMutation = useMutation({
+    mutationFn: (data: { userIds: number[]; action: string; value?: any }) =>
+      apiRequest("POST", "/api/admin/users/bulk-action", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users/stats"] });
+      setSelectedUsers([]);
+      toast({
+        title: "Success",
+        description: "Bulk action completed successfully",
+      });
+      setShowBulkDialog(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to perform bulk action",
         variant: "destructive",
       });
     },
@@ -243,6 +293,59 @@ export default function UsersPage() {
     setShowPasswordDialog(true);
   };
 
+  // Filter and search users
+  const filteredUsers = users.filter(user => {
+    const matchesSearch = searchQuery === "" || 
+      user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      `${user.firstName || ''} ${user.lastName || ''}`.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesRole = roleFilter === "all" || user.role === roleFilter;
+    const matchesStatus = statusFilter === "all" || 
+      (statusFilter === "active" && user.isActive) ||
+      (statusFilter === "inactive" && !user.isActive);
+    
+    return matchesSearch && matchesRole && matchesStatus;
+  });
+
+  // Bulk operations handlers
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedUsers(filteredUsers.map(user => user.id));
+    } else {
+      setSelectedUsers([]);
+    }
+  };
+
+  const handleSelectUser = (userId: number, checked: boolean) => {
+    if (checked) {
+      setSelectedUsers(prev => [...prev, userId]);
+    } else {
+      setSelectedUsers(prev => prev.filter(id => id !== userId));
+    }
+  };
+
+  const handleBulkAction = (action: string, value?: any) => {
+    bulkActionMutation.mutate({
+      userIds: selectedUsers,
+      action,
+      value
+    });
+  };
+
+  // User statistics
+  const stats = userStats || {
+    total: users.length,
+    active: users.filter(u => u.isActive).length,
+    inactive: users.filter(u => !u.isActive).length,
+    admins: users.filter(u => u.role === 'admin').length,
+    managers: users.filter(u => u.role === 'manager').length,
+    users: users.filter(u => u.role === 'user').length,
+    verified: users.filter(u => u.emailVerified).length,
+    recentLogins: users.filter(u => u.lastLoginAt && 
+      new Date(u.lastLoginAt) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)).length
+  };
+
   if (isLoading) {
     return (
       <div className="p-6">
@@ -264,13 +367,46 @@ export default function UsersPage() {
           </h1>
           <p className="text-muted-foreground">Manage user accounts, roles, and permissions</p>
         </div>
-        <Dialog open={showNewUserDialog} onOpenChange={setShowNewUserDialog}>
-          <DialogTrigger asChild>
-            <Button>
-              <UserPlus className="h-4 w-4 mr-2" />
-              Add User
-            </Button>
-          </DialogTrigger>
+        <div className="flex items-center gap-2">
+          {selectedUsers.length > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">
+                {selectedUsers.length} selected
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowBulkDialog(true)}
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Bulk Actions
+              </Button>
+            </div>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const csv = "Username,Email,Role,Status,Created\n" + 
+                filteredUsers.map(u => `${u.username},${u.email},${u.role},${u.isActive ? 'Active' : 'Inactive'},${u.createdAt}`).join("\n");
+              const blob = new Blob([csv], { type: 'text/csv' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = 'users.csv';
+              a.click();
+            }}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Export
+          </Button>
+          <Dialog open={showNewUserDialog} onOpenChange={setShowNewUserDialog}>
+            <DialogTrigger asChild>
+              <Button>
+                <UserPlus className="h-4 w-4 mr-2" />
+                Add User
+              </Button>
+            </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Create New User</DialogTitle>
@@ -657,6 +793,8 @@ export default function UsersPage() {
           </form>
         </DialogContent>
       </Dialog>
+        </div>
+      </div>
     </div>
   );
 }
