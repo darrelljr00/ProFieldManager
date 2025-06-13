@@ -236,6 +236,140 @@ export const timeEntries = pgTable("time_entries", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Expense tracking tables
+export const expenses = pgTable("expenses", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  projectId: integer("project_id").references(() => projects.id),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  currency: text("currency").notNull().default("USD"),
+  category: text("category").notNull(), // travel, meals, office_supplies, equipment, etc.
+  subcategory: text("subcategory"),
+  description: text("description").notNull(),
+  vendor: text("vendor"),
+  receiptUrl: text("receipt_url"),
+  receiptData: text("receipt_data"), // OCR extracted text
+  expenseDate: timestamp("expense_date").notNull(),
+  status: text("status").notNull().default("pending"), // pending, approved, rejected, reimbursed
+  isReimbursable: boolean("is_reimbursable").default(true),
+  tags: text("tags").array(),
+  notes: text("notes"),
+  approvedBy: integer("approved_by").references(() => users.id),
+  approvedAt: timestamp("approved_at"),
+  reimbursedAt: timestamp("reimbursed_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const expenseCategories = pgTable("expense_categories", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  name: text("name").notNull(),
+  description: text("description"),
+  isDefault: boolean("is_default").default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const expenseReports = pgTable("expense_reports", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  title: text("title").notNull(),
+  description: text("description"),
+  status: text("status").notNull().default("draft"), // draft, submitted, approved, rejected
+  totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull().default("0.00"),
+  submittedAt: timestamp("submitted_at"),
+  approvedBy: integer("approved_by").references(() => users.id),
+  approvedAt: timestamp("approved_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const expenseReportItems = pgTable("expense_report_items", {
+  id: serial("id").primaryKey(),
+  reportId: integer("report_id").notNull().references(() => expenseReports.id),
+  expenseId: integer("expense_id").notNull().references(() => expenses.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Leads table
+export const leads = pgTable("leads", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  name: text("name").notNull(),
+  phone: text("phone"),
+  email: text("email"),
+  serviceDescription: text("service_description").notNull(),
+  leadPrice: decimal("lead_price", { precision: 10, scale: 2 }),
+  leadSource: text("lead_source").notNull(), // referral, website, advertising, social_media, etc.
+  status: text("status").notNull().default("new"), // new, contacted, qualified, proposal_sent, won, lost
+  priority: text("priority").notNull().default("medium"), // low, medium, high
+  notes: text("notes"),
+  contactedAt: timestamp("contacted_at"),
+  followUpDate: timestamp("follow_up_date"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Calendar Jobs table
+export const calendarJobs = pgTable("calendar_jobs", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  customerId: integer("customer_id").references(() => customers.id),
+  leadId: integer("lead_id").references(() => leads.id),
+  title: text("title").notNull(),
+  description: text("description"),
+  location: text("location"),
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date").notNull(),
+  estimatedValue: decimal("estimated_value", { precision: 10, scale: 2 }),
+  status: text("status").notNull().default("scheduled"), // scheduled, in_progress, completed, converted, cancelled
+  priority: text("priority").notNull().default("medium"), // low, medium, high
+  notes: text("notes"),
+  convertedToProjectId: integer("converted_to_project_id").references(() => projects.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Internal messaging system
+export const internalMessages = pgTable("internal_messages", {
+  id: serial("id").primaryKey(),
+  senderId: integer("sender_id").notNull().references(() => users.id),
+  subject: text("subject").notNull(),
+  content: text("content").notNull(),
+  messageType: text("message_type").default("individual"), // individual, group, broadcast
+  priority: text("priority").default("normal"), // low, normal, high, urgent
+  parentMessageId: integer("parent_message_id").references((): any => internalMessages.id), // for replies
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const internalMessageRecipients = pgTable("internal_message_recipients", {
+  id: serial("id").primaryKey(),
+  messageId: integer("message_id").notNull().references(() => internalMessages.id),
+  recipientId: integer("recipient_id").notNull().references(() => users.id),
+  isRead: boolean("is_read").default(false),
+  readAt: timestamp("read_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const messageGroups = pgTable("message_groups", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  createdBy: integer("created_by").notNull().references(() => users.id),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const messageGroupMembers = pgTable("message_group_members", {
+  id: serial("id").primaryKey(),
+  groupId: integer("group_id").notNull().references(() => messageGroups.id),
+  userId: integer("user_id").notNull().references(() => users.id),
+  role: text("role").default("member"), // admin, member
+  joinedAt: timestamp("joined_at").defaultNow(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -347,6 +481,68 @@ export const insertTimeEntrySchema = createInsertSchema(timeEntries).omit({
   createdAt: true,
 });
 
+export const insertExpenseSchema = createInsertSchema(expenses).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  approvedBy: true,
+  approvedAt: true,
+  reimbursedAt: true,
+});
+
+export const insertExpenseCategorySchema = createInsertSchema(expenseCategories).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertExpenseReportSchema = createInsertSchema(expenseReports).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  submittedAt: true,
+  approvedBy: true,
+  approvedAt: true,
+});
+
+export const insertExpenseReportItemSchema = createInsertSchema(expenseReportItems).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertLeadSchema = createInsertSchema(leads).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCalendarJobSchema = createInsertSchema(calendarJobs).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertInternalMessageSchema = createInsertSchema(internalMessages).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertInternalMessageRecipientSchema = createInsertSchema(internalMessageRecipients).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertMessageGroupSchema = createInsertSchema(messageGroups).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertMessageGroupMemberSchema = createInsertSchema(messageGroupMembers).omit({
+  id: true,
+  joinedAt: true,
+});
+
 export const loginSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
   password: z.string().min(6, "Password must be at least 6 characters"),
@@ -422,94 +618,6 @@ export type InsertProjectFile = z.infer<typeof insertProjectFileSchema>;
 export type TimeEntry = typeof timeEntries.$inferSelect;
 export type InsertTimeEntry = z.infer<typeof insertTimeEntrySchema>;
 
-// Expense tracking tables
-export const expenses = pgTable("expenses", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id),
-  projectId: integer("project_id").references(() => projects.id),
-  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
-  currency: text("currency").notNull().default("USD"),
-  category: text("category").notNull(), // travel, meals, office_supplies, equipment, etc.
-  subcategory: text("subcategory"),
-  description: text("description").notNull(),
-  vendor: text("vendor"),
-  receiptUrl: text("receipt_url"),
-  receiptData: text("receipt_data"), // OCR extracted text
-  expenseDate: timestamp("expense_date").notNull(),
-  status: text("status").notNull().default("pending"), // pending, approved, rejected, reimbursed
-  isReimbursable: boolean("is_reimbursable").default(true),
-  tags: text("tags").array(),
-  notes: text("notes"),
-  approvedBy: integer("approved_by").references(() => users.id),
-  approvedAt: timestamp("approved_at"),
-  reimbursedAt: timestamp("reimbursed_at"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
-export const expenseCategories = pgTable("expense_categories", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id),
-  name: text("name").notNull(),
-  description: text("description"),
-  isDefault: boolean("is_default").default(false),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-export const expenseReports = pgTable("expense_reports", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id),
-  title: text("title").notNull(),
-  description: text("description"),
-  status: text("status").notNull().default("draft"), // draft, submitted, approved, rejected
-  totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull().default("0.00"),
-  submittedAt: timestamp("submitted_at"),
-  approvedBy: integer("approved_by").references(() => users.id),
-  approvedAt: timestamp("approved_at"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
-export const expenseReportItems = pgTable("expense_report_items", {
-  id: serial("id").primaryKey(),
-  reportId: integer("report_id").notNull().references(() => expenseReports.id),
-  expenseId: integer("expense_id").notNull().references(() => expenses.id),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-// Schema validation
-export const insertExpenseSchema = createInsertSchema(expenses).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-  approvedBy: true,
-  approvedAt: true,
-  reimbursedAt: true,
-});
-
-export const insertExpenseCategorySchema = createInsertSchema(expenseCategories).omit({
-  id: true,
-  createdAt: true,
-});
-
-export const insertExpenseReportSchema = createInsertSchema(expenseReports).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-  submittedAt: true,
-  approvedBy: true,
-  approvedAt: true,
-});
-
-export const insertExpenseReportItemSchema = createInsertSchema(expenseReportItems).omit({
-  id: true,
-  createdAt: true,
-});
-
-export type LoginData = z.infer<typeof loginSchema>;
-export type RegisterData = z.infer<typeof registerSchema>;
-export type ChangePasswordData = z.infer<typeof changePasswordSchema>;
-
 export type Expense = typeof expenses.$inferSelect;
 export type InsertExpense = z.infer<typeof insertExpenseSchema>;
 
@@ -522,127 +630,12 @@ export type InsertExpenseReport = z.infer<typeof insertExpenseReportSchema>;
 export type ExpenseReportItem = typeof expenseReportItems.$inferSelect;
 export type InsertExpenseReportItem = z.infer<typeof insertExpenseReportItemSchema>;
 
-// Leads table
-export const leads = pgTable("leads", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id),
-  name: text("name").notNull(),
-  phone: text("phone"),
-  email: text("email"),
-  serviceDescription: text("service_description").notNull(),
-  leadPrice: decimal("lead_price", { precision: 10, scale: 2 }),
-  leadSource: text("lead_source").notNull(), // referral, website, advertising, social_media, etc.
-  status: text("status").notNull().default("new"), // new, contacted, qualified, proposal_sent, won, lost
-  priority: text("priority").notNull().default("medium"), // low, medium, high
-  notes: text("notes"),
-  contactedAt: timestamp("contacted_at"),
-  followUpDate: timestamp("follow_up_date"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
-export const insertLeadSchema = createInsertSchema(leads).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
 export type Lead = typeof leads.$inferSelect;
 export type InsertLead = z.infer<typeof insertLeadSchema>;
-
-// Calendar Jobs table
-export const calendarJobs = pgTable("calendar_jobs", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id),
-  customerId: integer("customer_id").references(() => customers.id),
-  leadId: integer("lead_id").references(() => leads.id),
-  title: text("title").notNull(),
-  description: text("description"),
-  location: text("location"),
-  startDate: timestamp("start_date").notNull(),
-  endDate: timestamp("end_date").notNull(),
-  estimatedValue: decimal("estimated_value", { precision: 10, scale: 2 }),
-  status: text("status").notNull().default("scheduled"), // scheduled, in_progress, completed, converted, cancelled
-  priority: text("priority").notNull().default("medium"), // low, medium, high
-  notes: text("notes"),
-  convertedToProjectId: integer("converted_to_project_id").references(() => projects.id),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
-export const insertCalendarJobSchema = createInsertSchema(calendarJobs).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
 
 export type CalendarJob = typeof calendarJobs.$inferSelect;
 export type InsertCalendarJob = z.infer<typeof insertCalendarJobSchema>;
 
-// Internal messaging system
-export const internalMessages = pgTable("internal_messages", {
-  id: serial("id").primaryKey(),
-  senderId: integer("sender_id").notNull().references(() => users.id),
-  subject: text("subject").notNull(),
-  content: text("content").notNull(),
-  messageType: text("message_type").default("individual"), // individual, group, broadcast
-  priority: text("priority").default("normal"), // low, normal, high, urgent
-  parentMessageId: integer("parent_message_id").references((): any => internalMessages.id), // for replies
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
-export const internalMessageRecipients = pgTable("internal_message_recipients", {
-  id: serial("id").primaryKey(),
-  messageId: integer("message_id").notNull().references(() => internalMessages.id),
-  recipientId: integer("recipient_id").notNull().references(() => users.id),
-  isRead: boolean("is_read").default(false),
-  readAt: timestamp("read_at"),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-export const messageGroups = pgTable("message_groups", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  description: text("description"),
-  createdBy: integer("created_by").notNull().references(() => users.id),
-  isActive: boolean("is_active").default(true),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
-export const messageGroupMembers = pgTable("message_group_members", {
-  id: serial("id").primaryKey(),
-  groupId: integer("group_id").notNull().references(() => messageGroups.id),
-  userId: integer("user_id").notNull().references(() => users.id),
-  role: text("role").default("member"), // admin, member
-  joinedAt: timestamp("joined_at").defaultNow(),
-});
-
-// Internal message schemas
-export const insertInternalMessageSchema = createInsertSchema(internalMessages).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-export const insertInternalMessageRecipientSchema = createInsertSchema(internalMessageRecipients).omit({
-  id: true,
-  createdAt: true,
-});
-
-export const insertMessageGroupSchema = createInsertSchema(messageGroups).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-export const insertMessageGroupMemberSchema = createInsertSchema(messageGroupMembers).omit({
-  id: true,
-  joinedAt: true,
-});
-
-// Internal message types
 export type InternalMessage = typeof internalMessages.$inferSelect;
 export type InsertInternalMessage = z.infer<typeof insertInternalMessageSchema>;
 
@@ -654,3 +647,7 @@ export type InsertMessageGroup = z.infer<typeof insertMessageGroupSchema>;
 
 export type MessageGroupMember = typeof messageGroupMembers.$inferSelect;
 export type InsertMessageGroupMember = z.infer<typeof insertMessageGroupMemberSchema>;
+
+export type LoginData = z.infer<typeof loginSchema>;
+export type RegisterData = z.infer<typeof registerSchema>;
+export type ChangePasswordData = z.infer<typeof changePasswordSchema>;
