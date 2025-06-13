@@ -222,11 +222,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCustomers(userId: number): Promise<Customer[]> {
-    return await db.select().from(customers).where(eq(customers.userId, userId)).orderBy(desc(customers.createdAt));
+    return await db.select().from(customers).orderBy(desc(customers.createdAt));
   }
 
   async getCustomer(id: number, userId: number): Promise<Customer | undefined> {
-    const [customer] = await db.select().from(customers).where(and(eq(customers.id, id), eq(customers.userId, userId)));
+    const [customer] = await db.select().from(customers).where(eq(customers.id, id));
     return customer || undefined;
   }
 
@@ -242,7 +242,7 @@ export class DatabaseStorage implements IStorage {
     const [updated] = await db
       .update(customers)
       .set(customer)
-      .where(and(eq(customers.id, id), eq(customers.userId, userId)))
+      .where(eq(customers.id, id))
       .returning();
     return updated || undefined;
   }
@@ -250,7 +250,7 @@ export class DatabaseStorage implements IStorage {
   async deleteCustomer(id: number, userId: number): Promise<boolean> {
     const result = await db
       .delete(customers)
-      .where(and(eq(customers.id, id), eq(customers.userId, userId)));
+      .where(eq(customers.id, id));
     return (result.rowCount ?? 0) > 0;
   }
 
@@ -259,7 +259,6 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(invoices)
       .leftJoin(customers, eq(invoices.customerId, customers.id))
-      .where(eq(invoices.userId, userId))
       .orderBy(desc(invoices.createdAt));
 
     const result = [];
@@ -284,7 +283,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(invoices)
       .leftJoin(customers, eq(invoices.customerId, customers.id))
-      .where(and(eq(invoices.id, id), eq(invoices.userId, userId)));
+      .where(eq(invoices.id, id));
 
     if (!invoiceWithCustomer) return undefined;
 
@@ -327,11 +326,8 @@ export class DatabaseStorage implements IStorage {
   async updateInvoice(id: number, userId: number, invoice: Partial<Omit<InsertInvoice, 'lineItems'>>): Promise<Invoice | undefined> {
     const [updated] = await db
       .update(invoices)
-      .set({
-        ...invoice,
-        updatedAt: new Date(),
-      })
-      .where(and(eq(invoices.id, id), eq(invoices.userId, userId)))
+      .set(invoice)
+      .where(eq(invoices.id, id))
       .returning();
     return updated || undefined;
   }
@@ -343,7 +339,7 @@ export class DatabaseStorage implements IStorage {
     // Delete invoice
     const result = await db
       .delete(invoices)
-      .where(and(eq(invoices.id, id), eq(invoices.userId, userId)));
+      .where(eq(invoices.id, id));
     return (result.rowCount ?? 0) > 0;
   }
 
