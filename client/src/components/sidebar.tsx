@@ -17,21 +17,31 @@ import {
   Receipt,
   UserPlus,
   Calendar,
-  ClipboardList
+  ClipboardList,
+  ChevronDown,
+  ChevronRight
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { useState } from "react";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: BarChart3 },
   { name: "Calendar", href: "/calendar", icon: Calendar },
   { name: "Projects", href: "/projects", icon: FolderOpen },
   { name: "Leads", href: "/leads", icon: UserPlus },
-  { name: "Expenses", href: "/expenses", icon: Receipt },
-  { name: "Expense Reports", href: "/expense-reports", icon: ClipboardList },
+  { 
+    name: "Expenses", 
+    icon: Receipt, 
+    hasSubmenu: true,
+    items: [
+      { name: "All Expenses", href: "/expenses" },
+      { name: "Expense Reports", href: "/expense-reports" }
+    ]
+  },
   { name: "Quotes", href: "/quotes", icon: Quote },
   { name: "Invoices", href: "/invoices", icon: FileText },
   { name: "Customers", href: "/customers", icon: Users },
@@ -47,6 +57,7 @@ const navigation = [
 export function Sidebar() {
   const [location] = useLocation();
   const { user, logout, isAdmin } = useAuth();
+  const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
 
   const getInitials = (firstName?: string, lastName?: string, username?: string) => {
     if (firstName && lastName) {
@@ -67,12 +78,29 @@ export function Sidebar() {
     return <Badge variant={colors[role] || "outline"} className="text-xs">{role}</Badge>;
   };
 
+  const toggleMenu = (menuName: string) => {
+    const newExpanded = new Set(expandedMenus);
+    if (newExpanded.has(menuName)) {
+      newExpanded.delete(menuName);
+    } else {
+      newExpanded.add(menuName);
+    }
+    setExpandedMenus(newExpanded);
+  };
+
   const filteredNavigation = navigation.filter(item => {
     if (item.href === "/users" || item.href === "/admin-settings") {
       return isAdmin;
     }
     return true;
   });
+
+  const isActiveItem = (href?: string) => {
+    if (!href) return false;
+    return location === href || (href === "/dashboard" && location === "/");
+  };
+
+  const isExpensesActive = location === "/expenses" || location === "/expense-reports";
 
 
 
@@ -118,23 +146,69 @@ export function Sidebar() {
       <nav className="flex-1 p-4">
         <ul className="space-y-2">
           {filteredNavigation.map((item) => {
-            const isActive = location === item.href || (item.href === "/dashboard" && location === "/");
-            return (
-              <li key={item.name}>
-                <Link 
-                  href={item.href}
-                  className={cn(
-                    "flex items-center px-4 py-3 rounded-lg font-medium transition-colors",
-                    isActive 
-                      ? "text-primary bg-blue-50" 
-                      : "text-gray-700 hover:bg-gray-100"
+            if (item.hasSubmenu) {
+              const isExpanded = expandedMenus.has(item.name) || isExpensesActive;
+              return (
+                <li key={item.name}>
+                  <button
+                    onClick={() => toggleMenu(item.name)}
+                    className={cn(
+                      "flex items-center justify-between w-full px-4 py-3 rounded-lg font-medium transition-colors",
+                      isExpensesActive 
+                        ? "text-primary bg-blue-50" 
+                        : "text-gray-700 hover:bg-gray-100"
+                    )}
+                  >
+                    <div className="flex items-center">
+                      <item.icon className="w-5 h-5 mr-3" />
+                      {item.name}
+                    </div>
+                    {isExpanded ? (
+                      <ChevronDown className="w-4 h-4" />
+                    ) : (
+                      <ChevronRight className="w-4 h-4" />
+                    )}
+                  </button>
+                  {isExpanded && (
+                    <ul className="ml-8 mt-2 space-y-1">
+                      {item.items?.map((subItem) => (
+                        <li key={subItem.name}>
+                          <Link
+                            href={subItem.href}
+                            className={cn(
+                              "flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-colors",
+                              isActiveItem(subItem.href)
+                                ? "text-primary bg-blue-50"
+                                : "text-gray-600 hover:bg-gray-100"
+                            )}
+                          >
+                            {subItem.name}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
                   )}
-                >
-                  <item.icon className="w-5 h-5 mr-3" />
-                  {item.name}
-                </Link>
-              </li>
-            );
+                </li>
+              );
+            } else {
+              const isActive = isActiveItem(item.href);
+              return (
+                <li key={item.name}>
+                  <Link 
+                    href={item.href}
+                    className={cn(
+                      "flex items-center px-4 py-3 rounded-lg font-medium transition-colors",
+                      isActive 
+                        ? "text-primary bg-blue-50" 
+                        : "text-gray-700 hover:bg-gray-100"
+                    )}
+                  >
+                    <item.icon className="w-5 h-5 mr-3" />
+                    {item.name}
+                  </Link>
+                </li>
+              );
+            }
           })}
         </ul>
       </nav>
