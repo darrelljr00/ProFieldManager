@@ -679,6 +679,25 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, id));
   }
 
+  async updateUserPermissions(id: number, permissions: {
+    canViewProfiles?: boolean;
+    canEditProfiles?: boolean;
+    canCreateInvoices?: boolean;
+    canViewAllData?: boolean;
+    canManageProjects?: boolean;
+    canAccessReports?: boolean;
+  }): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({
+        ...permissions,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, id))
+      .returning();
+    return user || undefined;
+  }
+
   async activateUser(id: number): Promise<void> {
     await db
       .update(users)

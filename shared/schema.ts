@@ -11,6 +11,12 @@ export const users = pgTable("users", {
   lastName: text("last_name"),
   role: text("role").notNull().default("user"), // admin, manager, user
   isActive: boolean("is_active").default(true),
+  canViewProfiles: boolean("can_view_profiles").default(true),
+  canEditProfiles: boolean("can_edit_profiles").default(false),
+  canCreateInvoices: boolean("can_create_invoices").default(true),
+  canViewAllData: boolean("can_view_all_data").default(false),
+  canManageProjects: boolean("can_manage_projects").default(true),
+  canAccessReports: boolean("can_access_reports").default(true),
   lastLoginAt: timestamp("last_login_at"),
   passwordResetToken: text("password_reset_token"),
   passwordResetExpires: timestamp("password_reset_expires"),

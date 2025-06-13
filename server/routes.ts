@@ -2126,6 +2126,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update user permissions
+  app.put('/api/admin/users/:id/permissions', requireAdmin, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const permissions = req.body;
+      
+      const user = await storage.updateUserPermissions(userId, permissions);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      res.json(user);
+    } catch (error: any) {
+      console.error('Error updating user permissions:', error);
+      res.status(500).json({ message: 'Failed to update user permissions' });
+    }
+  });
+
   // Admin system settings
   app.get('/api/admin/system/settings', requireAdmin, async (req, res) => {
     try {

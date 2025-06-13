@@ -135,6 +135,25 @@ export default function AdminSettingsPage() {
     },
   });
 
+  const updateUserPermissionsMutation = useMutation({
+    mutationFn: ({ userId, permissions }: { userId: number; permissions: any }) =>
+      apiRequest("PUT", `/api/admin/users/${userId}/permissions`, permissions),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      toast({
+        title: "Success",
+        description: "User permissions updated successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update user permissions",
+        variant: "destructive",
+      });
+    },
+  });
+
   const exportDataMutation = useMutation({
     mutationFn: (type: string) =>
       apiRequest("POST", "/api/admin/export", { type }),
@@ -200,9 +219,10 @@ export default function AdminSettingsPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
+          <TabsTrigger value="permissions">Permissions</TabsTrigger>
           <TabsTrigger value="system">System</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
           <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
@@ -344,6 +364,139 @@ export default function AdminSettingsPage() {
                   <Button asChild className="w-full">
                     <a href="/users">Manage Users</a>
                   </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="permissions" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                User Permissions Management
+              </CardTitle>
+              <CardDescription>
+                Control what each user can access and modify in the system
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>User</TableHead>
+                      <TableHead>Role</TableHead>
+                      <TableHead>View Profiles</TableHead>
+                      <TableHead>Edit Profiles</TableHead>
+                      <TableHead>Create Invoices</TableHead>
+                      <TableHead>View All Data</TableHead>
+                      <TableHead>Manage Projects</TableHead>
+                      <TableHead>Access Reports</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {users?.map((user: any) => (
+                      <TableRow key={user.id}>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{user.username}</div>
+                            <div className="text-sm text-muted-foreground">{user.email}</div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={user.role === 'admin' ? 'default' : user.role === 'manager' ? 'secondary' : 'outline'}>
+                            {user.role}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Switch
+                            checked={user.canViewProfiles ?? true}
+                            onCheckedChange={(checked) => 
+                              updateUserPermissionsMutation.mutate({
+                                userId: user.id,
+                                permissions: { canViewProfiles: checked }
+                              })
+                            }
+                            disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Switch
+                            checked={user.canEditProfiles ?? false}
+                            onCheckedChange={(checked) => 
+                              updateUserPermissionsMutation.mutate({
+                                userId: user.id,
+                                permissions: { canEditProfiles: checked }
+                              })
+                            }
+                            disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Switch
+                            checked={user.canCreateInvoices ?? true}
+                            onCheckedChange={(checked) => 
+                              updateUserPermissionsMutation.mutate({
+                                userId: user.id,
+                                permissions: { canCreateInvoices: checked }
+                              })
+                            }
+                            disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Switch
+                            checked={user.canViewAllData ?? false}
+                            onCheckedChange={(checked) => 
+                              updateUserPermissionsMutation.mutate({
+                                userId: user.id,
+                                permissions: { canViewAllData: checked }
+                              })
+                            }
+                            disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Switch
+                            checked={user.canManageProjects ?? true}
+                            onCheckedChange={(checked) => 
+                              updateUserPermissionsMutation.mutate({
+                                userId: user.id,
+                                permissions: { canManageProjects: checked }
+                              })
+                            }
+                            disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Switch
+                            checked={user.canAccessReports ?? true}
+                            onCheckedChange={(checked) => 
+                              updateUserPermissionsMutation.mutate({
+                                userId: user.id,
+                                permissions: { canAccessReports: checked }
+                              })
+                            }
+                            disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+                
+                <div className="mt-6 p-4 bg-muted rounded-lg">
+                  <h4 className="font-medium mb-2">Permission Descriptions:</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-muted-foreground">
+                    <div><strong>View Profiles:</strong> Can view user profile information</div>
+                    <div><strong>Edit Profiles:</strong> Can modify user profile data</div>
+                    <div><strong>Create Invoices:</strong> Can create and send invoices</div>
+                    <div><strong>View All Data:</strong> Can see data created by all users</div>
+                    <div><strong>Manage Projects:</strong> Can create and manage projects</div>
+                    <div><strong>Access Reports:</strong> Can view financial and system reports</div>
+                  </div>
                 </div>
               </div>
             </CardContent>
