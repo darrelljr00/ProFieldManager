@@ -1,19 +1,22 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Plus, Users, Mail, Phone, MapPin, Edit, Trash2 } from "lucide-react";
+import { Plus, Users, Mail, Phone, MapPin, Edit, Trash2, Search, SortAsc, X } from "lucide-react";
 import type { Customer, InsertCustomer } from "@shared/schema";
 
 export default function Customers() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState<"name" | "email" | "firstName" | "lastName">("name");
   const [formData, setFormData] = useState<Partial<InsertCustomer>>({
     name: "",
     email: "",
@@ -29,6 +32,47 @@ export default function Customers() {
   const { data: customers, isLoading } = useQuery({
     queryKey: ["/api/customers"],
   });
+
+  // Filter and sort customers based on search term and sort criteria
+  const filteredAndSortedCustomers = useMemo(() => {
+    if (!customers) return [];
+
+    let filtered = customers;
+
+    // Apply search filter
+    if (searchTerm) {
+      filtered = customers.filter(customer => {
+        const searchLower = searchTerm.toLowerCase();
+        return (
+          customer.name.toLowerCase().includes(searchLower) ||
+          customer.email.toLowerCase().includes(searchLower) ||
+          (customer.phone && customer.phone.toLowerCase().includes(searchLower)) ||
+          (customer.address && customer.address.toLowerCase().includes(searchLower)) ||
+          (customer.city && customer.city.toLowerCase().includes(searchLower)) ||
+          (customer.state && customer.state.toLowerCase().includes(searchLower))
+        );
+      });
+    }
+
+    // Apply sorting
+    return filtered.sort((a, b) => {
+      switch (sortBy) {
+        case "firstName":
+          const aFirstName = a.name.split(' ')[0].toLowerCase();
+          const bFirstName = b.name.split(' ')[0].toLowerCase();
+          return aFirstName.localeCompare(bFirstName);
+        case "lastName":
+          const aLastName = a.name.split(' ').slice(-1)[0].toLowerCase();
+          const bLastName = b.name.split(' ').slice(-1)[0].toLowerCase();
+          return aLastName.localeCompare(bLastName);
+        case "email":
+          return a.email.toLowerCase().localeCompare(b.email.toLowerCase());
+        case "name":
+        default:
+          return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+      }
+    });
+  }, [customers, searchTerm, sortBy]);
 
   const createMutation = useMutation({
     mutationFn: (data: InsertCustomer) => apiRequest("POST", "/api/customers", data),
@@ -143,6 +187,44 @@ export default function Customers() {
           <div>
             <h2 className="text-2xl font-bold text-gray-900">Customers</h2>
             <p className="text-gray-600">Manage your customer database.</p>
+          </div>
+          
+          {/* Search and Sort Controls */}
+          <div className="flex items-center space-x-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Input
+                placeholder="Search customers..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 pr-10 w-64"
+              />
+              {searchTerm && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+                  onClick={() => setSearchTerm("")}
+                >
+                  <X className="w-3 h-3" />
+                </Button>
+              )}
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <SortAsc className="w-4 h-4 text-gray-500" />
+              <Select value={sortBy} onValueChange={(value) => setSortBy(value as any)}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="name">Full Name</SelectItem>
+                  <SelectItem value="firstName">First Name</SelectItem>
+                  <SelectItem value="lastName">Last Name</SelectItem>
+                  <SelectItem value="email">Email</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <Dialog open={isCreateModalOpen || !!editingCustomer} onOpenChange={(open) => !open && closeModal()}>
             <DialogTrigger asChild>
@@ -264,15 +346,19 @@ export default function Customers() {
               </Card>
             ))}
           </div>
-        ) : customers?.length === 0 ? (
+        ) : filteredAndSortedCustomers.length === 0 ? (
           <div className="text-center py-12">
             <Users className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No customers</h3>
-            <p className="mt-1 text-sm text-gray-500">Get started by creating a new customer.</p>
+            <h3 className="mt-2 text-sm font-medium text-gray-900">
+              {searchTerm ? "No customers found" : "No customers"}
+            </h3>
+            <p className="mt-1 text-sm text-gray-500">
+              {searchTerm ? "Try adjusting your search criteria." : "Get started by creating a new customer."}
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {customers?.map((customer) => (
+            {filteredAndSortedCustomers.map((customer) => (
               <Card key={customer.id} className="hover:shadow-lg transition-shadow">
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
