@@ -1704,6 +1704,72 @@ export class DatabaseStorage implements IStorage {
     
     return this.createInternalMessage(message, recipientIds);
   }
+
+  // Admin system settings
+  async getSystemSettings(): Promise<Record<string, any>> {
+    const settingsData = await db.select().from(settings);
+    const systemSettings: Record<string, any> = {
+      allowRegistration: true,
+      requireEmailVerification: false,
+      sessionTimeout: 60,
+      maxFileSize: 10,
+      passwordMinLength: 8,
+      maxLoginAttempts: 5,
+      requireStrongPassword: true,
+      enableTwoFactor: false
+    };
+    
+    settingsData.forEach(setting => {
+      if (setting.key.startsWith('system_')) {
+        const key = setting.key.replace('system_', '');
+        let value: any = setting.value;
+        if (value === 'true') value = true;
+        else if (value === 'false') value = false;
+        else if (!isNaN(Number(value))) value = Number(value);
+        systemSettings[key] = value;
+      }
+    });
+    
+    return systemSettings;
+  }
+
+  async updateSystemSetting(key: string, value: string): Promise<void> {
+    await db.insert(settings)
+      .values({
+        key: `system_${key}`,
+        value,
+        updatedAt: new Date()
+      })
+      .onConflictDoUpdate({
+        target: settings.key,
+        set: {
+          value,
+          updatedAt: new Date()
+        }
+      });
+  }
+
+  // Activity logs for admin monitoring
+  async getActivityLogs(): Promise<any[]> {
+    const users = await db.select({
+      id: this.users.id,
+      username: this.users.username,
+      lastLoginAt: this.users.lastLoginAt
+    }).from(this.users)
+    .where(isNotNull(this.users.lastLoginAt))
+    .orderBy(desc(this.users.lastLoginAt))
+    .limit(20);
+    
+    return users.map((user, index) => ({
+      id: index + 1,
+      userId: user.id,
+      username: user.username,
+      action: 'User Login',
+      details: `User ${user.username} logged in`,
+      timestamp: user.lastLoginAt?.toISOString() || new Date().toISOString(),
+      ipAddress: '127.0.0.1'
+    }));
+  }
 }
 
 export const storage = new DatabaseStorage();
