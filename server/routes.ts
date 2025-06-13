@@ -11,6 +11,8 @@ import {
   insertInvoiceSchema, 
   insertQuoteSchema,
   insertMessageSchema,
+  insertGasCardSchema,
+  insertGasCardAssignmentSchema,
   loginSchema,
   registerSchema,
   changePasswordSchema,
@@ -2316,6 +2318,100 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error('Error fetching Twilio settings:', error);
       res.status(500).json({ message: 'Failed to fetch Twilio settings' });
+    }
+  });
+
+  // Gas Cards API
+  app.get('/api/gas-cards', requireAuth, async (req, res) => {
+    try {
+      const gasCards = await storage.getGasCards();
+      res.json(gasCards);
+    } catch (error: any) {
+      console.error('Error fetching gas cards:', error);
+      res.status(500).json({ message: 'Failed to fetch gas cards' });
+    }
+  });
+
+  app.post('/api/gas-cards', requireAuth, async (req, res) => {
+    try {
+      const validatedData = insertGasCardSchema.parse(req.body);
+      const gasCard = await storage.createGasCard(validatedData);
+      res.json(gasCard);
+    } catch (error: any) {
+      console.error('Error creating gas card:', error);
+      res.status(500).json({ message: 'Failed to create gas card' });
+    }
+  });
+
+  app.put('/api/gas-cards/:id', requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const validatedData = insertGasCardSchema.partial().parse(req.body);
+      const gasCard = await storage.updateGasCard(id, validatedData);
+      res.json(gasCard);
+    } catch (error: any) {
+      console.error('Error updating gas card:', error);
+      res.status(500).json({ message: 'Failed to update gas card' });
+    }
+  });
+
+  app.delete('/api/gas-cards/:id', requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteGasCard(id);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('Error deleting gas card:', error);
+      res.status(500).json({ message: 'Failed to delete gas card' });
+    }
+  });
+
+  // Gas Card Assignments API
+  app.get('/api/gas-card-assignments', requireAuth, async (req, res) => {
+    try {
+      const assignments = await storage.getGasCardAssignments();
+      res.json(assignments);
+    } catch (error: any) {
+      console.error('Error fetching gas card assignments:', error);
+      res.status(500).json({ message: 'Failed to fetch gas card assignments' });
+    }
+  });
+
+  app.get('/api/gas-card-assignments/active', requireAuth, async (req, res) => {
+    try {
+      const assignments = await storage.getActiveGasCardAssignments();
+      res.json(assignments);
+    } catch (error: any) {
+      console.error('Error fetching active gas card assignments:', error);
+      res.status(500).json({ message: 'Failed to fetch active gas card assignments' });
+    }
+  });
+
+  app.post('/api/gas-card-assignments', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const validatedData = insertGasCardAssignmentSchema.parse({
+        ...req.body,
+        assignedBy: user.id,
+        assignedDate: new Date()
+      });
+      const assignment = await storage.createGasCardAssignment(validatedData);
+      res.json(assignment);
+    } catch (error: any) {
+      console.error('Error creating gas card assignment:', error);
+      res.status(500).json({ message: 'Failed to create gas card assignment' });
+    }
+  });
+
+  app.put('/api/gas-card-assignments/:id/return', requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const returnedDate = new Date(req.body.returnedDate || new Date());
+      const assignment = await storage.returnGasCard(id, returnedDate);
+      res.json(assignment);
+    } catch (error: any) {
+      console.error('Error returning gas card:', error);
+      res.status(500).json({ message: 'Failed to return gas card' });
     }
   });
 

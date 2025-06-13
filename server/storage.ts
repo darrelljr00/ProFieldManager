@@ -1,7 +1,7 @@
 import { 
   users, customers, invoices, invoiceLineItems, payments, quotes, quoteLineItems, settings, messages,
   userSessions, userPermissions, projects, projectUsers, tasks, taskComments, projectFiles, timeEntries,
-  expenses, expenseCategories, expenseReports, expenseReportItems, leads, calendarJobs,
+  expenses, expenseCategories, expenseReports, expenseReportItems, gasCards, gasCardAssignments, leads, calendarJobs,
   internalMessages, internalMessageRecipients, messageGroups, messageGroupMembers,
   type User, type InsertUser, type Customer, type InsertCustomer,
   type Invoice, type InsertInvoice, type InvoiceLineItem, type InsertInvoiceLineItem,
@@ -13,12 +13,14 @@ import {
   type ProjectFile, type InsertProjectFile, type TimeEntry, type InsertTimeEntry,
   type Expense, type InsertExpense, type ExpenseCategory, type InsertExpenseCategory,
   type ExpenseReport, type InsertExpenseReport, type ExpenseReportItem, type InsertExpenseReportItem,
+  type GasCard, type InsertGasCard, type GasCardAssignment, type InsertGasCardAssignment,
   type Lead, type InsertLead, type CalendarJob, type InsertCalendarJob,
   type InternalMessage, type InsertInternalMessage, type InternalMessageRecipient, type InsertInternalMessageRecipient,
   type MessageGroup, type InsertMessageGroup, type MessageGroupMember, type InsertMessageGroupMember
 } from "@shared/schema";
 import { db, pool } from "./db";
-import { eq, desc, and, sql, or, inArray } from "drizzle-orm";
+import { eq, desc, and, sql, or, inArray, isNotNull } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 
 export interface IStorage {
   // User methods
@@ -1791,6 +1793,8 @@ export class DatabaseStorage implements IStorage {
 
   // Gas Card Assignments
   async getGasCardAssignments(): Promise<(GasCardAssignment & { gasCard: GasCard; assignedToUser: User; assignedByUser: User })[]> {
+    const assignedByUser = alias(users, 'assignedByUser');
+    
     return await db
       .select({
         id: gasCardAssignments.id,
@@ -1815,11 +1819,11 @@ export class DatabaseStorage implements IStorage {
           updatedAt: gasCards.updatedAt,
         },
         assignedToUser: {
-          id: this.users.id,
-          username: this.users.username,
-          email: this.users.email,
-          firstName: this.users.firstName,
-          lastName: this.users.lastName,
+          id: users.id,
+          username: users.username,
+          email: users.email,
+          firstName: users.firstName,
+          lastName: users.lastName,
         },
         assignedByUser: {
           id: assignedByUser.id,
@@ -1831,7 +1835,7 @@ export class DatabaseStorage implements IStorage {
       })
       .from(gasCardAssignments)
       .leftJoin(gasCards, eq(gasCardAssignments.cardId, gasCards.id))
-      .leftJoin(this.users, eq(gasCardAssignments.assignedToUserId, this.users.id))
+      .leftJoin(users, eq(gasCardAssignments.assignedToUserId, users.id))
       .leftJoin(assignedByUser, eq(gasCardAssignments.assignedBy, assignedByUser.id))
       .orderBy(desc(gasCardAssignments.createdAt));
   }
@@ -1888,16 +1892,16 @@ export class DatabaseStorage implements IStorage {
           updatedAt: gasCards.updatedAt,
         },
         assignedToUser: {
-          id: this.users.id,
-          username: this.users.username,
-          email: this.users.email,
-          firstName: this.users.firstName,
-          lastName: this.users.lastName,
+          id: users.id,
+          username: users.username,
+          email: users.email,
+          firstName: users.firstName,
+          lastName: users.lastName,
         }
       })
       .from(gasCardAssignments)
       .leftJoin(gasCards, eq(gasCardAssignments.cardId, gasCards.id))
-      .leftJoin(this.users, eq(gasCardAssignments.assignedToUserId, this.users.id))
+      .leftJoin(users, eq(gasCardAssignments.assignedToUserId, users.id))
       .where(eq(gasCardAssignments.status, 'assigned'))
       .orderBy(desc(gasCardAssignments.assignedDate));
   }
