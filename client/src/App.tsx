@@ -19,6 +19,7 @@ import Invoices from "@/pages/invoices";
 import Customers from "@/pages/customers";
 import Payments from "@/pages/payments";
 import InternalMessages from "@/pages/internal-messages";
+import ImageGallery from "@/pages/image-gallery";
 import Users from "@/pages/users";
 import AdminSettings from "@/pages/admin-settings";
 import SmsPage from "@/pages/sms";

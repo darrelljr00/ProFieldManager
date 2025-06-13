@@ -2,7 +2,9 @@ import { useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Download, X, ZoomIn, RotateCw, FileText } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Download, X, ZoomIn, RotateCw, FileText, Edit3 } from "lucide-react";
+import { ImageAnnotation } from "./image-annotation";
 
 interface ImagePreviewProps {
   src: string;
@@ -12,6 +14,7 @@ interface ImagePreviewProps {
   uploadDate: string;
   description?: string;
   className?: string;
+  onSaveAnnotations?: (annotations: any[], imageDataUrl: string) => void;
 }
 
 export function ImagePreview({ 
@@ -21,11 +24,13 @@ export function ImagePreview({
   fileSize, 
   uploadDate, 
   description,
-  className = ""
+  className = "",
+  onSaveAnnotations
 }: ImagePreviewProps) {
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [rotation, setRotation] = useState(0);
+  const [activeTab, setActiveTab] = useState('preview');
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -41,6 +46,11 @@ export function ImagePreview({
 
   const resetRotation = () => {
     setRotation(0);
+  };
+
+  const handleSaveAnnotations = (annotations: any[], imageDataUrl: string) => {
+    onSaveAnnotations?.(annotations, imageDataUrl);
+    setActiveTab('preview');
   };
 
   if (imageError) {
@@ -71,7 +81,7 @@ export function ImagePreview({
       </div>
 
       <Dialog open={isLightboxOpen} onOpenChange={setIsLightboxOpen}>
-        <DialogContent className="max-w-4xl w-full h-[90vh] p-0">
+        <DialogContent className="max-w-6xl w-full h-[95vh] p-0">
           <div className="flex flex-col h-full">
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b">
@@ -83,13 +93,6 @@ export function ImagePreview({
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleRotate}
-                >
-                  <RotateCw className="h-4 w-4" />
-                </Button>
                 <Button
                   variant="outline"
                   size="sm"
@@ -109,15 +112,51 @@ export function ImagePreview({
               </div>
             </div>
 
-            {/* Image */}
-            <div className="flex-1 flex items-center justify-center p-4 bg-gray-50">
-              <img 
-                src={src} 
-                alt={alt}
-                className="max-w-full max-h-full object-contain transition-transform"
-                style={{ transform: `rotate(${rotation}deg)` }}
-                onLoad={resetRotation}
-              />
+            {/* Content with Tabs */}
+            <div className="flex-1 overflow-hidden">
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
+                <div className="px-4 pt-2">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="preview">Preview</TabsTrigger>
+                    <TabsTrigger value="annotate">
+                      <Edit3 className="h-4 w-4 mr-2" />
+                      Annotate
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
+                
+                <TabsContent value="preview" className="flex-1 mt-2 mx-4 mb-4">
+                  <div className="h-full flex flex-col">
+                    <div className="flex justify-center mb-4">
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={handleRotate}>
+                          <RotateCw className="h-4 w-4" />
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={resetRotation}>
+                          Reset
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="flex-1 flex items-center justify-center bg-gray-50 rounded-lg">
+                      <img 
+                        src={src} 
+                        alt={alt}
+                        className="max-w-full max-h-full object-contain transition-transform"
+                        style={{ transform: `rotate(${rotation}deg)` }}
+                      />
+                    </div>
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="annotate" className="flex-1 mt-2 mx-4 mb-4">
+                  <div className="h-full">
+                    <ImageAnnotation
+                      imageUrl={src}
+                      onSave={handleSaveAnnotations}
+                    />
+                  </div>
+                </TabsContent>
+              </Tabs>
             </div>
 
             {/* Description */}
