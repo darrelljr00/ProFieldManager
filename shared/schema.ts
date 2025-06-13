@@ -302,6 +302,33 @@ export const expenseReportItems = pgTable("expense_report_items", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Gas cards table
+export const gasCards = pgTable("gas_cards", {
+  id: serial("id").primaryKey(),
+  cardNumber: text("card_number").notNull().unique(),
+  cardName: text("card_name").notNull(),
+  provider: text("provider").notNull(), // Shell, BP, Exxon, etc.
+  status: text("status").notNull().default("active"), // active, inactive, lost, expired
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Gas card assignments table
+export const gasCardAssignments = pgTable("gas_card_assignments", {
+  id: serial("id").primaryKey(),
+  cardId: integer("card_id").notNull().references(() => gasCards.id),
+  assignedToUserId: integer("assigned_to_user_id").notNull().references(() => users.id),
+  assignedBy: integer("assigned_by").notNull().references(() => users.id),
+  assignedDate: timestamp("assigned_date").notNull(),
+  returnedDate: timestamp("returned_date"),
+  purpose: text("purpose"), // job site, project, etc.
+  notes: text("notes"),
+  status: text("status").notNull().default("assigned"), // assigned, returned, overdue
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Leads table
 export const leads = pgTable("leads", {
   id: serial("id").primaryKey(),
@@ -520,6 +547,18 @@ export const insertExpenseReportItemSchema = createInsertSchema(expenseReportIte
   createdAt: true,
 });
 
+export const insertGasCardSchema = createInsertSchema(gasCards).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertGasCardAssignmentSchema = createInsertSchema(gasCardAssignments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertLeadSchema = createInsertSchema(leads).omit({
   id: true,
   createdAt: true,
@@ -640,6 +679,12 @@ export type InsertExpenseReport = z.infer<typeof insertExpenseReportSchema>;
 
 export type ExpenseReportItem = typeof expenseReportItems.$inferSelect;
 export type InsertExpenseReportItem = z.infer<typeof insertExpenseReportItemSchema>;
+
+export type GasCard = typeof gasCards.$inferSelect;
+export type InsertGasCard = z.infer<typeof insertGasCardSchema>;
+
+export type GasCardAssignment = typeof gasCardAssignments.$inferSelect;
+export type InsertGasCardAssignment = z.infer<typeof insertGasCardAssignmentSchema>;
 
 export type Lead = typeof leads.$inferSelect;
 export type InsertLead = z.infer<typeof insertLeadSchema>;

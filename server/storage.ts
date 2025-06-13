@@ -1766,6 +1766,142 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  // Gas Card Management
+  async getGasCards(): Promise<GasCard[]> {
+    return await db.select().from(gasCards).orderBy(desc(gasCards.createdAt));
+  }
+
+  async createGasCard(data: InsertGasCard): Promise<GasCard> {
+    const [gasCard] = await db.insert(gasCards).values(data).returning();
+    return gasCard;
+  }
+
+  async updateGasCard(id: number, data: Partial<InsertGasCard>): Promise<GasCard> {
+    const [gasCard] = await db
+      .update(gasCards)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(gasCards.id, id))
+      .returning();
+    return gasCard;
+  }
+
+  async deleteGasCard(id: number): Promise<void> {
+    await db.delete(gasCards).where(eq(gasCards.id, id));
+  }
+
+  // Gas Card Assignments
+  async getGasCardAssignments(): Promise<(GasCardAssignment & { gasCard: GasCard; assignedToUser: User; assignedByUser: User })[]> {
+    return await db
+      .select({
+        id: gasCardAssignments.id,
+        cardId: gasCardAssignments.cardId,
+        assignedToUserId: gasCardAssignments.assignedToUserId,
+        assignedBy: gasCardAssignments.assignedBy,
+        assignedDate: gasCardAssignments.assignedDate,
+        returnedDate: gasCardAssignments.returnedDate,
+        purpose: gasCardAssignments.purpose,
+        notes: gasCardAssignments.notes,
+        status: gasCardAssignments.status,
+        createdAt: gasCardAssignments.createdAt,
+        updatedAt: gasCardAssignments.updatedAt,
+        gasCard: {
+          id: gasCards.id,
+          cardNumber: gasCards.cardNumber,
+          cardName: gasCards.cardName,
+          provider: gasCards.provider,
+          status: gasCards.status,
+          notes: gasCards.notes,
+          createdAt: gasCards.createdAt,
+          updatedAt: gasCards.updatedAt,
+        },
+        assignedToUser: {
+          id: this.users.id,
+          username: this.users.username,
+          email: this.users.email,
+          firstName: this.users.firstName,
+          lastName: this.users.lastName,
+        },
+        assignedByUser: {
+          id: assignedByUser.id,
+          username: assignedByUser.username,
+          email: assignedByUser.email,
+          firstName: assignedByUser.firstName,
+          lastName: assignedByUser.lastName,
+        }
+      })
+      .from(gasCardAssignments)
+      .leftJoin(gasCards, eq(gasCardAssignments.cardId, gasCards.id))
+      .leftJoin(this.users, eq(gasCardAssignments.assignedToUserId, this.users.id))
+      .leftJoin(assignedByUser, eq(gasCardAssignments.assignedBy, assignedByUser.id))
+      .orderBy(desc(gasCardAssignments.createdAt));
+  }
+
+  async createGasCardAssignment(data: InsertGasCardAssignment): Promise<GasCardAssignment> {
+    const [assignment] = await db.insert(gasCardAssignments).values(data).returning();
+    return assignment;
+  }
+
+  async updateGasCardAssignment(id: number, data: Partial<InsertGasCardAssignment>): Promise<GasCardAssignment> {
+    const [assignment] = await db
+      .update(gasCardAssignments)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(gasCardAssignments.id, id))
+      .returning();
+    return assignment;
+  }
+
+  async returnGasCard(assignmentId: number, returnedDate: Date): Promise<GasCardAssignment> {
+    const [assignment] = await db
+      .update(gasCardAssignments)
+      .set({ 
+        returnedDate: returnedDate,
+        status: 'returned',
+        updatedAt: new Date()
+      })
+      .where(eq(gasCardAssignments.id, assignmentId))
+      .returning();
+    return assignment;
+  }
+
+  async getActiveGasCardAssignments(): Promise<(GasCardAssignment & { gasCard: GasCard; assignedToUser: User })[]> {
+    return await db
+      .select({
+        id: gasCardAssignments.id,
+        cardId: gasCardAssignments.cardId,
+        assignedToUserId: gasCardAssignments.assignedToUserId,
+        assignedBy: gasCardAssignments.assignedBy,
+        assignedDate: gasCardAssignments.assignedDate,
+        returnedDate: gasCardAssignments.returnedDate,
+        purpose: gasCardAssignments.purpose,
+        notes: gasCardAssignments.notes,
+        status: gasCardAssignments.status,
+        createdAt: gasCardAssignments.createdAt,
+        updatedAt: gasCardAssignments.updatedAt,
+        gasCard: {
+          id: gasCards.id,
+          cardNumber: gasCards.cardNumber,
+          cardName: gasCards.cardName,
+          provider: gasCards.provider,
+          status: gasCards.status,
+          notes: gasCards.notes,
+          createdAt: gasCards.createdAt,
+          updatedAt: gasCards.updatedAt,
+        },
+        assignedToUser: {
+          id: this.users.id,
+          username: this.users.username,
+          email: this.users.email,
+          firstName: this.users.firstName,
+          lastName: this.users.lastName,
+        }
+      })
+      .from(gasCardAssignments)
+      .leftJoin(gasCards, eq(gasCardAssignments.cardId, gasCards.id))
+      .leftJoin(this.users, eq(gasCardAssignments.assignedToUserId, this.users.id))
+      .where(eq(gasCardAssignments.status, 'assigned'))
+      .orderBy(desc(gasCardAssignments.assignedDate));
+  }
+
   // Activity logs for admin monitoring
   async getActivityLogs(): Promise<any[]> {
     const users = await db.select({
