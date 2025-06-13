@@ -365,7 +365,7 @@ export default function UsersPage() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
+            <div className="text-2xl font-bold">{safeStats.total}</div>
           </CardContent>
         </Card>
         <Card>
@@ -374,7 +374,7 @@ export default function UsersPage() {
             <UserCheck className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{stats.active}</div>
+            <div className="text-2xl font-bold text-green-600">{safeStats.active}</div>
           </CardContent>
         </Card>
         <Card>
@@ -383,7 +383,7 @@ export default function UsersPage() {
             <UserX className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{stats.inactive}</div>
+            <div className="text-2xl font-bold text-red-600">{safeStats.inactive}</div>
           </CardContent>
         </Card>
         <Card>
@@ -392,7 +392,7 @@ export default function UsersPage() {
             <Clock className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{stats.recentLogins}</div>
+            <div className="text-2xl font-bold text-blue-600">{safeStats.recentLogins}</div>
             <p className="text-xs text-muted-foreground">Last 7 days</p>
           </CardContent>
         </Card>
