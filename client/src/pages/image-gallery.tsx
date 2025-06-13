@@ -193,14 +193,23 @@ export default function ImageGallery() {
           <h1 className="text-3xl font-bold tracking-tight">Image Gallery</h1>
           <p className="text-muted-foreground">View and annotate project images</p>
         </div>
-        <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Upload className="h-4 w-4 mr-2" />
-              Upload Image
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
+        <div className="flex gap-2">
+          <Button 
+            onClick={() => setIsPhotoEditorOpen(true)}
+            variant="outline"
+            disabled={filteredImages.length === 0}
+          >
+            <Palette className="h-4 w-4 mr-2" />
+            Photo Editor
+          </Button>
+          <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Upload className="h-4 w-4 mr-2" />
+                Upload Image
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
             <DialogHeader>
               <DialogTitle>Upload New Image</DialogTitle>
             </DialogHeader>
@@ -244,6 +253,7 @@ export default function ImageGallery() {
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* Filters and Search */}
@@ -458,6 +468,35 @@ export default function ImageGallery() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Photo Editor */}
+      {isPhotoEditorOpen && (
+        <PhotoEditor
+          images={filteredImages.map(img => ({
+            id: img.id,
+            fileName: img.filename,
+            filePath: `uploads/${img.filename}`,
+            originalName: img.originalName
+          }))}
+          onSave={(editedImageData: string, fileName: string) => {
+            // Convert base64 to file and upload
+            const byteCharacters = atob(editedImageData.split(',')[1]);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+              byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const file = new File([byteArray], fileName, { type: 'image/png' });
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            uploadMutation.mutate(formData);
+            setIsPhotoEditorOpen(false);
+          }}
+          onClose={() => setIsPhotoEditorOpen(false)}
+        />
+      )}
     </div>
   );
 }
