@@ -26,7 +26,7 @@ interface MediaFile {
   fileType: string;
   mimeType: string;
   description?: string | null;
-  createdAt: string;
+  createdAt: string | Date;
 }
 
 interface MediaGalleryProps {
@@ -143,7 +143,7 @@ export function MediaGallery({ files }: MediaGalleryProps) {
                   {formatFileSize(file.fileSize)}
                 </p>
                 <p className="text-xs text-gray-500">
-                  {new Date(file.createdAt).toLocaleDateString()}
+                  {file.createdAt instanceof Date ? file.createdAt.toLocaleDateString() : new Date(file.createdAt).toLocaleDateString()}
                 </p>
               </div>
               {file.description && (
@@ -171,7 +171,7 @@ export function MediaGallery({ files }: MediaGalleryProps) {
                 <Badge variant="outline" className="text-xs">{formatFileSize(file.fileSize)}</Badge>
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                {new Date(file.createdAt).toLocaleDateString()}
+                {file.createdAt instanceof Date ? file.createdAt.toLocaleDateString() : new Date(file.createdAt).toLocaleDateString()}
               </p>
               {file.description && (
                 <p className="text-xs text-gray-600 mt-2">{file.description}</p>
@@ -251,7 +251,7 @@ export function MediaGallery({ files }: MediaGalleryProps) {
                   <div className="flex items-center gap-2 mt-1">
                     <Badge variant="outline">{selectedMedia.fileType}</Badge>
                     <Badge variant="outline">{formatFileSize(selectedMedia.fileSize)}</Badge>
-                    <Badge variant="outline">{new Date(selectedMedia.createdAt).toLocaleDateString()}</Badge>
+                    <Badge variant="outline">{selectedMedia.createdAt instanceof Date ? selectedMedia.createdAt.toLocaleDateString() : new Date(selectedMedia.createdAt).toLocaleDateString()}</Badge>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
