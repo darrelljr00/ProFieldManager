@@ -1,29 +1,36 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  Upload, 
-  Image as ImageIcon, 
-  Filter, 
-  Grid3X3, 
-  List,
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Search,
-  Edit3,
+  Grid,
+  List,
+  Upload,
   Download,
   Trash2,
   Palette
 } from "lucide-react";
 import { ImageAnnotation } from "@/components/image-annotation";
 import { PhotoEditor } from "@/components/photo-editor";
+import { useToast } from "@/hooks/use-toast";
 
 interface ImageFile {
   id: number;
@@ -51,29 +58,29 @@ export default function ImageGallery() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch images
-  const { data: images = [], isLoading: imagesLoading } = useQuery<ImageFile[]>({
-    queryKey: ["/api/images"],
+  const imagesQuery = useQuery({
+    queryKey: ['/api/images'],
   });
 
-  // Fetch projects for filtering
-  const { data: projects = [] } = useQuery({
-    queryKey: ["/api/projects"],
+  const projectsQuery = useQuery({
+    queryKey: ['/api/projects'],
   });
 
-  // Upload mutation
   const uploadMutation = useMutation({
     mutationFn: async (data: FormData) => {
-      const response = await fetch("/api/upload", {
-        method: "POST",
+      const response = await fetch('/api/upload', {
+        method: 'POST',
         body: data,
-        credentials: "include",
       });
-      if (!response.ok) throw new Error("Upload failed");
+      
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+      
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/images"] });
+      queryClient.invalidateQueries({ queryKey: ['/api/images'] });
       setIsUploadOpen(false);
       setUploadFile(null);
       setUploadProjectId("");
@@ -82,80 +89,60 @@ export default function ImageGallery() {
         description: "Image uploaded successfully",
       });
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to upload image",
+        description: "Failed to upload image",
         variant: "destructive",
       });
     },
   });
 
-  // Save annotations mutation
   const saveAnnotationsMutation = useMutation({
-    mutationFn: ({ imageId, annotations, annotatedImageUrl }: { 
-      imageId: number; 
-      annotations: any[]; 
-      annotatedImageUrl: string 
-    }) =>
-      apiRequest("/api/images/annotations", "POST", {
-        imageId,
-        annotations,
-        annotatedImageUrl
-      }),
+    mutationFn: async ({ imageId, annotations, annotatedImageUrl }: {
+      imageId: number;
+      annotations: any[];
+      annotatedImageUrl: string;
+    }) => {
+      const response = await fetch(`/api/images/${imageId}/annotations`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ annotations, annotatedImageUrl }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to save annotations');
+      }
+      
+      return response.json();
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/images"] });
+      queryClient.invalidateQueries({ queryKey: ['/api/images'] });
       setIsAnnotationOpen(false);
+      setSelectedImage(null);
       toast({
         title: "Success",
         description: "Annotations saved successfully",
       });
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to save annotations",
+        description: "Failed to save annotations",
         variant: "destructive",
       });
     },
   });
 
-  // Delete image mutation
-  const deleteMutation = useMutation({
-    mutationFn: (imageId: number) =>
-      apiRequest(`/api/images/${imageId}`, "DELETE"),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/images"] });
-      toast({
-        title: "Success",
-        description: "Image deleted successfully",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to delete image",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const filteredImages = images.filter(image => {
-    const matchesSearch = image.originalName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         image.projectName?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesProject = selectedProject === "all" || 
-                          (selectedProject === "unassigned" && !image.projectId) ||
-                          image.projectId?.toString() === selectedProject;
+  const images = (imagesQuery.data as ImageFile[]) || [];
+  
+  const filteredImages = Array.isArray(images) ? images.filter((image: ImageFile) => {
+    const matchesSearch = image.originalName.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesProject = selectedProject === "all" || image.projectId?.toString() === selectedProject;
     return matchesSearch && matchesProject;
-  });
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
+  }) : [];
 
   const handleUpload = () => {
     if (!uploadFile) return;
@@ -210,49 +197,53 @@ export default function ImageGallery() {
               </Button>
             </DialogTrigger>
             <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Upload New Image</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="image-upload">Select Image</Label>
-                <Input
-                  id="image-upload"
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
-                />
+              <DialogHeader>
+                <DialogTitle>Upload New Image</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="image-upload">Select Image</Label>
+                  <Input
+                    id="image-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setUploadFile(file);
+                      }
+                    }}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="project-select">Project (optional)</Label>
+                  <Select value={uploadProjectId} onValueChange={setUploadProjectId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a project" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(projectsQuery.data as any)?.map((project: any) => (
+                        <SelectItem key={project.id} value={project.id.toString()}>
+                          {project.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setIsUploadOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={handleUpload}
+                    disabled={!uploadFile || uploadMutation.isPending}
+                  >
+                    Upload
+                  </Button>
+                </div>
               </div>
-              <div>
-                <Label htmlFor="project-select">Project (Optional)</Label>
-                <Select value={uploadProjectId} onValueChange={setUploadProjectId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a project" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">No Project</SelectItem>
-                    {projects.map((project: any) => (
-                      <SelectItem key={project.id} value={project.id.toString()}>
-                        {project.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setIsUploadOpen(false)}>
-                  Cancel
-                </Button>
-                <Button 
-                  onClick={handleUpload} 
-                  disabled={!uploadFile || uploadMutation.isPending}
-                >
-                  Upload
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
@@ -279,8 +270,7 @@ export default function ImageGallery() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Projects</SelectItem>
-                  <SelectItem value="unassigned">Unassigned</SelectItem>
-                  {projects.map((project: any) => (
+                  {(projectsQuery.data as any)?.map((project: any) => (
                     <SelectItem key={project.id} value={project.id.toString()}>
                       {project.name}
                     </SelectItem>
@@ -288,16 +278,16 @@ export default function ImageGallery() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex gap-1 border rounded-md">
+            <div className="flex items-center gap-2">
               <Button
-                variant={viewMode === "grid" ? "default" : "ghost"}
+                variant={viewMode === "grid" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setViewMode("grid")}
               >
-                <Grid3X3 className="h-4 w-4" />
+                <Grid className="h-4 w-4" />
               </Button>
               <Button
-                variant={viewMode === "list" ? "default" : "ghost"}
+                variant={viewMode === "list" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setViewMode("list")}
               >
@@ -308,146 +298,96 @@ export default function ImageGallery() {
         </CardContent>
       </Card>
 
-      {/* Images Grid/List */}
-      <div className="space-y-4">
-        {imagesLoading ? (
-          <div className="flex justify-center items-center h-64">
-            <p className="text-muted-foreground">Loading images...</p>
-          </div>
-        ) : filteredImages.length === 0 ? (
-          <Card>
-            <CardContent className="p-8 text-center">
-              <ImageIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground mb-4">
-                {searchTerm || selectedProject !== "all" ? "No images match your filters" : "No images uploaded yet"}
-              </p>
-              <Button onClick={() => setIsUploadOpen(true)}>
-                <Upload className="h-4 w-4 mr-2" />
-                Upload your first image
-              </Button>
-            </CardContent>
-          </Card>
-        ) : viewMode === "grid" ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filteredImages.map((image) => (
-              <Card key={image.id} className="overflow-hidden">
-                <div className="aspect-video relative bg-gray-100">
-                  <img
-                    src={getImageUrl(image.filename)}
-                    alt={image.originalName}
-                    className="w-full h-full object-cover"
-                  />
-                  {image.annotations && image.annotations.length > 0 && (
-                    <Badge className="absolute top-2 right-2" variant="secondary">
-                      <Edit3 className="h-3 w-3 mr-1" />
-                      Annotated
-                    </Badge>
-                  )}
-                </div>
-                <CardContent className="p-4">
-                  <div className="space-y-2">
-                    <h3 className="font-medium truncate">{image.originalName}</h3>
-                    <div className="flex justify-between text-sm text-muted-foreground">
-                      <span>{formatFileSize(image.size)}</span>
-                      <span>{new Date(image.uploadDate).toLocaleDateString()}</span>
+      {/* Images Display */}
+      {imagesQuery.isLoading ? (
+        <div className="text-center py-8">Loading images...</div>
+      ) : filteredImages.length === 0 ? (
+        <div className="text-center py-8 text-muted-foreground">
+          No images found. Upload some images to get started.
+        </div>
+      ) : (
+        <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" : "space-y-4"}>
+          {filteredImages.map((image: ImageFile) => (
+            <Card key={image.id} className="overflow-hidden">
+              {viewMode === "grid" ? (
+                <div>
+                  <div className="aspect-square relative overflow-hidden">
+                    <img
+                      src={getImageUrl(image.filename)}
+                      alt={image.originalName}
+                      className="w-full h-full object-cover hover:scale-105 transition-transform cursor-pointer"
+                      onClick={() => handleAnnotate(image)}
+                    />
+                  </div>
+                  <CardContent className="p-4">
+                    <h3 className="font-medium truncate mb-2">{image.originalName}</h3>
+                    <div className="space-y-2">
+                      {image.projectName && (
+                        <Badge variant="secondary" className="text-xs">
+                          {image.projectName}
+                        </Badge>
+                      )}
+                      <div className="flex justify-between items-center text-sm text-muted-foreground">
+                        <span>{(image.size / 1024).toFixed(1)} KB</span>
+                        <span>{new Date(image.uploadDate).toLocaleDateString()}</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="outline" onClick={() => handleAnnotate(image)}>
+                          Annotate
+                        </Button>
+                        <Button size="sm" variant="outline" asChild>
+                          <a href={getImageUrl(image.filename)} download={image.originalName}>
+                            <Download className="h-3 w-3" />
+                          </a>
+                        </Button>
+                      </div>
                     </div>
-                    {image.projectName && (
-                      <Badge variant="outline">{image.projectName}</Badge>
-                    )}
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
+                  </CardContent>
+                </div>
+              ) : (
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 rounded overflow-hidden flex-shrink-0">
+                      <img
+                        src={getImageUrl(image.filename)}
+                        alt={image.originalName}
+                        className="w-full h-full object-cover cursor-pointer"
                         onClick={() => handleAnnotate(image)}
-                        className="flex-1"
-                      >
-                        <Edit3 className="h-4 w-4 mr-1" />
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-medium truncate">{image.originalName}</h3>
+                      <div className="flex items-center gap-2 mt-1">
+                        {image.projectName && (
+                          <Badge variant="secondary" className="text-xs">
+                            {image.projectName}
+                          </Badge>
+                        )}
+                        <span className="text-sm text-muted-foreground">
+                          {(image.size / 1024).toFixed(1)} KB
+                        </span>
+                        <span className="text-sm text-muted-foreground">
+                          {new Date(image.uploadDate).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => handleAnnotate(image)}>
                         Annotate
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        asChild
-                      >
+                      <Button size="sm" variant="outline" asChild>
                         <a href={getImageUrl(image.filename)} download={image.originalName}>
-                          <Download className="h-4 w-4" />
+                          <Download className="h-3 w-3" />
                         </a>
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => deleteMutation.mutate(image.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
                 </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <Card>
-            <CardContent className="p-0">
-              <div className="divide-y">
-                {filteredImages.map((image) => (
-                  <div key={image.id} className="p-4 flex items-center gap-4">
-                    <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
-                      <img
-                        src={getImageUrl(image.filename)}
-                        alt={image.originalName}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-medium truncate">{image.originalName}</h3>
-                        {image.annotations && image.annotations.length > 0 && (
-                          <Badge variant="secondary">
-                            <Edit3 className="h-3 w-3 mr-1" />
-                            Annotated
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
-                        <span>{formatFileSize(image.size)}</span>
-                        <span>{new Date(image.uploadDate).toLocaleDateString()}</span>
-                        {image.projectName && <Badge variant="outline">{image.projectName}</Badge>}
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleAnnotate(image)}
-                      >
-                        <Edit3 className="h-4 w-4 mr-1" />
-                        Annotate
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        asChild
-                      >
-                        <a href={getImageUrl(image.filename)} download={image.originalName}>
-                          <Download className="h-4 w-4" />
-                        </a>
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => deleteMutation.mutate(image.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+              )}
+            </Card>
+          ))}
+        </div>
+      )}
 
       {/* Annotation Dialog */}
       <Dialog open={isAnnotationOpen} onOpenChange={setIsAnnotationOpen}>
