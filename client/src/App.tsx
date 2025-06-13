@@ -19,6 +19,7 @@ import Payments from "@/pages/payments";
 import InternalMessages from "@/pages/internal-messages";
 import Users from "@/pages/users";
 import AdminSettings from "@/pages/admin-settings";
+import SmsPage from "@/pages/sms";
 import Settings from "@/pages/settings";
 import Login from "@/pages/login";
 import NotFound from "@/pages/not-found";
@@ -43,6 +44,7 @@ function AuthenticatedApp() {
           <Route path="/customers" component={Customers} />
           <Route path="/payments" component={Payments} />
           <Route path="/internal-messages" component={InternalMessages} />
+          <Route path="/sms" component={SmsPage} />
           {isAdmin && <Route path="/users" component={Users} />}
           {isAdmin && <Route path="/admin-settings" component={AdminSettings} />}
           <Route path="/settings" component={Settings} />

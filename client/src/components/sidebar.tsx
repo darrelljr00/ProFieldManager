@@ -9,6 +9,7 @@ import {
   User,
   Quote,
   MessageSquare,
+  Smartphone,
   UserCog,
   LogOut,
   Shield,
@@ -34,6 +35,7 @@ const navigation = [
   { name: "Customers", href: "/customers", icon: Users },
   { name: "Payments", href: "/payments", icon: CreditCard },
   { name: "Team Messages", href: "/internal-messages", icon: MessageSquare },
+  { name: "Text Messaging", href: "/sms", icon: Smartphone },
   { name: "User Management", href: "/users", icon: UserCog },
   { name: "Admin Settings", href: "/admin-settings", icon: Shield },
   { name: "Reports", href: "/reports", icon: FileBarChart },
@@ -70,10 +72,7 @@ export function Sidebar() {
     return true;
   });
 
-  // Debug logging
-  console.log('Current user:', user);
-  console.log('Is admin:', isAdmin);
-  console.log('Filtered navigation:', filteredNavigation.map(item => item.name));
+
 
   return (
     <div className="w-64 bg-white shadow-lg flex flex-col">

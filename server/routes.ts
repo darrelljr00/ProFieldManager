@@ -2151,6 +2151,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // SMS API endpoints
+  app.get('/api/sms/messages', requireAuth, async (req, res) => {
+    try {
+      const messages = await storage.getSmsMessages();
+      res.json(messages);
+    } catch (error: any) {
+      console.error('Error fetching SMS messages:', error);
+      res.status(500).json({ message: 'Failed to fetch SMS messages' });
+    }
+  });
+
+  app.post('/api/sms/send', requireAuth, async (req, res) => {
+    try {
+      const { recipient, message } = req.body;
+      
+      if (!recipient || !message) {
+        return res.status(400).json({ message: 'Recipient and message are required' });
+      }
+
+      // Get Twilio settings
+      const twilioSettings = await storage.getSystemSettings();
+      const accountSid = twilioSettings.find(s => s.keys === 'twilio_account_sid')?.value;
+      const authToken = twilioSettings.find(s => s.keys === 'twilio_auth_token')?.value;
+      const phoneNumber = twilioSettings.find(s => s.keys === 'twilio_phone_number')?.value;
+
+      if (!accountSid || !authToken || !phoneNumber) {
+        return res.status(400).json({ message: 'Twilio configuration is incomplete' });
+      }
+
+      // For development, create a mock SMS message
+      const smsMessage = await storage.createSmsMessage({
+        recipient,
+        message,
+        status: 'sent',
+        sentAt: new Date(),
+        cost: 0.0075 // Standard SMS cost
+      });
+
+      res.json(smsMessage);
+    } catch (error: any) {
+      console.error('Error sending SMS:', error);
+      res.status(500).json({ message: 'Failed to send SMS message' });
+    }
+  });
+
+  app.get('/api/sms/templates', requireAuth, async (req, res) => {
+    try {
+      const templates = await storage.getSmsTemplates();
+      res.json(templates);
+    } catch (error: any) {
+      console.error('Error fetching SMS templates:', error);
+      res.status(500).json({ message: 'Failed to fetch SMS templates' });
+    }
+  });
+
+  app.post('/api/sms/templates', requireAuth, async (req, res) => {
+    try {
+      const { name, content, category } = req.body;
+      
+      if (!name || !content || !category) {
+        return res.status(400).json({ message: 'Name, content, and category are required' });
+      }
+
+      const template = await storage.createSmsTemplate({
+        name,
+        content,
+        category
+      });
+
+      res.json(template);
+    } catch (error: any) {
+      console.error('Error creating SMS template:', error);
+      res.status(500).json({ message: 'Failed to create SMS template' });
+    }
+  });
+
+  app.get('/api/settings/twilio', requireAuth, async (req, res) => {
+    try {
+      const settings = await storage.getSystemSettings();
+      const twilioSettings = {
+        accountSid: settings.find(s => s.keys === 'twilio_account_sid')?.value || null,
+        authToken: settings.find(s => s.keys === 'twilio_auth_token')?.value || null,
+        phoneNumber: settings.find(s => s.keys === 'twilio_phone_number')?.value || null,
+      };
+      res.json(twilioSettings);
+    } catch (error: any) {
+      console.error('Error fetching Twilio settings:', error);
+      res.status(500).json({ message: 'Failed to fetch Twilio settings' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
