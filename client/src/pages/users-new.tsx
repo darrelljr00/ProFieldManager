@@ -103,6 +103,7 @@ export default function UsersPage() {
     mutationFn: (data: any) => apiRequest("POST", "/api/admin/users", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users/stats"] });
       toast({
         title: "Success",
         description: "User created successfully",
@@ -123,6 +124,7 @@ export default function UsersPage() {
       apiRequest("PUT", `/api/admin/users/${data.id}`, data.userData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users/stats"] });
       toast({
         title: "Success",
         description: "User updated successfully",
@@ -144,6 +146,7 @@ export default function UsersPage() {
       apiRequest("POST", `/api/admin/users/${data.id}/${data.action}`, {}),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users/stats"] });
       toast({
         title: "Success",
         description: "User status updated successfully",
@@ -437,109 +440,109 @@ export default function UsersPage() {
               </Button>
             </DialogTrigger>
             <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Create New User</DialogTitle>
-              <DialogDescription>
-                Add a new user to the system with appropriate role and permissions
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleCreateUser} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="username">Username *</Label>
-                  <Input
-                    id="username"
-                    name="username"
-                    placeholder="johndoe"
-                    required
-                  />
+              <DialogHeader>
+                <DialogTitle>Create New User</DialogTitle>
+                <DialogDescription>
+                  Add a new user to the system with appropriate role and permissions
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleCreateUser} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="username">Username *</Label>
+                    <Input
+                      id="username"
+                      name="username"
+                      placeholder="johndoe"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="email">Email *</Label>
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      placeholder="john@example.com"
+                      required
+                    />
+                  </div>
                 </div>
-                <div>
-                  <Label htmlFor="email">Email *</Label>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    placeholder="john@example.com"
-                    required
-                  />
-                </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="firstName">First Name</Label>
-                  <Input
-                    id="firstName"
-                    name="firstName"
-                    placeholder="John"
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="firstName">First Name</Label>
+                    <Input
+                      id="firstName"
+                      name="firstName"
+                      placeholder="John"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="lastName">Last Name</Label>
+                    <Input
+                      id="lastName"
+                      name="lastName"
+                      placeholder="Doe"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <Label htmlFor="lastName">Last Name</Label>
-                  <Input
-                    id="lastName"
-                    name="lastName"
-                    placeholder="Doe"
-                  />
-                </div>
-              </div>
 
-              <div>
-                <Label htmlFor="password">Password *</Label>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    name="password"
-                    type={showPasswords.newPassword ? "text" : "password"}
-                    placeholder="Enter password"
-                    required
-                  />
+                <div>
+                  <Label htmlFor="password">Password *</Label>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      name="password"
+                      type={showPasswords.newPassword ? "text" : "password"}
+                      placeholder="Enter password"
+                      required
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-1 top-1/2 -translate-y-1/2"
+                      onClick={() => togglePasswordVisibility('newPassword')}
+                    >
+                      {showPasswords.newPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="role">Role</Label>
+                    <Select name="role" defaultValue="user">
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="user">User</SelectItem>
+                        <SelectItem value="manager">Manager</SelectItem>
+                        <SelectItem value="admin">Admin</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex items-center space-x-2 pt-6">
+                    <Switch name="isActive" id="isActive" defaultChecked />
+                    <Label htmlFor="isActive">Active Account</Label>
+                  </div>
+                </div>
+
+                <div className="flex justify-end space-x-2">
                   <Button
                     type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-1 top-1/2 -translate-y-1/2"
-                    onClick={() => togglePasswordVisibility('newPassword')}
+                    variant="outline"
+                    onClick={() => setShowNewUserDialog(false)}
                   >
-                    {showPasswords.newPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={createUserMutation.isPending}>
+                    {createUserMutation.isPending ? "Creating..." : "Create User"}
                   </Button>
                 </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="role">Role</Label>
-                  <Select name="role" defaultValue="user">
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="user">User</SelectItem>
-                      <SelectItem value="manager">Manager</SelectItem>
-                      <SelectItem value="admin">Admin</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex items-center space-x-2 pt-6">
-                  <Switch name="isActive" id="isActive" defaultChecked />
-                  <Label htmlFor="isActive">Active Account</Label>
-                </div>
-              </div>
-
-              <div className="flex justify-end space-x-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShowNewUserDialog(false)}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={createUserMutation.isPending}>
-                  {createUserMutation.isPending ? "Creating..." : "Create User"}
-                </Button>
-              </div>
-            </form>
+              </form>
             </DialogContent>
           </Dialog>
         </div>
@@ -585,7 +588,7 @@ export default function UsersPage() {
         <CardHeader>
           <CardTitle>All Users</CardTitle>
           <CardDescription>
-            {users.length} total users in the system
+            {filteredUsers.length} of {users.length} users displayed
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -780,7 +783,11 @@ export default function UsersPage() {
                   </Select>
                 </div>
                 <div className="flex items-center space-x-2 pt-6">
-                  <Switch name="isActive" id="edit-isActive" defaultChecked={selectedUser.isActive} />
+                  <Switch 
+                    name="isActive" 
+                    id="edit-isActive" 
+                    defaultChecked={selectedUser.isActive}
+                  />
                   <Label htmlFor="edit-isActive">Active Account</Label>
                 </div>
               </div>
@@ -802,7 +809,7 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Change Password Dialog */}
+      {/* Password Change Dialog */}
       <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
         <DialogContent>
           <DialogHeader>
@@ -813,10 +820,10 @@ export default function UsersPage() {
           </DialogHeader>
           <form onSubmit={handleUpdatePassword} className="space-y-4">
             <div>
-              <Label htmlFor="new-password">New Password</Label>
+              <Label htmlFor="password">New Password</Label>
               <div className="relative">
                 <Input
-                  id="new-password"
+                  id="password"
                   name="password"
                   type={showPasswords.password ? "text" : "password"}
                   placeholder="Enter new password"
@@ -835,10 +842,10 @@ export default function UsersPage() {
             </div>
 
             <div>
-              <Label htmlFor="confirm-password">Confirm Password</Label>
+              <Label htmlFor="confirmPassword">Confirm Password</Label>
               <div className="relative">
                 <Input
-                  id="confirm-password"
+                  id="confirmPassword"
                   name="confirmPassword"
                   type={showPasswords.confirmPassword ? "text" : "password"}
                   placeholder="Confirm new password"
@@ -871,10 +878,6 @@ export default function UsersPage() {
           </form>
         </DialogContent>
       </Dialog>
-
-          </Table>
-        </CardContent>
-      </Card>
 
       {/* Bulk Actions Dialog */}
       <Dialog open={showBulkDialog} onOpenChange={setShowBulkDialog}>
