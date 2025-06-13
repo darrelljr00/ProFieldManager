@@ -924,6 +924,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get user statistics
+  app.get("/api/admin/users/stats", requireAdmin, async (req, res) => {
+    try {
+      const stats = await storage.getUserStats();
+      res.json(stats);
+    } catch (error: any) {
+      res.status(500).json({ message: "Error fetching user stats: " + error.message });
+    }
+  });
+
+  // Bulk user actions
+  app.post("/api/admin/users/bulk-action", requireAdmin, async (req, res) => {
+    try {
+      const { userIds, action, value } = req.body;
+      
+      if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
+        return res.status(400).json({ message: "Invalid user IDs provided" });
+      }
+
+      let result;
+      switch (action) {
+        case "activate":
+          result = await storage.bulkActivateUsers(userIds);
+          break;
+        case "deactivate":
+          result = await storage.bulkDeactivateUsers(userIds);
+          break;
+        case "changeRole":
+          if (!value) {
+            return res.status(400).json({ message: "Role value required" });
+          }
+          result = await storage.bulkChangeUserRole(userIds, value);
+          break;
+        default:
+          return res.status(400).json({ message: "Invalid action" });
+      }
+
+      res.json({ message: `Bulk action completed for ${result} users` });
+    } catch (error: any) {
+      res.status(500).json({ message: "Error performing bulk action: " + error.message });
+    }
+  });
+
   // Create new user (Admin only)
   app.post("/api/admin/users", requireAdmin, async (req, res) => {
     try {
@@ -1885,7 +1928,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // If it's a broadcast, get all users
       if (messageType === 'broadcast') {
-        const allUsers = await storage.getUsers();
+        const allUsers = await storage.getAllUsers();
         finalRecipientIds = allUsers.filter(u => u.id !== req.user!.id).map(u => u.id);
       }
 

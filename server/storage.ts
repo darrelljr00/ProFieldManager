@@ -27,6 +27,19 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUserStripeInfo(userId: number, customerId: string, subscriptionId?: string): Promise<User>;
+  
+  // Admin user management methods
+  getAllUsers(): Promise<User[]>;
+  createUserAccount(userData: Omit<InsertUser, 'id' | 'createdAt' | 'updatedAt'>): Promise<User>;
+  updateUser(id: number, userData: Partial<User>): Promise<User | undefined>;
+  updateUserPassword(id: number, hashedPassword: string): Promise<void>;
+  activateUser(id: number): Promise<void>;
+  deactivateUser(id: number): Promise<void>;
+  deleteUser(id: number): Promise<boolean>;
+  getUserStats(): Promise<any>;
+  bulkActivateUsers(userIds: number[]): Promise<number>;
+  bulkDeactivateUsers(userIds: number[]): Promise<number>;
+  bulkChangeUserRole(userIds: number[], role: string): Promise<number>;
 
   // Customer methods
   getCustomers(userId: number): Promise<Customer[]>;
@@ -695,6 +708,57 @@ export class DatabaseStorage implements IStorage {
   async deleteUser(id: number): Promise<boolean> {
     const result = await db.delete(users).where(eq(users.id, id));
     return result.rowCount > 0;
+  }
+
+  async getUserStats(): Promise<any> {
+    const allUsers = await this.getAllUsers();
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    
+    return {
+      total: allUsers.length,
+      active: allUsers.filter(u => u.isActive).length,
+      inactive: allUsers.filter(u => !u.isActive).length,
+      admins: allUsers.filter(u => u.role === 'admin').length,
+      managers: allUsers.filter(u => u.role === 'manager').length,
+      users: allUsers.filter(u => u.role === 'user').length,
+      verified: allUsers.filter(u => u.emailVerified).length,
+      recentLogins: allUsers.filter(u => u.lastLoginAt && 
+        new Date(u.lastLoginAt) > sevenDaysAgo).length
+    };
+  }
+
+  async bulkActivateUsers(userIds: number[]): Promise<number> {
+    const result = await db
+      .update(users)
+      .set({ 
+        isActive: true,
+        updatedAt: new Date(),
+      })
+      .where(sql`${users.id} = ANY(${userIds})`);
+    return result.rowCount || 0;
+  }
+
+  async bulkDeactivateUsers(userIds: number[]): Promise<number> {
+    const result = await db
+      .update(users)
+      .set({ 
+        isActive: false,
+        updatedAt: new Date(),
+      })
+      .where(sql`${users.id} = ANY(${userIds})`);
+    return result.rowCount || 0;
+  }
+
+  async bulkChangeUserRole(userIds: number[], role: string): Promise<number> {
+    const result = await db
+      .update(users)
+      .set({ 
+        role,
+        updatedAt: new Date(),
+      })
+      .where(sql`${users.id} = ANY(${userIds})`);
+    return result.rowCount || 0;
   }
 
   // Project management methods
