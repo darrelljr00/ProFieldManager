@@ -214,7 +214,8 @@ export class DatabaseStorage implements IStorage {
       .update(users)
       .set({ 
         stripeCustomerId: customerId,
-        ...(subscriptionId && { stripeSubscriptionId: subscriptionId })
+        ...(subscriptionId && { stripeSubscriptionId: subscriptionId }),
+        updatedAt: new Date()
       })
       .where(eq(users.id, userId))
       .returning();
@@ -605,7 +606,6 @@ export class DatabaseStorage implements IStorage {
       })
       .from(messages)
       .leftJoin(customers, eq(messages.customerId, customers.id))
-      .where(eq(messages.userId, userId))
       .orderBy(desc(messages.createdAt));
 
     return messagesWithCustomers.map(row => ({
@@ -627,8 +627,8 @@ export class DatabaseStorage implements IStorage {
       .update(messages)
       .set({ 
         status, 
-        errorCode, 
-        errorMessage 
+        ...(errorCode && { errorCode }), 
+        ...(errorMessage && { errorMessage })
       })
       .where(eq(messages.twilioSid, twilioSid));
   }
@@ -638,23 +638,10 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(users).orderBy(users.createdAt);
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
-    return user || undefined;
-  }
-
-  async getUserByEmail(email: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.email, email));
-    return user || undefined;
-  }
-
   async createUserAccount(userData: Omit<InsertUser, 'id' | 'createdAt' | 'updatedAt'>): Promise<User> {
     const [user] = await db
       .insert(users)
-      .values({
-        ...userData,
-        updatedAt: new Date(),
-      })
+      .values(userData)
       .returning();
     return user;
   }
