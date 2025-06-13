@@ -469,7 +469,63 @@ export default function InternalMessagesPage() {
                               : 'bg-muted'
                           }`}
                         >
-                          <p className="text-sm">{message.content}</p>
+                          {(() => {
+                            // Parse message content to extract attachments and text
+                            const content = message.content;
+                            const attachmentRegex = /\[Attachment: (\/uploads\/[^\]]+)\]/g;
+                            const attachments: string[] = [];
+                            let match;
+                            
+                            while ((match = attachmentRegex.exec(content)) !== null) {
+                              attachments.push(match[1]);
+                            }
+                            
+                            // Remove attachment URLs from text content
+                            const textContent = content.replace(attachmentRegex, '').trim();
+                            
+                            return (
+                              <div className="space-y-2">
+                                {textContent && (
+                                  <p className="text-sm">{textContent}</p>
+                                )}
+                                {attachments.length > 0 && (
+                                  <div className="space-y-2">
+                                    {attachments.map((url, index) => {
+                                      const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
+                                      if (isImage) {
+                                        return (
+                                          <div key={index} className="max-w-xs">
+                                            <img
+                                              src={url}
+                                              alt="Attachment"
+                                              className="rounded-lg max-w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"
+                                              onClick={() => window.open(url, '_blank')}
+                                            />
+                                          </div>
+                                        );
+                                      } else {
+                                        // Non-image attachments
+                                        const fileName = url.split('/').pop() || 'File';
+                                        return (
+                                          <div key={index} className="flex items-center gap-2 p-2 bg-background/10 rounded border">
+                                            <File className="h-4 w-4" />
+                                            <a
+                                              href={url}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="text-sm underline hover:no-underline"
+                                            >
+                                              {fileName}
+                                            </a>
+                                          </div>
+                                        );
+                                      }
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
                           <p
                             className={`text-xs mt-1 ${
                               isOwnMessage
