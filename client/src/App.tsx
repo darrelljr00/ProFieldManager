@@ -12,6 +12,7 @@ import ProjectDetail from "@/pages/project-detail";
 import CalendarPage from "@/pages/calendar";
 import Leads from "@/pages/leads";
 import Expenses from "@/pages/expenses";
+import ExpenseReports from "@/pages/expense-reports";
 import Quotes from "@/pages/quotes";
 import Invoices from "@/pages/invoices";
 import Customers from "@/pages/customers";
@@ -39,6 +40,7 @@ function AuthenticatedApp() {
           <Route path="/projects/:id" component={ProjectDetail} />
           <Route path="/leads" component={Leads} />
           <Route path="/expenses" component={Expenses} />
+          <Route path="/expense-reports" component={ExpenseReports} />
           <Route path="/quotes" component={Quotes} />
           <Route path="/invoices" component={Invoices} />
           <Route path="/customers" component={Customers} />

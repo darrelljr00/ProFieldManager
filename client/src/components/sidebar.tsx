@@ -16,7 +16,8 @@ import {
   FolderOpen,
   Receipt,
   UserPlus,
-  Calendar
+  Calendar,
+  ClipboardList
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -30,6 +31,7 @@ const navigation = [
   { name: "Projects", href: "/projects", icon: FolderOpen },
   { name: "Leads", href: "/leads", icon: UserPlus },
   { name: "Expenses", href: "/expenses", icon: Receipt },
+  { name: "Expense Reports", href: "/expense-reports", icon: ClipboardList },
   { name: "Quotes", href: "/quotes", icon: Quote },
   { name: "Invoices", href: "/invoices", icon: FileText },
   { name: "Customers", href: "/customers", icon: Users },
