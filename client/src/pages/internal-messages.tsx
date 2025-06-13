@@ -15,6 +15,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { 
   Send, 
   Plus, 
@@ -25,7 +30,10 @@ import {
   Info,
   Smile,
   Paperclip,
-  MessageSquare
+  MessageSquare,
+  FileImage,
+  File,
+  X
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
@@ -69,10 +77,14 @@ export default function InternalMessagesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isNewChatOpen, setIsNewChatOpen] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
+  const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+  const [uploadingFiles, setUploadingFiles] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: messages = [], isLoading: messagesLoading } = useQuery<ChatMessage[]>({
     queryKey: ["/api/internal-messages"],
@@ -83,10 +95,14 @@ export default function InternalMessagesPage() {
   });
 
   const sendMessageMutation = useMutation({
-    mutationFn: (data: any) => apiRequest("POST", "/api/internal-messages", data),
+    mutationFn: async (data: any) => {
+      const response = await apiRequest("/api/internal-messages", "POST", data);
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/internal-messages"] });
       setNewMessage('');
+      setAttachedFiles([]);
       toast({
         title: "Message sent",
         description: "Your message has been delivered",
@@ -100,6 +116,102 @@ export default function InternalMessagesPage() {
       });
     },
   });
+
+  // Common emojis for the picker
+  const commonEmojis = [
+    '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇',
+    '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚',
+    '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🤩',
+    '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣',
+    '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬',
+    '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗',
+    '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯',
+    '😦', '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐',
+    '🥴', '🤢', '🤮', '🤧', '😷', '🤒', '🤕', '🤑', '🤠', '😈',
+    '👍', '👎', '👌', '🤌', '🤏', '✌️', '🤞', '🤟', '🤘', '🤙',
+    '👈', '👉', '👆', '🖕', '👇', '☝️', '👋', '🤚', '🖐️', '✋',
+    '🖖', '👏', '🙌', '🤝', '🙏', '✍️', '💪', '🦾', '🦿', '🦵'
+  ];
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    const validFiles = files.filter(file => {
+      const isValidSize = file.size <= 10 * 1024 * 1024; // 10MB limit
+      const isValidType = file.type.startsWith('image/') || 
+                         file.type.startsWith('video/') || 
+                         file.type === 'application/pdf' ||
+                         file.type.startsWith('text/') ||
+                         file.type.includes('document');
+      
+      if (!isValidSize) {
+        toast({
+          title: "File too large",
+          description: `${file.name} is larger than 10MB`,
+          variant: "destructive"
+        });
+        return false;
+      }
+      
+      if (!isValidType) {
+        toast({
+          title: "Invalid file type",
+          description: `${file.name} is not a supported file type`,
+          variant: "destructive"
+        });
+        return false;
+      }
+      
+      return true;
+    });
+    
+    setAttachedFiles(prev => [...prev, ...validFiles]);
+  };
+
+  const removeAttachedFile = (index: number) => {
+    setAttachedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const addEmoji = (emoji: string) => {
+    setNewMessage(prev => prev + emoji);
+    setIsEmojiPickerOpen(false);
+  };
+
+  const uploadFiles = async (files: File[]) => {
+    if (files.length === 0) return [];
+    
+    setUploadingFiles(true);
+    const uploadedUrls: string[] = [];
+    
+    try {
+      for (const file of files) {
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+          credentials: 'include'
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          uploadedUrls.push(result.url);
+        } else {
+          throw new Error(`Failed to upload ${file.name}`);
+        }
+      }
+    } catch (error: any) {
+      toast({
+        title: "Upload failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setUploadingFiles(false);
+    }
+    
+    return uploadedUrls;
+  };
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -127,19 +239,32 @@ export default function InternalMessagesPage() {
     m.recipients.some(r => r.recipientId === selectedRoom.participants[0].id)
   ).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()) : [];
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim() || !selectedRoom) return;
+    if ((!newMessage.trim() && attachedFiles.length === 0) || !selectedRoom) return;
 
-    const messageData = {
-      content: newMessage,
-      messageType: 'individual',
-      recipientIds: [selectedRoom.participants[0].id],
-      subject: '', // Chat messages don't need subjects
-      priority: 'normal'
-    };
+    try {
+      // Upload files first if any
+      const uploadedUrls = await uploadFiles(attachedFiles);
+      
+      let messageContent = newMessage.trim();
+      if (uploadedUrls.length > 0) {
+        messageContent += (messageContent ? '\n\n' : '') + 
+          uploadedUrls.map(url => `[Attachment: ${url}]`).join('\n');
+      }
 
-    sendMessageMutation.mutate(messageData);
+      const messageData = {
+        content: messageContent,
+        messageType: 'individual',
+        recipientIds: [selectedRoom.participants[0].id],
+        subject: '',
+        priority: 'normal'
+      };
+
+      sendMessageMutation.mutate(messageData);
+    } catch (error) {
+      console.error('Error sending message:', error);
+    }
   };
 
   const formatMessageTime = (timestamp: string) => {
@@ -351,27 +476,110 @@ export default function InternalMessagesPage() {
 
             {/* Message Input */}
             <div className="p-4 border-t border-border">
-              <form onSubmit={handleSendMessage} className="flex items-center gap-2">
-                <Button type="button" variant="ghost" size="sm">
+              {/* File Attachments Preview */}
+              {attachedFiles.length > 0 && (
+                <div className="mb-3 flex flex-wrap gap-2">
+                  {attachedFiles.map((file, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center gap-2 bg-muted rounded-lg px-3 py-2 text-sm"
+                    >
+                      {file.type.startsWith('image/') ? (
+                        <FileImage className="h-4 w-4" />
+                      ) : (
+                        <File className="h-4 w-4" />
+                      )}
+                      <span className="truncate max-w-[150px]">{file.name}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-4 w-4 p-0"
+                        onClick={() => removeAttachedFile(index)}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <form onSubmit={handleSendMessage} className="flex items-end gap-2">
+                {/* File Attachment Button */}
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingFiles}
+                >
                   <Paperclip className="h-4 w-4" />
                 </Button>
-                <Button type="button" variant="ghost" size="sm">
-                  <Smile className="h-4 w-4" />
-                </Button>
-                <Input
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder="Type a message..."
-                  className="flex-1"
-                />
+
+                {/* Emoji Picker */}
+                <Popover open={isEmojiPickerOpen} onOpenChange={setIsEmojiPickerOpen}>
+                  <PopoverTrigger asChild>
+                    <Button type="button" variant="ghost" size="sm">
+                      <Smile className="h-4 w-4" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80" align="start">
+                    <div className="grid grid-cols-10 gap-2 p-2">
+                      {commonEmojis.map((emoji, index) => (
+                        <Button
+                          key={index}
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-base hover:bg-muted"
+                          onClick={() => addEmoji(emoji)}
+                        >
+                          {emoji}
+                        </Button>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+
+                {/* Message Input */}
+                <div className="flex-1">
+                  <Input
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    placeholder="Type a message..."
+                    className="resize-none"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSendMessage(e);
+                      }
+                    }}
+                  />
+                </div>
+
+                {/* Send Button */}
                 <Button 
                   type="submit" 
                   size="sm"
-                  disabled={!newMessage.trim() || sendMessageMutation.isPending}
+                  disabled={(!newMessage.trim() && attachedFiles.length === 0) || sendMessageMutation.isPending || uploadingFiles}
                 >
-                  <Send className="h-4 w-4" />
+                  {sendMessageMutation.isPending || uploadingFiles ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-foreground" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
                 </Button>
               </form>
+
+              {/* Hidden File Input */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                multiple
+                accept="image/*,video/*,.pdf,.doc,.docx,.txt"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
             </div>
           </>
         ) : (
