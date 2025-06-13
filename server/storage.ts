@@ -592,7 +592,8 @@ export class DatabaseStorage implements IStorage {
             category,
             key,
             value,
-            isSecret: key.toLowerCase().includes('secret') || key.toLowerCase().includes('key') || key.toLowerCase().includes('password')
+            isSecret: key.toLowerCase().includes('secret') || key.toLowerCase().includes('key') || key.toLowerCase().includes('password'),
+            updatedAt: new Date()
           });
       }
     }
