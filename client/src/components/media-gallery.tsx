@@ -39,9 +39,17 @@ export function MediaGallery({ files }: MediaGalleryProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [rotation, setRotation] = useState(0);
 
+  // Debug logging
+  console.log('MediaGallery received files:', files);
+  console.log('Files count:', files.length);
+
   const imageFiles = files.filter(file => file.fileType === 'image');
   const videoFiles = files.filter(file => file.fileType === 'video');
   const documentFiles = files.filter(file => !['image', 'video'].includes(file.fileType));
+
+  console.log('Image files:', imageFiles.length);
+  console.log('Video files:', videoFiles.length);
+  console.log('Document files:', documentFiles.length);
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -91,6 +99,13 @@ export function MediaGallery({ files }: MediaGalleryProps) {
           className={className}
           style={isLightbox ? { transform: `rotate(${rotation}deg)` } : undefined}
           loading="lazy"
+          onError={(e) => {
+            console.error('Image failed to load:', `/${file.filePath}`);
+            e.currentTarget.style.display = 'none';
+          }}
+          onLoad={() => {
+            console.log('Image loaded successfully:', `/${file.filePath}`);
+          }}
         />
       );
     }
