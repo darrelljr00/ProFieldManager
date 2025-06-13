@@ -329,6 +329,17 @@ export default function Customers() {
 
       {/* Main Content */}
       <main className="p-6">
+        {/* Results Summary */}
+        {!isLoading && customers && (
+          <div className="mb-4 text-sm text-gray-600">
+            Showing {filteredAndSortedCustomers.length} of {customers.length} customers
+            {searchTerm && (
+              <span className="ml-2">
+                for "{searchTerm}"
+              </span>
+            )}
+          </div>
+        )}
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[...Array(6)].map((_, i) => (
