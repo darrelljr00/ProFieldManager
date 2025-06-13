@@ -881,6 +881,48 @@ export default function ProjectDetail() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
+                  <MapPin className="h-5 w-5 mr-2" />
+                  Project Location
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {(project.address || project.city) ? (
+                  <>
+                    {project.address && (
+                      <div>
+                        <Label className="text-sm text-gray-600">Address</Label>
+                        <p className="font-medium">{project.address}</p>
+                      </div>
+                    )}
+                    
+                    {(project.city || project.state || project.zipCode) && (
+                      <div>
+                        <Label className="text-sm text-gray-600">City, State ZIP</Label>
+                        <p className="font-medium">
+                          {[project.city, project.state, project.zipCode].filter(Boolean).join(", ")}
+                        </p>
+                      </div>
+                    )}
+                    
+                    <div className="pt-2">
+                      <DirectionsButton
+                        address={project.address}
+                        city={project.city}
+                        state={project.state}
+                        zipCode={project.zipCode}
+                        className="w-full"
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-gray-500 text-sm">No address information available</p>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
                   <Users className="h-5 w-5 mr-2" />
                   Client Information
                 </CardTitle>
