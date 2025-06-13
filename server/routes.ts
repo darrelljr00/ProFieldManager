@@ -1389,6 +1389,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete("/api/files/:id", requireAuth, async (req, res) => {
+    try {
+      const fileId = parseInt(req.params.id);
+      const userId = req.user!.id;
+      
+      // Get file info before deletion to remove from filesystem
+      const fileInfo = await storage.getProjectFile(fileId, userId);
+      if (!fileInfo) {
+        return res.status(404).json({ message: "File not found" });
+      }
+      
+      // Delete from database
+      const success = await storage.deleteProjectFile(fileId, userId);
+      if (!success) {
+        return res.status(404).json({ message: "File not found or not authorized" });
+      }
+      
+      // Delete physical file from filesystem
+      try {
+        await fs.unlink(fileInfo.filePath);
+      } catch (fsError) {
+        console.warn("Could not delete physical file:", fsError);
+        // Continue even if physical file deletion fails
+      }
+      
+      res.json({ message: "File deleted successfully" });
+    } catch (error: any) {
+      console.error("Error deleting file:", error);
+      res.status(500).json({ message: "Failed to delete file" });
+    }
+  });
+
   // Time Entries
   app.post("/api/projects/:id/time", requireAuth, async (req, res) => {
     try {

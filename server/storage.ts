@@ -118,6 +118,7 @@ export interface IStorage {
   // File management methods
   uploadProjectFile(file: InsertProjectFile): Promise<ProjectFile>;
   getProjectFiles(projectId: number, userId: number): Promise<ProjectFile[]>;
+  getProjectFile(id: number, userId: number): Promise<ProjectFile | undefined>;
   deleteProjectFile(id: number, userId: number): Promise<boolean>;
   
   // Time tracking methods
@@ -1005,6 +1006,16 @@ export class DatabaseStorage implements IStorage {
       .from(projectFiles)
       .where(eq(projectFiles.projectId, projectId))
       .orderBy(desc(projectFiles.createdAt));
+  }
+
+  async getProjectFile(id: number, userId: number): Promise<ProjectFile | undefined> {
+    const [file] = await db
+      .select()
+      .from(projectFiles)
+      .where(eq(projectFiles.id, id))
+      .limit(1);
+
+    return file;
   }
 
   async deleteProjectFile(id: number, userId: number): Promise<boolean> {

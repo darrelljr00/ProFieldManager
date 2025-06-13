@@ -1,8 +1,11 @@
 import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import { 
   Download, 
   X, 
@@ -14,7 +17,8 @@ import {
   Grid3X3,
   List,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Trash2
 } from "lucide-react";
 
 interface MediaFile {
@@ -31,13 +35,41 @@ interface MediaFile {
 
 interface MediaGalleryProps {
   files: MediaFile[];
+  projectId?: number;
 }
 
-export function MediaGallery({ files }: MediaGalleryProps) {
+export function MediaGallery({ files, projectId }: MediaGalleryProps) {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [selectedMedia, setSelectedMedia] = useState<MediaFile | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [rotation, setRotation] = useState(0);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const deleteFileMutation = useMutation({
+    mutationFn: async (fileId: number) => {
+      return apiRequest(`/api/files/${fileId}`, {
+        method: 'DELETE',
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "File deleted",
+        description: "The file has been successfully deleted.",
+      });
+      if (projectId) {
+        queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'files'] });
+      }
+      setSelectedMedia(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete file",
+        variant: "destructive",
+      });
+    },
+  });
 
   const imageFiles = files.filter(file => file.fileType === 'image');
   const videoFiles = files.filter(file => file.fileType === 'video');
