@@ -131,10 +131,10 @@ export function GoogleMapsDialog({ address, city, state, zipCode, isOpen, onClos
 }
 
 interface DirectionsButtonProps {
-  address?: string;
-  city?: string;
-  state?: string;
-  zipCode?: string;
+  address?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zipCode?: string | null;
   className?: string;
 }
 
@@ -160,9 +160,9 @@ export function DirectionsButton({ address, city, state, zipCode, className }: D
       
       <GoogleMapsDialog
         address={address || ""}
-        city={city}
-        state={state}
-        zipCode={zipCode}
+        city={city || undefined}
+        state={state || undefined}
+        zipCode={zipCode || undefined}
         isOpen={isDialogOpen}
         onClose={() => setIsDialogOpen(false)}
       />

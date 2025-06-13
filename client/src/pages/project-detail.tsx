@@ -34,10 +34,12 @@ import {
   Phone,
   Building,
   UserPlus,
-  UserMinus
+  UserMinus,
+  MapPin
 } from "lucide-react";
 import { Link } from "wouter";
 import type { Project, Customer, User, Task, ProjectFile, TimeEntry } from "@shared/schema";
+import { DirectionsButton } from "@/components/google-maps";
 
 interface ProjectWithDetails extends Project {
   users: { user: User; role: string }[];
@@ -715,12 +717,20 @@ export default function ProjectDetail() {
                   const contactEmail = formData.get("contactEmail") as string;
                   const contactPhone = formData.get("contactPhone") as string;
                   const contactCompany = formData.get("contactCompany") as string;
+                  const address = formData.get("address") as string;
+                  const city = formData.get("city") as string;
+                  const state = formData.get("state") as string;
+                  const zipCode = formData.get("zipCode") as string;
                   
                   updateContactMutation.mutate({
                     contactName: contactName || null,
                     contactEmail: contactEmail || null,
                     contactPhone: contactPhone || null,
                     contactCompany: contactCompany || null,
+                    address: address || null,
+                    city: city || null,
+                    state: state || null,
+                    zipCode: zipCode || null,
                   });
                 }} className="space-y-4">
                   <div>
@@ -763,6 +773,46 @@ export default function ProjectDetail() {
                       defaultValue={project.contactCompany || ''} 
                       placeholder="Acme Corporation"
                     />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="address">Project Address</Label>
+                    <Input 
+                      id="address" 
+                      name="address" 
+                      defaultValue={project.address || ''} 
+                      placeholder="123 Main Street"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <Label htmlFor="city">City</Label>
+                      <Input 
+                        id="city" 
+                        name="city" 
+                        defaultValue={project.city || ''} 
+                        placeholder="City"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="state">State</Label>
+                      <Input 
+                        id="state" 
+                        name="state" 
+                        defaultValue={project.state || ''} 
+                        placeholder="State"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="zipCode">ZIP Code</Label>
+                      <Input 
+                        id="zipCode" 
+                        name="zipCode" 
+                        defaultValue={project.zipCode || ''} 
+                        placeholder="12345"
+                      />
+                    </div>
                   </div>
 
                   <div className="flex justify-end space-x-2">
