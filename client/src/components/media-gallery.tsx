@@ -4,8 +4,10 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { ImageAnnotation } from "@/components/image-annotation";
 import { 
   Download, 
   X, 
@@ -18,7 +20,8 @@ import {
   List,
   ChevronLeft,
   ChevronRight,
-  Trash2
+  Trash2,
+  Edit3
 } from "lucide-react";
 
 interface MediaFile {
@@ -31,6 +34,8 @@ interface MediaFile {
   mimeType: string;
   description?: string | null;
   createdAt: string | Date;
+  annotations?: any[];
+  annotatedImageUrl?: string;
 }
 
 interface MediaGalleryProps {
@@ -43,6 +48,7 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
   const [selectedMedia, setSelectedMedia] = useState<MediaFile | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [rotation, setRotation] = useState(0);
+  const [activeTab, setActiveTab] = useState('preview');
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -74,6 +80,36 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
       toast({
         title: "Error",
         description: error.message || "Failed to delete file",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const saveAnnotationsMutation = useMutation({
+    mutationFn: ({ fileId, annotations, annotatedImageUrl }: { 
+      fileId: number; 
+      annotations: any[]; 
+      annotatedImageUrl: string 
+    }) =>
+      apiRequest("/api/files/annotations", "POST", {
+        fileId,
+        annotations,
+        annotatedImageUrl
+      }),
+    onSuccess: () => {
+      if (projectId) {
+        queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'files'] });
+      }
+      setActiveTab('preview');
+      toast({
+        title: "Success",
+        description: "Annotations saved successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save annotations",
         variant: "destructive",
       });
     },
@@ -319,6 +355,12 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
                     <Badge variant="outline">{selectedMedia.fileType}</Badge>
                     <Badge variant="outline">{formatFileSize(selectedMedia.fileSize)}</Badge>
                     <Badge variant="outline">{selectedMedia.createdAt instanceof Date ? selectedMedia.createdAt.toLocaleDateString() : new Date(selectedMedia.createdAt).toLocaleDateString()}</Badge>
+                    {selectedMedia.annotations && selectedMedia.annotations.length > 0 && (
+                      <Badge variant="secondary">
+                        <Edit3 className="h-3 w-3 mr-1" />
+                        Annotated
+                      </Badge>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -384,9 +426,48 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
                 </div>
               </div>
 
-              {/* Media Display */}
-              <div className="flex-1 flex items-center justify-center p-4 bg-gray-50">
-                {renderMediaPreview(selectedMedia, true)}
+              {/* Tabbed Interface */}
+              <div className="flex-1 flex flex-col overflow-hidden">
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
+                  <TabsList className="grid w-full grid-cols-2 mx-4 mt-2">
+                    <TabsTrigger value="preview">Preview</TabsTrigger>
+                    <TabsTrigger value="annotate" disabled={selectedMedia.fileType !== 'image'}>
+                      Annotate
+                    </TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="preview" className="flex-1 flex items-center justify-center p-4 bg-gray-50 m-0">
+                    {selectedMedia.annotatedImageUrl ? (
+                      <img 
+                        src={selectedMedia.annotatedImageUrl} 
+                        alt={`${selectedMedia.originalName} (annotated)`}
+                        className="max-w-full max-h-full object-contain"
+                        style={{ transform: `rotate(${rotation}deg)` }}
+                        loading="lazy"
+                      />
+                    ) : (
+                      renderMediaPreview(selectedMedia, true)
+                    )}
+                  </TabsContent>
+                  
+                  <TabsContent value="annotate" className="flex-1 m-0 p-0">
+                    {selectedMedia.fileType === 'image' && (
+                      <ImageAnnotation
+                        imageUrl={`/${selectedMedia.filePath}`}
+                        initialAnnotations={selectedMedia.annotations || []}
+                        onSave={(annotations, annotatedImageUrl) => {
+                          saveAnnotationsMutation.mutate({
+                            fileId: selectedMedia.id,
+                            annotations,
+                            annotatedImageUrl
+                          });
+                        }}
+                        projectId={projectId}
+                        imageName={selectedMedia.originalName}
+                      />
+                    )}
+                  </TabsContent>
+                </Tabs>
               </div>
 
               {/* Description */}
