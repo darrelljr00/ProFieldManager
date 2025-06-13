@@ -519,7 +519,13 @@ export default function ProjectDetail() {
             </Dialog>
           </div>
 
-          <MediaGallery files={files} projectId={project?.id} />
+          <MediaGallery 
+            files={files.map(file => ({
+              ...file,
+              annotations: file.annotations ? JSON.parse(file.annotations) : [],
+            }))} 
+            projectId={project?.id} 
+          />
         </TabsContent>
 
         <TabsContent value="team" className="space-y-4">

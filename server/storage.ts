@@ -1985,7 +1985,7 @@ export class DatabaseStorage implements IStorage {
         annotatedImageUrl,
         updatedAt: new Date()
       })
-      .where(and(eq(projectFiles.id, fileId), eq(projectFiles.userId, userId)))
+      .where(and(eq(projectFiles.id, fileId), eq(projectFiles.uploadedById, userId)))
       .returning();
 
     return updatedFile || null;
