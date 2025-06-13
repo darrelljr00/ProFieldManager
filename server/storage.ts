@@ -768,10 +768,6 @@ export class DatabaseStorage implements IStorage {
       .from(projects)
       .leftJoin(projectUsers, eq(projects.id, projectUsers.projectId))
       .leftJoin(users, eq(projectUsers.userId, users.id))
-      .where(or(
-        eq(projects.userId, userId),
-        eq(projectUsers.userId, userId)
-      ))
       .orderBy(desc(projects.createdAt));
 
     // Get task counts for each project
@@ -821,17 +817,7 @@ export class DatabaseStorage implements IStorage {
 
     if (projectData.length === 0) return undefined;
 
-    // Check if user has access to this project (either owner or team member)
-    const hasAccess = await db
-      .select()
-      .from(projectUsers)
-      .where(and(eq(projectUsers.projectId, id), eq(projectUsers.userId, userId)))
-      .limit(1);
-
-    // Allow access if user is project owner OR is a team member
-    if (hasAccess.length === 0 && projectData[0].project.userId !== userId) {
-      return undefined;
-    }
+    // Allow access to all projects for global data sharing
 
     const projectUsersData = await db
       .select({
@@ -901,7 +887,7 @@ export class DatabaseStorage implements IStorage {
   async deleteProject(id: number, userId: number): Promise<boolean> {
     const result = await db
       .delete(projects)
-      .where(and(eq(projects.id, id), eq(projects.userId, userId)));
+      .where(eq(projects.id, id));
 
     return result.rowCount > 0;
   }
@@ -1078,7 +1064,6 @@ export class DatabaseStorage implements IStorage {
       })
       .from(expenses)
       .leftJoin(projects, eq(expenses.projectId, projects.id))
-      .where(eq(expenses.userId, userId))
       .orderBy(desc(expenses.expenseDate));
 
     return expenseList.map(row => ({
@@ -1091,7 +1076,7 @@ export class DatabaseStorage implements IStorage {
     const [expense] = await db
       .select()
       .from(expenses)
-      .where(and(eq(expenses.id, id), eq(expenses.userId, userId)));
+      .where(eq(expenses.id, id));
 
     return expense;
   }
@@ -1109,7 +1094,7 @@ export class DatabaseStorage implements IStorage {
     const [updatedExpense] = await db
       .update(expenses)
       .set({ ...expense, updatedAt: new Date() })
-      .where(and(eq(expenses.id, id), eq(expenses.userId, userId)))
+      .where(eq(expenses.id, id))
       .returning();
 
     return updatedExpense;
@@ -1118,7 +1103,7 @@ export class DatabaseStorage implements IStorage {
   async deleteExpense(id: number, userId: number): Promise<boolean> {
     const result = await db
       .delete(expenses)
-      .where(and(eq(expenses.id, id), eq(expenses.userId, userId)));
+      .where(eq(expenses.id, id));
 
     return result.rowCount > 0;
   }
@@ -1143,7 +1128,6 @@ export class DatabaseStorage implements IStorage {
     return await db
       .select()
       .from(expenseCategories)
-      .where(or(eq(expenseCategories.userId, userId), eq(expenseCategories.isDefault, true)))
       .orderBy(expenseCategories.name);
   }
 
@@ -1160,7 +1144,7 @@ export class DatabaseStorage implements IStorage {
     const [updatedCategory] = await db
       .update(expenseCategories)
       .set(category)
-      .where(and(eq(expenseCategories.id, id), eq(expenseCategories.userId, userId)))
+      .where(eq(expenseCategories.id, id))
       .returning();
 
     return updatedCategory;
@@ -1169,7 +1153,7 @@ export class DatabaseStorage implements IStorage {
   async deleteExpenseCategory(id: number, userId: number): Promise<boolean> {
     const result = await db
       .delete(expenseCategories)
-      .where(and(eq(expenseCategories.id, id), eq(expenseCategories.userId, userId)));
+      .where(eq(expenseCategories.id, id));
 
     return result.rowCount > 0;
   }
