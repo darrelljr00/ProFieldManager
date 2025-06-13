@@ -189,6 +189,7 @@ export interface IStorage {
 
   // Image management
   getImages(userId: number): Promise<any[]>;
+  createImage(imageData: any): Promise<any>;
   saveImageAnnotations(imageId: number, userId: number, annotations: any[], annotatedImageUrl: string): Promise<any | null>;
   deleteImage(imageId: number, userId: number): Promise<boolean>;
 
@@ -1961,6 +1962,14 @@ export class DatabaseStorage implements IStorage {
     .orderBy(desc(images.createdAt));
 
     return result;
+  }
+
+  async createImage(imageData: any): Promise<any> {
+    const [image] = await db
+      .insert(images)
+      .values(imageData)
+      .returning();
+    return image;
   }
 
   async saveImageAnnotations(imageId: number, userId: number, annotations: any[], annotatedImageUrl: string): Promise<any | null> {

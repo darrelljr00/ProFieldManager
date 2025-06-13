@@ -447,11 +447,13 @@ export const imageAnnotations = pgTable("image_annotations", {
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
+  updatedAt: true,
 });
 
 export const insertCustomerSchema = createInsertSchema(customers).omit({
   id: true,
   createdAt: true,
+  updatedAt: true,
 });
 
 export const insertInvoiceSchema = createInsertSchema(invoices, {

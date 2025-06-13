@@ -808,6 +808,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "No file uploaded" });
       }
 
+      // If it's an image file, save metadata to database
+      if (req.file.mimetype.startsWith('image/')) {
+        const imageData = {
+          filename: req.file.filename,
+          originalName: req.file.originalname,
+          mimeType: req.file.mimetype,
+          size: req.file.size,
+          userId: req.user!.id,
+          projectId: req.body.projectId ? parseInt(req.body.projectId) : null,
+        };
+
+        await storage.createImage(imageData);
+      }
+
       // File uploaded successfully
       res.json({
         message: "File uploaded successfully",
@@ -819,6 +833,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error('File upload error:', error);
       res.status(500).json({ message: "Error uploading file: " + error.message });
+    }
+  });
+
+  // Image management endpoints
+  app.get("/api/images", requireAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const images = await storage.getImages(userId);
+      res.json(images);
+    } catch (error: any) {
+      console.error('Error fetching images:', error);
+      res.status(500).json({ message: 'Failed to fetch images' });
+    }
+  });
+
+  app.post("/api/images/:id/annotations", requireAuth, async (req, res) => {
+    try {
+      const imageId = parseInt(req.params.id);
+      const { annotations, annotatedImageUrl } = req.body;
+      const userId = req.user!.id;
+      
+      await storage.saveImageAnnotations(imageId, userId, annotations, annotatedImageUrl);
+      
+      res.json({ message: 'Annotations saved successfully' });
+    } catch (error: any) {
+      console.error('Error saving annotations:', error);
+      res.status(500).json({ message: 'Failed to save annotations' });
     }
   });
 
