@@ -49,6 +49,7 @@ function AuthenticatedApp() {
           <Route path="/customers" component={Customers} />
           <Route path="/payments" component={Payments} />
           <Route path="/internal-messages" component={InternalMessages} />
+          <Route path="/image-gallery" component={ImageGallery} />
           <Route path="/sms" component={SmsPage} />
           {isAdmin && <Route path="/users" component={Users} />}
           {isAdmin && <Route path="/admin-settings" component={AdminSettings} />}

@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, decimal, uuid, varchar } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, decimal, uuid, varchar, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -408,6 +408,38 @@ export const messageGroupMembers = pgTable("message_group_members", {
   joinedAt: timestamp("joined_at").defaultNow(),
 });
 
+// Image management tables
+export const images = pgTable("images", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  projectId: integer("project_id").references(() => projects.id),
+  filename: text("filename").notNull().unique(),
+  originalName: text("original_name").notNull(),
+  mimeType: text("mime_type").notNull(),
+  size: integer("size").notNull(),
+  description: text("description"),
+  annotations: jsonb("annotations").default('[]'),
+  annotatedImageUrl: text("annotated_image_url"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const imageAnnotations = pgTable("image_annotations", {
+  id: serial("id").primaryKey(),
+  imageId: integer("image_id").notNull().references(() => images.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id),
+  type: text("type").notNull(), // text, rectangle, circle, arrow, freehand
+  x: decimal("x", { precision: 10, scale: 2 }).notNull(),
+  y: decimal("y", { precision: 10, scale: 2 }).notNull(),
+  width: decimal("width", { precision: 10, scale: 2 }),
+  height: decimal("height", { precision: 10, scale: 2 }),
+  text: text("text"),
+  color: text("color").notNull().default("#ff0000"),
+  strokeWidth: integer("stroke_width").notNull().default(2),
+  points: jsonb("points"), // for freehand drawings
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -551,6 +583,17 @@ export const insertGasCardSchema = createInsertSchema(gasCards).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+});
+
+export const insertImageSchema = createInsertSchema(images).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertImageAnnotationSchema = createInsertSchema(imageAnnotations).omit({
+  id: true,
+  createdAt: true,
 });
 
 export const insertGasCardAssignmentSchema = createInsertSchema(gasCardAssignments).omit({

@@ -19,7 +19,8 @@ import {
   Calendar,
   ClipboardList,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  ImageIcon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -48,6 +49,7 @@ const navigation = [
   { name: "Customers", href: "/customers", icon: Users },
   { name: "Payments", href: "/payments", icon: CreditCard },
   { name: "Team Messages", href: "/internal-messages", icon: MessageSquare },
+  { name: "Image Gallery", href: "/image-gallery", icon: ImageIcon },
   { name: "Text Messaging", href: "/sms", icon: Smartphone },
   { name: "User Management", href: "/users", icon: UserCog },
   { name: "Admin Settings", href: "/admin-settings", icon: Shield },
