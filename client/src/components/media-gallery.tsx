@@ -48,9 +48,17 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
 
   const deleteFileMutation = useMutation({
     mutationFn: async (fileId: number) => {
-      return apiRequest(`/api/files/${fileId}`, {
+      const response = await fetch(`/api/files/${fileId}`, {
         method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to delete file');
+      }
+      return response.json();
     },
     onSuccess: () => {
       toast({
@@ -172,18 +180,31 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
               </div>
             </div>
             <div className="p-3">
-              <h4 className="text-sm font-medium truncate">{file.originalName}</h4>
-              <div className="flex items-center justify-between mt-1">
-                <p className="text-xs text-gray-500">
-                  {formatFileSize(file.fileSize)}
-                </p>
-                <p className="text-xs text-gray-500">
-                  {file.createdAt instanceof Date ? file.createdAt.toLocaleDateString() : new Date(file.createdAt).toLocaleDateString()}
-                </p>
+              <div className="flex items-start justify-between">
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-sm font-medium truncate">{file.originalName}</h4>
+                  <div className="flex items-center justify-between mt-1">
+                    <p className="text-xs text-gray-500">
+                      {formatFileSize(file.fileSize)}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {file.createdAt instanceof Date ? file.createdAt.toLocaleDateString() : new Date(file.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                  {file.description && (
+                    <p className="text-xs text-gray-600 mt-1 line-clamp-2">{file.description}</p>
+                  )}
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => deleteFileMutation.mutate(file.id)}
+                  disabled={deleteFileMutation.isPending}
+                  className="ml-2 h-6 w-6 p-0"
+                >
+                  <Trash2 className="h-3 w-3 text-red-500" />
+                </Button>
               </div>
-              {file.description && (
-                <p className="text-xs text-gray-600 mt-1 line-clamp-2">{file.description}</p>
-              )}
             </div>
           </CardContent>
         </Card>
@@ -226,6 +247,14 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
                 <a href={`/${file.filePath}`} download={file.originalName}>
                   <Download className="h-4 w-4" />
                 </a>
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => deleteFileMutation.mutate(file.id)}
+                disabled={deleteFileMutation.isPending}
+              >
+                <Trash2 className="h-4 w-4 text-red-500" />
               </Button>
             </div>
           </div>
@@ -334,6 +363,15 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
                     <a href={`/${selectedMedia.filePath}`} download={selectedMedia.originalName}>
                       <Download className="h-4 w-4" />
                     </a>
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => deleteFileMutation.mutate(selectedMedia.id)}
+                    disabled={deleteFileMutation.isPending}
+                  >
+                    <Trash2 className="h-4 w-4 text-red-500" />
                   </Button>
                   
                   <Button

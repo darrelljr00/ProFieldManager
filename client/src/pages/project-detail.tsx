@@ -519,7 +519,7 @@ export default function ProjectDetail() {
             </Dialog>
           </div>
 
-          <MediaGallery files={files} />
+          <MediaGallery files={files} projectId={project?.id} />
         </TabsContent>
 
         <TabsContent value="team" className="space-y-4">
