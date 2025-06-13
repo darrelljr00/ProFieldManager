@@ -77,6 +77,8 @@ type ActivityLog = {
 
 export default function AdminSettingsPage() {
   const [activeTab, setActiveTab] = useState("overview");
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -99,6 +101,10 @@ export default function AdminSettingsPage() {
 
   const { data: users = [] } = useQuery({
     queryKey: ["/api/admin/users"],
+  });
+
+  const { data: companySettings } = useQuery({
+    queryKey: ["/api/settings/company"],
   });
 
   const updateSystemSettingMutation = useMutation({
@@ -183,6 +189,38 @@ export default function AdminSettingsPage() {
     },
   });
 
+  const logoUploadMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('logo', file);
+      const response = await fetch('/api/upload/logo', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/company"] });
+      setLogoFile(null);
+      setLogoPreview(null);
+      toast({
+        title: "Success",
+        description: "Logo uploaded successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to upload logo",
+        variant: "destructive",
+      });
+    },
+  });
+
   const stats = userStats || {
     total: 0,
     active: 0,
@@ -210,6 +248,29 @@ export default function AdminSettingsPage() {
     updateSystemSettingMutation.mutate({ key, value });
   };
 
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setLogoFile(file);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setLogoPreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleLogoUpload = () => {
+    if (logoFile) {
+      logoUploadMutation.mutate(logoFile);
+    }
+  };
+
+  const removeLogo = () => {
+    setLogoFile(null);
+    setLogoPreview(null);
+  };
+
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <div className="flex items-center justify-between mb-6">
@@ -223,9 +284,10 @@ export default function AdminSettingsPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
+          <TabsTrigger value="company">Company</TabsTrigger>
           <TabsTrigger value="system">System</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
           <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
