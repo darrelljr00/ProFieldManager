@@ -553,6 +553,83 @@ export default function AdminSettingsPage() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="company" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                Company Settings
+              </CardTitle>
+              <CardDescription>
+                Manage company logo and branding
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div>
+                <Label>Company Logo</Label>
+                <div className="space-y-4">
+                  {/* Current Logo Display */}
+                  {companySettings?.logo && !logoPreview && (
+                    <div className="flex items-center space-x-4">
+                      <img
+                        src={companySettings.logo.startsWith('/uploads') ? companySettings.logo : `/uploads/${companySettings.logo}`}
+                        alt="Current logo"
+                        className="h-16 w-16 object-contain border rounded"
+                      />
+                      <span className="text-sm text-muted-foreground">Current logo</span>
+                    </div>
+                  )}
+                  
+                  {/* Logo Preview */}
+                  {logoPreview && (
+                    <div className="flex items-center space-x-4">
+                      <img
+                        src={logoPreview}
+                        alt="Logo preview"
+                        className="h-16 w-16 object-contain border rounded"
+                      />
+                      <div className="flex space-x-2">
+                        <Button
+                          type="button"
+                          onClick={handleLogoUpload}
+                          disabled={logoUploadMutation.isPending}
+                          size="sm"
+                        >
+                          <Upload className="h-4 w-4 mr-2" />
+                          {logoUploadMutation.isPending ? "Uploading..." : "Upload"}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={removeLogo}
+                          size="sm"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Remove
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* File Input */}
+                  <div>
+                    <Input
+                      id="logoFile"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleLogoChange}
+                      className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/80"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Supported formats: JPG, PNG, GIF, SVG. Max size: 5MB
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="system" className="space-y-6">
           <Card>
             <CardHeader>
