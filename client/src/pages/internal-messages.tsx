@@ -197,15 +197,19 @@ export default function InternalMessagesPage() {
           const result = await response.json();
           uploadedUrls.push(result.url);
         } else {
-          throw new Error(`Failed to upload ${file.name}`);
+          const errorData = await response.text();
+          console.error('Upload error response:', errorData);
+          throw new Error(`Failed to upload ${file.name}: ${response.status} ${response.statusText}`);
         }
       }
     } catch (error: any) {
+      console.error('Upload error:', error);
       toast({
         title: "Upload failed",
         description: error.message,
         variant: "destructive"
       });
+      return []; // Return empty array on error
     } finally {
       setUploadingFiles(false);
     }
@@ -261,9 +265,19 @@ export default function InternalMessagesPage() {
         priority: 'normal'
       };
 
-      sendMessageMutation.mutate(messageData);
+      await sendMessageMutation.mutateAsync(messageData);
+      
+      // Clear form after successful send
+      setNewMessage('');
+      setAttachedFiles([]);
+      
     } catch (error) {
       console.error('Error sending message:', error);
+      toast({
+        title: "Failed to send message",
+        description: "Please try again",
+        variant: "destructive"
+      });
     }
   };
 

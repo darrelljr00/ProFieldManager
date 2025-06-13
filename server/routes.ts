@@ -801,6 +801,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // General file upload for messages and attachments
+  app.post("/api/upload", requireAuth, upload.single('file'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      // File uploaded successfully
+      res.json({
+        message: "File uploaded successfully",
+        url: `/uploads/${req.file.filename}`,
+        filename: req.file.originalname,
+        size: req.file.size,
+        mimetype: req.file.mimetype
+      });
+    } catch (error: any) {
+      console.error('File upload error:', error);
+      res.status(500).json({ message: "Error uploading file: " + error.message });
+    }
+  });
+
   // Serve uploaded files (static files don't need auth for this use case)
   app.use('/uploads', express.static('./uploads'));
 
