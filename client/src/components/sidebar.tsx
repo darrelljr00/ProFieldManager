@@ -70,6 +70,11 @@ export function Sidebar() {
     return true;
   });
 
+  // Debug logging
+  console.log('Current user:', user);
+  console.log('Is admin:', isAdmin);
+  console.log('Filtered navigation:', filteredNavigation.map(item => item.name));
+
   return (
     <div className="w-64 bg-white shadow-lg flex flex-col">
       <div className="p-6 border-b border-gray-200">
