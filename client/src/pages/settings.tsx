@@ -254,6 +254,24 @@ export default function Settings() {
     },
   });
 
+  const reviewMutation = useMutation({
+    mutationFn: (data: any) => apiRequest('/api/reviews/settings', 'POST', data),
+    onSuccess: () => {
+      toast({
+        title: "Success", 
+        description: "Review settings saved successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/reviews/settings'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to save review settings",
+        variant: "destructive",
+      });
+    },
+  });
+
   const toggleSecretVisibility = (key: string) => {
     setShowSecrets(prev => ({
       ...prev,
@@ -382,6 +400,21 @@ export default function Settings() {
       defaultJobDuration: parseInt(formData.get('defaultJobDuration') as string) || 60,
     };
     calendarMutation.mutate(data);
+  };
+
+  const handleReviewSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const data = {
+      reviewRequestsEnabled: formData.get('reviewRequestsEnabled') === 'on',
+      businessName: formData.get('businessName') as string,
+      locationName: formData.get('locationName') as string,
+      locationId: formData.get('googleLocationId') as string,
+      placeId: formData.get('placeId') as string,
+      reviewUrl: formData.get('reviewUrl') as string,
+      smsTemplate: formData.get('smsTemplate') as string,
+    };
+    reviewMutation.mutate(data);
   };
 
   if (paymentLoading || companyLoading || emailLoading || twilioLoading || ocrLoading || calendarLoading) {
@@ -1302,7 +1335,7 @@ export default function Settings() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form className="space-y-6">
+              <form onSubmit={handleReviewSubmit} className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-lg font-medium">Auto Review Requests</h3>
@@ -1369,6 +1402,7 @@ export default function Settings() {
                 <div className="space-y-4">
                   <Label>SMS Review Request Template</Label>
                   <textarea
+                    name="smsTemplate"
                     className="w-full min-h-[100px] p-3 border rounded-md"
                     placeholder="Hi {customerName}! Thanks for choosing {businessName}. We'd love a 5-star review if you're happy with our work: {reviewUrl}"
                     defaultValue="Hi {customerName}! Thanks for choosing {businessName}. We'd love a 5-star review if you're happy with our work: {reviewUrl}"
@@ -1379,9 +1413,9 @@ export default function Settings() {
                 </div>
 
                 <div className="flex justify-end">
-                  <Button type="submit">
+                  <Button type="submit" disabled={reviewMutation.isPending}>
                     <Save className="h-4 w-4 mr-2" />
-                    Save Review Settings
+                    {reviewMutation.isPending ? "Saving..." : "Save Review Settings"}
                   </Button>
                 </div>
               </form>

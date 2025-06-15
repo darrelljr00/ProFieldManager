@@ -1328,21 +1328,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Get review settings
           const reviewSettings = await storage.getGoogleMyBusinessSettings(userId);
           
-          if (reviewSettings && reviewSettings.isActive && updatedProject.customer) {
-            // Create and send review request
-            const reviewRequest = await storage.createReviewRequest({
-              userId,
-              customerId: updatedProject.customerId,
-              projectId: updatedProject.id,
-              customerPhone: updatedProject.customer.phone || '',
-              customerName: updatedProject.customer.name,
-              status: 'sent',
-              requestDate: new Date()
-            });
+          if (reviewSettings && reviewSettings.isActive && updatedProject.customerId) {
+            // Get customer details
+            const customer = await storage.getCustomer(updatedProject.customerId, userId);
+            
+            if (customer && customer.phone) {
+              // Create and send review request
+              const reviewRequest = await storage.createReviewRequest({
+                userId,
+                customerId: updatedProject.customerId,
+                projectId: updatedProject.id,
+                customerPhone: customer.phone,
+                customerName: customer.name,
+                status: 'sent',
+                requestDate: new Date()
+              });
 
-            // Log the SMS that would be sent (implement actual Twilio here)
-            const message = `Hi ${updatedProject.customer.name}! Thanks for choosing ${reviewSettings.businessName}. We'd love a 5-star review if you're happy with our work: ${reviewSettings.reviewUrl}`;
-            console.log(`Auto-review SMS would be sent to ${updatedProject.customer.phone}: ${message}`);
+              // Log the SMS that would be sent (implement actual Twilio here)
+              const message = `Hi ${customer.name}! Thanks for choosing ${reviewSettings.businessName}. We'd love a 5-star review if you're happy with our work: ${reviewSettings.reviewUrl}`;
+              console.log(`Auto-review SMS would be sent to ${customer.phone}: ${message}`);
+            }
           }
         } catch (reviewError) {
           console.error('Error sending auto-review request:', reviewError);
