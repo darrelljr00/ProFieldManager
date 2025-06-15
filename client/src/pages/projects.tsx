@@ -12,10 +12,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Calendar, Users, CheckCircle, Clock, AlertCircle, Folder, Settings, MapPin } from "lucide-react";
+import { Plus, Calendar, Users, CheckCircle, Clock, AlertCircle, Folder, Settings, MapPin, Route } from "lucide-react";
 import { Link } from "wouter";
 import type { Project, Customer, User } from "@shared/schema";
 import { DirectionsButton } from "@/components/google-maps";
+import { DispatchRouting } from "@/components/dispatch-routing";
 
 interface ProjectWithDetails extends Project {
   users: { user: User }[];
@@ -554,7 +555,7 @@ interface CalendarJobWithDetails {
         </Card>
       ) : (
         <Tabs defaultValue="in-progress" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="upcoming" className="flex items-center gap-2">
               <Clock className="h-4 w-4" />
               Upcoming ({upcoming.length})
@@ -566,6 +567,10 @@ interface CalendarJobWithDetails {
             <TabsTrigger value="completed" className="flex items-center gap-2">
               <CheckCircle className="h-4 w-4" />
               Completed ({completed.length})
+            </TabsTrigger>
+            <TabsTrigger value="dispatch" className="flex items-center gap-2">
+              <Route className="h-4 w-4" />
+              Dispatch Routing
             </TabsTrigger>
           </TabsList>
 
