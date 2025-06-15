@@ -443,6 +443,39 @@ export const imageAnnotations = pgTable("image_annotations", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Review management tables
+export const reviewRequests = pgTable("review_requests", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  projectId: integer("project_id").notNull().references(() => projects.id),
+  customerId: integer("customer_id").notNull().references(() => customers.id),
+  customerPhone: text("customer_phone").notNull(),
+  customerName: text("customer_name").notNull(),
+  status: text("status").notNull().default("pending"), // pending, sent, clicked, reviewed, failed
+  sentAt: timestamp("sent_at"),
+  clickedAt: timestamp("clicked_at"),
+  reviewedAt: timestamp("reviewed_at"),
+  googleReviewId: text("google_review_id"),
+  googleReviewRating: integer("google_review_rating"),
+  googleReviewText: text("google_review_text"),
+  twilioMessageSid: text("twilio_message_sid"),
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const googleMyBusinessSettings = pgTable("google_my_business_settings", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  locationId: text("location_id").notNull(),
+  locationName: text("location_name").notNull(),
+  businessName: text("business_name").notNull(),
+  placeId: text("place_id"),
+  reviewUrl: text("review_url").notNull(),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Shared photo links table
 export const sharedPhotoLinks = pgTable("shared_photo_links", {
   id: serial("id").primaryKey(),
@@ -663,6 +696,17 @@ export const insertMessageGroupSchema = createInsertSchema(messageGroups).omit({
 export const insertMessageGroupMemberSchema = createInsertSchema(messageGroupMembers).omit({
   id: true,
   joinedAt: true,
+});
+
+export const insertReviewRequestSchema = createInsertSchema(reviewRequests).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertGoogleMyBusinessSettingsSchema = createInsertSchema(googleMyBusinessSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
 });
 
 export const loginSchema = z.object({
