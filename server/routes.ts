@@ -13,6 +13,7 @@ import {
   insertMessageSchema,
   insertGasCardSchema,
   insertGasCardAssignmentSchema,
+  insertSharedPhotoLinkSchema,
   loginSchema,
   registerSchema,
   changePasswordSchema,
@@ -24,6 +25,7 @@ import {
 import { AuthService, requireAuth, requireAdmin, requireManagerOrAdmin } from "./auth";
 import { ZodError } from "zod";
 import { seedDatabase } from "./seed-data";
+import { nanoid } from "nanoid";
 
 // Extend Express Request type to include user
 declare global {
@@ -2562,6 +2564,139 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error('Error deleting image:', error);
       res.status(500).json({ message: 'Failed to delete image' });
+    }
+  });
+
+  // Shared photo links routes
+  app.post('/api/shared-photo-links', requireAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const { projectId, imageIds, recipientEmail, recipientName, expiresInHours = 168, maxAccess, message } = req.body;
+
+      if (!projectId || !imageIds || !Array.isArray(imageIds) || imageIds.length === 0) {
+        return res.status(400).json({ message: 'Project ID and image IDs are required' });
+      }
+
+      const shareToken = nanoid(32);
+      const expiresAt = new Date();
+      expiresAt.setHours(expiresAt.getHours() + expiresInHours);
+
+      const linkData = {
+        shareToken,
+        projectId,
+        imageIds: JSON.stringify(imageIds),
+        createdBy: userId,
+        recipientEmail,
+        recipientName,
+        expiresAt,
+        maxAccess,
+        message,
+        isActive: true,
+        accessCount: 0
+      };
+
+      const validatedData = insertSharedPhotoLinkSchema.parse(linkData);
+      const link = await storage.createSharedPhotoLink(validatedData);
+
+      res.json({
+        ...link,
+        shareUrl: `${req.protocol}://${req.get('host')}/shared/${shareToken}`
+      });
+    } catch (error: any) {
+      console.error('Error creating shared photo link:', error);
+      if (error instanceof ZodError) {
+        return res.status(400).json({ message: 'Invalid data', errors: error.errors });
+      }
+      res.status(500).json({ message: 'Failed to create shared photo link' });
+    }
+  });
+
+  app.get('/api/shared-photo-links', requireAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const links = await storage.getSharedPhotoLinks(userId);
+      
+      const linksWithUrls = links.map(link => ({
+        ...link,
+        shareUrl: `${req.protocol}://${req.get('host')}/shared/${link.shareToken}`
+      }));
+      
+      res.json(linksWithUrls);
+    } catch (error: any) {
+      console.error('Error fetching shared photo links:', error);
+      res.status(500).json({ message: 'Failed to fetch shared photo links' });
+    }
+  });
+
+  app.get('/shared/:token', async (req, res) => {
+    try {
+      const { token } = req.params;
+      const link = await storage.getSharedPhotoLink(token);
+
+      if (!link) {
+        return res.status(404).json({ message: 'Shared link not found or expired' });
+      }
+
+      // Check if link has expired
+      if (new Date() > new Date(link.expiresAt)) {
+        return res.status(410).json({ message: 'Shared link has expired' });
+      }
+
+      // Check access limits
+      if (link.maxAccess && link.accessCount >= link.maxAccess) {
+        return res.status(429).json({ message: 'Access limit exceeded for this link' });
+      }
+
+      // Update access count
+      await storage.updateSharedPhotoLinkAccess(token);
+
+      res.json({
+        project: link.project,
+        images: link.images,
+        message: link.message,
+        recipientName: link.recipientName,
+        accessCount: link.accessCount + 1,
+        maxAccess: link.maxAccess
+      });
+    } catch (error: any) {
+      console.error('Error accessing shared photo link:', error);
+      res.status(500).json({ message: 'Failed to access shared link' });
+    }
+  });
+
+  app.patch('/api/shared-photo-links/:id/deactivate', requireAuth, async (req, res) => {
+    try {
+      const linkId = parseInt(req.params.id);
+      const userId = req.user!.id;
+
+      const success = await storage.deactivateSharedPhotoLink(linkId, userId);
+
+      if (!success) {
+        return res.status(404).json({ message: 'Shared link not found' });
+      }
+
+      res.json({ message: 'Shared link deactivated successfully' });
+    } catch (error: any) {
+      console.error('Error deactivating shared photo link:', error);
+      res.status(500).json({ message: 'Failed to deactivate shared link' });
+    }
+  });
+
+  app.delete('/api/shared-photo-links/:id', requireAuth, async (req, res) => {
+    try {
+      const linkId = parseInt(req.params.id);
+      const userId = req.user!.id;
+
+      const success = await storage.deleteSharedPhotoLink(linkId, userId);
+
+      if (!success) {
+        return res.status(404).json({ message: 'Shared link not found' });
+      }
+
+      res.json({ message: 'Shared link deleted successfully' });
+    } catch (error: any) {
+      console.error('Error deleting shared photo link:', error);
+      res.status(500).json({ message: 'Failed to delete shared link' });
     }
   });
 

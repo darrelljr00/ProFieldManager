@@ -2063,6 +2063,102 @@ export class DatabaseStorage implements IStorage {
     return result.rowCount > 0;
   }
 
+  // Shared photo links implementation
+  async createSharedPhotoLink(linkData: InsertSharedPhotoLink): Promise<SharedPhotoLink> {
+    const [link] = await db
+      .insert(sharedPhotoLinks)
+      .values(linkData)
+      .returning();
+    return link;
+  }
+
+  async getSharedPhotoLink(shareToken: string): Promise<(SharedPhotoLink & { project: Project, images: any[] }) | undefined> {
+    const link = await db
+      .select()
+      .from(sharedPhotoLinks)
+      .leftJoin(projects, eq(sharedPhotoLinks.projectId, projects.id))
+      .where(and(
+        eq(sharedPhotoLinks.shareToken, shareToken),
+        eq(sharedPhotoLinks.isActive, true)
+      ))
+      .limit(1);
+
+    if (!link.length || !link[0].shared_photo_links || !link[0].projects) {
+      return undefined;
+    }
+
+    const linkData = link[0].shared_photo_links;
+    const projectData = link[0].projects;
+    
+    // Get images based on imageIds in the link
+    const imageIds = linkData.imageIds as number[];
+    let linkImages: any[] = [];
+    
+    if (imageIds && imageIds.length > 0) {
+      linkImages = await db
+        .select()
+        .from(images)
+        .where(inArray(images.id, imageIds));
+    }
+
+    return {
+      ...linkData,
+      project: projectData,
+      images: linkImages
+    };
+  }
+
+  async getSharedPhotoLinks(userId: number): Promise<(SharedPhotoLink & { project: Project })[]> {
+    const links = await db
+      .select()
+      .from(sharedPhotoLinks)
+      .leftJoin(projects, eq(sharedPhotoLinks.projectId, projects.id))
+      .where(eq(sharedPhotoLinks.createdBy, userId))
+      .orderBy(desc(sharedPhotoLinks.createdAt));
+
+    return links.map(link => ({
+      ...link.shared_photo_links,
+      project: link.projects!
+    }));
+  }
+
+  async updateSharedPhotoLinkAccess(shareToken: string): Promise<boolean> {
+    const [updated] = await db
+      .update(sharedPhotoLinks)
+      .set({
+        accessCount: sql`${sharedPhotoLinks.accessCount} + 1`,
+        lastAccessedAt: new Date()
+      })
+      .where(eq(sharedPhotoLinks.shareToken, shareToken))
+      .returning();
+
+    return !!updated;
+  }
+
+  async deactivateSharedPhotoLink(id: number, userId: number): Promise<boolean> {
+    const [updated] = await db
+      .update(sharedPhotoLinks)
+      .set({ isActive: false })
+      .where(and(
+        eq(sharedPhotoLinks.id, id),
+        eq(sharedPhotoLinks.createdBy, userId)
+      ))
+      .returning();
+
+    return !!updated;
+  }
+
+  async deleteSharedPhotoLink(id: number, userId: number): Promise<boolean> {
+    const result = await db
+      .delete(sharedPhotoLinks)
+      .where(and(
+        eq(sharedPhotoLinks.id, id),
+        eq(sharedPhotoLinks.createdBy, userId)
+      ));
+
+    return result.rowCount > 0;
+  }
+
   // SMS functionality placeholder methods
   async getSmsMessages(): Promise<any[]> {
     return [];
