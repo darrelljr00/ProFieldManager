@@ -26,10 +26,14 @@ import {
   Upload,
   Download,
   Trash2,
-  Palette
+  Palette,
+  Share2,
+  CheckSquare,
+  Square
 } from "lucide-react";
 import { ImageAnnotation } from "@/components/image-annotation";
 import { PhotoEditor } from "@/components/photo-editor";
+import { SharePhotosDialog } from "@/components/share-photos-dialog";
 import { useToast } from "@/hooks/use-toast";
 
 interface ImageFile {
@@ -42,12 +46,16 @@ interface ImageFile {
   projectId?: number;
   projectName?: string;
   annotations?: any[];
+  url?: string;
 }
 
 export default function ImageGallery() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedProject, setSelectedProject] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [selectedImages, setSelectedImages] = useState<ImageFile[]>([]);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState<ImageFile | null>(null);
   const [isAnnotationOpen, setIsAnnotationOpen] = useState(false);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
@@ -144,6 +152,46 @@ export default function ImageGallery() {
     return matchesSearch && matchesProject;
   }) : [];
 
+  // Selection helper functions
+  const toggleImageSelection = (image: ImageFile) => {
+    setSelectedImages(prev => {
+      const isSelected = prev.some(img => img.id === image.id);
+      if (isSelected) {
+        return prev.filter(img => img.id !== image.id);
+      } else {
+        return [...prev, image];
+      }
+    });
+  };
+
+  const selectAllVisible = () => {
+    setSelectedImages(filteredImages);
+  };
+
+  const clearSelection = () => {
+    setSelectedImages([]);
+    setSelectionMode(false);
+  };
+
+  const handleShareSelected = () => {
+    if (selectedImages.length === 0) {
+      toast({
+        title: "No images selected",
+        description: "Please select at least one image to share",
+        variant: "destructive",
+      });
+      return;
+    }
+    setShareDialogOpen(true);
+  };
+
+  const getProjectNameForSharing = () => {
+    if (selectedImages.length > 0 && selectedImages[0].projectName) {
+      return selectedImages[0].projectName;
+    }
+    return "Mixed Projects";
+  };
+
   const handleUpload = () => {
     if (!uploadFile) return;
 
@@ -181,6 +229,41 @@ export default function ImageGallery() {
           <p className="text-muted-foreground">View and annotate project images</p>
         </div>
         <div className="flex gap-2">
+          {selectionMode && (
+            <>
+              <Button 
+                onClick={selectAllVisible}
+                variant="outline"
+                size="sm"
+              >
+                Select All ({filteredImages.length})
+              </Button>
+              <Button 
+                onClick={clearSelection}
+                variant="outline"
+                size="sm"
+              >
+                Clear ({selectedImages.length})
+              </Button>
+              <Button 
+                onClick={handleShareSelected}
+                disabled={selectedImages.length === 0}
+                size="sm"
+              >
+                <Share2 className="h-4 w-4 mr-2" />
+                Share Selected ({selectedImages.length})
+              </Button>
+            </>
+          )}
+          {!selectionMode && (
+            <Button 
+              onClick={() => setSelectionMode(true)}
+              variant="outline"
+            >
+              <CheckSquare className="h-4 w-4 mr-2" />
+              Select Photos
+            </Button>
+          )}
           <Button 
             onClick={() => setIsPhotoEditorOpen(true)}
             variant="outline"
@@ -308,15 +391,31 @@ export default function ImageGallery() {
       ) : (
         <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" : "space-y-4"}>
           {filteredImages.map((image: ImageFile) => (
-            <Card key={image.id} className="overflow-hidden">
+            <Card key={image.id} className={`overflow-hidden ${selectedImages.some(img => img.id === image.id) ? 'ring-2 ring-primary' : ''}`}>
               {viewMode === "grid" ? (
                 <div>
                   <div className="aspect-square relative overflow-hidden">
+                    {selectionMode && (
+                      <div className="absolute top-2 left-2 z-10">
+                        <Button
+                          size="sm"
+                          variant={selectedImages.some(img => img.id === image.id) ? "default" : "secondary"}
+                          className="h-8 w-8 p-0"
+                          onClick={() => toggleImageSelection(image)}
+                        >
+                          {selectedImages.some(img => img.id === image.id) ? (
+                            <CheckSquare className="h-4 w-4" />
+                          ) : (
+                            <Square className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    )}
                     <img
                       src={getImageUrl(image.filename)}
                       alt={image.originalName}
                       className="w-full h-full object-cover hover:scale-105 transition-transform cursor-pointer"
-                      onClick={() => handleAnnotate(image)}
+                      onClick={() => selectionMode ? toggleImageSelection(image) : handleAnnotate(image)}
                     />
                   </div>
                   <CardContent className="p-4">
