@@ -594,6 +594,13 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
           )}
         </DialogContent>
       </Dialog>
+      
+      <SharePhotosDialog
+        open={shareDialogOpen}
+        onOpenChange={setShareDialogOpen}
+        selectedImages={selectedFiles}
+        onSelectionChange={setSelectedFiles}
+      />
     </div>
   );
 }
