@@ -403,13 +403,14 @@ export default function Settings() {
       </div>
 
       <Tabs defaultValue="payment" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="payment">Payment Processing</TabsTrigger>
           <TabsTrigger value="company">Company Info</TabsTrigger>
           <TabsTrigger value="email">Email Settings</TabsTrigger>
           <TabsTrigger value="sms">SMS Settings</TabsTrigger>
           <TabsTrigger value="calendar">Calendar</TabsTrigger>
           <TabsTrigger value="ocr">OCR Settings</TabsTrigger>
+          <TabsTrigger value="reviews">Reviews</TabsTrigger>
         </TabsList>
 
         <TabsContent value="payment">
@@ -1285,6 +1286,102 @@ export default function Settings() {
                   <Button type="submit" disabled={ocrMutation.isPending}>
                     <Save className="h-4 w-4 mr-2" />
                     {ocrMutation.isPending ? "Saving..." : "Save OCR Settings"}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="reviews">
+          <Card>
+            <CardHeader>
+              <CardTitle>Google My Business Reviews</CardTitle>
+              <CardDescription>
+                Configure Google My Business integration for automated review requests via SMS
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-medium">Auto Review Requests</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Automatically send SMS review requests when projects are completed
+                    </p>
+                  </div>
+                  <Switch
+                    name="reviewRequestsEnabled"
+                    defaultChecked={false}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="businessName">Business Name</Label>
+                    <Input
+                      id="businessName"
+                      name="businessName"
+                      placeholder="Your Business Name"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="locationName">Location Name</Label>
+                    <Input
+                      id="locationName"
+                      name="locationName"
+                      placeholder="Main Office"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="googleLocationId">Google Location ID</Label>
+                    <Input
+                      id="googleLocationId"
+                      name="googleLocationId"
+                      placeholder="ChIJN1t_tDeuEmsRUsoyG83frY4"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="placeId">Google Place ID</Label>
+                    <Input
+                      id="placeId"
+                      name="placeId"
+                      placeholder="ChIJN1t_tDeuEmsRUsoyG83frY4"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="reviewUrl">Google Review URL</Label>
+                  <Input
+                    id="reviewUrl"
+                    name="reviewUrl"
+                    placeholder="https://g.page/your-business/review"
+                  />
+                  <p className="text-sm text-muted-foreground mt-1">
+                    The direct link customers will use to leave reviews
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  <Label>SMS Review Request Template</Label>
+                  <textarea
+                    className="w-full min-h-[100px] p-3 border rounded-md"
+                    placeholder="Hi {customerName}! Thanks for choosing {businessName}. We'd love a 5-star review if you're happy with our work: {reviewUrl}"
+                    defaultValue="Hi {customerName}! Thanks for choosing {businessName}. We'd love a 5-star review if you're happy with our work: {reviewUrl}"
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Available variables: &#123;customerName&#125;, &#123;businessName&#125;, &#123;reviewUrl&#125;, &#123;projectName&#125;
+                  </p>
+                </div>
+
+                <div className="flex justify-end">
+                  <Button type="submit">
+                    <Save className="h-4 w-4 mr-2" />
+                    Save Review Settings
                   </Button>
                 </div>
               </form>

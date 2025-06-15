@@ -1309,10 +1309,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const projectId = parseInt(req.params.id);
       const userId = req.user!.id;
+      
+      // Get the current project to compare status changes
+      const currentProject = await storage.getProject(projectId, userId);
+      if (!currentProject) {
+        return res.status(404).json({ message: "Project not found or access denied" });
+      }
+
       const updatedProject = await storage.updateProject(projectId, userId, req.body);
       
       if (!updatedProject) {
         return res.status(404).json({ message: "Project not found or access denied" });
+      }
+
+      // Check if project was just marked as completed and trigger review request
+      if (req.body.status === 'completed' && currentProject.status !== 'completed') {
+        try {
+          // Get review settings
+          const reviewSettings = await storage.getGoogleMyBusinessSettings(userId);
+          
+          if (reviewSettings && reviewSettings.isActive && updatedProject.customer) {
+            // Create and send review request
+            const reviewRequest = await storage.createReviewRequest({
+              userId,
+              customerId: updatedProject.customerId,
+              projectId: updatedProject.id,
+              customerPhone: updatedProject.customer.phone || '',
+              customerName: updatedProject.customer.name,
+              status: 'sent',
+              requestDate: new Date()
+            });
+
+            // Log the SMS that would be sent (implement actual Twilio here)
+            const message = `Hi ${updatedProject.customer.name}! Thanks for choosing ${reviewSettings.businessName}. We'd love a 5-star review if you're happy with our work: ${reviewSettings.reviewUrl}`;
+            console.log(`Auto-review SMS would be sent to ${updatedProject.customer.phone}: ${message}`);
+          }
+        } catch (reviewError) {
+          console.error('Error sending auto-review request:', reviewError);
+          // Don't fail the project update if review request fails
+        }
       }
       
       res.json(updatedProject);
@@ -2404,6 +2439,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error('Error fetching Twilio settings:', error);
       res.status(500).json({ message: 'Failed to fetch Twilio settings' });
+    }
+  });
+
+  // Review Management API
+  app.get('/api/reviews/settings', requireAuth, async (req, res) => {
+    try {
+      const settings = await storage.getGoogleMyBusinessSettings(req.user!.id);
+      res.json(settings || {});
+    } catch (error: any) {
+      console.error('Error fetching review settings:', error);
+      res.status(500).json({ message: 'Failed to fetch review settings' });
+    }
+  });
+
+  app.post('/api/reviews/settings', requireAuth, async (req, res) => {
+    try {
+      const settings = await storage.createGoogleMyBusinessSettings({
+        ...req.body,
+        userId: req.user!.id,
+        isActive: true
+      });
+      res.json(settings);
+    } catch (error: any) {
+      console.error('Error creating review settings:', error);
+      res.status(500).json({ message: 'Failed to create review settings' });
+    }
+  });
+
+  app.put('/api/reviews/settings', requireAuth, async (req, res) => {
+    try {
+      const settings = await storage.updateGoogleMyBusinessSettings(req.user!.id, req.body);
+      res.json(settings);
+    } catch (error: any) {
+      console.error('Error updating review settings:', error);
+      res.status(500).json({ message: 'Failed to update review settings' });
+    }
+  });
+
+  app.get('/api/reviews/requests', requireAuth, async (req, res) => {
+    try {
+      const requests = await storage.getReviewRequests(req.user!.id);
+      res.json(requests);
+    } catch (error: any) {
+      console.error('Error fetching review requests:', error);
+      res.status(500).json({ message: 'Failed to fetch review requests' });
+    }
+  });
+
+  app.post('/api/reviews/request', requireAuth, async (req, res) => {
+    try {
+      const { customerId, projectId, customerPhone, customerName } = req.body;
+      
+      // Get review settings
+      const reviewSettings = await storage.getGoogleMyBusinessSettings(req.user!.id);
+      if (!reviewSettings || !reviewSettings.isActive) {
+        return res.status(400).json({ message: 'Review requests are not configured' });
+      }
+
+      // Create review request record
+      const reviewRequest = await storage.createReviewRequest({
+        userId: req.user!.id,
+        customerId,
+        projectId,
+        customerPhone,
+        customerName,
+        status: 'sent',
+        requestDate: new Date()
+      });
+
+      // Send SMS (implement actual Twilio integration here)
+      const message = `Hi ${customerName}! Thanks for choosing ${reviewSettings.businessName}. We'd love a 5-star review if you're happy with our work: ${reviewSettings.reviewUrl}`;
+      
+      console.log(`Review request SMS would be sent to ${customerPhone}: ${message}`);
+
+      res.json({ success: true, reviewRequest });
+    } catch (error: any) {
+      console.error('Error sending review request:', error);
+      res.status(500).json({ message: 'Failed to send review request' });
     }
   });
 
