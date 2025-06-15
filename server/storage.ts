@@ -158,6 +158,10 @@ export interface IStorage {
   getOcrSettings(): Promise<any>;
   updateOcrSettings(settings: any): Promise<void>;
   
+  // Calendar settings
+  getCalendarSettings(): Promise<any>;
+  updateCalendarSettings(settings: any): Promise<void>;
+  
   // Leads management
   getLeads(userId: number): Promise<Lead[]>;
   getLead(id: number, userId: number): Promise<Lead | undefined>;
@@ -1345,6 +1349,48 @@ export class DatabaseStorage implements IStorage {
     await db.insert(settings)
       .values({
         key: 'ocr_settings',
+        value: JSON.stringify(settingsData),
+        updatedAt: new Date()
+      })
+      .onConflictDoUpdate({
+        target: settings.key,
+        set: {
+          value: JSON.stringify(settingsData),
+          updatedAt: new Date()
+        }
+      });
+  }
+
+  async getCalendarSettings(): Promise<any> {
+    try {
+      const [result] = await db.select()
+        .from(settings)
+        .where(eq(settings.key, 'calendar_settings'));
+      return result?.value ? JSON.parse(result.value) : {
+        schedulingBufferMinutes: 15,
+        preventOverlapping: true,
+        workingHoursStart: "09:00",
+        workingHoursEnd: "17:00",
+        workingDays: ["monday", "tuesday", "wednesday", "thursday", "friday"],
+        defaultJobDuration: 60
+      };
+    } catch (error) {
+      console.error("Error fetching calendar settings:", error);
+      return {
+        schedulingBufferMinutes: 15,
+        preventOverlapping: true,
+        workingHoursStart: "09:00",
+        workingHoursEnd: "17:00",
+        workingDays: ["monday", "tuesday", "wednesday", "thursday", "friday"],
+        defaultJobDuration: 60
+      };
+    }
+  }
+
+  async updateCalendarSettings(settingsData: any): Promise<void> {
+    await db.insert(settings)
+      .values({
+        key: 'calendar_settings',
         value: JSON.stringify(settingsData),
         updatedAt: new Date()
       })

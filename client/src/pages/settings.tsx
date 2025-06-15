@@ -1008,6 +1008,113 @@ export default function Settings() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="calendar">
+          <Card>
+            <CardHeader>
+              <CardTitle>Calendar & Scheduling Settings</CardTitle>
+              <CardDescription>
+                Configure scheduling buffers, working hours, and calendar preferences
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleCalendarSubmit} className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="schedulingBufferMinutes">Scheduling Buffer (minutes)</Label>
+                    <Input
+                      id="schedulingBufferMinutes"
+                      name="schedulingBufferMinutes"
+                      type="number"
+                      min="0"
+                      max="1440"
+                      placeholder="15"
+                      defaultValue={calendarSettings?.schedulingBufferMinutes || 15}
+                    />
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Minimum time gap between scheduled jobs to prevent conflicts
+                    </p>
+                  </div>
+                  <div>
+                    <Label htmlFor="defaultJobDuration">Default Job Duration (minutes)</Label>
+                    <Input
+                      id="defaultJobDuration"
+                      name="defaultJobDuration"
+                      type="number"
+                      min="15"
+                      max="480"
+                      placeholder="60"
+                      defaultValue={calendarSettings?.defaultJobDuration || 60}
+                    />
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Default duration for new scheduled jobs
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    name="preventOverlapping"
+                    id="preventOverlapping"
+                    defaultChecked={calendarSettings?.preventOverlapping}
+                  />
+                  <Label htmlFor="preventOverlapping">Prevent Overlapping Appointments</Label>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Working Hours</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="workingHoursStart">Start Time</Label>
+                      <Input
+                        id="workingHoursStart"
+                        name="workingHoursStart"
+                        type="time"
+                        defaultValue={calendarSettings?.workingHoursStart || "09:00"}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="workingHoursEnd">End Time</Label>
+                      <Input
+                        id="workingHoursEnd"
+                        name="workingHoursEnd"
+                        type="time"
+                        defaultValue={calendarSettings?.workingHoursEnd || "17:00"}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Working Days</h3>
+                  <div className="grid grid-cols-4 gap-4">
+                    {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map((day) => (
+                      <div key={day} className="flex items-center space-x-2">
+                        <Switch
+                          name={day}
+                          id={day}
+                          defaultChecked={calendarSettings?.workingDays?.includes(day) ?? ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'].includes(day)}
+                        />
+                        <Label htmlFor={day} className="capitalize">{day}</Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex justify-end">
+                  <Button type="submit" disabled={calendarMutation.isPending}>
+                    <Save className="h-4 w-4 mr-2" />
+                    {calendarMutation.isPending ? "Saving..." : "Save Calendar Settings"}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="ocr">
           <Card>
             <CardHeader>

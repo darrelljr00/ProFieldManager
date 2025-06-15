@@ -1802,6 +1802,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Calendar Settings API
+  app.get("/api/settings/calendar", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const settings = await storage.getCalendarSettings();
+      res.json(settings || {});
+    } catch (error: any) {
+      console.error("Error fetching calendar settings:", error);
+      res.status(500).json({ message: "Failed to fetch calendar settings" });
+    }
+  });
+
+  app.put("/api/settings/calendar", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const settings = req.body;
+      await storage.updateCalendarSettings(settings);
+      res.json({ message: "Calendar settings updated successfully" });
+    } catch (error: any) {
+      console.error("Error updating calendar settings:", error);
+      res.status(500).json({ message: "Failed to update calendar settings" });
+    }
+  });
+
   // Leads API
   app.get("/api/leads", requireAuth, async (req, res) => {
     try {
