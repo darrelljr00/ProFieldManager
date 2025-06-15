@@ -536,6 +536,24 @@ export default function ImageGallery() {
           onClose={() => setIsPhotoEditorOpen(false)}
         />
       )}
+
+      {/* Share Photos Dialog */}
+      <SharePhotosDialog
+        open={shareDialogOpen}
+        onOpenChange={setShareDialogOpen}
+        images={selectedImages.map(img => ({
+          ...img,
+          url: getImageUrl(img.filename)
+        }))}
+        projectName={getProjectNameForSharing()}
+        onSuccess={() => {
+          clearSelection();
+          toast({
+            title: "Success",
+            description: "Shareable link created successfully",
+          });
+        }}
+      />
     </div>
   );
 }
