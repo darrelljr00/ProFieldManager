@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { ImageAnnotation } from "@/components/image-annotation";
+import { SharePhotosDialog } from "@/components/share-photos-dialog";
 import { 
   Download, 
   X, 
@@ -21,7 +22,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Trash2,
-  Edit3
+  Edit3,
+  Share2,
+  CheckSquare,
+  Square
 } from "lucide-react";
 
 interface MediaFile {
@@ -49,6 +53,9 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [rotation, setRotation] = useState(0);
   const [activeTab, setActiveTab] = useState('preview');
+  const [selectedFiles, setSelectedFiles] = useState<MediaFile[]>([]);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -118,6 +125,39 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
   const imageFiles = files.filter(file => file.fileType === 'image');
   const videoFiles = files.filter(file => file.fileType === 'video');
   const documentFiles = files.filter(file => !['image', 'video'].includes(file.fileType));
+
+  // Selection helper functions
+  const toggleFileSelection = (file: MediaFile) => {
+    setSelectedFiles(prev => {
+      const isSelected = prev.some(f => f.id === file.id);
+      if (isSelected) {
+        return prev.filter(f => f.id !== file.id);
+      } else {
+        return [...prev, file];
+      }
+    });
+  };
+
+  const selectAllImages = () => {
+    setSelectedFiles(imageFiles);
+  };
+
+  const clearSelection = () => {
+    setSelectedFiles([]);
+    setSelectionMode(false);
+  };
+
+  const handleShareSelected = () => {
+    if (selectedFiles.length === 0) {
+      toast({
+        title: "No images selected",
+        description: "Please select at least one image to share",
+        variant: "destructive",
+      });
+      return;
+    }
+    setShareDialogOpen(true);
+  };
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -201,19 +241,37 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
 
   const renderFileCard = (file: MediaFile) => {
     const isMedia = ['image', 'video'].includes(file.fileType);
+    const isSelected = selectedFiles.some(f => f.id === file.id);
+    const isImage = file.fileType === 'image';
 
     if (viewMode === 'grid' && isMedia) {
       return (
-        <Card key={file.id} className="overflow-hidden">
+        <Card key={file.id} className={`overflow-hidden ${isSelected ? 'ring-2 ring-blue-500' : ''}`}>
           <CardContent className="p-0">
             <div 
               className="aspect-video bg-gray-100 cursor-pointer group relative"
-              onClick={() => openLightbox(file)}
+              onClick={(e) => {
+                if (selectionMode && isImage) {
+                  e.stopPropagation();
+                  toggleFileSelection(file);
+                } else {
+                  openLightbox(file);
+                }
+              }}
             >
               {renderMediaPreview(file)}
               <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all flex items-center justify-center">
                 <ZoomIn className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
+              {selectionMode && isImage && (
+                <div className="absolute top-2 right-2">
+                  {isSelected ? (
+                    <CheckSquare className="h-6 w-6 text-blue-500 bg-white rounded" />
+                  ) : (
+                    <Square className="h-6 w-6 text-gray-400 bg-white bg-opacity-80 rounded" />
+                  )}
+                </div>
+              )}
             </div>
             <div className="p-3">
               <div className="flex items-start justify-between">
@@ -329,6 +387,53 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
               <List className="h-4 w-4" />
             </Button>
           </div>
+          
+          {imageFiles.length > 0 && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant={selectionMode ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => {
+                  setSelectionMode(!selectionMode);
+                  if (!selectionMode) {
+                    setSelectedFiles([]);
+                  }
+                }}
+              >
+                <CheckSquare className="h-4 w-4 mr-2" />
+                Select Photos
+              </Button>
+              
+              {selectionMode && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={selectAllImages}
+                    disabled={selectedFiles.length === imageFiles.length}
+                  >
+                    Select All
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={clearSelection}
+                  >
+                    Clear
+                  </Button>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={handleShareSelected}
+                    disabled={selectedFiles.length === 0}
+                  >
+                    <Share2 className="h-4 w-4 mr-2" />
+                    Share ({selectedFiles.length})
+                  </Button>
+                </>
+              )}
+            </div>
+          )}
         </div>
         
         <div className="flex items-center gap-4 text-sm text-gray-600">
