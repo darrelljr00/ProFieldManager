@@ -306,8 +306,8 @@ export default function ProjectDetail() {
             <div className="mb-2">
               <span className="text-sm text-gray-600">Progress</span>
               <div className="flex items-center space-x-2 mt-1">
-                <Progress value={project.progress} className="w-32" />
-                <span className="text-sm font-medium">{project.progress}%</span>
+                <Progress value={project.progress || 0} className="w-32" />
+                <span className="text-sm font-medium">{project.progress || 0}%</span>
               </div>
             </div>
             {project.deadline && (
