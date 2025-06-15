@@ -443,6 +443,24 @@ export const imageAnnotations = pgTable("image_annotations", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Shared photo links table
+export const sharedPhotoLinks = pgTable("shared_photo_links", {
+  id: serial("id").primaryKey(),
+  shareToken: text("share_token").notNull().unique(),
+  projectId: integer("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  imageIds: jsonb("image_ids").notNull(), // Array of image IDs to share
+  createdBy: integer("created_by").notNull().references(() => users.id),
+  recipientEmail: text("recipient_email"),
+  recipientName: text("recipient_name"),
+  expiresAt: timestamp("expires_at").notNull(),
+  accessCount: integer("access_count").notNull().default(0),
+  maxAccess: integer("max_access"), // Optional limit on access count
+  isActive: boolean("is_active").notNull().default(true),
+  message: text("message"), // Optional message to include
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  lastAccessedAt: timestamp("last_accessed_at"),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -601,6 +619,12 @@ export const insertImageAnnotationSchema = createInsertSchema(imageAnnotations).
   createdAt: true,
 });
 
+export const insertSharedPhotoLinkSchema = createInsertSchema(sharedPhotoLinks).omit({
+  id: true,
+  createdAt: true,
+  lastAccessedAt: true,
+});
+
 export const insertGasCardAssignmentSchema = createInsertSchema(gasCardAssignments).omit({
   id: true,
   createdAt: true,
@@ -751,6 +775,9 @@ export type InsertMessageGroup = z.infer<typeof insertMessageGroupSchema>;
 
 export type MessageGroupMember = typeof messageGroupMembers.$inferSelect;
 export type InsertMessageGroupMember = z.infer<typeof insertMessageGroupMemberSchema>;
+
+export type SharedPhotoLink = typeof sharedPhotoLinks.$inferSelect;
+export type InsertSharedPhotoLink = z.infer<typeof insertSharedPhotoLinkSchema>;
 
 export type LoginData = z.infer<typeof loginSchema>;
 export type RegisterData = z.infer<typeof registerSchema>;

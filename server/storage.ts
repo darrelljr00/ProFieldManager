@@ -2,7 +2,7 @@ import {
   users, customers, invoices, invoiceLineItems, payments, quotes, quoteLineItems, settings, messages,
   userSessions, userPermissions, projects, projectUsers, tasks, taskComments, projectFiles, timeEntries,
   expenses, expenseCategories, expenseReports, expenseReportItems, gasCards, gasCardAssignments, leads, calendarJobs,
-  internalMessages, internalMessageRecipients, messageGroups, messageGroupMembers, images, imageAnnotations,
+  internalMessages, internalMessageRecipients, messageGroups, messageGroupMembers, images, imageAnnotations, sharedPhotoLinks,
   type User, type InsertUser, type Customer, type InsertCustomer,
   type Invoice, type InsertInvoice, type InvoiceLineItem, type InsertInvoiceLineItem,
   type Payment, type InsertPayment, type Quote, type InsertQuote, type QuoteLineItem,
@@ -16,7 +16,8 @@ import {
   type GasCard, type InsertGasCard, type GasCardAssignment, type InsertGasCardAssignment,
   type Lead, type InsertLead, type CalendarJob, type InsertCalendarJob,
   type InternalMessage, type InsertInternalMessage, type InternalMessageRecipient, type InsertInternalMessageRecipient,
-  type MessageGroup, type InsertMessageGroup, type MessageGroupMember, type InsertMessageGroupMember
+  type MessageGroup, type InsertMessageGroup, type MessageGroupMember, type InsertMessageGroupMember,
+  type SharedPhotoLink, type InsertSharedPhotoLink
 } from "@shared/schema";
 import { db, pool } from "./db";
 import { eq, desc, and, sql, or, inArray, isNotNull } from "drizzle-orm";
@@ -196,6 +197,14 @@ export interface IStorage {
   createImage(imageData: any): Promise<any>;
   saveImageAnnotations(imageId: number, userId: number, annotations: any[], annotatedImageUrl: string): Promise<any | null>;
   deleteImage(imageId: number, userId: number): Promise<boolean>;
+
+  // Shared photo links
+  createSharedPhotoLink(linkData: InsertSharedPhotoLink): Promise<SharedPhotoLink>;
+  getSharedPhotoLink(shareToken: string): Promise<(SharedPhotoLink & { project: Project, images: any[] }) | undefined>;
+  getSharedPhotoLinks(userId: number): Promise<(SharedPhotoLink & { project: Project })[]>;
+  updateSharedPhotoLinkAccess(shareToken: string): Promise<boolean>;
+  deactivateSharedPhotoLink(id: number, userId: number): Promise<boolean>;
+  deleteSharedPhotoLink(id: number, userId: number): Promise<boolean>;
 
   // SMS functionality (placeholder methods)
   getSmsMessages(): Promise<any[]>;
