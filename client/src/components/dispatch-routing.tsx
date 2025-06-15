@@ -74,7 +74,7 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
     mutationFn: async (data: { jobs: JobLocation[]; startLocation: string }) => {
       setIsOptimizing(true);
       const result = await apiRequest('/api/dispatch/optimize-route', 'POST', data);
-      return result as RouteOptimization;
+      return result as unknown as RouteOptimization;
     },
     onSuccess: (data: RouteOptimization) => {
       setOptimization(data);
