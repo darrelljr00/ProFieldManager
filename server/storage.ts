@@ -944,6 +944,45 @@ export class DatabaseStorage implements IStorage {
     return result.rowCount > 0;
   }
 
+  async getProjectsWithLocation(userId: number): Promise<(Project & { users: (ProjectUser & { user: User })[] })[]> {
+    const userProjects = await db
+      .select({
+        project: projects,
+        projectUser: projectUsers,
+        user: users,
+      })
+      .from(projects)
+      .leftJoin(projectUsers, eq(projects.id, projectUsers.projectId))
+      .leftJoin(users, eq(projectUsers.userId, users.id))
+      .where(
+        and(
+          isNotNull(projects.address),
+          isNotNull(projects.city)
+        )
+      );
+
+    // Group by project
+    const projectMap = new Map<number, Project & { users: (ProjectUser & { user: User })[] }>();
+    
+    for (const row of userProjects) {
+      if (!projectMap.has(row.project.id)) {
+        projectMap.set(row.project.id, {
+          ...row.project,
+          users: [],
+        });
+      }
+      
+      if (row.projectUser && row.user) {
+        projectMap.get(row.project.id)!.users.push({
+          ...row.projectUser,
+          user: row.user,
+        });
+      }
+    }
+
+    return Array.from(projectMap.values());
+  }
+
   async updateProjectProgress(projectId: number, progress: number): Promise<void> {
     await db
       .update(projects)

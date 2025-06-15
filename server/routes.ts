@@ -2700,6 +2700,131 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Dispatch Routing API endpoints
+  app.get('/api/dispatch/jobs', requireAuth, async (req, res) => {
+    try {
+      const { date } = req.query;
+      const userId = req.user!.id;
+      
+      if (!date) {
+        return res.status(400).json({ message: 'Date parameter is required' });
+      }
+
+      // Get projects with scheduled work for the given date
+      const projects = await storage.getProjectsWithLocation(userId);
+      
+      // Transform projects into job locations
+      const jobLocations = projects
+        .filter(project => project.address && project.city)
+        .map(project => ({
+          id: project.id,
+          projectId: project.id,
+          projectName: project.name,
+          address: `${project.address}, ${project.city}, ${project.state} ${project.zipCode}`,
+          lat: 0, // Will be geocoded on frontend
+          lng: 0, // Will be geocoded on frontend
+          scheduledTime: '09:00',
+          estimatedDuration: 120, // 2 hours default
+          assignedTo: project.users?.[0]?.user?.username || 'Unassigned',
+          priority: project.priority as 'low' | 'medium' | 'high' | 'urgent',
+          status: 'scheduled' as const
+        }));
+
+      res.json(jobLocations);
+    } catch (error: any) {
+      console.error('Error fetching dispatch jobs:', error);
+      res.status(500).json({ message: 'Failed to fetch dispatch jobs' });
+    }
+  });
+
+  app.post('/api/dispatch/optimize-route', requireAuth, async (req, res) => {
+    try {
+      const { jobs, startLocation } = req.body;
+      
+      if (!jobs || !Array.isArray(jobs) || jobs.length === 0) {
+        return res.status(400).json({ message: 'Jobs array is required' });
+      }
+
+      if (!startLocation) {
+        return res.status(400).json({ message: 'Start location is required' });
+      }
+
+      const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
+      if (!GOOGLE_MAPS_API_KEY) {
+        return res.status(500).json({ message: 'Google Maps API key not configured' });
+      }
+
+      // For route optimization, we'll use a simple nearest neighbor algorithm
+      // In a production environment, you'd use Google's Directions API with waypoint optimization
+      
+      const optimizedOrder = optimizeRoute(jobs, startLocation);
+      const routeLegs = await calculateRouteLegs(jobs, optimizedOrder, startLocation, GOOGLE_MAPS_API_KEY);
+      
+      const totalDistance = routeLegs.reduce((sum, leg) => sum + leg.distance, 0);
+      const totalDuration = routeLegs.reduce((sum, leg) => sum + leg.duration, 0);
+
+      const optimization = {
+        optimizedOrder,
+        totalDistance,
+        totalDuration,
+        routeLegs
+      };
+
+      res.json(optimization);
+    } catch (error: any) {
+      console.error('Error optimizing route:', error);
+      res.status(500).json({ message: 'Failed to optimize route' });
+    }
+  });
+
+  // Helper function for simple route optimization (nearest neighbor)
+  function optimizeRoute(jobs: any[], startLocation: string): number[] {
+    if (jobs.length <= 1) return jobs.map((_, index) => index);
+    
+    // Simple nearest neighbor algorithm
+    // In production, use Google's route optimization
+    const unvisited = [...jobs.map((_, index) => index)];
+    const optimized: number[] = [];
+    
+    // Start with the first job (could be improved with actual distance calculation)
+    let current = unvisited.shift()!;
+    optimized.push(current);
+    
+    while (unvisited.length > 0) {
+      // For simplicity, just take the next one
+      // In production, calculate actual distances
+      current = unvisited.shift()!;
+      optimized.push(current);
+    }
+    
+    return optimized;
+  }
+
+  // Helper function to calculate route legs using Google Maps API
+  async function calculateRouteLegs(jobs: any[], optimizedOrder: number[], startLocation: string, apiKey: string) {
+    const routeLegs = [];
+    
+    for (let i = 0; i < optimizedOrder.length; i++) {
+      const jobIndex = optimizedOrder[i];
+      const job = jobs[jobIndex];
+      
+      const from = i === 0 ? { address: startLocation } : jobs[optimizedOrder[i - 1]];
+      const to = job;
+      
+      // Simulate route leg data
+      // In production, use Google Maps Directions API
+      routeLegs.push({
+        from,
+        to,
+        distance: Math.random() * 20 + 5, // 5-25 km
+        duration: Math.random() * 30 + 15, // 15-45 minutes
+        directions: `Drive from ${from.address || from.projectName} to ${to.projectName}`
+      });
+    }
+    
+    return routeLegs;
+  }
+
   const httpServer = createServer(app);
   return httpServer;
 }

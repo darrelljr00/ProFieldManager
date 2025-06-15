@@ -585,6 +585,10 @@ interface CalendarJobWithDetails {
           <TabsContent value="completed">
             {renderProjectGrid(completed, "No completed projects")}
           </TabsContent>
+
+          <TabsContent value="dispatch">
+            <DispatchRouting />
+          </TabsContent>
         </Tabs>
       )}
     </div>
