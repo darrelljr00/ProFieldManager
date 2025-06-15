@@ -62,13 +62,16 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
   const { toast } = useToast();
 
   // Fetch scheduled jobs for the selected date
-  const { data: scheduledJobs = [], isLoading, refetch } = useQuery({
+  const { data: scheduledJobsData, isLoading, refetch } = useQuery({
     queryKey: ['/api/dispatch/jobs', selectedDateState],
     queryFn: async () => {
       const response = await apiRequest(`/api/dispatch/jobs?date=${selectedDateState}`, 'GET');
       return response as unknown as JobLocation[];
     },
   });
+
+  // Ensure scheduledJobs is always an array
+  const scheduledJobs = Array.isArray(scheduledJobsData) ? scheduledJobsData : [];
 
   const optimizeRouteMutation = useMutation({
     mutationFn: async (data: { jobs: JobLocation[]; startLocation: string }) => {
@@ -95,8 +98,7 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
   });
 
   const handleOptimizeRoute = () => {
-    const jobs = scheduledJobs as JobLocation[];
-    if (jobs.length === 0) {
+    if (scheduledJobs.length === 0) {
       toast({
         title: "No Jobs Available",
         description: "No scheduled jobs found for the selected date",
@@ -115,7 +117,7 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
     }
 
     optimizeRouteMutation.mutate({
-      jobs,
+      jobs: scheduledJobs,
       startLocation: startLocation.trim(),
     });
   };
