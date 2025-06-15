@@ -823,6 +823,12 @@ export type InsertMessageGroupMember = z.infer<typeof insertMessageGroupMemberSc
 export type SharedPhotoLink = typeof sharedPhotoLinks.$inferSelect;
 export type InsertSharedPhotoLink = z.infer<typeof insertSharedPhotoLinkSchema>;
 
+export type ReviewRequest = typeof reviewRequests.$inferSelect;
+export type InsertReviewRequest = z.infer<typeof insertReviewRequestSchema>;
+
+export type GoogleMyBusinessSettings = typeof googleMyBusinessSettings.$inferSelect;
+export type InsertGoogleMyBusinessSettings = z.infer<typeof insertGoogleMyBusinessSettingsSchema>;
+
 export type LoginData = z.infer<typeof loginSchema>;
 export type RegisterData = z.infer<typeof registerSchema>;
 export type ChangePasswordData = z.infer<typeof changePasswordSchema>;

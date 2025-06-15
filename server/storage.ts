@@ -3,6 +3,7 @@ import {
   userSessions, userPermissions, projects, projectUsers, tasks, taskComments, projectFiles, timeEntries,
   expenses, expenseCategories, expenseReports, expenseReportItems, gasCards, gasCardAssignments, leads, calendarJobs,
   internalMessages, internalMessageRecipients, messageGroups, messageGroupMembers, images, imageAnnotations, sharedPhotoLinks,
+  reviewRequests, googleMyBusinessSettings,
   type User, type InsertUser, type Customer, type InsertCustomer,
   type Invoice, type InsertInvoice, type InvoiceLineItem, type InsertInvoiceLineItem,
   type Payment, type InsertPayment, type Quote, type InsertQuote, type QuoteLineItem,
@@ -17,7 +18,8 @@ import {
   type Lead, type InsertLead, type CalendarJob, type InsertCalendarJob,
   type InternalMessage, type InsertInternalMessage, type InternalMessageRecipient, type InsertInternalMessageRecipient,
   type MessageGroup, type InsertMessageGroup, type MessageGroupMember, type InsertMessageGroupMember,
-  type SharedPhotoLink, type InsertSharedPhotoLink
+  type SharedPhotoLink, type InsertSharedPhotoLink, type ReviewRequest, type InsertReviewRequest,
+  type GoogleMyBusinessSettings, type InsertGoogleMyBusinessSettings
 } from "@shared/schema";
 import { db, pool } from "./db";
 import { eq, desc, and, sql, or, inArray, isNotNull } from "drizzle-orm";
@@ -211,6 +213,17 @@ export interface IStorage {
   createSmsMessage(data: any): Promise<any>;
   getSmsTemplates(): Promise<any[]>;
   createSmsTemplate(data: any): Promise<any>;
+
+  // Review management
+  createReviewRequest(reviewData: InsertReviewRequest): Promise<ReviewRequest>;
+  getReviewRequests(userId: number): Promise<ReviewRequest[]>;
+  getReviewRequest(id: number, userId: number): Promise<ReviewRequest | undefined>;
+  updateReviewRequest(id: number, userId: number, updates: Partial<ReviewRequest>): Promise<ReviewRequest | undefined>;
+  
+  // Google My Business settings
+  getGoogleMyBusinessSettings(userId: number): Promise<GoogleMyBusinessSettings | undefined>;
+  createGoogleMyBusinessSettings(settings: InsertGoogleMyBusinessSettings): Promise<GoogleMyBusinessSettings>;
+  updateGoogleMyBusinessSettings(userId: number, settings: Partial<InsertGoogleMyBusinessSettings>): Promise<GoogleMyBusinessSettings | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2213,6 +2226,75 @@ export class DatabaseStorage implements IStorage {
 
   async createSmsTemplate(data: any): Promise<any> {
     return { id: Date.now(), ...data };
+  }
+
+  // Review management methods
+  async createReviewRequest(reviewData: InsertReviewRequest): Promise<ReviewRequest> {
+    const [reviewRequest] = await db
+      .insert(reviewRequests)
+      .values(reviewData)
+      .returning();
+    return reviewRequest;
+  }
+
+  async getReviewRequests(userId: number): Promise<ReviewRequest[]> {
+    return await db
+      .select()
+      .from(reviewRequests)
+      .where(eq(reviewRequests.userId, userId))
+      .orderBy(desc(reviewRequests.createdAt));
+  }
+
+  async getReviewRequest(id: number, userId: number): Promise<ReviewRequest | undefined> {
+    const [reviewRequest] = await db
+      .select()
+      .from(reviewRequests)
+      .where(and(
+        eq(reviewRequests.id, id),
+        eq(reviewRequests.userId, userId)
+      ));
+    return reviewRequest;
+  }
+
+  async updateReviewRequest(id: number, userId: number, updates: Partial<ReviewRequest>): Promise<ReviewRequest | undefined> {
+    const [updatedRequest] = await db
+      .update(reviewRequests)
+      .set(updates)
+      .where(and(
+        eq(reviewRequests.id, id),
+        eq(reviewRequests.userId, userId)
+      ))
+      .returning();
+    return updatedRequest;
+  }
+
+  // Google My Business settings methods
+  async getGoogleMyBusinessSettings(userId: number): Promise<GoogleMyBusinessSettings | undefined> {
+    const [settings] = await db
+      .select()
+      .from(googleMyBusinessSettings)
+      .where(and(
+        eq(googleMyBusinessSettings.userId, userId),
+        eq(googleMyBusinessSettings.isActive, true)
+      ));
+    return settings;
+  }
+
+  async createGoogleMyBusinessSettings(settings: InsertGoogleMyBusinessSettings): Promise<GoogleMyBusinessSettings> {
+    const [newSettings] = await db
+      .insert(googleMyBusinessSettings)
+      .values(settings)
+      .returning();
+    return newSettings;
+  }
+
+  async updateGoogleMyBusinessSettings(userId: number, settings: Partial<InsertGoogleMyBusinessSettings>): Promise<GoogleMyBusinessSettings | undefined> {
+    const [updatedSettings] = await db
+      .update(googleMyBusinessSettings)
+      .set({ ...settings, updatedAt: new Date() })
+      .where(eq(googleMyBusinessSettings.userId, userId))
+      .returning();
+    return updatedSettings;
   }
 }
 
