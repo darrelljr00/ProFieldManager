@@ -36,9 +36,30 @@ export default function Projects() {
     queryKey: ["/api/customers"],
   });
 
-  const { data: calendarJobs = [] } = useQuery({
+  const { data: calendarJobs = [] } = useQuery<CalendarJobWithDetails[]>({
     queryKey: ["/api/calendar-jobs"],
   });
+
+interface CalendarJobWithDetails {
+  id: number;
+  userId: number;
+  customerId?: number;
+  leadId?: number;
+  title: string;
+  description?: string;
+  location?: string;
+  startDate: string;
+  endDate: string;
+  estimatedValue?: string;
+  status: string;
+  priority: string;
+  notes?: string;
+  convertedToProjectId?: number;
+  createdAt: string;
+  updatedAt: string;
+  customer?: Customer;
+  lead?: any;
+}
 
   const createProjectMutation = useMutation({
     mutationFn: (data: any) => apiRequest("/api/projects", "POST", data),
@@ -310,7 +331,7 @@ export default function Projects() {
       </div>
 
       {/* Calendar Events Sync Section */}
-      {calendarJobs.filter(job => job.status === 'scheduled' && !job.convertedToProjectId).length > 0 && (
+      {(calendarJobs as CalendarJobWithDetails[]).filter(job => job.status === 'scheduled' && !job.convertedToProjectId).length > 0 && (
         <Card className="mb-6">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -323,7 +344,7 @@ export default function Projects() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {calendarJobs
+              {(calendarJobs as CalendarJobWithDetails[])
                 .filter(job => job.status === 'scheduled' && !job.convertedToProjectId)
                 .map((job) => (
                   <Card key={job.id} className="border-l-4 border-l-blue-500">
