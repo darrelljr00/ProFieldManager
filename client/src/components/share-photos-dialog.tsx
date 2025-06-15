@@ -28,9 +28,10 @@ type ShareFormData = z.infer<typeof shareFormSchema>;
 interface SharePhotosDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  projectId: number;
+  projectId?: number;
   selectedImages: any[];
   projectName: string;
+  onSuccess?: () => void;
 }
 
 export function SharePhotosDialog({ 
@@ -38,7 +39,8 @@ export function SharePhotosDialog({
   onOpenChange, 
   projectId, 
   selectedImages, 
-  projectName 
+  projectName,
+  onSuccess
 }: SharePhotosDialogProps) {
   const [shareUrl, setShareUrl] = useState<string>("");
   const [isShared, setIsShared] = useState(false);
@@ -73,6 +75,7 @@ export function SharePhotosDialog({
         title: "Share link created",
         description: "Secure link created successfully. You can now share it with your recipient.",
       });
+      onSuccess?.();
     },
     onError: (error: any) => {
       toast({

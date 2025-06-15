@@ -541,7 +541,8 @@ export default function ImageGallery() {
       <SharePhotosDialog
         open={shareDialogOpen}
         onOpenChange={setShareDialogOpen}
-        images={selectedImages.map(img => ({
+        projectId={selectedImages.length > 0 && selectedImages[0].projectId ? selectedImages[0].projectId : 0}
+        selectedImages={selectedImages.map(img => ({
           ...img,
           url: getImageUrl(img.filename)
         }))}
