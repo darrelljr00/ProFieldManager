@@ -68,6 +68,15 @@ type TwilioSettings = {
   webhookUrl: string;
 };
 
+type CalendarSettings = {
+  schedulingBufferMinutes: number;
+  preventOverlapping: boolean;
+  workingHoursStart: string;
+  workingHoursEnd: string;
+  workingDays: string[];
+  defaultJobDuration: number;
+};
+
 export default function Settings() {
   const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -93,6 +102,10 @@ export default function Settings() {
 
   const { data: ocrSettings, isLoading: ocrLoading } = useQuery<OcrSettings>({
     queryKey: ["/api/settings/ocr"],
+  });
+
+  const { data: calendarSettings, isLoading: calendarLoading } = useQuery<CalendarSettings>({
+    queryKey: ["/api/settings/calendar"],
   });
 
   const paymentMutation = useMutation({
@@ -185,6 +198,25 @@ export default function Settings() {
       toast({
         title: "Error",
         description: error.message || "Failed to save OCR settings",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const calendarMutation = useMutation({
+    mutationFn: (data: Partial<CalendarSettings>) =>
+      apiRequest("PUT", "/api/settings/calendar", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/calendar"] });
+      toast({
+        title: "Success",
+        description: "Calendar settings saved successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save calendar settings",
         variant: "destructive",
       });
     },
@@ -331,7 +363,28 @@ export default function Settings() {
     ocrMutation.mutate(data);
   };
 
-  if (paymentLoading || companyLoading || emailLoading || twilioLoading || ocrLoading) {
+  const handleCalendarSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const workingDays = [];
+    ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].forEach(day => {
+      if (formData.get(day) === 'on') {
+        workingDays.push(day);
+      }
+    });
+    
+    const data: Partial<CalendarSettings> = {
+      schedulingBufferMinutes: parseInt(formData.get('schedulingBufferMinutes') as string) || 15,
+      preventOverlapping: formData.get('preventOverlapping') === 'on',
+      workingHoursStart: formData.get('workingHoursStart') as string,
+      workingHoursEnd: formData.get('workingHoursEnd') as string,
+      workingDays,
+      defaultJobDuration: parseInt(formData.get('defaultJobDuration') as string) || 60,
+    };
+    calendarMutation.mutate(data);
+  };
+
+  if (paymentLoading || companyLoading || emailLoading || twilioLoading || ocrLoading || calendarLoading) {
     return (
       <div className="p-6">
         <div className="space-y-4">
@@ -350,11 +403,12 @@ export default function Settings() {
       </div>
 
       <Tabs defaultValue="payment" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="payment">Payment Processing</TabsTrigger>
           <TabsTrigger value="company">Company Info</TabsTrigger>
           <TabsTrigger value="email">Email Settings</TabsTrigger>
           <TabsTrigger value="sms">SMS Settings</TabsTrigger>
+          <TabsTrigger value="calendar">Calendar</TabsTrigger>
           <TabsTrigger value="ocr">OCR Settings</TabsTrigger>
         </TabsList>
 
