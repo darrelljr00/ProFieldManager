@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Calendar, Users, CheckCircle, Clock, AlertCircle, Folder, Settings, MapPin } from "lucide-react";
 import { Link } from "wouter";
 import type { Project, Customer, User } from "@shared/schema";
@@ -149,6 +150,138 @@ interface CalendarJobWithDetails {
       default:
         return <CheckCircle className="h-4 w-4" />;
     }
+  };
+
+  const categorizeProjects = () => {
+    const upcoming = projects.filter(project => 
+      project.status === 'planning' || 
+      (project.status === 'active' && project.startDate && new Date(project.startDate) > new Date())
+    );
+    
+    const inProgress = projects.filter(project => 
+      project.status === 'active' && 
+      (!project.startDate || new Date(project.startDate) <= new Date()) &&
+      project.progress < 100
+    );
+    
+    const completed = projects.filter(project => 
+      project.status === 'completed' || 
+      project.status === 'delivered' || 
+      project.progress === 100
+    );
+
+    return { upcoming, inProgress, completed };
+  };
+
+  const { upcoming, inProgress, completed } = categorizeProjects();
+
+  const renderProjectGrid = (projectList: ProjectWithDetails[], emptyMessage: string) => {
+    if (projectList.length === 0) {
+      return (
+        <Card>
+          <CardContent className="text-center py-12">
+            <Folder className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">{emptyMessage}</h3>
+            <p className="text-gray-600 mb-4">Projects will appear here based on their status and timeline</p>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {projectList.map((project) => (
+          <Card key={project.id} className="hover:shadow-md transition-shadow">
+            <CardHeader className="pb-3">
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <CardTitle className="text-lg mb-1">
+                    <Link href={`/projects/${project.id}`} className="hover:text-primary">
+                      {project.name}
+                    </Link>
+                  </CardTitle>
+                  <div className="flex items-center space-x-2">
+                    <Badge variant={getStatusColor(project.status)}>
+                      {project.status}
+                    </Badge>
+                    <Badge variant={getPriorityColor(project.priority)} className="flex items-center gap-1">
+                      {getPriorityIcon(project.priority)}
+                      {project.priority}
+                    </Badge>
+                  </div>
+                </div>
+                <Link href={`/projects/${project.id}/settings`}>
+                  <Button variant="ghost" size="sm">
+                    <Settings className="h-4 w-4" />
+                  </Button>
+                </Link>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {project.description && (
+                  <p className="text-sm text-gray-600 line-clamp-2">{project.description}</p>
+                )}
+                
+                <div className="flex items-center justify-between text-sm text-gray-500">
+                  <div className="flex items-center space-x-2">
+                    <Users className="h-4 w-4" />
+                    <span>{project.users.length} member{project.users.length !== 1 ? 's' : ''}</span>
+                  </div>
+                  {project.budget && (
+                    <div className="text-green-600 font-medium">
+                      ${parseFloat(project.budget).toLocaleString()}
+                    </div>
+                  )}
+                </div>
+
+                {project.taskCount > 0 && (
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-sm">
+                      <span>Tasks Progress</span>
+                      <span>{project.completedTasks}/{project.taskCount}</span>
+                    </div>
+                    <Progress value={(project.completedTasks / project.taskCount) * 100} className="h-2" />
+                  </div>
+                )}
+
+                {project.customer && (
+                  <div className="flex items-center text-sm text-gray-600">
+                    <Badge variant="outline" className="text-xs">
+                      {project.customer.name}
+                    </Badge>
+                  </div>
+                )}
+
+                {(project.address || project.city) && (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-1 text-sm text-gray-500">
+                      <MapPin className="h-4 w-4" />
+                      <span>
+                        {project.address && `${project.address}, `}
+                        {project.city} {project.state}
+                      </span>
+                    </div>
+                    {project.address && (
+                      <DirectionsButton address={`${project.address}, ${project.city}, ${project.state} ${project.zipCode}`} />
+                    )}
+                  </div>
+                )}
+
+                {project.deadline && (
+                  <div className="flex items-center space-x-2 text-sm">
+                    <Calendar className="h-4 w-4 text-gray-400" />
+                    <span className="text-gray-600">
+                      Due: {new Date(project.deadline).toLocaleDateString()}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
   };
 
   if (isLoading) {
@@ -407,103 +540,34 @@ interface CalendarJobWithDetails {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {projects.map((project) => (
-            <Card key={project.id} className="hover:shadow-md transition-shadow">
-              <CardHeader className="pb-3">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <CardTitle className="text-lg mb-1">
-                      <Link href={`/projects/${project.id}`} className="hover:text-primary">
-                        {project.name}
-                      </Link>
-                    </CardTitle>
-                    <div className="flex items-center space-x-2">
-                      <Badge variant={getStatusColor(project.status)}>
-                        {project.status}
-                      </Badge>
-                      <Badge variant={getPriorityColor(project.priority)} className="flex items-center gap-1">
-                        {getPriorityIcon(project.priority)}
-                        {project.priority}
-                      </Badge>
-                    </div>
-                  </div>
-                  <Link href={`/projects/${project.id}/settings`}>
-                    <Button variant="ghost" size="sm">
-                      <Settings className="h-4 w-4" />
-                    </Button>
-                  </Link>
-                </div>
-                {project.description && (
-                  <CardDescription className="mt-2 line-clamp-2">
-                    {project.description}
-                  </CardDescription>
-                )}
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {project.customer && (
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Users className="h-4 w-4 mr-2" />
-                      {project.customer.name}
-                    </div>
-                  )}
-                  
-                  {project.deadline && (
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Calendar className="h-4 w-4 mr-2" />
-                      Due: {new Date(project.deadline).toLocaleDateString()}
-                    </div>
-                  )}
+        <Tabs defaultValue="in-progress" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="upcoming" className="flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              Upcoming ({upcoming.length})
+            </TabsTrigger>
+            <TabsTrigger value="in-progress" className="flex items-center gap-2">
+              <AlertCircle className="h-4 w-4" />
+              In Progress ({inProgress.length})
+            </TabsTrigger>
+            <TabsTrigger value="completed" className="flex items-center gap-2">
+              <CheckCircle className="h-4 w-4" />
+              Completed ({completed.length})
+            </TabsTrigger>
+          </TabsList>
 
-                  {(project.address || project.city) && (
-                    <div className="flex items-center justify-between text-sm text-gray-600">
-                      <div className="flex items-center">
-                        <MapPin className="h-4 w-4 mr-2" />
-                        <span className="truncate">
-                          {[project.address, project.city, project.state].filter(Boolean).join(", ")}
-                        </span>
-                      </div>
-                      <DirectionsButton
-                        address={project.address}
-                        city={project.city}
-                        state={project.state}
-                        zipCode={project.zipCode}
-                        className="ml-2"
-                      />
-                    </div>
-                  )}
+          <TabsContent value="upcoming">
+            {renderProjectGrid(upcoming, "No upcoming projects")}
+          </TabsContent>
 
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Progress</span>
-                      <span>{project.progress}%</span>
-                    </div>
-                    <Progress value={project.progress} className="h-2" />
-                  </div>
+          <TabsContent value="in-progress">
+            {renderProjectGrid(inProgress, "No projects in progress")}
+          </TabsContent>
 
-                  <div className="flex justify-between text-sm text-gray-600">
-                    <span>Tasks: {project.completedTasks}/{project.taskCount}</span>
-                    <span>Team: {project.users.length}</span>
-                  </div>
-
-                  <div className="flex space-x-2 pt-2">
-                    <Button asChild size="sm" className="flex-1">
-                      <Link href={`/projects/${project.id}`}>
-                        View Details
-                      </Link>
-                    </Button>
-                    <Button asChild variant="outline" size="sm">
-                      <Link href={`/projects/${project.id}/tasks`}>
-                        Tasks
-                      </Link>
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+          <TabsContent value="completed">
+            {renderProjectGrid(completed, "No completed projects")}
+          </TabsContent>
+        </Tabs>
       )}
     </div>
   );
