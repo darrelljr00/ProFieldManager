@@ -1083,6 +1083,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...validatedData,
         password: hashedPassword,
         role: req.body.role || "user",
+        userType: req.body.userType || "both",
         isActive: req.body.isActive !== false,
         emailVerified: false,
       };

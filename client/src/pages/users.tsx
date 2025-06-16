@@ -213,6 +213,7 @@ export default function UsersPage() {
       firstName: formData.get("firstName") as string,
       lastName: formData.get("lastName") as string,
       role: formData.get("role") as string,
+      userType: formData.get("userType") as string,
       isActive: formData.get("isActive") === "on",
     };
     createUserMutation.mutate(userData);
@@ -229,6 +230,7 @@ export default function UsersPage() {
       firstName: formData.get("firstName") as string,
       lastName: formData.get("lastName") as string,
       role: formData.get("role") as string,
+      userType: formData.get("userType") as string,
       isActive: formData.get("isActive") === "on",
     };
     
@@ -667,6 +669,7 @@ export default function UsersPage() {
                     </div>
                   </TableCell>
                   <TableCell>{getRoleBadge(user.role)}</TableCell>
+                  <TableCell>{getUserTypeBadge(user.userType || "both")}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       {user.isActive ? (
@@ -819,14 +822,28 @@ export default function UsersPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="flex items-center space-x-2 pt-6">
-                  <Switch 
-                    name="isActive" 
-                    id="edit-isActive" 
-                    defaultChecked={selectedUser.isActive}
-                  />
-                  <Label htmlFor="edit-isActive">Active Account</Label>
+                <div>
+                  <Label htmlFor="edit-userType">User Type</Label>
+                  <Select name="userType" defaultValue={selectedUser.userType || "both"}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select user type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="web">Web Only</SelectItem>
+                      <SelectItem value="mobile">Mobile Only</SelectItem>
+                      <SelectItem value="both">Web & Mobile</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Switch 
+                  name="isActive" 
+                  id="edit-isActive" 
+                  defaultChecked={selectedUser.isActive}
+                />
+                <Label htmlFor="edit-isActive">Active Account</Label>
               </div>
 
               <div className="flex justify-end space-x-2">
