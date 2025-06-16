@@ -525,7 +525,7 @@ export default function ProjectDetail() {
               ...file,
               annotations: file.annotations ? JSON.parse(file.annotations) : [],
             }))} 
-            projectId={project?.id} 
+            projectId={Number(projectId)} 
           />
         </TabsContent>
 

@@ -375,10 +375,7 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
             </div>
           )}
           
-          {/* Debug: Show file type for troubleshooting */}
-          <div className="mt-2 text-xs text-gray-500">
-            File type: {file.fileType} | MIME: {file.mimeType} | Show DocuSign: {!['image', 'video'].includes(file.fileType) && projectId ? 'YES' : 'NO'} | ProjectId: {projectId}
-          </div>
+
         </CardContent>
       </Card>
     );
