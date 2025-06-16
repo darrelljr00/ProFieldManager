@@ -1652,6 +1652,42 @@ export class DatabaseStorage implements IStorage {
       LIMIT 50
     `, [userId]);
 
+    // Fetch recipients in a single batch query for better performance
+    const messageIds = result.rows.map(row => row.id);
+    let recipientsByMessage = {};
+    
+    if (messageIds.length > 0) {
+      const recipientQuery = await pool.query(`
+        SELECT 
+          r.message_id, r.id, r.recipient_id as "recipientId", r.is_read as "isRead", r.read_at as "readAt",
+          u.id as user_id, u.username, u.first_name, u.last_name, u.email, u.role
+        FROM internal_message_recipients r
+        JOIN users u ON r.recipient_id = u.id
+        WHERE r.message_id = ANY($1)
+        ORDER BY u.first_name, u.last_name
+      `, [messageIds]);
+
+      // Group recipients by message ID
+      recipientsByMessage = recipientQuery.rows.reduce((acc, r) => {
+        if (!acc[r.message_id]) acc[r.message_id] = [];
+        acc[r.message_id].push({
+          id: r.id,
+          recipientId: r.recipientId,
+          isRead: r.isRead,
+          readAt: r.readAt,
+          user: {
+            id: r.user_id,
+            username: r.username,
+            firstName: r.first_name,
+            lastName: r.last_name,
+            email: r.email,
+            role: r.role
+          }
+        });
+        return acc;
+      }, {});
+    }
+
     return result.rows.map(row => ({
       id: row.id,
       senderId: row.sender_id,
@@ -1670,7 +1706,7 @@ export class DatabaseStorage implements IStorage {
         email: row.sender_email,
         role: row.sender_role
       },
-      recipients: [] // Recipients loaded separately for performance
+      recipients: recipientsByMessage[row.id] || []
     }));
   }
 

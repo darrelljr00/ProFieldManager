@@ -619,6 +619,7 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
         open={shareDialogOpen}
         onOpenChange={setShareDialogOpen}
         selectedImages={selectedFiles}
+        projectName={`Project ${projectId}`}
       />
     </div>
   );
