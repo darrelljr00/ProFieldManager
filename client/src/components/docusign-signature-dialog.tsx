@@ -144,11 +144,14 @@ export function DocuSignSignatureDialog({ file, projectId, trigger }: DocuSignSi
     }
   };
 
-  const isSignableDocument = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'].includes(file.mimeType);
+  const isSignableDocument = file.mimeType === 'application/pdf' || 
+                             file.mimeType === 'application/msword' || 
+                             file.mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+                             file.fileType === 'document';
 
   if (!isSignableDocument) {
     return (
-      <div className="mt-2 p-2 bg-yellow-100 text-xs">
+      <div className="p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
         DocuSign not available for this file type: {file.mimeType}
         <br />Supported types: PDF, DOC, DOCX
       </div>
