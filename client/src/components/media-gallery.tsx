@@ -374,6 +374,11 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
               />
             </div>
           )}
+          
+          {/* Debug: Show file type for troubleshooting */}
+          <div className="mt-2 text-xs text-gray-500">
+            File type: {file.fileType} | MIME: {file.mimeType}
+          </div>
         </CardContent>
       </Card>
     );
