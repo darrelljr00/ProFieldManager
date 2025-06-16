@@ -99,10 +99,6 @@ export default function AdminSettingsPage() {
     queryKey: ["/api/admin/system/settings"],
   });
 
-  const { data: users = [] } = useQuery({
-    queryKey: ["/api/admin/users"],
-  });
-
   const { data: companySettings } = useQuery({
     queryKey: ["/api/settings/company"],
   });
@@ -145,24 +141,7 @@ export default function AdminSettingsPage() {
     },
   });
 
-  const updateUserPermissionsMutation = useMutation({
-    mutationFn: ({ userId, permissions }: { userId: number; permissions: any }) =>
-      apiRequest("PUT", `/api/admin/users/${userId}/permissions`, permissions),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
-      toast({
-        title: "Success",
-        description: "User permissions updated successfully",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update user permissions",
-        variant: "destructive",
-      });
-    },
-  });
+
 
   const exportDataMutation = useMutation({
     mutationFn: (type: string) =>
