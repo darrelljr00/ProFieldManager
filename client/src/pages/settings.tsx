@@ -332,6 +332,7 @@ export default function Settings() {
       defaultCurrency: formData.get('defaultCurrency') as string,
       invoiceTerms: formData.get('invoiceTerms') as string,
       invoiceFooter: formData.get('invoiceFooter') as string,
+      logoSize: formData.get('logoSize') as string,
     };
     companyMutation.mutate(data);
   };
@@ -748,6 +749,24 @@ export default function Settings() {
                       </p>
                     </div>
                   </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="logoSize">Logo Size</Label>
+                  <Select name="logoSize" defaultValue={companySettings?.logoSize || "medium"}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select logo size" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="small">Small (48x48)</SelectItem>
+                      <SelectItem value="medium">Medium (64x64)</SelectItem>
+                      <SelectItem value="large">Large (96x96)</SelectItem>
+                      <SelectItem value="xlarge">Extra Large (128x128)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Controls how large the logo appears on invoices and documents
+                  </p>
                 </div>
 
                 <Separator />

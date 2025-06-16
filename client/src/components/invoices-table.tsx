@@ -248,7 +248,12 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll }: Invoi
                     <img 
                       src={companySettings.find((s: any) => s.key === 'logo')?.value || "/uploads/logo-1749855277221-54980640.jpg"} 
                       alt="Company Logo" 
-                      className="h-16 w-16 object-contain"
+                      className={`object-contain ${
+                        Array.isArray(companySettings) && companySettings.find((s: any) => s.key === 'logoSize')?.value === 'small' ? 'h-12 w-12' :
+                        Array.isArray(companySettings) && companySettings.find((s: any) => s.key === 'logoSize')?.value === 'large' ? 'h-24 w-24' :
+                        Array.isArray(companySettings) && companySettings.find((s: any) => s.key === 'logoSize')?.value === 'xlarge' ? 'h-32 w-32' :
+                        'h-16 w-16'
+                      }`}
                       onError={(e) => {
                         e.currentTarget.style.display = 'none';
                       }}
