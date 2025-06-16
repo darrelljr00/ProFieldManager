@@ -228,6 +228,13 @@ export interface IStorage {
   getGoogleMyBusinessSettings(userId: number): Promise<GoogleMyBusinessSettings | undefined>;
   createGoogleMyBusinessSettings(settings: InsertGoogleMyBusinessSettings): Promise<GoogleMyBusinessSettings>;
   updateGoogleMyBusinessSettings(userId: number, settings: Partial<InsertGoogleMyBusinessSettings>): Promise<GoogleMyBusinessSettings | undefined>;
+  
+  // DocuSign functionality
+  createDocusignEnvelope(envelopeData: InsertDocusignEnvelope): Promise<DocusignEnvelope>;
+  getDocusignEnvelopes(userId: number): Promise<DocusignEnvelope[]>;
+  getDocusignEnvelope(envelopeId: string): Promise<DocusignEnvelope | undefined>;
+  updateDocusignEnvelope(envelopeId: string, updates: Partial<DocusignEnvelope>): Promise<DocusignEnvelope | undefined>;
+  updateProjectFileSignatureStatus(fileId: number, envelopeId: string, status: string, signingUrl?: string, signedDocUrl?: string): Promise<ProjectFile | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2409,6 +2416,58 @@ export class DatabaseStorage implements IStorage {
       .where(eq(googleMyBusinessSettings.userId, userId))
       .returning();
     return updatedSettings;
+  }
+
+  // DocuSign functionality methods
+  async createDocusignEnvelope(envelopeData: InsertDocusignEnvelope): Promise<DocusignEnvelope> {
+    const [envelope] = await db
+      .insert(docusignEnvelopes)
+      .values(envelopeData)
+      .returning();
+    return envelope;
+  }
+
+  async getDocusignEnvelopes(userId: number): Promise<DocusignEnvelope[]> {
+    return await db
+      .select()
+      .from(docusignEnvelopes)
+      .where(eq(docusignEnvelopes.userId, userId))
+      .orderBy(desc(docusignEnvelopes.createdAt));
+  }
+
+  async getDocusignEnvelope(envelopeId: string): Promise<DocusignEnvelope | undefined> {
+    const [envelope] = await db
+      .select()
+      .from(docusignEnvelopes)
+      .where(eq(docusignEnvelopes.envelopeId, envelopeId));
+    return envelope;
+  }
+
+  async updateDocusignEnvelope(envelopeId: string, updates: Partial<DocusignEnvelope>): Promise<DocusignEnvelope | undefined> {
+    const [updatedEnvelope] = await db
+      .update(docusignEnvelopes)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(docusignEnvelopes.envelopeId, envelopeId))
+      .returning();
+    return updatedEnvelope;
+  }
+
+  async updateProjectFileSignatureStatus(fileId: number, envelopeId: string, status: string, signingUrl?: string, signedDocUrl?: string): Promise<ProjectFile | undefined> {
+    const updateData: any = {
+      docusignEnvelopeId: envelopeId,
+      signatureStatus: status,
+      updatedAt: new Date()
+    };
+
+    if (signingUrl) updateData.signatureUrl = signingUrl;
+    if (signedDocUrl) updateData.signedDocumentUrl = signedDocUrl;
+
+    const [updatedFile] = await db
+      .update(projectFiles)
+      .set(updateData)
+      .where(eq(projectFiles.id, fileId))
+      .returning();
+    return updatedFile;
   }
 }
 

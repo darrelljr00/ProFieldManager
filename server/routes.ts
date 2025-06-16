@@ -26,6 +26,7 @@ import { AuthService, requireAuth, requireAdmin, requireManagerOrAdmin } from ".
 import { ZodError } from "zod";
 import { seedDatabase } from "./seed-data";
 import { nanoid } from "nanoid";
+import { DocuSignService, getDocuSignConfig } from "./docusign";
 
 // Extend Express Request type to include user
 declare global {
@@ -3100,6 +3101,219 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     return routeLegs;
   }
+
+  // DocuSign E-Signature API endpoints
+  app.post("/api/docusign/send-for-signature", requireAuth, async (req, res) => {
+    try {
+      const { fileId, recipientEmail, recipientName, subject } = req.body;
+      const user = getAuthenticatedUser(req);
+
+      if (!fileId || !recipientEmail || !recipientName) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      // Get DocuSign configuration
+      const docuSignConfig = getDocuSignConfig();
+      if (!docuSignConfig) {
+        return res.status(500).json({ message: "DocuSign not configured. Please add DocuSign credentials." });
+      }
+
+      // Get the project file
+      const file = await storage.getProjectFile(fileId, user.id);
+      if (!file) {
+        return res.status(404).json({ message: "File not found" });
+      }
+
+      // Check if file is suitable for signing (PDF or document)
+      if (!['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'].includes(file.mimeType)) {
+        return res.status(400).json({ message: "File type not supported for e-signature. Please upload a PDF or Word document." });
+      }
+
+      const docuSignService = new DocuSignService(docuSignConfig);
+      const documentPath = file.filePath;
+      const envelopeSubject = subject || `Document signature request: ${file.originalName}`;
+
+      // Create DocuSign envelope
+      const envelope = await docuSignService.createEnvelope(
+        documentPath,
+        recipientEmail,
+        recipientName,
+        envelopeSubject
+      );
+
+      // Save envelope to database
+      const envelopeData = {
+        envelopeId: envelope.envelopeId,
+        projectFileId: fileId,
+        userId: user.id,
+        recipientEmail,
+        recipientName,
+        subject: envelopeSubject,
+        status: envelope.status
+      };
+
+      await storage.createDocusignEnvelope(envelopeData);
+
+      // Update project file with signature status
+      await storage.updateProjectFileSignatureStatus(
+        fileId,
+        envelope.envelopeId,
+        'sent'
+      );
+
+      res.json({
+        success: true,
+        envelopeId: envelope.envelopeId,
+        status: envelope.status,
+        message: "Document sent for signature successfully"
+      });
+    } catch (error) {
+      console.error("Error sending document for signature:", error);
+      res.status(500).json({ message: "Failed to send document for signature" });
+    }
+  });
+
+  app.get("/api/docusign/envelopes", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const envelopes = await storage.getDocusignEnvelopes(user.id);
+      res.json(envelopes);
+    } catch (error) {
+      console.error("Error fetching envelopes:", error);
+      res.status(500).json({ message: "Failed to fetch envelopes" });
+    }
+  });
+
+  app.get("/api/docusign/envelope/:envelopeId/status", requireAuth, async (req, res) => {
+    try {
+      const { envelopeId } = req.params;
+      
+      const docuSignConfig = getDocuSignConfig();
+      if (!docuSignConfig) {
+        return res.status(500).json({ message: "DocuSign not configured" });
+      }
+
+      const docuSignService = new DocuSignService(docuSignConfig);
+      const status = await docuSignService.getEnvelopeStatus(envelopeId);
+
+      // Update local database with current status
+      await storage.updateDocusignEnvelope(envelopeId, { status: status.status });
+
+      res.json(status);
+    } catch (error) {
+      console.error("Error getting envelope status:", error);
+      res.status(500).json({ message: "Failed to get envelope status" });
+    }
+  });
+
+  app.get("/api/docusign/envelope/:envelopeId/signing-url", requireAuth, async (req, res) => {
+    try {
+      const { envelopeId } = req.params;
+      const { recipientEmail, returnUrl } = req.query;
+
+      if (!recipientEmail) {
+        return res.status(400).json({ message: "Recipient email is required" });
+      }
+
+      const docuSignConfig = getDocuSignConfig();
+      if (!docuSignConfig) {
+        return res.status(500).json({ message: "DocuSign not configured" });
+      }
+
+      const docuSignService = new DocuSignService(docuSignConfig);
+      const defaultReturnUrl = `${req.protocol}://${req.get('host')}/projects`;
+      
+      const signingUrl = await docuSignService.getSigningUrl(
+        envelopeId,
+        recipientEmail as string,
+        (returnUrl as string) || defaultReturnUrl
+      );
+
+      // Update the signing URL in database
+      await storage.updateDocusignEnvelope(envelopeId, { signingUrl });
+
+      res.json({ signingUrl });
+    } catch (error) {
+      console.error("Error getting signing URL:", error);
+      res.status(500).json({ message: "Failed to get signing URL" });
+    }
+  });
+
+  app.post("/api/docusign/envelope/:envelopeId/void", requireAuth, async (req, res) => {
+    try {
+      const { envelopeId } = req.params;
+      const { reason } = req.body;
+
+      const docuSignConfig = getDocuSignConfig();
+      if (!docuSignConfig) {
+        return res.status(500).json({ message: "DocuSign not configured" });
+      }
+
+      const docuSignService = new DocuSignService(docuSignConfig);
+      await docuSignService.voidEnvelope(envelopeId, reason || "Cancelled by user");
+
+      // Update status in database
+      await storage.updateDocusignEnvelope(envelopeId, { 
+        status: 'voided',
+        signingUrl: null
+      });
+
+      res.json({ success: true, message: "Envelope voided successfully" });
+    } catch (error) {
+      console.error("Error voiding envelope:", error);
+      res.status(500).json({ message: "Failed to void envelope" });
+    }
+  });
+
+  app.get("/api/docusign/envelope/:envelopeId/download", requireAuth, async (req, res) => {
+    try {
+      const { envelopeId } = req.params;
+
+      const docuSignConfig = getDocuSignConfig();
+      if (!docuSignConfig) {
+        return res.status(500).json({ message: "DocuSign not configured" });
+      }
+
+      const docuSignService = new DocuSignService(docuSignConfig);
+      const documentBuffer = await docuSignService.downloadCompletedDocument(envelopeId);
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="signed-document-${envelopeId}.pdf"`);
+      res.send(documentBuffer);
+    } catch (error) {
+      console.error("Error downloading document:", error);
+      res.status(500).json({ message: "Failed to download signed document" });
+    }
+  });
+
+  // DocuSign webhook endpoint for status updates
+  app.post("/api/docusign/webhook", async (req, res) => {
+    try {
+      const { envelopeId, status, recipientStatuses } = req.body;
+
+      if (envelopeId && status) {
+        // Update envelope status in database
+        await storage.updateDocusignEnvelope(envelopeId, { status });
+
+        // If completed, update the project file
+        if (status === 'completed') {
+          const envelope = await storage.getDocusignEnvelope(envelopeId);
+          if (envelope && envelope.projectFileId) {
+            await storage.updateProjectFileSignatureStatus(
+              envelope.projectFileId,
+              envelopeId,
+              'completed'
+            );
+          }
+        }
+      }
+
+      res.json({ received: true });
+    } catch (error) {
+      console.error("Error processing DocuSign webhook:", error);
+      res.status(500).json({ message: "Webhook processing failed" });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;
