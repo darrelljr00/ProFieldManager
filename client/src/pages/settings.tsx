@@ -1180,16 +1180,24 @@ export default function Settings() {
               <form onSubmit={handleOcrSubmit} className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-lg font-medium">Enable OCR</h3>
+                    <h3 className="text-lg font-medium">Enable OCR Recognition</h3>
                     <p className="text-sm text-muted-foreground">
-                      Enable optical character recognition for receipt scanning
+                      Enable optical character recognition for automatic receipt scanning and data extraction
                     </p>
                   </div>
                   <Switch
                     name="ocrEnabled"
-                    defaultChecked={ocrSettings?.ocrEnabled}
+                    defaultChecked={ocrSettings?.ocrEnabled || false}
                   />
                 </div>
+
+                {ocrSettings?.ocrEnabled !== false && (
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-md">
+                    <p className="text-sm text-blue-800">
+                      <strong>OCR is enabled.</strong> Configure your preferred provider below to start processing receipts and documents automatically.
+                    </p>
+                  </div>
+                )}
 
                 <div className="space-y-4">
                   <div>
