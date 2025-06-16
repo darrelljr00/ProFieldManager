@@ -50,7 +50,12 @@ interface ProjectWithDetails extends Project {
 
 export default function ProjectDetail() {
   const [match, params] = useRoute("/projects/:id");
-  const projectId = params?.id ? parseInt(params.id) : 0;
+  
+  if (!match || !params?.id) {
+    return <div>Project not found</div>;
+  }
+  
+  const projectId = parseInt(params.id);
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [fileDialogOpen, setFileDialogOpen] = useState(false);
   const [timeDialogOpen, setTimeDialogOpen] = useState(false);
