@@ -33,7 +33,13 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll }: Invoi
   // Fetch company settings for logo and company info
   const { data: companySettings } = useQuery({
     queryKey: ['/api/settings', 'company'],
-    queryFn: () => apiRequest('/api/settings?category=company'),
+    queryFn: async () => {
+      const response = await fetch('/api/settings?category=company', {
+        credentials: 'include'
+      });
+      if (!response.ok) return [];
+      return response.json();
+    },
   });
 
   const sendInvoiceMutation = useMutation({
@@ -238,7 +244,7 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll }: Invoi
               {/* Company Header with Logo */}
               <div className="flex justify-between items-start border-b pb-6">
                 <div className="flex items-center space-x-4">
-                  {companySettings?.find((s: any) => s.key === 'logo')?.value && (
+                  {Array.isArray(companySettings) && companySettings.find((s: any) => s.key === 'logo')?.value && (
                     <img 
                       src={companySettings.find((s: any) => s.key === 'logo')?.value || "/uploads/logo-1749855277221-54980640.jpg"} 
                       alt="Company Logo" 
@@ -250,18 +256,18 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll }: Invoi
                   )}
                   <div>
                     <h2 className="text-2xl font-bold text-gray-900">
-                      {companySettings?.find((s: any) => s.key === 'name')?.value || "Your Company Name"}
+                      {Array.isArray(companySettings) && companySettings.find((s: any) => s.key === 'name')?.value || "Your Company Name"}
                     </h2>
                     <p className="text-sm text-gray-600">
-                      {companySettings?.find((s: any) => s.key === 'address')?.value || "123 Business Street"}
+                      {Array.isArray(companySettings) && companySettings.find((s: any) => s.key === 'address')?.value || "123 Business Street"}
                     </p>
                     <p className="text-sm text-gray-600">
-                      {companySettings?.find((s: any) => s.key === 'city')?.value || "City"}, {companySettings?.find((s: any) => s.key === 'state')?.value || "State"} {companySettings?.find((s: any) => s.key === 'zip')?.value || "12345"}
+                      {Array.isArray(companySettings) && companySettings.find((s: any) => s.key === 'city')?.value || "City"}, {Array.isArray(companySettings) && companySettings.find((s: any) => s.key === 'state')?.value || "State"} {Array.isArray(companySettings) && companySettings.find((s: any) => s.key === 'zip')?.value || "12345"}
                     </p>
                     <p className="text-sm text-gray-600">
-                      Phone: {companySettings?.find((s: any) => s.key === 'phone')?.value || "(555) 123-4567"}
+                      Phone: {Array.isArray(companySettings) && companySettings.find((s: any) => s.key === 'phone')?.value || "(555) 123-4567"}
                     </p>
-                    {companySettings?.find((s: any) => s.key === 'email')?.value && (
+                    {Array.isArray(companySettings) && companySettings.find((s: any) => s.key === 'email')?.value && (
                       <p className="text-sm text-gray-600">
                         Email: {companySettings.find((s: any) => s.key === 'email')?.value}
                       </p>

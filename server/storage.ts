@@ -85,6 +85,8 @@ export interface IStorage {
   // Settings methods
   getSettings(category: string): Promise<Record<string, string>>;
   updateSettings(category: string, settings: Record<string, string>): Promise<void>;
+  getSettingsByCategory(category: string): Promise<Setting[]>;
+  updateSetting(category: string, key: string, value: string): Promise<void>;
 
   // Message methods
   getMessages(userId: number): Promise<(Message & { customerName?: string })[]>;
@@ -639,6 +641,37 @@ export class DatabaseStorage implements IStorage {
             updatedAt: new Date()
           });
       }
+    }
+  }
+
+  async getSettingsByCategory(category: string): Promise<Setting[]> {
+    return await db
+      .select()
+      .from(settings)
+      .where(eq(settings.category, category));
+  }
+
+  async updateSetting(category: string, key: string, value: string): Promise<void> {
+    const existing = await db
+      .select()
+      .from(settings)
+      .where(and(eq(settings.category, category), eq(settings.key, key)))
+      .limit(1);
+
+    if (existing.length > 0) {
+      await db
+        .update(settings)
+        .set({ value, updatedAt: new Date() })
+        .where(and(eq(settings.category, category), eq(settings.key, key)));
+    } else {
+      await db
+        .insert(settings)
+        .values({
+          category,
+          key,
+          value,
+          isSecret: key.toLowerCase().includes('secret') || key.toLowerCase().includes('key') || key.toLowerCase().includes('password'),
+        });
     }
   }
 
