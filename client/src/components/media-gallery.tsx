@@ -366,7 +366,7 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
           </div>
           
           {/* DocuSign E-Signature Section for Document Files */}
-          {!['image', 'video'].includes(file.fileType) && projectId && (
+          {!['image', 'video'].includes(file.fileType) && !!projectId && (
             <div className="mt-3 pt-3 border-t">
               <DocuSignSignatureDialog 
                 file={file}
@@ -374,15 +374,7 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
               />
             </div>
           )}
-          
-          {/* Debug */}
-          <div className="mt-2 p-2 bg-gray-100 text-xs">
-            <div>File Type: {file.fileType}</div>
-            <div>Project ID: {projectId}</div>
-            <div>Not image/video: {String(!['image', 'video'].includes(file.fileType))}</div>
-            <div>Has project ID: {String(!!projectId)}</div>
-            <div>Should show DocuSign: {String(!['image', 'video'].includes(file.fileType) && projectId)}</div>
-          </div>
+
 
         </CardContent>
       </Card>
