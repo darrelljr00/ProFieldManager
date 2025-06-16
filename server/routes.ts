@@ -1126,9 +1126,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...updatedUser,
         password: undefined, // Don't return password
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error("User update error:", error);
       res.status(500).json({ message: "User update failed" });
+    }
+  });
+
+  // Update user permissions (Admin only)
+  app.put("/api/admin/users/:id/permissions", requireAdmin, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const permissions = req.body;
+
+      // Get current user to verify it exists
+      const user = await storage.getUserById(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Don't allow permission changes for admin users
+      if (user.role === 'admin') {
+        return res.status(400).json({ message: "Cannot modify admin user permissions" });
+      }
+
+      // Update user permissions
+      const updatedUser = await storage.updateUser(userId, permissions);
+      
+      res.json({
+        ...updatedUser,
+        password: undefined, // Don't return password
+      });
+    } catch (error) {
+      console.error("User permissions update error:", error);
+      res.status(500).json({ message: "Failed to update user permissions" });
     }
   });
 
