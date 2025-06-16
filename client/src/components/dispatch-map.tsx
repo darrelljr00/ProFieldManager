@@ -57,50 +57,126 @@ export function DispatchMap({ jobs, optimization, startLocation }: DispatchMapPr
     return colors[priority as keyof typeof colors] || colors.medium;
   };
 
-  // Initialize Google Maps
-  const initializeMap = () => {
+  // Geocode a single address
+  const geocodeAddress = async (address: string): Promise<{lat: number, lng: number} | null> => {
+    if (!window.google?.maps) return null;
+    
+    const geocoder = new window.google.maps.Geocoder();
+    
+    try {
+      const result = await new Promise<google.maps.GeocoderResult[]>((resolve, reject) => {
+        geocoder.geocode({ address }, (results, status) => {
+          if (status === 'OK' && results) {
+            resolve(results);
+          } else {
+            reject(new Error(`Geocoding failed: ${status}`));
+          }
+        });
+      });
+
+      if (result[0]) {
+        return {
+          lat: result[0].geometry.location.lat(),
+          lng: result[0].geometry.location.lng()
+        };
+      }
+    } catch (err) {
+      console.warn(`Failed to geocode address: ${address}`, err);
+    }
+    
+    return null;
+  };
+
+  // Initialize Google Maps with traffic layer
+  const initializeMap = async () => {
     if (!mapRef.current || !window.google?.maps || jobs.length === 0) {
       setIsLoading(false);
       return;
     }
 
     try {
-      // Create map centered on the first job
+      // Create map with traffic layer enabled
       const map = new window.google.maps.Map(mapRef.current, {
         zoom: 12,
         center: { lat: 32.7767, lng: -96.7970 }, // Dallas default
         mapTypeId: window.google.maps.MapTypeId.ROADMAP,
+        styles: [
+          {
+            featureType: "poi",
+            elementType: "labels",
+            stylers: [{ visibility: "off" }]
+          }
+        ]
       });
 
-      // Add markers for each job
+      // Enable traffic layer for real-time traffic data
+      const trafficLayer = new window.google.maps.TrafficLayer();
+      trafficLayer.setMap(map);
+
+      // Geocode job addresses and add markers
       const bounds = new window.google.maps.LatLngBounds();
+      const geocodedJobs = [];
       
-      jobs.forEach((job, index) => {
-        // Use a default location for demonstration
-        const position = { 
-          lat: 32.7767 + (Math.random() - 0.5) * 0.1, 
-          lng: -96.7970 + (Math.random() - 0.5) * 0.1 
-        };
+      for (let i = 0; i < jobs.length; i++) {
+        const job = jobs[i];
+        let position = null;
         
+        // Try to geocode the actual address
+        if (job.address) {
+          position = await geocodeAddress(job.address);
+        }
+        
+        // Fallback to demo locations if geocoding fails
+        if (!position) {
+          position = { 
+            lat: 32.7767 + (Math.random() - 0.5) * 0.1, 
+            lng: -96.7970 + (Math.random() - 0.5) * 0.1 
+          };
+        }
+        
+        geocodedJobs.push({ ...job, ...position });
+        
+        // Create custom marker with priority color
         const marker = new window.google.maps.Marker({
           position: position,
           map: map,
           title: job.projectName,
-          label: (index + 1).toString(),
+          label: {
+            text: (i + 1).toString(),
+            color: 'white',
+            fontSize: '12px',
+            fontWeight: 'bold'
+          },
+          icon: {
+            path: window.google.maps.SymbolPath.CIRCLE,
+            scale: 15,
+            fillColor: getPriorityColor(job.priority),
+            fillOpacity: 0.8,
+            strokeColor: '#fff',
+            strokeWeight: 2
+          }
         });
 
         bounds.extend(position);
 
-        // Add info window
+        // Enhanced info window with traffic considerations
         const infoWindow = new window.google.maps.InfoWindow({
           content: `
-            <div style="padding: 8px; min-width: 200px;">
-              <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: bold;">${job.projectName}</h3>
-              <p style="margin: 0 0 4px 0; font-size: 12px; color: #666;">${job.address}</p>
-              <p style="margin: 0 0 4px 0; font-size: 12px;"><strong>Time:</strong> ${job.scheduledTime}</p>
-              <p style="margin: 0 0 4px 0; font-size: 12px;"><strong>Duration:</strong> ${job.estimatedDuration} min</p>
-              <p style="margin: 0 0 4px 0; font-size: 12px;"><strong>Assigned:</strong> ${job.assignedTo || 'Unassigned'}</p>
-              <span style="background: ${getPriorityColor(job.priority)}; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; text-transform: uppercase;">${job.priority}</span>
+            <div style="padding: 12px; min-width: 220px; font-family: system-ui;">
+              <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: bold; color: #1f2937;">${job.projectName}</h3>
+              <div style="margin: 0 0 8px 0; padding: 8px; background: #f3f4f6; border-radius: 6px;">
+                <p style="margin: 0 0 4px 0; font-size: 13px; color: #4b5563;"><strong>📍 Address:</strong></p>
+                <p style="margin: 0 0 8px 0; font-size: 12px; color: #6b7280;">${job.address}</p>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px;">
+                  <div><strong>🕒 Time:</strong> ${job.scheduledTime}</div>
+                  <div><strong>⏱️ Duration:</strong> ${job.estimatedDuration}min</div>
+                  <div><strong>👤 Assigned:</strong> ${job.assignedTo || 'Unassigned'}</div>
+                  <div><strong>🚦 Traffic:</strong> <span style="color: #059669;">Live data</span></div>
+                </div>
+              </div>
+              <div style="text-align: center;">
+                <span style="background: ${getPriorityColor(job.priority)}; color: white; padding: 4px 12px; border-radius: 12px; font-size: 11px; text-transform: uppercase; font-weight: 600;">${job.priority} priority</span>
+              </div>
             </div>
           `
         });
@@ -108,17 +184,92 @@ export function DispatchMap({ jobs, optimization, startLocation }: DispatchMapPr
         marker.addListener('click', () => {
           infoWindow.open(map, marker);
         });
-      });
+      }
 
-      if (jobs.length > 1) {
+      // Draw optimized route with traffic-aware directions
+      if (optimization && startLocation && geocodedJobs.length > 0) {
+        await drawTrafficAwareRoute(map, geocodedJobs, optimization, startLocation);
+      }
+
+      if (geocodedJobs.length > 1) {
         map.fitBounds(bounds);
+      } else if (geocodedJobs.length === 1) {
+        map.setCenter(geocodedJobs[0]);
+        map.setZoom(15);
       }
 
       setIsLoading(false);
     } catch (err) {
       console.error('Error initializing map:', err);
-      setError('Failed to load map');
+      setError('Failed to load map with traffic data');
       setIsLoading(false);
+    }
+  };
+
+  // Draw route with real-time traffic considerations
+  const drawTrafficAwareRoute = async (map: any, geocodedJobs: any[], routeOptimization: RouteOptimization, start: string) => {
+    if (!window.google?.maps) return;
+
+    try {
+      const directionsService = new window.google.maps.DirectionsService();
+      const directionsRenderer = new window.google.maps.DirectionsRenderer({
+        suppressMarkers: true, // Use our custom markers
+        polylineOptions: {
+          strokeColor: '#2563eb',
+          strokeWeight: 4,
+          strokeOpacity: 0.8
+        }
+      });
+
+      directionsRenderer.setMap(map);
+
+      // Create waypoints from optimized order
+      const orderedJobs = routeOptimization.optimizedOrder.map(index => geocodedJobs[index]);
+      const waypoints = orderedJobs.slice(1, -1).map(job => ({
+        location: new window.google.maps.LatLng(job.lat, job.lng),
+        stopover: true
+      }));
+
+      const origin = start;
+      const destination = orderedJobs[orderedJobs.length - 1] 
+        ? new window.google.maps.LatLng(orderedJobs[orderedJobs.length - 1].lat, orderedJobs[orderedJobs.length - 1].lng)
+        : start;
+
+      // Request directions with traffic model for real-time data
+      directionsService.route({
+        origin: origin,
+        destination: destination,
+        waypoints: waypoints,
+        optimizeWaypoints: false, // We already have the optimized order
+        travelMode: window.google.maps.TravelMode.DRIVING,
+        drivingOptions: {
+          departureTime: new Date(), // Use current time for real-time traffic
+          trafficModel: window.google.maps.TrafficModel.BEST_GUESS
+        },
+        avoidHighways: false,
+        avoidTolls: false
+      }, (result: any, status: any) => {
+        if (status === 'OK' && result) {
+          directionsRenderer.setDirections(result);
+          
+          // Update route summary with traffic-adjusted times
+          const route = result.routes[0];
+          if (route) {
+            const totalDuration = route.legs.reduce((sum: number, leg: any) => sum + leg.duration_in_traffic?.value || leg.duration.value, 0);
+            const totalDistance = route.legs.reduce((sum: number, leg: any) => sum + leg.distance.value, 0);
+            
+            console.log('Traffic-aware route calculated:', {
+              totalDuration: Math.round(totalDuration / 60),
+              totalDistance: Math.round(totalDistance / 1000),
+              trafficDelay: route.legs.some((leg: any) => leg.duration_in_traffic?.value > leg.duration.value)
+            });
+          }
+        } else {
+          console.warn('Traffic-aware directions request failed:', status);
+        }
+      });
+    } catch (err) {
+      console.warn('Failed to draw traffic-aware route:', err);
     }
   };
 

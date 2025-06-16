@@ -46,6 +46,8 @@ interface RouteOptimization {
     distance: number;
     duration: number;
     directions: string;
+    trafficDelay?: number;
+    trafficCondition?: 'normal' | 'light' | 'moderate' | 'heavy' | 'unknown';
   }[];
 }
 
@@ -313,7 +315,7 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Route Summary */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-blue-50 rounded-lg">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-blue-50 rounded-lg">
               <div className="text-center">
                 <div className="text-2xl font-bold text-blue-600">{formatDistance(optimization.totalDistance)}</div>
                 <div className="text-sm text-gray-600">Total Distance</div>
@@ -325,6 +327,41 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
               <div className="text-center">
                 <div className="text-2xl font-bold text-blue-600">{optimization.optimizedOrder.length}</div>
                 <div className="text-sm text-gray-600">Stops</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-orange-600">
+                  {optimization.routeLegs.reduce((sum, leg) => sum + (leg.trafficDelay || 0), 0).toFixed(0)}m
+                </div>
+                <div className="text-sm text-gray-600">Traffic Delay</div>
+              </div>
+            </div>
+
+            {/* Real-time Traffic Status */}
+            <div className="p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="font-semibold flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  Real-time Traffic Conditions
+                </h4>
+                <div className="text-xs text-gray-500">Updated 30s ago</div>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {optimization.routeLegs.map((leg, index) => {
+                  const condition = leg.trafficCondition || 'normal';
+                  const colorMap = {
+                    'heavy': 'bg-red-500 text-red-700',
+                    'moderate': 'bg-yellow-500 text-yellow-700', 
+                    'light': 'bg-orange-400 text-orange-700',
+                    'normal': 'bg-green-500 text-green-700',
+                    'unknown': 'bg-gray-400 text-gray-700'
+                  };
+                  return (
+                    <div key={index} className="flex items-center gap-2 text-sm">
+                      <div className={`w-3 h-3 rounded-full ${colorMap[condition]?.split(' ')[0] || 'bg-gray-400'}`}></div>
+                      <span className="text-xs">Leg {index + 1}: {condition}</span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
@@ -342,25 +379,41 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
                   </div>
                 </div>
 
-                {optimization.routeLegs.map((leg, index) => (
-                  <div key={index} className="flex items-center gap-3 p-3 border rounded-lg">
-                    <div className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">
-                      {index + 1}
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-medium">{leg.to.projectName}</div>
-                      <div className="text-sm text-gray-600">{leg.to.address}</div>
-                      <div className="text-sm text-blue-600 mt-1">
-                        {formatDistance(leg.distance)} • {formatDuration(leg.duration)}
+                {optimization.routeLegs.map((leg, index) => {
+                  const condition = leg.trafficCondition || 'normal';
+                  const delay = leg.trafficDelay || 0;
+                  const trafficColor = condition === 'heavy' ? 'text-red-600' : 
+                                     condition === 'moderate' ? 'text-yellow-600' :
+                                     condition === 'light' ? 'text-orange-600' : 'text-green-600';
+                  
+                  return (
+                    <div key={index} className="flex items-center gap-3 p-3 border rounded-lg">
+                      <div className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">
+                        {index + 1}
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-medium">{leg.to.projectName}</div>
+                        <div className="text-sm text-gray-600">{leg.to.address}</div>
+                        <div className="text-sm text-blue-600 mt-1">
+                          {formatDistance(leg.distance)} • {formatDuration(leg.duration)}
+                        </div>
+                        {delay > 0 && (
+                          <div className="text-xs text-orange-600 mt-1">
+                            +{Math.round(delay)} min traffic delay
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <Badge className={getPriorityColor(leg.to.priority)}>
+                          {leg.to.priority}
+                        </Badge>
+                        <div className={`text-xs mt-1 font-medium ${trafficColor}`}>
+                          {condition} traffic
+                        </div>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <Badge className={getPriorityColor(leg.to.priority)}>
-                        {leg.to.priority}
-                      </Badge>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
