@@ -309,14 +309,7 @@ export default function LoginPage() {
               </Button>
             </div>
 
-            <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-              <h3 className="font-medium text-blue-900 mb-2">Demo Accounts</h3>
-              <div className="text-sm text-blue-800 space-y-1">
-                <div><strong>Admin:</strong> admin / admin123</div>
-                <div><strong>Manager:</strong> manager / manager123</div>
-                <div><strong>User:</strong> user / user123</div>
-              </div>
-            </div>
+
           </CardContent>
         </Card>
       </div>
