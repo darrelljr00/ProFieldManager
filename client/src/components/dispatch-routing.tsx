@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { DispatchMap } from "@/components/dispatch-map";
 import { 
   Route, 
   Navigation, 
@@ -217,17 +218,26 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
         </CardContent>
       </Card>
 
-      {/* Jobs List */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MapPin className="h-5 w-5" />
-            Scheduled Jobs ({scheduledJobs.length})
-          </CardTitle>
-          <CardDescription>
-            Jobs scheduled for {new Date(selectedDateState).toLocaleDateString()}
-          </CardDescription>
-        </CardHeader>
+      {/* Map and Jobs Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Google Maps */}
+        <DispatchMap 
+          jobs={scheduledJobs} 
+          optimization={optimization} 
+          startLocation={startLocation}
+        />
+
+        {/* Jobs List */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MapPin className="h-5 w-5" />
+              Scheduled Jobs ({scheduledJobs.length})
+            </CardTitle>
+            <CardDescription>
+              Jobs scheduled for {new Date(selectedDateState).toLocaleDateString()}
+            </CardDescription>
+          </CardHeader>
         <CardContent>
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
@@ -286,7 +296,8 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
             </div>
           )}
         </CardContent>
-      </Card>
+        </Card>
+      </div>
 
       {/* Optimized Route Results */}
       {optimization && (
