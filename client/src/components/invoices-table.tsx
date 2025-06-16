@@ -30,6 +30,12 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll }: Invoi
   const [selectedInvoice, setSelectedInvoice] = useState<(Invoice & { customer: Customer; lineItems: InvoiceLineItem[] }) | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
 
+  // Fetch company settings for logo and company info
+  const { data: companySettings } = useQuery({
+    queryKey: ['/api/settings', 'company'],
+    queryFn: () => apiRequest('/api/settings?category=company'),
+  });
+
   const sendInvoiceMutation = useMutation({
     mutationFn: (invoiceId: number) => apiRequest(`/api/invoices/${invoiceId}/send`, "POST"),
     onSuccess: () => {
@@ -229,6 +235,45 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll }: Invoi
           </DialogHeader>
           {selectedInvoice && (
             <div className="space-y-6">
+              {/* Company Header with Logo */}
+              <div className="flex justify-between items-start border-b pb-6">
+                <div className="flex items-center space-x-4">
+                  {companySettings?.find((s: any) => s.key === 'logo')?.value && (
+                    <img 
+                      src={companySettings.find((s: any) => s.key === 'logo')?.value || "/uploads/logo-1749855277221-54980640.jpg"} 
+                      alt="Company Logo" 
+                      className="h-16 w-16 object-contain"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  )}
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900">
+                      {companySettings?.find((s: any) => s.key === 'name')?.value || "Your Company Name"}
+                    </h2>
+                    <p className="text-sm text-gray-600">
+                      {companySettings?.find((s: any) => s.key === 'address')?.value || "123 Business Street"}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      {companySettings?.find((s: any) => s.key === 'city')?.value || "City"}, {companySettings?.find((s: any) => s.key === 'state')?.value || "State"} {companySettings?.find((s: any) => s.key === 'zip')?.value || "12345"}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      Phone: {companySettings?.find((s: any) => s.key === 'phone')?.value || "(555) 123-4567"}
+                    </p>
+                    {companySettings?.find((s: any) => s.key === 'email')?.value && (
+                      <p className="text-sm text-gray-600">
+                        Email: {companySettings.find((s: any) => s.key === 'email')?.value}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <h1 className="text-3xl font-bold text-gray-900">INVOICE</h1>
+                  <p className="text-lg text-gray-600">#{selectedInvoice.invoiceNumber}</p>
+                </div>
+              </div>
+
               {/* Invoice Header */}
               <div className="grid grid-cols-2 gap-6">
                 <div>

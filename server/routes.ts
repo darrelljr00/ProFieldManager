@@ -2294,6 +2294,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // General settings API
+  app.get('/api/settings', requireAuth, async (req, res) => {
+    try {
+      const category = req.query.category as string;
+      const settings = await storage.getSettingsByCategory(category);
+      res.json(settings);
+    } catch (error: any) {
+      console.error('Error fetching settings:', error);
+      res.status(500).json({ message: 'Failed to fetch settings' });
+    }
+  });
+
+  app.put('/api/settings', requireAuth, async (req, res) => {
+    try {
+      const { category, key, value } = req.body;
+      await storage.updateSetting(category, key, value);
+      res.json({ message: 'Setting updated successfully' });
+    } catch (error: any) {
+      console.error('Error updating setting:', error);
+      res.status(500).json({ message: 'Failed to update setting' });
+    }
+  });
+
   // Admin activity logs
   app.get('/api/admin/activity-logs', requireAdmin, async (req, res) => {
     try {
