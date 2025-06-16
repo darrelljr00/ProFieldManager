@@ -26,18 +26,49 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Edit, Trash2, Phone, Mail, DollarSign, Calendar } from "lucide-react";
+import { Plus, Edit, Trash2, Phone, Mail, DollarSign, Calendar, Search, Filter, X } from "lucide-react";
 import type { Lead, InsertLead } from "@shared/schema";
 
 export default function Leads() {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [priorityFilter, setPriorityFilter] = useState<string>("all");
+  const [showFilters, setShowFilters] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: leads = [], isLoading } = useQuery<Lead[]>({
     queryKey: ["/api/leads"],
   });
+
+  // Filter leads based on search query and filters
+  const filteredLeads = leads.filter((lead) => {
+    const matchesSearch = searchQuery === "" || 
+      lead.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      lead.phone?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      lead.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      lead.serviceDescription?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      lead.leadSource?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      lead.notes?.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesStatus = statusFilter === "all" || lead.status === statusFilter;
+    const matchesPriority = priorityFilter === "all" || lead.priority === priorityFilter;
+
+    return matchesSearch && matchesStatus && matchesPriority;
+  });
+
+  // Clear all filters
+  const clearFilters = () => {
+    setSearchQuery("");
+    setStatusFilter("all");
+    setPriorityFilter("all");
+    setShowFilters(false);
+  };
+
+  // Check if any filters are active
+  const hasActiveFilters = searchQuery !== "" || statusFilter !== "all" || priorityFilter !== "all";
 
   const createMutation = useMutation({
     mutationFn: (data: Partial<InsertLead>) => 
@@ -336,6 +367,98 @@ export default function Leads() {
         </Dialog>
       </div>
 
+      {/* Search and Filter Section */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex flex-col md:flex-row gap-4">
+            {/* Search Bar */}
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                placeholder="Search leads by name, phone, email, service, source, or notes..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+
+            {/* Filter Toggle */}
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowFilters(!showFilters)}
+                className="flex items-center gap-2"
+              >
+                <Filter className="h-4 w-4" />
+                Filters
+                {hasActiveFilters && (
+                  <Badge variant="destructive" className="ml-1 px-1 py-0 text-xs">
+                    {[searchQuery !== "", statusFilter !== "all", priorityFilter !== "all"].filter(Boolean).length}
+                  </Badge>
+                )}
+              </Button>
+
+              {hasActiveFilters && (
+                <Button
+                  variant="ghost"
+                  onClick={clearFilters}
+                  className="flex items-center gap-2 text-gray-600"
+                >
+                  <X className="h-4 w-4" />
+                  Clear
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Filter Options */}
+          {showFilters && (
+            <div className="mt-4 pt-4 border-t">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="statusFilter">Status</Label>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All statuses" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Statuses</SelectItem>
+                      <SelectItem value="new">New</SelectItem>
+                      <SelectItem value="contacted">Contacted</SelectItem>
+                      <SelectItem value="qualified">Qualified</SelectItem>
+                      <SelectItem value="proposal_sent">Proposal Sent</SelectItem>
+                      <SelectItem value="won">Won</SelectItem>
+                      <SelectItem value="lost">Lost</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="priorityFilter">Priority</Label>
+                  <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All priorities" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Priorities</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="low">Low</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-end">
+                  <div className="text-sm text-gray-600">
+                    Showing {filteredLeads.length} of {leads.length} leads
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle>Leads</CardTitle>
@@ -351,6 +474,16 @@ export default function Leads() {
                 <Plus className="h-4 w-4 mr-2" />
                 Add your first lead
               </Button>
+            </div>
+          ) : filteredLeads.length === 0 ? (
+            <div className="text-center py-8">
+              <div className="flex flex-col items-center space-y-4">
+                <Search className="h-12 w-12 text-gray-400" />
+                <p className="text-muted-foreground">No leads match your search criteria</p>
+                <Button variant="outline" onClick={clearFilters}>
+                  Clear filters
+                </Button>
+              </div>
             </div>
           ) : (
             <Table>
@@ -368,7 +501,7 @@ export default function Leads() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {leads.map((lead) => (
+                {filteredLeads.map((lead) => (
                   <TableRow key={lead.id}>
                     <TableCell className="font-medium">{lead.name}</TableCell>
                     <TableCell>
