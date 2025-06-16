@@ -10,6 +10,7 @@ export const users = pgTable("users", {
   firstName: text("first_name"),
   lastName: text("last_name"),
   role: text("role").notNull().default("user"), // admin, manager, user
+  userType: text("user_type").notNull().default("both"), // web, mobile, both
   isActive: boolean("is_active").default(true),
   canViewProfiles: boolean("can_view_profiles").default(true),
   canEditProfiles: boolean("can_edit_profiles").default(false),

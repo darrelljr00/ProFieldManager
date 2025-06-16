@@ -71,6 +71,7 @@ type User = {
   firstName?: string;
   lastName?: string;
   role: string;
+  userType: string;
   isActive: boolean;
   emailVerified: boolean;
   lastLoginAt?: string;
@@ -272,6 +273,20 @@ export default function UsersPage() {
       user: "outline"
     };
     return <Badge variant={colors[role] || "outline"}>{role}</Badge>;
+  };
+
+  const getUserTypeBadge = (userType: string) => {
+    const colors: Record<string, "default" | "destructive" | "outline" | "secondary"> = {
+      web: "outline",
+      mobile: "secondary",
+      both: "default"
+    };
+    const labels: Record<string, string> = {
+      web: "Web Only",
+      mobile: "Mobile Only", 
+      both: "Web & Mobile"
+    };
+    return <Badge variant={colors[userType] || "outline"}>{labels[userType] || userType}</Badge>;
   };
 
   const openEditDialog = (user: User) => {
@@ -531,10 +546,24 @@ export default function UsersPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="flex items-center space-x-2 pt-6">
-                    <Switch name="isActive" id="isActive" defaultChecked />
-                    <Label htmlFor="isActive">Active Account</Label>
+                  <div>
+                    <Label htmlFor="userType">User Type</Label>
+                    <Select name="userType" defaultValue="both">
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select user type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="web">Web Only</SelectItem>
+                        <SelectItem value="mobile">Mobile Only</SelectItem>
+                        <SelectItem value="both">Web & Mobile</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Switch name="isActive" id="isActive" defaultChecked />
+                  <Label htmlFor="isActive">Active Account</Label>
                 </div>
 
                 <div className="flex justify-end space-x-2">
@@ -610,6 +639,7 @@ export default function UsersPage() {
                 </TableHead>
                 <TableHead>User</TableHead>
                 <TableHead>Role</TableHead>
+                <TableHead>User Type</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Last Login</TableHead>
                 <TableHead>Created</TableHead>
