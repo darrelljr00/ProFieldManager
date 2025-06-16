@@ -1866,6 +1866,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Company Settings API
+  app.get("/api/settings/company", requireAuth, async (req, res) => {
+    try {
+      const settings = await storage.getSettings('company');
+      res.json(settings || {});
+    } catch (error: any) {
+      console.error("Error fetching company settings:", error);
+      res.status(500).json({ message: "Failed to fetch company settings" });
+    }
+  });
+
+  app.put("/api/settings/company", requireAuth, async (req, res) => {
+    try {
+      const settingsData = req.body;
+      
+      // Map frontend company settings to database key-value pairs
+      const settingsMap = {
+        name: settingsData.companyName,
+        email: settingsData.companyEmail,
+        phone: settingsData.companyPhone,
+        address: settingsData.companyAddress,
+        website: settingsData.companyWebsite,
+        taxRate: settingsData.taxRate?.toString(),
+        defaultCurrency: settingsData.defaultCurrency,
+        invoiceTerms: settingsData.invoiceTerms,
+        invoiceFooter: settingsData.invoiceFooter,
+        logoSize: settingsData.logoSize,
+      };
+
+      // Update each setting individually
+      for (const [key, value] of Object.entries(settingsMap)) {
+        if (value !== undefined && value !== null) {
+          await storage.updateSetting('company', key, value);
+        }
+      }
+
+      res.json({ message: "Company settings updated successfully" });
+    } catch (error: any) {
+      console.error("Error updating company settings:", error);
+      res.status(500).json({ message: "Failed to update company settings" });
+    }
+  });
+
   // Leads API
   app.get("/api/leads", requireAuth, async (req, res) => {
     try {
