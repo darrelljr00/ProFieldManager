@@ -7,7 +7,6 @@ export async function seedReviewData() {
 
     // Create Google My Business settings for admin user
     await db.insert(googleMyBusinessSettings).values({
-      userId: 2, // admin user
       locationId: 'ChIJ_SsKhKJQwokRr5P4ROlNv7I',
       locationName: 'Main Location',
       businessName: 'Elite Construction Services',
