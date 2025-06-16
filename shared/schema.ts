@@ -339,6 +339,7 @@ export const leads = pgTable("leads", {
   name: text("name").notNull(),
   phone: text("phone"),
   email: text("email"),
+  address: text("address"),
   serviceDescription: text("service_description").notNull(),
   leadPrice: decimal("lead_price", { precision: 10, scale: 2 }),
   leadSource: text("lead_source").notNull(), // referral, website, advertising, social_media, etc.

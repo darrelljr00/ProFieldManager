@@ -26,7 +26,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Edit, Trash2, Phone, Mail, DollarSign, Calendar, Search, Filter, X } from "lucide-react";
+import { Plus, Edit, Trash2, Phone, Mail, DollarSign, Calendar, Search, Filter, X, MapPin } from "lucide-react";
 import type { Lead, InsertLead } from "@shared/schema";
 
 export default function Leads() {
@@ -304,6 +304,16 @@ export default function Leads() {
               </div>
 
               <div>
+                <Label htmlFor="address">Address</Label>
+                <Input
+                  id="address"
+                  name="address"
+                  defaultValue={selectedLead?.address || ""}
+                  placeholder="123 Main St, City, State 12345"
+                />
+              </div>
+
+              <div>
                 <Label htmlFor="serviceDescription">Service Description *</Label>
                 <Textarea
                   id="serviceDescription"
@@ -576,6 +586,12 @@ export default function Leads() {
                           <div className="flex items-center text-sm text-muted-foreground">
                             <Mail className="h-3 w-3 mr-1" />
                             {lead.email}
+                          </div>
+                        )}
+                        {lead.address && (
+                          <div className="flex items-center text-sm text-muted-foreground">
+                            <MapPin className="h-3 w-3 mr-1" />
+                            {lead.address}
                           </div>
                         )}
                       </div>
