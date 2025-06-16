@@ -20,7 +20,8 @@ import {
   ClipboardList,
   ChevronDown,
   ChevronRight,
-  ImageIcon
+  ImageIcon,
+  Star
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -51,6 +52,7 @@ const navigation = [
   { name: "Team Messages", href: "/internal-messages", icon: MessageSquare },
   { name: "Image Gallery", href: "/image-gallery", icon: ImageIcon },
   { name: "Text Messaging", href: "/sms", icon: Smartphone },
+  { name: "Reviews", href: "/reviews", icon: Star },
   { name: "User Management", href: "/users", icon: UserCog },
   { name: "Admin Settings", href: "/admin-settings", icon: Shield },
   { name: "Reports", href: "/reports", icon: FileBarChart },
