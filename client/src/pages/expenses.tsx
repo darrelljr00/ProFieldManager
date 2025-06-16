@@ -639,21 +639,58 @@ export default function Expenses() {
                     </Button>
                   </div>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setSearchTerm("");
-                    setStatusFilter("all");
-                    setCategoryFilter("all");
-                    setProjectFilter("all");
-                    setDateFilter("all");
-                    setSortBy("date");
-                    setSortOrder("desc");
-                  }}
-                >
-                  Clear Filters
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const data = [
+                        ['Date', 'Description', 'Vendor', 'Category', 'Amount', 'Status', 'Project', 'Notes', 'Created']
+                      ];
+                      
+                      filteredExpenses.forEach(expense => {
+                        data.push([
+                          new Date(expense.expenseDate).toLocaleDateString(),
+                          expense.description || '',
+                          expense.vendor || '',
+                          expense.category.replace('_', ' ').toUpperCase(),
+                          `$${parseFloat(expense.amount).toFixed(2)}`,
+                          expense.status,
+                          expense.project?.name || '',
+                          expense.notes || '',
+                          new Date(expense.createdAt).toLocaleDateString()
+                        ]);
+                      });
+                      
+                      const csv = data.map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+                      const blob = new Blob([csv], { type: 'text/csv' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `expenses-filtered-${new Date().toISOString().split('T')[0]}.csv`;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    }}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Export ({filteredExpenses.length})
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSearchTerm("");
+                      setStatusFilter("all");
+                      setCategoryFilter("all");
+                      setProjectFilter("all");
+                      setDateFilter("all");
+                      setSortBy("date");
+                      setSortOrder("desc");
+                    }}
+                  >
+                    Clear Filters
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -1054,7 +1091,7 @@ export default function Expenses() {
                     <p className="mt-1">{new Date(selectedExpense.createdAt).toLocaleDateString()}</p>
                   </div>
 
-                  {selectedExpense.tags && (
+                  {selectedExpense.tags && typeof selectedExpense.tags === 'string' && (
                     <div>
                       <Label className="text-sm font-medium text-muted-foreground">Tags</Label>
                       <div className="flex flex-wrap gap-1 mt-1">

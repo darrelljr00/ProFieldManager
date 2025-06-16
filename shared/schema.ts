@@ -345,6 +345,20 @@ export const expenseReportItems = pgTable("expense_report_items", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Expense line items for detailed tracking
+export const expenseLineItems = pgTable("expense_line_items", {
+  id: serial("id").primaryKey(),
+  expenseId: integer("expense_id").notNull().references(() => expenses.id, { onDelete: "cascade" }),
+  description: text("description").notNull(),
+  quantity: decimal("quantity", { precision: 10, scale: 3 }).notNull().default("1.000"),
+  unitPrice: decimal("unit_price", { precision: 10, scale: 2 }).notNull(),
+  totalPrice: decimal("total_price", { precision: 10, scale: 2 }).notNull(),
+  category: text("category"), // optional sub-category for the item
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Gas cards table
 export const gasCards = pgTable("gas_cards", {
   id: serial("id").primaryKey(),
@@ -756,6 +770,15 @@ export const insertDocusignEnvelopeSchema = createInsertSchema(docusignEnvelopes
   createdAt: true,
   updatedAt: true,
 });
+
+export const insertExpenseLineItemSchema = createInsertSchema(expenseLineItems).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertExpenseLineItem = z.infer<typeof insertExpenseLineItemSchema>;
+export type ExpenseLineItem = typeof expenseLineItems.$inferSelect;
 
 export const loginSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
