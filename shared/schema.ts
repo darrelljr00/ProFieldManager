@@ -344,6 +344,7 @@ export const leads = pgTable("leads", {
   leadSource: text("lead_source").notNull(), // referral, website, advertising, social_media, etc.
   status: text("status").notNull().default("new"), // new, contacted, qualified, proposal_sent, won, lost
   priority: text("priority").notNull().default("medium"), // low, medium, high
+  grade: text("grade").notNull().default("cold"), // cold, warm, hot
   notes: text("notes"),
   contactedAt: timestamp("contacted_at"),
   followUpDate: timestamp("follow_up_date"),

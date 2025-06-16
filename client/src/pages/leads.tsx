@@ -35,6 +35,7 @@ export default function Leads() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
+  const [gradeFilter, setGradeFilter] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -55,8 +56,9 @@ export default function Leads() {
 
     const matchesStatus = statusFilter === "all" || lead.status === statusFilter;
     const matchesPriority = priorityFilter === "all" || lead.priority === priorityFilter;
+    const matchesGrade = gradeFilter === "all" || lead.grade === gradeFilter;
 
-    return matchesSearch && matchesStatus && matchesPriority;
+    return matchesSearch && matchesStatus && matchesPriority && matchesGrade;
   });
 
   // Clear all filters
@@ -64,11 +66,40 @@ export default function Leads() {
     setSearchQuery("");
     setStatusFilter("all");
     setPriorityFilter("all");
+    setGradeFilter("all");
     setShowFilters(false);
   };
 
   // Check if any filters are active
-  const hasActiveFilters = searchQuery !== "" || statusFilter !== "all" || priorityFilter !== "all";
+  const hasActiveFilters = searchQuery !== "" || statusFilter !== "all" || priorityFilter !== "all" || gradeFilter !== "all";
+
+  // Get row color based on lead grade
+  const getRowColor = (grade: string) => {
+    switch (grade) {
+      case "hot":
+        return "bg-red-50 border-l-4 border-red-500 hover:bg-red-100";
+      case "warm":
+        return "bg-orange-50 border-l-4 border-orange-500 hover:bg-orange-100";
+      case "cold":
+        return "bg-blue-50 border-l-4 border-blue-500 hover:bg-blue-100";
+      default:
+        return "hover:bg-gray-50";
+    }
+  };
+
+  // Get grade badge styling
+  const getGradeBadge = (grade: string) => {
+    switch (grade) {
+      case "hot":
+        return "bg-red-100 text-red-800 border-red-200";
+      case "warm":
+        return "bg-orange-100 text-orange-800 border-orange-200";
+      case "cold":
+        return "bg-blue-100 text-blue-800 border-blue-200";
+      default:
+        return "bg-gray-100 text-gray-800 border-gray-200";
+    }
+  };
 
   const createMutation = useMutation({
     mutationFn: (data: Partial<InsertLead>) => 
@@ -393,7 +424,7 @@ export default function Leads() {
                 Filters
                 {hasActiveFilters && (
                   <Badge variant="destructive" className="ml-1 px-1 py-0 text-xs">
-                    {[searchQuery !== "", statusFilter !== "all", priorityFilter !== "all"].filter(Boolean).length}
+                    {[searchQuery !== "", statusFilter !== "all", priorityFilter !== "all", gradeFilter !== "all"].filter(Boolean).length}
                   </Badge>
                 )}
               </Button>
@@ -414,7 +445,7 @@ export default function Leads() {
           {/* Filter Options */}
           {showFilters && (
             <div className="mt-4 pt-4 border-t">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
                   <Label htmlFor="statusFilter">Status</Label>
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -444,6 +475,21 @@ export default function Leads() {
                       <SelectItem value="high">High</SelectItem>
                       <SelectItem value="medium">Medium</SelectItem>
                       <SelectItem value="low">Low</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="gradeFilter">Grade</Label>
+                  <Select value={gradeFilter} onValueChange={setGradeFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All grades" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Grades</SelectItem>
+                      <SelectItem value="hot">🔥 Hot</SelectItem>
+                      <SelectItem value="warm">🟠 Warm</SelectItem>
+                      <SelectItem value="cold">🧊 Cold</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
