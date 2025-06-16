@@ -1828,6 +1828,121 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Expense line items API
+  app.get("/api/expenses/:expenseId/line-items", requireAuth, async (req, res) => {
+    try {
+      const expenseId = parseInt(req.params.expenseId);
+      const lineItems = await storage.getExpenseLineItems(expenseId);
+      res.json(lineItems);
+    } catch (error: any) {
+      console.error("Error fetching expense line items:", error);
+      res.status(500).json({ message: "Failed to fetch expense line items" });
+    }
+  });
+
+  app.post("/api/expenses/:expenseId/line-items", requireAuth, async (req, res) => {
+    try {
+      const expenseId = parseInt(req.params.expenseId);
+      const lineItemData = req.body;
+
+      const lineItem = await storage.createExpenseLineItem({
+        ...lineItemData,
+        expenseId,
+        quantity: parseFloat(lineItemData.quantity) || 1,
+        unitPrice: parseFloat(lineItemData.unitPrice) || 0,
+        totalAmount: parseFloat(lineItemData.totalAmount) || 0,
+      });
+
+      res.status(201).json(lineItem);
+    } catch (error: any) {
+      console.error("Error creating expense line item:", error);
+      res.status(500).json({ message: "Failed to create expense line item" });
+    }
+  });
+
+  app.put("/api/expense-line-items/:id", requireAuth, async (req, res) => {
+    try {
+      const lineItemId = parseInt(req.params.id);
+      const updateData = req.body;
+
+      // Parse numeric fields
+      if (updateData.quantity) updateData.quantity = parseFloat(updateData.quantity);
+      if (updateData.unitPrice) updateData.unitPrice = parseFloat(updateData.unitPrice);
+      if (updateData.totalAmount) updateData.totalAmount = parseFloat(updateData.totalAmount);
+
+      const updatedLineItem = await storage.updateExpenseLineItem(lineItemId, updateData);
+
+      if (!updatedLineItem) {
+        return res.status(404).json({ message: "Expense line item not found" });
+      }
+
+      res.json(updatedLineItem);
+    } catch (error: any) {
+      console.error("Error updating expense line item:", error);
+      res.status(500).json({ message: "Failed to update expense line item" });
+    }
+  });
+
+  app.delete("/api/expense-line-items/:id", requireAuth, async (req, res) => {
+    try {
+      const lineItemId = parseInt(req.params.id);
+      const success = await storage.deleteExpenseLineItem(lineItemId);
+
+      if (!success) {
+        return res.status(404).json({ message: "Expense line item not found" });
+      }
+
+      res.json({ message: "Expense line item deleted successfully" });
+    } catch (error: any) {
+      console.error("Error deleting expense line item:", error);
+      res.status(500).json({ message: "Failed to delete expense line item" });
+    }
+  });
+
+  app.post("/api/expenses-with-line-items", requireAuth, upload.single('receipt'), async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const { expense: expenseData, lineItems } = req.body;
+      
+      // Handle file upload
+      let receiptUrl = null;
+      let receiptData = null;
+      
+      if (req.file) {
+        receiptUrl = req.file.path;
+        receiptData = `Receipt uploaded: ${req.file.originalname}`;
+      }
+
+      // Prepare expense data
+      const expense = {
+        ...expenseData,
+        userId,
+        categoryId: expenseData.categoryId ? parseInt(expenseData.categoryId) : null,
+        projectId: expenseData.projectId ? parseInt(expenseData.projectId) : null,
+        amount: parseFloat(expenseData.amount),
+        expenseDate: new Date(expenseData.expenseDate),
+        receiptUrl,
+        receiptData,
+        tags: expenseData.tags ? expenseData.tags.split(',').map((tag: string) => tag.trim()) : [],
+      };
+
+      // Prepare line items data
+      const processedLineItems = lineItems ? lineItems.map((item: any) => ({
+        description: item.description,
+        quantity: parseFloat(item.quantity) || 1,
+        unitPrice: parseFloat(item.unitPrice) || 0,
+        totalAmount: parseFloat(item.totalAmount) || 0,
+        category: item.category || null,
+      })) : [];
+
+      const result = await storage.createExpenseWithLineItems(expense, processedLineItems);
+      res.status(201).json(result);
+    } catch (error: any) {
+      console.error("Error creating expense with line items:", error);
+      res.status(500).json({ message: "Failed to create expense with line items" });
+    }
+  });
+
   // OCR endpoint for receipt processing
   app.post("/api/ocr/receipt", requireAuth, upload.single('receipt'), async (req, res) => {
     try {

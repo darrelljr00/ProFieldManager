@@ -1,7 +1,7 @@
 import { 
   users, customers, invoices, invoiceLineItems, payments, quotes, quoteLineItems, settings, messages,
   userSessions, userPermissions, projects, projectUsers, tasks, taskComments, projectFiles, timeEntries,
-  expenses, expenseCategories, expenseReports, expenseReportItems, gasCards, gasCardAssignments, leads, calendarJobs,
+  expenses, expenseCategories, expenseReports, expenseReportItems, expenseLineItems, gasCards, gasCardAssignments, leads, calendarJobs,
   internalMessages, internalMessageRecipients, messageGroups, messageGroupMembers, images, imageAnnotations, sharedPhotoLinks,
   reviewRequests, googleMyBusinessSettings, docusignEnvelopes,
   type User, type InsertUser, type Customer, type InsertCustomer,
@@ -14,6 +14,7 @@ import {
   type ProjectFile, type InsertProjectFile, type TimeEntry, type InsertTimeEntry,
   type Expense, type InsertExpense, type ExpenseCategory, type InsertExpenseCategory,
   type ExpenseReport, type InsertExpenseReport, type ExpenseReportItem, type InsertExpenseReportItem,
+  type ExpenseLineItem, type InsertExpenseLineItem,
   type GasCard, type InsertGasCard, type GasCardAssignment, type InsertGasCardAssignment,
   type Lead, type InsertLead, type CalendarJob, type InsertCalendarJob,
   type InternalMessage, type InsertInternalMessage, type InternalMessageRecipient, type InsertInternalMessageRecipient,
@@ -136,12 +137,19 @@ export interface IStorage {
   deleteTimeEntry(id: number, userId: number): Promise<boolean>;
 
   // Expense management methods
-  getExpenses(userId: number): Promise<(Expense & { project?: Project })[]>;
-  getExpense(id: number, userId: number): Promise<Expense | undefined>;
+  getExpenses(userId: number): Promise<(Expense & { project?: Project, lineItems?: ExpenseLineItem[] })[]>;
+  getExpense(id: number, userId: number): Promise<(Expense & { lineItems?: ExpenseLineItem[] }) | undefined>;
   createExpense(expense: InsertExpense): Promise<Expense>;
   updateExpense(id: number, userId: number, expense: Partial<InsertExpense>): Promise<Expense | undefined>;
   deleteExpense(id: number, userId: number): Promise<boolean>;
   approveExpense(id: number, approvedBy: number): Promise<boolean>;
+  
+  // Expense line items methods
+  getExpenseLineItems(expenseId: number): Promise<ExpenseLineItem[]>;
+  createExpenseLineItem(lineItem: InsertExpenseLineItem): Promise<ExpenseLineItem>;
+  updateExpenseLineItem(id: number, lineItem: Partial<InsertExpenseLineItem>): Promise<ExpenseLineItem | undefined>;
+  deleteExpenseLineItem(id: number): Promise<boolean>;
+  createExpenseWithLineItems(expense: InsertExpense, lineItems: InsertExpenseLineItem[]): Promise<Expense & { lineItems: ExpenseLineItem[] }>;
   
   // Expense categories
   getExpenseCategories(userId: number): Promise<ExpenseCategory[]>;
@@ -1185,7 +1193,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Expense management methods
-  async getExpenses(userId: number): Promise<(Expense & { project?: Project })[]> {
+  async getExpenses(userId: number): Promise<(Expense & { project?: Project, lineItems?: ExpenseLineItem[] })[]> {
     const expenseList = await db
       .select({
         expense: expenses,
@@ -1195,19 +1203,47 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(projects, eq(expenses.projectId, projects.id))
       .orderBy(desc(expenses.expenseDate));
 
+    // Get line items for all expenses
+    const expenseIds = expenseList.map(row => row.expense.id);
+    const lineItemsMap = new Map<number, ExpenseLineItem[]>();
+    
+    if (expenseIds.length > 0) {
+      const lineItemsData = await db
+        .select()
+        .from(expenseLineItems)
+        .where(inArray(expenseLineItems.expenseId, expenseIds))
+        .orderBy(expenseLineItems.createdAt);
+      
+      lineItemsData.forEach(item => {
+        if (!lineItemsMap.has(item.expenseId)) {
+          lineItemsMap.set(item.expenseId, []);
+        }
+        lineItemsMap.get(item.expenseId)!.push(item);
+      });
+    }
+
     return expenseList.map(row => ({
       ...row.expense,
       project: row.project || undefined,
+      lineItems: lineItemsMap.get(row.expense.id) || [],
     }));
   }
 
-  async getExpense(id: number, userId: number): Promise<Expense | undefined> {
+  async getExpense(id: number, userId: number): Promise<(Expense & { lineItems?: ExpenseLineItem[] }) | undefined> {
     const [expense] = await db
       .select()
       .from(expenses)
       .where(eq(expenses.id, id));
 
-    return expense;
+    if (!expense) return undefined;
+
+    // Get line items for this expense
+    const lineItems = await this.getExpenseLineItems(id);
+
+    return {
+      ...expense,
+      lineItems,
+    };
   }
 
   async createExpense(expense: InsertExpense): Promise<Expense> {
@@ -1285,6 +1321,76 @@ export class DatabaseStorage implements IStorage {
       .where(eq(expenseCategories.id, id));
 
     return result.rowCount > 0;
+  }
+
+  // Expense line items methods
+  async getExpenseLineItems(expenseId: number): Promise<ExpenseLineItem[]> {
+    return await db
+      .select()
+      .from(expenseLineItems)
+      .where(eq(expenseLineItems.expenseId, expenseId))
+      .orderBy(expenseLineItems.createdAt);
+  }
+
+  async createExpenseLineItem(lineItem: InsertExpenseLineItem): Promise<ExpenseLineItem> {
+    const [newLineItem] = await db
+      .insert(expenseLineItems)
+      .values(lineItem)
+      .returning();
+
+    return newLineItem;
+  }
+
+  async updateExpenseLineItem(id: number, lineItem: Partial<InsertExpenseLineItem>): Promise<ExpenseLineItem | undefined> {
+    const [updatedLineItem] = await db
+      .update(expenseLineItems)
+      .set({ ...lineItem, updatedAt: new Date() })
+      .where(eq(expenseLineItems.id, id))
+      .returning();
+
+    return updatedLineItem;
+  }
+
+  async deleteExpenseLineItem(id: number): Promise<boolean> {
+    const result = await db
+      .delete(expenseLineItems)
+      .where(eq(expenseLineItems.id, id));
+
+    return result.rowCount > 0;
+  }
+
+  async createExpenseWithLineItems(expense: InsertExpense, lineItems: InsertExpenseLineItem[]): Promise<Expense & { lineItems: ExpenseLineItem[] }> {
+    // Use a transaction to ensure both expense and line items are created together
+    const result = await db.transaction(async (tx) => {
+      // Create the expense
+      const [newExpense] = await tx
+        .insert(expenses)
+        .values(expense)
+        .returning();
+
+      // Create line items if provided
+      const createdLineItems: ExpenseLineItem[] = [];
+      if (lineItems.length > 0) {
+        const lineItemsWithExpenseId = lineItems.map(item => ({
+          ...item,
+          expenseId: newExpense.id,
+        }));
+
+        const insertedLineItems = await tx
+          .insert(expenseLineItems)
+          .values(lineItemsWithExpenseId)
+          .returning();
+
+        createdLineItems.push(...insertedLineItems);
+      }
+
+      return {
+        ...newExpense,
+        lineItems: createdLineItems,
+      };
+    });
+
+    return result;
   }
 
   // Expense reports
