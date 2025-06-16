@@ -65,7 +65,7 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
   const { data: scheduledJobsData, isLoading, refetch } = useQuery({
     queryKey: ['/api/dispatch/jobs', selectedDateState],
     queryFn: async () => {
-      const response = await apiRequest(`/api/dispatch/jobs?date=${selectedDateState}`, 'GET');
+      const response = await apiRequest('GET', `/api/dispatch/jobs?date=${selectedDateState}`);
       return response as unknown as JobLocation[];
     },
   });
@@ -76,7 +76,7 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
   const optimizeRouteMutation = useMutation({
     mutationFn: async (data: { jobs: JobLocation[]; startLocation: string }) => {
       setIsOptimizing(true);
-      const result = await apiRequest('/api/dispatch/optimize-route', 'POST', data);
+      const result = await apiRequest('POST', '/api/dispatch/optimize-route', data);
       return result as unknown as RouteOptimization;
     },
     onSuccess: (data: RouteOptimization) => {
