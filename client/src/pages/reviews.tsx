@@ -283,10 +283,10 @@ export default function Reviews() {
                           {request.sentAt ? format(new Date(request.sentAt), 'MMM d, yyyy') : '-'}
                         </TableCell>
                         <TableCell>
-                          {request.rating ? (
+                          {request.googleReviewRating ? (
                             <div className="flex items-center gap-1">
                               <Star className="h-4 w-4 text-yellow-500" />
-                              <span>{request.rating}</span>
+                              <span>{request.googleReviewRating}</span>
                             </div>
                           ) : '-'}
                         </TableCell>
@@ -419,10 +419,10 @@ export default function Reviews() {
                           {[...Array(5)].map((_, i) => (
                             <Star 
                               key={i} 
-                              className={`h-4 w-4 ${i < (request.rating || 0) ? 'text-yellow-500 fill-current' : 'text-gray-300'}`} 
+                              className={`h-4 w-4 ${i < (request.googleReviewRating || 0) ? 'text-yellow-500 fill-current' : 'text-gray-300'}`} 
                             />
                           ))}
-                          <span className="ml-2 font-medium">{request.rating}</span>
+                          <span className="ml-2 font-medium">{request.googleReviewRating}</span>
                         </div>
                       </TableCell>
                       <TableCell>
