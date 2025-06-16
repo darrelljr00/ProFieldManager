@@ -234,6 +234,25 @@ export const projectFiles = pgTable("project_files", {
   description: text("description"),
   annotations: text("annotations"), // JSON string of annotations
   annotatedImageUrl: text("annotated_image_url"), // URL of annotated image version
+  docusignEnvelopeId: text("docusign_envelope_id"), // DocuSign envelope ID for e-signature
+  signatureStatus: text("signature_status").default("none"), // none, sent, completed, declined, voided
+  signatureUrl: text("signature_url"), // DocuSign signing URL
+  signedDocumentUrl: text("signed_document_url"), // URL of signed document
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const docusignEnvelopes = pgTable("docusign_envelopes", {
+  id: serial("id").primaryKey(),
+  envelopeId: text("envelope_id").notNull().unique(),
+  projectFileId: integer("project_file_id").references(() => projectFiles.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id),
+  recipientEmail: text("recipient_email").notNull(),
+  recipientName: text("recipient_name").notNull(),
+  subject: text("subject").notNull(),
+  status: text("status").notNull(), // created, sent, delivered, completed, declined, voided
+  signingUrl: text("signing_url"),
+  signedDocumentUrl: text("signed_document_url"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -711,6 +730,12 @@ export const insertGoogleMyBusinessSettingsSchema = createInsertSchema(googleMyB
   updatedAt: true,
 });
 
+export const insertDocusignEnvelopeSchema = createInsertSchema(docusignEnvelopes).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const loginSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
   password: z.string().min(6, "Password must be at least 6 characters"),
@@ -830,6 +855,9 @@ export type InsertReviewRequest = z.infer<typeof insertReviewRequestSchema>;
 
 export type GoogleMyBusinessSettings = typeof googleMyBusinessSettings.$inferSelect;
 export type InsertGoogleMyBusinessSettings = z.infer<typeof insertGoogleMyBusinessSettingsSchema>;
+
+export type DocusignEnvelope = typeof docusignEnvelopes.$inferSelect;
+export type InsertDocusignEnvelope = z.infer<typeof insertDocusignEnvelopeSchema>;
 
 export type LoginData = z.infer<typeof loginSchema>;
 export type RegisterData = z.infer<typeof registerSchema>;

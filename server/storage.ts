@@ -3,7 +3,7 @@ import {
   userSessions, userPermissions, projects, projectUsers, tasks, taskComments, projectFiles, timeEntries,
   expenses, expenseCategories, expenseReports, expenseReportItems, gasCards, gasCardAssignments, leads, calendarJobs,
   internalMessages, internalMessageRecipients, messageGroups, messageGroupMembers, images, imageAnnotations, sharedPhotoLinks,
-  reviewRequests, googleMyBusinessSettings,
+  reviewRequests, googleMyBusinessSettings, docusignEnvelopes,
   type User, type InsertUser, type Customer, type InsertCustomer,
   type Invoice, type InsertInvoice, type InvoiceLineItem, type InsertInvoiceLineItem,
   type Payment, type InsertPayment, type Quote, type InsertQuote, type QuoteLineItem,
@@ -19,7 +19,7 @@ import {
   type InternalMessage, type InsertInternalMessage, type InternalMessageRecipient, type InsertInternalMessageRecipient,
   type MessageGroup, type InsertMessageGroup, type MessageGroupMember, type InsertMessageGroupMember,
   type SharedPhotoLink, type InsertSharedPhotoLink, type ReviewRequest, type InsertReviewRequest,
-  type GoogleMyBusinessSettings, type InsertGoogleMyBusinessSettings
+  type GoogleMyBusinessSettings, type InsertGoogleMyBusinessSettings, type DocusignEnvelope, type InsertDocusignEnvelope
 } from "@shared/schema";
 import { db, pool } from "./db";
 import { eq, desc, and, sql, or, inArray, isNotNull } from "drizzle-orm";
