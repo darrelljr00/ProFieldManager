@@ -26,7 +26,8 @@ import {
   Edit3,
   Share2,
   CheckSquare,
-  Square
+  Square,
+  FileSignature
 } from "lucide-react";
 
 interface MediaFile {
@@ -366,8 +367,11 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
           </div>
           
           {/* DocuSign E-Signature Section for Document Files */}
-          {!['image', 'video'].includes(file.fileType) && !!projectId && (
-            <div className="mt-3 pt-3 border-t">
+          {file.fileType === 'document' && projectId && (
+            <div className="mt-3 pt-3 border-t border-gray-200">
+              <div className="mb-2">
+                <span className="text-sm font-medium text-blue-600">📝 Electronic Signature</span>
+              </div>
               <DocuSignSignatureDialog 
                 file={file}
                 projectId={projectId}
