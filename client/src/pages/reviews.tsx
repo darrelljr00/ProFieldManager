@@ -18,7 +18,7 @@ interface ReviewRequest {
   status: 'pending' | 'sent' | 'reviewed' | 'expired';
   sentAt?: string;
   reviewedAt?: string;
-  rating?: number;
+  googleReviewRating?: number;
   createdAt: string;
 }
 

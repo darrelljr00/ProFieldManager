@@ -219,6 +219,8 @@ export interface IStorage {
   getReviewRequests(userId: number): Promise<ReviewRequest[]>;
   getReviewRequest(id: number, userId: number): Promise<ReviewRequest | undefined>;
   updateReviewRequest(id: number, userId: number, updates: Partial<ReviewRequest>): Promise<ReviewRequest | undefined>;
+  getReviewAnalytics(userId: number): Promise<any>;
+  resendReviewRequest(userId: number, requestId: number): Promise<ReviewRequest | undefined>;
   
   // Google My Business settings
   getGoogleMyBusinessSettings(userId: number): Promise<GoogleMyBusinessSettings | undefined>;
@@ -2265,6 +2267,85 @@ export class DatabaseStorage implements IStorage {
         eq(reviewRequests.userId, userId)
       ))
       .returning();
+    return updatedRequest;
+  }
+
+  async getReviewAnalytics(userId: number): Promise<any> {
+    const requests = await db
+      .select()
+      .from(reviewRequests)
+      .where(eq(reviewRequests.userId, userId));
+
+    const totalRequests = requests.length;
+    const sentRequests = requests.filter(r => r.status === 'sent' || r.status === 'reviewed').length;
+    const completedReviews = requests.filter(r => r.status === 'reviewed').length;
+    const pendingRequests = requests.filter(r => r.status === 'pending' || r.status === 'sent').length;
+    const expiredRequests = requests.filter(r => r.status === 'expired').length;
+
+    // Calculate average rating
+    const reviewsWithRating = requests.filter(r => r.googleReviewRating && r.googleReviewRating > 0);
+    const averageRating = reviewsWithRating.length > 0 
+      ? reviewsWithRating.reduce((sum, r) => sum + (r.googleReviewRating || 0), 0) / reviewsWithRating.length 
+      : 0;
+
+    // Calculate response rate
+    const responseRate = sentRequests > 0 ? (completedReviews / sentRequests) * 100 : 0;
+
+    // Generate monthly stats for the last 6 months
+    const monthlyStats = [];
+    const now = new Date();
+    
+    for (let i = 5; i >= 0; i--) {
+      const month = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const nextMonth = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
+      
+      const monthRequests = requests.filter(r => {
+        const requestDate = new Date(r.sentAt || r.createdAt);
+        return requestDate >= month && requestDate < nextMonth;
+      });
+
+      const monthReviews = monthRequests.filter(r => r.status === 'reviewed');
+      const monthAvgRating = monthReviews.length > 0 
+        ? monthReviews.reduce((sum, r) => sum + (r.googleReviewRating || 0), 0) / monthReviews.length 
+        : 0;
+
+      monthlyStats.push({
+        month: month.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+        requests: monthRequests.length,
+        reviews: monthReviews.length,
+        averageRating: monthAvgRating
+      });
+    }
+
+    return {
+      totalRequests,
+      sentRequests,
+      completedReviews,
+      averageRating,
+      responseRate,
+      pendingRequests,
+      expiredRequests,
+      monthlyStats
+    };
+  }
+
+  async resendReviewRequest(userId: number, requestId: number): Promise<ReviewRequest | undefined> {
+    // Update the request status and resend date
+    const [updatedRequest] = await db
+      .update(reviewRequests)
+      .set({ 
+        status: 'sent',
+        sentAt: new Date()
+      })
+      .where(and(
+        eq(reviewRequests.id, requestId),
+        eq(reviewRequests.userId, userId)
+      ))
+      .returning();
+
+    // In a real implementation, this would trigger the SMS send again
+    console.log(`Resending review request ${requestId} for user ${userId}`);
+    
     return updatedRequest;
   }
 

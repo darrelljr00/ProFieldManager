@@ -2492,6 +2492,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get('/api/reviews/analytics', requireAuth, async (req, res) => {
+    try {
+      const analytics = await storage.getReviewAnalytics(req.user!.id);
+      res.json(analytics);
+    } catch (error: any) {
+      console.error('Error fetching review analytics:', error);
+      res.status(500).json({ message: 'Failed to fetch review analytics' });
+    }
+  });
+
+  app.post('/api/reviews/requests/:id/resend', requireAuth, async (req, res) => {
+    try {
+      const requestId = parseInt(req.params.id);
+      const request = await storage.resendReviewRequest(req.user!.id, requestId);
+      res.json(request);
+    } catch (error: any) {
+      console.error('Error resending review request:', error);
+      res.status(500).json({ message: 'Failed to resend review request' });
+    }
+  });
+
   app.post('/api/reviews/request', requireAuth, async (req, res) => {
     try {
       const { customerId, projectId, customerPhone, customerName } = req.body;
