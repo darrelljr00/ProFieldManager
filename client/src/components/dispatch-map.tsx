@@ -27,6 +27,8 @@ interface RouteOptimization {
     distance: number;
     duration: number;
     directions: string;
+    trafficDelay?: number;
+    trafficCondition?: 'normal' | 'light' | 'moderate' | 'heavy' | 'unknown';
   }[];
 }
 
