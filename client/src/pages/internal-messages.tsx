@@ -88,8 +88,9 @@ export default function InternalMessagesPage() {
 
   const { data: messages = [], isLoading: messagesLoading } = useQuery<ChatMessage[]>({
     queryKey: ["/api/internal-messages"],
-    staleTime: 30000, // Cache for 30 seconds
-    refetchInterval: 60000, // Refetch every minute instead of constant polling
+    staleTime: 10000, // Cache for 10 seconds - faster updates
+    refetchInterval: 30000, // Refetch every 30 seconds for better responsiveness
+    refetchOnWindowFocus: true, // Refresh when user returns to tab
   });
 
   const { data: users = [] } = useQuery<User[]>({

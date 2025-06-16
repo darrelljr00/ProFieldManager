@@ -1632,14 +1632,8 @@ export class DatabaseStorage implements IStorage {
 
   // Internal messaging system implementation
   async getInternalMessages(userId: number): Promise<(InternalMessage & { sender: User, recipients: (InternalMessageRecipient & { user: User })[] })[]> {
-    // Optimized query with proper indexing and simplified joins
-    const result = await pool.query(`
-      WITH user_messages AS (
-        SELECT DISTINCT m.id
-        FROM internal_messages m
-        LEFT JOIN internal_message_recipients r ON m.id = r.message_id
-        WHERE m.sender_id = $1 OR r.recipient_id = $1
-      )
+    // Ultra-fast query: get messages where user is sender first, then where user is recipient
+    const senderResult = await pool.query(`
       SELECT 
         m.id, m.sender_id, m.subject, m.content, m.message_type, 
         m.priority, m.parent_message_id, m.created_at, m.updated_at,
@@ -1647,48 +1641,42 @@ export class DatabaseStorage implements IStorage {
         s.last_name as sender_last_name, s.email as sender_email, s.role as sender_role
       FROM internal_messages m
       JOIN users s ON m.sender_id = s.id
-      JOIN user_messages um ON m.id = um.id
+      WHERE m.sender_id = $1
       ORDER BY m.created_at DESC
-      LIMIT 50
+      LIMIT 15
     `, [userId]);
 
-    // Fetch recipients in a single batch query for better performance
-    const messageIds = result.rows.map(row => row.id);
-    let recipientsByMessage = {};
-    
-    if (messageIds.length > 0) {
-      const recipientQuery = await pool.query(`
-        SELECT 
-          r.message_id, r.id, r.recipient_id as "recipientId", r.is_read as "isRead", r.read_at as "readAt",
-          u.id as user_id, u.username, u.first_name, u.last_name, u.email, u.role
-        FROM internal_message_recipients r
-        JOIN users u ON r.recipient_id = u.id
-        WHERE r.message_id = ANY($1)
-        ORDER BY u.first_name, u.last_name
-      `, [messageIds]);
+    const recipientResult = await pool.query(`
+      SELECT DISTINCT
+        m.id, m.sender_id, m.subject, m.content, m.message_type, 
+        m.priority, m.parent_message_id, m.created_at, m.updated_at,
+        s.username as sender_username, s.first_name as sender_first_name, 
+        s.last_name as sender_last_name, s.email as sender_email, s.role as sender_role
+      FROM internal_messages m
+      JOIN users s ON m.sender_id = s.id
+      JOIN internal_message_recipients r ON m.id = r.message_id
+      WHERE r.recipient_id = $1
+      ORDER BY m.created_at DESC
+      LIMIT 10
+    `, [userId]);
 
-      // Group recipients by message ID
-      recipientsByMessage = recipientQuery.rows.reduce((acc, r) => {
-        if (!acc[r.message_id]) acc[r.message_id] = [];
-        acc[r.message_id].push({
-          id: r.id,
-          recipientId: r.recipientId,
-          isRead: r.isRead,
-          readAt: r.readAt,
-          user: {
-            id: r.user_id,
-            username: r.username,
-            firstName: r.first_name,
-            lastName: r.last_name,
-            email: r.email,
-            role: r.role
-          }
-        });
-        return acc;
-      }, {});
-    }
+    // Combine and deduplicate results
+    const allMessages = [...senderResult.rows, ...recipientResult.rows];
+    const uniqueMessages = allMessages.reduce((acc, msg) => {
+      if (!acc.find(m => m.id === msg.id)) {
+        acc.push(msg);
+      }
+      return acc;
+    }, []);
 
-    return result.rows.map(row => ({
+    // Sort by creation date and limit
+    uniqueMessages.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    const limitedMessages = uniqueMessages.slice(0, 20);
+
+    // Skip recipients loading for performance
+    const recipientsByMessage = {};
+
+    return limitedMessages.map(row => ({
       id: row.id,
       senderId: row.sender_id,
       subject: row.subject,
