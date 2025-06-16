@@ -96,8 +96,7 @@ export default function InternalMessagesPage() {
 
   const sendMessageMutation = useMutation({
     mutationFn: async (data: any) => {
-      const response = await apiRequest("/api/internal-messages", "POST", data);
-      return response.json();
+      return await apiRequest("/api/internal-messages", "POST", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/internal-messages"] });
