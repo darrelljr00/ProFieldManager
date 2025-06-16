@@ -315,7 +315,7 @@ export default function Leads() {
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
                   <Label htmlFor="leadSource">Lead Source *</Label>
                   <Select name="leadSource" defaultValue={selectedLead?.leadSource || "website"}>
@@ -359,6 +359,19 @@ export default function Leads() {
                       <SelectItem value="high">High</SelectItem>
                       <SelectItem value="medium">Medium</SelectItem>
                       <SelectItem value="low">Low</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="grade">Grade</Label>
+                  <Select name="grade" defaultValue={selectedLead?.grade || "cold"}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select grade" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="cold">🧊 Cold</SelectItem>
+                      <SelectItem value="warm">🟠 Warm</SelectItem>
+                      <SelectItem value="hot">🔥 Hot</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -542,13 +555,14 @@ export default function Leads() {
                   <TableHead>Source</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Priority</TableHead>
+                  <TableHead>Grade</TableHead>
                   <TableHead>Follow-up</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredLeads.map((lead) => (
-                  <TableRow key={lead.id}>
+                  <TableRow key={lead.id} className={getRowColor(lead.grade || "cold")}>
                     <TableCell className="font-medium">{lead.name}</TableCell>
                     <TableCell>
                       <div className="flex flex-col space-y-1">
@@ -592,6 +606,11 @@ export default function Leads() {
                     <TableCell>
                       <Badge className={getPriorityColor(lead.priority)}>
                         {lead.priority}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={`${getGradeBadge(lead.grade || "cold")} border`}>
+                        {lead.grade === "hot" ? "🔥 Hot" : lead.grade === "warm" ? "🟠 Warm" : "🧊 Cold"}
                       </Badge>
                     </TableCell>
                     <TableCell>
