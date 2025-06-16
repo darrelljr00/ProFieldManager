@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { ImageAnnotation } from "@/components/image-annotation";
 import { SharePhotosDialog } from "@/components/share-photos-dialog";
+import { DocuSignSignatureDialog } from "@/components/docusign-signature-dialog";
 import { 
   Download, 
   X, 
@@ -40,6 +41,9 @@ interface MediaFile {
   createdAt: string | Date;
   annotations?: any[];
   annotatedImageUrl?: string;
+  signatureStatus?: string;
+  docusignEnvelopeId?: string;
+  signatureUrl?: string;
 }
 
 interface MediaGalleryProps {
@@ -360,6 +364,16 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
               </Button>
             </div>
           </div>
+          
+          {/* DocuSign E-Signature Section for Document Files */}
+          {!['image', 'video'].includes(file.fileType) && projectId && (
+            <div className="mt-3 pt-3 border-t">
+              <DocuSignSignatureDialog 
+                file={file}
+                projectId={projectId}
+              />
+            </div>
+          )}
         </CardContent>
       </Card>
     );

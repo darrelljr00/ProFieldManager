@@ -41,6 +41,7 @@ import { Link } from "wouter";
 import type { Project, Customer, User, Task, ProjectFile, TimeEntry } from "@shared/schema";
 import { DirectionsButton } from "@/components/google-maps";
 import { MediaGallery } from "@/components/media-gallery";
+import { DocuSignSignatureDialog } from "@/components/docusign-signature-dialog";
 
 interface ProjectWithDetails extends Project {
   users: { user: User; role: string }[];
