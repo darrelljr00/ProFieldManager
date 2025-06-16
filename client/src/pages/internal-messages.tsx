@@ -88,10 +88,14 @@ export default function InternalMessagesPage() {
 
   const { data: messages = [], isLoading: messagesLoading } = useQuery<ChatMessage[]>({
     queryKey: ["/api/internal-messages"],
+    staleTime: 30000, // Cache for 30 seconds
+    refetchInterval: 60000, // Refetch every minute instead of constant polling
   });
 
   const { data: users = [] } = useQuery<User[]>({
     queryKey: ["/api/users"],
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes - users don't change often
+    refetchOnWindowFocus: false,
   });
 
   const sendMessageMutation = useMutation({

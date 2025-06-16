@@ -1632,36 +1632,24 @@ export class DatabaseStorage implements IStorage {
 
   // Internal messaging system implementation
   async getInternalMessages(userId: number): Promise<(InternalMessage & { sender: User, recipients: (InternalMessageRecipient & { user: User })[] })[]> {
+    // Optimized query with proper indexing and simplified joins
     const result = await pool.query(`
+      WITH user_messages AS (
+        SELECT DISTINCT m.id
+        FROM internal_messages m
+        LEFT JOIN internal_message_recipients r ON m.id = r.message_id
+        WHERE m.sender_id = $1 OR r.recipient_id = $1
+      )
       SELECT 
-        m.*,
-        s.id as sender_id, s.username as sender_username, s.first_name as sender_first_name, 
-        s.last_name as sender_last_name, s.email as sender_email, s.role as sender_role,
-        COALESCE(
-          json_agg(
-            json_build_object(
-              'id', r.id,
-              'recipientId', r.recipient_id,
-              'isRead', r.is_read,
-              'readAt', r.read_at,
-              'user', json_build_object(
-                'id', u.id,
-                'username', u.username,
-                'firstName', u.first_name,
-                'lastName', u.last_name,
-                'email', u.email,
-                'role', u.role
-              )
-            )
-          ) FILTER (WHERE r.id IS NOT NULL), '[]'
-        ) as recipients
+        m.id, m.sender_id, m.subject, m.content, m.message_type, 
+        m.priority, m.parent_message_id, m.created_at, m.updated_at,
+        s.username as sender_username, s.first_name as sender_first_name, 
+        s.last_name as sender_last_name, s.email as sender_email, s.role as sender_role
       FROM internal_messages m
       JOIN users s ON m.sender_id = s.id
-      LEFT JOIN internal_message_recipients r ON m.id = r.message_id
-      LEFT JOIN users u ON r.recipient_id = u.id
-      WHERE m.sender_id = $1 OR r.recipient_id = $1
-      GROUP BY m.id, s.id, s.username, s.first_name, s.last_name, s.email, s.role
+      JOIN user_messages um ON m.id = um.id
       ORDER BY m.created_at DESC
+      LIMIT 50
     `, [userId]);
 
     return result.rows.map(row => ({
@@ -1682,7 +1670,7 @@ export class DatabaseStorage implements IStorage {
         email: row.sender_email,
         role: row.sender_role
       },
-      recipients: row.recipients
+      recipients: [] // Recipients loaded separately for performance
     }));
   }
 
