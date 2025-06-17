@@ -547,6 +547,16 @@ export default function CalendarPage() {
                           </div>
                         )}
                       </div>
+                      
+                      {job.location && (
+                        <div className="mt-3">
+                          <WeatherWidget 
+                            calendarJobId={job.id} 
+                            location={job.location}
+                            compact={true}
+                          />
+                        </div>
+                      )}
                     </div>
                     
                     <div className="flex gap-2">
