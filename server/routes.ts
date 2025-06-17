@@ -2171,6 +2171,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         followUpDate: leadData.followUpDate ? new Date(leadData.followUpDate) : null,
       });
 
+      // Broadcast to all web users except the creator
+      (app as any).broadcastToWebUsers('lead_created', {
+        lead,
+        createdBy: req.user!.username
+      }, req.user!.id);
+
       res.status(201).json(lead);
     } catch (error: any) {
       console.error("Error creating lead:", error);
@@ -2262,6 +2268,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         endDate: new Date(jobData.endDate),
         estimatedValue: jobData.estimatedValue ? parseFloat(jobData.estimatedValue) : null,
       });
+
+      // Broadcast to all web users except the creator
+      (app as any).broadcastToWebUsers('calendar_job_created', {
+        job,
+        createdBy: req.user!.username
+      }, req.user!.id);
 
       res.status(201).json(job);
     } catch (error: any) {

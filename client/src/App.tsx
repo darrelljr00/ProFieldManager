@@ -4,8 +4,9 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Sidebar } from "@/components/sidebar";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useWebSocket } from "@/hooks/useWebSocket";
 import Dashboard from "@/pages/dashboard";
 import Projects from "@/pages/projects";
 import ProjectDetail from "@/pages/project-detail";
@@ -31,6 +32,7 @@ import NotFound from "@/pages/not-found";
 
 function AuthenticatedApp() {
   const { isAdmin } = useAuth();
+  const { isConnected } = useWebSocket();
   
   return (
     <div className="flex h-screen bg-gray-50">
