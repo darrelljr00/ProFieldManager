@@ -116,7 +116,7 @@ export function Sidebar() {
       <div className="p-6 border-b border-gray-200">
         <div className="flex items-center">
           <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-            <FileText className="text-white text-lg" />
+            <Briefcase className="text-white text-lg" />
           </div>
           <h1 className="ml-3 text-xl font-bold text-gray-900">Pro Field Manager</h1>
         </div>
