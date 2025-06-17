@@ -2609,12 +2609,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Specific settings endpoints that the frontend expects
   app.get('/api/settings/payment', requireAuth, async (req, res) => {
     try {
+      console.log('Fetching payment settings for user:', req.user?.id);
       const settings = await storage.getSettingsByCategory('payment');
-      const paymentSettings = settings.reduce((acc: any, setting: any) => {
-        const key = setting.key.replace('payment_', '');
-        acc[key] = setting.value === 'true' ? true : setting.value === 'false' ? false : setting.value;
-        return acc;
-      }, {
+      console.log('Retrieved settings:', settings);
+      
+      const defaultSettings = {
         stripeEnabled: false,
         stripePublicKey: '',
         stripeSecretKey: '',
@@ -2624,7 +2623,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         squareAccessToken: '',
         squareWebhookSecret: '',
         squareEnvironment: 'sandbox'
-      });
+      };
+      
+      const paymentSettings = settings.reduce((acc: any, setting: any) => {
+        const key = setting.key.replace('payment_', '');
+        acc[key] = setting.value === 'true' ? true : setting.value === 'false' ? false : setting.value;
+        return acc;
+      }, defaultSettings);
+      
+      console.log('Final payment settings:', paymentSettings);
       res.json(paymentSettings);
     } catch (error: any) {
       console.error('Error fetching payment settings:', error);
@@ -2648,12 +2655,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/settings/email', requireAuth, async (req, res) => {
     try {
       const settings = await storage.getSettingsByCategory('email');
-      const emailSettings = settings.reduce((acc: any, setting: any) => {
-        const key = setting.key.replace('email_', '');
-        acc[key] = setting.value === 'true' ? true : setting.value === 'false' ? false : 
-                   ['smtpPort'].includes(key) ? parseInt(setting.value) || 587 : setting.value;
-        return acc;
-      }, {
+      const defaultSettings = {
         emailEnabled: false,
         smtpHost: '',
         smtpPort: 587,
@@ -2662,7 +2664,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         smtpSecure: false,
         fromEmail: '',
         fromName: ''
-      });
+      };
+      
+      const emailSettings = settings.reduce((acc: any, setting: any) => {
+        const key = setting.key.replace('email_', '');
+        acc[key] = setting.value === 'true' ? true : setting.value === 'false' ? false : 
+                   ['smtpPort'].includes(key) ? parseInt(setting.value) || 587 : setting.value;
+        return acc;
+      }, defaultSettings);
+      
       res.json(emailSettings);
     } catch (error: any) {
       console.error('Error fetching email settings:', error);
