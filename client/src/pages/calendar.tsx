@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { Calendar, ChevronLeft, ChevronRight, Plus, Edit, Trash2, PlayCircle, DollarSign, MapPin } from "lucide-react";
 import type { CalendarJob, InsertCalendarJob, Customer, Lead } from "@shared/schema";
+import { WeatherWidget } from "@/components/weather-widget";
 
 export default function CalendarPage() {
   const [selectedJob, setSelectedJob] = useState<CalendarJob | null>(null);

@@ -4842,7 +4842,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/weather/jobs/:jobId', requireAuth, async (req, res) => {
     try {
       const jobId = parseInt(req.params.jobId);
-      const job = await storage.getProject(jobId);
+      const user = getAuthenticatedUser(req);
+      const job = await storage.getProject(jobId, user.id);
       
       if (!job) {
         return res.status(404).json({ message: 'Job not found' });
@@ -4896,7 +4897,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/weather/calendar-job/:jobId', requireAuth, async (req, res) => {
     try {
       const jobId = parseInt(req.params.jobId);
-      const job = await storage.getCalendarJob(jobId);
+      const user = getAuthenticatedUser(req);
+      const job = await storage.getCalendarJob(jobId, user.id);
       
       if (!job) {
         return res.status(404).json({ message: 'Calendar job not found' });

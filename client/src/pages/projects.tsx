@@ -17,6 +17,7 @@ import { Link } from "wouter";
 import type { Project, Customer, User } from "@shared/schema";
 import { DirectionsButton } from "@/components/google-maps";
 import { DispatchRouting } from "@/components/dispatch-routing";
+import { WeatherWidget } from "@/components/weather-widget";
 
 interface ProjectWithDetails extends Project {
   users: { user: User }[];
@@ -255,17 +256,24 @@ interface CalendarJobWithDetails {
                 )}
 
                 {(project.address || project.city) && (
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-1 text-sm text-gray-500">
-                      <MapPin className="h-4 w-4" />
-                      <span>
-                        {project.address && `${project.address}, `}
-                        {project.city} {project.state}
-                      </span>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-1 text-sm text-gray-500">
+                        <MapPin className="h-4 w-4" />
+                        <span>
+                          {project.address && `${project.address}, `}
+                          {project.city} {project.state}
+                        </span>
+                      </div>
+                      {project.address && (
+                        <DirectionsButton address={`${project.address}, ${project.city}, ${project.state} ${project.zipCode}`} />
+                      )}
                     </div>
-                    {project.address && (
-                      <DirectionsButton address={`${project.address}, ${project.city}, ${project.state} ${project.zipCode}`} />
-                    )}
+                    <WeatherWidget 
+                      jobId={project.id} 
+                      location={`${project.city}${project.state ? `, ${project.state}` : ''}`}
+                      compact={true}
+                    />
                   </div>
                 )}
 
