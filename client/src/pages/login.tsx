@@ -196,8 +196,8 @@ export default function LoginPage() {
       {/* Content container with backdrop blur */}
       <div className="relative z-10 w-full max-w-md space-y-6 p-4">
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-white drop-shadow-lg">Invoice Management</h1>
-          <p className="text-blue-100 mt-2 drop-shadow-sm">Professional invoice and payment processing</p>
+          <h1 className="text-3xl font-bold text-white drop-shadow-lg">Pro Field Manager</h1>
+          <p className="text-blue-100 mt-2 drop-shadow-sm">Professional field service management platform</p>
         </div>
 
         <Card className="backdrop-blur-lg bg-white/90 border-white/20 shadow-2xl shadow-black/20">

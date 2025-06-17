@@ -118,7 +118,7 @@ export function Sidebar() {
           <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
             <FileText className="text-white text-lg" />
           </div>
-          <h1 className="ml-3 text-xl font-bold text-gray-900">InvoicePro</h1>
+          <h1 className="ml-3 text-xl font-bold text-gray-900">Pro Field Manager</h1>
         </div>
       </div>
       
