@@ -39,7 +39,9 @@ import {
   XCircle,
   AlertCircle,
   AlertTriangle,
-  Shield
+  Shield,
+  Upload,
+  Paperclip
 } from "lucide-react";
 
 interface Employee {
@@ -103,6 +105,8 @@ interface DisciplinaryAction {
   status: "active" | "resolved" | "appealed" | "overturned";
   appealNotes?: string;
   resolutionNotes?: string;
+  documentUrl?: string;
+  documentName?: string;
 }
 
 // Mock data for demonstration
@@ -227,7 +231,9 @@ const mockDisciplinaryActions: DisciplinaryAction[] = [
     issuedBy: "HR Department",
     witnessName: "Sarah Johnson",
     dateIssued: "2024-01-20",
-    status: "active"
+    status: "active",
+    documentUrl: "/uploads/disciplinary-writeup-2.pdf",
+    documentName: "Written Warning - Mike Wilson.pdf"
   },
   {
     id: 3,
@@ -244,7 +250,9 @@ const mockDisciplinaryActions: DisciplinaryAction[] = [
     issuedBy: "Mike Wilson",
     dateIssued: "2024-01-10",
     status: "resolved",
-    resolutionNotes: "Employee showed significant improvement after additional training"
+    resolutionNotes: "Employee showed significant improvement after additional training",
+    documentUrl: "/uploads/disciplinary-writeup-3.pdf",
+    documentName: "Performance Counseling - Sarah Johnson.pdf"
   }
 ];
 
@@ -969,6 +977,30 @@ export default function HumanResources() {
                         </div>
                       </div>
 
+                      <div>
+                        <Label htmlFor="document">Upload Disciplinary Document (PDF)</Label>
+                        <div className="mt-2 border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
+                          <Upload className="mx-auto h-12 w-12 text-gray-400" />
+                          <div className="mt-4">
+                            <label htmlFor="document" className="cursor-pointer">
+                              <span className="mt-2 block text-sm font-medium text-gray-900">
+                                Upload a PDF file
+                              </span>
+                              <span className="mt-1 block text-sm text-gray-500">
+                                PDF up to 10MB
+                              </span>
+                            </label>
+                            <input
+                              id="document"
+                              name="document"
+                              type="file"
+                              accept=".pdf"
+                              className="sr-only"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
                       <div className="flex justify-end space-x-2 pt-4">
                         <Button type="button" variant="outline" onClick={() => setDisciplinaryDialogOpen(false)}>
                           Cancel
@@ -1018,6 +1050,7 @@ export default function HumanResources() {
                       <TableHead>Severity</TableHead>
                       <TableHead>Date Issued</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead>Document</TableHead>
                       <TableHead>Follow-up</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
@@ -1059,6 +1092,27 @@ export default function HumanResources() {
                           >
                             {action.status.toUpperCase()}
                           </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {action.documentUrl ? (
+                            <div className="flex items-center space-x-2">
+                              <Paperclip className="h-4 w-4 text-gray-500" />
+                              <a 
+                                href={action.documentUrl} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:text-blue-800 text-sm truncate max-w-32"
+                                title={action.documentName}
+                              >
+                                {action.documentName}
+                              </a>
+                              <Button variant="ghost" size="sm" className="p-1">
+                                <Download className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <span className="text-gray-400 text-sm">No document</span>
+                          )}
                         </TableCell>
                         <TableCell>
                           {action.followUpRequired ? (

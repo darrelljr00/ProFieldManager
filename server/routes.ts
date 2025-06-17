@@ -99,6 +99,37 @@ const upload = multer({
   }
 });
 
+// Configure multer specifically for disciplinary PDF uploads
+const disciplinaryUpload = multer({
+  storage: multer.diskStorage({
+    destination: async (req, file, cb) => {
+      const uploadDir = './uploads/disciplinary';
+      try {
+        await fs.mkdir(uploadDir, { recursive: true });
+        cb(null, uploadDir);
+      } catch (error) {
+        cb(error as Error, uploadDir);
+      }
+    },
+    filename: (req, file, cb) => {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      const sanitizedOriginalName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+      cb(null, 'disciplinary-' + uniqueSuffix + '-' + sanitizedOriginalName);
+    }
+  }),
+  fileFilter: (req, file, cb) => {
+    // Only allow PDF files for disciplinary documents
+    if (file.mimetype === 'application/pdf') {
+      return cb(null, true);
+    } else {
+      cb(new Error('Only PDF files are allowed for disciplinary documents'));
+    }
+  },
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB limit for PDFs
+  }
+});
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication routes (public)
   app.post("/api/auth/register", async (req, res) => {
