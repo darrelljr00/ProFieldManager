@@ -25,12 +25,12 @@ interface ProjectWithDetails extends Project {
   customer?: Customer;
 }
 
-export default function Projects() {
+export default function Jobs() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: projects = [], isLoading } = useQuery<ProjectWithDetails[]>({
+  const { data: jobs = [], isLoading } = useQuery<ProjectWithDetails[]>({
     queryKey: ["/api/projects"],
   });
 
@@ -101,7 +101,7 @@ interface CalendarJobWithDetails {
     },
   });
 
-  const handleCreateProject = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleCreateJob = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const data = {
@@ -119,7 +119,7 @@ interface CalendarJobWithDetails {
       zipCode: formData.get("zipCode"),
       country: "US",
     };
-    createProjectMutation.mutate(data);
+  createJobMutation.mutate(data);
   };
 
   const getStatusColor = (status: string) => {
@@ -153,37 +153,37 @@ interface CalendarJobWithDetails {
     }
   };
 
-  const categorizeProjects = () => {
-    const upcoming = projects.filter(project => 
-      project.status === 'planning' || 
-      (project.status === 'active' && project.startDate && new Date(project.startDate) > new Date())
+  const categorizeJobs = () => {
+    const upcoming = jobs.filter(job => 
+      job.status === 'planning' || 
+      (job.status === 'active' && job.startDate && new Date(job.startDate) > new Date())
     );
     
-    const inProgress = projects.filter(project => 
-      project.status === 'active' && 
-      (!project.startDate || new Date(project.startDate) <= new Date()) &&
-      project.progress < 100
+    const inProgress = jobs.filter(job => 
+      job.status === 'active' && 
+      (!job.startDate || new Date(job.startDate) <= new Date()) &&
+      job.progress < 100
     );
     
-    const completed = projects.filter(project => 
-      project.status === 'completed' || 
-      project.status === 'delivered' || 
-      project.progress === 100
+    const completed = jobs.filter(job => 
+      job.status === 'completed' || 
+      job.status === 'delivered' || 
+      job.progress === 100
     );
 
     return { upcoming, inProgress, completed };
   };
 
-  const { upcoming, inProgress, completed } = categorizeProjects();
+  const { upcoming, inProgress, completed } = categorizeJobs();
 
-  const renderProjectGrid = (projectList: ProjectWithDetails[], emptyMessage: string) => {
-    if (projectList.length === 0) {
+  const renderJobGrid = (jobList: ProjectWithDetails[], emptyMessage: string) => {
+    if (jobList.length === 0) {
       return (
         <Card>
           <CardContent className="text-center py-12">
             <Folder className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">{emptyMessage}</h3>
-            <p className="text-gray-600 mb-4">Projects will appear here based on their status and timeline</p>
+            <p className="text-gray-600 mb-4">Jobs will appear here based on their status and timeline</p>
           </CardContent>
         </Card>
       );
@@ -191,7 +191,7 @@ interface CalendarJobWithDetails {
 
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {projectList.map((project) => (
+        {jobList.map((project) => (
           <Card key={project.id} className="hover:shadow-md transition-shadow">
             <CardHeader className="pb-3">
               <div className="flex justify-between items-start">
