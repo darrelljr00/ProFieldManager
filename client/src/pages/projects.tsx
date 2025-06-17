@@ -63,20 +63,20 @@ interface CalendarJobWithDetails {
   lead?: any;
 }
 
-  const createProjectMutation = useMutation({
+  const createJobMutation = useMutation({
     mutationFn: (data: any) => apiRequest("/api/projects", "POST", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
       setCreateDialogOpen(false);
       toast({
         title: "Success",
-        description: "Project created successfully",
+        description: "Job created successfully",
       });
     },
     onError: (error) => {
       toast({
         title: "Error",
-        description: "Failed to create project",
+        description: "Failed to create job",
         variant: "destructive",
       });
     },
@@ -89,13 +89,13 @@ interface CalendarJobWithDetails {
       queryClient.invalidateQueries({ queryKey: ["/api/calendar-jobs"] });
       toast({
         title: "Success",
-        description: "Calendar job converted to project successfully",
+        description: "Calendar job converted to job successfully",
       });
     },
     onError: (error) => {
       toast({
         title: "Error",
-        description: "Failed to convert calendar job to project",
+        description: "Failed to convert calendar job to job",
         variant: "destructive",
       });
     },
@@ -310,31 +310,31 @@ interface CalendarJobWithDetails {
     <div className="container mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Projects</h1>
-          <p className="text-gray-600 mt-1">Manage your projects, tasks, and team collaboration</p>
+          <h1 className="text-3xl font-bold text-gray-900">Jobs</h1>
+          <p className="text-gray-600 mt-1">Manage your jobs, tasks, and team collaboration</p>
         </div>
         <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
-              New Project
+              New Job
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>Create New Project</DialogTitle>
+              <DialogTitle>Create New Job</DialogTitle>
               <DialogDescription>
-                Create a new project to organize tasks, files, and team collaboration.
+                Create a new job to organize tasks, files, and team collaboration.
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleCreateProject} className="space-y-4">
+            <form onSubmit={handleCreateJob} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="name">Project Name *</Label>
+                  <Label htmlFor="name">Job Name *</Label>
                   <Input
                     id="name"
                     name="name"
-                    placeholder="Enter project name"
+                    placeholder="Enter job name"
                     required
                   />
                 </div>
@@ -360,7 +360,7 @@ interface CalendarJobWithDetails {
                 <Textarea
                   id="description"
                   name="description"
-                  placeholder="Project description"
+                  placeholder="Job description"
                   rows={3}
                 />
               </div>
