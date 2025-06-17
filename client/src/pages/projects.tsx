@@ -541,7 +541,7 @@ interface CalendarJobWithDetails {
         </Card>
       )}
 
-      {projects.length === 0 ? (
+      {jobs.length === 0 ? (
         <Card>
           <CardContent className="text-center py-12">
             <Folder className="h-12 w-12 text-gray-400 mx-auto mb-4" />
