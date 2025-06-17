@@ -288,12 +288,12 @@ interface CalendarJobWithDetails {
 
                 <div className="flex space-x-2 pt-4">
                   <Button asChild size="sm" className="flex-1">
-                    <Link href={`/projects/${project.id}`}>
+                    <Link href={`/jobs/${project.id}`}>
                       View Details
                     </Link>
                   </Button>
                   <Button asChild variant="outline" size="sm">
-                    <Link href={`/projects/${project.id}/tasks`}>
+                    <Link href={`/jobs/${project.id}/tasks`}>
                       Tasks
                     </Link>
                   </Button>

@@ -76,11 +76,18 @@ export class WeatherService {
   }
 
   async getForecast(location: string, days: number = 3): Promise<WeatherData> {
-    const url = `${this.baseUrl}/forecast.json?key=${this.apiKey}&q=${encodeURIComponent(location)}&days=${days}&aqi=no&alerts=no`;
+    // Clean and validate location string
+    const cleanLocation = location.trim().replace(/[^\w\s,.-]/g, '');
+    if (!cleanLocation || cleanLocation.length < 2) {
+      throw new Error(`Invalid location format: ${location}`);
+    }
+    
+    const url = `${this.baseUrl}/forecast.json?key=${this.apiKey}&q=${encodeURIComponent(cleanLocation)}&days=${days}&aqi=no&alerts=no`;
     
     const response = await fetch(url);
     if (!response.ok) {
-      throw new Error(`Weather API error: ${response.status} ${response.statusText}`);
+      const errorData = await response.text();
+      throw new Error(`Weather API error for location "${cleanLocation}": ${response.status} ${response.statusText} - ${errorData}`);
     }
     
     return response.json();
