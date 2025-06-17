@@ -22,7 +22,8 @@ import {
   ChevronRight,
   ImageIcon,
   Star,
-  Briefcase
+  Briefcase,
+  Server
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -56,6 +57,7 @@ const navigation = [
   { name: "Reviews", href: "/reviews", icon: Star },
   { name: "Human Resources", href: "/human-resources", icon: Briefcase },
   { name: "User Management", href: "/users", icon: UserCog },
+  { name: "SaaS Admin", href: "/saas-admin", icon: Server },
   { name: "Admin Settings", href: "/admin-settings", icon: Shield },
   { name: "Reports", href: "/reports", icon: FileBarChart },
   { name: "Settings", href: "/settings", icon: Settings },

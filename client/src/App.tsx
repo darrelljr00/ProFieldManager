@@ -23,6 +23,7 @@ import InternalMessages from "@/pages/internal-messages";
 import ImageGallery from "@/pages/image-gallery";
 import Users from "@/pages/users";
 import AdminSettings from "@/pages/admin-settings";
+import SaasAdmin from "@/pages/saas-admin";
 import SmsPage from "@/pages/sms";
 import Reviews from "@/pages/reviews";
 import Settings from "@/pages/settings";
@@ -60,6 +61,7 @@ function AuthenticatedApp() {
           <Route path="/human-resources" component={HumanResources} />
           {isAdmin && <Route path="/users" component={Users} />}
           {isAdmin && <Route path="/admin-settings" component={AdminSettings} />}
+          {isAdmin && <Route path="/saas-admin" component={SaasAdmin} />}
           <Route path="/settings" component={Settings} />
           <Route component={NotFound} />
         </Switch>
