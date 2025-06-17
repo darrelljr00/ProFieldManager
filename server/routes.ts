@@ -2583,31 +2583,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // General settings API
-  app.get('/api/settings', requireAuth, async (req, res) => {
-    try {
-      const category = req.query.category as string;
-      const settings = await storage.getSettingsByCategory(category);
-      res.json(settings);
-    } catch (error: any) {
-      console.error('Error fetching settings:', error);
-      res.status(500).json({ message: 'Failed to fetch settings' });
-    }
-  });
-
-  app.put('/api/settings', requireAuth, async (req, res) => {
-    try {
-      const { category, key, value } = req.body;
-      await storage.updateSetting(category, key, value);
-      res.json({ message: 'Setting updated successfully' });
-    } catch (error: any) {
-      console.error('Error updating setting:', error);
-      res.status(500).json({ message: 'Failed to update setting' });
-    }
-  });
-
-  // Payment settings endpoint
-  app.get('/api/settings/payment', requireAuth, async (req, res) => {
+  // Create settings router to handle all settings endpoints
+  const settingsRouter = express.Router();
+  
+  // Payment settings
+  settingsRouter.get('/payment', async (req, res) => {
     try {
       const settings = await storage.getSettingsByCategory('payment');
       
@@ -2637,7 +2617,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/settings/payment', requireAuth, async (req, res) => {
+  settingsRouter.put('/payment', requireAuth, async (req, res) => {
     try {
       const settings = req.body;
       for (const [key, value] of Object.entries(settings)) {
@@ -2650,7 +2630,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/settings/email', requireAuth, async (req, res) => {
+  // Email settings
+  settingsRouter.get('/email', requireAuth, async (req, res) => {
     try {
       const settings = await storage.getSettingsByCategory('email');
       const defaultSettings = {
@@ -2664,12 +2645,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fromName: ''
       };
       
-      const emailSettings = settings.reduce((acc: any, setting: any) => {
+      const emailSettings = { ...defaultSettings };
+      settings.forEach((setting: any) => {
         const key = setting.key.replace('email_', '');
-        acc[key] = setting.value === 'true' ? true : setting.value === 'false' ? false : 
-                   ['smtpPort'].includes(key) ? parseInt(setting.value) || 587 : setting.value;
-        return acc;
-      }, defaultSettings);
+        if (key in emailSettings) {
+          emailSettings[key] = setting.value === 'true' ? true : setting.value === 'false' ? false : 
+                         ['smtpPort'].includes(key) ? parseInt(setting.value) || 587 : setting.value;
+        }
+      });
       
       res.json(emailSettings);
     } catch (error: any) {
@@ -2677,6 +2660,148 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: 'Failed to fetch email settings' });
     }
   });
+
+  settingsRouter.put('/email', requireAuth, async (req, res) => {
+    try {
+      const settings = req.body;
+      for (const [key, value] of Object.entries(settings)) {
+        await storage.updateSetting('email', `email_${key}`, String(value));
+      }
+      res.json({ message: 'Email settings updated successfully' });
+    } catch (error: any) {
+      console.error('Error updating email settings:', error);
+      res.status(500).json({ message: 'Failed to update email settings' });
+    }
+  });
+
+  // Notifications settings
+  settingsRouter.get('/notifications', requireAuth, async (req, res) => {
+    try {
+      const settings = await storage.getSettingsByCategory('notifications');
+      const defaultSettings = {
+        emailNotifications: true,
+        smsNotifications: false,
+        pushNotifications: true,
+        invoiceReminders: true,
+        paymentReminders: true,
+        projectUpdates: true
+      };
+      
+      const notificationSettings = { ...defaultSettings };
+      settings.forEach((setting: any) => {
+        const key = setting.key.replace('notifications_', '');
+        if (key in notificationSettings) {
+          notificationSettings[key] = setting.value === 'true';
+        }
+      });
+      
+      res.json(notificationSettings);
+    } catch (error: any) {
+      console.error('Error fetching notification settings:', error);
+      res.status(500).json({ message: 'Failed to fetch notification settings' });
+    }
+  });
+
+  settingsRouter.put('/notifications', requireAuth, async (req, res) => {
+    try {
+      const settings = req.body;
+      for (const [key, value] of Object.entries(settings)) {
+        await storage.updateSetting('notifications', `notifications_${key}`, String(value));
+      }
+      res.json({ message: 'Notification settings updated successfully' });
+    } catch (error: any) {
+      console.error('Error updating notification settings:', error);
+      res.status(500).json({ message: 'Failed to update notification settings' });
+    }
+  });
+
+  // Security settings
+  settingsRouter.get('/security', requireAuth, async (req, res) => {
+    try {
+      const settings = await storage.getSettingsByCategory('security');
+      const defaultSettings = {
+        twoFactorAuth: false,
+        sessionTimeout: 30,
+        passwordComplexity: true,
+        loginAttempts: 5,
+        accountLockout: true
+      };
+      
+      const securitySettings = { ...defaultSettings };
+      settings.forEach((setting: any) => {
+        const key = setting.key.replace('security_', '');
+        if (key in securitySettings) {
+          securitySettings[key] = setting.value === 'true' ? true : setting.value === 'false' ? false :
+                             ['sessionTimeout', 'loginAttempts'].includes(key) ? parseInt(setting.value) || securitySettings[key] : setting.value;
+        }
+      });
+      
+      res.json(securitySettings);
+    } catch (error: any) {
+      console.error('Error fetching security settings:', error);
+      res.status(500).json({ message: 'Failed to fetch security settings' });
+    }
+  });
+
+  settingsRouter.put('/security', requireAuth, async (req, res) => {
+    try {
+      const settings = req.body;
+      for (const [key, value] of Object.entries(settings)) {
+        await storage.updateSetting('security', `security_${key}`, String(value));
+      }
+      res.json({ message: 'Security settings updated successfully' });
+    } catch (error: any) {
+      console.error('Error updating security settings:', error);
+      res.status(500).json({ message: 'Failed to update security settings' });
+    }
+  });
+
+  // Integration settings
+  settingsRouter.get('/integrations', requireAuth, async (req, res) => {
+    try {
+      const settings = await storage.getSettingsByCategory('integrations');
+      const defaultSettings = {
+        googleMapsEnabled: false,
+        googleMapsApiKey: '',
+        twilioEnabled: false,
+        twilioAccountSid: '',
+        twilioAuthToken: '',
+        twilioPhoneNumber: '',
+        docusignEnabled: false,
+        docusignClientId: '',
+        docusignClientSecret: ''
+      };
+      
+      const integrationSettings = { ...defaultSettings };
+      settings.forEach((setting: any) => {
+        const key = setting.key.replace('integrations_', '');
+        if (key in integrationSettings) {
+          integrationSettings[key] = setting.value === 'true' ? true : setting.value === 'false' ? false : setting.value;
+        }
+      });
+      
+      res.json(integrationSettings);
+    } catch (error: any) {
+      console.error('Error fetching integration settings:', error);
+      res.status(500).json({ message: 'Failed to fetch integration settings' });
+    }
+  });
+
+  settingsRouter.put('/integrations', requireAuth, async (req, res) => {
+    try {
+      const settings = req.body;
+      for (const [key, value] of Object.entries(settings)) {
+        await storage.updateSetting('integrations', `integrations_${key}`, String(value));
+      }
+      res.json({ message: 'Integration settings updated successfully' });
+    } catch (error: any) {
+      console.error('Error updating integration settings:', error);
+      res.status(500).json({ message: 'Failed to update integration settings' });
+    }
+  });
+
+  // Mount the settings router
+  app.use('/api/settings', settingsRouter);
 
   app.put('/api/settings/email', requireAuth, async (req, res) => {
     try {
