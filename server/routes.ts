@@ -2800,10 +2800,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Direct settings endpoints - bypassing router conflicts
+  // Settings endpoints with proper default value handling
   app.get('/api/settings/payment', requireAuth, async (req, res) => {
     try {
+      console.log('Fetching payment settings...');
       const settings = await storage.getSettingsByCategory('payment');
+      console.log('Retrieved settings from database:', settings);
       
       const paymentSettings = {
         stripeEnabled: false,
@@ -2817,13 +2819,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         squareEnvironment: 'sandbox'
       };
       
-      settings.forEach((setting: any) => {
-        const key = setting.key.replace('payment_', '');
-        if (key in paymentSettings) {
-          paymentSettings[key] = setting.value === 'true' ? true : setting.value === 'false' ? false : setting.value;
-        }
-      });
+      // Apply database values if they exist
+      if (settings && settings.length > 0) {
+        settings.forEach((setting: any) => {
+          const key = setting.key.replace('payment_', '');
+          if (key in paymentSettings) {
+            paymentSettings[key] = setting.value === 'true' ? true : setting.value === 'false' ? false : setting.value;
+          }
+        });
+      }
       
+      console.log('Final payment settings:', paymentSettings);
       res.json(paymentSettings);
     } catch (error: any) {
       console.error('Error fetching payment settings:', error);
@@ -3009,9 +3015,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: 'Failed to update integration settings' });
     }
   });
-
-  // Mount the settings router
-  app.use('/api/settings', settingsRouter);
 
   app.put('/api/settings/email', requireAuth, async (req, res) => {
     try {
