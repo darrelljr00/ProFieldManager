@@ -54,6 +54,7 @@ const navigation = [
   { name: "Image Gallery", href: "/image-gallery", icon: ImageIcon },
   { name: "Text Messaging", href: "/sms", icon: Smartphone },
   { name: "Reviews", href: "/reviews", icon: Star },
+  { name: "Human Resources", href: "/human-resources", icon: Briefcase },
   { name: "User Management", href: "/users", icon: UserCog },
   { name: "Admin Settings", href: "/admin-settings", icon: Shield },
   { name: "Reports", href: "/reports", icon: FileBarChart },
