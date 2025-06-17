@@ -2606,31 +2606,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Test endpoint for debugging
-  app.get('/api/settings/test', async (req, res) => {
-    res.json({ 
-      test: true, 
-      defaults: {
-        stripeEnabled: false,
-        stripePublicKey: '',
-        squareEnvironment: 'sandbox'
-      }
-    });
-  });
-
   // Specific settings endpoints that the frontend expects
-  app.get('/api/settings/payment', async (req, res) => {
+  app.get('/api/settings/payment', requireAuth, async (req, res) => {
     try {
-      const token = req.headers.authorization?.replace('Bearer ', '') || req.cookies?.auth_token;
-      if (!token) {
-        return res.status(401).json({ message: "Authentication required" });
-      }
-
-      const sessionData = await AuthService.validateSession(token);
-      if (!sessionData) {
-        return res.status(401).json({ message: "Invalid or expired session" });
-      }
-
       const settings = await storage.getSettingsByCategory('payment');
       
       const defaultSettings = {
@@ -2645,11 +2623,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         squareEnvironment: 'sandbox'
       };
       
-      const paymentSettings = settings.reduce((acc: any, setting: any) => {
+      const paymentSettings = { ...defaultSettings };
+      
+      settings.forEach((setting: any) => {
         const key = setting.key.replace('payment_', '');
-        acc[key] = setting.value === 'true' ? true : setting.value === 'false' ? false : setting.value;
-        return acc;
-      }, defaultSettings);
+        if (key in paymentSettings) {
+          paymentSettings[key] = setting.value === 'true' ? true : setting.value === 'false' ? false : setting.value;
+        }
+      });
       
       res.json(paymentSettings);
     } catch (error: any) {
