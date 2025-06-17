@@ -686,186 +686,279 @@ export const insertQuoteSchema = z.object({
   })),
 });
 
-export const insertQuoteLineItemSchema = createInsertSchema(quoteLineItems).omit({
-  id: true,
-  createdAt: true,
+export const insertQuoteLineItemSchema = z.object({
+  quoteId: z.number(),
+  description: z.string().min(1),
+  quantity: z.number().positive(),
+  rate: z.number().positive(),
+  amount: z.number().positive(),
 });
 
-export const insertInvoiceLineItemSchema = createInsertSchema(invoiceLineItems).omit({
-  id: true,
-  createdAt: true,
+export const insertInvoiceLineItemSchema = z.object({
+  invoiceId: z.number(),
+  description: z.string().min(1),
+  quantity: z.number().positive(),
+  rate: z.number().positive(),
+  amount: z.number().positive(),
 });
 
-export const insertPaymentSchema = createInsertSchema(payments).omit({
-  id: true,
-  createdAt: true,
+export const insertPaymentSchema = z.object({
+  invoiceId: z.number(),
+  amount: z.number().positive(),
+  paymentDate: z.date(),
+  paymentMethod: z.string(),
+  notes: z.string().optional(),
+  organizationId: z.number(),
 });
 
-export const insertSettingSchema = createInsertSchema(settings).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
+export const insertSettingSchema = z.object({
+  key: z.string().min(1),
+  value: z.string(),
+  category: z.string().optional(),
+  organizationId: z.number(),
 });
 
-export const insertMessageSchema = createInsertSchema(messages).omit({
-  id: true,
-  createdAt: true,
+export const insertMessageSchema = z.object({
+  recipientPhone: z.string(),
+  content: z.string().min(1),
+  scheduledFor: z.date().optional(),
+  organizationId: z.number(),
 });
 
-export const insertUserSessionSchema = createInsertSchema(userSessions).omit({
-  id: true,
-  createdAt: true,
+export const insertUserSessionSchema = z.object({
+  userId: z.number(),
+  token: z.string(),
+  expiresAt: z.date(),
+  userAgent: z.string().optional(),
+  ipAddress: z.string().optional(),
 });
 
-export const insertUserPermissionSchema = createInsertSchema(userPermissions).omit({
-  id: true,
-  createdAt: true,
+export const insertUserPermissionSchema = z.object({
+  userId: z.number(),
+  permission: z.string(),
+  granted: z.boolean().default(true),
 });
 
-export const insertProjectSchema = createInsertSchema(projects).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
+export const insertProjectSchema = z.object({
+  name: z.string().min(1),
+  description: z.string().optional(),
+  status: z.enum(['planning', 'active', 'completed', 'cancelled']).default('planning'),
+  startDate: z.date().optional(),
+  endDate: z.date().optional(),
+  budget: z.number().optional(),
+  organizationId: z.number(),
 });
 
-export const insertProjectUserSchema = createInsertSchema(projectUsers).omit({
-  id: true,
-  joinedAt: true,
+export const insertProjectUserSchema = z.object({
+  projectId: z.number(),
+  userId: z.number(),
+  role: z.enum(['owner', 'manager', 'member', 'viewer']).default('member'),
 });
 
-export const insertTaskSchema = createInsertSchema(tasks).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
+export const insertTaskSchema = z.object({
+  projectId: z.number(),
+  title: z.string().min(1),
+  description: z.string().optional(),
+  status: z.enum(['todo', 'in_progress', 'review', 'done']).default('todo'),
+  priority: z.enum(['low', 'medium', 'high', 'urgent']).default('medium'),
+  assignedToId: z.number().optional(),
+  dueDate: z.date().optional(),
+  estimatedHours: z.number().optional(),
 });
 
-export const insertTaskCommentSchema = createInsertSchema(taskComments).omit({
-  id: true,
-  createdAt: true,
+export const insertTaskCommentSchema = z.object({
+  taskId: z.number(),
+  userId: z.number(),
+  content: z.string().min(1),
 });
 
-export const insertProjectFileSchema = createInsertSchema(projectFiles).omit({
-  id: true,
-  createdAt: true,
+export const insertProjectFileSchema = z.object({
+  projectId: z.number(),
+  fileName: z.string().min(1),
+  fileSize: z.number(),
+  mimeType: z.string(),
+  uploadedById: z.number(),
 });
 
-export const insertTimeEntrySchema = createInsertSchema(timeEntries).omit({
-  id: true,
-  createdAt: true,
+export const insertTimeEntrySchema = z.object({
+  projectId: z.number().optional(),
+  taskId: z.number().optional(),
+  userId: z.number(),
+  description: z.string().min(1),
+  hours: z.number().positive(),
+  date: z.date(),
+  billableRate: z.number().optional(),
 });
 
-export const insertExpenseSchema = createInsertSchema(expenses).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-  approvedBy: true,
-  approvedAt: true,
-  reimbursedAt: true,
+export const insertExpenseSchema = z.object({
+  userId: z.number(),
+  categoryId: z.number(),
+  amount: z.number().positive(),
+  description: z.string().min(1),
+  date: z.date(),
+  receiptUrl: z.string().optional(),
+  status: z.enum(['pending', 'approved', 'rejected']).default('pending'),
+  organizationId: z.number(),
 });
 
-export const insertExpenseCategorySchema = createInsertSchema(expenseCategories).omit({
-  id: true,
-  createdAt: true,
+export const insertExpenseCategorySchema = z.object({
+  name: z.string().min(1),
+  description: z.string().optional(),
+  isActive: z.boolean().default(true),
+  organizationId: z.number(),
 });
 
-export const insertExpenseReportSchema = createInsertSchema(expenseReports).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-  submittedAt: true,
-  approvedBy: true,
-  approvedAt: true,
+export const insertExpenseReportSchema = z.object({
+  userId: z.number(),
+  title: z.string().min(1),
+  startDate: z.date(),
+  endDate: z.date(),
+  status: z.enum(['draft', 'submitted', 'approved', 'rejected']).default('draft'),
+  organizationId: z.number(),
 });
 
-export const insertExpenseReportItemSchema = createInsertSchema(expenseReportItems).omit({
-  id: true,
-  createdAt: true,
+export const insertExpenseReportItemSchema = z.object({
+  reportId: z.number(),
+  expenseId: z.number(),
 });
 
-export const insertGasCardSchema = createInsertSchema(gasCards).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
+export const insertGasCardSchema = z.object({
+  cardNumber: z.string().min(1),
+  provider: z.string(),
+  monthlyLimit: z.number().positive(),
+  isActive: z.boolean().default(true),
+  organizationId: z.number(),
 });
 
-export const insertImageSchema = createInsertSchema(images).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
+export const insertImageSchema = z.object({
+  originalName: z.string(),
+  fileName: z.string(),
+  mimeType: z.string(),
+  size: z.number(),
+  projectId: z.number().optional(),
+  uploadedBy: z.number(),
+  organizationId: z.number(),
 });
 
-export const insertImageAnnotationSchema = createInsertSchema(imageAnnotations).omit({
-  id: true,
-  createdAt: true,
+export const insertImageAnnotationSchema = z.object({
+  imageId: z.number(),
+  x: z.number(),
+  y: z.number(),
+  width: z.number(),
+  height: z.number(),
+  text: z.string(),
+  createdBy: z.number(),
 });
 
-export const insertSharedPhotoLinkSchema = createInsertSchema(sharedPhotoLinks).omit({
-  id: true,
-  createdAt: true,
-  lastAccessedAt: true,
+export const insertSharedPhotoLinkSchema = z.object({
+  imageIds: z.array(z.number()),
+  accessToken: z.string(),
+  expiresAt: z.date().optional(),
+  allowDownload: z.boolean().default(false),
+  createdBy: z.number(),
+  organizationId: z.number(),
 });
 
-export const insertGasCardAssignmentSchema = createInsertSchema(gasCardAssignments).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
+export const insertGasCardAssignmentSchema = z.object({
+  cardId: z.number(),
+  assignedToUserId: z.number(),
+  assignedBy: z.number(),
+  assignedDate: z.date(),
 });
 
-export const insertLeadSchema = createInsertSchema(leads).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
+export const insertLeadSchema = z.object({
+  firstName: z.string(),
+  lastName: z.string(),
+  email: z.string().email().optional(),
+  phone: z.string().optional(),
+  address: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  zipCode: z.string().optional(),
+  source: z.string().optional(),
+  status: z.enum(['new', 'contacted', 'qualified', 'converted', 'lost']).default('new'),
+  notes: z.string().optional(),
+  assignedToId: z.number().optional(),
+  estimatedValue: z.number().optional(),
+  organizationId: z.number(),
 });
 
-export const insertCalendarJobSchema = createInsertSchema(calendarJobs).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
+export const insertCalendarJobSchema = z.object({
+  title: z.string().min(1),
+  description: z.string().optional(),
+  customerId: z.number().optional(),
+  assignedToId: z.number(),
+  startTime: z.date(),
+  endTime: z.date(),
+  address: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  zipCode: z.string().optional(),
+  status: z.enum(['scheduled', 'in_progress', 'completed', 'cancelled']).default('scheduled'),
+  organizationId: z.number(),
 });
 
-export const insertInternalMessageSchema = createInsertSchema(internalMessages).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
+export const insertInternalMessageSchema = z.object({
+  senderId: z.number(),
+  subject: z.string().min(1),
+  content: z.string().min(1),
+  priority: z.enum(['low', 'normal', 'high', 'urgent']).default('normal'),
+  organizationId: z.number(),
 });
 
-export const insertInternalMessageRecipientSchema = createInsertSchema(internalMessageRecipients).omit({
-  id: true,
-  createdAt: true,
+export const insertInternalMessageRecipientSchema = z.object({
+  messageId: z.number(),
+  recipientId: z.number(),
+  isRead: z.boolean().default(false),
 });
 
-export const insertMessageGroupSchema = createInsertSchema(messageGroups).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
+export const insertMessageGroupSchema = z.object({
+  name: z.string().min(1),
+  description: z.string().optional(),
+  createdBy: z.number(),
+  organizationId: z.number(),
 });
 
-export const insertMessageGroupMemberSchema = createInsertSchema(messageGroupMembers).omit({
-  id: true,
-  joinedAt: true,
+export const insertMessageGroupMemberSchema = z.object({
+  groupId: z.number(),
+  userId: z.number(),
+  role: z.enum(['admin', 'member']).default('member'),
 });
 
-export const insertReviewRequestSchema = createInsertSchema(reviewRequests).omit({
-  id: true,
-  createdAt: true,
+export const insertReviewRequestSchema = z.object({
+  customerId: z.number(),
+  requestType: z.enum(['google', 'facebook', 'yelp']),
+  templateId: z.number().optional(),
+  sentBy: z.number(),
+  organizationId: z.number(),
 });
 
-export const insertGoogleMyBusinessSettingsSchema = createInsertSchema(googleMyBusinessSettings).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
+export const insertGoogleMyBusinessSettingsSchema = z.object({
+  accountId: z.string(),
+  locationId: z.string(),
+  accessToken: z.string(),
+  refreshToken: z.string(),
+  isActive: z.boolean().default(true),
+  organizationId: z.number(),
 });
 
-export const insertDocusignEnvelopeSchema = createInsertSchema(docusignEnvelopes).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
+export const insertDocusignEnvelopeSchema = z.object({
+  envelopeId: z.string(),
+  documentName: z.string(),
+  recipientEmail: z.string().email(),
+  recipientName: z.string(),
+  status: z.string(),
+  sentBy: z.number(),
+  organizationId: z.number(),
 });
 
-export const insertExpenseLineItemSchema = createInsertSchema(expenseLineItems).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
+export const insertExpenseLineItemSchema = z.object({
+  expenseId: z.number(),
+  description: z.string().min(1),
+  quantity: z.number().positive().default(1),
+  unitPrice: z.number().positive(),
+  amount: z.number().positive(),
+  category: z.string().optional(),
 });
 
 export type InsertExpenseLineItem = z.infer<typeof insertExpenseLineItemSchema>;
