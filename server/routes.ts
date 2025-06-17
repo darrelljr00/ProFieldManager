@@ -1,5 +1,6 @@
 import express, { type Express, Request } from "express";
 import { createServer, type Server } from "http";
+import { WebSocketServer, WebSocket } from "ws";
 import Stripe from "stripe";
 import twilio from "twilio";
 import multer from "multer";
@@ -452,6 +453,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       const invoice = await storage.createInvoice(invoiceData);
+      
+      // Broadcast to all web users except the creator
+      (app as any).broadcastToWebUsers('invoice_created', {
+        invoice,
+        createdBy: req.user.username
+      }, req.user.id);
+      
       res.status(201).json(invoice);
     } catch (error: any) {
       if (error instanceof ZodError) {
@@ -1698,6 +1706,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         tags: expenseData.tags ? expenseData.tags.split(',').map((tag: string) => tag.trim()) : [],
       });
 
+      // Broadcast to all web users except the creator
+      (app as any).broadcastToWebUsers('expense_created', {
+        expense,
+        createdBy: req.user!.username
+      }, req.user!.id);
+
       res.status(201).json(expense);
     } catch (error: any) {
       console.error("Error creating expense:", error);
@@ -1967,6 +1981,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       })) : [];
 
       const result = await storage.createExpenseWithLineItems(expense, processedLineItems);
+      
+      // Broadcast to all web users except the creator
+      (app as any).broadcastToWebUsers('expense_with_line_items_created', {
+        expense: result,
+        createdBy: req.user!.username
+      }, req.user!.id);
+      
       res.status(201).json(result);
     } catch (error: any) {
       console.error("Error creating expense with line items:", error);
@@ -3562,5 +3583,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
+
+  // WebSocket server for real-time updates
+  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+  
+  // Store connected clients with user information
+  const connectedClients = new Map<WebSocket, { userId: number; username: string; userType: string }>();
+
+  wss.on('connection', (ws, req) => {
+    console.log('New WebSocket connection');
+
+    ws.on('message', (message) => {
+      try {
+        const data = JSON.parse(message.toString());
+        
+        if (data.type === 'auth') {
+          // Authenticate the WebSocket connection
+          connectedClients.set(ws, {
+            userId: data.userId,
+            username: data.username,
+            userType: data.userType || 'web'
+          });
+          
+          ws.send(JSON.stringify({
+            type: 'auth_success',
+            message: 'WebSocket authenticated successfully'
+          }));
+        }
+      } catch (error) {
+        console.error('Error processing WebSocket message:', error);
+      }
+    });
+
+    ws.on('close', () => {
+      connectedClients.delete(ws);
+      console.log('WebSocket connection closed');
+    });
+
+    ws.on('error', (error) => {
+      console.error('WebSocket error:', error);
+      connectedClients.delete(ws);
+    });
+  });
+
+  // Broadcast function to send updates to all connected web users
+  function broadcastToWebUsers(eventType: string, data: any, excludeUserId?: number) {
+    const message = JSON.stringify({
+      type: 'update',
+      eventType,
+      data,
+      timestamp: new Date().toISOString()
+    });
+
+    connectedClients.forEach((clientInfo, ws) => {
+      if (ws.readyState === WebSocket.OPEN && 
+          clientInfo.userType === 'web' && 
+          clientInfo.userId !== excludeUserId) {
+        ws.send(message);
+      }
+    });
+  }
+
+  // Add broadcast function to the app for use in routes
+  (app as any).broadcastToWebUsers = broadcastToWebUsers;
+
   return httpServer;
 }
