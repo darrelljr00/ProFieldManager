@@ -2606,12 +2606,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Test endpoint for debugging
+  app.get('/api/settings/test', async (req, res) => {
+    res.json({ 
+      test: true, 
+      defaults: {
+        stripeEnabled: false,
+        stripePublicKey: '',
+        squareEnvironment: 'sandbox'
+      }
+    });
+  });
+
   // Specific settings endpoints that the frontend expects
-  app.get('/api/settings/payment', requireAuth, async (req, res) => {
+  app.get('/api/settings/payment', async (req, res) => {
     try {
-      console.log('Fetching payment settings for user:', req.user?.id);
+      const token = req.headers.authorization?.replace('Bearer ', '') || req.cookies?.auth_token;
+      if (!token) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const sessionData = await AuthService.validateSession(token);
+      if (!sessionData) {
+        return res.status(401).json({ message: "Invalid or expired session" });
+      }
+
       const settings = await storage.getSettingsByCategory('payment');
-      console.log('Retrieved settings:', settings);
       
       const defaultSettings = {
         stripeEnabled: false,
@@ -2631,7 +2651,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return acc;
       }, defaultSettings);
       
-      console.log('Final payment settings:', paymentSettings);
       res.json(paymentSettings);
     } catch (error: any) {
       console.error('Error fetching payment settings:', error);
