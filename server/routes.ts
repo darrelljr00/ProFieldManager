@@ -2606,12 +2606,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Specific settings endpoints that the frontend expects
+  // Payment settings endpoint
   app.get('/api/settings/payment', requireAuth, async (req, res) => {
     try {
       const settings = await storage.getSettingsByCategory('payment');
       
-      const defaultSettings = {
+      const paymentSettings = {
         stripeEnabled: false,
         stripePublicKey: '',
         stripeSecretKey: '',
@@ -2622,8 +2622,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         squareWebhookSecret: '',
         squareEnvironment: 'sandbox'
       };
-      
-      const paymentSettings = { ...defaultSettings };
       
       settings.forEach((setting: any) => {
         const key = setting.key.replace('payment_', '');
