@@ -4343,6 +4343,192 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   }
 
+  // SaaS Admin Routes
+  
+  // Get SaaS metrics and overview data
+  app.get("/api/admin/saas/metrics", requireAdmin, async (req, res) => {
+    try {
+      const organizations = await storage.getAllOrganizations();
+      const currentMonth = new Date();
+      currentMonth.setDate(1);
+      
+      const totalOrganizations = organizations.length;
+      const activeSubscriptions = organizations.filter(org => org.subscriptionStatus === 'active').length;
+      const trialSubscriptions = organizations.filter(org => org.subscriptionStatus === 'trial').length;
+      const newOrganizationsThisMonth = organizations.filter(org => 
+        new Date(org.createdAt) >= currentMonth
+      ).length;
+      
+      // Calculate monthly revenue (this would typically come from billing system)
+      const monthlyRevenue = activeSubscriptions * 99; // Placeholder calculation
+      const revenueGrowth = 12; // Placeholder
+      const churnRate = 2.5; // Placeholder
+      const churnTrend = -0.5; // Placeholder
+      
+      res.json({
+        totalOrganizations,
+        newOrganizationsThisMonth,
+        activeSubscriptions,
+        trialSubscriptions,
+        monthlyRevenue,
+        revenueGrowth,
+        churnRate,
+        churnTrend
+      });
+    } catch (error: any) {
+      console.error("Error fetching SaaS metrics:", error);
+      res.status(500).json({ message: "Failed to fetch SaaS metrics" });
+    }
+  });
+
+  // Get all organizations for admin management
+  app.get("/api/admin/saas/organizations", requireAdmin, async (req, res) => {
+    try {
+      const organizations = await storage.getAllOrganizationsWithDetails();
+      res.json(organizations);
+    } catch (error: any) {
+      console.error("Error fetching organizations:", error);
+      res.status(500).json({ message: "Failed to fetch organizations" });
+    }
+  });
+
+  // Update organization details
+  app.put("/api/admin/saas/organizations/:id", requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updates = req.body;
+      
+      const organization = await storage.updateOrganization(parseInt(id), updates);
+      res.json(organization);
+    } catch (error: any) {
+      console.error("Error updating organization:", error);
+      res.status(500).json({ message: "Failed to update organization" });
+    }
+  });
+
+  // Suspend organization
+  app.post("/api/admin/saas/organizations/:id/suspend", requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      const organization = await storage.updateOrganization(parseInt(id), {
+        subscriptionStatus: 'suspended'
+      });
+      
+      res.json(organization);
+    } catch (error: any) {
+      console.error("Error suspending organization:", error);
+      res.status(500).json({ message: "Failed to suspend organization" });
+    }
+  });
+
+  // Get billing and revenue data
+  app.get("/api/admin/saas/billing", requireAdmin, async (req, res) => {
+    try {
+      // This would typically integrate with Stripe or your billing system
+      const recentPayments = [
+        {
+          id: 1,
+          organizationName: "Acme Corp",
+          planName: "Professional",
+          amount: 99,
+          status: "succeeded",
+          date: new Date()
+        },
+        {
+          id: 2,
+          organizationName: "Tech Solutions",
+          planName: "Enterprise",
+          amount: 199,
+          status: "succeeded",
+          date: new Date()
+        }
+      ];
+      
+      const failedPayments = [
+        {
+          id: 1,
+          organizationName: "Small Biz",
+          amount: 49,
+          lastAttempt: new Date(),
+          reason: "Card declined"
+        }
+      ];
+      
+      res.json({
+        recentPayments,
+        failedPayments
+      });
+    } catch (error: any) {
+      console.error("Error fetching billing data:", error);
+      res.status(500).json({ message: "Failed to fetch billing data" });
+    }
+  });
+
+  // Get subscription plans
+  app.get("/api/saas/plans", async (req, res) => {
+    try {
+      const plans = [
+        {
+          id: 1,
+          name: "Starter",
+          price: 29,
+          interval: "monthly",
+          maxUsers: 5,
+          maxProjects: 10,
+          maxStorageGB: 5,
+          hasAdvancedReporting: false,
+          hasApiAccess: false,
+          hasCustomBranding: false,
+          isActive: true
+        },
+        {
+          id: 2,
+          name: "Professional",
+          price: 99,
+          interval: "monthly",
+          maxUsers: 25,
+          maxProjects: 100,
+          maxStorageGB: 50,
+          hasAdvancedReporting: true,
+          hasApiAccess: true,
+          hasCustomBranding: false,
+          isActive: true
+        },
+        {
+          id: 3,
+          name: "Enterprise",
+          price: 199,
+          interval: "monthly",
+          maxUsers: -1, // unlimited
+          maxProjects: -1, // unlimited
+          maxStorageGB: 500,
+          hasAdvancedReporting: true,
+          hasApiAccess: true,
+          hasCustomBranding: true,
+          isActive: true
+        }
+      ];
+      
+      res.json(plans);
+    } catch (error: any) {
+      console.error("Error fetching subscription plans:", error);
+      res.status(500).json({ message: "Failed to fetch subscription plans" });
+    }
+  });
+
+  // Create new subscription plan
+  app.post("/api/admin/saas/plans", requireAdmin, async (req, res) => {
+    try {
+      const planData = req.body;
+      // This would create a new plan in your database
+      res.json({ id: Date.now(), ...planData, isActive: true });
+    } catch (error: any) {
+      console.error("Error creating subscription plan:", error);
+      res.status(500).json({ message: "Failed to create subscription plan" });
+    }
+  });
+
   // SaaS Organization Signup
   app.post("/api/organizations/signup", async (req, res) => {
     try {
@@ -4373,17 +4559,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const organization = await storage.createOrganization({
         name: organizationName,
         slug,
-        subscriptionPlan: plan,
+        subscriptionPlanId: planDetails.id,
         subscriptionStatus: "trial",
-        trialEndDate,
-        maxUsers: planDetails.maxUsers,
-        maxProjects: planDetails.maxProjects,
-        maxStorageGB: planDetails.maxStorageGB,
-        hasAdvancedReporting: planDetails.hasAdvancedReporting,
-        hasApiAccess: planDetails.hasApiAccess,
-        hasCustomBranding: planDetails.hasCustomBranding,
-        hasIntegrations: planDetails.hasIntegrations,
-        hasPrioritySupport: planDetails.hasPrioritySupport,
+        trialEndsAt: trialEndDate,
       });
 
       // Create admin user for the organization
