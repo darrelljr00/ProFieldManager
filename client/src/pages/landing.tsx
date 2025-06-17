@@ -110,7 +110,7 @@ export default function LandingPage() {
   });
 
   const onSubmit = (data: OrganizationSignupData) => {
-    signupMutation.mutate({ ...data, plan: selectedPlan });
+    signupMutation.mutate({ ...data, plan: selectedPlan as "starter" | "professional" | "enterprise" });
   };
 
   const generateSlug = (orgName: string) => {
