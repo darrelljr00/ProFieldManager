@@ -348,6 +348,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get('/api/settings/company', async (req, res) => {
+    try {
+      const settings = await storage.getSettingsByCategory('company');
+      const companySettings = {
+        companyName: '',
+        address: '',
+        phone: '',
+        email: '',
+        website: '',
+        logo: ''
+      };
+      
+      if (settings && settings.length > 0) {
+        settings.forEach((setting: any) => {
+          const key = setting.key.replace('company_', '');
+          if (key in companySettings) {
+            companySettings[key] = setting.value;
+          }
+        });
+      }
+      
+      res.json(companySettings);
+    } catch (error: any) {
+      console.error('Error fetching company settings:', error);
+      res.status(500).json({ message: 'Failed to fetch company settings' });
+    }
+  });
+
+  app.put('/api/settings/company', async (req, res) => {
+    try {
+      const settings = req.body;
+      for (const [key, value] of Object.entries(settings)) {
+        await storage.updateSetting('company', `company_${key}`, String(value));
+      }
+      res.json({ message: 'Company settings updated successfully' });
+    } catch (error: any) {
+      console.error('Error updating company settings:', error);
+      res.status(500).json({ message: 'Failed to update company settings' });
+    }
+  });
+
   // Authentication routes (public)
   app.post("/api/auth/register", async (req, res) => {
     try {

@@ -79,22 +79,16 @@ function Router() {
     );
   }
 
+  if (isAuthenticated) {
+    return <AuthenticatedApp />;
+  }
+
   return (
     <Switch>
       <Route path="/" component={Landing} />
       <Route path="/signup" component={Landing} />
       <Route path="/login" component={Login} />
-      {isAuthenticated ? (
-        <>
-          <Route path="/dashboard" component={AuthenticatedApp} />
-          <Route path="/app/*" component={AuthenticatedApp} />
-        </>
-      ) : (
-        <>
-          <Route path="/dashboard" component={Login} />
-          <Route path="/app/*" component={Login} />
-        </>
-      )}
+      <Route component={Login} />
     </Switch>
   );
 }
