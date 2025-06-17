@@ -2606,6 +2606,186 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Specific settings endpoints that the frontend expects
+  app.get('/api/settings/payment', requireAuth, async (req, res) => {
+    try {
+      const settings = await storage.getSettingsByCategory('payment');
+      const paymentSettings = settings.reduce((acc: any, setting: any) => {
+        const key = setting.key.replace('payment_', '');
+        acc[key] = setting.value === 'true' ? true : setting.value === 'false' ? false : setting.value;
+        return acc;
+      }, {
+        stripeEnabled: false,
+        stripePublicKey: '',
+        stripeSecretKey: '',
+        stripeWebhookSecret: '',
+        squareEnabled: false,
+        squareApplicationId: '',
+        squareAccessToken: '',
+        squareWebhookSecret: '',
+        squareEnvironment: 'sandbox'
+      });
+      res.json(paymentSettings);
+    } catch (error: any) {
+      console.error('Error fetching payment settings:', error);
+      res.status(500).json({ message: 'Failed to fetch payment settings' });
+    }
+  });
+
+  app.put('/api/settings/payment', requireAuth, async (req, res) => {
+    try {
+      const settings = req.body;
+      for (const [key, value] of Object.entries(settings)) {
+        await storage.updateSetting('payment', `payment_${key}`, String(value));
+      }
+      res.json({ message: 'Payment settings updated successfully' });
+    } catch (error: any) {
+      console.error('Error updating payment settings:', error);
+      res.status(500).json({ message: 'Failed to update payment settings' });
+    }
+  });
+
+  app.get('/api/settings/email', requireAuth, async (req, res) => {
+    try {
+      const settings = await storage.getSettingsByCategory('email');
+      const emailSettings = settings.reduce((acc: any, setting: any) => {
+        const key = setting.key.replace('email_', '');
+        acc[key] = setting.value === 'true' ? true : setting.value === 'false' ? false : 
+                   ['smtpPort'].includes(key) ? parseInt(setting.value) || 587 : setting.value;
+        return acc;
+      }, {
+        emailEnabled: false,
+        smtpHost: '',
+        smtpPort: 587,
+        smtpUser: '',
+        smtpPassword: '',
+        smtpSecure: false,
+        fromEmail: '',
+        fromName: ''
+      });
+      res.json(emailSettings);
+    } catch (error: any) {
+      console.error('Error fetching email settings:', error);
+      res.status(500).json({ message: 'Failed to fetch email settings' });
+    }
+  });
+
+  app.put('/api/settings/email', requireAuth, async (req, res) => {
+    try {
+      const settings = req.body;
+      for (const [key, value] of Object.entries(settings)) {
+        await storage.updateSetting('email', `email_${key}`, String(value));
+      }
+      res.json({ message: 'Email settings updated successfully' });
+    } catch (error: any) {
+      console.error('Error updating email settings:', error);
+      res.status(500).json({ message: 'Failed to update email settings' });
+    }
+  });
+
+  app.get('/api/settings/twilio', requireAuth, async (req, res) => {
+    try {
+      const settings = await storage.getSettingsByCategory('twilio');
+      const twilioSettings = settings.reduce((acc: any, setting: any) => {
+        const key = setting.key.replace('twilio_', '');
+        acc[key] = setting.value === 'true' ? true : setting.value === 'false' ? false : setting.value;
+        return acc;
+      }, {
+        twilioEnabled: false,
+        accountSid: '',
+        authToken: '',
+        phoneNumber: ''
+      });
+      res.json(twilioSettings);
+    } catch (error: any) {
+      console.error('Error fetching Twilio settings:', error);
+      res.status(500).json({ message: 'Failed to fetch Twilio settings' });
+    }
+  });
+
+  app.put('/api/settings/twilio', requireAuth, async (req, res) => {
+    try {
+      const settings = req.body;
+      for (const [key, value] of Object.entries(settings)) {
+        await storage.updateSetting('twilio', `twilio_${key}`, String(value));
+      }
+      res.json({ message: 'Twilio settings updated successfully' });
+    } catch (error: any) {
+      console.error('Error updating Twilio settings:', error);
+      res.status(500).json({ message: 'Failed to update Twilio settings' });
+    }
+  });
+
+  app.get('/api/settings/ocr', requireAuth, async (req, res) => {
+    try {
+      const settings = await storage.getSettingsByCategory('ocr');
+      const ocrSettings = settings.reduce((acc: any, setting: any) => {
+        const key = setting.key.replace('ocr_', '');
+        acc[key] = setting.value === 'true' ? true : setting.value === 'false' ? false : setting.value;
+        return acc;
+      }, {
+        ocrEnabled: false,
+        apiKey: '',
+        provider: 'azure',
+        endpoint: ''
+      });
+      res.json(ocrSettings);
+    } catch (error: any) {
+      console.error('Error fetching OCR settings:', error);
+      res.status(500).json({ message: 'Failed to fetch OCR settings' });
+    }
+  });
+
+  app.put('/api/settings/ocr', requireAuth, async (req, res) => {
+    try {
+      const settings = req.body;
+      for (const [key, value] of Object.entries(settings)) {
+        await storage.updateSetting('ocr', `ocr_${key}`, String(value));
+      }
+      res.json({ message: 'OCR settings updated successfully' });
+    } catch (error: any) {
+      console.error('Error updating OCR settings:', error);
+      res.status(500).json({ message: 'Failed to update OCR settings' });
+    }
+  });
+
+  app.get('/api/settings/calendar', requireAuth, async (req, res) => {
+    try {
+      const settings = await storage.getSettingsByCategory('calendar');
+      const calendarSettings = settings.reduce((acc: any, setting: any) => {
+        const key = setting.key.replace('calendar_', '');
+        acc[key] = setting.value === 'true' ? true : setting.value === 'false' ? false : 
+                   ['workingHoursStart', 'workingHoursEnd'].includes(key) ? parseInt(setting.value) || 9 : setting.value;
+        return acc;
+      }, {
+        googleCalendarEnabled: false,
+        googleClientId: '',
+        googleClientSecret: '',
+        workingHoursStart: 9,
+        workingHoursEnd: 17,
+        workingDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']
+      });
+      res.json(calendarSettings);
+    } catch (error: any) {
+      console.error('Error fetching calendar settings:', error);
+      res.status(500).json({ message: 'Failed to fetch calendar settings' });
+    }
+  });
+
+  app.put('/api/settings/calendar', requireAuth, async (req, res) => {
+    try {
+      const settings = req.body;
+      for (const [key, value] of Object.entries(settings)) {
+        const settingValue = Array.isArray(value) ? JSON.stringify(value) : String(value);
+        await storage.updateSetting('calendar', `calendar_${key}`, settingValue);
+      }
+      res.json({ message: 'Calendar settings updated successfully' });
+    } catch (error: any) {
+      console.error('Error updating calendar settings:', error);
+      res.status(500).json({ message: 'Failed to update calendar settings' });
+    }
+  });
+
   // Admin activity logs
   app.get('/api/admin/activity-logs', requireAdmin, async (req, res) => {
     try {
