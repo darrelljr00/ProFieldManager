@@ -118,6 +118,14 @@ export default function AdminSettingsPage() {
     queryKey: ["/api/admin/saas/organizations"],
   });
 
+  const { data: subscriptionPlans } = useQuery({
+    queryKey: ["/api/saas/plans"],
+  });
+
+  const { data: billingData } = useQuery({
+    queryKey: ["/api/admin/saas/billing"],
+  });
+
   const updateSystemSettingMutation = useMutation({
     mutationFn: (data: { key: string; value: string }) =>
       apiRequest("PUT", "/api/admin/system/settings", data),
@@ -174,6 +182,8 @@ export default function AdminSettingsPage() {
       });
     },
   });
+
+
 
 
 
