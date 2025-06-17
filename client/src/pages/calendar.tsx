@@ -105,7 +105,7 @@ export default function CalendarPage() {
 
   const convertMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: any }) =>
-      apiRequest(`/api/calendar-jobs/${id}/convert-to-project`, "POST", data),
+      apiRequest(`/api/calendar-jobs/${id}/convert-to-job`, "POST", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/calendar-jobs"] });
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
@@ -113,13 +113,13 @@ export default function CalendarPage() {
       setSelectedJob(null);
       toast({
         title: "Success",
-        description: "Job converted to job successfully",
+        description: "Calendar event converted to job successfully",
       });
     },
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to convert job to job",
+        description: "Failed to convert calendar event to job",
         variant: "destructive",
       });
     },
