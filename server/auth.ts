@@ -107,6 +107,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
         role: sessionData.user.role || 'user',
         firstName: sessionData.user.firstName || undefined,
         lastName: sessionData.user.lastName || undefined,
+        organizationId: sessionData.user.organizationId,
       };
 
       next();

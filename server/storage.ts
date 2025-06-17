@@ -308,8 +308,7 @@ export class DatabaseStorage implements IStorage {
       .update(users)
       .set({ 
         stripeCustomerId: customerId,
-        ...(subscriptionId && { stripeSubscriptionId: subscriptionId }),
-        updatedAt: new Date()
+        ...(subscriptionId && { stripeSubscriptionId: subscriptionId })
       })
       .where(eq(users.id, userId))
       .returning();

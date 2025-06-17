@@ -624,26 +624,41 @@ export const sharedPhotoLinks = pgTable("shared_photo_links", {
 });
 
 // Insert schemas
-export const insertUserSchema = createInsertSchema(users).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
+export const insertUserSchema = z.object({
+  username: z.string().min(1),
+  password: z.string().min(6),
+  email: z.string().email(),
+  role: z.string().optional(),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  phone: z.string().optional(),
+  isActive: z.boolean().default(true),
+  lastLoginAt: z.date().optional(),
+  organizationId: z.number(),
 });
 
-export const insertCustomerSchema = createInsertSchema(customers).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
+export const insertCustomerSchema = z.object({
+  name: z.string().min(1),
+  email: z.string().email().optional(),
+  phone: z.string().optional(),
+  address: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  zipCode: z.string().optional(),
+  organizationId: z.number(),
 });
 
-export const insertInvoiceSchema = createInsertSchema(invoices, {
-  invoiceDate: z.string().transform((val) => new Date(val)),
-  dueDate: z.string().transform((val) => new Date(val)),
-}).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-}).extend({
+export const insertInvoiceSchema = z.object({
+  customerId: z.number(),
+  invoiceNumber: z.string().min(1),
+  invoiceDate: z.date(),
+  dueDate: z.date(),
+  subtotal: z.number(),
+  tax: z.number(),
+  total: z.number(),
+  status: z.enum(['draft', 'sent', 'paid', 'overdue']),
+  notes: z.string().optional(),
+  organizationId: z.number(),
   lineItems: z.array(z.object({
     description: z.string().min(1),
     quantity: z.number().positive(),
@@ -652,14 +667,17 @@ export const insertInvoiceSchema = createInsertSchema(invoices, {
   })),
 });
 
-export const insertQuoteSchema = createInsertSchema(quotes, {
-  quoteDate: z.string().transform((val) => new Date(val)),
-  expiryDate: z.string().transform((val) => new Date(val)),
-}).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-}).extend({
+export const insertQuoteSchema = z.object({
+  customerId: z.number(),
+  quoteNumber: z.string().min(1),
+  quoteDate: z.date(),
+  expiryDate: z.date(),
+  subtotal: z.number(),
+  tax: z.number(),
+  total: z.number(),
+  status: z.enum(['draft', 'sent', 'accepted', 'declined', 'expired']),
+  notes: z.string().optional(),
+  organizationId: z.number(),
   lineItems: z.array(z.object({
     description: z.string().min(1),
     quantity: z.number().positive(),
