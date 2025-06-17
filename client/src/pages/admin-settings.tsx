@@ -114,6 +114,10 @@ export default function AdminSettingsPage() {
     queryKey: ["/api/admin/saas/metrics"],
   });
 
+  const { data: allOrganizations } = useQuery({
+    queryKey: ["/api/admin/saas/organizations"],
+  });
+
   const updateSystemSettingMutation = useMutation({
     mutationFn: (data: { key: string; value: string }) =>
       apiRequest("PUT", "/api/admin/system/settings", data),
@@ -147,6 +151,25 @@ export default function AdminSettingsPage() {
       toast({
         title: "Error",
         description: error.message || "Failed to perform maintenance action",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const suspendOrganizationMutation = useMutation({
+    mutationFn: (id: number) =>
+      apiRequest("POST", `/api/admin/saas/organizations/${id}/suspend`, {}),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/saas/organizations"] });
+      toast({
+        title: "Success",
+        description: "Organization suspended successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to suspend organization",
         variant: "destructive",
       });
     },
