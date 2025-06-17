@@ -110,7 +110,9 @@ export default function AdminSettingsPage() {
     queryKey: ["/api/settings/company"],
   });
 
-
+  const { data: saasMetrics } = useQuery({
+    queryKey: ["/api/admin/saas/metrics"],
+  });
 
   const updateSystemSettingMutation = useMutation({
     mutationFn: (data: { key: string; value: string }) =>
