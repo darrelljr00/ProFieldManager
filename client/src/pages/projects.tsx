@@ -429,7 +429,7 @@ interface CalendarJobWithDetails {
               </div>
 
               <div>
-                <Label htmlFor="address">Project Address</Label>
+                <Label htmlFor="address">Job Address</Label>
                 <Input
                   id="address"
                   name="address"
@@ -468,8 +468,8 @@ interface CalendarJobWithDetails {
                 <Button type="button" variant="outline" onClick={() => setCreateDialogOpen(false)}>
                   Cancel
                 </Button>
-                <Button type="submit" disabled={createProjectMutation.isPending}>
-                  {createProjectMutation.isPending ? "Creating..." : "Create Project"}
+                <Button type="submit" disabled={createJobMutation.isPending}>
+                  {createJobMutation.isPending ? "Creating..." : "Create Job"}
                 </Button>
               </div>
             </form>
@@ -486,7 +486,7 @@ interface CalendarJobWithDetails {
               Scheduled Calendar Events
             </CardTitle>
             <CardDescription>
-              Convert calendar events to projects for better tracking and management
+              Convert calendar events to jobs for better tracking and management
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -530,7 +530,7 @@ interface CalendarJobWithDetails {
                           onClick={() => convertJobToProjectMutation.mutate(job.id)}
                           disabled={convertJobToProjectMutation.isPending}
                         >
-                          Convert to Project
+                          Convert to Job
                         </Button>
                       </div>
                     </CardContent>
@@ -545,11 +545,11 @@ interface CalendarJobWithDetails {
         <Card>
           <CardContent className="text-center py-12">
             <Folder className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No projects yet</h3>
-            <p className="text-gray-600 mb-4">Get started by creating your first project</p>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No jobs yet</h3>
+            <p className="text-gray-600 mb-4">Get started by creating your first job</p>
             <Button onClick={() => setCreateDialogOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
-              Create Project
+              Create Job
             </Button>
           </CardContent>
         </Card>

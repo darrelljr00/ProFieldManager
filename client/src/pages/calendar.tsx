@@ -113,13 +113,13 @@ export default function CalendarPage() {
       setSelectedJob(null);
       toast({
         title: "Success",
-        description: "Job converted to project successfully",
+        description: "Job converted to job successfully",
       });
     },
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to convert job to project",
+        description: error.message || "Failed to convert job to job",
         variant: "destructive",
       });
     },
@@ -586,29 +586,29 @@ export default function CalendarPage() {
       <Dialog open={isConvertDialogOpen} onOpenChange={setIsConvertDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Convert Job to Project</DialogTitle>
+            <DialogTitle>Convert Job to Job</DialogTitle>
             <DialogDescription>
-              Convert "{selectedJob?.title}" into an active project
+              Convert "{selectedJob?.title}" into an active job
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleConvertToProject} className="space-y-4">
             <div>
-              <Label htmlFor="name">Project Name</Label>
+              <Label htmlFor="name">Job Name</Label>
               <Input
                 id="name"
                 name="name"
                 required
                 defaultValue={selectedJob?.title}
-                placeholder="Project name"
+                placeholder="Job name"
               />
             </div>
             <div>
-              <Label htmlFor="description">Project Description</Label>
+              <Label htmlFor="description">Job Description</Label>
               <Textarea
                 id="description"
                 name="description"
                 defaultValue={selectedJob?.description || ""}
-                placeholder="Project description"
+                placeholder="Job description"
                 rows={3}
               />
             </div>
@@ -617,7 +617,7 @@ export default function CalendarPage() {
                 Cancel
               </Button>
               <Button type="submit" disabled={convertMutation.isPending}>
-                Convert to Project
+                Convert to Job
               </Button>
             </DialogFooter>
           </form>
