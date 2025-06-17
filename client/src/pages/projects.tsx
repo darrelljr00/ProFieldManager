@@ -575,15 +575,15 @@ interface CalendarJobWithDetails {
           </TabsList>
 
           <TabsContent value="upcoming">
-            {renderProjectGrid(upcoming, "No upcoming projects")}
+            {renderJobGrid(upcoming, "No upcoming jobs")}
           </TabsContent>
 
           <TabsContent value="in-progress">
-            {renderProjectGrid(inProgress, "No projects in progress")}
+            {renderJobGrid(inProgress, "No jobs in progress")}
           </TabsContent>
 
           <TabsContent value="completed">
-            {renderProjectGrid(completed, "No completed projects")}
+            {renderJobGrid(completed, "No completed jobs")}
           </TabsContent>
 
           <TabsContent value="dispatch">
