@@ -40,6 +40,7 @@ declare global {
         role?: string;
         firstName?: string;
         lastName?: string;
+        organizationId: number;
       };
     }
   }
@@ -3735,7 +3736,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   // SaaS Organization Signup
-  app.post("/api/saas/signup", async (req, res) => {
+  app.post("/api/organizations/signup", async (req, res) => {
     try {
       const { organizationName, slug, email, firstName, lastName, password, plan } = req.body;
       
@@ -3759,7 +3760,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create organization with trial
       const trialEndDate = new Date();
-      trialEndDate.setDate(trialEndDate.getDate() + 14); // 14-day trial
+      trialEndDate.setDate(trialEndDate.getDate() + 30); // 30-day trial
 
       const organization = await storage.createOrganization({
         name: organizationName,
@@ -3790,16 +3791,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isActive: true,
       });
 
-      // Create session
-      const session = await AuthService.createSession(user.id, req.get('User-Agent'), req.ip);
-
-      res.cookie('auth_token', session.token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: 24 * 60 * 60 * 1000 // 24 hours
-      });
-
       res.status(201).json({
         message: "Organization created successfully",
         organization: {
@@ -3818,10 +3809,106 @@ export async function registerRoutes(app: Express): Promise<Server> {
           role: user.role
         }
       });
-
     } catch (error: any) {
       console.error("Organization signup error:", error);
       res.status(500).json({ message: "Failed to create organization" });
+    }
+  });
+
+  // Get subscription plans for landing page
+  app.get("/api/subscription-plans", async (req, res) => {
+    try {
+      const plans = await storage.getSubscriptionPlans();
+      res.json(plans);
+    } catch (error: any) {
+      console.error("Error fetching subscription plans:", error);
+      res.status(500).json({ message: "Failed to fetch subscription plans" });
+    }
+  });
+
+  // Get organization details for admin panel
+  app.get("/api/organization", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const organization = await storage.getOrganizationById(user.organizationId);
+      
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      res.json(organization);
+    } catch (error: any) {
+      console.error("Error fetching organization:", error);
+      res.status(500).json({ message: "Failed to fetch organization details" });
+    }
+  });
+
+  // Update organization subscription plan
+  app.post("/api/organization/upgrade", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { planSlug } = req.body;
+
+      const planDetails = await storage.getSubscriptionPlanBySlug(planSlug);
+      if (!planDetails) {
+        return res.status(400).json({ message: "Invalid subscription plan" });
+      }
+
+      const updatedOrg = await storage.updateOrganizationPlan(user.organizationId, {
+        subscriptionPlan: planSlug,
+        maxUsers: planDetails.maxUsers,
+        maxProjects: planDetails.maxProjects,
+        maxStorageGB: planDetails.maxStorageGB,
+        hasAdvancedReporting: planDetails.hasAdvancedReporting,
+        hasApiAccess: planDetails.hasApiAccess,
+        hasCustomBranding: planDetails.hasCustomBranding,
+        hasIntegrations: planDetails.hasIntegrations,
+        hasPrioritySupport: planDetails.hasPrioritySupport,
+      });
+
+      res.json(updatedOrg);
+    } catch (error: any) {
+      console.error("Error upgrading organization:", error);
+      res.status(500).json({ message: "Failed to upgrade organization" });
+    }
+  });
+
+  // Get organization usage statistics
+  app.get("/api/organization/usage", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const organization = await storage.getOrganizationById(user.organizationId);
+      
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      const usage = await storage.getOrganizationUsage(user.organizationId);
+
+      res.json({
+        organization: {
+          name: organization.name,
+          subscriptionPlan: organization.subscriptionPlan,
+          subscriptionStatus: organization.subscriptionStatus,
+          trialEndDate: organization.trialEndDate
+        },
+        usage,
+        limits: {
+          maxUsers: organization.maxUsers,
+          maxProjects: organization.maxProjects,
+          maxStorageGB: organization.maxStorageGB
+        },
+        features: {
+          hasAdvancedReporting: organization.hasAdvancedReporting,
+          hasApiAccess: organization.hasApiAccess,
+          hasCustomBranding: organization.hasCustomBranding,
+          hasIntegrations: organization.hasIntegrations,
+          hasPrioritySupport: organization.hasPrioritySupport
+        }
+      });
+    } catch (error: any) {
+      console.error("Error fetching organization usage:", error);
+      res.status(500).json({ message: "Failed to fetch organization usage" });
     }
   });
 

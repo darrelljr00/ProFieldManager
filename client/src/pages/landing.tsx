@@ -1,32 +1,20 @@
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
-import { useLocation } from "wouter";
-import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Check, 
-  ArrowRight, 
-  Star, 
-  Users, 
-  BarChart3, 
-  Shield, 
-  Zap,
-  Building2,
-  CreditCard,
-  MapPin,
-  Calendar,
-  FileText,
-  MessageSquare,
-  Smartphone
-} from "lucide-react";
-import { OrganizationSignupData } from "@shared/schema";
+import { Check, Star, Building2, Users, Shield, Zap } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { organizationSignupSchema, type OrganizationSignupData } from "@shared/schema";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-const plans = [
+const subscriptionPlans = [
   {
     name: "Starter",
     slug: "starter",
@@ -37,337 +25,377 @@ const plans = [
       "50 projects",
       "10GB storage",
       "Basic reporting",
-      "Email support",
-      "Mobile apps",
-      "Invoice management",
-      "Customer management"
+      "Email support"
     ],
     popular: false
   },
   {
-    name: "Professional", 
-    slug: "professional",
+    name: "Professional",
+    slug: "professional", 
     price: 99,
     description: "Best for growing businesses",
     features: [
       "Up to 25 users",
-      "Unlimited projects", 
+      "Unlimited projects",
       "50GB storage",
       "Advanced reporting",
-      "Priority support",
       "API access",
       "Custom branding",
-      "GPS tracking",
-      "SMS notifications",
-      "DocuSign integration"
+      "Integrations",
+      "Priority support"
     ],
     popular: true
   },
   {
     name: "Enterprise",
-    slug: "enterprise", 
+    slug: "enterprise",
     price: 199,
     description: "For large organizations",
     features: [
       "Unlimited users",
-      "Unlimited projects",
-      "500GB storage", 
-      "White-label solution",
-      "Dedicated support",
-      "Custom integrations",
-      "Advanced analytics",
-      "Multi-location support",
-      "SSO authentication",
-      "Custom workflows"
+      "Unlimited projects", 
+      "500GB storage",
+      "Advanced reporting",
+      "Full API access",
+      "Custom branding",
+      "All integrations",
+      "24/7 priority support",
+      "Custom deployment"
     ],
     popular: false
   }
 ];
 
 export default function LandingPage() {
-  const [location, setLocation] = useLocation();
   const [selectedPlan, setSelectedPlan] = useState("professional");
   const { toast } = useToast();
 
-  const signupMutation = useMutation({
-    mutationFn: async (data: OrganizationSignupData) => {
-      const response = await apiRequest("POST", "/api/saas/signup", data);
-      return response.json();
-    },
-    onSuccess: (response) => {
-      toast({
-        title: "Welcome to Pro Field Manager!",
-        description: `Organization created successfully. Welcome, ${response.organization.name}!`,
-      });
-      setLocation("/dashboard");
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Signup Failed",
-        description: error.message || "Failed to create organization",
-        variant: "destructive",
-      });
-    },
+  const form = useForm<OrganizationSignupData>({
+    resolver: zodResolver(organizationSignupSchema),
+    defaultValues: {
+      organizationName: "",
+      slug: "",
+      email: "",
+      firstName: "",
+      lastName: "",
+      password: "",
+      plan: "professional"
+    }
   });
 
-  const handleSignup = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const signupData: OrganizationSignupData = {
-      organizationName: formData.get("organizationName") as string,
-      slug: formData.get("slug") as string,
-      email: formData.get("email") as string,
-      firstName: formData.get("firstName") as string,
-      lastName: formData.get("lastName") as string,
-      password: formData.get("password") as string,
-      plan: selectedPlan as "starter" | "professional" | "enterprise",
-    };
-    signupMutation.mutate(signupData);
+  const signupMutation = useMutation({
+    mutationFn: async (data: OrganizationSignupData) => {
+      const response = await apiRequest("POST", "/api/organizations/signup", data);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Signup failed");
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Welcome to Pro Field Manager!",
+        description: "Your organization has been created successfully. You can now login.",
+      });
+      // Redirect to login page
+      window.location.href = "/login";
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Signup Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
+  const onSubmit = (data: OrganizationSignupData) => {
+    signupMutation.mutate({ ...data, plan: selectedPlan });
+  };
+
+  const generateSlug = (orgName: string) => {
+    const slug = orgName
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .trim();
+    form.setValue('slug', slug);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-800">
-      {/* Background Graphics */}
-      <div className="absolute inset-0">
-        <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full bg-gradient-to-br from-blue-400/10 to-indigo-400/10 blur-3xl"></div>
-        <div className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full bg-gradient-to-br from-purple-400/10 to-pink-400/10 blur-3xl"></div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700">
+      {/* Hero Section */}
+      <div className="relative">
+        <div className="container mx-auto px-4 py-16">
+          <div className="text-center mb-16">
+            <div className="flex items-center justify-center mb-6">
+              <Building2 className="h-12 w-12 text-blue-600 dark:text-blue-400" />
+              <h1 className="text-4xl font-bold text-slate-900 dark:text-white ml-3">
+                Pro Field Manager
+              </h1>
+            </div>
+            <p className="text-xl text-slate-600 dark:text-slate-300 mb-8 max-w-3xl mx-auto">
+              The complete field service management platform that scales with your business. 
+              Manage projects, teams, invoicing, and customer relationships all in one place.
+            </p>
+            <div className="flex flex-wrap justify-center gap-4 mb-12">
+              <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
+                <Check className="h-5 w-5 text-green-500" />
+                <span>30-day free trial</span>
+              </div>
+              <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
+                <Check className="h-5 w-5 text-green-500" />
+                <span>No setup fees</span>
+              </div>
+              <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
+                <Check className="h-5 w-5 text-green-500" />
+                <span>Cancel anytime</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Features Grid */}
+          <div className="grid md:grid-cols-4 gap-8 mb-16">
+            <div className="text-center">
+              <div className="bg-blue-100 dark:bg-blue-900 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                <Users className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">Team Management</h3>
+              <p className="text-slate-600 dark:text-slate-400">Organize your field teams and track performance</p>
+            </div>
+            <div className="text-center">
+              <div className="bg-green-100 dark:bg-green-900 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                <Shield className="h-8 w-8 text-green-600 dark:text-green-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">Project Tracking</h3>
+              <p className="text-slate-600 dark:text-slate-400">Monitor project progress and deadlines</p>
+            </div>
+            <div className="text-center">
+              <div className="bg-purple-100 dark:bg-purple-900 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                <Zap className="h-8 w-8 text-purple-600 dark:text-purple-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">Smart Invoicing</h3>
+              <p className="text-slate-600 dark:text-slate-400">Automated billing and payment tracking</p>
+            </div>
+            <div className="text-center">
+              <div className="bg-orange-100 dark:bg-orange-900 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                <Star className="h-8 w-8 text-orange-600 dark:text-orange-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">Customer Portal</h3>
+              <p className="text-slate-600 dark:text-slate-400">Self-service portal for your clients</p>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Navigation */}
-      <nav className="relative z-10 p-6 flex justify-between items-center">
-        <div className="flex items-center space-x-2">
-          <Building2 className="h-8 w-8 text-white" />
-          <h1 className="text-2xl font-bold text-white">Pro Field Manager</h1>
-        </div>
-        <Button 
-          variant="outline" 
-          className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-          onClick={() => setLocation("/login")}
-        >
-          Sign In
-        </Button>
-      </nav>
-
-      {/* Hero Section */}
-      <section className="relative z-10 text-center py-20 px-6">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-5xl md:text-6xl font-bold text-white mb-6">
-            Streamline Your Field Service Operations
-          </h1>
-          <p className="text-xl md:text-2xl text-blue-100 mb-8 max-w-3xl mx-auto">
-            Complete field service management platform with invoicing, project tracking, 
-            customer management, and team coordination. Built for businesses that work in the field.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-lg">
-              Start Free Trial
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
-            <Button size="lg" variant="outline" className="bg-white/10 border-white/20 text-white hover:bg-white/20 px-8 py-4 text-lg">
-              Watch Demo
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section className="relative z-10 py-20 px-6 bg-white/5 backdrop-blur-sm">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold text-white text-center mb-12">
-            Everything You Need to Manage Field Operations
-          </h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[
-              { icon: FileText, title: "Invoice Management", description: "Create, send, and track invoices with automated payment processing" },
-              { icon: MapPin, title: "GPS Tracking", description: "Real-time location tracking and route optimization for field teams" },
-              { icon: Calendar, title: "Scheduling", description: "Smart scheduling with conflict detection and automated notifications" },
-              { icon: Users, title: "Team Management", description: "User roles, permissions, and team collaboration tools" },
-              { icon: BarChart3, title: "Analytics", description: "Comprehensive reporting and business intelligence dashboards" },
-              { icon: Smartphone, title: "Mobile Apps", description: "Native iOS and Android apps for field workers" },
-            ].map((feature, index) => (
-              <Card key={index} className="bg-white/10 border-white/20 backdrop-blur-sm">
-                <CardHeader>
-                  <feature.icon className="h-12 w-12 text-blue-300 mb-4" />
-                  <CardTitle className="text-white">{feature.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-blue-100">{feature.description}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Pricing Section */}
-      <section className="relative z-10 py-20 px-6">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold text-white text-center mb-4">
-            Simple, Transparent Pricing
-          </h2>
-          <p className="text-blue-100 text-center mb-12 text-lg">
-            Choose the plan that fits your business. All plans include a 14-day free trial.
-          </p>
-          
-          <div className="grid md:grid-cols-3 gap-8 mb-16">
-            {plans.map((plan) => (
+      <div className="bg-white dark:bg-slate-800 py-16">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">
+              Choose Your Plan
+            </h2>
+            <p className="text-lg text-slate-600 dark:text-slate-300">
+              Start with a 30-day free trial, then choose the plan that fits your business
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8 mb-12">
+            {subscriptionPlans.map((plan) => (
               <Card 
-                key={plan.slug}
-                className={`relative bg-white/10 border-white/20 backdrop-blur-sm ${
-                  plan.popular ? 'ring-2 ring-blue-400' : ''
-                }`}
+                key={plan.slug} 
+                className={`relative cursor-pointer transition-all ${
+                  selectedPlan === plan.slug 
+                    ? 'ring-2 ring-blue-500 dark:ring-blue-400' 
+                    : 'hover:shadow-lg'
+                } ${plan.popular ? 'scale-105' : ''}`}
+                onClick={() => setSelectedPlan(plan.slug)}
               >
                 {plan.popular && (
-                  <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-blue-600">
+                  <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-blue-500">
                     Most Popular
                   </Badge>
                 )}
                 <CardHeader className="text-center">
-                  <CardTitle className="text-white text-2xl">{plan.name}</CardTitle>
-                  <CardDescription className="text-blue-100">{plan.description}</CardDescription>
-                  <div className="text-4xl font-bold text-white mt-4">
-                    ${plan.price}
-                    <span className="text-lg font-normal text-blue-100">/month</span>
+                  <CardTitle className="text-2xl">{plan.name}</CardTitle>
+                  <CardDescription>{plan.description}</CardDescription>
+                  <div className="mt-4">
+                    <span className="text-4xl font-bold text-slate-900 dark:text-white">
+                      ${plan.price}
+                    </span>
+                    <span className="text-slate-600 dark:text-slate-400">/month</span>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <ul className="space-y-3 mb-6">
+                  <ul className="space-y-3">
                     {plan.features.map((feature, index) => (
-                      <li key={index} className="flex items-center text-blue-100">
-                        <Check className="h-5 w-5 text-green-400 mr-3 flex-shrink-0" />
-                        {feature}
+                      <li key={index} className="flex items-center gap-3">
+                        <Check className="h-5 w-5 text-green-500 flex-shrink-0" />
+                        <span className="text-slate-700 dark:text-slate-300">{feature}</span>
                       </li>
                     ))}
                   </ul>
-                  <Button 
-                    className={`w-full ${
-                      plan.popular 
-                        ? 'bg-blue-600 hover:bg-blue-700' 
-                        : 'bg-white/10 hover:bg-white/20'
-                    }`}
-                    onClick={() => setSelectedPlan(plan.slug)}
-                  >
-                    {selectedPlan === plan.slug ? 'Selected' : 'Select Plan'}
-                  </Button>
                 </CardContent>
               </Card>
             ))}
           </div>
+        </div>
+      </div>
 
-          {/* Signup Form */}
-          <Card className="max-w-2xl mx-auto bg-white/10 border-white/20 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="text-white text-center text-2xl">Start Your Free Trial</CardTitle>
-              <CardDescription className="text-blue-100 text-center">
-                No credit card required. Get started in less than 2 minutes.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSignup} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="firstName" className="text-white">First Name</Label>
-                    <Input
-                      id="firstName"
-                      name="firstName"
-                      placeholder="John"
-                      className="bg-white/10 border-white/20 text-white placeholder:text-blue-200"
-                      required
+      {/* Signup Form */}
+      <div className="bg-slate-50 dark:bg-slate-900 py-16">
+        <div className="container mx-auto px-4">
+          <div className="max-w-2xl mx-auto">
+            <Card>
+              <CardHeader className="text-center">
+                <CardTitle className="text-2xl">Start Your Free Trial</CardTitle>
+                <CardDescription>
+                  Create your organization account and get started in minutes
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="firstName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>First Name</FormLabel>
+                            <FormControl>
+                              <Input placeholder="John" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="lastName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Last Name</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Doe" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
+                          <FormControl>
+                            <Input type="email" placeholder="john@company.com" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
-                  </div>
-                  <div>
-                    <Label htmlFor="lastName" className="text-white">Last Name</Label>
-                    <Input
-                      id="lastName"
-                      name="lastName"
-                      placeholder="Doe"
-                      className="bg-white/10 border-white/20 text-white placeholder:text-blue-200"
-                      required
+
+                    <FormField
+                      control={form.control}
+                      name="organizationName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Organization Name</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="Acme Field Services" 
+                              {...field}
+                              onChange={(e) => {
+                                field.onChange(e);
+                                generateSlug(e.target.value);
+                              }}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
-                  </div>
-                </div>
 
-                <div>
-                  <Label htmlFor="email" className="text-white">Work Email</Label>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    placeholder="john@company.com"
-                    className="bg-white/10 border-white/20 text-white placeholder:text-blue-200"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="organizationName" className="text-white">Company Name</Label>
-                  <Input
-                    id="organizationName"
-                    name="organizationName"
-                    placeholder="Acme Corp"
-                    className="bg-white/10 border-white/20 text-white placeholder:text-blue-200"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="slug" className="text-white">Company Subdomain</Label>
-                  <div className="flex">
-                    <Input
-                      id="slug"
+                    <FormField
+                      control={form.control}
                       name="slug"
-                      placeholder="acme-corp"
-                      className="bg-white/10 border-white/20 text-white placeholder:text-blue-200 rounded-r-none"
-                      required
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Organization URL</FormLabel>
+                          <FormControl>
+                            <div className="flex items-center">
+                              <span className="text-sm text-slate-500 mr-2">profieldmanager.com/</span>
+                              <Input placeholder="acme-field-services" {...field} />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
-                    <span className="bg-white/10 border border-white/20 border-l-0 px-3 py-2 text-blue-100 rounded-r-md">
-                      .profieldmanager.com
-                    </span>
-                  </div>
-                </div>
 
-                <div>
-                  <Label htmlFor="password" className="text-white">Password</Label>
-                  <Input
-                    id="password"
-                    name="password"
-                    type="password"
-                    placeholder="Create a secure password"
-                    className="bg-white/10 border-white/20 text-white placeholder:text-blue-200"
-                    required
-                  />
-                </div>
+                    <FormField
+                      control={form.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Password</FormLabel>
+                          <FormControl>
+                            <Input type="password" placeholder="••••••••" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                <div className="text-center pt-4">
-                  <p className="text-blue-100 text-sm mb-4">
-                    Selected Plan: <span className="font-semibold text-white">
-                      {plans.find(p => p.slug === selectedPlan)?.name} (${plans.find(p => p.slug === selectedPlan)?.price}/month)
-                    </span>
-                  </p>
-                  
-                  <Button 
-                    type="submit" 
-                    size="lg" 
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                    disabled={signupMutation.isPending}
-                  >
-                    {signupMutation.isPending ? 'Creating Account...' : 'Start Free Trial'}
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
+                    <div className="space-y-4">
+                      <Label>Selected Plan</Label>
+                      <div className="p-4 bg-blue-50 dark:bg-blue-900 rounded-lg">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <h4 className="font-semibold text-slate-900 dark:text-white">
+                              {subscriptionPlans.find(p => p.slug === selectedPlan)?.name}
+                            </h4>
+                            <p className="text-sm text-slate-600 dark:text-slate-300">
+                              {subscriptionPlans.find(p => p.slug === selectedPlan)?.description}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-2xl font-bold text-slate-900 dark:text-white">
+                              ${subscriptionPlans.find(p => p.slug === selectedPlan)?.price}
+                            </div>
+                            <div className="text-sm text-slate-600 dark:text-slate-300">per month</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <Button 
+                      type="submit" 
+                      className="w-full" 
+                      size="lg"
+                      disabled={signupMutation.isPending}
+                    >
+                      {signupMutation.isPending ? "Creating Account..." : "Start Free Trial"}
+                    </Button>
+
+                    <p className="text-sm text-center text-slate-600 dark:text-slate-400">
+                      Already have an account?{" "}
+                      <a href="/login" className="text-blue-600 hover:underline">
+                        Sign in here
+                      </a>
+                    </p>
+                  </form>
+                </Form>
+              </CardContent>
+            </Card>
+          </div>
         </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="relative z-10 py-12 px-6 bg-white/5 backdrop-blur-sm">
-        <div className="max-w-6xl mx-auto text-center">
-          <p className="text-blue-100">
-            © 2024 Pro Field Manager. All rights reserved.
-          </p>
-        </div>
-      </footer>
+      </div>
     </div>
   );
 }

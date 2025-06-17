@@ -245,6 +245,15 @@ export interface IStorage {
   updateDocusignEnvelope(envelopeId: string, updates: Partial<DocusignEnvelope>): Promise<DocusignEnvelope | undefined>;
   updateProjectFileSignatureStatus(fileId: number, envelopeId: string, status: string, signingUrl?: string, signedDocUrl?: string): Promise<ProjectFile | undefined>;
 
+  // SaaS Organization methods
+  getOrganizationById(id: number): Promise<Organization | undefined>;
+  getOrganizationBySlug(slug: string): Promise<Organization | undefined>;
+  createOrganization(insertOrg: InsertOrganization): Promise<Organization>;
+  updateOrganizationPlan(orgId: number, planData: Partial<InsertOrganization>): Promise<Organization>;
+  getSubscriptionPlans(): Promise<SubscriptionPlan[]>;
+  getSubscriptionPlanBySlug(slug: string): Promise<SubscriptionPlan | undefined>;
+  getOrganizationUsage(orgId: number): Promise<any>;
+
   // Gas Cards functionality
   getGasCards(): Promise<GasCard[]>;
   getGasCard(id: number): Promise<GasCard | undefined>;

@@ -81,12 +81,19 @@ function Router() {
 
   return (
     <Switch>
-      <Route path="/login" component={Login} />
+      <Route path="/" component={Landing} />
       <Route path="/signup" component={Landing} />
+      <Route path="/login" component={Login} />
       {isAuthenticated ? (
-        <Route path="*" component={AuthenticatedApp} />
+        <>
+          <Route path="/dashboard" component={AuthenticatedApp} />
+          <Route path="/app/*" component={AuthenticatedApp} />
+        </>
       ) : (
-        <Route path="*" component={Login} />
+        <>
+          <Route path="/dashboard" component={Login} />
+          <Route path="/app/*" component={Login} />
+        </>
       )}
     </Switch>
   );
