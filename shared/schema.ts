@@ -2,11 +2,84 @@ import { pgTable, text, serial, integer, boolean, timestamp, decimal, uuid, varc
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// SaaS Organizations/Tenants
+export const organizations = pgTable("organizations", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(), // e.g., "acme-corp"
+  domain: text("domain"), // Custom domain like "acme.profieldmanager.com"
+  logo: text("logo"),
+  address: text("address"),
+  phone: text("phone"),
+  email: text("email"),
+  website: text("website"),
+  timezone: text("timezone").default("America/New_York"),
+  currency: text("currency").default("USD"),
+  
+  // Subscription info
+  subscriptionStatus: text("subscription_status").default("trial"), // trial, active, cancelled, past_due
+  subscriptionPlan: text("subscription_plan").default("starter"), // starter, professional, enterprise
+  subscriptionStartDate: timestamp("subscription_start_date"),
+  subscriptionEndDate: timestamp("subscription_end_date"),
+  trialEndDate: timestamp("trial_end_date"),
+  
+  // Stripe integration
+  stripeCustomerId: text("stripe_customer_id"),
+  stripeSubscriptionId: text("stripe_subscription_id"),
+  stripePriceId: text("stripe_price_id"),
+  
+  // Usage limits based on plan
+  maxUsers: integer("max_users").default(5),
+  maxProjects: integer("max_projects").default(50),
+  maxStorageGB: integer("max_storage_gb").default(10),
+  
+  // Features enabled
+  hasAdvancedReporting: boolean("has_advanced_reporting").default(false),
+  hasApiAccess: boolean("has_api_access").default(false),
+  hasCustomBranding: boolean("has_custom_branding").default(false),
+  hasIntegrations: boolean("has_integrations").default(false),
+  hasPrioritySupport: boolean("has_priority_support").default(false),
+  
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Subscription Plans
+export const subscriptionPlans = pgTable("subscription_plans", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(), // "Starter", "Professional", "Enterprise"
+  slug: text("slug").notNull().unique(), // "starter", "professional", "enterprise"
+  description: text("description"),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  currency: text("currency").default("USD"),
+  billingInterval: text("billing_interval").default("month"), // month, year
+  stripePriceId: text("stripe_price_id"),
+  
+  // Plan limits
+  maxUsers: integer("max_users").default(5),
+  maxProjects: integer("max_projects").default(50),
+  maxStorageGB: integer("max_storage_gb").default(10),
+  
+  // Plan features
+  hasAdvancedReporting: boolean("has_advanced_reporting").default(false),
+  hasApiAccess: boolean("has_api_access").default(false),
+  hasCustomBranding: boolean("has_custom_branding").default(false),
+  hasIntegrations: boolean("has_integrations").default(false),
+  hasPrioritySupport: boolean("has_priority_support").default(false),
+  
+  isActive: boolean("is_active").default(true),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  username: text("username").notNull(),
   password: text("password").notNull(),
-  email: text("email").notNull().unique(),
+  email: text("email").notNull(),
   firstName: text("first_name"),
   lastName: text("last_name"),
   role: text("role").notNull().default("user"), // admin, manager, user
@@ -902,6 +975,35 @@ export type InsertGoogleMyBusinessSettings = z.infer<typeof insertGoogleMyBusine
 
 export type DocusignEnvelope = typeof docusignEnvelopes.$inferSelect;
 export type InsertDocusignEnvelope = z.infer<typeof insertDocusignEnvelopeSchema>;
+
+// SaaS Schema and Types
+export const insertOrganizationSchema = createInsertSchema(organizations).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertSubscriptionPlanSchema = createInsertSchema(subscriptionPlans).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const organizationSignupSchema = z.object({
+  organizationName: z.string().min(2, "Organization name must be at least 2 characters"),
+  slug: z.string().min(3, "Slug must be at least 3 characters").regex(/^[a-z0-9-]+$/, "Slug can only contain lowercase letters, numbers, and hyphens"),
+  email: z.string().email("Valid email is required"),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  plan: z.enum(["starter", "professional", "enterprise"]).default("starter"),
+});
+
+export type Organization = typeof organizations.$inferSelect;
+export type InsertOrganization = z.infer<typeof insertOrganizationSchema>;
+export type SubscriptionPlan = typeof subscriptionPlans.$inferSelect;
+export type InsertSubscriptionPlan = z.infer<typeof insertSubscriptionPlanSchema>;
+export type OrganizationSignupData = z.infer<typeof organizationSignupSchema>;
 
 export type LoginData = z.infer<typeof loginSchema>;
 export type RegisterData = z.infer<typeof registerSchema>;

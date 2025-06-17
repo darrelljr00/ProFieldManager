@@ -3734,6 +3734,198 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   }
 
+  // SaaS Organization Signup
+  app.post("/api/saas/signup", async (req, res) => {
+    try {
+      const { organizationName, slug, email, firstName, lastName, password, plan } = req.body;
+      
+      // Check if slug is available
+      const existingOrg = await storage.getOrganizationBySlug(slug);
+      if (existingOrg) {
+        return res.status(400).json({ message: "Organization slug already taken" });
+      }
+
+      // Check if email is already used
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ message: "Email already registered" });
+      }
+
+      // Get plan details
+      const planDetails = await storage.getSubscriptionPlanBySlug(plan);
+      if (!planDetails) {
+        return res.status(400).json({ message: "Invalid subscription plan" });
+      }
+
+      // Create organization with trial
+      const trialEndDate = new Date();
+      trialEndDate.setDate(trialEndDate.getDate() + 14); // 14-day trial
+
+      const organization = await storage.createOrganization({
+        name: organizationName,
+        slug,
+        subscriptionPlan: plan,
+        subscriptionStatus: "trial",
+        trialEndDate,
+        maxUsers: planDetails.maxUsers,
+        maxProjects: planDetails.maxProjects,
+        maxStorageGB: planDetails.maxStorageGB,
+        hasAdvancedReporting: planDetails.hasAdvancedReporting,
+        hasApiAccess: planDetails.hasApiAccess,
+        hasCustomBranding: planDetails.hasCustomBranding,
+        hasIntegrations: planDetails.hasIntegrations,
+        hasPrioritySupport: planDetails.hasPrioritySupport,
+      });
+
+      // Create admin user for the organization
+      const hashedPassword = await AuthService.hashPassword(password);
+      const user = await storage.createUser({
+        organizationId: organization.id,
+        username: email.split('@')[0],
+        email,
+        password: hashedPassword,
+        firstName,
+        lastName,
+        role: "admin",
+        isActive: true,
+      });
+
+      // Create session
+      const session = await AuthService.createSession(user.id, req.get('User-Agent'), req.ip);
+
+      res.cookie('auth_token', session.token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+      });
+
+      res.status(201).json({
+        message: "Organization created successfully",
+        organization: {
+          id: organization.id,
+          name: organization.name,
+          slug: organization.slug,
+          subscriptionPlan: organization.subscriptionPlan,
+          subscriptionStatus: organization.subscriptionStatus,
+          trialEndDate: organization.trialEndDate
+        },
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role
+        }
+      });
+
+    } catch (error: any) {
+      console.error("Organization signup error:", error);
+      res.status(500).json({ message: "Failed to create organization" });
+    }
+  });
+
+  // Get subscription plans
+  app.get("/api/saas/plans", async (req, res) => {
+    try {
+      const plans = await storage.getSubscriptionPlans();
+      res.json(plans);
+    } catch (error: any) {
+      console.error("Get plans error:", error);
+      res.status(500).json({ message: "Failed to fetch subscription plans" });
+    }
+  });
+
+  // Get organization info (authenticated)
+  app.get("/api/saas/organization", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const organization = await storage.getOrganizationById(user.organizationId);
+      
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      res.json(organization);
+    } catch (error: any) {
+      console.error("Get organization error:", error);
+      res.status(500).json({ message: "Failed to fetch organization info" });
+    }
+  });
+
+  // Update subscription plan
+  app.post("/api/saas/upgrade", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { plan } = req.body;
+
+      if (user.role !== 'admin') {
+        return res.status(403).json({ message: "Only organization admins can upgrade plans" });
+      }
+
+      const planDetails = await storage.getSubscriptionPlanBySlug(plan);
+      if (!planDetails) {
+        return res.status(400).json({ message: "Invalid subscription plan" });
+      }
+
+      const organization = await storage.updateOrganizationPlan(user.organizationId, {
+        subscriptionPlan: plan,
+        maxUsers: planDetails.maxUsers,
+        maxProjects: planDetails.maxProjects,
+        maxStorageGB: planDetails.maxStorageGB,
+        hasAdvancedReporting: planDetails.hasAdvancedReporting,
+        hasApiAccess: planDetails.hasApiAccess,
+        hasCustomBranding: planDetails.hasCustomBranding,
+        hasIntegrations: planDetails.hasIntegrations,
+        hasPrioritySupport: planDetails.hasPrioritySupport,
+      });
+
+      res.json({ message: "Plan upgraded successfully", organization });
+    } catch (error: any) {
+      console.error("Plan upgrade error:", error);
+      res.status(500).json({ message: "Failed to upgrade plan" });
+    }
+  });
+
+  // Usage statistics for the organization
+  app.get("/api/saas/usage", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const organization = await storage.getOrganizationById(user.organizationId);
+      
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      const usage = await storage.getOrganizationUsage(user.organizationId);
+      
+      res.json({
+        organization: {
+          name: organization.name,
+          subscriptionPlan: organization.subscriptionPlan,
+          subscriptionStatus: organization.subscriptionStatus,
+          trialEndDate: organization.trialEndDate,
+        },
+        limits: {
+          maxUsers: organization.maxUsers,
+          maxProjects: organization.maxProjects,
+          maxStorageGB: organization.maxStorageGB,
+        },
+        usage,
+        features: {
+          hasAdvancedReporting: organization.hasAdvancedReporting,
+          hasApiAccess: organization.hasApiAccess,
+          hasCustomBranding: organization.hasCustomBranding,
+          hasIntegrations: organization.hasIntegrations,
+          hasPrioritySupport: organization.hasPrioritySupport,
+        }
+      });
+    } catch (error: any) {
+      console.error("Get usage error:", error);
+      res.status(500).json({ message: "Failed to fetch usage statistics" });
+    }
+  });
+
   // Add broadcast function to the app for use in routes
   (app as any).broadcastToWebUsers = broadcastToWebUsers;
 

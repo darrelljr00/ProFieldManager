@@ -28,6 +28,7 @@ import Reviews from "@/pages/reviews";
 import Settings from "@/pages/settings";
 import HumanResources from "@/pages/human-resources";
 import Login from "@/pages/login";
+import Landing from "@/pages/landing";
 import NotFound from "@/pages/not-found";
 
 function AuthenticatedApp() {
@@ -81,6 +82,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/login" component={Login} />
+      <Route path="/signup" component={Landing} />
       {isAuthenticated ? (
         <Route path="*" component={AuthenticatedApp} />
       ) : (
