@@ -95,9 +95,16 @@ export default function AdminSettingsPage() {
     queryKey: ["/api/admin/activity-logs"],
   });
 
-  const { data: systemSettings } = useQuery({
+  const { data: systemSettingsArray } = useQuery({
     queryKey: ["/api/admin/system/settings"],
   });
+
+  // Transform array of settings into a flat object for easier access
+  const systemSettings = systemSettingsArray?.reduce((acc: any, setting: any) => {
+    const key = setting.key.replace('system_', '');
+    acc[key] = setting.value === 'true' ? true : setting.value === 'false' ? false : setting.value;
+    return acc;
+  }, {}) || {};
 
   const { data: companySettings } = useQuery({
     queryKey: ["/api/settings/company"],
@@ -224,7 +231,7 @@ export default function AdminSettingsPage() {
   };
 
   const handleSystemSettingChange = (key: string, value: string) => {
-    updateSystemSettingMutation.mutate({ key, value });
+    updateSystemSettingMutation.mutate({ key: `system_${key}`, value });
   };
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
