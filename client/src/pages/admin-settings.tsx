@@ -110,22 +110,7 @@ export default function AdminSettingsPage() {
     queryKey: ["/api/settings/company"],
   });
 
-  // SaaS-specific queries
-  const { data: subscriptionPlans } = useQuery({
-    queryKey: ["/api/saas/plans"],
-  });
 
-  const { data: allOrganizations } = useQuery({
-    queryKey: ["/api/admin/saas/organizations"],
-  });
-
-  const { data: saasMetrics } = useQuery({
-    queryKey: ["/api/admin/saas/metrics"],
-  });
-
-  const { data: billingData } = useQuery({
-    queryKey: ["/api/admin/saas/billing"],
-  });
 
   const updateSystemSettingMutation = useMutation({
     mutationFn: (data: { key: string; value: string }) =>
@@ -165,49 +150,7 @@ export default function AdminSettingsPage() {
     },
   });
 
-  // SaaS admin mutations
-  const updateOrganizationMutation = useMutation({
-    mutationFn: (data: { id: number; updates: any }) =>
-      apiRequest("PUT", `/api/admin/saas/organizations/${data.id}`, data.updates),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/saas/organizations"] });
-      toast({
-        title: "Success",
-        description: "Organization updated successfully",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update organization",
-        variant: "destructive",
-      });
-    },
-  });
 
-  const suspendOrganizationMutation = useMutation({
-    mutationFn: (id: number) =>
-      apiRequest("POST", `/api/admin/saas/organizations/${id}/suspend`, {}),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/saas/organizations"] });
-      toast({
-        title: "Success",
-        description: "Organization suspended successfully",
-      });
-    },
-  });
-
-  const createSubscriptionPlanMutation = useMutation({
-    mutationFn: (planData: any) =>
-      apiRequest("POST", "/api/admin/saas/plans", planData),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/saas/plans"] });
-      toast({
-        title: "Success",
-        description: "Subscription plan created successfully",
-      });
-    },
-  });
 
 
 
