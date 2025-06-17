@@ -1088,16 +1088,23 @@ export type DocusignEnvelope = typeof docusignEnvelopes.$inferSelect;
 export type InsertDocusignEnvelope = z.infer<typeof insertDocusignEnvelopeSchema>;
 
 // SaaS Schema and Types
-export const insertOrganizationSchema = createInsertSchema(organizations).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
+export const insertOrganizationSchema = z.object({
+  name: z.string().min(2),
+  slug: z.string().min(3).regex(/^[a-z0-9-]+$/),
+  subscriptionPlanId: z.number().optional(),
+  subscriptionStatus: z.enum(['active', 'trial', 'suspended', 'cancelled']).default('trial'),
+  trialEndsAt: z.date().optional(),
 });
 
-export const insertSubscriptionPlanSchema = createInsertSchema(subscriptionPlans).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
+export const insertSubscriptionPlanSchema = z.object({
+  name: z.string().min(1),
+  description: z.string().optional(),
+  price: z.number().min(0),
+  billingCycle: z.enum(['monthly', 'yearly']),
+  features: z.array(z.string()),
+  maxUsers: z.number().optional(),
+  maxProjects: z.number().optional(),
+  isActive: z.boolean().default(true),
 });
 
 export const organizationSignupSchema = z.object({
