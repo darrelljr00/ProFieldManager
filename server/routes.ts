@@ -7,6 +7,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs/promises";
 import { storage } from "./storage";
+import { weatherService } from './weather';
 import { 
   insertCustomerSchema, 
   insertInvoiceSchema, 
@@ -4796,6 +4797,146 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Get usage error:", error);
       res.status(500).json({ message: "Failed to fetch usage statistics" });
+    }
+  });
+
+  // Weather API endpoints
+  app.get('/api/weather/current/:location', requireAuth, async (req, res) => {
+    try {
+      const { location } = req.params;
+      const weather = await weatherService.getCurrentWeather(location);
+      const summary = weatherService.getWeatherSummary(weather);
+      
+      res.json({
+        location: weather.location,
+        current: weather.current,
+        summary
+      });
+    } catch (error: any) {
+      console.error('Weather API error:', error);
+      res.status(500).json({ message: 'Failed to fetch weather data' });
+    }
+  });
+
+  app.get('/api/weather/forecast/:location', requireAuth, async (req, res) => {
+    try {
+      const { location } = req.params;
+      const days = parseInt(req.query.days as string) || 3;
+      
+      const weather = await weatherService.getForecast(location, Math.min(days, 14));
+      
+      res.json({
+        location: weather.location,
+        forecast: weather.forecast,
+        summary: weather.forecast?.forecastday.map(day => ({
+          date: day.date,
+          ...weatherService.getWeatherSummary(weather, day.date)
+        }))
+      });
+    } catch (error: any) {
+      console.error('Weather forecast error:', error);
+      res.status(500).json({ message: 'Failed to fetch weather forecast' });
+    }
+  });
+
+  app.get('/api/weather/jobs/:jobId', requireAuth, async (req, res) => {
+    try {
+      const jobId = parseInt(req.params.jobId);
+      const job = await storage.getProject(jobId);
+      
+      if (!job) {
+        return res.status(404).json({ message: 'Job not found' });
+      }
+
+      if (!job.address) {
+        return res.status(400).json({ message: 'Job has no address for weather lookup' });
+      }
+
+      // Get weather for job dates
+      const startDate = job.startDate ? new Date(job.startDate).toISOString().split('T')[0] : null;
+      const endDate = job.deadline ? new Date(job.deadline).toISOString().split('T')[0] : null;
+
+      let weatherData: any = {};
+
+      if (startDate) {
+        try {
+          const weather = await weatherService.getWeatherForDate(job.address, startDate);
+          weatherData.startDate = {
+            date: startDate,
+            ...weatherService.getWeatherSummary(weather, startDate)
+          };
+        } catch (error) {
+          console.warn('Could not get weather for start date:', error);
+        }
+      }
+
+      if (endDate && endDate !== startDate) {
+        try {
+          const weather = await weatherService.getWeatherForDate(job.address, endDate);
+          weatherData.endDate = {
+            date: endDate,
+            ...weatherService.getWeatherSummary(weather, endDate)
+          };
+        } catch (error) {
+          console.warn('Could not get weather for end date:', error);
+        }
+      }
+
+      res.json({
+        jobId,
+        location: job.address,
+        weather: weatherData
+      });
+    } catch (error: any) {
+      console.error('Job weather error:', error);
+      res.status(500).json({ message: 'Failed to fetch job weather data' });
+    }
+  });
+
+  app.get('/api/weather/calendar-job/:jobId', requireAuth, async (req, res) => {
+    try {
+      const jobId = parseInt(req.params.jobId);
+      const job = await storage.getCalendarJob(jobId);
+      
+      if (!job) {
+        return res.status(404).json({ message: 'Calendar job not found' });
+      }
+
+      if (!job.location) {
+        return res.status(400).json({ message: 'Calendar job has no location for weather lookup' });
+      }
+
+      const startDate = new Date(job.startDate).toISOString().split('T')[0];
+      const endDate = new Date(job.endDate).toISOString().split('T')[0];
+
+      let weatherData: any = {};
+
+      try {
+        const weather = await weatherService.getWeatherForDate(job.location, startDate);
+        weatherData.startDate = {
+          date: startDate,
+          ...weatherService.getWeatherSummary(weather, startDate)
+        };
+
+        if (endDate !== startDate) {
+          const endWeather = await weatherService.getWeatherForDate(job.location, endDate);
+          weatherData.endDate = {
+            date: endDate,
+            ...weatherService.getWeatherSummary(endWeather, endDate)
+          };
+        }
+      } catch (error) {
+        console.warn('Could not get weather for calendar job:', error);
+      }
+
+      res.json({
+        jobId,
+        location: job.location,
+        weather: weatherData
+      });
+    } catch (error: any) {
+      console.error('Calendar job weather error:', error);
+      res.status(500).json({ message: 'Failed to fetch calendar job weather data' });
     }
   });
 
