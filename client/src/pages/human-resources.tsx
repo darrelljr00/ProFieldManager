@@ -37,7 +37,9 @@ import {
   Eye,
   CheckCircle,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  AlertTriangle,
+  Shield
 } from "lucide-react";
 
 interface Employee {
@@ -81,6 +83,26 @@ interface PerformanceReview {
   reviewerId: number;
   reviewerName: string;
   status: "draft" | "completed" | "pending_employee_review";
+}
+
+interface DisciplinaryAction {
+  id: number;
+  employeeId: number;
+  employeeName: string;
+  employeePosition: string;
+  type: "verbal_warning" | "written_warning" | "suspension" | "termination" | "counseling";
+  severity: "low" | "medium" | "high" | "critical";
+  description: string;
+  incident: string;
+  actionTaken: string;
+  followUpRequired: boolean;
+  followUpDate?: string;
+  issuedBy: string;
+  witnessName?: string;
+  dateIssued: string;
+  status: "active" | "resolved" | "appealed" | "overturned";
+  appealNotes?: string;
+  resolutionNotes?: string;
 }
 
 // Mock data for demonstration
@@ -172,11 +194,66 @@ const mockPerformanceReviews: PerformanceReview[] = [
   }
 ];
 
+const mockDisciplinaryActions: DisciplinaryAction[] = [
+  {
+    id: 1,
+    employeeId: 1,
+    employeeName: "John Doe",
+    employeePosition: "Senior Developer",
+    type: "verbal_warning",
+    severity: "medium",
+    description: "Tardiness and attendance issues",
+    incident: "Employee was late to work 5 times in the past month without prior notification",
+    actionTaken: "Verbal warning issued and discussion about punctuality expectations",
+    followUpRequired: true,
+    followUpDate: "2024-02-15",
+    issuedBy: "Jane Smith",
+    witnessName: "Mike Wilson",
+    dateIssued: "2024-01-15",
+    status: "active"
+  },
+  {
+    id: 2,
+    employeeId: 3,
+    employeeName: "Mike Wilson",
+    employeePosition: "Marketing Director",
+    type: "written_warning",
+    severity: "high",
+    description: "Inappropriate workplace behavior",
+    incident: "Reported for unprofessional conduct during team meeting",
+    actionTaken: "Written warning issued, mandatory sensitivity training scheduled",
+    followUpRequired: true,
+    followUpDate: "2024-03-01",
+    issuedBy: "HR Department",
+    witnessName: "Sarah Johnson",
+    dateIssued: "2024-01-20",
+    status: "active"
+  },
+  {
+    id: 3,
+    employeeId: 2,
+    employeeName: "Sarah Johnson",
+    employeePosition: "Project Manager",
+    type: "counseling",
+    severity: "low",
+    description: "Performance improvement discussion",
+    incident: "Project deadlines missed on multiple occasions",
+    actionTaken: "Counseling session to discuss workload management and support needed",
+    followUpRequired: true,
+    followUpDate: "2024-02-20",
+    issuedBy: "Mike Wilson",
+    dateIssued: "2024-01-10",
+    status: "resolved",
+    resolutionNotes: "Employee showed significant improvement after additional training"
+  }
+];
+
 export default function HumanResources() {
   const [selectedTab, setSelectedTab] = useState("employees");
   const [employeeDialogOpen, setEmployeeDialogOpen] = useState(false);
   const [timeOffDialogOpen, setTimeOffDialogOpen] = useState(false);
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+  const [disciplinaryDialogOpen, setDisciplinaryDialogOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("all");
@@ -187,6 +264,7 @@ export default function HumanResources() {
   const employees = mockEmployees;
   const timeOffRequests = mockTimeOffRequests;
   const performanceReviews = mockPerformanceReviews;
+  const disciplinaryActions = mockDisciplinaryActions;
 
   const filteredEmployees = employees.filter(employee => {
     const matchesSearch = searchTerm === "" || 
@@ -212,11 +290,12 @@ export default function HumanResources() {
     }
   };
 
-  const departments = [...new Set(employees.map(emp => emp.department))];
+  const departments = Array.from(new Set(employees.map(emp => emp.department)));
   const totalEmployees = employees.length;
   const activeEmployees = employees.filter(emp => emp.status === "active").length;
   const onLeaveEmployees = employees.filter(emp => emp.status === "on_leave").length;
   const pendingTimeOff = timeOffRequests.filter(req => req.status === "pending").length;
+  const activeDisciplinaryActions = disciplinaryActions.filter(action => action.status === "active").length;
 
   return (
     <div className="container mx-auto p-6">
@@ -274,13 +353,26 @@ export default function HumanResources() {
             </div>
           </CardContent>
         </Card>
+        
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <AlertTriangle className="h-8 w-8 text-red-600" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Active Disciplinary</p>
+                <p className="text-2xl font-bold">{activeDisciplinaryActions}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="employees">Employees</TabsTrigger>
           <TabsTrigger value="timeoff">Time Off</TabsTrigger>
           <TabsTrigger value="performance">Performance</TabsTrigger>
+          <TabsTrigger value="disciplinary">Disciplinary</TabsTrigger>
           <TabsTrigger value="reports">Reports</TabsTrigger>
         </TabsList>
 
@@ -769,6 +861,280 @@ export default function HumanResources() {
                   <Download className="mr-2 h-4 w-4" />
                   Performance Summary
                 </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="disciplinary" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle>Disciplinary Actions</CardTitle>
+                  <CardDescription>Track and manage employee disciplinary actions and proceedings</CardDescription>
+                </div>
+                <Dialog open={disciplinaryDialogOpen} onOpenChange={setDisciplinaryDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <AlertTriangle className="mr-2 h-4 w-4" />
+                      New Disciplinary Action
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>Create Disciplinary Action</DialogTitle>
+                      <DialogDescription>
+                        Document a new disciplinary action for an employee
+                      </DialogDescription>
+                    </DialogHeader>
+                    <form className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="employeeSelect">Employee</Label>
+                          <Select name="employeeId">
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select employee" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {employees.map((emp) => (
+                                <SelectItem key={emp.id} value={emp.id.toString()}>
+                                  {emp.firstName} {emp.lastName} - {emp.position}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="actionType">Action Type</Label>
+                          <Select name="type">
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select action type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="verbal_warning">Verbal Warning</SelectItem>
+                              <SelectItem value="written_warning">Written Warning</SelectItem>
+                              <SelectItem value="suspension">Suspension</SelectItem>
+                              <SelectItem value="termination">Termination</SelectItem>
+                              <SelectItem value="counseling">Counseling</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="severity">Severity Level</Label>
+                          <Select name="severity">
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select severity" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="low">Low</SelectItem>
+                              <SelectItem value="medium">Medium</SelectItem>
+                              <SelectItem value="high">High</SelectItem>
+                              <SelectItem value="critical">Critical</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="issuedBy">Issued By</Label>
+                          <Input id="issuedBy" name="issuedBy" placeholder="Manager/HR Name" required />
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="description">Description</Label>
+                        <Input id="description" name="description" placeholder="Brief description of the action" required />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="incident">Incident Details</Label>
+                        <Textarea id="incident" name="incident" placeholder="Detailed description of the incident that led to this action" rows={3} required />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="actionTaken">Action Taken</Label>
+                        <Textarea id="actionTaken" name="actionTaken" placeholder="Describe the specific disciplinary action taken" rows={3} required />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="witnessName">Witness (Optional)</Label>
+                          <Input id="witnessName" name="witnessName" placeholder="Name of witness if applicable" />
+                        </div>
+                        <div>
+                          <Label htmlFor="followUpDate">Follow-up Date</Label>
+                          <Input id="followUpDate" name="followUpDate" type="date" />
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end space-x-2 pt-4">
+                        <Button type="button" variant="outline" onClick={() => setDisciplinaryDialogOpen(false)}>
+                          Cancel
+                        </Button>
+                        <Button type="submit">Create Disciplinary Action</Button>
+                      </div>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {/* Search and Filter Controls */}
+              <div className="flex flex-col sm:flex-row gap-4 mb-4">
+                <div className="flex-1">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <Input
+                      placeholder="Search by employee name, action type, or description..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="resolved">Resolved</SelectItem>
+                    <SelectItem value="appealed">Appealed</SelectItem>
+                    <SelectItem value="overturned">Overturned</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Disciplinary Actions Table */}
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Employee</TableHead>
+                      <TableHead>Action Type</TableHead>
+                      <TableHead>Severity</TableHead>
+                      <TableHead>Date Issued</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Follow-up</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {disciplinaryActions.map((action) => (
+                      <TableRow key={action.id}>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{action.employeeName}</div>
+                            <div className="text-sm text-gray-500">{action.employeePosition}</div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center">
+                            {action.type === "verbal_warning" && <AlertCircle className="h-4 w-4 mr-2 text-yellow-500" />}
+                            {action.type === "written_warning" && <FileText className="h-4 w-4 mr-2 text-orange-500" />}
+                            {action.type === "suspension" && <Clock className="h-4 w-4 mr-2 text-red-500" />}
+                            {action.type === "termination" && <XCircle className="h-4 w-4 mr-2 text-red-700" />}
+                            {action.type === "counseling" && <Users className="h-4 w-4 mr-2 text-blue-500" />}
+                            <span className="capitalize">{action.type.replace('_', ' ')}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant={
+                              action.severity === "critical" ? "destructive" :
+                              action.severity === "high" ? "destructive" :
+                              action.severity === "medium" ? "outline" : "secondary"
+                            }
+                          >
+                            {action.severity.toUpperCase()}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{new Date(action.dateIssued).toLocaleDateString()}</TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant={action.status === "active" ? "destructive" : action.status === "resolved" ? "secondary" : "outline"}
+                          >
+                            {action.status.toUpperCase()}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {action.followUpRequired ? (
+                            <div className="text-sm">
+                              <div className="text-gray-900">{action.followUpDate ? new Date(action.followUpDate).toLocaleDateString() : "TBD"}</div>
+                              <div className="text-red-600">Required</div>
+                            </div>
+                          ) : (
+                            <span className="text-gray-500">Not required</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex space-x-2">
+                            <Button variant="ghost" size="sm">
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm">
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Summary Statistics */}
+              <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center">
+                      <AlertTriangle className="h-6 w-6 text-red-600 mr-2" />
+                      <div>
+                        <p className="text-sm font-medium">Active Actions</p>
+                        <p className="text-xl font-bold">{disciplinaryActions.filter(a => a.status === "active").length}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center">
+                      <CheckCircle className="h-6 w-6 text-green-600 mr-2" />
+                      <div>
+                        <p className="text-sm font-medium">Resolved</p>
+                        <p className="text-xl font-bold">{disciplinaryActions.filter(a => a.status === "resolved").length}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center">
+                      <Clock className="h-6 w-6 text-orange-600 mr-2" />
+                      <div>
+                        <p className="text-sm font-medium">Pending Follow-up</p>
+                        <p className="text-xl font-bold">{disciplinaryActions.filter(a => a.followUpRequired && a.status === "active").length}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center">
+                      <Shield className="h-6 w-6 text-blue-600 mr-2" />
+                      <div>
+                        <p className="text-sm font-medium">This Month</p>
+                        <p className="text-xl font-bold">{disciplinaryActions.filter(a => new Date(a.dateIssued).getMonth() === new Date().getMonth()).length}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             </CardContent>
           </Card>
