@@ -626,7 +626,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Create payment record
-      await storage.createPayment({
+      const payment = await storage.createPayment({
         invoiceId,
         amount: invoice.total,
         currency: invoice.currency,
@@ -641,6 +641,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         paidAt: new Date(),
         paymentMethod: method,
       });
+
+      // Broadcast to all web users except the processor
+      (app as any).broadcastToWebUsers('payment_processed', {
+        payment,
+        invoice: updatedInvoice,
+        processedBy: req.user.username
+      }, req.user.id);
 
       res.json(updatedInvoice);
     } catch (error: any) {
@@ -1142,6 +1149,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       const user = await storage.createUserAccount(userData);
+      
+      // Broadcast to all web users except the creator
+      (app as any).broadcastToWebUsers('user_created', {
+        user: { ...user, password: undefined },
+        createdBy: req.user!.username
+      }, req.user!.id);
       
       res.status(201).json({
         ...user,
@@ -2843,6 +2856,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`Review request SMS would be sent to ${customerPhone}: ${message}`);
 
+      // Broadcast to all web users except the sender
+      (app as any).broadcastToWebUsers('review_request_sent', {
+        reviewRequest,
+        sentBy: req.user!.username
+      }, req.user!.id);
+
       res.json({ success: true, reviewRequest });
     } catch (error: any) {
       console.error('Error sending review request:', error);
@@ -2865,6 +2884,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = insertGasCardSchema.parse(req.body);
       const gasCard = await storage.createGasCard(validatedData);
+      
+      // Broadcast to all web users except the creator
+      (app as any).broadcastToWebUsers('gas_card_created', {
+        gasCard,
+        createdBy: req.user!.username
+      }, req.user!.id);
+      
       res.json(gasCard);
     } catch (error: any) {
       console.error('Error creating gas card:', error);
@@ -3549,6 +3575,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error processing DocuSign webhook:", error);
       res.status(500).json({ message: "Webhook processing failed" });
+    }
+  });
+
+  // Disciplinary Actions API
+  app.post('/api/disciplinary-actions', requireAuth, async (req, res) => {
+    try {
+      const disciplinaryData = {
+        ...req.body,
+        issuedBy: req.user!.id,
+        dateIssued: new Date(),
+        status: 'active'
+      };
+      
+      const disciplinaryAction = await storage.createDisciplinaryAction(disciplinaryData);
+      
+      // Broadcast to all web users except the creator
+      (app as any).broadcastToWebUsers('disciplinary_action_created', {
+        disciplinaryAction,
+        createdBy: req.user!.username
+      }, req.user!.id);
+      
+      res.status(201).json(disciplinaryAction);
+    } catch (error: any) {
+      console.error('Error creating disciplinary action:', error);
+      res.status(500).json({ message: 'Failed to create disciplinary action' });
     }
   });
 
