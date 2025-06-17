@@ -379,6 +379,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: req.user.id,
       });
       const customer = await storage.createCustomer(customerData);
+      
+      // Broadcast to all web users except the creator
+      (app as any).broadcastToWebUsers('customer_created', {
+        customer,
+        createdBy: req.user.username
+      }, req.user.id);
+      
       res.status(201).json(customer);
     } catch (error: any) {
       if (error instanceof ZodError) {
@@ -664,6 +671,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       const quote = await storage.createQuote(quoteData);
+      
+      // Broadcast to all web users except the creator
+      (app as any).broadcastToWebUsers('quote_created', {
+        quote,
+        createdBy: req.user.username
+      }, req.user.id);
+      
       res.status(201).json(quote);
     } catch (error: any) {
       if (error instanceof ZodError) {
@@ -1345,6 +1359,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       const project = await storage.createProject(projectData);
+      
+      // Broadcast to all web users except the creator
+      (app as any).broadcastToWebUsers('project_created', {
+        project,
+        createdBy: req.user!.username
+      }, req.user!.id);
+      
       res.status(201).json(project);
     } catch (error: any) {
       console.error("Error creating project:", error);
@@ -2658,6 +2679,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sentAt: new Date(),
         cost: 0.0075 // Standard SMS cost
       });
+
+      // Broadcast to all web users except the creator
+      (app as any).broadcastToWebUsers('sms_sent', {
+        smsMessage,
+        sentBy: req.user!.username
+      }, req.user!.id);
 
       res.json(smsMessage);
     } catch (error: any) {
