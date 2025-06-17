@@ -133,6 +133,221 @@ const disciplinaryUpload = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // PRIORITY: Settings endpoints must be registered first to avoid conflicts
+  app.get('/api/settings/payment', async (req, res) => {
+    try {
+      console.log('=== PAYMENT SETTINGS ENDPOINT CALLED ===');
+      const settings = await storage.getSettingsByCategory('payment');
+      console.log('Database settings retrieved:', settings);
+      
+      const paymentSettings = {
+        stripeEnabled: false,
+        stripePublicKey: '',
+        stripeSecretKey: '',
+        stripeWebhookSecret: '',
+        squareEnabled: false,
+        squareApplicationId: '',
+        squareAccessToken: '',
+        squareWebhookSecret: '',
+        squareEnvironment: 'sandbox'
+      };
+      
+      if (settings && settings.length > 0) {
+        settings.forEach((setting: any) => {
+          const key = setting.key.replace('payment_', '');
+          if (key in paymentSettings) {
+            paymentSettings[key] = setting.value === 'true' ? true : setting.value === 'false' ? false : setting.value;
+          }
+        });
+      }
+      
+      console.log('Returning payment settings:', paymentSettings);
+      res.json(paymentSettings);
+    } catch (error: any) {
+      console.error('Error in payment settings endpoint:', error);
+      res.status(500).json({ message: 'Failed to fetch payment settings' });
+    }
+  });
+
+  app.put('/api/settings/payment', requireAuth, async (req, res) => {
+    try {
+      const settings = req.body;
+      for (const [key, value] of Object.entries(settings)) {
+        await storage.updateSetting('payment', `payment_${key}`, String(value));
+      }
+      res.json({ message: 'Payment settings updated successfully' });
+    } catch (error: any) {
+      console.error('Error updating payment settings:', error);
+      res.status(500).json({ message: 'Failed to update payment settings' });
+    }
+  });
+
+  app.get('/api/settings/email', requireAuth, async (req, res) => {
+    try {
+      const settings = await storage.getSettingsByCategory('email');
+      const defaultSettings = {
+        emailEnabled: false,
+        smtpHost: '',
+        smtpPort: 587,
+        smtpUser: '',
+        smtpPassword: '',
+        smtpSecure: false,
+        fromEmail: '',
+        fromName: ''
+      };
+      
+      const emailSettings = { ...defaultSettings };
+      settings.forEach((setting: any) => {
+        const key = setting.key.replace('email_', '');
+        if (key in emailSettings) {
+          emailSettings[key] = setting.value === 'true' ? true : setting.value === 'false' ? false : 
+                         ['smtpPort'].includes(key) ? parseInt(setting.value) || 587 : setting.value;
+        }
+      });
+      
+      res.json(emailSettings);
+    } catch (error: any) {
+      console.error('Error fetching email settings:', error);
+      res.status(500).json({ message: 'Failed to fetch email settings' });
+    }
+  });
+
+  app.put('/api/settings/email', requireAuth, async (req, res) => {
+    try {
+      const settings = req.body;
+      for (const [key, value] of Object.entries(settings)) {
+        await storage.updateSetting('email', `email_${key}`, String(value));
+      }
+      res.json({ message: 'Email settings updated successfully' });
+    } catch (error: any) {
+      console.error('Error updating email settings:', error);
+      res.status(500).json({ message: 'Failed to update email settings' });
+    }
+  });
+
+  app.get('/api/settings/notifications', requireAuth, async (req, res) => {
+    try {
+      const settings = await storage.getSettingsByCategory('notifications');
+      const defaultSettings = {
+        emailNotifications: true,
+        smsNotifications: false,
+        pushNotifications: true,
+        invoiceReminders: true,
+        paymentReminders: true,
+        projectUpdates: true
+      };
+      
+      const notificationSettings = { ...defaultSettings };
+      settings.forEach((setting: any) => {
+        const key = setting.key.replace('notifications_', '');
+        if (key in notificationSettings) {
+          notificationSettings[key] = setting.value === 'true';
+        }
+      });
+      
+      res.json(notificationSettings);
+    } catch (error: any) {
+      console.error('Error fetching notification settings:', error);
+      res.status(500).json({ message: 'Failed to fetch notification settings' });
+    }
+  });
+
+  app.put('/api/settings/notifications', requireAuth, async (req, res) => {
+    try {
+      const settings = req.body;
+      for (const [key, value] of Object.entries(settings)) {
+        await storage.updateSetting('notifications', `notifications_${key}`, String(value));
+      }
+      res.json({ message: 'Notification settings updated successfully' });
+    } catch (error: any) {
+      console.error('Error updating notification settings:', error);
+      res.status(500).json({ message: 'Failed to update notification settings' });
+    }
+  });
+
+  app.get('/api/settings/security', requireAuth, async (req, res) => {
+    try {
+      const settings = await storage.getSettingsByCategory('security');
+      const defaultSettings = {
+        twoFactorAuth: false,
+        sessionTimeout: 30,
+        passwordComplexity: true,
+        loginAttempts: 5,
+        accountLockout: true
+      };
+      
+      const securitySettings = { ...defaultSettings };
+      settings.forEach((setting: any) => {
+        const key = setting.key.replace('security_', '');
+        if (key in securitySettings) {
+          securitySettings[key] = setting.value === 'true' ? true : setting.value === 'false' ? false :
+                             ['sessionTimeout', 'loginAttempts'].includes(key) ? parseInt(setting.value) || securitySettings[key] : setting.value;
+        }
+      });
+      
+      res.json(securitySettings);
+    } catch (error: any) {
+      console.error('Error fetching security settings:', error);
+      res.status(500).json({ message: 'Failed to fetch security settings' });
+    }
+  });
+
+  app.put('/api/settings/security', requireAuth, async (req, res) => {
+    try {
+      const settings = req.body;
+      for (const [key, value] of Object.entries(settings)) {
+        await storage.updateSetting('security', `security_${key}`, String(value));
+      }
+      res.json({ message: 'Security settings updated successfully' });
+    } catch (error: any) {
+      console.error('Error updating security settings:', error);
+      res.status(500).json({ message: 'Failed to update security settings' });
+    }
+  });
+
+  app.get('/api/settings/integrations', requireAuth, async (req, res) => {
+    try {
+      const settings = await storage.getSettingsByCategory('integrations');
+      const defaultSettings = {
+        googleMapsEnabled: false,
+        googleMapsApiKey: '',
+        twilioEnabled: false,
+        twilioAccountSid: '',
+        twilioAuthToken: '',
+        twilioPhoneNumber: '',
+        docusignEnabled: false,
+        docusignClientId: '',
+        docusignClientSecret: ''
+      };
+      
+      const integrationSettings = { ...defaultSettings };
+      settings.forEach((setting: any) => {
+        const key = setting.key.replace('integrations_', '');
+        if (key in integrationSettings) {
+          integrationSettings[key] = setting.value === 'true' ? true : setting.value === 'false' ? false : setting.value;
+        }
+      });
+      
+      res.json(integrationSettings);
+    } catch (error: any) {
+      console.error('Error fetching integration settings:', error);
+      res.status(500).json({ message: 'Failed to fetch integration settings' });
+    }
+  });
+
+  app.put('/api/settings/integrations', requireAuth, async (req, res) => {
+    try {
+      const settings = req.body;
+      for (const [key, value] of Object.entries(settings)) {
+        await storage.updateSetting('integrations', `integrations_${key}`, String(value));
+      }
+      res.json({ message: 'Integration settings updated successfully' });
+    } catch (error: any) {
+      console.error('Error updating integration settings:', error);
+      res.status(500).json({ message: 'Failed to update integration settings' });
+    }
+  });
+
   // Authentication routes (public)
   app.post("/api/auth/register", async (req, res) => {
     try {
@@ -336,7 +551,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Apply authentication middleware to protected routes only
   app.use('/api', (req, res, next) => {
     // Skip auth for these routes
-    const publicRoutes = ['/api/auth/', '/api/seed'];
+    const publicRoutes = ['/api/auth/', '/api/seed', '/api/settings/'];
     const isPublic = publicRoutes.some(route => req.path.startsWith(route) || req.path === route);
     
     if (isPublic) {
@@ -2800,221 +3015,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Settings endpoints with proper default value handling
-  app.get('/api/settings/payment', requireAuth, async (req, res) => {
-    try {
-      console.log('Fetching payment settings...');
-      const settings = await storage.getSettingsByCategory('payment');
-      console.log('Retrieved settings from database:', settings);
-      
-      const paymentSettings = {
-        stripeEnabled: false,
-        stripePublicKey: '',
-        stripeSecretKey: '',
-        stripeWebhookSecret: '',
-        squareEnabled: false,
-        squareApplicationId: '',
-        squareAccessToken: '',
-        squareWebhookSecret: '',
-        squareEnvironment: 'sandbox'
-      };
-      
-      // Apply database values if they exist
-      if (settings && settings.length > 0) {
-        settings.forEach((setting: any) => {
-          const key = setting.key.replace('payment_', '');
-          if (key in paymentSettings) {
-            paymentSettings[key] = setting.value === 'true' ? true : setting.value === 'false' ? false : setting.value;
-          }
-        });
-      }
-      
-      console.log('Final payment settings:', paymentSettings);
-      res.json(paymentSettings);
-    } catch (error: any) {
-      console.error('Error fetching payment settings:', error);
-      res.status(500).json({ message: 'Failed to fetch payment settings' });
-    }
-  });
 
-  app.put('/api/settings/payment', requireAuth, async (req, res) => {
-    try {
-      const settings = req.body;
-      for (const [key, value] of Object.entries(settings)) {
-        await storage.updateSetting('payment', `payment_${key}`, String(value));
-      }
-      res.json({ message: 'Payment settings updated successfully' });
-    } catch (error: any) {
-      console.error('Error updating payment settings:', error);
-      res.status(500).json({ message: 'Failed to update payment settings' });
-    }
-  });
-
-  app.get('/api/settings/email', requireAuth, async (req, res) => {
-    try {
-      const settings = await storage.getSettingsByCategory('email');
-      const defaultSettings = {
-        emailEnabled: false,
-        smtpHost: '',
-        smtpPort: 587,
-        smtpUser: '',
-        smtpPassword: '',
-        smtpSecure: false,
-        fromEmail: '',
-        fromName: ''
-      };
-      
-      const emailSettings = { ...defaultSettings };
-      settings.forEach((setting: any) => {
-        const key = setting.key.replace('email_', '');
-        if (key in emailSettings) {
-          emailSettings[key] = setting.value === 'true' ? true : setting.value === 'false' ? false : 
-                         ['smtpPort'].includes(key) ? parseInt(setting.value) || 587 : setting.value;
-        }
-      });
-      
-      res.json(emailSettings);
-    } catch (error: any) {
-      console.error('Error fetching email settings:', error);
-      res.status(500).json({ message: 'Failed to fetch email settings' });
-    }
-  });
-
-  app.put('/api/settings/email', requireAuth, async (req, res) => {
-    try {
-      const settings = req.body;
-      for (const [key, value] of Object.entries(settings)) {
-        await storage.updateSetting('email', `email_${key}`, String(value));
-      }
-      res.json({ message: 'Email settings updated successfully' });
-    } catch (error: any) {
-      console.error('Error updating email settings:', error);
-      res.status(500).json({ message: 'Failed to update email settings' });
-    }
-  });
-
-  app.get('/api/settings/notifications', requireAuth, async (req, res) => {
-    try {
-      const settings = await storage.getSettingsByCategory('notifications');
-      const defaultSettings = {
-        emailNotifications: true,
-        smsNotifications: false,
-        pushNotifications: true,
-        invoiceReminders: true,
-        paymentReminders: true,
-        projectUpdates: true
-      };
-      
-      const notificationSettings = { ...defaultSettings };
-      settings.forEach((setting: any) => {
-        const key = setting.key.replace('notifications_', '');
-        if (key in notificationSettings) {
-          notificationSettings[key] = setting.value === 'true';
-        }
-      });
-      
-      res.json(notificationSettings);
-    } catch (error: any) {
-      console.error('Error fetching notification settings:', error);
-      res.status(500).json({ message: 'Failed to fetch notification settings' });
-    }
-  });
-
-  app.put('/api/settings/notifications', requireAuth, async (req, res) => {
-    try {
-      const settings = req.body;
-      for (const [key, value] of Object.entries(settings)) {
-        await storage.updateSetting('notifications', `notifications_${key}`, String(value));
-      }
-      res.json({ message: 'Notification settings updated successfully' });
-    } catch (error: any) {
-      console.error('Error updating notification settings:', error);
-      res.status(500).json({ message: 'Failed to update notification settings' });
-    }
-  });
-
-  app.get('/api/settings/security', requireAuth, async (req, res) => {
-    try {
-      const settings = await storage.getSettingsByCategory('security');
-      const defaultSettings = {
-        twoFactorAuth: false,
-        sessionTimeout: 30,
-        passwordComplexity: true,
-        loginAttempts: 5,
-        accountLockout: true
-      };
-      
-      const securitySettings = { ...defaultSettings };
-      settings.forEach((setting: any) => {
-        const key = setting.key.replace('security_', '');
-        if (key in securitySettings) {
-          securitySettings[key] = setting.value === 'true' ? true : setting.value === 'false' ? false :
-                             ['sessionTimeout', 'loginAttempts'].includes(key) ? parseInt(setting.value) || securitySettings[key] : setting.value;
-        }
-      });
-      
-      res.json(securitySettings);
-    } catch (error: any) {
-      console.error('Error fetching security settings:', error);
-      res.status(500).json({ message: 'Failed to fetch security settings' });
-    }
-  });
-
-  app.put('/api/settings/security', requireAuth, async (req, res) => {
-    try {
-      const settings = req.body;
-      for (const [key, value] of Object.entries(settings)) {
-        await storage.updateSetting('security', `security_${key}`, String(value));
-      }
-      res.json({ message: 'Security settings updated successfully' });
-    } catch (error: any) {
-      console.error('Error updating security settings:', error);
-      res.status(500).json({ message: 'Failed to update security settings' });
-    }
-  });
-
-  app.get('/api/settings/integrations', requireAuth, async (req, res) => {
-    try {
-      const settings = await storage.getSettingsByCategory('integrations');
-      const defaultSettings = {
-        googleMapsEnabled: false,
-        googleMapsApiKey: '',
-        twilioEnabled: false,
-        twilioAccountSid: '',
-        twilioAuthToken: '',
-        twilioPhoneNumber: '',
-        docusignEnabled: false,
-        docusignClientId: '',
-        docusignClientSecret: ''
-      };
-      
-      const integrationSettings = { ...defaultSettings };
-      settings.forEach((setting: any) => {
-        const key = setting.key.replace('integrations_', '');
-        if (key in integrationSettings) {
-          integrationSettings[key] = setting.value === 'true' ? true : setting.value === 'false' ? false : setting.value;
-        }
-      });
-      
-      res.json(integrationSettings);
-    } catch (error: any) {
-      console.error('Error fetching integration settings:', error);
-      res.status(500).json({ message: 'Failed to fetch integration settings' });
-    }
-  });
-
-  app.put('/api/settings/integrations', requireAuth, async (req, res) => {
-    try {
-      const settings = req.body;
-      for (const [key, value] of Object.entries(settings)) {
-        await storage.updateSetting('integrations', `integrations_${key}`, String(value));
-      }
-      res.json({ message: 'Integration settings updated successfully' });
-    } catch (error: any) {
-      console.error('Error updating integration settings:', error);
-      res.status(500).json({ message: 'Failed to update integration settings' });
-    }
-  });
 
   app.put('/api/settings/email', requireAuth, async (req, res) => {
     try {
