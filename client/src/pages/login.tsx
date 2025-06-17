@@ -126,14 +126,81 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-      <div className="w-full max-w-md space-y-6">
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
+      {/* Background Graphics */}
+      <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-800">
+        {/* Animated gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 via-purple-600/20 to-indigo-600/20 animate-pulse"></div>
+        
+        {/* Geometric shapes */}
+        <div className="absolute inset-0">
+          {/* Large background circles */}
+          <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full bg-gradient-to-br from-blue-400/10 to-indigo-400/10 blur-3xl"></div>
+          <div className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full bg-gradient-to-br from-purple-400/10 to-pink-400/10 blur-3xl"></div>
+          
+          {/* Grid pattern */}
+          <div className="absolute inset-0 opacity-10">
+            <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                  <path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" strokeWidth="1"/>
+                </pattern>
+              </defs>
+              <rect width="100%" height="100%" fill="url(#grid)" />
+            </svg>
+          </div>
+          
+          {/* Floating geometric elements */}
+          <div className="absolute top-20 left-20 w-4 h-4 bg-blue-400/30 rounded-full animate-bounce"></div>
+          <div className="absolute top-40 right-32 w-6 h-6 bg-purple-400/30 rotate-45 animate-pulse"></div>
+          <div className="absolute bottom-32 left-16 w-5 h-5 bg-indigo-400/30 rounded-full animate-bounce delay-1000"></div>
+          <div className="absolute bottom-20 right-20 w-4 h-4 bg-pink-400/30 rotate-12 animate-pulse delay-500"></div>
+          
+          {/* Abstract shapes */}
+          <svg className="absolute top-1/4 left-10 w-24 h-24 text-blue-400/20" viewBox="0 0 100 100" fill="currentColor">
+            <path d="M50 10 L90 50 L50 90 L10 50 Z" />
+          </svg>
+          
+          <svg className="absolute bottom-1/4 right-10 w-20 h-20 text-purple-400/20" viewBox="0 0 100 100" fill="currentColor">
+            <circle cx="50" cy="50" r="40" />
+            <circle cx="50" cy="50" r="20" fill="transparent" stroke="currentColor" strokeWidth="4" />
+          </svg>
+          
+          {/* Invoice-themed decorative elements */}
+          <div className="absolute top-16 right-16 opacity-10">
+            <svg className="w-16 h-16 text-white" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+            </svg>
+          </div>
+          
+          <div className="absolute bottom-16 left-16 opacity-10">
+            <svg className="w-14 h-14 text-white" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M7,15H9C9,16.08 10.37,17 12,17C13.63,17 15,16.08 15,15C15,13.9 13.96,13.5 11.76,12.97C9.64,12.44 7,11.78 7,9C7,7.21 8.47,5.69 10.5,5.18V3H13.5V5.18C15.53,5.69 17,7.21 17,9H15C15,7.92 13.63,7 12,7C10.37,7 9,7.92 9,9C9,10.1 10.04,10.5 12.24,11.03C14.36,11.56 17,12.22 17,15C17,16.79 15.53,18.31 13.5,18.82V21H10.5V18.82C8.47,18.31 7,16.79 7,15Z" />
+            </svg>
+          </div>
+        </div>
+        
+        {/* Subtle texture overlay */}
+        <div className="absolute inset-0 opacity-20">
+          <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="dots" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse">
+                <circle cx="30" cy="30" r="2" fill="white" fillOpacity="0.1"/>
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#dots)" />
+          </svg>
+        </div>
+      </div>
+      
+      {/* Content container with backdrop blur */}
+      <div className="relative z-10 w-full max-w-md space-y-6 p-4">
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900">Invoice Management</h1>
-          <p className="text-gray-600 mt-2">Professional invoice and payment processing</p>
+          <h1 className="text-3xl font-bold text-white drop-shadow-lg">Invoice Management</h1>
+          <p className="text-blue-100 mt-2 drop-shadow-sm">Professional invoice and payment processing</p>
         </div>
 
-        <Card>
+        <Card className="backdrop-blur-lg bg-white/90 border-white/20 shadow-2xl shadow-black/20">
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl text-center flex items-center justify-center gap-2">
               <Lock className="h-5 w-5" />
