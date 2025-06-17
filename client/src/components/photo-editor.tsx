@@ -307,11 +307,23 @@ export function PhotoEditor({ images, onSave, onClose }: PhotoEditorProps) {
               </div>
 
               <Tabs defaultValue="images" className="w-full">
-                <TabsList className="grid w-full grid-cols-4">
-                  <TabsTrigger value="images"><ImageIcon className="w-4 h-4" /></TabsTrigger>
-                  <TabsTrigger value="filters"><Palette className="w-4 h-4" /></TabsTrigger>
-                  <TabsTrigger value="collage"><Grid3X3 className="w-4 h-4" /></TabsTrigger>
-                  <TabsTrigger value="tools"><Layers className="w-4 h-4" /></TabsTrigger>
+                <TabsList className="grid w-full grid-cols-4 mb-4">
+                  <TabsTrigger value="images" className="text-xs flex flex-col gap-1">
+                    <ImageIcon className="w-4 h-4" />
+                    <span>Images</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="filters" className="text-xs flex flex-col gap-1">
+                    <Palette className="w-4 h-4" />
+                    <span>Filters</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="collage" className="text-xs flex flex-col gap-1">
+                    <Grid3X3 className="w-4 h-4" />
+                    <span>Collage</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="tools" className="text-xs flex flex-col gap-1">
+                    <Layers className="w-4 h-4" />
+                    <span>Tools</span>
+                  </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="images" className="space-y-4">
