@@ -49,7 +49,7 @@ interface ProjectWithDetails extends Project {
 }
 
 export default function ProjectDetail() {
-  const [match, params] = useRoute("/projects/:id");
+  const [match, params] = useRoute("/jobs/:id");
   
   if (!match || !params) {
     return <div>Project not found</div>;
