@@ -2594,22 +2594,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/calendar-jobs/:id/convert-to-project", requireAuth, async (req, res) => {
+  app.post("/api/calendar-jobs/:id/convert-to-job", requireAuth, async (req, res) => {
     try {
       const jobId = parseInt(req.params.id);
       const userId = req.user!.id;
-      const projectData = req.body;
+      const jobData = req.body;
       
-      const project = await storage.convertJobToProject(jobId, userId, projectData);
+      const job = await storage.convertJobToProject(jobId, userId, jobData);
       
-      if (!project) {
+      if (!job) {
         return res.status(404).json({ message: "Calendar job not found" });
       }
       
-      res.json(project);
+      res.json(job);
     } catch (error: any) {
-      console.error("Error converting job to project:", error);
-      res.status(500).json({ message: "Failed to convert job to project" });
+      console.error("Error converting calendar job to job:", error);
+      res.status(500).json({ message: "Failed to convert calendar job to job" });
     }
   });
 

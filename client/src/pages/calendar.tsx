@@ -586,7 +586,7 @@ export default function CalendarPage() {
       <Dialog open={isConvertDialogOpen} onOpenChange={setIsConvertDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Convert Job to Job</DialogTitle>
+            <DialogTitle>Convert Calendar Event to Job</DialogTitle>
             <DialogDescription>
               Convert "{selectedJob?.title}" into an active job
             </DialogDescription>

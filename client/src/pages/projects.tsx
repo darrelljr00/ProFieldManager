@@ -83,7 +83,7 @@ interface CalendarJobWithDetails {
   });
 
   const convertJobToProjectMutation = useMutation({
-    mutationFn: (jobId: number) => apiRequest(`/api/calendar-jobs/${jobId}/convert-to-project`, "POST", {}),
+    mutationFn: (jobId: number) => apiRequest(`/api/calendar-jobs/${jobId}/convert-to-job`, "POST", {}),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
       queryClient.invalidateQueries({ queryKey: ["/api/calendar-jobs"] });
@@ -197,7 +197,7 @@ interface CalendarJobWithDetails {
               <div className="flex justify-between items-start">
                 <div className="flex-1">
                   <CardTitle className="text-lg mb-1">
-                    <Link href={`/projects/${project.id}`} className="hover:text-primary">
+                    <Link href={`/jobs/${project.id}`} className="hover:text-primary">
                       {project.name}
                     </Link>
                   </CardTitle>
@@ -211,7 +211,7 @@ interface CalendarJobWithDetails {
                     </Badge>
                   </div>
                 </div>
-                <Link href={`/projects/${project.id}/settings`}>
+                <Link href={`/jobs/${project.id}/settings`}>
                   <Button variant="ghost" size="sm">
                     <Settings className="h-4 w-4" />
                   </Button>

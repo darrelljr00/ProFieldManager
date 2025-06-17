@@ -44,8 +44,8 @@ function AuthenticatedApp() {
           <Route path="/" component={Dashboard} />
           <Route path="/dashboard" component={Dashboard} />
           <Route path="/calendar" component={CalendarPage} />
-          <Route path="/projects" component={Projects} />
-          <Route path="/projects/:id" component={ProjectDetail} />
+          <Route path="/jobs" component={Projects} />
+          <Route path="/jobs/:id" component={ProjectDetail} />
           <Route path="/leads" component={Leads} />
           <Route path="/expenses" component={Expenses} />
           <Route path="/expense-reports" component={ExpenseReports} />
