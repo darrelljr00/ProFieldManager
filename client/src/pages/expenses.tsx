@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Switch } from "@/components/ui/switch";
 import { 
   Plus, 
   Receipt, 
@@ -30,9 +31,11 @@ import {
   Download,
   TrendingUp,
   TrendingDown,
-  Filter
+  Filter,
+  Calculator
 } from "lucide-react";
 import type { Expense, ExpenseCategory, Project } from "@shared/schema";
+import { ExpenseLineItemsForm, type LineItem } from "@/components/expense-line-items-form";
 
 interface ExpenseWithProject extends Expense {
   project?: Project;

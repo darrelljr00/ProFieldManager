@@ -25,6 +25,7 @@ import AdminSettings from "@/pages/admin-settings";
 import SmsPage from "@/pages/sms";
 import Reviews from "@/pages/reviews";
 import Settings from "@/pages/settings";
+import HumanResources from "@/pages/human-resources";
 import Login from "@/pages/login";
 import NotFound from "@/pages/not-found";
 
@@ -53,6 +54,7 @@ function AuthenticatedApp() {
           <Route path="/image-gallery" component={ImageGallery} />
           <Route path="/sms" component={SmsPage} />
           <Route path="/reviews" component={Reviews} />
+          <Route path="/human-resources" component={HumanResources} />
           {isAdmin && <Route path="/users" component={Users} />}
           {isAdmin && <Route path="/admin-settings" component={AdminSettings} />}
           <Route path="/settings" component={Settings} />

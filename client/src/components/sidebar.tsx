@@ -21,7 +21,8 @@ import {
   ChevronDown,
   ChevronRight,
   ImageIcon,
-  Star
+  Star,
+  Briefcase
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
