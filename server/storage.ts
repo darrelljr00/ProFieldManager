@@ -248,6 +248,9 @@ export interface IStorage {
   // SaaS Organization methods
   getOrganizationById(id: number): Promise<Organization | undefined>;
   getOrganizationBySlug(slug: string): Promise<Organization | undefined>;
+  getAllOrganizations(): Promise<Organization[]>;
+  getAllOrganizationsWithDetails(): Promise<any[]>;
+  updateOrganization(id: number, updates: Partial<InsertOrganization>): Promise<Organization>;
   createOrganization(insertOrg: InsertOrganization): Promise<Organization>;
   updateOrganizationPlan(orgId: number, planData: Partial<InsertOrganization>): Promise<Organization>;
   getSubscriptionPlans(): Promise<SubscriptionPlan[]>;
@@ -364,6 +367,63 @@ export class DatabaseStorage implements IStorage {
       projects: projectCount[0]?.count || 0,
       storageUsedGB: 0 // Would calculate actual storage usage in production
     };
+  }
+
+  async getAllOrganizations(): Promise<Organization[]> {
+    return await db.select().from(organizations).orderBy(desc(organizations.createdAt));
+  }
+
+  async getAllOrganizationsWithDetails(): Promise<any[]> {
+    const orgs = await db
+      .select({
+        id: organizations.id,
+        name: organizations.name,
+        slug: organizations.slug,
+        subscriptionStatus: organizations.subscriptionStatus,
+        subscriptionPlanId: organizations.subscriptionPlanId,
+        trialEndsAt: organizations.trialEndsAt,
+        createdAt: organizations.createdAt,
+        updatedAt: organizations.updatedAt
+      })
+      .from(organizations)
+      .orderBy(desc(organizations.createdAt));
+
+    // Add user counts and subscription plan details for each organization
+    const orgsWithDetails = await Promise.all(
+      orgs.map(async (org) => {
+        const userCountResult = await db
+          .select({ count: sql<number>`count(*)` })
+          .from(users)
+          .where(eq(users.organizationId, org.id));
+        
+        const userCount = userCountResult[0]?.count || 0;
+        
+        // Get subscription plan name (would normally join with subscription plans table)
+        const subscriptionPlan = org.subscriptionPlanId === 1 ? 'Starter' : 
+                                org.subscriptionPlanId === 2 ? 'Professional' : 
+                                org.subscriptionPlanId === 3 ? 'Enterprise' : 'Free';
+
+        return {
+          ...org,
+          userCount,
+          subscriptionPlan
+        };
+      })
+    );
+
+    return orgsWithDetails;
+  }
+
+  async updateOrganization(id: number, updates: Partial<InsertOrganization>): Promise<Organization> {
+    const [org] = await db
+      .update(organizations)
+      .set({
+        ...updates,
+        updatedAt: new Date()
+      })
+      .where(eq(organizations.id, id))
+      .returning();
+    return org;
   }
 
   async getCustomers(userId: number): Promise<Customer[]> {
