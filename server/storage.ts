@@ -3,7 +3,7 @@ import {
   userSessions, userPermissions, projects, projectUsers, tasks, taskComments, projectFiles, timeEntries,
   expenses, expenseCategories, expenseReports, expenseReportItems, expenseLineItems, gasCards, gasCardAssignments, leads, calendarJobs,
   internalMessages, internalMessageRecipients, messageGroups, messageGroupMembers, images, imageAnnotations, sharedPhotoLinks,
-  reviewRequests, googleMyBusinessSettings, docusignEnvelopes,
+  reviewRequests, googleMyBusinessSettings, docusignEnvelopes, organizations, subscriptionPlans,
   type User, type InsertUser, type Customer, type InsertCustomer,
   type Invoice, type InsertInvoice, type InvoiceLineItem, type InsertInvoiceLineItem,
   type Payment, type InsertPayment, type Quote, type InsertQuote, type QuoteLineItem,
@@ -20,7 +20,8 @@ import {
   type InternalMessage, type InsertInternalMessage, type InternalMessageRecipient, type InsertInternalMessageRecipient,
   type MessageGroup, type InsertMessageGroup, type MessageGroupMember, type InsertMessageGroupMember,
   type SharedPhotoLink, type InsertSharedPhotoLink, type ReviewRequest, type InsertReviewRequest,
-  type GoogleMyBusinessSettings, type InsertGoogleMyBusinessSettings, type DocusignEnvelope, type InsertDocusignEnvelope
+  type GoogleMyBusinessSettings, type InsertGoogleMyBusinessSettings, type DocusignEnvelope, type InsertDocusignEnvelope,
+  type Organization, type InsertOrganization, type SubscriptionPlan, type InsertSubscriptionPlan
 } from "@shared/schema";
 import { db, pool } from "./db";
 import { eq, desc, and, sql, or, inArray, isNotNull } from "drizzle-orm";
@@ -304,6 +305,57 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, userId))
       .returning();
     return user;
+  }
+
+  // SaaS Organization Methods
+  async getOrganizationById(id: number): Promise<Organization | undefined> {
+    const [org] = await db.select().from(organizations).where(eq(organizations.id, id));
+    return org || undefined;
+  }
+
+  async getOrganizationBySlug(slug: string): Promise<Organization | undefined> {
+    const [org] = await db.select().from(organizations).where(eq(organizations.slug, slug));
+    return org || undefined;
+  }
+
+  async createOrganization(insertOrg: InsertOrganization): Promise<Organization> {
+    const [org] = await db
+      .insert(organizations)
+      .values(insertOrg)
+      .returning();
+    return org;
+  }
+
+  async updateOrganizationPlan(orgId: number, planData: Partial<InsertOrganization>): Promise<Organization> {
+    const [org] = await db
+      .update(organizations)
+      .set({
+        ...planData,
+        updatedAt: new Date()
+      })
+      .where(eq(organizations.id, orgId))
+      .returning();
+    return org;
+  }
+
+  async getSubscriptionPlans(): Promise<SubscriptionPlan[]> {
+    return await db.select().from(subscriptionPlans).where(eq(subscriptionPlans.isActive, true)).orderBy(subscriptionPlans.sortOrder);
+  }
+
+  async getSubscriptionPlanBySlug(slug: string): Promise<SubscriptionPlan | undefined> {
+    const [plan] = await db.select().from(subscriptionPlans).where(eq(subscriptionPlans.slug, slug));
+    return plan || undefined;
+  }
+
+  async getOrganizationUsage(orgId: number): Promise<any> {
+    const userCount = await db.select({ count: sql<number>`count(*)` }).from(users).where(eq(users.organizationId, orgId));
+    const projectCount = await db.select({ count: sql<number>`count(*)` }).from(projects).where(eq(projects.userId, orgId));
+    
+    return {
+      users: userCount[0]?.count || 0,
+      projects: projectCount[0]?.count || 0,
+      storageUsedGB: 0 // Would calculate actual storage usage in production
+    };
   }
 
   async getCustomers(userId: number): Promise<Customer[]> {
