@@ -3492,6 +3492,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Disciplinary Document Upload API
+  app.post('/api/disciplinary/upload', requireAuth, disciplinaryUpload.single('document'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: 'No file uploaded' });
+      }
+
+      const fileUrl = `/uploads/disciplinary/${req.file.filename}`;
+      const fileName = req.file.originalname;
+
+      res.json({
+        success: true,
+        documentUrl: fileUrl,
+        documentName: fileName,
+        message: 'Document uploaded successfully'
+      });
+    } catch (error: any) {
+      console.error('Error uploading disciplinary document:', error);
+      res.status(500).json({ message: 'Failed to upload document' });
+    }
+  });
+
+  // Serve disciplinary documents (with authentication)
+  app.get('/uploads/disciplinary/:filename', requireAuth, async (req, res) => {
+    try {
+      const filename = req.params.filename;
+      const filePath = path.join('./uploads/disciplinary', filename);
+      
+      // Check if file exists
+      try {
+        await fs.access(filePath);
+      } catch {
+        return res.status(404).json({ message: 'Document not found' });
+      }
+
+      // Set appropriate headers for PDF
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+      
+      // Send the file
+      res.sendFile(path.resolve(filePath));
+    } catch (error: any) {
+      console.error('Error serving disciplinary document:', error);
+      res.status(500).json({ message: 'Failed to serve document' });
+    }
+  });
+
+  // Delete disciplinary document
+  app.delete('/api/disciplinary/document/:filename', requireAuth, async (req, res) => {
+    try {
+      const filename = req.params.filename;
+      const filePath = path.join('./uploads/disciplinary', filename);
+      
+      try {
+        await fs.unlink(filePath);
+        res.json({ success: true, message: 'Document deleted successfully' });
+      } catch (error: any) {
+        if (error.code === 'ENOENT') {
+          res.status(404).json({ message: 'Document not found' });
+        } else {
+          throw error;
+        }
+      }
+    } catch (error: any) {
+      console.error('Error deleting disciplinary document:', error);
+      res.status(500).json({ message: 'Failed to delete document' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

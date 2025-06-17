@@ -266,6 +266,8 @@ export default function HumanResources() {
   const [searchTerm, setSearchTerm] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
 
   // Mock queries - replace with actual API calls
@@ -304,6 +306,93 @@ export default function HumanResources() {
   const onLeaveEmployees = employees.filter(emp => emp.status === "on_leave").length;
   const pendingTimeOff = timeOffRequests.filter(req => req.status === "pending").length;
   const activeDisciplinaryActions = disciplinaryActions.filter(action => action.status === "active").length;
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.type !== 'application/pdf') {
+        toast({
+          title: "Invalid file type",
+          description: "Please select a PDF file",
+          variant: "destructive"
+        });
+        return;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        toast({
+          title: "File too large",
+          description: "Please select a file smaller than 10MB",
+          variant: "destructive"
+        });
+        return;
+      }
+      setUploadedFile(file);
+    }
+  };
+
+  const handleDisciplinarySubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    
+    try {
+      setIsUploading(true);
+      
+      let documentUrl = '';
+      let documentName = '';
+      
+      // Upload document if provided
+      if (uploadedFile) {
+        const uploadFormData = new FormData();
+        uploadFormData.append('document', uploadedFile);
+        
+        const uploadResponse = await fetch('/api/disciplinary/upload', {
+          method: 'POST',
+          body: uploadFormData
+        });
+        
+        if (!uploadResponse.ok) {
+          throw new Error('Failed to upload document');
+        }
+        
+        const uploadResult = await uploadResponse.json();
+        documentUrl = uploadResult.documentUrl;
+        documentName = uploadResult.documentName;
+      }
+      
+      // Create disciplinary action record (this would typically save to database)
+      const disciplinaryData = {
+        employeeId: parseInt(formData.get('employeeId') as string),
+        type: formData.get('type') as string,
+        severity: formData.get('severity') as string,
+        description: formData.get('description') as string,
+        incident: formData.get('incident') as string,
+        actionTaken: formData.get('actionTaken') as string,
+        issuedBy: formData.get('issuedBy') as string,
+        witnessName: formData.get('witnessName') as string,
+        followUpDate: formData.get('followUpDate') as string,
+        documentUrl,
+        documentName
+      };
+      
+      toast({
+        title: "Disciplinary action created",
+        description: "The disciplinary action has been documented successfully"
+      });
+      
+      setDisciplinaryDialogOpen(false);
+      setUploadedFile(null);
+      
+    } catch (error) {
+      console.error('Error creating disciplinary action:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create disciplinary action",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   return (
     <div className="container mx-auto p-6">
@@ -896,7 +985,7 @@ export default function HumanResources() {
                         Document a new disciplinary action for an employee
                       </DialogDescription>
                     </DialogHeader>
-                    <form className="space-y-4">
+                    <form className="space-y-4" onSubmit={handleDisciplinarySubmit}>
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <Label htmlFor="employeeSelect">Employee</Label>
@@ -979,25 +1068,50 @@ export default function HumanResources() {
 
                       <div>
                         <Label htmlFor="document">Upload Disciplinary Document (PDF)</Label>
-                        <div className="mt-2 border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
-                          <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                          <div className="mt-4">
-                            <label htmlFor="document" className="cursor-pointer">
-                              <span className="mt-2 block text-sm font-medium text-gray-900">
-                                Upload a PDF file
-                              </span>
-                              <span className="mt-1 block text-sm text-gray-500">
-                                PDF up to 10MB
-                              </span>
-                            </label>
-                            <input
-                              id="document"
-                              name="document"
-                              type="file"
-                              accept=".pdf"
-                              className="sr-only"
-                            />
-                          </div>
+                        <div className="mt-2">
+                          {uploadedFile ? (
+                            <div className="border border-gray-300 rounded-lg p-4 bg-gray-50">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center">
+                                  <Paperclip className="h-5 w-5 text-gray-500 mr-2" />
+                                  <div>
+                                    <p className="text-sm font-medium text-gray-900">{uploadedFile.name}</p>
+                                    <p className="text-xs text-gray-500">{Math.round(uploadedFile.size / 1024)} KB</p>
+                                  </div>
+                                </div>
+                                <Button 
+                                  type="button" 
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={() => setUploadedFile(null)}
+                                >
+                                  <XCircle className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
+                              <Upload className="mx-auto h-12 w-12 text-gray-400" />
+                              <div className="mt-4">
+                                <label htmlFor="document" className="cursor-pointer">
+                                  <span className="mt-2 block text-sm font-medium text-gray-900">
+                                    Upload a PDF file
+                                  </span>
+                                  <span className="mt-1 block text-sm text-gray-500">
+                                    PDF up to 10MB
+                                  </span>
+                                </label>
+                                <input
+                                  id="document"
+                                  name="document"
+                                  type="file"
+                                  accept=".pdf"
+                                  onChange={handleFileChange}
+                                  className="sr-only"
+                                />
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
 
@@ -1005,7 +1119,16 @@ export default function HumanResources() {
                         <Button type="button" variant="outline" onClick={() => setDisciplinaryDialogOpen(false)}>
                           Cancel
                         </Button>
-                        <Button type="submit">Create Disciplinary Action</Button>
+                        <Button type="submit" disabled={isUploading}>
+                          {isUploading ? (
+                            <>
+                              <Upload className="mr-2 h-4 w-4 animate-spin" />
+                              Uploading...
+                            </>
+                          ) : (
+                            "Create Disciplinary Action"
+                          )}
+                        </Button>
                       </div>
                     </form>
                   </DialogContent>
