@@ -4513,10 +4513,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get subscription plans
+  // Get subscription plans (public endpoint for SaaS admin)
   app.get("/api/saas/plans", async (req, res) => {
     try {
       const plans = await storage.getSubscriptionPlans();
+      console.log("Fetched subscription plans:", plans);
       res.json(plans);
     } catch (error: any) {
       console.error("Error fetching subscription plans:", error);
