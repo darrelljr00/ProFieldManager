@@ -1076,7 +1076,8 @@ export default function SaasAdminPage() {
                   </Label>
                   <Input
                     id="orgZipCode"
-                    className="col-span-1"
+                    type="text"
+                    className="col-span-3"
                     value={subscriptionForm.orgZipCode}
                     onChange={(e) => setSubscriptionForm({...subscriptionForm, orgZipCode: e.target.value})}
                     placeholder="12345"
@@ -1091,9 +1092,9 @@ export default function SaasAdminPage() {
                     id="maxUsers"
                     type="number"
                     className="col-span-3"
-                    value={subscriptionForm.maxUsers}
+                    value={subscriptionForm.maxUsers || ""}
                     onChange={(e) => {
-                      const newValue = parseInt(e.target.value) || 0;
+                      const newValue = e.target.value === "" ? 0 : parseInt(e.target.value);
                       console.log("Max users changing to:", newValue);
                       setSubscriptionForm({...subscriptionForm, maxUsers: newValue});
                     }}
