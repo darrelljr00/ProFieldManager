@@ -34,7 +34,46 @@ import NotFound from "@/pages/not-found";
 
 function AuthenticatedApp() {
   const { isAdmin } = useAuth();
-  const { isConnected } = useWebSocket();
+  const { isConnected, lastMessage } = useWebSocket();
+  
+  // Listen for WebSocket updates and invalidate queries
+  useEffect(() => {
+    const handleWebSocketUpdate = (event: CustomEvent) => {
+      const { eventType } = event.detail;
+      
+      // Invalidate relevant queries based on event type
+      const queryInvalidationMap: Record<string, string[]> = {
+        'invoice_created': ['/api/invoices', '/api/dashboard'],
+        'expense_created': ['/api/expenses', '/api/dashboard'],
+        'expense_with_line_items_created': ['/api/expenses', '/api/dashboard'],
+        'quote_created': ['/api/quotes', '/api/dashboard'],
+        'customer_created': ['/api/customers'],
+        'project_created': ['/api/projects', '/api/dashboard'],
+        'sms_sent': ['/api/sms'],
+        'lead_created': ['/api/leads'],
+        'message_created': ['/api/messages'],
+        'calendar_job_created': ['/api/calendar'],
+        'gas_card_created': ['/api/gas-cards'],
+        'review_request_sent': ['/api/reviews'],
+        'user_created': ['/api/users'],
+        'payment_processed': ['/api/payments', '/api/invoices', '/api/dashboard'],
+        'disciplinary_action_created': ['/api/disciplinary-actions']
+      };
+      
+      const queriesToInvalidate = queryInvalidationMap[eventType];
+      if (queriesToInvalidate) {
+        queriesToInvalidate.forEach(queryKey => {
+          queryClient.invalidateQueries({ queryKey: [queryKey] });
+        });
+      }
+    };
+
+    window.addEventListener('websocket-update', handleWebSocketUpdate as EventListener);
+    
+    return () => {
+      window.removeEventListener('websocket-update', handleWebSocketUpdate as EventListener);
+    };
+  }, []);
   
   return (
     <div className="flex h-screen bg-gray-50">

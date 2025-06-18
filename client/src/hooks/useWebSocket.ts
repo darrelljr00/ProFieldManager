@@ -104,35 +104,10 @@ export function useWebSocket() {
   };
 
   const refreshPageData = (eventType: string) => {
-    // Trigger query invalidation based on event type
-    const currentPath = window.location.pathname;
-    
-    const refreshRules: Record<string, string[]> = {
-      'invoice_created': ['/invoices', '/dashboard'],
-      'expense_created': ['/expenses', '/expense-reports', '/dashboard'],
-      'expense_with_line_items_created': ['/expenses', '/expense-reports', '/dashboard'],
-      'quote_created': ['/quotes', '/dashboard'],
-      'customer_created': ['/customers'],
-      'project_created': ['/projects', '/dashboard'],
-      'sms_sent': ['/sms'],
-      'lead_created': ['/leads'],
-      'message_created': ['/internal-messages'],
-      'calendar_job_created': ['/calendar'],
-      'gas_card_created': ['/gas-cards'],
-      'review_request_sent': ['/reviews'],
-      'user_created': ['/users'],
-      'payment_processed': ['/payments', '/invoices', '/dashboard'],
-      'disciplinary_action_created': ['/human-resources']
-    };
-
-    const shouldRefresh = refreshRules[eventType]?.some(path => currentPath.includes(path));
-    
-    if (shouldRefresh) {
-      // Trigger a page refresh or query invalidation
-      window.dispatchEvent(new CustomEvent('websocket-update', { 
-        detail: { eventType, data: lastMessage?.data } 
-      }));
-    }
+    // Always trigger websocket update event for global query invalidation
+    window.dispatchEvent(new CustomEvent('websocket-update', { 
+      detail: { eventType, data: lastMessage?.data } 
+    }));
   };
 
   return {
