@@ -517,86 +517,86 @@ export default function SaasAdminPage() {
             <CardContent>
               {/* Plan Overview Cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                    {/* Starter Plan */}
-                    <Card className="relative">
-                      <CardHeader>
-                        <CardTitle className="flex items-center justify-between">
-                          Starter
-                          <Badge variant="default">Active</Badge>
-                        </CardTitle>
-                        <CardDescription>
-                          <div className="text-2xl font-bold">$49</div>
-                          <div className="text-sm">per month</div>
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-2">
-                          <div className="text-sm">
-                            <strong>Limits:</strong> 5 users, 50 projects
-                          </div>
-                          <div className="text-sm">
-                            <strong>Storage:</strong> 10GB
-                          </div>
-                          <div className="text-sm">
-                            <strong>Features:</strong> Basic reporting
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+                {/* Starter Plan */}
+                <Card className="relative">
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      Starter
+                      <Badge variant="default">Active</Badge>
+                    </CardTitle>
+                    <CardDescription>
+                      <div className="text-2xl font-bold">$49</div>
+                      <div className="text-sm">per month</div>
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div className="text-sm">
+                        <strong>Limits:</strong> 5 users, 50 projects
+                      </div>
+                      <div className="text-sm">
+                        <strong>Storage:</strong> 10GB
+                      </div>
+                      <div className="text-sm">
+                        <strong>Features:</strong> Basic reporting
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-                    {/* Professional Plan */}
-                    <Card className="relative">
-                      <CardHeader>
-                        <CardTitle className="flex items-center justify-between">
-                          Professional
-                          <Badge variant="default">Active</Badge>
-                        </CardTitle>
-                        <CardDescription>
-                          <div className="text-2xl font-bold">$99</div>
-                          <div className="text-sm">per month</div>
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-2">
-                          <div className="text-sm">
-                            <strong>Limits:</strong> 25 users, Unlimited projects
-                          </div>
-                          <div className="text-sm">
-                            <strong>Storage:</strong> 50GB
-                          </div>
-                          <div className="text-sm">
-                            <strong>Features:</strong> Advanced reporting, API access, Custom branding
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+                {/* Professional Plan */}
+                <Card className="relative">
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      Professional
+                      <Badge variant="default">Active</Badge>
+                    </CardTitle>
+                    <CardDescription>
+                      <div className="text-2xl font-bold">$99</div>
+                      <div className="text-sm">per month</div>
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div className="text-sm">
+                        <strong>Limits:</strong> 25 users, Unlimited projects
+                      </div>
+                      <div className="text-sm">
+                        <strong>Storage:</strong> 50GB
+                      </div>
+                      <div className="text-sm">
+                        <strong>Features:</strong> Advanced reporting, API access, Custom branding
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-                    {/* Enterprise Plan */}
-                    <Card className="relative">
-                      <CardHeader>
-                        <CardTitle className="flex items-center justify-between">
-                          Enterprise
-                          <Badge variant="default">Active</Badge>
-                        </CardTitle>
-                        <CardDescription>
-                          <div className="text-2xl font-bold">$199</div>
-                          <div className="text-sm">per month</div>
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-2">
-                          <div className="text-sm">
-                            <strong>Limits:</strong> Unlimited users, Unlimited projects
-                          </div>
-                          <div className="text-sm">
-                            <strong>Storage:</strong> 500GB
-                          </div>
-                          <div className="text-sm">
-                            <strong>Features:</strong> All features, Priority support
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+                {/* Enterprise Plan */}
+                <Card className="relative">
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      Enterprise
+                      <Badge variant="default">Active</Badge>
+                    </CardTitle>
+                    <CardDescription>
+                      <div className="text-2xl font-bold">$199</div>
+                      <div className="text-sm">per month</div>
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div className="text-sm">
+                        <strong>Limits:</strong> Unlimited users, Unlimited projects
+                      </div>
+                      <div className="text-sm">
+                        <strong>Storage:</strong> 500GB
+                      </div>
+                      <div className="text-sm">
+                        <strong>Features:</strong> All features, Priority support
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
 
               {/* Feature Assignment Matrix */}
