@@ -41,7 +41,7 @@ import {
   Edit,
   Save,
 } from "lucide-react";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+
 
 export default function SaasAdminPage() {
   const { toast } = useToast();
@@ -459,19 +459,27 @@ export default function SaasAdminPage() {
                           {subscriptionPlans?.map((plan: any, planIndex: number) => (
                             <div key={plan.id} className="space-y-2">
                               <div className="text-sm font-medium text-center">{plan.name}</div>
-                              <RadioGroup
-                                value={feature.values[planIndex] || ''}
-                                onValueChange={(value) => handleFeatureUpdate(plan.id, feature.id, value === 'Unlimited' ? -1 : parseInt(value))}
-                              >
+                              <div className="space-y-2">
                                 {feature.values.map((value) => (
                                   <div key={value} className="flex items-center space-x-2">
-                                    <RadioGroupItem value={value} id={`${feature.id}-${plan.id}-${value}`} />
+                                    <input
+                                      type="radio"
+                                      name={`${feature.id}-${plan.id}`}
+                                      value={value}
+                                      id={`${feature.id}-${plan.id}-${value}`}
+                                      defaultChecked={value === feature.values[planIndex]}
+                                      onChange={() => {
+                                        const numValue = value === 'Unlimited' ? -1 : (isNaN(parseInt(value)) ? value : parseInt(value));
+                                        handleFeatureUpdate(plan.id, feature.id, numValue);
+                                      }}
+                                      className="h-4 w-4 text-primary focus:ring-primary border-gray-300"
+                                    />
                                     <Label htmlFor={`${feature.id}-${plan.id}-${value}`} className="text-sm">
                                       {value}
                                     </Label>
                                   </div>
                                 ))}
-                              </RadioGroup>
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -500,23 +508,36 @@ export default function SaasAdminPage() {
                           {subscriptionPlans?.map((plan: any) => (
                             <div key={plan.id} className="space-y-2">
                               <div className="text-sm font-medium text-center">{plan.name}</div>
-                              <RadioGroup
-                                value={plan[feature.id] ? 'included' : 'not-included'}
-                                onValueChange={(value) => handleFeatureUpdate(plan.id, feature.id, value === 'included')}
-                              >
+                              <div className="space-y-2">
                                 <div className="flex items-center space-x-2">
-                                  <RadioGroupItem value="not-included" id={`${feature.id}-${plan.id}-no`} />
+                                  <input
+                                    type="radio"
+                                    name={`${feature.id}-${plan.id}`}
+                                    value="not-included"
+                                    id={`${feature.id}-${plan.id}-no`}
+                                    defaultChecked={!plan[feature.id]}
+                                    onChange={() => handleFeatureUpdate(plan.id, feature.id, false)}
+                                    className="h-4 w-4 text-primary focus:ring-primary border-gray-300"
+                                  />
                                   <Label htmlFor={`${feature.id}-${plan.id}-no`} className="text-sm">
                                     Not Included
                                   </Label>
                                 </div>
                                 <div className="flex items-center space-x-2">
-                                  <RadioGroupItem value="included" id={`${feature.id}-${plan.id}-yes`} />
+                                  <input
+                                    type="radio"
+                                    name={`${feature.id}-${plan.id}`}
+                                    value="included"
+                                    id={`${feature.id}-${plan.id}-yes`}
+                                    defaultChecked={plan[feature.id]}
+                                    onChange={() => handleFeatureUpdate(plan.id, feature.id, true)}
+                                    className="h-4 w-4 text-primary focus:ring-primary border-gray-300"
+                                  />
                                   <Label htmlFor={`${feature.id}-${plan.id}-yes`} className="text-sm">
                                     ✓ Included
                                   </Label>
                                 </div>
-                              </RadioGroup>
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -546,23 +567,36 @@ export default function SaasAdminPage() {
                           {subscriptionPlans?.map((plan: any) => (
                             <div key={plan.id} className="space-y-2">
                               <div className="text-sm font-medium text-center">{plan.name}</div>
-                              <RadioGroup
-                                defaultValue="not-included"
-                                onValueChange={(value) => handleFeatureUpdate(plan.id, feature.id, value === 'included')}
-                              >
+                              <div className="space-y-2">
                                 <div className="flex items-center space-x-2">
-                                  <RadioGroupItem value="not-included" id={`${feature.id}-${plan.id}-no`} />
+                                  <input
+                                    type="radio"
+                                    name={`${feature.id}-${plan.id}`}
+                                    value="not-included"
+                                    id={`${feature.id}-${plan.id}-no`}
+                                    defaultChecked={true}
+                                    onChange={() => handleFeatureUpdate(plan.id, feature.id, false)}
+                                    className="h-4 w-4 text-primary focus:ring-primary border-gray-300"
+                                  />
                                   <Label htmlFor={`${feature.id}-${plan.id}-no`} className="text-sm">
                                     Not Included
                                   </Label>
                                 </div>
                                 <div className="flex items-center space-x-2">
-                                  <RadioGroupItem value="included" id={`${feature.id}-${plan.id}-yes`} />
+                                  <input
+                                    type="radio"
+                                    name={`${feature.id}-${plan.id}`}
+                                    value="included"
+                                    id={`${feature.id}-${plan.id}-yes`}
+                                    defaultChecked={false}
+                                    onChange={() => handleFeatureUpdate(plan.id, feature.id, true)}
+                                    className="h-4 w-4 text-primary focus:ring-primary border-gray-300"
+                                  />
                                   <Label htmlFor={`${feature.id}-${plan.id}-yes`} className="text-sm">
                                     ✓ Included
                                   </Label>
                                 </div>
-                              </RadioGroup>
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -589,19 +623,24 @@ export default function SaasAdminPage() {
                           {subscriptionPlans?.map((plan: any, planIndex: number) => (
                             <div key={plan.id} className="space-y-2">
                               <div className="text-sm font-medium text-center">{plan.name}</div>
-                              <RadioGroup
-                                defaultValue={feature.values[planIndex] || feature.values[0]}
-                                onValueChange={(value) => handleFeatureUpdate(plan.id, feature.id, value)}
-                              >
+                              <div className="space-y-2">
                                 {feature.values.map((value) => (
                                   <div key={value} className="flex items-center space-x-2">
-                                    <RadioGroupItem value={value} id={`${feature.id}-${plan.id}-${value}`} />
+                                    <input
+                                      type="radio"
+                                      name={`${feature.id}-${plan.id}`}
+                                      value={value}
+                                      id={`${feature.id}-${plan.id}-${value}`}
+                                      defaultChecked={value === (feature.values[planIndex] || feature.values[0])}
+                                      onChange={() => handleFeatureUpdate(plan.id, feature.id, value)}
+                                      className="h-4 w-4 text-primary focus:ring-primary border-gray-300"
+                                    />
                                     <Label htmlFor={`${feature.id}-${plan.id}-${value}`} className="text-sm">
                                       {value}
                                     </Label>
                                   </div>
                                 ))}
-                              </RadioGroup>
+                              </div>
                             </div>
                           ))}
                         </div>
