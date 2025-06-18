@@ -193,8 +193,10 @@ export default function SaasAdminPage() {
   ];
 
   const createSubscriptionMutation = useMutation({
-    mutationFn: (data: any) =>
-      apiRequest("POST", "/api/admin/saas/subscriptions", data),
+    mutationFn: (data: any) => {
+      console.log("Creating subscription with data:", data);
+      return apiRequest("POST", "/api/admin/saas/subscriptions", data);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/saas/organizations"] });
       setShowCreateSubscriptionDialog(false);
@@ -1002,7 +1004,10 @@ export default function SaasAdminPage() {
                     id="orgName"
                     className="col-span-3"
                     value={subscriptionForm.orgName}
-                    onChange={(e) => setSubscriptionForm({...subscriptionForm, orgName: e.target.value})}
+                    onChange={(e) => {
+                      console.log("Org name changing to:", e.target.value);
+                      setSubscriptionForm({...subscriptionForm, orgName: e.target.value});
+                    }}
                     placeholder="Company Name"
                   />
                 </div>
@@ -1123,7 +1128,10 @@ export default function SaasAdminPage() {
                     type="email"
                     className="col-span-3"
                     value={subscriptionForm.adminEmail}
-                    onChange={(e) => setSubscriptionForm({...subscriptionForm, adminEmail: e.target.value})}
+                    onChange={(e) => {
+                      console.log("Admin email changing to:", e.target.value);
+                      setSubscriptionForm({...subscriptionForm, adminEmail: e.target.value});
+                    }}
                     placeholder="admin@company.com"
                   />
                 </div>
@@ -1158,7 +1166,7 @@ export default function SaasAdminPage() {
                   <SelectContent>
                     {subscriptionPlans?.map((plan: any) => (
                       <SelectItem key={plan.id} value={plan.id.toString()}>
-                        {plan.name} - ${plan.price}/{plan.interval}
+                        {plan.name} - ${plan.price}/{plan.billingInterval}
                       </SelectItem>
                     ))}
                   </SelectContent>
