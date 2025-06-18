@@ -102,6 +102,53 @@ const upload = multer({
   }
 });
 
+// Configure multer for file manager uploads
+const fileManagerUpload = multer({
+  storage: multer.diskStorage({
+    destination: async (req, file, cb) => {
+      const uploadDir = './uploads/files';
+      try {
+        await fs.mkdir(uploadDir, { recursive: true });
+        cb(null, uploadDir);
+      } catch (error) {
+        cb(error as Error, uploadDir);
+      }
+    },
+    filename: (req, file, cb) => {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      const sanitizedOriginalName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+      cb(null, 'file-' + uniqueSuffix + '-' + sanitizedOriginalName);
+    }
+  }),
+  fileFilter: (req, file, cb) => {
+    // Allow all common file types for file manager
+    const allowedTypes = /jpeg|jpg|png|gif|svg|pdf|doc|docx|xls|xlsx|ppt|pptx|txt|csv|zip|rar|7z|mp4|avi|mov|wmv|mp3|wav/;
+    const allowedMimeTypes = [
+      'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/svg+xml',
+      'application/pdf',
+      'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      'text/plain', 'text/csv',
+      'application/zip', 'application/x-rar-compressed', 'application/x-7z-compressed',
+      'video/mp4', 'video/avi', 'video/quicktime', 'video/x-ms-wmv',
+      'audio/mpeg', 'audio/wav'
+    ];
+    
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedMimeTypes.includes(file.mimetype);
+    
+    if (mimetype || extname) {
+      return cb(null, true);
+    } else {
+      cb(new Error('File type not allowed'));
+    }
+  },
+  limits: {
+    fileSize: 100 * 1024 * 1024 // 100MB limit for file manager
+  }
+});
+
 // Configure multer specifically for disciplinary PDF uploads
 const disciplinaryUpload = multer({
   storage: multer.diskStorage({
@@ -4951,7 +4998,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/files/upload", requireAuth, upload.single('file'), async (req, res) => {
+  app.post("/api/files/upload", requireAuth, fileManagerUpload.single('file'), async (req, res) => {
     try {
       const user = getAuthenticatedUser(req);
       const uploadedFile = req.file;
