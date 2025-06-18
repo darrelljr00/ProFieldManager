@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -70,6 +70,8 @@ export default function SaasAdminPage() {
   const [showEditOrgDialog, setShowEditOrgDialog] = useState(false);
   const [organizationUsers, setOrganizationUsers] = useState<any[]>([]);
   const [editingUser, setEditingUser] = useState<any>(null);
+  const [selectedUserOrgId, setSelectedUserOrgId] = useState<number | null>(null);
+  const [userManagementUsers, setUserManagementUsers] = useState<any[]>([]);
   const [subscriptionForm, setSubscriptionForm] = useState({
     organizationId: "",
     planId: "",
@@ -148,7 +150,13 @@ export default function SaasAdminPage() {
     mutationFn: (data: { orgId: number; userId: number; updates: any }) =>
       apiRequest("PUT", `/api/admin/saas/organizations/${data.orgId}/users/${data.userId}`, data.updates),
     onSuccess: () => {
-      fetchOrganizationUsers(editingOrganization?.id);
+      // Refresh the appropriate user list
+      if (editingOrganization?.id) {
+        fetchOrganizationUsers(editingOrganization.id);
+      }
+      if (activeTab === 'users') {
+        fetchUserManagementUsers(selectedUserOrgId);
+      }
       toast({
         title: "Success",
         description: "User updated successfully",
@@ -167,7 +175,13 @@ export default function SaasAdminPage() {
     mutationFn: (data: { orgId: number; userId: number }) =>
       apiRequest("DELETE", `/api/admin/saas/organizations/${data.orgId}/users/${data.userId}`),
     onSuccess: () => {
-      fetchOrganizationUsers(editingOrganization?.id);
+      // Refresh the appropriate user list
+      if (editingOrganization?.id) {
+        fetchOrganizationUsers(editingOrganization.id);
+      }
+      if (activeTab === 'users') {
+        fetchUserManagementUsers(selectedUserOrgId);
+      }
       toast({
         title: "Success", 
         description: "User deleted successfully",
@@ -205,6 +219,29 @@ export default function SaasAdminPage() {
       console.error("Error fetching organization users:", error);
     }
   };
+
+  // Fetch users for user management tab
+  const fetchUserManagementUsers = async (orgId: number | null) => {
+    try {
+      let response;
+      if (orgId) {
+        response = await fetch(`/api/admin/saas/organizations/${orgId}/users`);
+      } else {
+        response = await fetch(`/api/admin/users`);
+      }
+      const users = await response.json();
+      setUserManagementUsers(users);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    }
+  };
+
+  // Load users when organization selection changes
+  React.useEffect(() => {
+    if (activeTab === 'users') {
+      fetchUserManagementUsers(selectedUserOrgId);
+    }
+  }, [selectedUserOrgId, activeTab]);
 
   const createSubscriptionPlanMutation = useMutation({
     mutationFn: (planData: any) =>
@@ -345,9 +382,10 @@ export default function SaasAdminPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="organizations">Organizations</TabsTrigger>
+          <TabsTrigger value="users">User Management</TabsTrigger>
           <TabsTrigger value="plans">Subscription Plans</TabsTrigger>
           <TabsTrigger value="billing">Billing</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
@@ -879,6 +917,118 @@ export default function SaasAdminPage() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+        </TabsContent>
+
+        <TabsContent value="users" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>User Management</CardTitle>
+              <CardDescription>
+                Manage user accounts across all organizations
+              </CardDescription>
+              <div className="flex gap-4 mt-4">
+                <div className="w-64">
+                  <Label htmlFor="org-filter">Filter by Organization</Label>
+                  <Select
+                    value={selectedUserOrgId?.toString() || "all"}
+                    onValueChange={(value) => {
+                      const orgId = value === "all" ? null : parseInt(value);
+                      setSelectedUserOrgId(orgId);
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select organization" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Organizations</SelectItem>
+                      {allOrganizations?.map((org: any) => (
+                        <SelectItem key={org.id} value={org.id.toString()}>
+                          {org.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Username</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Organization</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Last Login</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {userManagementUsers?.map((user: any) => {
+                    const userOrg = allOrganizations?.find((org: any) => org.id === user.organizationId);
+                    return (
+                      <TableRow key={user.id}>
+                        <TableCell className="font-medium">{user.username}</TableCell>
+                        <TableCell>{user.email}</TableCell>
+                        <TableCell>{userOrg?.name || `Organization ${user.organizationId}`}</TableCell>
+                        <TableCell>
+                          <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
+                            {user.role}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={user.isActive ? 'default' : 'destructive'}>
+                            {user.isActive ? 'Active' : 'Inactive'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString() : 'Never'}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => setEditingUser({ ...user, newPassword: "" })}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="destructive" size="sm">
+                                  <Trash className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete User</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to delete {user.username}? This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => deleteUserMutation.mutate({
+                                      orgId: user.organizationId,
+                                      userId: user.id
+                                    })}
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="plans" className="space-y-6">
