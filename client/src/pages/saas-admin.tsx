@@ -1239,12 +1239,28 @@ export default function SaasAdminPage() {
             </Button>
             <Button
               type="button"
-              onClick={() => createSubscriptionMutation.mutate(subscriptionForm)}
-              disabled={
-                (!subscriptionForm.createNewOrg && (!subscriptionForm.organizationId || !subscriptionForm.planId)) ||
-                (subscriptionForm.createNewOrg && (!subscriptionForm.orgName || !subscriptionForm.adminEmail || !subscriptionForm.planId)) ||
-                createSubscriptionMutation.isPending
-              }
+              onClick={() => {
+                console.log("Button clicked, form data:", subscriptionForm);
+                createSubscriptionMutation.mutate(subscriptionForm);
+              }}
+              disabled={(() => {
+                const isNewOrg = subscriptionForm.createNewOrg;
+                const existingOrgValid = !isNewOrg && subscriptionForm.organizationId && subscriptionForm.planId;
+                const newOrgValid = isNewOrg && subscriptionForm.orgName && subscriptionForm.adminEmail && subscriptionForm.adminPassword && subscriptionForm.planId;
+                const isValid = existingOrgValid || newOrgValid;
+                
+                console.log("Button validation:", {
+                  isNewOrg,
+                  orgName: subscriptionForm.orgName,
+                  adminEmail: subscriptionForm.adminEmail,
+                  adminPassword: subscriptionForm.adminPassword,
+                  planId: subscriptionForm.planId,
+                  isValid,
+                  isPending: createSubscriptionMutation.isPending
+                });
+                
+                return !isValid || createSubscriptionMutation.isPending;
+              })()}
             >
               {createSubscriptionMutation.isPending ? "Creating..." : subscriptionForm.createNewOrg ? "Create Organization & Subscription" : "Create Subscription"}
             </Button>
