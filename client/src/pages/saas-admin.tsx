@@ -66,6 +66,8 @@ export default function SaasAdminPage() {
   const [editingPlan, setEditingPlan] = useState<any>(null);
   const [showCreateSubscriptionDialog, setShowCreateSubscriptionDialog] = useState(false);
   const [selectedOrganization, setSelectedOrganization] = useState<any>(null);
+  const [editingOrganization, setEditingOrganization] = useState<any>(null);
+  const [showEditOrgDialog, setShowEditOrgDialog] = useState(false);
   const [subscriptionForm, setSubscriptionForm] = useState({
     organizationId: "",
     planId: "",
@@ -468,7 +470,15 @@ export default function SaasAdminPage() {
                       <TableCell>{new Date(org.createdAt).toLocaleDateString()}</TableCell>
                       <TableCell>
                         <div className="flex gap-2">
-                          <Button variant="outline" size="sm">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => {
+                              setEditingOrganization(org);
+                              setShowEditOrgDialog(true);
+                            }}
+                          >
+                            <Edit className="h-4 w-4 mr-1" />
                             Edit
                           </Button>
                           <AlertDialog>
@@ -502,6 +512,122 @@ export default function SaasAdminPage() {
               </Table>
             </CardContent>
           </Card>
+
+          {/* Edit Organization Dialog */}
+          <Dialog open={showEditOrgDialog} onOpenChange={setShowEditOrgDialog}>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Edit Organization</DialogTitle>
+                <DialogDescription>
+                  Update organization details and settings
+                </DialogDescription>
+              </DialogHeader>
+              {editingOrganization && (
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="edit-name" className="text-right">
+                      Organization Name
+                    </Label>
+                    <Input
+                      id="edit-name"
+                      className="col-span-3"
+                      value={editingOrganization.name || ""}
+                      onChange={(e) => setEditingOrganization({
+                        ...editingOrganization,
+                        name: e.target.value
+                      })}
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="edit-slug" className="text-right">
+                      Slug
+                    </Label>
+                    <Input
+                      id="edit-slug"
+                      className="col-span-3"
+                      value={editingOrganization.slug || ""}
+                      onChange={(e) => setEditingOrganization({
+                        ...editingOrganization,
+                        slug: e.target.value
+                      })}
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="edit-status" className="text-right">
+                      Status
+                    </Label>
+                    <Select
+                      value={editingOrganization.subscriptionStatus || "trial"}
+                      onValueChange={(value) => setEditingOrganization({
+                        ...editingOrganization,
+                        subscriptionStatus: value
+                      })}
+                    >
+                      <SelectTrigger className="col-span-3">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="trial">Trial</SelectItem>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="suspended">Suspended</SelectItem>
+                        <SelectItem value="cancelled">Cancelled</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="edit-plan" className="text-right">
+                      Subscription Plan
+                    </Label>
+                    <Select
+                      value={editingOrganization.subscriptionPlanId?.toString() || ""}
+                      onValueChange={(value) => setEditingOrganization({
+                        ...editingOrganization,
+                        subscriptionPlanId: parseInt(value)
+                      })}
+                    >
+                      <SelectTrigger className="col-span-3">
+                        <SelectValue placeholder="Select plan" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {subscriptionPlans?.map((plan: any) => (
+                          <SelectItem key={plan.id} value={plan.id.toString()}>
+                            {plan.name} (${plan.price}/{plan.billingInterval})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+              <DialogFooter>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowEditOrgDialog(false)}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={() => {
+                    if (editingOrganization) {
+                      updateOrganizationMutation.mutate({
+                        id: editingOrganization.id,
+                        updates: {
+                          name: editingOrganization.name,
+                          slug: editingOrganization.slug,
+                          subscriptionStatus: editingOrganization.subscriptionStatus,
+                          subscriptionPlanId: editingOrganization.subscriptionPlanId
+                        }
+                      });
+                      setShowEditOrgDialog(false);
+                    }
+                  }}
+                  disabled={updateOrganizationMutation.isPending}
+                >
+                  {updateOrganizationMutation.isPending ? "Saving..." : "Save Changes"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </TabsContent>
 
         <TabsContent value="plans" className="space-y-6">
