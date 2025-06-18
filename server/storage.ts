@@ -4,6 +4,7 @@ import {
   expenses, expenseCategories, expenseReports, expenseReportItems, expenseLineItems, gasCards, gasCardAssignments, leads, calendarJobs,
   internalMessages, internalMessageRecipients, messageGroups, messageGroupMembers, images, imageAnnotations, sharedPhotoLinks,
   reviewRequests, googleMyBusinessSettings, docusignEnvelopes, organizations, subscriptionPlans,
+  fileManager, fileFolders, fileShares, fileVersions,
   type User, type InsertUser, type Customer, type InsertCustomer,
   type Invoice, type InsertInvoice, type InvoiceLineItem, type InsertInvoiceLineItem,
   type Payment, type InsertPayment, type Quote, type InsertQuote, type QuoteLineItem,
@@ -21,7 +22,9 @@ import {
   type MessageGroup, type InsertMessageGroup, type MessageGroupMember, type InsertMessageGroupMember,
   type SharedPhotoLink, type InsertSharedPhotoLink, type ReviewRequest, type InsertReviewRequest,
   type GoogleMyBusinessSettings, type InsertGoogleMyBusinessSettings, type DocusignEnvelope, type InsertDocusignEnvelope,
-  type Organization, type InsertOrganization, type SubscriptionPlan, type InsertSubscriptionPlan
+  type Organization, type InsertOrganization, type SubscriptionPlan, type InsertSubscriptionPlan,
+  type FileManager, type InsertFileManager, type FileFolder, type InsertFileFolder,
+  type FileShare, type InsertFileShare, type FileVersion, type InsertFileVersion
 } from "@shared/schema";
 import { db, pool } from "./db";
 import { eq, desc, and, sql, or, inArray, isNotNull } from "drizzle-orm";
@@ -280,6 +283,33 @@ export interface IStorage {
   getDisciplinaryActions(userId: number): Promise<any[]>;
   updateDisciplinaryAction(id: number, userId: number, action: any): Promise<any | undefined>;
   deleteDisciplinaryAction(id: number, userId: number): Promise<boolean>;
+
+  // File Manager methods
+  getFiles(organizationId: number, folderId?: number): Promise<(FileManager & { uploadedByUser: User, folder?: FileFolder })[]>;
+  getFile(id: number, organizationId: number): Promise<(FileManager & { uploadedByUser: User, versions: FileVersion[] }) | undefined>;
+  uploadFile(file: InsertFileManager): Promise<FileManager>;
+  updateFile(id: number, organizationId: number, updates: Partial<InsertFileManager>): Promise<FileManager | undefined>;
+  deleteFile(id: number, organizationId: number): Promise<boolean>;
+  createFileVersion(version: InsertFileVersion): Promise<FileVersion>;
+  getFileVersions(fileId: number): Promise<FileVersion[]>;
+  
+  // Folder management
+  getFolders(organizationId: number, parentId?: number): Promise<FileFolder[]>;
+  createFolder(folder: InsertFileFolder): Promise<FileFolder>;
+  updateFolder(id: number, organizationId: number, updates: Partial<InsertFileFolder>): Promise<FileFolder | undefined>;
+  deleteFolder(id: number, organizationId: number): Promise<boolean>;
+  
+  // File sharing
+  createFileShare(share: InsertFileShare): Promise<FileShare>;
+  getFileShare(token: string): Promise<(FileShare & { file: FileManager, sharedByUser: User }) | undefined>;
+  getFileShares(fileId: number): Promise<(FileShare & { sharedByUser: User, sharedWithUser?: User })[]>;
+  updateFileShareAccess(shareId: number): Promise<void>;
+  deactivateFileShare(shareId: number): Promise<boolean>;
+
+  // DocuSign integration with file manager
+  createDocuSignEnvelope(envelope: InsertDocusignEnvelope): Promise<DocusignEnvelope>;
+  getDocuSignEnvelopes(userId: number): Promise<(DocusignEnvelope & { file?: FileManager })[]>;
+  updateDocuSignStatus(envelopeId: string, status: string, signedDocumentUrl?: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
