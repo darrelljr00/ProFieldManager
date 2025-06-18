@@ -2955,7 +2955,7 @@ export class DatabaseStorage implements IStorage {
   async getFiles(organizationId: number, folderId?: number): Promise<(FileManager & { uploadedByUser: User, folder?: FileFolder })[]> {
     const whereCondition = folderId ? 
       and(eq(fileManager.organizationId, organizationId), eq(fileManager.folderId, folderId)) :
-      and(eq(fileManager.organizationId, organizationId), isNotNull(fileManager.folderId));
+      and(eq(fileManager.organizationId, organizationId), isNull(fileManager.folderId));
 
     return await db
       .select({

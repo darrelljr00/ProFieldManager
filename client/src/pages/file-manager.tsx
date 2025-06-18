@@ -108,6 +108,7 @@ export default function FileManager() {
         description: "Your file has been uploaded to the file manager.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/files"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/files", selectedFolderId] });
       setUploadDialogOpen(false);
       setUploadFile(null);
       setFileDescription("");
