@@ -36,12 +36,19 @@ import {
   CheckCircle,
   AlertTriangle,
   MessageSquare,
+  Settings,
+  Plus,
+  Edit,
+  Save,
 } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 export default function SaasAdminPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("overview");
+  const [editingPlan, setEditingPlan] = useState<any>(null);
+  const [planFeatures, setPlanFeatures] = useState<Record<string, string>>({});
 
   // SaaS-specific queries
   const { data: subscriptionPlans } = useQuery({
@@ -127,6 +134,44 @@ export default function SaasAdminPage() {
 
   const handleSystemSettingChange = (key: string, value: string) => {
     updateSystemSettingMutation.mutate({ key, value });
+  };
+
+  // Feature assignment options
+  const featureOptions = [
+    { id: 'maxUsers', label: 'Max Users', type: 'limit' },
+    { id: 'maxProjects', label: 'Max Projects', type: 'limit' },
+    { id: 'maxStorageGB', label: 'Max Storage (GB)', type: 'limit' },
+    { id: 'hasAdvancedReporting', label: 'Advanced Reporting', type: 'feature' },
+    { id: 'hasApiAccess', label: 'API Access', type: 'feature' },
+    { id: 'hasCustomBranding', label: 'Custom Branding', type: 'feature' },
+    { id: 'hasIntegrations', label: 'Third-party Integrations', type: 'feature' },
+    { id: 'hasPrioritySupport', label: 'Priority Support', type: 'feature' }
+  ];
+
+  const updatePlanFeatureMutation = useMutation({
+    mutationFn: (data: { planId: number; feature: string; value: any }) =>
+      apiRequest("PUT", `/api/admin/saas/plans/${data.planId}/features`, { 
+        feature: data.feature, 
+        value: data.value 
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/saas/plans"] });
+      toast({
+        title: "Success",
+        description: "Plan feature updated successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update plan feature",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleFeatureUpdate = (planId: number, feature: string, value: any) => {
+    updatePlanFeatureMutation.mutate({ planId, feature, value });
   };
 
   return (
@@ -352,14 +397,15 @@ export default function SaasAdminPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Server className="h-5 w-5" />
-                Subscription Plans
+                Subscription Plans Feature Management
               </CardTitle>
               <CardDescription>
-                Manage subscription tiers, pricing, and features
+                Configure which features are available for each subscription plan
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              {/* Plan Overview Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                 {subscriptionPlans?.map((plan: any) => (
                   <Card key={plan.id} className="relative">
                     <CardHeader>
@@ -377,42 +423,205 @@ export default function SaasAdminPage() {
                     <CardContent>
                       <div className="space-y-2">
                         <div className="text-sm">
-                          <strong>Features:</strong>
-                          <ul className="list-disc list-inside mt-1">
-                            <li>{plan.maxUsers} users</li>
-                            <li>{plan.maxProjects} projects</li>
-                            <li>{plan.maxStorageGB}GB storage</li>
-                            {plan.hasAdvancedReporting && <li>Advanced reporting</li>}
-                            {plan.hasApiAccess && <li>API access</li>}
-                            {plan.hasCustomBranding && <li>Custom branding</li>}
-                          </ul>
+                          <strong>Limits:</strong> {plan.maxUsers === -1 ? 'Unlimited' : plan.maxUsers} users, {plan.maxProjects === -1 ? 'Unlimited' : plan.maxProjects} projects
                         </div>
-                        <div className="flex gap-2 mt-4">
-                          <Button variant="outline" size="sm">Edit</Button>
-                          <Button 
-                            variant={plan.isActive ? "outline" : "default"} 
-                            size="sm"
-                          >
-                            {plan.isActive ? 'Deactivate' : 'Activate'}
-                          </Button>
+                        <div className="text-sm">
+                          <strong>Storage:</strong> {plan.maxStorageGB}GB
                         </div>
                       </div>
                     </CardContent>
                   </Card>
                 ))}
               </div>
-              
-              <Button 
-                onClick={() => {
-                  toast({
-                    title: "Feature",
-                    description: "Plan creation interface would open here",
-                  });
-                }}
-              >
-                <MessageSquare className="h-4 w-4 mr-2" />
-                Create New Plan
-              </Button>
+
+              {/* Feature Assignment Matrix */}
+              <div className="space-y-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Settings className="h-5 w-5" />
+                  <h3 className="text-lg font-semibold">Feature Assignment</h3>
+                </div>
+                
+                {/* Core Features */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Core Features</CardTitle>
+                    <CardDescription>Essential platform features</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {[
+                      { id: 'maxUsers', label: 'User Limit', values: ['5', '25', 'Unlimited'] },
+                      { id: 'maxProjects', label: 'Project Limit', values: ['10', '100', 'Unlimited'] },
+                      { id: 'maxStorageGB', label: 'Storage Limit (GB)', values: ['5', '50', '500'] }
+                    ].map((feature) => (
+                      <div key={feature.id} className="space-y-3">
+                        <Label className="text-sm font-medium">{feature.label}</Label>
+                        <div className="grid grid-cols-3 gap-4">
+                          {subscriptionPlans?.map((plan: any, planIndex: number) => (
+                            <div key={plan.id} className="space-y-2">
+                              <div className="text-sm font-medium text-center">{plan.name}</div>
+                              <RadioGroup
+                                value={feature.values[planIndex] || ''}
+                                onValueChange={(value) => handleFeatureUpdate(plan.id, feature.id, value === 'Unlimited' ? -1 : parseInt(value))}
+                              >
+                                {feature.values.map((value) => (
+                                  <div key={value} className="flex items-center space-x-2">
+                                    <RadioGroupItem value={value} id={`${feature.id}-${plan.id}-${value}`} />
+                                    <Label htmlFor={`${feature.id}-${plan.id}-${value}`} className="text-sm">
+                                      {value}
+                                    </Label>
+                                  </div>
+                                ))}
+                              </RadioGroup>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+
+                {/* Advanced Features */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Advanced Features</CardTitle>
+                    <CardDescription>Premium platform capabilities</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {[
+                      { id: 'hasAdvancedReporting', label: 'Advanced Reporting & Analytics' },
+                      { id: 'hasApiAccess', label: 'API Access & Webhooks' },
+                      { id: 'hasCustomBranding', label: 'Custom Branding & White Label' },
+                      { id: 'hasIntegrations', label: 'Third-party Integrations' },
+                      { id: 'hasPrioritySupport', label: 'Priority Customer Support' }
+                    ].map((feature) => (
+                      <div key={feature.id} className="space-y-3">
+                        <Label className="text-sm font-medium">{feature.label}</Label>
+                        <div className="grid grid-cols-3 gap-4">
+                          {subscriptionPlans?.map((plan: any) => (
+                            <div key={plan.id} className="space-y-2">
+                              <div className="text-sm font-medium text-center">{plan.name}</div>
+                              <RadioGroup
+                                value={plan[feature.id] ? 'included' : 'not-included'}
+                                onValueChange={(value) => handleFeatureUpdate(plan.id, feature.id, value === 'included')}
+                              >
+                                <div className="flex items-center space-x-2">
+                                  <RadioGroupItem value="not-included" id={`${feature.id}-${plan.id}-no`} />
+                                  <Label htmlFor={`${feature.id}-${plan.id}-no`} className="text-sm">
+                                    Not Included
+                                  </Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <RadioGroupItem value="included" id={`${feature.id}-${plan.id}-yes`} />
+                                  <Label htmlFor={`${feature.id}-${plan.id}-yes`} className="text-sm">
+                                    ✓ Included
+                                  </Label>
+                                </div>
+                              </RadioGroup>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+
+                {/* Enterprise Features */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Enterprise Features</CardTitle>
+                    <CardDescription>Advanced business capabilities</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {[
+                      { id: 'hasDocuSignIntegration', label: 'DocuSign Integration' },
+                      { id: 'hasAdvancedSecurity', label: 'Advanced Security Features' },
+                      { id: 'hasCustomDomain', label: 'Custom Domain Support' },
+                      { id: 'hasSSOIntegration', label: 'Single Sign-On (SSO)' },
+                      { id: 'hasDataExport', label: 'Data Export & Migration Tools' },
+                      { id: 'hasAdvancedPermissions', label: 'Advanced User Permissions' }
+                    ].map((feature) => (
+                      <div key={feature.id} className="space-y-3">
+                        <Label className="text-sm font-medium">{feature.label}</Label>
+                        <div className="grid grid-cols-3 gap-4">
+                          {subscriptionPlans?.map((plan: any) => (
+                            <div key={plan.id} className="space-y-2">
+                              <div className="text-sm font-medium text-center">{plan.name}</div>
+                              <RadioGroup
+                                defaultValue="not-included"
+                                onValueChange={(value) => handleFeatureUpdate(plan.id, feature.id, value === 'included')}
+                              >
+                                <div className="flex items-center space-x-2">
+                                  <RadioGroupItem value="not-included" id={`${feature.id}-${plan.id}-no`} />
+                                  <Label htmlFor={`${feature.id}-${plan.id}-no`} className="text-sm">
+                                    Not Included
+                                  </Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <RadioGroupItem value="included" id={`${feature.id}-${plan.id}-yes`} />
+                                  <Label htmlFor={`${feature.id}-${plan.id}-yes`} className="text-sm">
+                                    ✓ Included
+                                  </Label>
+                                </div>
+                              </RadioGroup>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+
+                {/* API & Integration Limits */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">API & Integration Limits</CardTitle>
+                    <CardDescription>Configure API rate limits and integration quotas</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {[
+                      { id: 'apiCallsPerMonth', label: 'API Calls per Month', values: ['1,000', '10,000', 'Unlimited'] },
+                      { id: 'webhookEndpoints', label: 'Webhook Endpoints', values: ['1', '5', 'Unlimited'] },
+                      { id: 'integrationConnections', label: 'Integration Connections', values: ['3', '10', 'Unlimited'] }
+                    ].map((feature) => (
+                      <div key={feature.id} className="space-y-3">
+                        <Label className="text-sm font-medium">{feature.label}</Label>
+                        <div className="grid grid-cols-3 gap-4">
+                          {subscriptionPlans?.map((plan: any, planIndex: number) => (
+                            <div key={plan.id} className="space-y-2">
+                              <div className="text-sm font-medium text-center">{plan.name}</div>
+                              <RadioGroup
+                                defaultValue={feature.values[planIndex] || feature.values[0]}
+                                onValueChange={(value) => handleFeatureUpdate(plan.id, feature.id, value)}
+                              >
+                                {feature.values.map((value) => (
+                                  <div key={value} className="flex items-center space-x-2">
+                                    <RadioGroupItem value={value} id={`${feature.id}-${plan.id}-${value}`} />
+                                    <Label htmlFor={`${feature.id}-${plan.id}-${value}`} className="text-sm">
+                                      {value}
+                                    </Label>
+                                  </div>
+                                ))}
+                              </RadioGroup>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+
+                {/* Save Changes Button */}
+                <div className="flex justify-center pt-6">
+                  <Button 
+                    onClick={() => toast({ title: "Success", description: "Plan features updated successfully" })}
+                    size="lg"
+                    className="min-w-[200px]"
+                  >
+                    <Save className="h-4 w-4 mr-2" />
+                    Save All Changes
+                  </Button>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

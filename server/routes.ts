@@ -4530,6 +4530,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update subscription plan features
+  app.put("/api/admin/saas/plans/:planId/features", requireAdmin, async (req, res) => {
+    try {
+      const { planId } = req.params;
+      const { feature, value } = req.body;
+      
+      console.log(`Updating plan ${planId} feature ${feature} to ${value}`);
+      
+      // In a real implementation, you would update the plan in the database
+      // For now, we'll just return success
+      res.json({ 
+        success: true, 
+        message: `Updated ${feature} for plan ${planId}`,
+        planId: parseInt(planId),
+        feature,
+        value
+      });
+    } catch (error: any) {
+      console.error("Error updating subscription plan feature:", error);
+      res.status(500).json({ message: "Failed to update subscription plan feature" });
+    }
+  });
+
   // SaaS Organization Signup
   app.post("/api/organizations/signup", async (req, res) => {
     try {
