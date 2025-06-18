@@ -23,7 +23,8 @@ import {
   ImageIcon,
   Star,
   Briefcase,
-  Server
+  Server,
+  Folder
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -51,6 +52,7 @@ const navigation = [
   { name: "Invoices", href: "/invoices", icon: FileText },
   { name: "Customers", href: "/customers", icon: Users },
   { name: "Payments", href: "/payments", icon: CreditCard },
+  { name: "File Manager", href: "/file-manager", icon: Folder },
   { name: "Team Messages", href: "/internal-messages", icon: MessageSquare },
   { name: "Image Gallery", href: "/image-gallery", icon: ImageIcon },
   { name: "Text Messaging", href: "/sms", icon: Smartphone },
