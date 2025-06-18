@@ -122,14 +122,14 @@ const fileManagerUpload = multer({
   }),
   fileFilter: (req, file, cb) => {
     // Allow all common file types for file manager
-    const allowedTypes = /jpeg|jpg|png|gif|svg|pdf|doc|docx|xls|xlsx|ppt|pptx|txt|csv|zip|rar|7z|mp4|avi|mov|wmv|mp3|wav/;
+    const allowedTypes = /jpeg|jpg|png|gif|svg|pdf|doc|docx|xls|xlsx|ppt|pptx|txt|csv|zip|rar|7z|mp4|avi|mov|wmv|mp3|wav|json|xml/;
     const allowedMimeTypes = [
       'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/svg+xml',
       'application/pdf',
       'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-      'text/plain', 'text/csv',
+      'text/plain', 'text/csv', 'application/json', 'text/xml', 'application/xml',
       'application/zip', 'application/x-rar-compressed', 'application/x-7z-compressed',
       'video/mp4', 'video/avi', 'video/quicktime', 'video/x-ms-wmv',
       'audio/mpeg', 'audio/wav'
@@ -141,7 +141,7 @@ const fileManagerUpload = multer({
     if (mimetype || extname) {
       return cb(null, true);
     } else {
-      cb(new Error('File type not allowed'));
+      cb(new Error(`File type not allowed: ${file.mimetype}`));
     }
   },
   limits: {
@@ -5003,7 +5003,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = getAuthenticatedUser(req);
       const uploadedFile = req.file;
       
+      console.log("File upload request received:", {
+        hasFile: !!uploadedFile,
+        body: req.body,
+        headers: req.headers['content-type']
+      });
+      
       if (!uploadedFile) {
+        console.log("No file in request");
         return res.status(400).json({ message: "No file uploaded" });
       }
 
