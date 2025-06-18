@@ -310,6 +310,12 @@ export interface IStorage {
   createDocuSignEnvelope(envelope: InsertDocusignEnvelope): Promise<DocusignEnvelope>;
   getDocuSignEnvelopes(userId: number): Promise<(DocusignEnvelope & { file?: FileManager })[]>;
   updateDocuSignStatus(envelopeId: string, status: string, signedDocumentUrl?: string): Promise<boolean>;
+  
+  // Existing DocuSign methods
+  createDocusignEnvelope(envelopeData: InsertDocusignEnvelope): Promise<DocusignEnvelope>;
+  getDocusignEnvelopes(userId: number): Promise<DocusignEnvelope[]>;
+  getDocusignEnvelope(envelopeId: string): Promise<DocusignEnvelope | undefined>;
+  updateDocusignEnvelope(envelopeId: string, updates: Partial<DocusignEnvelope>): Promise<DocusignEnvelope | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2943,6 +2949,190 @@ export class DatabaseStorage implements IStorage {
   // Fix missing getUserById method
   async getUserById(id: number): Promise<User | undefined> {
     return this.getUser(id);
+  }
+
+  // File Manager implementation
+  async getFiles(organizationId: number, folderId?: number): Promise<(FileManager & { uploadedByUser: User, folder?: FileFolder })[]> {
+    const whereCondition = folderId ? 
+      and(eq(fileManager.organizationId, organizationId), eq(fileManager.folderId, folderId)) :
+      and(eq(fileManager.organizationId, organizationId), isNotNull(fileManager.folderId));
+
+    return await db
+      .select({
+        ...fileManager,
+        uploadedByUser: users,
+        folder: fileFolders,
+      })
+      .from(fileManager)
+      .leftJoin(users, eq(fileManager.uploadedBy, users.id))
+      .leftJoin(fileFolders, eq(fileManager.folderId, fileFolders.id))
+      .where(whereCondition)
+      .orderBy(desc(fileManager.createdAt));
+  }
+
+  async getFile(id: number, organizationId: number): Promise<(FileManager & { uploadedByUser: User, versions: FileVersion[] }) | undefined> {
+    const [file] = await db
+      .select({
+        ...fileManager,
+        uploadedByUser: users,
+      })
+      .from(fileManager)
+      .leftJoin(users, eq(fileManager.uploadedBy, users.id))
+      .where(and(eq(fileManager.id, id), eq(fileManager.organizationId, organizationId)));
+
+    if (!file) return undefined;
+
+    const versions = await this.getFileVersions(id);
+    return { ...file, versions };
+  }
+
+  async uploadFile(file: InsertFileManager): Promise<FileManager> {
+    const [newFile] = await db.insert(fileManager).values(file).returning();
+    return newFile;
+  }
+
+  async updateFile(id: number, organizationId: number, updates: Partial<InsertFileManager>): Promise<FileManager | undefined> {
+    const [updatedFile] = await db
+      .update(fileManager)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(and(eq(fileManager.id, id), eq(fileManager.organizationId, organizationId)))
+      .returning();
+    return updatedFile || undefined;
+  }
+
+  async deleteFile(id: number, organizationId: number): Promise<boolean> {
+    const result = await db
+      .delete(fileManager)
+      .where(and(eq(fileManager.id, id), eq(fileManager.organizationId, organizationId)));
+    return result.rowCount > 0;
+  }
+
+  async createFileVersion(version: InsertFileVersion): Promise<FileVersion> {
+    const [newVersion] = await db.insert(fileVersions).values(version).returning();
+    return newVersion;
+  }
+
+  async getFileVersions(fileId: number): Promise<FileVersion[]> {
+    return await db
+      .select()
+      .from(fileVersions)
+      .where(eq(fileVersions.fileId, fileId))
+      .orderBy(desc(fileVersions.versionNumber));
+  }
+
+  // Folder management
+  async getFolders(organizationId: number, parentId?: number): Promise<FileFolder[]> {
+    const whereCondition = parentId ? 
+      and(eq(fileFolders.organizationId, organizationId), eq(fileFolders.parentFolderId, parentId)) :
+      and(eq(fileFolders.organizationId, organizationId), isNotNull(fileFolders.parentFolderId));
+
+    return await db
+      .select()
+      .from(fileFolders)
+      .where(whereCondition)
+      .orderBy(fileFolders.name);
+  }
+
+  async createFolder(folder: InsertFileFolder): Promise<FileFolder> {
+    const [newFolder] = await db.insert(fileFolders).values(folder).returning();
+    return newFolder;
+  }
+
+  async updateFolder(id: number, organizationId: number, updates: Partial<InsertFileFolder>): Promise<FileFolder | undefined> {
+    const [updatedFolder] = await db
+      .update(fileFolders)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(and(eq(fileFolders.id, id), eq(fileFolders.organizationId, organizationId)))
+      .returning();
+    return updatedFolder || undefined;
+  }
+
+  async deleteFolder(id: number, organizationId: number): Promise<boolean> {
+    const result = await db
+      .delete(fileFolders)
+      .where(and(eq(fileFolders.id, id), eq(fileFolders.organizationId, organizationId)));
+    return result.rowCount > 0;
+  }
+
+  // File sharing
+  async createFileShare(share: InsertFileShare): Promise<FileShare> {
+    const shareToken = require('crypto').randomBytes(32).toString('hex');
+    const [newShare] = await db.insert(fileShares).values({
+      ...share,
+      shareToken,
+    }).returning();
+    return newShare;
+  }
+
+  async getFileShare(token: string): Promise<(FileShare & { file: FileManager, sharedByUser: User }) | undefined> {
+    const [share] = await db
+      .select({
+        ...fileShares,
+        file: fileManager,
+        sharedByUser: users,
+      })
+      .from(fileShares)
+      .leftJoin(fileManager, eq(fileShares.fileId, fileManager.id))
+      .leftJoin(users, eq(fileShares.sharedBy, users.id))
+      .where(and(eq(fileShares.shareToken, token), eq(fileShares.isActive, true)));
+
+    return share || undefined;
+  }
+
+  async getFileShares(fileId: number): Promise<(FileShare & { sharedByUser: User, sharedWithUser?: User })[]> {
+    return await db
+      .select({
+        ...fileShares,
+        sharedByUser: users,
+        sharedWithUser: alias(users, 'sharedWithUser'),
+      })
+      .from(fileShares)
+      .leftJoin(users, eq(fileShares.sharedBy, users.id))
+      .leftJoin(alias(users, 'sharedWithUser'), eq(fileShares.sharedWith, alias(users, 'sharedWithUser').id))
+      .where(eq(fileShares.fileId, fileId));
+  }
+
+  async updateFileShareAccess(shareId: number): Promise<void> {
+    await db
+      .update(fileShares)
+      .set({ accessCount: sql`${fileShares.accessCount} + 1` })
+      .where(eq(fileShares.id, shareId));
+  }
+
+  async deactivateFileShare(shareId: number): Promise<boolean> {
+    const result = await db
+      .update(fileShares)
+      .set({ isActive: false })
+      .where(eq(fileShares.id, shareId));
+    return result.rowCount > 0;
+  }
+
+  // DocuSign integration with file manager
+  async createDocuSignEnvelope(envelope: InsertDocusignEnvelope): Promise<DocusignEnvelope> {
+    return this.createDocusignEnvelope(envelope);
+  }
+
+  async getDocuSignEnvelopes(userId: number): Promise<(DocusignEnvelope & { file?: FileManager })[]> {
+    return await db
+      .select({
+        ...docusignEnvelopes,
+        file: fileManager,
+      })
+      .from(docusignEnvelopes)
+      .leftJoin(fileManager, eq(docusignEnvelopes.fileId, fileManager.id))
+      .where(eq(docusignEnvelopes.userId, userId))
+      .orderBy(desc(docusignEnvelopes.createdAt));
+  }
+
+  async updateDocuSignStatus(envelopeId: string, status: string, signedDocumentUrl?: string): Promise<boolean> {
+    const updateData: any = { status, updatedAt: new Date() };
+    if (signedDocumentUrl) updateData.signedDocumentUrl = signedDocumentUrl;
+
+    const result = await db
+      .update(docusignEnvelopes)
+      .set(updateData)
+      .where(eq(docusignEnvelopes.envelopeId, envelopeId));
+    return result.rowCount > 0;
   }
 }
 

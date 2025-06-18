@@ -623,6 +623,66 @@ export const sharedPhotoLinks = pgTable("shared_photo_links", {
   lastAccessedAt: timestamp("last_accessed_at"),
 });
 
+// File Manager system
+export const fileManager = pgTable("file_manager", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  uploadedBy: integer("uploaded_by").notNull().references(() => users.id),
+  fileName: text("file_name").notNull(),
+  originalName: text("original_name").notNull(),
+  filePath: text("file_path").notNull(),
+  fileSize: integer("file_size").notNull(),
+  mimeType: text("mime_type").notNull(),
+  fileType: text("file_type").notNull(), // document, image, video, other
+  description: text("description"),
+  tags: text("tags").array(),
+  folderId: integer("folder_id").references((): any => fileFolders.id),
+  isPublic: boolean("is_public").default(false),
+  downloadCount: integer("download_count").default(0),
+  shareableToken: text("shareable_token").unique(),
+  shareExpiresAt: timestamp("share_expires_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const fileFolders = pgTable("file_folders", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  name: text("name").notNull(),
+  description: text("description"),
+  parentFolderId: integer("parent_folder_id").references((): any => fileFolders.id),
+  createdBy: integer("created_by").notNull().references(() => users.id),
+  isSystemFolder: boolean("is_system_folder").default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const fileShares = pgTable("file_shares", {
+  id: serial("id").primaryKey(),
+  fileId: integer("file_id").notNull().references(() => fileManager.id, { onDelete: "cascade" }),
+  sharedBy: integer("shared_by").notNull().references(() => users.id),
+  sharedWith: integer("shared_with").references(() => users.id), // null for public shares
+  shareToken: text("share_token").notNull().unique(),
+  permissions: text("permissions").notNull().default("view"), // view, download, edit
+  expiresAt: timestamp("expires_at"),
+  accessCount: integer("access_count").default(0),
+  maxAccess: integer("max_access"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const fileVersions = pgTable("file_versions", {
+  id: serial("id").primaryKey(),
+  fileId: integer("file_id").notNull().references(() => fileManager.id, { onDelete: "cascade" }),
+  versionNumber: integer("version_number").notNull(),
+  fileName: text("file_name").notNull(),
+  filePath: text("file_path").notNull(),
+  fileSize: integer("file_size").notNull(),
+  uploadedBy: integer("uploaded_by").notNull().references(() => users.id),
+  changeLog: text("change_log"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Insert schemas
 export const insertUserSchema = z.object({
   username: z.string().min(1),
@@ -1126,3 +1186,47 @@ export type OrganizationSignupData = z.infer<typeof organizationSignupSchema>;
 export type LoginData = z.infer<typeof loginSchema>;
 export type RegisterData = z.infer<typeof registerSchema>;
 export type ChangePasswordData = z.infer<typeof changePasswordSchema>;
+
+// File Manager types
+export type FileManager = typeof fileManager.$inferSelect;
+export type InsertFileManager = typeof fileManager.$inferInsert;
+export type FileFolder = typeof fileFolders.$inferSelect;
+export type InsertFileFolder = typeof fileFolders.$inferInsert;
+export type FileShare = typeof fileShares.$inferSelect;
+export type InsertFileShare = typeof fileShares.$inferInsert;
+export type FileVersion = typeof fileVersions.$inferSelect;
+export type InsertFileVersion = typeof fileVersions.$inferInsert;
+
+// File Manager Zod schemas
+export const insertFileManagerSchema = z.object({
+  organizationId: z.number(),
+  uploadedBy: z.number(),
+  fileName: z.string().min(1),
+  originalName: z.string().min(1),
+  filePath: z.string().min(1),
+  fileSize: z.number().positive(),
+  mimeType: z.string().min(1),
+  fileType: z.enum(['document', 'image', 'video', 'other']),
+  description: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+  folderId: z.number().optional(),
+  isPublic: z.boolean().default(false),
+});
+
+export const insertFileFolderSchema = z.object({
+  organizationId: z.number(),
+  name: z.string().min(1),
+  description: z.string().optional(),
+  parentFolderId: z.number().optional(),
+  createdBy: z.number(),
+  isSystemFolder: z.boolean().default(false),
+});
+
+export const insertFileShareSchema = z.object({
+  fileId: z.number(),
+  sharedBy: z.number(),
+  sharedWith: z.number().optional(),
+  permissions: z.enum(['view', 'download', 'edit']).default('view'),
+  expiresAt: z.date().optional(),
+  maxAccess: z.number().optional(),
+});
