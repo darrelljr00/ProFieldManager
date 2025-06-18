@@ -1800,6 +1800,131 @@ export default function SaasAdminPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Edit User Dialog for User Management Tab */}
+      {editingUser && activeTab === 'users' && (
+        <Dialog open={!!editingUser} onOpenChange={() => setEditingUser(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit User</DialogTitle>
+              <DialogDescription>
+                Update user information and settings
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-username" className="text-right">
+                  Username
+                </Label>
+                <Input
+                  id="edit-username"
+                  className="col-span-3"
+                  value={editingUser.username || ""}
+                  onChange={(e) => setEditingUser({
+                    ...editingUser,
+                    username: e.target.value
+                  })}
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-email" className="text-right">
+                  Email
+                </Label>
+                <Input
+                  id="edit-email"
+                  className="col-span-3"
+                  value={editingUser.email || ""}
+                  onChange={(e) => setEditingUser({
+                    ...editingUser,
+                    email: e.target.value
+                  })}
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-role" className="text-right">
+                  Role
+                </Label>
+                <Select
+                  value={editingUser.role || "user"}
+                  onValueChange={(value) => setEditingUser({
+                    ...editingUser,
+                    role: value
+                  })}
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="user">User</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="manager">Manager</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-status" className="text-right">
+                  Status
+                </Label>
+                <Select
+                  value={editingUser.isActive ? "active" : "inactive"}
+                  onValueChange={(value) => setEditingUser({
+                    ...editingUser,
+                    isActive: value === "active"
+                  })}
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="new-password" className="text-right">
+                  New Password
+                </Label>
+                <Input
+                  id="new-password"
+                  type="password"
+                  className="col-span-3"
+                  placeholder="Leave blank to keep current password"
+                  value={editingUser.newPassword || ""}
+                  onChange={(e) => setEditingUser({
+                    ...editingUser,
+                    newPassword: e.target.value
+                  })}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditingUser(null)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  updateUserMutation.mutate({
+                    orgId: editingUser.organizationId,
+                    userId: editingUser.id,
+                    updates: {
+                      username: editingUser.username,
+                      email: editingUser.email,
+                      role: editingUser.role,
+                      isActive: editingUser.isActive,
+                      ...(editingUser.newPassword && { password: editingUser.newPassword })
+                    }
+                  });
+                  setEditingUser(null);
+                }}
+                disabled={updateUserMutation.isPending}
+              >
+                {updateUserMutation.isPending ? "Saving..." : "Save Changes"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
