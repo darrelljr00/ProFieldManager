@@ -28,6 +28,7 @@ import SmsPage from "@/pages/sms";
 import Reviews from "@/pages/reviews";
 import Settings from "@/pages/settings";
 import HumanResources from "@/pages/human-resources";
+import FileManager from "@/pages/file-manager";
 import Login from "@/pages/login";
 import Landing from "@/pages/landing";
 import NotFound from "@/pages/not-found";

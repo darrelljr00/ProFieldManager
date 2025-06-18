@@ -339,6 +339,7 @@ export const projectFiles = pgTable("project_files", {
 export const docusignEnvelopes = pgTable("docusign_envelopes", {
   id: serial("id").primaryKey(),
   envelopeId: text("envelope_id").notNull().unique(),
+  fileId: integer("file_id").references(() => fileManager.id), // File manager integration
   projectFileId: integer("project_file_id").references(() => projectFiles.id, { onDelete: "cascade" }),
   userId: integer("user_id").notNull().references(() => users.id),
   recipientEmail: text("recipient_email").notNull(),
