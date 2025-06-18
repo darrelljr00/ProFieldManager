@@ -380,8 +380,8 @@ export class DatabaseStorage implements IStorage {
         name: organizations.name,
         slug: organizations.slug,
         subscriptionStatus: organizations.subscriptionStatus,
-        subscriptionPlanId: organizations.subscriptionPlanId,
-        trialEndsAt: organizations.trialEndsAt,
+        subscriptionPlanId: organizations.subscriptionPlan,
+        trialEndsAt: organizations.trialEndDate,
         createdAt: organizations.createdAt,
         updatedAt: organizations.updatedAt
       })

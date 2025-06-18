@@ -170,8 +170,26 @@ export default function SaasAdminPage() {
     },
   });
 
-  const handleFeatureUpdate = (planId: number, feature: string, value: any) => {
-    updatePlanFeatureMutation.mutate({ planId, feature, value });
+  const handleFeatureUpdate = async (planId: number, featureId: string, value: any) => {
+    try {
+      await apiRequest("POST", `/api/saas/plan-features/${planId}`, {
+        [featureId]: value
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ['/api/saas/subscription-plans'] });
+      
+      toast({
+        title: "Feature Updated",
+        description: "Subscription plan feature has been updated successfully.",
+      });
+    } catch (error: any) {
+      console.error("Feature update error:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update plan feature",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -186,12 +204,13 @@ export default function SaasAdminPage() {
         </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="organizations">Organizations</TabsTrigger>
-          <TabsTrigger value="plans">Subscription Plans</TabsTrigger>
-          <TabsTrigger value="settings">Global Settings</TabsTrigger>
+          <TabsTrigger value="subscription-plans">Subscription Plans</TabsTrigger>
+          <TabsTrigger value="billing">Billing</TabsTrigger>
+          <TabsTrigger value="analytics">Analytics</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
