@@ -40,6 +40,7 @@ export interface IStorage {
   
   // Admin user management methods
   getAllUsers(): Promise<User[]>;
+  getUsersByOrganization(organizationId: number): Promise<User[]>;
   createUserAccount(userData: Omit<InsertUser, 'id' | 'createdAt' | 'updatedAt'>): Promise<User>;
   updateUser(id: number, userData: Partial<User>): Promise<User | undefined>;
   updateUserPassword(id: number, hashedPassword: string): Promise<void>;

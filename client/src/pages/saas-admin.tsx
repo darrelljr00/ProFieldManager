@@ -68,6 +68,8 @@ export default function SaasAdminPage() {
   const [selectedOrganization, setSelectedOrganization] = useState<any>(null);
   const [editingOrganization, setEditingOrganization] = useState<any>(null);
   const [showEditOrgDialog, setShowEditOrgDialog] = useState(false);
+  const [organizationUsers, setOrganizationUsers] = useState<any[]>([]);
+  const [editingUser, setEditingUser] = useState<any>(null);
   const [subscriptionForm, setSubscriptionForm] = useState({
     organizationId: "",
     planId: "",
@@ -142,6 +144,44 @@ export default function SaasAdminPage() {
     },
   });
 
+  const updateUserMutation = useMutation({
+    mutationFn: (data: { orgId: number; userId: number; updates: any }) =>
+      apiRequest("PUT", `/api/admin/saas/organizations/${data.orgId}/users/${data.userId}`, data.updates),
+    onSuccess: () => {
+      fetchOrganizationUsers(editingOrganization?.id);
+      toast({
+        title: "Success",
+        description: "User updated successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update user",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteUserMutation = useMutation({
+    mutationFn: (data: { orgId: number; userId: number }) =>
+      apiRequest("DELETE", `/api/admin/saas/organizations/${data.orgId}/users/${data.userId}`),
+    onSuccess: () => {
+      fetchOrganizationUsers(editingOrganization?.id);
+      toast({
+        title: "Success", 
+        description: "User deleted successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete user",
+        variant: "destructive",
+      });
+    },
+  });
+
   const suspendOrganizationMutation = useMutation({
     mutationFn: (id: number) =>
       apiRequest("POST", `/api/admin/saas/organizations/${id}/suspend`, {}),
@@ -153,6 +193,18 @@ export default function SaasAdminPage() {
       });
     },
   });
+
+  // Fetch organization users when editing
+  const fetchOrganizationUsers = async (orgId: number) => {
+    if (!orgId) return;
+    try {
+      const response = await fetch(`/api/admin/saas/organizations/${orgId}/users`);
+      const users = await response.json();
+      setOrganizationUsers(users);
+    } catch (error) {
+      console.error("Error fetching organization users:", error);
+    }
+  };
 
   const createSubscriptionPlanMutation = useMutation({
     mutationFn: (planData: any) =>
@@ -476,6 +528,7 @@ export default function SaasAdminPage() {
                             onClick={() => {
                               setEditingOrganization(org);
                               setShowEditOrgDialog(true);
+                              fetchOrganizationUsers(org.id);
                             }}
                           >
                             <Edit className="h-4 w-4 mr-1" />
@@ -515,87 +568,284 @@ export default function SaasAdminPage() {
 
           {/* Edit Organization Dialog */}
           <Dialog open={showEditOrgDialog} onOpenChange={setShowEditOrgDialog}>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Edit Organization</DialogTitle>
                 <DialogDescription>
-                  Update organization details and settings
+                  Update organization details, settings, and manage users
                 </DialogDescription>
               </DialogHeader>
               {editingOrganization && (
-                <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="edit-name" className="text-right">
-                      Organization Name
-                    </Label>
-                    <Input
-                      id="edit-name"
-                      className="col-span-3"
-                      value={editingOrganization.name || ""}
-                      onChange={(e) => setEditingOrganization({
-                        ...editingOrganization,
-                        name: e.target.value
-                      })}
-                    />
+                <div className="space-y-6">
+                  {/* Organization Details */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold">Organization Details</h3>
+                    <div className="grid gap-4">
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="edit-name" className="text-right">
+                          Organization Name
+                        </Label>
+                        <Input
+                          id="edit-name"
+                          className="col-span-3"
+                          value={editingOrganization.name || ""}
+                          onChange={(e) => setEditingOrganization({
+                            ...editingOrganization,
+                            name: e.target.value
+                          })}
+                        />
+                      </div>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="edit-slug" className="text-right">
+                          Slug
+                        </Label>
+                        <Input
+                          id="edit-slug"
+                          className="col-span-3"
+                          value={editingOrganization.slug || ""}
+                          onChange={(e) => setEditingOrganization({
+                            ...editingOrganization,
+                            slug: e.target.value
+                          })}
+                        />
+                      </div>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="edit-status" className="text-right">
+                          Status
+                        </Label>
+                        <Select
+                          value={editingOrganization.subscriptionStatus || "trial"}
+                          onValueChange={(value) => setEditingOrganization({
+                            ...editingOrganization,
+                            subscriptionStatus: value
+                          })}
+                        >
+                          <SelectTrigger className="col-span-3">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="trial">Trial</SelectItem>
+                            <SelectItem value="active">Active</SelectItem>
+                            <SelectItem value="suspended">Suspended</SelectItem>
+                            <SelectItem value="cancelled">Cancelled</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="edit-plan" className="text-right">
+                          Subscription Plan
+                        </Label>
+                        <Select
+                          value={editingOrganization.subscriptionPlanId?.toString() || ""}
+                          onValueChange={(value) => setEditingOrganization({
+                            ...editingOrganization,
+                            subscriptionPlanId: parseInt(value)
+                          })}
+                        >
+                          <SelectTrigger className="col-span-3">
+                            <SelectValue placeholder="Select plan" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {subscriptionPlans?.map((plan: any) => (
+                              <SelectItem key={plan.id} value={plan.id.toString()}>
+                                {plan.name} (${plan.price}/{plan.billingInterval})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
                   </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="edit-slug" className="text-right">
-                      Slug
-                    </Label>
-                    <Input
-                      id="edit-slug"
-                      className="col-span-3"
-                      value={editingOrganization.slug || ""}
-                      onChange={(e) => setEditingOrganization({
-                        ...editingOrganization,
-                        slug: e.target.value
-                      })}
-                    />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="edit-status" className="text-right">
-                      Status
-                    </Label>
-                    <Select
-                      value={editingOrganization.subscriptionStatus || "trial"}
-                      onValueChange={(value) => setEditingOrganization({
-                        ...editingOrganization,
-                        subscriptionStatus: value
-                      })}
-                    >
-                      <SelectTrigger className="col-span-3">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="trial">Trial</SelectItem>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="suspended">Suspended</SelectItem>
-                        <SelectItem value="cancelled">Cancelled</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="edit-plan" className="text-right">
-                      Subscription Plan
-                    </Label>
-                    <Select
-                      value={editingOrganization.subscriptionPlanId?.toString() || ""}
-                      onValueChange={(value) => setEditingOrganization({
-                        ...editingOrganization,
-                        subscriptionPlanId: parseInt(value)
-                      })}
-                    >
-                      <SelectTrigger className="col-span-3">
-                        <SelectValue placeholder="Select plan" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {subscriptionPlans?.map((plan: any) => (
-                          <SelectItem key={plan.id} value={plan.id.toString()}>
-                            {plan.name} (${plan.price}/{plan.billingInterval})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+
+                  {/* User Management */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold">User Management</h3>
+                    <div className="border rounded-lg">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Username</TableHead>
+                            <TableHead>Email</TableHead>
+                            <TableHead>Role</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {organizationUsers.map((user: any) => (
+                            <TableRow key={user.id}>
+                              <TableCell>
+                                {editingUser?.id === user.id ? (
+                                  <Input
+                                    value={editingUser.username || ""}
+                                    onChange={(e) => setEditingUser({
+                                      ...editingUser,
+                                      username: e.target.value
+                                    })}
+                                    className="w-32"
+                                  />
+                                ) : (
+                                  user.username
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                {editingUser?.id === user.id ? (
+                                  <Input
+                                    value={editingUser.email || ""}
+                                    onChange={(e) => setEditingUser({
+                                      ...editingUser,
+                                      email: e.target.value
+                                    })}
+                                    className="w-48"
+                                  />
+                                ) : (
+                                  user.email
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                {editingUser?.id === user.id ? (
+                                  <Select
+                                    value={editingUser.role || "user"}
+                                    onValueChange={(value) => setEditingUser({
+                                      ...editingUser,
+                                      role: value
+                                    })}
+                                  >
+                                    <SelectTrigger className="w-24">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="user">User</SelectItem>
+                                      <SelectItem value="admin">Admin</SelectItem>
+                                      <SelectItem value="manager">Manager</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                ) : (
+                                  <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
+                                    {user.role}
+                                  </Badge>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant={user.isActive ? 'default' : 'destructive'}>
+                                  {user.isActive ? 'Active' : 'Inactive'}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                {editingUser?.id === user.id ? (
+                                  <div className="flex gap-2">
+                                    <Button
+                                      size="sm"
+                                      onClick={() => {
+                                        updateUserMutation.mutate({
+                                          orgId: editingOrganization.id,
+                                          userId: user.id,
+                                          updates: {
+                                            username: editingUser.username,
+                                            email: editingUser.email,
+                                            role: editingUser.role,
+                                            ...(editingUser.newPassword && { password: editingUser.newPassword })
+                                          }
+                                        });
+                                        setEditingUser(null);
+                                      }}
+                                      disabled={updateUserMutation.isPending}
+                                    >
+                                      Save
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => setEditingUser(null)}
+                                    >
+                                      Cancel
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <div className="flex gap-2">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => setEditingUser({ ...user, newPassword: "" })}
+                                    >
+                                      Edit
+                                    </Button>
+                                    <AlertDialog>
+                                      <AlertDialogTrigger asChild>
+                                        <Button size="sm" variant="destructive">
+                                          Delete
+                                        </Button>
+                                      </AlertDialogTrigger>
+                                      <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                          <AlertDialogTitle>Delete User</AlertDialogTitle>
+                                          <AlertDialogDescription>
+                                            Are you sure you want to delete {user.username}? This action cannot be undone.
+                                          </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                          <AlertDialogAction
+                                            onClick={() => deleteUserMutation.mutate({
+                                              orgId: editingOrganization.id,
+                                              userId: user.id
+                                            })}
+                                          >
+                                            Delete
+                                          </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                      </AlertDialogContent>
+                                    </AlertDialog>
+                                  </div>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                          {editingUser?.id === editingUser?.id && (
+                            <TableRow>
+                              <TableCell colSpan={5}>
+                                <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded">
+                                  <div>
+                                    <Label htmlFor="new-password">New Password (optional)</Label>
+                                    <Input
+                                      id="new-password"
+                                      type="password"
+                                      value={editingUser?.newPassword || ""}
+                                      onChange={(e) => setEditingUser({
+                                        ...editingUser,
+                                        newPassword: e.target.value
+                                      })}
+                                      placeholder="Enter new password"
+                                    />
+                                  </div>
+                                  <div>
+                                    <Label htmlFor="user-status">Status</Label>
+                                    <Select
+                                      value={editingUser?.isActive ? "active" : "inactive"}
+                                      onValueChange={(value) => setEditingUser({
+                                        ...editingUser,
+                                        isActive: value === "active"
+                                      })}
+                                    >
+                                      <SelectTrigger>
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="active">Active</SelectItem>
+                                        <SelectItem value="inactive">Inactive</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Current users: {organizationUsers.length} / {editingOrganization.maxUsers || 'Unlimited'}
+                    </div>
                   </div>
                 </div>
               )}

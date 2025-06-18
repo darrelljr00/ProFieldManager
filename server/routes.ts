@@ -4454,6 +4454,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get organization users
+  app.get("/api/admin/saas/organizations/:id/users", requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const users = await storage.getUsersByOrganization(parseInt(id));
+      
+      // Remove passwords from response
+      const safeUsers = users.map(user => ({
+        ...user,
+        password: undefined,
+      }));
+      
+      res.json(safeUsers);
+    } catch (error: any) {
+      console.error("Error fetching organization users:", error);
+      res.status(500).json({ message: "Failed to fetch organization users" });
+    }
+  });
+
+  // Update organization user
+  app.put("/api/admin/saas/organizations/:orgId/users/:userId", requireAdmin, async (req, res) => {
+    try {
+      const { orgId, userId } = req.params;
+      const updates = req.body;
+      
+      // Hash password if provided
+      if (updates.password) {
+        updates.password = await AuthService.hashPassword(updates.password);
+      }
+      
+      const user = await storage.updateUser(parseInt(userId), updates);
+      
+      // Remove password from response
+      const safeUser = { ...user, password: undefined };
+      res.json(safeUser);
+    } catch (error: any) {
+      console.error("Error updating organization user:", error);
+      res.status(500).json({ message: "Failed to update user" });
+    }
+  });
+
+  // Delete organization user
+  app.delete("/api/admin/saas/organizations/:orgId/users/:userId", requireAdmin, async (req, res) => {
+    try {
+      const { orgId, userId } = req.params;
+      
+      await storage.deleteUser(parseInt(userId));
+      res.json({ message: "User deleted successfully" });
+    } catch (error: any) {
+      console.error("Error deleting organization user:", error);
+      res.status(500).json({ message: "Failed to delete user" });
+    }
+  });
+
   // Suspend organization
   app.post("/api/admin/saas/organizations/:id/suspend", requireAdmin, async (req, res) => {
     try {
