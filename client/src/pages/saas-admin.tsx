@@ -71,7 +71,21 @@ export default function SaasAdminPage() {
     planId: "",
     status: "trial",
     startDate: new Date().toISOString().split('T')[0],
-    trialDays: 14
+    trialDays: 14,
+    // New organization fields
+    createNewOrg: false,
+    orgName: "",
+    orgEmail: "",
+    orgAddress: "",
+    orgCity: "",
+    orgState: "",
+    orgZipCode: "",
+    orgPhone: "",
+    maxUsers: 5,
+    adminFirstName: "",
+    adminLastName: "",
+    adminEmail: "",
+    adminPassword: ""
   });
   const [planFeatures, setPlanFeatures] = useState<Record<string, string>>({});
 
@@ -184,7 +198,20 @@ export default function SaasAdminPage() {
         planId: "",
         status: "trial",
         startDate: new Date().toISOString().split('T')[0],
-        trialDays: 14
+        trialDays: 14,
+        createNewOrg: false,
+        orgName: "",
+        orgEmail: "",
+        orgAddress: "",
+        orgCity: "",
+        orgState: "",
+        orgZipCode: "",
+        orgPhone: "",
+        maxUsers: 5,
+        adminFirstName: "",
+        adminLastName: "",
+        adminEmail: "",
+        adminPassword: ""
       });
       toast({
         title: "Success",
@@ -840,36 +867,223 @@ export default function SaasAdminPage() {
 
       {/* Create Subscription Dialog */}
       <Dialog open={showCreateSubscriptionDialog} onOpenChange={setShowCreateSubscriptionDialog}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Create New Subscription</DialogTitle>
             <DialogDescription>
-              Create a new subscription for an organization with a specific plan.
+              Create a new subscription for an existing organization or create a new organization with a subscription.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
+            {/* Organization Type Selection */}
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="organization" className="text-right">
-                Organization
-              </Label>
-              <div className="col-span-3">
-                <Select
-                  value={subscriptionForm.organizationId}
-                  onValueChange={(value) => setSubscriptionForm({...subscriptionForm, organizationId: value})}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select organization" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {allOrganizations?.map((org: any) => (
-                      <SelectItem key={org.id} value={org.id.toString()}>
-                        {org.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <Label className="text-right">Type</Label>
+              <div className="col-span-3 flex gap-4">
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    name="orgType"
+                    checked={!subscriptionForm.createNewOrg}
+                    onChange={() => setSubscriptionForm({...subscriptionForm, createNewOrg: false})}
+                    className="text-primary"
+                  />
+                  <span>Existing Organization</span>
+                </label>
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    name="orgType"
+                    checked={subscriptionForm.createNewOrg}
+                    onChange={() => setSubscriptionForm({...subscriptionForm, createNewOrg: true})}
+                    className="text-primary"
+                  />
+                  <span>New Organization</span>
+                </label>
               </div>
             </div>
+
+            {/* Existing Organization Selection */}
+            {!subscriptionForm.createNewOrg && (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="organization" className="text-right">
+                  Organization
+                </Label>
+                <div className="col-span-3">
+                  <Select
+                    value={subscriptionForm.organizationId}
+                    onValueChange={(value) => setSubscriptionForm({...subscriptionForm, organizationId: value})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select organization" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {allOrganizations?.map((org: any) => (
+                        <SelectItem key={org.id} value={org.id.toString()}>
+                          {org.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+
+            {/* New Organization Fields */}
+            {subscriptionForm.createNewOrg && (
+              <>
+                <div className="col-span-4 border-t pt-4">
+                  <h4 className="font-medium mb-3">Organization Details</h4>
+                </div>
+                
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="orgName" className="text-right">
+                    Organization Name
+                  </Label>
+                  <Input
+                    id="orgName"
+                    className="col-span-3"
+                    value={subscriptionForm.orgName}
+                    onChange={(e) => setSubscriptionForm({...subscriptionForm, orgName: e.target.value})}
+                    placeholder="Company Name"
+                  />
+                </div>
+
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="orgEmail" className="text-right">
+                    Organization Email
+                  </Label>
+                  <Input
+                    id="orgEmail"
+                    type="email"
+                    className="col-span-3"
+                    value={subscriptionForm.orgEmail}
+                    onChange={(e) => setSubscriptionForm({...subscriptionForm, orgEmail: e.target.value})}
+                    placeholder="contact@company.com"
+                  />
+                </div>
+
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="orgPhone" className="text-right">
+                    Phone
+                  </Label>
+                  <Input
+                    id="orgPhone"
+                    className="col-span-3"
+                    value={subscriptionForm.orgPhone}
+                    onChange={(e) => setSubscriptionForm({...subscriptionForm, orgPhone: e.target.value})}
+                    placeholder="(555) 123-4567"
+                  />
+                </div>
+
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="orgAddress" className="text-right">
+                    Address
+                  </Label>
+                  <Input
+                    id="orgAddress"
+                    className="col-span-3"
+                    value={subscriptionForm.orgAddress}
+                    onChange={(e) => setSubscriptionForm({...subscriptionForm, orgAddress: e.target.value})}
+                    placeholder="123 Main St"
+                  />
+                </div>
+
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="orgCity" className="text-right">
+                    City
+                  </Label>
+                  <Input
+                    id="orgCity"
+                    className="col-span-2"
+                    value={subscriptionForm.orgCity}
+                    onChange={(e) => setSubscriptionForm({...subscriptionForm, orgCity: e.target.value})}
+                    placeholder="City"
+                  />
+                  <Input
+                    placeholder="State"
+                    value={subscriptionForm.orgState}
+                    onChange={(e) => setSubscriptionForm({...subscriptionForm, orgState: e.target.value})}
+                  />
+                </div>
+
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="orgZipCode" className="text-right">
+                    Zip Code
+                  </Label>
+                  <Input
+                    id="orgZipCode"
+                    className="col-span-1"
+                    value={subscriptionForm.orgZipCode}
+                    onChange={(e) => setSubscriptionForm({...subscriptionForm, orgZipCode: e.target.value})}
+                    placeholder="12345"
+                  />
+                </div>
+
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="maxUsers" className="text-right">
+                    Max Users
+                  </Label>
+                  <Input
+                    id="maxUsers"
+                    type="number"
+                    className="col-span-1"
+                    value={subscriptionForm.maxUsers}
+                    onChange={(e) => setSubscriptionForm({...subscriptionForm, maxUsers: parseInt(e.target.value)})}
+                    min="1"
+                  />
+                </div>
+
+                <div className="col-span-4 border-t pt-4">
+                  <h4 className="font-medium mb-3">Admin User Details</h4>
+                </div>
+
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="adminFirstName" className="text-right">
+                    Admin First Name
+                  </Label>
+                  <Input
+                    id="adminFirstName"
+                    className="col-span-1"
+                    value={subscriptionForm.adminFirstName}
+                    onChange={(e) => setSubscriptionForm({...subscriptionForm, adminFirstName: e.target.value})}
+                    placeholder="John"
+                  />
+                  <Input
+                    placeholder="Last Name"
+                    value={subscriptionForm.adminLastName}
+                    onChange={(e) => setSubscriptionForm({...subscriptionForm, adminLastName: e.target.value})}
+                  />
+                </div>
+
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="adminEmail" className="text-right">
+                    Admin Email
+                  </Label>
+                  <Input
+                    id="adminEmail"
+                    type="email"
+                    className="col-span-3"
+                    value={subscriptionForm.adminEmail}
+                    onChange={(e) => setSubscriptionForm({...subscriptionForm, adminEmail: e.target.value})}
+                    placeholder="admin@company.com"
+                  />
+                </div>
+
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="adminPassword" className="text-right">
+                    Admin Password
+                  </Label>
+                  <Input
+                    id="adminPassword"
+                    type="password"
+                    className="col-span-3"
+                    value={subscriptionForm.adminPassword}
+                    onChange={(e) => setSubscriptionForm({...subscriptionForm, adminPassword: e.target.value})}
+                    placeholder="Secure password"
+                  />
+                </div>
+              </>
+            )}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="plan" className="text-right">
                 Plan
@@ -951,9 +1165,13 @@ export default function SaasAdminPage() {
             <Button
               type="button"
               onClick={() => createSubscriptionMutation.mutate(subscriptionForm)}
-              disabled={!subscriptionForm.organizationId || !subscriptionForm.planId || createSubscriptionMutation.isPending}
+              disabled={
+                (!subscriptionForm.createNewOrg && (!subscriptionForm.organizationId || !subscriptionForm.planId)) ||
+                (subscriptionForm.createNewOrg && (!subscriptionForm.orgName || !subscriptionForm.adminEmail || !subscriptionForm.planId)) ||
+                createSubscriptionMutation.isPending
+              }
             >
-              {createSubscriptionMutation.isPending ? "Creating..." : "Create Subscription"}
+              {createSubscriptionMutation.isPending ? "Creating..." : subscriptionForm.createNewOrg ? "Create Organization & Subscription" : "Create Subscription"}
             </Button>
           </DialogFooter>
         </DialogContent>

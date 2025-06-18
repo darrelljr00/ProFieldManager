@@ -4539,41 +4539,109 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create new subscription for organization
   app.post("/api/admin/saas/subscriptions", requireAdmin, async (req, res) => {
     try {
-      const { organizationId, planId, status, startDate, trialDays } = req.body;
+      const { 
+        organizationId, 
+        planId, 
+        status, 
+        startDate, 
+        trialDays,
+        createNewOrg,
+        orgName,
+        orgEmail,
+        orgAddress,
+        orgCity,
+        orgState,
+        orgZipCode,
+        orgPhone,
+        maxUsers,
+        adminFirstName,
+        adminLastName,
+        adminEmail,
+        adminPassword
+      } = req.body;
       
       // Get the plan details
-      const plan = await storage.getSubscriptionPlanById(parseInt(planId));
+      const plans = await storage.getSubscriptionPlans();
+      const plan = plans.find(p => p.id === parseInt(planId));
       if (!plan) {
         return res.status(400).json({ message: "Invalid subscription plan" });
       }
 
-      // Calculate trial end date if it's a trial
-      let trialEndsAt = null;
-      if (status === 'trial' && trialDays) {
-        trialEndsAt = new Date(startDate);
-        trialEndsAt.setDate(trialEndsAt.getDate() + trialDays);
+      let organization;
+      
+      if (createNewOrg) {
+        // Create new organization
+        const hashedPassword = await AuthService.hashPassword(adminPassword);
+        
+        // Generate unique slug
+        const slug = orgName.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+        
+        // Calculate trial end date if it's a trial
+        let trialEndsAt = null;
+        if (status === 'trial' && trialDays) {
+          trialEndsAt = new Date(startDate);
+          trialEndsAt.setDate(trialEndsAt.getDate() + trialDays);
+        }
+
+        // Create organization with subscription details
+        organization = await storage.createOrganization({
+          name: orgName,
+          slug: slug,
+          subscriptionStatus: status,
+          subscriptionPlanId: parseInt(planId),
+          trialEndsAt: trialEndsAt,
+        });
+
+        // Create admin user for the organization
+        const adminUser = await storage.createUser({
+          username: adminEmail.split('@')[0],
+          email: adminEmail,
+          password: hashedPassword,
+          firstName: adminFirstName,
+          lastName: adminLastName,
+          role: "admin",
+          isActive: true,
+          organizationId: organization.id,
+        });
+
+        res.json({
+          message: "Organization and subscription created successfully",
+          organization: {
+            id: organization.id,
+            name: organization.name,
+            slug: organization.slug,
+            subscriptionStatus: organization.subscriptionStatus,
+            subscriptionPlanId: organization.subscriptionPlanId,
+            trialEndsAt: organization.trialEndsAt
+          },
+          adminUser: {
+            id: adminUser.id,
+            email: adminUser.email,
+            firstName: adminUser.firstName,
+            lastName: adminUser.lastName,
+            role: adminUser.role
+          }
+        });
+      } else {
+        // Update existing organization
+        // Calculate trial end date if it's a trial
+        let trialEndsAt = null;
+        if (status === 'trial' && trialDays) {
+          trialEndsAt = new Date(startDate);
+          trialEndsAt.setDate(trialEndsAt.getDate() + trialDays);
+        }
+
+        organization = await storage.updateOrganization(parseInt(organizationId), {
+          subscriptionPlanId: parseInt(planId),
+          subscriptionStatus: status,
+          trialEndsAt: trialEndsAt,
+        });
+
+        res.json({
+          message: "Subscription created successfully",
+          organization: organization
+        });
       }
-
-      // Update organization with new subscription
-      const updatedOrg = await storage.updateOrganization(parseInt(organizationId), {
-        subscriptionPlanId: parseInt(planId),
-        subscriptionStatus: status,
-        trialEndsAt: trialEndsAt,
-        // Apply plan limits and features
-        maxUsers: plan.maxUsers,
-        maxProjects: plan.maxProjects,
-        maxStorageGB: plan.maxStorageGB,
-        hasAdvancedReporting: plan.hasAdvancedReporting,
-        hasApiAccess: plan.hasApiAccess,
-        hasCustomBranding: plan.hasCustomBranding,
-        hasIntegrations: plan.hasIntegrations,
-        hasPrioritySupport: plan.hasPrioritySupport,
-      });
-
-      res.json({
-        message: "Subscription created successfully",
-        organization: updatedOrg
-      });
     } catch (error: any) {
       console.error("Error creating subscription:", error);
       res.status(500).json({ message: "Failed to create subscription" });
