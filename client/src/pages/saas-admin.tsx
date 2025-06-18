@@ -90,9 +90,13 @@ export default function SaasAdminPage() {
   const [planFeatures, setPlanFeatures] = useState<Record<string, string>>({});
 
   // SaaS-specific queries
-  const { data: subscriptionPlans } = useQuery({
+  const { data: subscriptionPlans, isLoading: plansLoading, error: plansError } = useQuery({
     queryKey: ["/api/saas/plans"],
   });
+
+  console.log("Subscription plans data:", subscriptionPlans);
+  console.log("Plans loading:", plansLoading);
+  console.log("Plans error:", plansError);
 
   const { data: allOrganizations } = useQuery({
     queryKey: ["/api/admin/saas/organizations"],
@@ -512,7 +516,14 @@ export default function SaasAdminPage() {
             <CardContent>
               {/* Plan Overview Cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                {subscriptionPlans?.map((plan: any) => (
+                {plansLoading ? (
+                  <div className="col-span-3 text-center py-8">Loading subscription plans...</div>
+                ) : plansError ? (
+                  <div className="col-span-3 text-center py-8 text-red-500">Error loading plans</div>
+                ) : !subscriptionPlans || subscriptionPlans.length === 0 ? (
+                  <div className="col-span-3 text-center py-8">No subscription plans found</div>
+                ) : (
+                  subscriptionPlans.map((plan: any) => (
                   <Card key={plan.id} className="relative">
                     <CardHeader>
                       <CardTitle className="flex items-center justify-between">
@@ -523,13 +534,13 @@ export default function SaasAdminPage() {
                       </CardTitle>
                       <CardDescription>
                         <div className="text-2xl font-bold">${plan.price}</div>
-                        <div className="text-sm">{plan.interval}</div>
+                        <div className="text-sm">{plan.billingInterval}</div>
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-2">
                         <div className="text-sm">
-                          <strong>Limits:</strong> {plan.maxUsers === -1 ? 'Unlimited' : plan.maxUsers} users, {plan.maxProjects === -1 ? 'Unlimited' : plan.maxProjects} projects
+                          <strong>Limits:</strong> {plan.maxUsers === 999999 ? 'Unlimited' : plan.maxUsers} users, {plan.maxProjects === 999999 ? 'Unlimited' : plan.maxProjects} projects
                         </div>
                         <div className="text-sm">
                           <strong>Storage:</strong> {plan.maxStorageGB}GB
@@ -537,7 +548,8 @@ export default function SaasAdminPage() {
                       </div>
                     </CardContent>
                   </Card>
-                ))}
+                  ))
+                )}
               </div>
 
               {/* Feature Assignment Matrix */}
@@ -554,7 +566,7 @@ export default function SaasAdminPage() {
                     <CardDescription>Essential platform features</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {[
+                    {subscriptionPlans && subscriptionPlans.length > 0 && [
                       { id: 'maxUsers', label: 'User Limit', values: ['5', '25', 'Unlimited'] },
                       { id: 'maxProjects', label: 'Project Limit', values: ['10', '100', 'Unlimited'] },
                       { id: 'maxStorageGB', label: 'Storage Limit (GB)', values: ['5', '50', '500'] }
@@ -562,7 +574,7 @@ export default function SaasAdminPage() {
                       <div key={feature.id} className="space-y-3">
                         <Label className="text-sm font-medium">{feature.label}</Label>
                         <div className="grid grid-cols-3 gap-4">
-                          {subscriptionPlans?.map((plan: any, planIndex: number) => (
+                          {subscriptionPlans.map((plan: any, planIndex: number) => (
                             <div key={plan.id} className="space-y-2">
                               <div className="text-sm font-medium text-center">{plan.name}</div>
                               <div className="space-y-2">
