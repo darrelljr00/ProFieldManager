@@ -98,6 +98,9 @@ export default function SaasAdminPage() {
   console.log("Plans loading:", plansLoading);
   console.log("Plans error:", plansError);
 
+  // Type the subscription plans data properly
+  const typedSubscriptionPlans = subscriptionPlans as any[] | undefined;
+
   const { data: allOrganizations } = useQuery({
     queryKey: ["/api/admin/saas/organizations"],
   });
@@ -519,9 +522,12 @@ export default function SaasAdminPage() {
                 {plansLoading ? (
                   <div className="col-span-3 text-center py-8">Loading subscription plans...</div>
                 ) : plansError ? (
-                  <div className="col-span-3 text-center py-8 text-red-500">Error loading plans</div>
-                ) : !subscriptionPlans || subscriptionPlans.length === 0 ? (
-                  <div className="col-span-3 text-center py-8">No subscription plans found</div>
+                  <div className="col-span-3 text-center py-8 text-red-500">Error loading plans: {String(plansError)}</div>
+                ) : !subscriptionPlans || !Array.isArray(subscriptionPlans) || subscriptionPlans.length === 0 ? (
+                  <div className="col-span-3 text-center py-8">
+                    No subscription plans found
+                    <div className="text-xs mt-2">Debug: {JSON.stringify({ subscriptionPlans, plansLoading, plansError })}</div>
+                  </div>
                 ) : (
                   subscriptionPlans.map((plan: any) => (
                   <Card key={plan.id} className="relative">
@@ -566,7 +572,7 @@ export default function SaasAdminPage() {
                     <CardDescription>Essential platform features</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {subscriptionPlans && subscriptionPlans.length > 0 && [
+                    {subscriptionPlans && Array.isArray(subscriptionPlans) && subscriptionPlans.length > 0 && [
                       { id: 'maxUsers', label: 'User Limit', values: ['5', '25', 'Unlimited'] },
                       { id: 'maxProjects', label: 'Project Limit', values: ['10', '100', 'Unlimited'] },
                       { id: 'maxStorageGB', label: 'Storage Limit (GB)', values: ['5', '50', '500'] }
