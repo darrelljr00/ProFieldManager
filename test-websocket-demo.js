@@ -1,5 +1,5 @@
 // WebSocket Real-Time Demo Script
-const WebSocket = require('ws');
+import WebSocket from 'ws';
 
 console.log('🚀 Starting WebSocket Real-Time Demo...');
 console.log('📡 Connecting to WebSocket server...');
