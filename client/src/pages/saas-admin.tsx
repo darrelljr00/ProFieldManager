@@ -379,13 +379,21 @@ export default function SaasAdminPage() {
           {/* Organization Management */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                Organization Management
-              </CardTitle>
-              <CardDescription>
-                Manage all tenant organizations, subscriptions, and billing
-              </CardDescription>
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    Organization Management
+                  </CardTitle>
+                  <CardDescription>
+                    Manage all tenant organizations, subscriptions, and billing
+                  </CardDescription>
+                </div>
+                <Button onClick={() => setShowCreateSubscriptionDialog(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Subscription
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <Table>
