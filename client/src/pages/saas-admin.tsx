@@ -1090,10 +1090,15 @@ export default function SaasAdminPage() {
                   <Input
                     id="maxUsers"
                     type="number"
-                    className="col-span-1"
+                    className="col-span-3"
                     value={subscriptionForm.maxUsers}
-                    onChange={(e) => setSubscriptionForm({...subscriptionForm, maxUsers: parseInt(e.target.value)})}
+                    onChange={(e) => {
+                      const newValue = parseInt(e.target.value) || 0;
+                      console.log("Max users changing to:", newValue);
+                      setSubscriptionForm({...subscriptionForm, maxUsers: newValue});
+                    }}
                     min="1"
+                    placeholder="Enter max users allowed"
                   />
                 </div>
 
