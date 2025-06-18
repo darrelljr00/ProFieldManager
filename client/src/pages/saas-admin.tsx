@@ -523,20 +523,16 @@ export default function SaasAdminPage() {
             <CardContent>
               {/* Plan Overview Cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                {plansLoading && (
+                {plansLoading ? (
                   <div className="col-span-3 text-center py-8">
                     <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-2"></div>
                     Loading subscription plans...
                   </div>
-                )}
-                
-                {plansError && (
+                ) : plansError ? (
                   <div className="col-span-3 text-center py-8 text-red-500">
                     Error loading plans: {String(plansError)}
                   </div>
-                )}
-                
-                {!plansLoading && !plansError && subscriptionPlans && (
+                ) : (
                   <>
                     {/* Starter Plan */}
                     <Card className="relative">
@@ -619,12 +615,6 @@ export default function SaasAdminPage() {
                       </CardContent>
                     </Card>
                   </>
-                )}
-
-                {!plansLoading && !plansError && !subscriptionPlans && (
-                  <div className="col-span-3 text-center py-8">
-                    No subscription plans available
-                  </div>
                 )}
               </div>
 
