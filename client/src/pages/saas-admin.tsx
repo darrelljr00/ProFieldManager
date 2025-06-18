@@ -1107,13 +1107,21 @@ export default function SaasAdminPage() {
                   </Label>
                   <Input
                     id="adminFirstName"
-                    className="col-span-1"
+                    className="col-span-3"
                     value={subscriptionForm.adminFirstName}
                     onChange={(e) => setSubscriptionForm({...subscriptionForm, adminFirstName: e.target.value})}
-                    placeholder="John"
+                    placeholder="Enter first name"
                   />
+                </div>
+
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="adminLastName" className="text-right">
+                    Admin Last Name
+                  </Label>
                   <Input
-                    placeholder="Last Name"
+                    id="adminLastName"
+                    className="col-span-3"
+                    placeholder="Enter last name"
                     value={subscriptionForm.adminLastName}
                     onChange={(e) => setSubscriptionForm({...subscriptionForm, adminLastName: e.target.value})}
                   />
