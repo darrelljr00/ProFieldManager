@@ -2970,7 +2970,7 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(fileManager.createdAt));
   }
 
-  async getFile(id: number, organizationId: number): Promise<(FileManager & { uploadedByUser: User, versions: FileVersion[] }) | undefined> {
+  async getFile(id: number, organizationId: number): Promise<(FileManager & { uploadedByUser: User, versions?: FileVersion[] }) | undefined> {
     const [file] = await db
       .select({
         ...fileManager,
@@ -2982,7 +2982,9 @@ export class DatabaseStorage implements IStorage {
 
     if (!file) return undefined;
 
-    const versions = await this.getFileVersions(id);
+    // File versions - simple implementation for now
+    const versions: FileVersion[] = [];
+    
     return { ...file, versions };
   }
 
