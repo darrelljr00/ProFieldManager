@@ -62,7 +62,7 @@ import {
 export default function SaasAdminPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState("plans");
   const [editingPlan, setEditingPlan] = useState<any>(null);
   const [showCreateSubscriptionDialog, setShowCreateSubscriptionDialog] = useState(false);
   const [selectedOrganization, setSelectedOrganization] = useState<any>(null);
@@ -292,7 +292,7 @@ export default function SaasAdminPage() {
         <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="organizations">Organizations</TabsTrigger>
-          <TabsTrigger value="subscription-plans">Subscription Plans</TabsTrigger>
+          <TabsTrigger value="plans">Subscription Plans</TabsTrigger>
           <TabsTrigger value="billing">Billing</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
         </TabsList>
