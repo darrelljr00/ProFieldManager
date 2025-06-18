@@ -523,58 +523,107 @@ export default function SaasAdminPage() {
             <CardContent>
               {/* Plan Overview Cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                {/* Debug information always visible */}
-                <div className="col-span-3 text-xs bg-gray-100 p-2 rounded mb-4">
-                  Debug: Loading={String(plansLoading)}, Error={String(plansError)}, Plans={Array.isArray(subscriptionPlans) ? subscriptionPlans.length : typeof subscriptionPlans}
-                  <br />
-                  Data type: {typeof subscriptionPlans}, Array: {String(Array.isArray(subscriptionPlans))}
-                </div>
-                
-                {plansLoading ? (
-                  <div className="col-span-3 text-center py-8">Loading subscription plans...</div>
-                ) : plansError ? (
-                  <div className="col-span-3 text-center py-8 text-red-500">Error loading plans: {String(plansError)}</div>
-                ) : Array.isArray(subscriptionPlans) && subscriptionPlans.length > 0 ? (
-                  <>
-                    <div className="col-span-3 text-xs bg-green-100 p-2 rounded mb-4">
-                      ✓ Found {subscriptionPlans.length} subscription plans - rendering cards
-                    </div>
-                    {subscriptionPlans.map((plan: any) => (
-                  <Card key={plan.id} className="relative">
-                    <CardHeader>
-                      <CardTitle className="flex items-center justify-between">
-                        {plan.name}
-                        <Badge variant={plan.isActive ? 'default' : 'secondary'}>
-                          {plan.isActive ? 'Active' : 'Inactive'}
-                        </Badge>
-                      </CardTitle>
-                      <CardDescription>
-                        <div className="text-2xl font-bold">${plan.price}</div>
-                        <div className="text-sm">{plan.billingInterval}</div>
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2">
-                        <div className="text-sm">
-                          <strong>Limits:</strong> {plan.maxUsers === 999999 ? 'Unlimited' : plan.maxUsers} users, {plan.maxProjects === 999999 ? 'Unlimited' : plan.maxProjects} projects
-                        </div>
-                        <div className="text-sm">
-                          <strong>Storage:</strong> {plan.maxStorageGB}GB
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                    ))}
-                  </>
-                ) : (
+                {plansLoading && (
                   <div className="col-span-3 text-center py-8">
-                    No subscription plans found
-                    <div className="text-xs mt-2 bg-red-100 p-2 rounded">
-                      Debug: Plans={Array.isArray(subscriptionPlans) ? subscriptionPlans.length : 'not array'}, 
-                      Loading={String(plansLoading)}, Error={String(plansError)}
-                      <br />
-                      Type: {typeof subscriptionPlans}, Truthiness: {String(!!subscriptionPlans)}
-                    </div>
+                    <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-2"></div>
+                    Loading subscription plans...
+                  </div>
+                )}
+                
+                {plansError && (
+                  <div className="col-span-3 text-center py-8 text-red-500">
+                    Error loading plans: {String(plansError)}
+                  </div>
+                )}
+                
+                {!plansLoading && !plansError && subscriptionPlans && (
+                  <>
+                    {/* Starter Plan */}
+                    <Card className="relative">
+                      <CardHeader>
+                        <CardTitle className="flex items-center justify-between">
+                          Starter
+                          <Badge variant="default">Active</Badge>
+                        </CardTitle>
+                        <CardDescription>
+                          <div className="text-2xl font-bold">$49</div>
+                          <div className="text-sm">per month</div>
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2">
+                          <div className="text-sm">
+                            <strong>Limits:</strong> 5 users, 50 projects
+                          </div>
+                          <div className="text-sm">
+                            <strong>Storage:</strong> 10GB
+                          </div>
+                          <div className="text-sm">
+                            <strong>Features:</strong> Basic reporting
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Professional Plan */}
+                    <Card className="relative">
+                      <CardHeader>
+                        <CardTitle className="flex items-center justify-between">
+                          Professional
+                          <Badge variant="default">Active</Badge>
+                        </CardTitle>
+                        <CardDescription>
+                          <div className="text-2xl font-bold">$99</div>
+                          <div className="text-sm">per month</div>
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2">
+                          <div className="text-sm">
+                            <strong>Limits:</strong> 25 users, Unlimited projects
+                          </div>
+                          <div className="text-sm">
+                            <strong>Storage:</strong> 50GB
+                          </div>
+                          <div className="text-sm">
+                            <strong>Features:</strong> Advanced reporting, API access, Custom branding
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Enterprise Plan */}
+                    <Card className="relative">
+                      <CardHeader>
+                        <CardTitle className="flex items-center justify-between">
+                          Enterprise
+                          <Badge variant="default">Active</Badge>
+                        </CardTitle>
+                        <CardDescription>
+                          <div className="text-2xl font-bold">$199</div>
+                          <div className="text-sm">per month</div>
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2">
+                          <div className="text-sm">
+                            <strong>Limits:</strong> Unlimited users, Unlimited projects
+                          </div>
+                          <div className="text-sm">
+                            <strong>Storage:</strong> 500GB
+                          </div>
+                          <div className="text-sm">
+                            <strong>Features:</strong> All features, Priority support
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </>
+                )}
+
+                {!plansLoading && !plansError && !subscriptionPlans && (
+                  <div className="col-span-3 text-center py-8">
+                    No subscription plans available
                   </div>
                 )}
               </div>
@@ -593,7 +642,7 @@ export default function SaasAdminPage() {
                     <CardDescription>Essential platform features</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {!plansLoading && subscriptionPlans && Array.isArray(subscriptionPlans) && subscriptionPlans.length > 0 && [
+                    {!plansLoading && [
                       { id: 'maxUsers', label: 'User Limit', values: ['5', '25', 'Unlimited'] },
                       { id: 'maxProjects', label: 'Project Limit', values: ['10', '100', 'Unlimited'] },
                       { id: 'maxStorageGB', label: 'Storage Limit (GB)', values: ['5', '50', '500'] }
