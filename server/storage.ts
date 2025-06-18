@@ -27,7 +27,7 @@ import {
   type FileShare, type InsertFileShare, type FileVersion, type InsertFileVersion
 } from "@shared/schema";
 import { db, pool } from "./db";
-import { eq, desc, and, sql, or, inArray, isNotNull } from "drizzle-orm";
+import { eq, desc, and, sql, or, inArray, isNotNull, isNull } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 
 export interface IStorage {
@@ -3024,7 +3024,7 @@ export class DatabaseStorage implements IStorage {
   async getFolders(organizationId: number, parentId?: number): Promise<FileFolder[]> {
     const whereCondition = parentId ? 
       and(eq(fileFolders.organizationId, organizationId), eq(fileFolders.parentFolderId, parentId)) :
-      and(eq(fileFolders.organizationId, organizationId), isNotNull(fileFolders.parentFolderId));
+      and(eq(fileFolders.organizationId, organizationId), isNull(fileFolders.parentFolderId));
 
     return await db
       .select()
