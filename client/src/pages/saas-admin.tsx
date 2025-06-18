@@ -744,6 +744,7 @@ export default function SaasAdminPage() {
                                             username: editingUser.username,
                                             email: editingUser.email,
                                             role: editingUser.role,
+                                            isActive: editingUser.isActive,
                                             ...(editingUser.newPassword && { password: editingUser.newPassword })
                                           }
                                         });
@@ -801,7 +802,7 @@ export default function SaasAdminPage() {
                               </TableCell>
                             </TableRow>
                           ))}
-                          {editingUser?.id === editingUser?.id && (
+                          {editingUser?.id && (
                             <TableRow>
                               <TableCell colSpan={5}>
                                 <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded">

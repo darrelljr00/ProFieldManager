@@ -464,6 +464,38 @@ export class DatabaseStorage implements IStorage {
     return org;
   }
 
+  async getUsersByOrganization(organizationId: number): Promise<User[]> {
+    return await db.select().from(users).where(eq(users.organizationId, organizationId));
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    return await db.select().from(users);
+  }
+
+  async updateUser(id: number, userData: Partial<InsertUser>): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set(userData)
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+
+  async deleteUser(id: number): Promise<boolean> {
+    const result = await db.delete(users).where(eq(users.id, id));
+    return result.rowCount > 0;
+  }
+
+  async getUserStats(): Promise<any> {
+    const totalUsers = await db.select({ count: sql`COUNT(*)` }).from(users);
+    const activeUsers = await db.select({ count: sql`COUNT(*)` }).from(users).where(eq(users.isActive, true));
+    
+    return {
+      totalUsers: totalUsers[0]?.count || 0,
+      activeUsers: activeUsers[0]?.count || 0,
+    };
+  }
+
   async getCustomers(userId: number): Promise<Customer[]> {
     return await db.select().from(customers).orderBy(desc(customers.createdAt));
   }
