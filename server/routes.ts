@@ -4469,48 +4469,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get subscription plans
   app.get("/api/saas/plans", async (req, res) => {
     try {
-      const plans = [
-        {
-          id: 1,
-          name: "Starter",
-          price: 29,
-          interval: "monthly",
-          maxUsers: 5,
-          maxProjects: 10,
-          maxStorageGB: 5,
-          hasAdvancedReporting: false,
-          hasApiAccess: false,
-          hasCustomBranding: false,
-          isActive: true
-        },
-        {
-          id: 2,
-          name: "Professional",
-          price: 99,
-          interval: "monthly",
-          maxUsers: 25,
-          maxProjects: 100,
-          maxStorageGB: 50,
-          hasAdvancedReporting: true,
-          hasApiAccess: true,
-          hasCustomBranding: false,
-          isActive: true
-        },
-        {
-          id: 3,
-          name: "Enterprise",
-          price: 199,
-          interval: "monthly",
-          maxUsers: -1, // unlimited
-          maxProjects: -1, // unlimited
-          maxStorageGB: 500,
-          hasAdvancedReporting: true,
-          hasApiAccess: true,
-          hasCustomBranding: true,
-          isActive: true
-        }
-      ];
-      
+      const plans = await storage.getSubscriptionPlans();
       res.json(plans);
     } catch (error: any) {
       console.error("Error fetching subscription plans:", error);

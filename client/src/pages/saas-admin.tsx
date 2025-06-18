@@ -176,7 +176,7 @@ export default function SaasAdminPage() {
         [featureId]: value
       });
       
-      queryClient.invalidateQueries({ queryKey: ['/api/saas/subscription-plans'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/saas/plans'] });
       
       toast({
         title: "Feature Updated",
