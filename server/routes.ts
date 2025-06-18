@@ -4923,6 +4923,302 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // File Manager API routes
+  app.get("/api/files", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { folderId } = req.query;
+      const files = await storage.getFiles(user.organizationId, folderId ? parseInt(folderId as string) : undefined);
+      res.json(files);
+    } catch (error: any) {
+      console.error("Error fetching files:", error);
+      res.status(500).json({ message: "Failed to fetch files" });
+    }
+  });
+
+  app.get("/api/files/:id", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { id } = req.params;
+      const file = await storage.getFile(parseInt(id), user.organizationId);
+      if (!file) {
+        return res.status(404).json({ message: "File not found" });
+      }
+      res.json(file);
+    } catch (error: any) {
+      console.error("Error fetching file:", error);
+      res.status(500).json({ message: "Failed to fetch file" });
+    }
+  });
+
+  app.post("/api/files/upload", requireAuth, upload.single('file'), async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const uploadedFile = req.file;
+      
+      if (!uploadedFile) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      const { folderId, description, tags } = req.body;
+      
+      // Determine file type based on mime type
+      let fileType = 'other';
+      if (uploadedFile.mimetype.startsWith('image/')) fileType = 'image';
+      else if (uploadedFile.mimetype.startsWith('video/')) fileType = 'video';
+      else if (uploadedFile.mimetype.includes('pdf') || uploadedFile.mimetype.includes('word') || uploadedFile.mimetype.includes('document')) fileType = 'document';
+
+      const fileData = {
+        organizationId: user.organizationId,
+        uploadedBy: user.id,
+        fileName: uploadedFile.filename,
+        originalName: uploadedFile.originalname,
+        filePath: uploadedFile.path,
+        fileSize: uploadedFile.size,
+        mimeType: uploadedFile.mimetype,
+        fileType,
+        description: description || null,
+        tags: tags ? JSON.parse(tags) : null,
+        folderId: folderId ? parseInt(folderId) : null,
+      };
+
+      const file = await storage.uploadFile(fileData);
+      
+      // Broadcast to WebSocket
+      broadcastToWebUsers({
+        type: 'file_uploaded',
+        data: file
+      });
+
+      res.json(file);
+    } catch (error: any) {
+      console.error("Error uploading file:", error);
+      res.status(500).json({ message: "Failed to upload file" });
+    }
+  });
+
+  app.put("/api/files/:id", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { id } = req.params;
+      const updates = req.body;
+      
+      const file = await storage.updateFile(parseInt(id), user.organizationId, updates);
+      if (!file) {
+        return res.status(404).json({ message: "File not found" });
+      }
+
+      // Broadcast to WebSocket
+      broadcastToWebUsers({
+        type: 'file_updated',
+        data: file
+      });
+
+      res.json(file);
+    } catch (error: any) {
+      console.error("Error updating file:", error);
+      res.status(500).json({ message: "Failed to update file" });
+    }
+  });
+
+  app.delete("/api/files/:id", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { id } = req.params;
+      
+      const success = await storage.deleteFile(parseInt(id), user.organizationId);
+      if (!success) {
+        return res.status(404).json({ message: "File not found" });
+      }
+
+      // Broadcast to WebSocket
+      broadcastToWebUsers({
+        type: 'file_deleted',
+        data: { id: parseInt(id) }
+      });
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting file:", error);
+      res.status(500).json({ message: "Failed to delete file" });
+    }
+  });
+
+  app.get("/api/files/:id/download", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { id } = req.params;
+      
+      const file = await storage.getFile(parseInt(id), user.organizationId);
+      if (!file) {
+        return res.status(404).json({ message: "File not found" });
+      }
+
+      // Update download count
+      await storage.updateFile(parseInt(id), user.organizationId, {
+        downloadCount: file.downloadCount + 1
+      });
+
+      // Send file
+      res.download(file.filePath, file.originalName);
+    } catch (error: any) {
+      console.error("Error downloading file:", error);
+      res.status(500).json({ message: "Failed to download file" });
+    }
+  });
+
+  // Folder management routes
+  app.get("/api/folders", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { parentId } = req.query;
+      const folders = await storage.getFolders(user.organizationId, parentId ? parseInt(parentId as string) : undefined);
+      res.json(folders);
+    } catch (error: any) {
+      console.error("Error fetching folders:", error);
+      res.status(500).json({ message: "Failed to fetch folders" });
+    }
+  });
+
+  app.post("/api/folders", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const folderData = {
+        ...req.body,
+        organizationId: user.organizationId,
+        createdBy: user.id,
+      };
+      
+      const folder = await storage.createFolder(folderData);
+      
+      // Broadcast to WebSocket
+      broadcastToWebUsers({
+        type: 'folder_created',
+        data: folder
+      });
+
+      res.json(folder);
+    } catch (error: any) {
+      console.error("Error creating folder:", error);
+      res.status(500).json({ message: "Failed to create folder" });
+    }
+  });
+
+  // File sharing routes
+  app.post("/api/files/:id/share", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { id } = req.params;
+      const { sharedWith, permissions, expiresAt, maxAccess } = req.body;
+      
+      const shareData = {
+        fileId: parseInt(id),
+        sharedBy: user.id,
+        sharedWith: sharedWith || null,
+        permissions: permissions || 'view',
+        expiresAt: expiresAt ? new Date(expiresAt) : null,
+        maxAccess: maxAccess || null,
+      };
+      
+      const share = await storage.createFileShare(shareData);
+      res.json(share);
+    } catch (error: any) {
+      console.error("Error sharing file:", error);
+      res.status(500).json({ message: "Failed to share file" });
+    }
+  });
+
+  app.get("/api/shared/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+      const share = await storage.getFileShare(token);
+      
+      if (!share) {
+        return res.status(404).json({ message: "Share not found or expired" });
+      }
+
+      // Check if share is expired
+      if (share.expiresAt && new Date() > share.expiresAt) {
+        return res.status(404).json({ message: "Share has expired" });
+      }
+
+      // Check access limits
+      if (share.maxAccess && share.accessCount >= share.maxAccess) {
+        return res.status(403).json({ message: "Share access limit reached" });
+      }
+
+      // Update access count
+      await storage.updateFileShareAccess(share.id);
+
+      res.json({
+        file: share.file,
+        sharedBy: share.sharedByUser.username,
+        permissions: share.permissions,
+      });
+    } catch (error: any) {
+      console.error("Error accessing shared file:", error);
+      res.status(500).json({ message: "Failed to access shared file" });
+    }
+  });
+
+  // DocuSign integration for file manager
+  app.post("/api/files/:id/docusign", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { id } = req.params;
+      const { recipientEmail, recipientName, subject } = req.body;
+
+      const file = await storage.getFile(parseInt(id), user.organizationId);
+      if (!file) {
+        return res.status(404).json({ message: "File not found" });
+      }
+
+      // Check if file is suitable for signing
+      if (!['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'].includes(file.mimeType)) {
+        return res.status(400).json({ message: "File type not supported for e-signature" });
+      }
+
+      const docuSignConfig = getDocuSignConfig();
+      if (!docuSignConfig) {
+        return res.status(500).json({ message: "DocuSign not configured" });
+      }
+
+      const docuSignService = new DocuSignService(docuSignConfig);
+      const envelopeSubject = subject || `Document signature request: ${file.originalName}`;
+
+      // Create DocuSign envelope
+      const envelope = await docuSignService.createEnvelope(
+        file.filePath,
+        recipientEmail,
+        recipientName,
+        envelopeSubject
+      );
+
+      // Save envelope to database
+      const envelopeData = {
+        envelopeId: envelope.envelopeId,
+        fileId: parseInt(id),
+        userId: user.id,
+        recipientEmail,
+        recipientName,
+        subject: envelopeSubject,
+        status: envelope.status
+      };
+
+      await storage.createDocuSignEnvelope(envelopeData);
+
+      res.json({
+        success: true,
+        envelopeId: envelope.envelopeId,
+        status: envelope.status,
+        message: "Document sent for signature successfully"
+      });
+    } catch (error: any) {
+      console.error("Error sending file for DocuSign:", error);
+      res.status(500).json({ message: "Failed to send document for signature" });
+    }
+  });
+
   // Add broadcast function to the app for use in routes
   (app as any).broadcastToWebUsers = broadcastToWebUsers;
 

@@ -99,6 +99,7 @@ function AuthenticatedApp() {
           <Route path="/sms" component={SmsPage} />
           <Route path="/reviews" component={Reviews} />
           <Route path="/human-resources" component={HumanResources} />
+          <Route path="/file-manager" component={FileManager} />
           {isAdmin && <Route path="/users" component={Users} />}
           {isAdmin && <Route path="/admin-settings" component={AdminSettings} />}
           {isAdmin && <Route path="/saas-admin" component={SaasAdmin} />}
