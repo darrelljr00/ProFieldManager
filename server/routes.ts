@@ -4536,6 +4536,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Create new subscription for organization
+  app.post("/api/admin/saas/subscriptions", requireAdmin, async (req, res) => {
+    try {
+      const { organizationId, planId, status, startDate, trialDays } = req.body;
+      
+      // Get the plan details
+      const plan = await storage.getSubscriptionPlanById(parseInt(planId));
+      if (!plan) {
+        return res.status(400).json({ message: "Invalid subscription plan" });
+      }
+
+      // Calculate trial end date if it's a trial
+      let trialEndsAt = null;
+      if (status === 'trial' && trialDays) {
+        trialEndsAt = new Date(startDate);
+        trialEndsAt.setDate(trialEndsAt.getDate() + trialDays);
+      }
+
+      // Update organization with new subscription
+      const updatedOrg = await storage.updateOrganization(parseInt(organizationId), {
+        subscriptionPlanId: parseInt(planId),
+        subscriptionStatus: status,
+        trialEndsAt: trialEndsAt,
+        // Apply plan limits and features
+        maxUsers: plan.maxUsers,
+        maxProjects: plan.maxProjects,
+        maxStorageGB: plan.maxStorageGB,
+        hasAdvancedReporting: plan.hasAdvancedReporting,
+        hasApiAccess: plan.hasApiAccess,
+        hasCustomBranding: plan.hasCustomBranding,
+        hasIntegrations: plan.hasIntegrations,
+        hasPrioritySupport: plan.hasPrioritySupport,
+      });
+
+      res.json({
+        message: "Subscription created successfully",
+        organization: updatedOrg
+      });
+    } catch (error: any) {
+      console.error("Error creating subscription:", error);
+      res.status(500).json({ message: "Failed to create subscription" });
+    }
+  });
+
   // Update subscription plan features
   app.post("/api/saas/plan-features/:planId", async (req, res) => {
     try {

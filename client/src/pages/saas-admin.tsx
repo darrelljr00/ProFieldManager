@@ -29,6 +29,22 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Users,
   Server,
   Activity,
@@ -48,6 +64,15 @@ export default function SaasAdminPage() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("overview");
   const [editingPlan, setEditingPlan] = useState<any>(null);
+  const [showCreateSubscriptionDialog, setShowCreateSubscriptionDialog] = useState(false);
+  const [selectedOrganization, setSelectedOrganization] = useState<any>(null);
+  const [subscriptionForm, setSubscriptionForm] = useState({
+    organizationId: "",
+    planId: "",
+    status: "trial",
+    startDate: new Date().toISOString().split('T')[0],
+    trialDays: 14
+  });
   const [planFeatures, setPlanFeatures] = useState<Record<string, string>>({});
 
   // SaaS-specific queries
@@ -147,6 +172,33 @@ export default function SaasAdminPage() {
     { id: 'hasIntegrations', label: 'Third-party Integrations', type: 'feature' },
     { id: 'hasPrioritySupport', label: 'Priority Support', type: 'feature' }
   ];
+
+  const createSubscriptionMutation = useMutation({
+    mutationFn: (data: any) =>
+      apiRequest("POST", "/api/admin/saas/subscriptions", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/saas/organizations"] });
+      setShowCreateSubscriptionDialog(false);
+      setSubscriptionForm({
+        organizationId: "",
+        planId: "",
+        status: "trial",
+        startDate: new Date().toISOString().split('T')[0],
+        trialDays: 14
+      });
+      toast({
+        title: "Success",
+        description: "Subscription created successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create subscription",
+        variant: "destructive",
+      });
+    },
+  });
 
   const updatePlanFeatureMutation = useMutation({
     mutationFn: (data: { planId: number; feature: string; value: any }) =>
@@ -777,6 +829,127 @@ export default function SaasAdminPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Create Subscription Dialog */}
+      <Dialog open={showCreateSubscriptionDialog} onOpenChange={setShowCreateSubscriptionDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Create New Subscription</DialogTitle>
+            <DialogDescription>
+              Create a new subscription for an organization with a specific plan.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="organization" className="text-right">
+                Organization
+              </Label>
+              <div className="col-span-3">
+                <Select
+                  value={subscriptionForm.organizationId}
+                  onValueChange={(value) => setSubscriptionForm({...subscriptionForm, organizationId: value})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select organization" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {allOrganizations?.map((org: any) => (
+                      <SelectItem key={org.id} value={org.id.toString()}>
+                        {org.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="plan" className="text-right">
+                Plan
+              </Label>
+              <div className="col-span-3">
+                <Select
+                  value={subscriptionForm.planId}
+                  onValueChange={(value) => setSubscriptionForm({...subscriptionForm, planId: value})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select plan" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {subscriptionPlans?.map((plan: any) => (
+                      <SelectItem key={plan.id} value={plan.id.toString()}>
+                        {plan.name} - ${plan.price}/{plan.interval}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="status" className="text-right">
+                Status
+              </Label>
+              <div className="col-span-3">
+                <Select
+                  value={subscriptionForm.status}
+                  onValueChange={(value) => setSubscriptionForm({...subscriptionForm, status: value})}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="trial">Trial</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="suspended">Suspended</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="startDate" className="text-right">
+                Start Date
+              </Label>
+              <Input
+                id="startDate"
+                type="date"
+                className="col-span-3"
+                value={subscriptionForm.startDate}
+                onChange={(e) => setSubscriptionForm({...subscriptionForm, startDate: e.target.value})}
+              />
+            </div>
+            {subscriptionForm.status === 'trial' && (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="trialDays" className="text-right">
+                  Trial Days
+                </Label>
+                <Input
+                  id="trialDays"
+                  type="number"
+                  className="col-span-3"
+                  value={subscriptionForm.trialDays}
+                  onChange={(e) => setSubscriptionForm({...subscriptionForm, trialDays: parseInt(e.target.value)})}
+                />
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowCreateSubscriptionDialog(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={() => createSubscriptionMutation.mutate(subscriptionForm)}
+              disabled={!subscriptionForm.organizationId || !subscriptionForm.planId || createSubscriptionMutation.isPending}
+            >
+              {createSubscriptionMutation.isPending ? "Creating..." : "Create Subscription"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -258,6 +258,7 @@ export interface IStorage {
   updateOrganizationPlan(orgId: number, planData: Partial<InsertOrganization>): Promise<Organization>;
   getSubscriptionPlans(): Promise<SubscriptionPlan[]>;
   getSubscriptionPlanBySlug(slug: string): Promise<SubscriptionPlan | undefined>;
+  getSubscriptionPlanById(id: number): Promise<SubscriptionPlan | undefined>;
   getOrganizationUsage(orgId: number): Promise<any>;
 
   // Gas Cards functionality
