@@ -56,6 +56,7 @@ import {
   Plus,
   Edit,
   Save,
+  Trash,
 } from "lucide-react";
 
 
