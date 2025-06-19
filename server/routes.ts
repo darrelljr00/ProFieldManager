@@ -4329,6 +4329,101 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Task Management API Routes
+  app.get("/api/tasks", requireAuth, async (req, res) => {
+    try {
+      const tasks = await storage.getAllTasksForOrganization(req.user!.organizationId);
+      res.json(tasks);
+    } catch (error) {
+      console.error("Error fetching tasks:", error);
+      res.status(500).json({ message: "Failed to fetch tasks" });
+    }
+  });
+
+  app.get("/api/tasks/assigned-to-me", requireAuth, async (req, res) => {
+    try {
+      const tasks = await storage.getTasksAssignedToUser(req.user!.id);
+      res.json(tasks);
+    } catch (error) {
+      console.error("Error fetching assigned tasks:", error);
+      res.status(500).json({ message: "Failed to fetch assigned tasks" });
+    }
+  });
+
+  app.get("/api/tasks/created-by-me", requireAuth, async (req, res) => {
+    try {
+      const tasks = await storage.getTasksCreatedByUser(req.user!.id);
+      res.json(tasks);
+    } catch (error) {
+      console.error("Error fetching created tasks:", error);
+      res.status(500).json({ message: "Failed to fetch created tasks" });
+    }
+  });
+
+  app.get("/api/tasks/team", requireManagerOrAdmin, async (req, res) => {
+    try {
+      const tasks = await storage.getTeamTasksForManager(req.user!.id);
+      res.json(tasks);
+    } catch (error) {
+      console.error("Error fetching team tasks:", error);
+      res.status(500).json({ message: "Failed to fetch team tasks" });
+    }
+  });
+
+  app.post("/api/tasks", requireAuth, async (req, res) => {
+    try {
+      const { assignedToId, ...taskData } = req.body;
+      
+      if (assignedToId && assignedToId !== req.user!.id) {
+        const canDelegate = await storage.canUserDelegateTask(req.user!.id, assignedToId);
+        if (!canDelegate) {
+          return res.status(403).json({ 
+            message: "Only managers and administrators can delegate tasks to other users" 
+          });
+        }
+      }
+
+      const task = await storage.createTaskForOrganization(
+        req.user!.organizationId, 
+        { ...taskData, assignedToId }, 
+        req.user!.id
+      );
+      
+      res.status(201).json(task);
+    } catch (error) {
+      console.error("Error creating task:", error);
+      res.status(500).json({ message: "Failed to create task" });
+    }
+  });
+
+  app.patch("/api/tasks/:id", requireAuth, async (req, res) => {
+    try {
+      const taskId = parseInt(req.params.id);
+      const task = await storage.updateTaskById(taskId, req.body);
+      if (!task) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+      res.json(task);
+    } catch (error) {
+      console.error("Error updating task:", error);
+      res.status(500).json({ message: "Failed to update task" });
+    }
+  });
+
+  app.delete("/api/tasks/:id", requireAuth, async (req, res) => {
+    try {
+      const taskId = parseInt(req.params.id);
+      const deleted = await storage.deleteTaskById(taskId);
+      if (!deleted) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting task:", error);
+      res.status(500).json({ message: "Failed to delete task" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   // WebSocket server for real-time updates

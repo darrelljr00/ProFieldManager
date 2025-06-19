@@ -684,6 +684,7 @@ interface CalendarJobWithDetails {
         }}
         title="Take Photo for Job"
       />
+      </div>
     </div>
   );
 }
