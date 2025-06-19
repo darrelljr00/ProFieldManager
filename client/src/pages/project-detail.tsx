@@ -65,6 +65,7 @@ export default function ProjectDetail() {
   const [teamDialogOpen, setTeamDialogOpen] = useState(false);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [showMobileCamera, setShowMobileCamera] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
