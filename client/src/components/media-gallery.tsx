@@ -489,10 +489,22 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
           )}
         </div>
         
-        <div className="flex items-center gap-4 text-sm text-gray-600">
-          {imageFiles.length > 0 && <span>{imageFiles.length} images</span>}
-          {videoFiles.length > 0 && <span>{videoFiles.length} videos</span>}
-          {documentFiles.length > 0 && <span>{documentFiles.length} documents</span>}
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => setShowMobileCamera(true)}
+            variant="outline"
+            size="sm"
+            className="bg-green-600 hover:bg-green-700 text-white border-green-600"
+          >
+            <Smartphone className="h-4 w-4 mr-2" />
+            Take Photo
+          </Button>
+          
+          <div className="flex items-center gap-4 text-sm text-gray-600">
+            {imageFiles.length > 0 && <span>{imageFiles.length} images</span>}
+            {videoFiles.length > 0 && <span>{videoFiles.length} videos</span>}
+            {documentFiles.length > 0 && <span>{documentFiles.length} documents</span>}
+          </div>
         </div>
       </div>
 
