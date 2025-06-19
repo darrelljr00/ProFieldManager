@@ -120,6 +120,7 @@ function AuthenticatedApp() {
           <Route path="/reviews" component={Reviews} />
           <Route path="/human-resources" component={HumanResources} />
           <Route path="/file-manager" component={FileManager} />
+          <Route path="/my-tasks" component={MyTasks} />
           {isAdmin && <Route path="/users" component={Users} />}
           {isAdmin && <Route path="/admin-settings" component={AdminSettings} />}
           {isAdmin && <Route path="/saas-admin" component={SaasAdmin} />}

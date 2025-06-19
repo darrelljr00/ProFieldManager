@@ -128,6 +128,14 @@ export interface IStorage {
   deleteTask(id: number, userId: number): Promise<boolean>;
   addTaskComment(comment: InsertTaskComment): Promise<TaskComment>;
   
+  // My Tasks specific methods
+  getAllTasksForOrganization(organizationId: number): Promise<any[]>;
+  getTasksAssignedToUser(userId: number): Promise<any[]>;
+  getTasksCreatedByUser(userId: number): Promise<any[]>;
+  createTaskForOrganization(organizationId: number, task: any, createdById: number): Promise<Task>;
+  updateTaskById(taskId: number, updates: any): Promise<Task | undefined>;
+  deleteTaskById(taskId: number): Promise<boolean>;
+  
   // File management methods
   uploadProjectFile(file: InsertProjectFile): Promise<ProjectFile>;
   getProjectFiles(projectId: number, userId: number): Promise<ProjectFile[]>;
@@ -1274,6 +1282,168 @@ export class DatabaseStorage implements IStorage {
       .from(tasks)
       .where(eq(tasks.projectId, projectId))
       .orderBy(desc(tasks.createdAt));
+  }
+
+  async getAllTasksForOrganization(organizationId: number): Promise<any[]> {
+    const assignedByUser = alias(users, 'assignedByUser');
+    
+    const taskList = await db
+      .select({
+        id: tasks.id,
+        title: tasks.title,
+        description: tasks.description,
+        status: tasks.status,
+        priority: tasks.priority,
+        assignedToId: tasks.assignedToId,
+        assignedById: tasks.assignedById,
+        projectId: tasks.projectId,
+        dueDate: tasks.dueDate,
+        estimatedHours: tasks.estimatedHours,
+        startedAt: tasks.startedAt,
+        completedAt: tasks.completedAt,
+        createdAt: tasks.createdAt,
+        updatedAt: tasks.updatedAt,
+        assignedTo: {
+          id: users.id,
+          username: users.username,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          email: users.email,
+        },
+        assignedBy: {
+          id: assignedByUser.id,
+          username: assignedByUser.username,
+          firstName: assignedByUser.firstName,
+          lastName: assignedByUser.lastName,
+          email: assignedByUser.email,
+        },
+        project: {
+          id: projects.id,
+          name: projects.name,
+        }
+      })
+      .from(tasks)
+      .leftJoin(users, eq(tasks.assignedToId, users.id))
+      .leftJoin(assignedByUser, eq(tasks.assignedById, assignedByUser.id))
+      .leftJoin(projects, eq(tasks.projectId, projects.id))
+      .where(eq(tasks.organizationId, organizationId))
+      .orderBy(desc(tasks.createdAt));
+
+    return taskList;
+  }
+
+  async getTasksAssignedToUser(userId: number): Promise<any[]> {
+    const assignedByUser = alias(users, 'assignedByUser');
+    
+    const taskList = await db
+      .select({
+        id: tasks.id,
+        title: tasks.title,
+        description: tasks.description,
+        status: tasks.status,
+        priority: tasks.priority,
+        assignedToId: tasks.assignedToId,
+        assignedById: tasks.assignedById,
+        projectId: tasks.projectId,
+        dueDate: tasks.dueDate,
+        estimatedHours: tasks.estimatedHours,
+        startedAt: tasks.startedAt,
+        completedAt: tasks.completedAt,
+        createdAt: tasks.createdAt,
+        updatedAt: tasks.updatedAt,
+        assignedBy: {
+          id: assignedByUser.id,
+          username: assignedByUser.username,
+          firstName: assignedByUser.firstName,
+          lastName: assignedByUser.lastName,
+          email: assignedByUser.email,
+        },
+        project: {
+          id: projects.id,
+          name: projects.name,
+        }
+      })
+      .from(tasks)
+      .leftJoin(assignedByUser, eq(tasks.assignedById, assignedByUser.id))
+      .leftJoin(projects, eq(tasks.projectId, projects.id))
+      .where(eq(tasks.assignedToId, userId))
+      .orderBy(desc(tasks.createdAt));
+
+    return taskList;
+  }
+
+  async getTasksCreatedByUser(userId: number): Promise<any[]> {
+    const taskList = await db
+      .select({
+        id: tasks.id,
+        title: tasks.title,
+        description: tasks.description,
+        status: tasks.status,
+        priority: tasks.priority,
+        assignedToId: tasks.assignedToId,
+        assignedById: tasks.assignedById,
+        projectId: tasks.projectId,
+        dueDate: tasks.dueDate,
+        estimatedHours: tasks.estimatedHours,
+        startedAt: tasks.startedAt,
+        completedAt: tasks.completedAt,
+        createdAt: tasks.createdAt,
+        updatedAt: tasks.updatedAt,
+        assignedTo: {
+          id: users.id,
+          username: users.username,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          email: users.email,
+        },
+        project: {
+          id: projects.id,
+          name: projects.name,
+        }
+      })
+      .from(tasks)
+      .leftJoin(users, eq(tasks.assignedToId, users.id))
+      .leftJoin(projects, eq(tasks.projectId, projects.id))
+      .where(eq(tasks.assignedById, userId))
+      .orderBy(desc(tasks.createdAt));
+
+    return taskList;
+  }
+
+  async createTaskForOrganization(organizationId: number, taskData: any, createdById: number): Promise<Task> {
+    const [newTask] = await db
+      .insert(tasks)
+      .values({
+        ...taskData,
+        organizationId,
+        assignedById: createdById,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning();
+
+    return newTask;
+  }
+
+  async updateTaskById(taskId: number, updates: any): Promise<Task | undefined> {
+    const [updatedTask] = await db
+      .update(tasks)
+      .set({
+        ...updates,
+        updatedAt: new Date(),
+      })
+      .where(eq(tasks.id, taskId))
+      .returning();
+
+    return updatedTask;
+  }
+
+  async deleteTaskById(taskId: number): Promise<boolean> {
+    const result = await db
+      .delete(tasks)
+      .where(eq(tasks.id, taskId));
+
+    return result.rowCount > 0;
   }
 
   async getTask(id: number, userId: number): Promise<Task | undefined> {
