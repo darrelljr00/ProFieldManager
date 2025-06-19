@@ -31,6 +31,7 @@ import Reviews from "@/pages/reviews";
 import Settings from "@/pages/settings";
 import HumanResources from "@/pages/human-resources";
 import FileManager from "@/pages/file-manager";
+import MyTasks from "@/pages/my-tasks";
 import Login from "@/pages/login";
 import Landing from "@/pages/landing";
 import NotFound from "@/pages/not-found";

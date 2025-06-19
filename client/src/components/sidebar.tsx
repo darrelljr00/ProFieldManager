@@ -26,7 +26,8 @@ import {
   Server,
   Folder,
   Menu,
-  X
+  X,
+  CheckSquare
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -39,6 +40,7 @@ const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: BarChart3 },
   { name: "Calendar", href: "/calendar", icon: Calendar },
   { name: "Jobs", href: "/jobs", icon: FolderOpen },
+  { name: "My Tasks", href: "/my-tasks", icon: CheckSquare },
   { name: "Leads", href: "/leads", icon: UserPlus },
   { 
     name: "Expenses", 
