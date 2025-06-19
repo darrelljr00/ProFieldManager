@@ -25,28 +25,28 @@ export default function Dashboard() {
   return (
     <div className="flex-1">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
-        <div className="flex items-center justify-between">
+      <header className="bg-white shadow-sm border-b border-gray-200 px-4 md:px-6 py-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">Dashboard</h2>
-            <p className="text-gray-600">Welcome back! Here's what's happening with your invoices.</p>
+            <h2 className="text-xl md:text-2xl font-bold text-gray-900">Dashboard</h2>
+            <p className="text-sm md:text-base text-gray-600">Welcome back! Here's what's happening with your invoices.</p>
           </div>
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2 md:space-x-4">
             <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
               <DialogTrigger asChild>
-                <Button className="bg-primary hover:bg-blue-700">
+                <Button className="bg-primary hover:bg-blue-700 flex-1 sm:flex-none">
                   <Plus className="w-4 h-4 mr-2" />
                   New Invoice
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogContent className="max-w-[95vw] md:max-w-4xl max-h-[90vh] overflow-y-auto">
                 <InvoiceForm onSuccess={() => setIsCreateModalOpen(false)} />
               </DialogContent>
             </Dialog>
             <div className="relative">
               <Button variant="ghost" size="icon">
                 <Bell className="w-5 h-5" />
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-4 h-4 md:w-5 md:h-5 rounded-full flex items-center justify-center text-[10px] md:text-xs">
                   3
                 </span>
               </Button>
@@ -56,12 +56,12 @@ export default function Dashboard() {
       </header>
 
       {/* Main Content */}
-      <main className="p-6">
+      <main className="p-4 md:p-6">
         {/* Stats Cards */}
         <StatsCards stats={stats} isLoading={statsLoading} />
 
         {/* Main Dashboard Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 mt-6 md:mt-8">
           {/* Revenue Chart */}
           <div className="lg:col-span-2">
             <RevenueChart />
@@ -72,7 +72,7 @@ export default function Dashboard() {
         </div>
 
         {/* Recent Invoices Table */}
-        <div className="mt-8">
+        <div className="mt-6 md:mt-8">
           <InvoicesTable 
             invoices={recentInvoices} 
             isLoading={invoicesLoading}
