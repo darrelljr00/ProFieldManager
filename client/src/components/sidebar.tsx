@@ -27,7 +27,8 @@ import {
   Folder,
   Menu,
   X,
-  CheckSquare
+  CheckSquare,
+  MapPin
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -60,6 +61,7 @@ const navigation = [
   { name: "Team Messages", href: "/internal-messages", icon: MessageSquare },
   { name: "Image Gallery", href: "/image-gallery", icon: ImageIcon },
   { name: "Text Messaging", href: "/sms", icon: Smartphone },
+  { name: "GPS Tracking", href: "/gps-tracking", icon: MapPin },
   { name: "Reviews", href: "/reviews", icon: Star },
   { name: "Human Resources", href: "/human-resources", icon: Briefcase },
   { name: "User Management", href: "/users", icon: UserCog },
