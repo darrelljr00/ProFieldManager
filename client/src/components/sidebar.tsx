@@ -24,14 +24,16 @@ import {
   Star,
   Briefcase,
   Server,
-  Folder
+  Folder,
+  Menu,
+  X
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: BarChart3 },
@@ -65,10 +67,39 @@ const navigation = [
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
   const [location] = useLocation();
   const { user, logout, isAdmin } = useAuth();
   const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkIsMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkIsMobile();
+    window.addEventListener('resize', checkIsMobile);
+    
+    return () => window.removeEventListener('resize', checkIsMobile);
+  }, []);
+
+  useEffect(() => {
+    if (isMobile && isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isMobile, isOpen]);
 
   const getInitials = (firstName?: string, lastName?: string, username?: string) => {
     if (firstName && lastName) {
@@ -115,37 +146,69 @@ export function Sidebar() {
 
 
 
+  const handleLinkClick = () => {
+    if (isMobile && onClose) {
+      onClose();
+    }
+  };
+
   return (
-    <div className="w-64 bg-white shadow-lg flex flex-col">
-      <div className="p-6 border-b border-gray-200">
-        <div className="flex items-center">
-          <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-            <Briefcase className="text-white text-lg" />
+    <>
+      {/* Mobile Overlay */}
+      {isMobile && isOpen && (
+        <div 
+          className="fixed inset-0 z-40 mobile-overlay md:hidden" 
+          onClick={onClose}
+        />
+      )}
+      
+      {/* Sidebar */}
+      <div className={cn(
+        "fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg flex flex-col transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0",
+        isMobile && !isOpen && "-translate-x-full",
+        isMobile && isOpen && "translate-x-0"
+      )}>
+      <div className="p-4 md:p-6 border-b border-gray-200">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <div className="w-8 h-8 md:w-10 md:h-10 bg-primary rounded-lg flex items-center justify-center">
+              <Briefcase className="text-white text-sm md:text-lg" />
+            </div>
+            <h1 className="ml-2 md:ml-3 text-lg md:text-xl font-bold text-gray-900">Pro Field Manager</h1>
           </div>
-          <h1 className="ml-3 text-xl font-bold text-gray-900">Pro Field Manager</h1>
+          {isMobile && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              className="p-1 h-8 w-8"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </div>
       
       {/* User Info Section */}
       {user && (
-        <div className="p-4 border-b border-gray-200">
-          <div className="flex items-center space-x-3">
-            <Avatar className="h-10 w-10">
-              <AvatarFallback className="bg-blue-100 text-blue-600">
+        <div className="p-3 md:p-4 border-b border-gray-200">
+          <div className="flex items-center space-x-2 md:space-x-3">
+            <Avatar className="h-8 w-8 md:h-10 md:w-10">
+              <AvatarFallback className="bg-blue-100 text-blue-600 text-xs md:text-sm">
                 {getInitials(user.firstName, user.lastName, user.username)}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <p className="text-sm font-medium text-gray-900 truncate">
+              <div className="flex items-center gap-1 md:gap-2">
+                <p className="text-xs md:text-sm font-medium text-gray-900 truncate">
                   {user.firstName && user.lastName 
                     ? `${user.firstName} ${user.lastName}`
                     : user.username
                   }
                 </p>
-                {isAdmin && <Shield className="h-3 w-3 text-red-500" />}
+                {isAdmin && <Shield className="h-2.5 w-2.5 md:h-3 md:w-3 text-red-500" />}
               </div>
-              <div className="flex items-center gap-2 mt-1">
+              <div className="flex items-center gap-1 md:gap-2 mt-0.5 md:mt-1">
                 <p className="text-xs text-gray-500 truncate">{user.email}</p>
                 {getRoleBadge(user.role)}
               </div>
@@ -154,8 +217,8 @@ export function Sidebar() {
         </div>
       )}
       
-      <nav className="flex-1 p-4">
-        <ul className="space-y-2">
+      <nav className="flex-1 p-2 md:p-4 overflow-y-auto">
+        <ul className="space-y-1 md:space-y-2">
           {filteredNavigation.map((item) => {
             if (item.hasSubmenu) {
               const isExpanded = expandedMenus.has(item.name) || isExpensesActive;
@@ -164,30 +227,31 @@ export function Sidebar() {
                   <button
                     onClick={() => toggleMenu(item.name)}
                     className={cn(
-                      "flex items-center justify-between w-full px-4 py-3 rounded-lg font-medium transition-colors",
+                      "flex items-center justify-between w-full px-3 py-2 md:px-4 md:py-3 rounded-lg font-medium transition-colors text-sm md:text-base",
                       isExpensesActive 
                         ? "text-primary bg-blue-50" 
                         : "text-gray-700 hover:bg-gray-100"
                     )}
                   >
                     <div className="flex items-center">
-                      <item.icon className="w-5 h-5 mr-3" />
+                      <item.icon className="w-4 h-4 md:w-5 md:h-5 mr-2 md:mr-3" />
                       {item.name}
                     </div>
                     {isExpanded ? (
-                      <ChevronDown className="w-4 h-4" />
+                      <ChevronDown className="w-3 h-3 md:w-4 md:h-4" />
                     ) : (
-                      <ChevronRight className="w-4 h-4" />
+                      <ChevronRight className="w-3 h-3 md:w-4 md:h-4" />
                     )}
                   </button>
                   {isExpanded && (
-                    <ul className="ml-8 mt-2 space-y-1">
+                    <ul className="ml-6 md:ml-8 mt-1 md:mt-2 space-y-1">
                       {item.items?.map((subItem) => (
                         <li key={subItem.name}>
                           <Link
                             href={subItem.href}
+                            onClick={handleLinkClick}
                             className={cn(
-                              "flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-colors",
+                              "flex items-center px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-medium transition-colors",
                               isActiveItem(subItem.href)
                                 ? "text-primary bg-blue-50"
                                 : "text-gray-600 hover:bg-gray-100"
