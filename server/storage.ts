@@ -88,6 +88,7 @@ export interface IStorage {
   getTasksCreatedByUser(userId: number): Promise<any[]>;
   getTasksAssignedToUser(userId: number): Promise<any[]>;
   createTask(taskData: any): Promise<any>;
+  createTaskForOrganization(taskData: any): Promise<any>;
   updateTask(id: number, updates: any): Promise<any>;
   deleteTask(id: number): Promise<void>;
   
@@ -533,9 +534,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createCalendarJob(jobData: any): Promise<any> {
+    // Handle date parsing properly
+    const processedData = { ...jobData };
+    if (processedData.scheduledDate && typeof processedData.scheduledDate === 'string') {
+      processedData.scheduledDate = new Date(processedData.scheduledDate);
+    }
+    if (processedData.endDate && typeof processedData.endDate === 'string') {
+      processedData.endDate = new Date(processedData.endDate);
+    }
+    
     const [job] = await db
       .insert(calendarJobs)
-      .values(jobData)
+      .values(processedData)
       .returning();
     return job;
   }
@@ -580,6 +590,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createTask(taskData: any): Promise<any> {
+    const [task] = await db
+      .insert(tasks)
+      .values(taskData)
+      .returning();
+    return task;
+  }
+
+  async createTaskForOrganization(taskData: any): Promise<any> {
     const [task] = await db
       .insert(tasks)
       .values(taskData)
