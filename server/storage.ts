@@ -77,6 +77,20 @@ export interface IStorage {
   updateFile(id: number, updates: any): Promise<any>;
   deleteFile(id: number): Promise<void>;
   
+  // Calendar jobs methods
+  getCalendarJobs(organizationId: number): Promise<any[]>;
+  createCalendarJob(jobData: any): Promise<any>;
+  updateCalendarJob(id: number, updates: any): Promise<any>;
+  deleteCalendarJob(id: number): Promise<void>;
+  
+  // Task management methods
+  getTeamTasksForManager(userId: number): Promise<any[]>;
+  getTasksCreatedByUser(userId: number): Promise<any[]>;
+  getTasksAssignedToUser(userId: number): Promise<any[]>;
+  createTask(taskData: any): Promise<any>;
+  updateTask(id: number, updates: any): Promise<any>;
+  deleteTask(id: number): Promise<void>;
+  
   // GPS tracking methods
   createGPSSession(sessionData: any): Promise<any>;
   getGPSSessions(organizationId: number): Promise<any[]>;
@@ -506,6 +520,84 @@ export class DatabaseStorage implements IStorage {
 
   async deleteFile(id: number): Promise<void> {
     await db.delete(fileManager).where(eq(fileManager.id, id));
+  }
+
+  // Calendar jobs methods
+  async getCalendarJobs(organizationId: number): Promise<any[]> {
+    return await db
+      .select()
+      .from(calendarJobs)
+      .innerJoin(users, eq(calendarJobs.userId, users.id))
+      .where(eq(users.organizationId, organizationId))
+      .orderBy(desc(calendarJobs.createdAt));
+  }
+
+  async createCalendarJob(jobData: any): Promise<any> {
+    const [job] = await db
+      .insert(calendarJobs)
+      .values(jobData)
+      .returning();
+    return job;
+  }
+
+  async updateCalendarJob(id: number, updates: any): Promise<any> {
+    const [job] = await db
+      .update(calendarJobs)
+      .set(updates)
+      .where(eq(calendarJobs.id, id))
+      .returning();
+    return job;
+  }
+
+  async deleteCalendarJob(id: number): Promise<void> {
+    await db.delete(calendarJobs).where(eq(calendarJobs.id, id));
+  }
+
+  // Task management methods
+  async getTeamTasksForManager(userId: number): Promise<any[]> {
+    return await db
+      .select()
+      .from(tasks)
+      .innerJoin(users, eq(tasks.assignedToId, users.id))
+      .where(eq(tasks.createdById, userId))
+      .orderBy(desc(tasks.createdAt));
+  }
+
+  async getTasksCreatedByUser(userId: number): Promise<any[]> {
+    return await db
+      .select()
+      .from(tasks)
+      .where(eq(tasks.createdById, userId))
+      .orderBy(desc(tasks.createdAt));
+  }
+
+  async getTasksAssignedToUser(userId: number): Promise<any[]> {
+    return await db
+      .select()
+      .from(tasks)
+      .where(eq(tasks.assignedToId, userId))
+      .orderBy(desc(tasks.createdAt));
+  }
+
+  async createTask(taskData: any): Promise<any> {
+    const [task] = await db
+      .insert(tasks)
+      .values(taskData)
+      .returning();
+    return task;
+  }
+
+  async updateTask(id: number, updates: any): Promise<any> {
+    const [task] = await db
+      .update(tasks)
+      .set(updates)
+      .where(eq(tasks.id, id))
+      .returning();
+    return task;
+  }
+
+  async deleteTask(id: number): Promise<void> {
+    await db.delete(tasks).where(eq(tasks.id, id));
   }
 
   // GPS tracking methods
