@@ -4,7 +4,7 @@ import {
   expenses, expenseCategories, expenseReports, gasCards, 
   gasCardAssignments, leads, calendarJobs, messages,
   images, settings, organizations, userSessions, subscriptionPlans,
-  projectFiles
+  projectFiles, fileManager
 } from "@shared/schema";
 import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull } from "drizzle-orm";
 import type { 
@@ -482,15 +482,14 @@ export class DatabaseStorage implements IStorage {
   async getFiles(organizationId: number): Promise<any[]> {
     return await db
       .select()
-      .from(projectFiles)
-      .innerJoin(users, eq(projectFiles.uploadedById, users.id))
-      .where(eq(users.organizationId, organizationId))
-      .orderBy(desc(projectFiles.createdAt));
+      .from(fileManager)
+      .where(eq(fileManager.organizationId, organizationId))
+      .orderBy(desc(fileManager.createdAt));
   }
 
   async createFile(fileData: any): Promise<any> {
     const [file] = await db
-      .insert(projectFiles)
+      .insert(fileManager)
       .values(fileData)
       .returning();
     return file;
@@ -498,15 +497,15 @@ export class DatabaseStorage implements IStorage {
 
   async updateFile(id: number, updates: any): Promise<any> {
     const [file] = await db
-      .update(projectFiles)
+      .update(fileManager)
       .set(updates)
-      .where(eq(projectFiles.id, id))
+      .where(eq(fileManager.id, id))
       .returning();
     return file;
   }
 
   async deleteFile(id: number): Promise<void> {
-    await db.delete(projectFiles).where(eq(projectFiles.id, id));
+    await db.delete(fileManager).where(eq(fileManager.id, id));
   }
 
   // GPS tracking methods
