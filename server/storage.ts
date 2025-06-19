@@ -3,7 +3,8 @@ import {
   users, customers, invoices, quotes, projects, tasks, 
   expenses, expenseCategories, expenseReports, gasCards, 
   gasCardAssignments, leads, calendarJobs, messages,
-  images, settings, organizations, userSessions
+  images, settings, organizations, userSessions, subscriptionPlans,
+  projectFiles
 } from "@shared/schema";
 import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull } from "drizzle-orm";
 import type { 
@@ -20,17 +21,61 @@ export interface IStorage {
   updateUser(id: number, updates: any): Promise<User>;
   updateUserStripeInfo(userId: number, customerId: string, subscriptionId?: string): Promise<User>;
   deleteUser(id: number): Promise<void>;
+  getAllUsers(organizationId?: number): Promise<User[]>;
+  getUserStats(organizationId?: number): Promise<any>;
   
   // Organization methods
   getOrganization(id: number): Promise<Organization | undefined>;
   createOrganization(orgData: any): Promise<Organization>;
   updateOrganization(id: number, updates: any): Promise<Organization>;
+  getAllOrganizations(): Promise<Organization[]>;
   
   // Customer methods
   getCustomers(organizationId: number): Promise<Customer[]>;
   createCustomer(customerData: any): Promise<Customer>;
   updateCustomer(id: number, updates: any): Promise<Customer>;
   deleteCustomer(id: number): Promise<void>;
+  
+  // Invoice methods
+  getInvoices(organizationId: number): Promise<any[]>;
+  createInvoice(invoiceData: any): Promise<any>;
+  updateInvoice(id: number, updates: any): Promise<any>;
+  deleteInvoice(id: number): Promise<void>;
+  getInvoiceStats(organizationId: number): Promise<any>;
+  
+  // Quote methods
+  getQuotes(organizationId: number): Promise<any[]>;
+  createQuote(quoteData: any): Promise<any>;
+  updateQuote(id: number, updates: any): Promise<any>;
+  deleteQuote(id: number): Promise<void>;
+  
+  // Project/Job methods
+  getProjects(organizationId: number): Promise<any[]>;
+  createProject(projectData: any): Promise<any>;
+  updateProject(id: number, updates: any): Promise<any>;
+  deleteProject(id: number): Promise<void>;
+  
+  // Expense methods
+  getExpenses(organizationId: number): Promise<any[]>;
+  createExpense(expenseData: any): Promise<any>;
+  updateExpense(id: number, updates: any): Promise<any>;
+  deleteExpense(id: number): Promise<void>;
+  
+  // Lead methods
+  getLeads(organizationId: number): Promise<any[]>;
+  createLead(leadData: any): Promise<any>;
+  updateLead(id: number, updates: any): Promise<any>;
+  deleteLead(id: number): Promise<void>;
+  
+  // Settings methods
+  getSystemSettings(): Promise<any[]>;
+  getSubscriptionPlans(): Promise<any[]>;
+  
+  // File methods
+  getFiles(organizationId: number): Promise<any[]>;
+  createFile(fileData: any): Promise<any>;
+  updateFile(id: number, updates: any): Promise<any>;
+  deleteFile(id: number): Promise<void>;
   
   // GPS tracking methods
   createGPSSession(sessionData: any): Promise<any>;
@@ -200,6 +245,258 @@ export class DatabaseStorage implements IStorage {
 
   async deleteCustomer(id: number): Promise<void> {
     await db.delete(customers).where(eq(customers.id, id));
+  }
+
+  // User methods for admin
+  async getAllUsers(organizationId?: number): Promise<User[]> {
+    let query = db.select().from(users);
+    if (organizationId) {
+      query = query.where(eq(users.organizationId, organizationId)) as any;
+    }
+    return await query;
+  }
+
+  async getUserStats(organizationId?: number): Promise<any> {
+    let whereCondition = organizationId ? eq(users.organizationId, organizationId) : undefined;
+    
+    const [totalUsers] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(users)
+      .where(whereCondition);
+
+    const [activeUsers] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(users)
+      .where(and(whereCondition, eq(users.isActive, true)));
+
+    return {
+      totalUsers: totalUsers.count,
+      activeUsers: activeUsers.count,
+      inactiveUsers: totalUsers.count - activeUsers.count
+    };
+  }
+
+  // Organization methods
+  async getAllOrganizations(): Promise<Organization[]> {
+    return await db.select().from(organizations);
+  }
+
+  // Invoice methods
+  async getInvoices(organizationId: number): Promise<any[]> {
+    return await db
+      .select()
+      .from(invoices)
+      .innerJoin(users, eq(invoices.userId, users.id))
+      .where(eq(users.organizationId, organizationId))
+      .orderBy(desc(invoices.createdAt));
+  }
+
+  async createInvoice(invoiceData: any): Promise<any> {
+    const [invoice] = await db
+      .insert(invoices)
+      .values(invoiceData)
+      .returning();
+    return invoice;
+  }
+
+  async updateInvoice(id: number, updates: any): Promise<any> {
+    const [invoice] = await db
+      .update(invoices)
+      .set(updates)
+      .where(eq(invoices.id, id))
+      .returning();
+    return invoice;
+  }
+
+  async deleteInvoice(id: number): Promise<void> {
+    await db.delete(invoices).where(eq(invoices.id, id));
+  }
+
+  async getInvoiceStats(organizationId: number): Promise<any> {
+    const [totalInvoices] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(invoices)
+      .innerJoin(users, eq(invoices.userId, users.id))
+      .where(eq(users.organizationId, organizationId));
+
+    const [paidInvoices] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(invoices)
+      .innerJoin(users, eq(invoices.userId, users.id))
+      .where(and(
+        eq(users.organizationId, organizationId),
+        eq(invoices.status, 'paid')
+      ));
+
+    return {
+      totalInvoices: totalInvoices.count,
+      paidInvoices: paidInvoices.count,
+      pendingInvoices: totalInvoices.count - paidInvoices.count
+    };
+  }
+
+  // Quote methods
+  async getQuotes(organizationId: number): Promise<any[]> {
+    return await db
+      .select()
+      .from(quotes)
+      .innerJoin(users, eq(quotes.userId, users.id))
+      .where(eq(users.organizationId, organizationId))
+      .orderBy(desc(quotes.createdAt));
+  }
+
+  async createQuote(quoteData: any): Promise<any> {
+    const [quote] = await db
+      .insert(quotes)
+      .values(quoteData)
+      .returning();
+    return quote;
+  }
+
+  async updateQuote(id: number, updates: any): Promise<any> {
+    const [quote] = await db
+      .update(quotes)
+      .set(updates)
+      .where(eq(quotes.id, id))
+      .returning();
+    return quote;
+  }
+
+  async deleteQuote(id: number): Promise<void> {
+    await db.delete(quotes).where(eq(quotes.id, id));
+  }
+
+  // Project/Job methods
+  async getProjects(organizationId: number): Promise<any[]> {
+    return await db
+      .select()
+      .from(projects)
+      .innerJoin(users, eq(projects.userId, users.id))
+      .where(eq(users.organizationId, organizationId))
+      .orderBy(desc(projects.createdAt));
+  }
+
+  async createProject(projectData: any): Promise<any> {
+    const [project] = await db
+      .insert(projects)
+      .values(projectData)
+      .returning();
+    return project;
+  }
+
+  async updateProject(id: number, updates: any): Promise<any> {
+    const [project] = await db
+      .update(projects)
+      .set(updates)
+      .where(eq(projects.id, id))
+      .returning();
+    return project;
+  }
+
+  async deleteProject(id: number): Promise<void> {
+    await db.delete(projects).where(eq(projects.id, id));
+  }
+
+  // Expense methods
+  async getExpenses(organizationId: number): Promise<any[]> {
+    return await db
+      .select()
+      .from(expenses)
+      .innerJoin(users, eq(expenses.userId, users.id))
+      .where(eq(users.organizationId, organizationId))
+      .orderBy(desc(expenses.createdAt));
+  }
+
+  async createExpense(expenseData: any): Promise<any> {
+    const [expense] = await db
+      .insert(expenses)
+      .values(expenseData)
+      .returning();
+    return expense;
+  }
+
+  async updateExpense(id: number, updates: any): Promise<any> {
+    const [expense] = await db
+      .update(expenses)
+      .set(updates)
+      .where(eq(expenses.id, id))
+      .returning();
+    return expense;
+  }
+
+  async deleteExpense(id: number): Promise<void> {
+    await db.delete(expenses).where(eq(expenses.id, id));
+  }
+
+  // Lead methods
+  async getLeads(organizationId: number): Promise<any[]> {
+    return await db
+      .select()
+      .from(leads)
+      .innerJoin(users, eq(leads.userId, users.id))
+      .where(eq(users.organizationId, organizationId))
+      .orderBy(desc(leads.createdAt));
+  }
+
+  async createLead(leadData: any): Promise<any> {
+    const [lead] = await db
+      .insert(leads)
+      .values(leadData)
+      .returning();
+    return lead;
+  }
+
+  async updateLead(id: number, updates: any): Promise<any> {
+    const [lead] = await db
+      .update(leads)
+      .set(updates)
+      .where(eq(leads.id, id))
+      .returning();
+    return lead;
+  }
+
+  async deleteLead(id: number): Promise<void> {
+    await db.delete(leads).where(eq(leads.id, id));
+  }
+
+  // Settings methods
+  async getSystemSettings(): Promise<any[]> {
+    return await db.select().from(settings);
+  }
+
+  async getSubscriptionPlans(): Promise<any[]> {
+    return await db.select().from(subscriptionPlans);
+  }
+
+  // File methods
+  async getFiles(organizationId: number): Promise<any[]> {
+    return await db
+      .select()
+      .from(projectFiles)
+      .innerJoin(users, eq(projectFiles.uploadedById, users.id))
+      .where(eq(users.organizationId, organizationId))
+      .orderBy(desc(projectFiles.createdAt));
+  }
+
+  async createFile(fileData: any): Promise<any> {
+    const [file] = await db
+      .insert(projectFiles)
+      .values(fileData)
+      .returning();
+    return file;
+  }
+
+  async updateFile(id: number, updates: any): Promise<any> {
+    const [file] = await db
+      .update(projectFiles)
+      .set(updates)
+      .where(eq(projectFiles.id, id))
+      .returning();
+    return file;
+  }
+
+  async deleteFile(id: number): Promise<void> {
+    await db.delete(projectFiles).where(eq(projectFiles.id, id));
   }
 
   // GPS tracking methods
