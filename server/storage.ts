@@ -207,7 +207,7 @@ export class DatabaseStorage implements IStorage {
 
   async createCustomer(customerData: any): Promise<Customer> {
     const insertData: any = {
-      userId: customerData.userId,
+      userId: customerData.userId || customerData.organizationId, // Handle both userId and organizationId
       name: customerData.name,
       email: customerData.email
     };
@@ -377,9 +377,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createProject(projectData: any): Promise<any> {
+    const insertData = {
+      ...projectData,
+      userId: projectData.userId || projectData.organizationId // Handle both userId and organizationId
+    };
+    
     const [project] = await db
       .insert(projects)
-      .values(projectData)
+      .values(insertData)
       .returning();
     return project;
   }
@@ -408,9 +413,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createExpense(expenseData: any): Promise<any> {
+    const insertData = {
+      ...expenseData,
+      userId: expenseData.userId || expenseData.organizationId // Handle both userId and organizationId
+    };
+    
     const [expense] = await db
       .insert(expenses)
-      .values(expenseData)
+      .values(insertData)
       .returning();
     return expense;
   }
