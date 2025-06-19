@@ -52,47 +52,53 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(userData: any): Promise<User> {
+    const insertData: any = {
+      organizationId: userData.organizationId,
+      username: userData.username,
+      password: userData.password,
+      email: userData.email,
+      role: userData.role || 'user',
+      isActive: userData.isActive ?? true
+    };
+    
+    if (userData.firstName) insertData.firstName = userData.firstName;
+    if (userData.lastName) insertData.lastName = userData.lastName;
+    if (userData.lastLoginAt) insertData.lastLoginAt = userData.lastLoginAt;
+
     const [user] = await db
       .insert(users)
-      .values({
-        organizationId: userData.organizationId,
-        username: userData.username,
-        password: userData.password,
-        email: userData.email,
-        firstName: userData.firstName,
-        lastName: userData.lastName,
-        role: userData.role || 'user',
-        isActive: userData.isActive ?? true,
-        lastLoginAt: userData.lastLoginAt
-      })
+      .values(insertData)
       .returning();
     return user;
   }
 
   async updateUser(id: number, updates: any): Promise<User> {
+    const updateData: any = {};
+    if (updates.username !== undefined) updateData.username = updates.username;
+    if (updates.email !== undefined) updateData.email = updates.email;
+    if (updates.firstName !== undefined) updateData.firstName = updates.firstName;
+    if (updates.lastName !== undefined) updateData.lastName = updates.lastName;
+    if (updates.role !== undefined) updateData.role = updates.role;
+    if (updates.isActive !== undefined) updateData.isActive = updates.isActive;
+    if (updates.lastLoginAt !== undefined) updateData.lastLoginAt = updates.lastLoginAt;
+
     const [user] = await db
       .update(users)
-      .set({
-        username: updates.username,
-        email: updates.email,
-        firstName: updates.firstName,
-        lastName: updates.lastName,
-        role: updates.role,
-        isActive: updates.isActive,
-        lastLoginAt: updates.lastLoginAt
-      })
+      .set(updateData)
       .where(eq(users.id, id))
       .returning();
     return user;
   }
 
   async updateUserStripeInfo(userId: number, customerId: string, subscriptionId?: string): Promise<User> {
+    const updateData: any = { stripeCustomerId: customerId };
+    if (subscriptionId) {
+      updateData.stripeSubscriptionId = subscriptionId;
+    }
+
     const [user] = await db
       .update(users)
-      .set({ 
-        stripeCustomerId: customerId,
-        ...(subscriptionId && { stripeSubscriptionId: subscriptionId })
-      })
+      .set(updateData)
       .where(eq(users.id, userId))
       .returning();
     return user;
@@ -155,34 +161,38 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createCustomer(customerData: any): Promise<Customer> {
+    const insertData: any = {
+      userId: customerData.userId,
+      name: customerData.name,
+      email: customerData.email
+    };
+    
+    if (customerData.phone) insertData.phone = customerData.phone;
+    if (customerData.address) insertData.address = customerData.address;
+    if (customerData.city) insertData.city = customerData.city;
+    if (customerData.state) insertData.state = customerData.state;
+    if (customerData.zipCode) insertData.zipCode = customerData.zipCode;
+
     const [customer] = await db
       .insert(customers)
-      .values({
-        userId: customerData.userId,
-        name: customerData.name,
-        email: customerData.email,
-        phone: customerData.phone,
-        address: customerData.address,
-        city: customerData.city,
-        state: customerData.state,
-        zipCode: customerData.zipCode
-      })
+      .values(insertData)
       .returning();
     return customer;
   }
 
   async updateCustomer(id: number, updates: any): Promise<Customer> {
+    const updateData: any = {};
+    if (updates.name !== undefined) updateData.name = updates.name;
+    if (updates.email !== undefined) updateData.email = updates.email;
+    if (updates.phone !== undefined) updateData.phone = updates.phone;
+    if (updates.address !== undefined) updateData.address = updates.address;
+    if (updates.city !== undefined) updateData.city = updates.city;
+    if (updates.state !== undefined) updateData.state = updates.state;
+    if (updates.zipCode !== undefined) updateData.zipCode = updates.zipCode;
+
     const [customer] = await db
       .update(customers)
-      .set({
-        name: updates.name,
-        email: updates.email,
-        phone: updates.phone,
-        address: updates.address,
-        city: updates.city,
-        state: updates.state,
-        zipCode: updates.zipCode
-      })
+      .set(updateData)
       .where(eq(customers.id, id))
       .returning();
     return customer;
@@ -194,20 +204,23 @@ export class DatabaseStorage implements IStorage {
 
   // GPS tracking methods
   async createGPSSession(sessionData: any): Promise<any> {
+    const insertData: any = {
+      userId: sessionData.userId,
+      token: sessionData.token,
+      expiresAt: sessionData.expiresAt,
+      userAgent: sessionData.userAgent,
+      ipAddress: sessionData.ipAddress
+    };
+    
+    if (sessionData.latitude) insertData.latitude = sessionData.latitude;
+    if (sessionData.longitude) insertData.longitude = sessionData.longitude;
+    if (sessionData.locationAccuracy) insertData.locationAccuracy = sessionData.locationAccuracy;
+    if (sessionData.deviceType) insertData.deviceType = sessionData.deviceType;
+    if (sessionData.locationTimestamp) insertData.locationTimestamp = sessionData.locationTimestamp;
+
     const [session] = await db
       .insert(userSessions)
-      .values({
-        userId: sessionData.userId,
-        token: sessionData.token,
-        expiresAt: sessionData.expiresAt,
-        latitude: sessionData.latitude,
-        longitude: sessionData.longitude,
-        locationAccuracy: sessionData.locationAccuracy,
-        deviceType: sessionData.deviceType,
-        locationTimestamp: sessionData.locationTimestamp,
-        userAgent: sessionData.userAgent,
-        ipAddress: sessionData.ipAddress
-      })
+      .values(insertData)
       .returning();
     return session;
   }

@@ -29,7 +29,13 @@ import { ZodError } from "zod";
 import { seedDatabase } from "./seed-data";
 import { nanoid } from "nanoid";
 import { db } from "./db";
-import { and } from "drizzle-orm";
+import { 
+  users, customers, invoices, quotes, projects, tasks, 
+  expenses, expenseCategories, expenseReports, gasCards, 
+  gasCardAssignments, leads, calendarJobs, messages,
+  images, settings, organizations, userSessions
+} from "@shared/schema";
+import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull } from "drizzle-orm";
 import { DocuSignService, getDocuSignConfig } from "./docusign";
 
 // Extend Express Request type to include user
