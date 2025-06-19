@@ -604,12 +604,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createTask(taskData: any): Promise<any> {
-    // Ensure projectId is provided - if not, use a default or handle appropriately
+    // Ensure required fields are provided
     const processedData = { ...taskData };
     if (!processedData.projectId) {
-      // For standalone tasks, we need to ensure projectId is not null
-      // Let's find or create a default project for standalone tasks
-      processedData.projectId = 1; // Use a default project ID for now
+      processedData.projectId = 8; // Use the default tasks project ID
+    }
+    
+    // Map createdById field properly
+    if (processedData.createdById) {
+      processedData.createdById = processedData.createdById;
+    } else if (processedData.userId) {
+      processedData.createdById = processedData.userId;
     }
     
     const [task] = await db
@@ -622,7 +627,14 @@ export class DatabaseStorage implements IStorage {
   async createTaskForOrganization(taskData: any): Promise<any> {
     const processedData = { ...taskData };
     if (!processedData.projectId) {
-      processedData.projectId = 1; // Use a default project ID for now
+      processedData.projectId = 8; // Use the default tasks project ID
+    }
+    
+    // Map createdById field properly
+    if (processedData.createdById) {
+      processedData.createdById = processedData.createdById;
+    } else if (processedData.userId) {
+      processedData.createdById = processedData.userId;
     }
     
     const [task] = await db
