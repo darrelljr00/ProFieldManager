@@ -132,9 +132,12 @@ export interface IStorage {
   getAllTasksForOrganization(organizationId: number): Promise<any[]>;
   getTasksAssignedToUser(userId: number): Promise<any[]>;
   getTasksCreatedByUser(userId: number): Promise<any[]>;
+  getTeamTasksForManager(managerId: number): Promise<any[]>;
+  getUsersByOrganization(organizationId: number): Promise<User[]>;
   createTaskForOrganization(organizationId: number, task: any, createdById: number): Promise<Task>;
   updateTaskById(taskId: number, updates: any): Promise<Task | undefined>;
   deleteTaskById(taskId: number): Promise<boolean>;
+  canUserDelegateTask(userId: number, targetUserId?: number): Promise<boolean>;
   
   // File management methods
   uploadProjectFile(file: InsertProjectFile): Promise<ProjectFile>;
@@ -1444,6 +1447,60 @@ export class DatabaseStorage implements IStorage {
       .where(eq(tasks.id, taskId));
 
     return result.rowCount > 0;
+  }
+
+  async getTeamTasksForManager(managerId: number): Promise<any[]> {
+    const assignedByUser = alias(users, 'assignedByUser');
+    
+    // Get tasks created by the manager (delegated tasks)
+    const taskList = await db
+      .select({
+        id: tasks.id,
+        title: tasks.title,
+        description: tasks.description,
+        status: tasks.status,
+        priority: tasks.priority,
+        assignedToId: tasks.assignedToId,
+        assignedById: tasks.assignedById,
+        projectId: tasks.projectId,
+        dueDate: tasks.dueDate,
+        estimatedHours: tasks.estimatedHours,
+        startedAt: tasks.startedAt,
+        completedAt: tasks.completedAt,
+        createdAt: tasks.createdAt,
+        updatedAt: tasks.updatedAt,
+        assignedTo: {
+          id: users.id,
+          username: users.username,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          email: users.email,
+        },
+        project: {
+          id: projects.id,
+          name: projects.name,
+        }
+      })
+      .from(tasks)
+      .leftJoin(users, eq(tasks.assignedToId, users.id))
+      .leftJoin(projects, eq(tasks.projectId, projects.id))
+      .where(eq(tasks.assignedById, managerId))
+      .orderBy(desc(tasks.createdAt));
+
+    return taskList;
+  }
+
+  async canUserDelegateTask(userId: number, targetUserId?: number): Promise<boolean> {
+    const user = await this.getUser(userId);
+    if (!user) return false;
+
+    // Admins and managers can delegate tasks
+    if (user.role === 'admin' || user.role === 'manager') {
+      return true;
+    }
+
+    // Regular users can only assign tasks to themselves
+    return !targetUserId || targetUserId === userId;
   }
 
   async getTask(id: number, userId: number): Promise<Task | undefined> {

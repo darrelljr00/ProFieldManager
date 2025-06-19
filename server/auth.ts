@@ -137,4 +137,31 @@ export const requireAdmin = requireRole(['admin']);
 // Manager or admin access
 export const requireManagerOrAdmin = requireRole(['admin', 'manager']);
 
+export function requireTaskDelegationPermission(req: Request, res: Response, next: NextFunction) {
+  if (!req.isAuthenticated()) {
+    return res.sendStatus(401);
+  }
+
+  const user = req.user;
+  if (!user) {
+    return res.sendStatus(401);
+  }
+
+  // Allow admins and managers to delegate tasks
+  if (user.role === 'admin' || user.role === 'manager') {
+    return next();
+  }
+
+  // Regular users can only create tasks for themselves or update their own tasks
+  const taskId = req.params.id;
+  if (req.method === 'POST' || !taskId) {
+    // Allow creating tasks for yourself
+    return next();
+  }
+
+  return res.status(403).json({ 
+    message: "Only managers and administrators can delegate tasks to other users" 
+  });
+}
+
 // Type declarations are handled in routes.ts to avoid conflicts

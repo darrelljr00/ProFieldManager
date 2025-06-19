@@ -24,7 +24,7 @@ import {
   type RegisterData,
   type ChangePasswordData 
 } from "@shared/schema";
-import { AuthService, requireAuth, requireAdmin, requireManagerOrAdmin } from "./auth";
+import { AuthService, requireAuth, requireAdmin, requireManagerOrAdmin, requireTaskDelegationPermission } from "./auth";
 import { ZodError } from "zod";
 import { seedDatabase } from "./seed-data";
 import { nanoid } from "nanoid";

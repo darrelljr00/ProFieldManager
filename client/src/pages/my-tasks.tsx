@@ -90,6 +90,12 @@ export default function MyTasks() {
     queryKey: ["/api/projects"],
   });
 
+  // Fetch team tasks if user is manager or admin
+  const { data: teamTasks = [], isLoading: teamLoading } = useQuery<TaskWithDetails[]>({
+    queryKey: ["/api/tasks/team"],
+    enabled: !!user?.id && (user?.role === 'manager' || user?.role === 'admin'),
+  });
+
   const createTaskMutation = useMutation({
     mutationFn: (data: any) => apiRequest("/api/tasks", "POST", data),
     onSuccess: () => {
@@ -372,9 +378,12 @@ export default function MyTasks() {
 
       {/* Task Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className={`grid w-full ${(user?.role === 'manager' || user?.role === 'admin') ? 'grid-cols-3' : 'grid-cols-2'}`}>
           <TabsTrigger value="assigned-to-me">Assigned to Me</TabsTrigger>
           <TabsTrigger value="created-by-me">Created by Me</TabsTrigger>
+          {(user?.role === 'manager' || user?.role === 'admin') && (
+            <TabsTrigger value="team-tasks">Team Tasks</TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="assigned-to-me" className="space-y-4">
@@ -446,6 +455,43 @@ export default function MyTasks() {
             </Card>
           )}
         </TabsContent>
+
+        {(user?.role === 'manager' || user?.role === 'admin') && (
+          <TabsContent value="team-tasks" className="space-y-4">
+            {teamLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[...Array(6)].map((_, i) => (
+                  <Card key={i} className="animate-pulse">
+                    <CardHeader>
+                      <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                      <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-3 bg-gray-200 rounded w-full mb-2"></div>
+                      <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filterTasks(teamTasks).map((task) => (
+                  <TaskCard key={task.id} task={task} />
+                ))}
+              </div>
+            )}
+            
+            {!teamLoading && filterTasks(teamTasks).length === 0 && (
+              <Card>
+                <CardContent className="text-center py-8">
+                  <FileText className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No team tasks</h3>
+                  <p className="text-gray-600">You haven't delegated any tasks to your team yet.</p>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+        )}
       </Tabs>
 
       {/* Create Task Dialog */}
