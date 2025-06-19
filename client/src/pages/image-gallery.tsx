@@ -34,6 +34,7 @@ import {
 import { ImageAnnotation } from "@/components/image-annotation";
 import { PhotoEditor } from "@/components/photo-editor";
 import { SharePhotosDialog } from "@/components/share-photos-dialog";
+import { MobileCamera } from "@/components/mobile-camera";
 import { useToast } from "@/hooks/use-toast";
 
 interface ImageFile {

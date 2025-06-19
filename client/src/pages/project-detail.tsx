@@ -64,6 +64,18 @@ export default function ProjectDetail() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Check if device is mobile
+  useEffect(() => {
+    const checkIsMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    checkIsMobile();
+    window.addEventListener('resize', checkIsMobile);
+    
+    return () => window.removeEventListener('resize', checkIsMobile);
+  }, []);
+
   const { data: project, isLoading: projectLoading } = useQuery<ProjectWithDetails>({
     queryKey: ["/api/projects", projectId],
     enabled: !!projectId,
