@@ -4,7 +4,9 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Sidebar } from "@/components/sidebar";
-import { lazy, Suspense, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Menu } from "lucide-react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import Dashboard from "@/pages/dashboard";
@@ -36,6 +38,7 @@ import NotFound from "@/pages/not-found";
 function AuthenticatedApp() {
   const { isAdmin } = useAuth();
   const { isConnected, lastMessage } = useWebSocket();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   
   // Listen for WebSocket updates and invalidate queries
   useEffect(() => {
@@ -78,8 +81,24 @@ function AuthenticatedApp() {
   
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar />
-      <div className="flex-1 overflow-auto">
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Mobile Header */}
+        <div className="md:hidden bg-white border-b border-gray-200 p-4 flex items-center justify-between">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setSidebarOpen(true)}
+            className="p-2"
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+          <h1 className="text-lg font-semibold text-gray-900">Pro Field Manager</h1>
+          <div className="w-9" /> {/* Spacer for centering */}
+        </div>
+        
+        <div className="flex-1 overflow-auto p-4 md:p-6">
         <Switch>
           <Route path="/" component={Dashboard} />
           <Route path="/dashboard" component={Dashboard} />
@@ -106,6 +125,7 @@ function AuthenticatedApp() {
           <Route path="/settings" component={Settings} />
           <Route component={NotFound} />
         </Switch>
+        </div>
       </div>
     </div>
   );

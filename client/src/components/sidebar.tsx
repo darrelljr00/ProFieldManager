@@ -271,14 +271,15 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
                 <li key={item.name}>
                   <Link 
                     href={item.href}
+                    onClick={handleLinkClick}
                     className={cn(
-                      "flex items-center px-4 py-3 rounded-lg font-medium transition-colors",
+                      "flex items-center px-3 py-2 md:px-4 md:py-3 rounded-lg font-medium transition-colors text-sm md:text-base",
                       isActive 
                         ? "text-primary bg-blue-50" 
                         : "text-gray-700 hover:bg-gray-100"
                     )}
                   >
-                    <item.icon className="w-5 h-5 mr-3" />
+                    <item.icon className="w-4 h-4 md:w-5 md:h-5 mr-2 md:mr-3" />
                     {item.name}
                   </Link>
                 </li>
@@ -289,16 +290,20 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
       </nav>
       
       {/* Logout Button */}
-      <div className="p-4 border-t border-gray-200">
+      <div className="p-3 md:p-4 border-t border-gray-200">
         <Button 
           variant="ghost" 
-          className="w-full justify-start text-gray-600 hover:text-gray-900"
-          onClick={logout}
+          className="w-full justify-start text-gray-600 hover:text-gray-900 text-sm md:text-base"
+          onClick={() => {
+            logout();
+            handleLinkClick();
+          }}
         >
-          <LogOut className="mr-3 h-5 w-5" />
+          <LogOut className="mr-2 md:mr-3 h-4 w-4 md:h-5 md:w-5" />
           Sign Out
         </Button>
       </div>
     </div>
+    </>
   );
 }
