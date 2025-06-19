@@ -1066,6 +1066,21 @@ export default function ProjectDetail() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Mobile Camera Dialog */}
+      <MobileCamera
+        isOpen={showMobileCamera}
+        onClose={() => setShowMobileCamera(false)}
+        onPhotoTaken={(file) => {
+          console.log('Photo taken for project:', file);
+          toast({
+            title: "Photo Captured",
+            description: "Photo saved for project documentation",
+          });
+          queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/files`] });
+        }}
+        title="Take Photo for Project"
+      />
     </div>
   );
 }
