@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,12 +13,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Calendar, Users, CheckCircle, Clock, AlertCircle, Folder, Settings, MapPin, Route } from "lucide-react";
+import { Plus, Calendar, Users, CheckCircle, Clock, AlertCircle, Folder, Settings, MapPin, Route, Star, Smartphone } from "lucide-react";
 import { Link } from "wouter";
+import { format } from "date-fns";
 import type { Project, Customer, User } from "@shared/schema";
 import { DirectionsButton } from "@/components/google-maps";
 import { DispatchRouting } from "@/components/dispatch-routing";
 import { WeatherWidget } from "@/components/weather-widget";
+import { MobileCamera } from "@/components/mobile-camera";
 
 interface ProjectWithDetails extends Project {
   users: { user: User }[];
@@ -26,9 +29,32 @@ interface ProjectWithDetails extends Project {
   customer?: Customer;
 }
 
+interface CalendarJobWithDetails {
+  id: number;
+  title: string;
+  description?: string;
+  customerId?: number;
+  assignedToId: number;
+  startTime: Date;
+  endTime: Date;
+  address?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  status: string;
+  priority: string;
+  estimatedValue?: string;
+  customer?: Customer;
+  assignedTo?: User;
+  location?: string;
+}
+
 export default function Jobs() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [showMobileCamera, setShowMobileCamera] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
 
   // Check if device is mobile
@@ -326,14 +352,46 @@ interface CalendarJobWithDetails {
     );
   }
 
+  if (isLoading) {
+    return (
+      <div className="container mx-auto p-4 md:p-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[...Array(6)].map((_, i) => (
+            <Card key={i} className="animate-pulse">
+              <CardHeader>
+                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+              </CardHeader>
+              <CardContent>
+                <div className="h-3 bg-gray-200 rounded w-full mb-2"></div>
+                <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="container mx-auto p-6">
-      <div className="flex justify-between items-center mb-6">
+    <div className="container mx-auto p-4 md:p-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Jobs</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Jobs</h1>
           <p className="text-gray-600 mt-1">Manage your jobs, tasks, and team collaboration</p>
         </div>
-        <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+        <div className="flex gap-2">
+          {isMobile && (
+            <Button 
+              onClick={() => setShowMobileCamera(true)}
+              className="bg-green-600 hover:bg-green-700"
+              size="sm"
+            >
+              <Smartphone className="mr-2 h-4 w-4" />
+              Take Photo
+            </Button>
+          )}
+          <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
@@ -611,6 +669,21 @@ interface CalendarJobWithDetails {
           </TabsContent>
         </Tabs>
       )}
+
+      {/* Mobile Camera Dialog */}
+      <MobileCamera
+        isOpen={showMobileCamera}
+        onClose={() => setShowMobileCamera(false)}
+        onPhotoTaken={(file) => {
+          console.log('Photo taken for job:', file);
+          toast({
+            title: "Photo Captured",
+            description: "Photo saved for job documentation",
+          });
+          queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+        }}
+        title="Take Photo for Job"
+      />
     </div>
   );
 }
