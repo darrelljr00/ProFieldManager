@@ -21,7 +21,17 @@ export class AuthService {
     return crypto.randomBytes(32).toString('hex');
   }
 
-  static async createSession(userId: number, userAgent?: string, ipAddress?: string) {
+  static async createSession(
+    userId: number, 
+    userAgent?: string, 
+    ipAddress?: string,
+    gpsData?: {
+      latitude?: number;
+      longitude?: number;
+      accuracy?: number;
+      deviceType?: string;
+    }
+  ) {
     const token = this.generateToken();
     const expiresAt = new Date(Date.now() + this.TOKEN_EXPIRY_HOURS * 60 * 60 * 1000);
 
