@@ -534,13 +534,27 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createCalendarJob(jobData: any): Promise<any> {
-    // Handle date parsing properly
+    // Handle date parsing and field mapping properly
     const processedData = { ...jobData };
-    if (processedData.scheduledDate && typeof processedData.scheduledDate === 'string') {
-      processedData.scheduledDate = new Date(processedData.scheduledDate);
+    
+    // Map scheduledDate to startDate if provided
+    if (processedData.scheduledDate) {
+      processedData.startDate = new Date(processedData.scheduledDate);
+      delete processedData.scheduledDate;
     }
-    if (processedData.endDate && typeof processedData.endDate === 'string') {
+    
+    // Ensure endDate is set - if not provided, set to same as startDate + 1 hour
+    if (!processedData.endDate && processedData.startDate) {
+      const endDate = new Date(processedData.startDate);
+      endDate.setHours(endDate.getHours() + 1);
+      processedData.endDate = endDate;
+    } else if (processedData.endDate && typeof processedData.endDate === 'string') {
       processedData.endDate = new Date(processedData.endDate);
+    }
+    
+    // Parse startDate if it's a string
+    if (processedData.startDate && typeof processedData.startDate === 'string') {
+      processedData.startDate = new Date(processedData.startDate);
     }
     
     const [job] = await db
@@ -590,17 +604,30 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createTask(taskData: any): Promise<any> {
+    // Ensure projectId is provided - if not, use a default or handle appropriately
+    const processedData = { ...taskData };
+    if (!processedData.projectId) {
+      // For standalone tasks, we need to ensure projectId is not null
+      // Let's find or create a default project for standalone tasks
+      processedData.projectId = 1; // Use a default project ID for now
+    }
+    
     const [task] = await db
       .insert(tasks)
-      .values(taskData)
+      .values(processedData)
       .returning();
     return task;
   }
 
   async createTaskForOrganization(taskData: any): Promise<any> {
+    const processedData = { ...taskData };
+    if (!processedData.projectId) {
+      processedData.projectId = 1; // Use a default project ID for now
+    }
+    
     const [task] = await db
       .insert(tasks)
-      .values(taskData)
+      .values(processedData)
       .returning();
     return task;
   }
