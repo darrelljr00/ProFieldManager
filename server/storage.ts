@@ -133,11 +133,25 @@ export class DatabaseStorage implements IStorage {
 
   // Customer methods
   async getCustomers(organizationId: number): Promise<Customer[]> {
-    return await db
-      .select()
+    const results = await db
+      .select({
+        id: customers.id,
+        userId: customers.userId,
+        name: customers.name,
+        email: customers.email,
+        phone: customers.phone,
+        address: customers.address,
+        city: customers.city,
+        state: customers.state,
+        zipCode: customers.zipCode,
+        country: customers.country,
+        createdAt: customers.createdAt
+      })
       .from(customers)
       .innerJoin(users, eq(customers.userId, users.id))
       .where(eq(users.organizationId, organizationId));
+    
+    return results;
   }
 
   async createCustomer(customerData: any): Promise<Customer> {

@@ -244,6 +244,12 @@ export const userSessions = pgTable("user_sessions", {
   expiresAt: timestamp("expires_at").notNull(),
   userAgent: text("user_agent"),
   ipAddress: text("ip_address"),
+  // GPS tracking fields
+  latitude: text("latitude"),
+  longitude: text("longitude"),
+  locationAccuracy: text("location_accuracy"),
+  deviceType: text("device_type"),
+  locationTimestamp: timestamp("location_timestamp"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
