@@ -88,7 +88,8 @@ export interface IStorage {
   getTasksCreatedByUser(userId: number): Promise<any[]>;
   getTasksAssignedToUser(userId: number): Promise<any[]>;
   createTask(taskData: any): Promise<any>;
-  createTaskForOrganization(taskData: any): Promise<any>;
+  createTaskForOrganization(organizationId: number, taskData: any, userId: number): Promise<any>;
+  canUserDelegateTask(userId: number, assignedToId: number): Promise<boolean>;
   updateTask(id: number, updates: any): Promise<any>;
   deleteTask(id: number): Promise<void>;
   
@@ -624,24 +625,26 @@ export class DatabaseStorage implements IStorage {
     return task;
   }
 
-  async createTaskForOrganization(taskData: any): Promise<any> {
+  async createTaskForOrganization(organizationId: number, taskData: any, userId: number): Promise<any> {
     const processedData = { ...taskData };
     if (!processedData.projectId) {
       processedData.projectId = 8; // Use the default tasks project ID
     }
     
-    // Map createdById field properly
-    if (processedData.createdById) {
-      processedData.createdById = processedData.createdById;
-    } else if (processedData.userId) {
-      processedData.createdById = processedData.userId;
-    }
+    // Set the createdById field properly
+    processedData.createdById = userId;
     
     const [task] = await db
       .insert(tasks)
       .values(processedData)
       .returning();
     return task;
+  }
+
+  async canUserDelegateTask(userId: number, assignedToId: number): Promise<boolean> {
+    // Get user's role to check delegation permissions
+    const user = await this.getUser(userId);
+    return user?.role === 'admin' || user?.role === 'manager';
   }
 
   async updateTask(id: number, updates: any): Promise<any> {
