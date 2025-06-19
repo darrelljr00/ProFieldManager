@@ -503,13 +503,22 @@ export default function ProjectDetail() {
         <TabsContent value="files" className="space-y-4">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold">Project Files</h2>
-            <Dialog open={fileDialogOpen} onOpenChange={setFileDialogOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Upload className="h-4 w-4 mr-2" />
-                  Upload File
-                </Button>
-              </DialogTrigger>
+            <div className="flex gap-2">
+              <Button 
+                onClick={() => setShowMobileCamera(true)}
+                variant="outline"
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                <Smartphone className="h-4 w-4 mr-2" />
+                Take Photo
+              </Button>
+              <Dialog open={fileDialogOpen} onOpenChange={setFileDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload File
+                  </Button>
+                </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Upload File</DialogTitle>
@@ -551,6 +560,7 @@ export default function ProjectDetail() {
                 </form>
               </DialogContent>
             </Dialog>
+            </div>
           </div>
 
           <MediaGallery 
@@ -1089,11 +1099,19 @@ export default function ProjectDetail() {
         onClose={() => setShowMobileCamera(false)}
         onPhotoTaken={(file) => {
           console.log('Photo taken for project:', file);
+          
+          // Create FormData to upload the photo
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('description', 'Photo taken with mobile camera');
+          
+          // Upload the photo
+          uploadFileMutation.mutate(formData);
+          
           toast({
             title: "Photo Captured",
-            description: "Photo saved for project documentation",
+            description: "Photo saved to project files",
           });
-          queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/files`] });
         }}
         title="Take Photo for Project"
       />
