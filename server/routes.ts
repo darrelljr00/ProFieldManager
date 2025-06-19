@@ -28,6 +28,8 @@ import { AuthService, requireAuth, requireAdmin, requireManagerOrAdmin, requireT
 import { ZodError } from "zod";
 import { seedDatabase } from "./seed-data";
 import { nanoid } from "nanoid";
+import { db } from "./db";
+import { and } from "drizzle-orm";
 import { DocuSignService, getDocuSignConfig } from "./docusign";
 
 // Extend Express Request type to include user
