@@ -27,8 +27,10 @@ import {
   Share2,
   CheckSquare,
   Square,
-  FileSignature
+  FileSignature,
+  Smartphone
 } from "lucide-react";
+import { MobileCamera } from "@/components/mobile-camera";
 
 interface MediaFile {
   id: number;
@@ -61,6 +63,7 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
   const [selectedFiles, setSelectedFiles] = useState<MediaFile[]>([]);
   const [selectionMode, setSelectionMode] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [showMobileCamera, setShowMobileCamera] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -122,6 +125,36 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
       toast({
         title: "Error",
         description: error.message || "Failed to save annotations",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const uploadFileMutation = useMutation({
+    mutationFn: async (formData: FormData) => {
+      const response = await fetch(`/api/projects/${projectId}/files`, {
+        method: "POST",
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Upload failed' }));
+        throw new Error(errorData.message || 'Upload failed');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/files`] });
+      toast({
+        title: "Success",
+        description: "Photo uploaded successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Upload Failed",
+        description: error.message,
         variant: "destructive",
       });
     },
@@ -620,6 +653,24 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
         onOpenChange={setShareDialogOpen}
         selectedImages={selectedFiles}
         projectName={`Project ${projectId}`}
+      />
+
+      {/* Mobile Camera Dialog */}
+      <MobileCamera
+        isOpen={showMobileCamera}
+        onClose={() => setShowMobileCamera(false)}
+        onPhotoTaken={(file) => {
+          console.log('Photo taken from media gallery:', file);
+          
+          // Create FormData to upload the photo
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('description', 'Photo taken with mobile camera from gallery');
+          
+          // Upload the photo
+          uploadFileMutation.mutate(formData);
+        }}
+        title="Take Photo for Gallery"
       />
     </div>
   );
