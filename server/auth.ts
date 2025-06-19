@@ -43,6 +43,11 @@ export class AuthService {
         expiresAt,
         userAgent,
         ipAddress,
+        latitude: gpsData?.latitude ? gpsData.latitude.toString() : null,
+        longitude: gpsData?.longitude ? gpsData.longitude.toString() : null,
+        locationAccuracy: gpsData?.accuracy ? gpsData.accuracy.toString() : null,
+        deviceType: gpsData?.deviceType,
+        locationTimestamp: gpsData?.latitude ? new Date() : null,
       })
       .returning();
 

@@ -16,11 +16,16 @@ import {
   DialogTitle, 
   DialogTrigger 
 } from "@/components/ui/dialog";
-import { Eye, EyeOff, Lock, User, UserPlus, AlertCircle } from "lucide-react";
+import { Eye, EyeOff, Lock, User, UserPlus, AlertCircle, MapPin } from "lucide-react";
 
 interface LoginData {
   username: string;
   password: string;
+  gpsData?: {
+    latitude?: number;
+    longitude?: number;
+    accuracy?: number;
+  };
 }
 
 interface RegisterData {
@@ -36,12 +41,56 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showRegisterDialog, setShowRegisterDialog] = useState(false);
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
+  const [gpsData, setGpsData] = useState<{latitude?: number; longitude?: number; accuracy?: number} | null>(null);
+  const [gpsLoading, setGpsLoading] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Check if device is mobile and request GPS on component mount
+  useState(() => {
+    const isMobile = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    if (isMobile && 'geolocation' in navigator) {
+      requestLocation();
+    }
+  });
+
+  const requestLocation = () => {
+    setGpsLoading(true);
+    
+    if (!('geolocation' in navigator)) {
+      setGpsLoading(false);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setGpsData({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracy: position.coords.accuracy,
+        });
+        setGpsLoading(false);
+        toast({
+          title: "Location captured",
+          description: "Your location has been recorded for security purposes",
+        });
+      },
+      (error) => {
+        console.warn('GPS error:', error);
+        setGpsLoading(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000,
+      }
+    );
+  };
+
   const loginMutation = useMutation({
     mutationFn: async (data: LoginData) => {
-      const response = await apiRequest("POST", "/api/auth/login", data);
+      const loginDataWithGps = { ...data, gpsData };
+      const response = await apiRequest("POST", "/api/auth/login", loginDataWithGps);
       return response.json();
     },
     onSuccess: (response) => {

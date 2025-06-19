@@ -1366,6 +1366,95 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // GPS Tracking endpoints
+  app.get("/api/gps-tracking/sessions", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const isAdmin = user.role === 'admin';
+      
+      // Regular users can only see their own sessions, admins can see all
+      const sessions = await db.select({
+        id: userSessions.id,
+        userId: userSessions.userId,
+        username: users.username,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        createdAt: userSessions.createdAt,
+        latitude: userSessions.latitude,
+        longitude: userSessions.longitude,
+        locationAccuracy: userSessions.locationAccuracy,
+        deviceType: userSessions.deviceType,
+        locationTimestamp: userSessions.locationTimestamp,
+        userAgent: userSessions.userAgent,
+        ipAddress: userSessions.ipAddress,
+      })
+      .from(userSessions)
+      .innerJoin(users, eq(userSessions.userId, users.id))
+      .where(
+        and(
+          isAdmin ? undefined : eq(userSessions.userId, user.id),
+          isNotNull(userSessions.latitude),
+          isNotNull(userSessions.longitude)
+        )
+      )
+      .orderBy(desc(userSessions.createdAt))
+      .limit(100);
+
+      res.json(sessions);
+    } catch (error: any) {
+      console.error("Error fetching GPS sessions:", error);
+      res.status(500).json({ message: "Error fetching GPS data: " + error.message });
+    }
+  });
+
+  app.get("/api/gps-tracking/stats", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const isAdmin = user.role === 'admin';
+      
+      const whereCondition = and(
+        isAdmin ? undefined : eq(userSessions.userId, user.id),
+        isNotNull(userSessions.latitude),
+        isNotNull(userSessions.longitude)
+      );
+
+      const [totalSessions] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(userSessions)
+        .where(whereCondition);
+
+      const [mobileSessions] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(userSessions)
+        .where(
+          and(
+            whereCondition,
+            eq(userSessions.deviceType, 'mobile')
+          )
+        );
+
+      const [recentSessions] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(userSessions)
+        .where(
+          and(
+            whereCondition,
+            gte(userSessions.createdAt, sql`now() - interval '24 hours'`)
+          )
+        );
+
+      res.json({
+        totalSessions: totalSessions.count,
+        mobileSessions: mobileSessions.count,
+        recentSessions: recentSessions.count,
+        mobilePercentage: totalSessions.count > 0 ? Math.round((mobileSessions.count / totalSessions.count) * 100) : 0,
+      });
+    } catch (error: any) {
+      console.error("Error fetching GPS stats:", error);
+      res.status(500).json({ message: "Error fetching GPS stats: " + error.message });
+    }
+  });
+
   // User Management endpoints (Admin only)
   
   // Get all users
