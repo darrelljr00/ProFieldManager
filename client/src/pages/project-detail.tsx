@@ -35,13 +35,16 @@ import {
   Building,
   UserPlus,
   UserMinus,
-  MapPin
+  MapPin,
+  Smartphone
 } from "lucide-react";
 import { Link } from "wouter";
 import type { Project, Customer, User, Task, ProjectFile, TimeEntry } from "@shared/schema";
 import { DirectionsButton } from "@/components/google-maps";
 import { MediaGallery } from "@/components/media-gallery";
 import { DocuSignSignatureDialog } from "@/components/docusign-signature-dialog";
+import { MobileCamera } from "@/components/mobile-camera";
+import { useAuth } from "@/hooks/useAuth";
 
 interface ProjectWithDetails extends Project {
   users: { user: User; role: string }[];
@@ -61,7 +64,9 @@ export default function ProjectDetail() {
   const [timeDialogOpen, setTimeDialogOpen] = useState(false);
   const [teamDialogOpen, setTeamDialogOpen] = useState(false);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
 
   // Check if device is mobile
@@ -294,9 +299,19 @@ export default function ProjectDetail() {
   }
 
   return (
-    <div className="container mx-auto p-6">
+    <div className="container mx-auto p-4 md:p-6">
       <div className="mb-6">
         <div className="flex items-center gap-4 mb-4">
+          {isMobile && (
+            <Button 
+              onClick={() => setShowMobileCamera(true)}
+              className="bg-green-600 hover:bg-green-700"
+              size="sm"
+            >
+              <Smartphone className="mr-2 h-4 w-4" />
+              Take Photo
+            </Button>
+          )}
           <Button variant="ghost" size="sm" asChild>
             <Link href="/projects">
               <ArrowLeft className="h-4 w-4 mr-2" />
