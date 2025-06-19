@@ -12,7 +12,7 @@ interface GoogleMapsProps {
   onClose: () => void;
 }
 
-export function GoogleMapsDialog({ address, city, state, zipCode, isOpen, onClose }: GoogleMapsProps) {
+function GoogleMapsDialog({ address, city, state, zipCode, isOpen, onClose }: GoogleMapsProps) {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
 
@@ -138,7 +138,7 @@ interface DirectionsButtonProps {
   className?: string;
 }
 
-export function DirectionsButton({ address, city, state, zipCode, className }: DirectionsButtonProps) {
+function DirectionsButton({ address, city, state, zipCode, className }: DirectionsButtonProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   // Don't show button if no address is provided
@@ -169,3 +169,9 @@ export function DirectionsButton({ address, city, state, zipCode, className }: D
     </>
   );
 }
+
+// Default export for the main component
+export default GoogleMapsDialog;
+
+// Named exports for individual components
+export { GoogleMapsDialog, DirectionsButton };

@@ -32,6 +32,7 @@ import Settings from "@/pages/settings";
 import HumanResources from "@/pages/human-resources";
 import FileManager from "@/pages/file-manager";
 import MyTasks from "@/pages/my-tasks";
+import GpsTracking from "@/pages/gps-tracking";
 import Login from "@/pages/login";
 import Landing from "@/pages/landing";
 import NotFound from "@/pages/not-found";
@@ -121,6 +122,7 @@ function AuthenticatedApp() {
           <Route path="/human-resources" component={HumanResources} />
           <Route path="/file-manager" component={FileManager} />
           <Route path="/my-tasks" component={MyTasks} />
+          <Route path="/gps-tracking" component={GpsTracking} />
           {isAdmin && <Route path="/users" component={Users} />}
           {isAdmin && <Route path="/admin-settings" component={AdminSettings} />}
           {isAdmin && <Route path="/saas-admin" component={SaasAdmin} />}

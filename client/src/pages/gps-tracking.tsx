@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { GoogleMaps } from "@/components/google-maps";
+import { GoogleMapsDialog } from "@/components/google-maps";
 import { MapPin, Smartphone, Monitor, Tablet, RefreshCw, Users, Calendar, Target } from "lucide-react";
 
 interface GPSSession {
