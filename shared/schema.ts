@@ -397,11 +397,14 @@ export const expenses = pgTable("expenses", {
 
 export const expenseCategories = pgTable("expense_categories", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
   name: text("name").notNull(),
   description: text("description"),
+  color: text("color").default("#3B82F6"),
+  isActive: boolean("is_active").default(true),
   isDefault: boolean("is_default").default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 export const expenseReports = pgTable("expense_reports", {
