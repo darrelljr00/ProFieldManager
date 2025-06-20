@@ -177,6 +177,11 @@ interface CalendarJobWithDetails {
   createJobMutation.mutate(data);
   };
 
+  const handleViewProject = (project: ProjectWithDetails) => {
+    setSelectedProject(project);
+    setViewDialogOpen(true);
+  };
+
   const getStatusColor = (status: string): "default" | "destructive" | "outline" | "secondary" => {
     const colors: Record<string, "default" | "destructive" | "outline" | "secondary"> = {
       active: "default",

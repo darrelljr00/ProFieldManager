@@ -176,6 +176,14 @@ export default function MyTasks() {
     });
   };
 
+  const handleUpdateTask = (taskData: { id: number; data: any }) => {
+    updateTaskMutation.mutate(taskData);
+  };
+
+  const handleDeleteTask = (taskId: number) => {
+    deleteTaskMutation.mutate(taskId);
+  };
+
   const getStatusColor = (status?: string) => {
     const colors: Record<string, "default" | "destructive" | "outline" | "secondary"> = {
       todo: "outline",
