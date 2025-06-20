@@ -21,6 +21,7 @@ import { DirectionsButton } from "@/components/google-maps";
 import { DispatchRouting } from "@/components/dispatch-routing";
 import { WeatherWidget } from "@/components/weather-widget";
 import { MobileCamera } from "@/components/mobile-camera";
+import { MediaGallery } from "@/components/media-gallery";
 
 interface ProjectWithDetails extends Project {
   users: { user: User }[];
@@ -56,7 +57,6 @@ export default function Jobs() {
   const [isMobile, setIsMobile] = useState(false);
   const [showMobileCamera, setShowMobileCamera] = useState(false);
   const [showUserAssignment, setShowUserAssignment] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -255,47 +255,7 @@ export default function Jobs() {
 
 
 
-  const handleDownloadFile = async (file: any) => {
-    try {
-      const response = await fetch(`/api/project-files/${file.id}/download`);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = file.originalName;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    } catch (error) {
-      toast({
-        title: "Download failed",
-        description: "Failed to download file. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
 
-  const handleDeleteFile = async (fileId: number) => {
-    if (!selectedProject) return;
-    
-    try {
-      await apiRequest('DELETE', `/api/project-files/${fileId}`);
-      toast({
-        title: "File deleted successfully",
-        description: "File has been removed from the project.",
-      });
-      
-      // Refresh files
-      queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedProject.id, 'files'] });
-    } catch (error) {
-      toast({
-        title: "Delete failed",
-        description: "Failed to delete file. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
 
   const getStatusColor = (status: string): "default" | "destructive" | "outline" | "secondary" => {
     const colors: Record<string, "default" | "destructive" | "outline" | "secondary"> = {
@@ -906,10 +866,10 @@ export default function Jobs() {
                 </div>
               )}
 
-              {/* File Gallery Section */}
+              {/* File Gallery with Full Annotation Support */}
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <Label className="text-sm font-medium text-gray-500">Project Files</Label>
+                  <Label className="text-sm font-medium text-gray-500">Project Files & Media</Label>
                   <div className="flex gap-2">
                     <input
                       type="file"
@@ -930,74 +890,27 @@ export default function Jobs() {
                   </div>
                 </div>
                 
-                {/* File Grid */}
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-64 overflow-y-auto">
-                  {projectFiles.length > 0 ? (
-                    projectFiles.map((file: any) => (
-                      <div key={file.id} className="relative group border rounded-lg overflow-hidden bg-white">
-                        {file.mimeType?.startsWith('image/') ? (
-                          <div 
-                            className="aspect-square cursor-pointer relative"
-                            onClick={() => setSelectedFile(file)}
-                          >
-                            <img 
-                              src={`/api/project-files/${file.id}/download`}
-                              alt={file.originalName}
-                              className="w-full h-full object-cover"
-                              loading="lazy"
-                            />
-                            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 flex items-center justify-center">
-                              <Eye className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="aspect-square flex items-center justify-center bg-gray-50 cursor-pointer" onClick={() => setSelectedFile(file)}>
-                            <FileText className="h-8 w-8 text-gray-400" />
-                          </div>
-                        )}
-                        
-                        <div className="p-2">
-                          <p className="text-xs font-medium truncate" title={file.originalName}>
-                            {file.originalName}
-                          </p>
-                          <div className="flex items-center justify-between mt-1">
-                            <span className="text-xs text-gray-500">
-                              {Math.round(file.fileSize / 1024)}KB
-                            </span>
-                            <div className="flex gap-1">
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-6 w-6 p-0"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDownloadFile(file);
-                                }}
-                              >
-                                <Download className="h-3 w-3" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteFile(file.id);
-                                }}
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="col-span-full text-center py-8 text-gray-400">
-                      <Upload className="h-8 w-8 mx-auto mb-2" />
-                      <p className="text-sm">No files uploaded yet</p>
-                    </div>
-                  )}
+                {/* Use MediaGallery Component for Full Functionality */}
+                <div className="max-h-96 overflow-y-auto">
+                  <MediaGallery 
+                    files={projectFiles.map((file: any) => ({
+                      id: file.id,
+                      fileName: file.fileName,
+                      originalName: file.originalName,
+                      filePath: file.filePath,
+                      fileSize: file.fileSize,
+                      fileType: file.mimeType?.startsWith('image/') ? 'image' : 'document',
+                      mimeType: file.mimeType,
+                      description: file.description,
+                      createdAt: file.createdAt,
+                      annotations: file.annotations ? JSON.parse(file.annotations) : [],
+                      annotatedImageUrl: file.annotatedImageUrl,
+                      signatureStatus: file.signatureStatus,
+                      docusignEnvelopeId: file.docusignEnvelopeId,
+                      signatureUrl: file.signatureUrl
+                    }))} 
+                    projectId={selectedProject.id}
+                  />
                 </div>
               </div>
 
@@ -1168,81 +1081,7 @@ export default function Jobs() {
         </DialogContent>
       </Dialog>
 
-      {/* File Preview Dialog */}
-      <Dialog open={!!selectedFile} onOpenChange={() => setSelectedFile(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
-          <DialogHeader>
-            <DialogTitle>{selectedFile?.originalName}</DialogTitle>
-            <DialogDescription>
-              File preview with annotation and editing capabilities
-            </DialogDescription>
-          </DialogHeader>
-          {selectedFile && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <Badge variant="outline">{selectedFile.mimeType}</Badge>
-                <Badge variant="outline">{Math.round(selectedFile.fileSize / 1024)}KB</Badge>
-                <Badge variant="outline">{new Date(selectedFile.createdAt).toLocaleDateString()}</Badge>
-              </div>
-              
-              {selectedFile.mimeType?.startsWith('image/') ? (
-                <div className="relative">
-                  <img 
-                    src={`/api/project-files/${selectedFile.id}/download`}
-                    alt={selectedFile.originalName}
-                    className="w-full max-h-96 object-contain rounded-lg"
-                  />
-                  <div className="absolute top-2 right-2 flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => handleDownloadFile(selectedFile)}
-                    >
-                      <Download className="h-4 w-4 mr-2" />
-                      Download
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => {
-                        handleDeleteFile(selectedFile.id);
-                        setSelectedFile(null);
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-12 bg-gray-50 rounded-lg">
-                  <FileText className="h-16 w-16 text-gray-400 mb-4" />
-                  <p className="text-lg font-medium text-gray-600">{selectedFile.originalName}</p>
-                  <p className="text-sm text-gray-500 mb-4">
-                    {selectedFile.mimeType} • {Math.round(selectedFile.fileSize / 1024)}KB
-                  </p>
-                  <div className="flex gap-2">
-                    <Button onClick={() => handleDownloadFile(selectedFile)}>
-                      <Download className="h-4 w-4 mr-2" />
-                      Download
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      onClick={() => {
-                        handleDeleteFile(selectedFile.id);
-                        setSelectedFile(null);
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+
       </div>
     </div>
   );
