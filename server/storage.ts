@@ -409,12 +409,79 @@ export class DatabaseStorage implements IStorage {
 
   // Project/Job methods
   async getProjects(organizationId: number): Promise<any[]> {
-    return await db
-      .select()
+    // Get all projects for the organization
+    const allProjects = await db
+      .select({
+        id: projects.id,
+        userId: projects.userId,
+        name: projects.name,
+        description: projects.description,
+        status: projects.status,
+        priority: projects.priority,
+        startDate: projects.startDate,
+        endDate: projects.endDate,
+        deadline: projects.deadline,
+        progress: projects.progress,
+        budget: projects.budget,
+        customerId: projects.customerId,
+        contactName: projects.contactName,
+        contactEmail: projects.contactEmail,
+        contactPhone: projects.contactPhone,
+        contactCompany: projects.contactCompany,
+        address: projects.address,
+        city: projects.city,
+        state: projects.state,
+        zipCode: projects.zipCode,
+        country: projects.country,
+        createdAt: projects.createdAt,
+        updatedAt: projects.updatedAt,
+      })
       .from(projects)
       .innerJoin(users, eq(projects.userId, users.id))
       .where(eq(users.organizationId, organizationId))
       .orderBy(desc(projects.createdAt));
+
+    // Get task counts and customer info for each project
+    const projectsWithDetails = await Promise.all(
+      allProjects.map(async (project) => {
+        const taskCounts = await db
+          .select({
+            total: sql<number>`count(*)`,
+            completed: sql<number>`count(*) filter (where ${tasks.status} = 'completed')`,
+          })
+          .from(tasks)
+          .where(eq(tasks.projectId, project.id));
+
+        const customer = project.customerId ? await db
+          .select()
+          .from(customers)
+          .where(eq(customers.id, project.customerId))
+          .limit(1) : [];
+
+        const projectUsers = await db
+          .select({
+            user: {
+              id: users.id,
+              firstName: users.firstName,
+              lastName: users.lastName,
+              email: users.email,
+            }
+          })
+          .from(userProjects)
+          .innerJoin(users, eq(userProjects.userId, users.id))
+          .where(eq(userProjects.projectId, project.id));
+
+        return {
+          ...project,
+          taskCount: Number(taskCounts[0]?.total) || 0,
+          completedTasks: Number(taskCounts[0]?.completed) || 0,
+          customer: customer[0] || null,
+          users: projectUsers || [],
+        };
+      })
+    );
+
+    return projectsWithDetails;
   }
 
   async createProject(projectData: any): Promise<any> {
