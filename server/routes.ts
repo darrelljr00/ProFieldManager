@@ -669,7 +669,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/dashboard/stats", async (req, res) => {
     try {
       const stats = await storage.getInvoiceStats(req.user!.id);
-      res.json(stats);
+      
+      // Add missing fields required by the frontend
+      const dashboardStats = {
+        totalRevenue: 0,
+        totalInvoices: stats.totalInvoices || "0",
+        paidInvoices: stats.paidInvoices || "0", 
+        pendingInvoices: stats.pendingInvoices || 0,
+        overdueInvoices: 0,
+        pendingValue: 0,
+        paidValue: 0,
+        overdueValue: 0
+      };
+      
+      res.json(dashboardStats);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
