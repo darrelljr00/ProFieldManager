@@ -18,7 +18,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Calendar, ChevronLeft, ChevronRight, Plus, Edit, Trash2, PlayCircle, DollarSign, MapPin } from "lucide-react";
+import { Calendar, ChevronLeft, ChevronRight, Plus, Edit, Trash2, PlayCircle, DollarSign, MapPin, Eye } from "lucide-react";
 import type { CalendarJob, InsertCalendarJob, Customer, Lead } from "@shared/schema";
 import { WeatherWidget } from "@/components/weather-widget";
 
@@ -26,6 +26,7 @@ export default function CalendarPage() {
   const [selectedJob, setSelectedJob] = useState<CalendarJob | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isConvertDialogOpen, setIsConvertDialogOpen] = useState(false);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
   const { toast } = useToast();
@@ -175,6 +176,11 @@ export default function CalendarPage() {
   const openConvertDialog = (job: CalendarJob) => {
     setSelectedJob(job);
     setIsConvertDialogOpen(true);
+  };
+
+  const handleView = (job: CalendarJob) => {
+    setSelectedJob(job);
+    setIsViewDialogOpen(true);
   };
 
   const getStatusColor = (status?: string) => {
@@ -475,7 +481,7 @@ export default function CalendarPage() {
                       <div
                         key={job.id}
                         className="text-xs p-1 rounded cursor-pointer hover:bg-muted/50"
-                        onClick={() => openDialog(job)}
+                        onClick={() => handleView(job)}
                       >
                         <div className="font-medium truncate">{job.title}</div>
                         <div className="flex items-center gap-1">
@@ -573,6 +579,13 @@ export default function CalendarPage() {
                       <Button
                         variant="outline"
                         size="sm"
+                        onClick={() => handleView(job)}
+                      >
+                        <Eye className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={() => openDialog(job)}
                       >
                         <Edit className="h-3 w-3" />
@@ -632,6 +645,155 @@ export default function CalendarPage() {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Job Dialog */}
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Job Details</DialogTitle>
+            <DialogDescription>
+              View complete job information
+            </DialogDescription>
+          </DialogHeader>
+          {selectedJob && (
+            <div className="space-y-6">
+              {/* Basic Info */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">Job Title</Label>
+                  <p className="text-base font-medium">{selectedJob.title}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">Status</Label>
+                  <div className="mt-1">
+                    <Badge className={getStatusColor(selectedJob.status)}>
+                      {selectedJob.status.replace('_', ' ')}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              {/* Description */}
+              {selectedJob.description && (
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">Description</Label>
+                  <p className="text-sm text-gray-700 mt-1">{selectedJob.description}</p>
+                </div>
+              )}
+
+              {/* Location & Weather */}
+              {selectedJob.location && (
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">Location</Label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <MapPin className="h-4 w-4 text-gray-400" />
+                    <span className="text-sm">{selectedJob.location}</span>
+                  </div>
+                  <div className="mt-3">
+                    <WeatherWidget 
+                      calendarJobId={selectedJob.id} 
+                      location={selectedJob.location}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Date & Time */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">Start Date & Time</Label>
+                  <p className="text-sm">{new Date(selectedJob.startDate).toLocaleString()}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">End Date & Time</Label>
+                  <p className="text-sm">{new Date(selectedJob.endDate).toLocaleString()}</p>
+                </div>
+              </div>
+
+              {/* Value & Priority */}
+              <div className="grid grid-cols-2 gap-4">
+                {selectedJob.estimatedValue && (
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500">Estimated Value</Label>
+                    <div className="flex items-center gap-1 mt-1">
+                      <DollarSign className="h-4 w-4 text-green-600" />
+                      <span className="text-base font-medium text-green-600">
+                        {parseFloat(selectedJob.estimatedValue).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                )}
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">Priority</Label>
+                  <div className="mt-1">
+                    <Badge variant={selectedJob.priority === 'high' ? 'destructive' : selectedJob.priority === 'medium' ? 'default' : 'outline'}>
+                      {selectedJob.priority}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              {/* Notes */}
+              {selectedJob.notes && (
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">Notes</Label>
+                  <p className="text-sm text-gray-700 mt-1">{selectedJob.notes}</p>
+                </div>
+              )}
+
+              {/* Customer & Lead Info */}
+              {(selectedJob.customerId || selectedJob.leadId) && (
+                <div className="grid grid-cols-2 gap-4">
+                  {selectedJob.customerId && (
+                    <div>
+                      <Label className="text-sm font-medium text-gray-500">Customer</Label>
+                      <p className="text-sm">Customer ID: {selectedJob.customerId}</p>
+                    </div>
+                  )}
+                  {selectedJob.leadId && (
+                    <div>
+                      <Label className="text-sm font-medium text-gray-500">Lead</Label>
+                      <p className="text-sm">Lead ID: {selectedJob.leadId}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Conversion Status */}
+              {selectedJob.convertedToProjectId && (
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">Project Conversion</Label>
+                  <p className="text-sm text-green-600">Converted to Project ID: {selectedJob.convertedToProjectId}</p>
+                </div>
+              )}
+
+              {/* Timestamps */}
+              <div className="grid grid-cols-2 gap-4 text-xs text-gray-500">
+                <div>
+                  <Label className="text-xs font-medium text-gray-400">Created</Label>
+                  <p>{new Date(selectedJob.createdAt).toLocaleString()}</p>
+                </div>
+                <div>
+                  <Label className="text-xs font-medium text-gray-400">Updated</Label>
+                  <p>{new Date(selectedJob.updatedAt).toLocaleString()}</p>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>
+              Close
+            </Button>
+            <Button onClick={() => {
+              setIsViewDialogOpen(false);
+              if (selectedJob) openDialog(selectedJob);
+            }}>
+              <Edit className="h-4 w-4 mr-2" />
+              Edit Job
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

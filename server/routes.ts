@@ -5285,7 +5285,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const jobId = parseInt(req.params.jobId);
       const user = getAuthenticatedUser(req);
-      const job = await storage.getCalendarJob(jobId, user.id);
+      const job = await storage.getCalendarJob(jobId, user.organizationId);
       
       if (!job) {
         return res.status(404).json({ message: 'Calendar job not found' });
