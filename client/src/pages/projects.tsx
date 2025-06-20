@@ -649,69 +649,7 @@ export default function Jobs() {
         </Dialog>
       </div>
 
-      {/* Calendar Events Sync Section */}
-      {(calendarJobs as CalendarJobWithDetails[]).filter(job => job.status === 'scheduled' && !job.convertedToProjectId).length > 0 && (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              Scheduled Calendar Events
-            </CardTitle>
-            <CardDescription>
-              Convert calendar events to jobs for better tracking and management
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {(calendarJobs as CalendarJobWithDetails[])
-                .filter(job => job.status === 'scheduled' && !job.convertedToProjectId)
-                .map((job) => (
-                  <Card key={job.id} className="border-l-4 border-l-blue-500">
-                    <CardContent className="p-4">
-                      <div className="space-y-2">
-                        <h4 className="font-semibold">{job.title}</h4>
-                        <p className="text-sm text-gray-600">{job.description}</p>
-                        <div className="flex items-center gap-2 text-sm text-gray-500">
-                          <Calendar className="h-4 w-4" />
-                          {new Date(job.startDate).toLocaleDateString()} - {new Date(job.endDate).toLocaleDateString()}
-                        </div>
-                        {job.location && (
-                          <div className="flex items-center gap-2 text-sm text-gray-500">
-                            <MapPin className="h-4 w-4" />
-                            {job.location}
-                          </div>
-                        )}
-                        {job.estimatedValue && (
-                          <div className="text-sm font-medium text-green-600">
-                            Estimated Value: ${job.estimatedValue}
-                          </div>
-                        )}
-                        <div className="flex items-center gap-2 pt-2">
-                          <Badge variant={job.priority === 'high' ? 'destructive' : job.priority === 'medium' ? 'default' : 'secondary'}>
-                            {job.priority}
-                          </Badge>
-                          {job.customer && (
-                            <Badge variant="outline">
-                              {job.customer.name}
-                            </Badge>
-                          )}
-                        </div>
-                        <Button 
-                          size="sm" 
-                          className="w-full mt-3"
-                          onClick={() => convertJobToProjectMutation.mutate(job.id)}
-                          disabled={convertJobToProjectMutation.isPending}
-                        >
-                          Convert to Job
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+
 
       {jobs.length === 0 ? (
         <Card>
