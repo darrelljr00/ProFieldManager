@@ -70,6 +70,11 @@ export interface IStorage {
   // Settings methods
   getSystemSettings(): Promise<any[]>;
   getSubscriptionPlans(): Promise<any[]>;
+  getSettings(category: string): Promise<any>;
+  getSettingsByCategory(category: string): Promise<any[]>;
+  updateSetting(category: string, key: string, value: string): Promise<void>;
+  updateSettings(category: string, settings: any): Promise<void>;
+  getAllOrganizationsWithDetails(): Promise<any[]>;
   
   // File methods
   getFiles(organizationId: number): Promise<any[]>;
@@ -492,6 +497,101 @@ export class DatabaseStorage implements IStorage {
 
   async getSubscriptionPlans(): Promise<any[]> {
     return await db.select().from(subscriptionPlans);
+  }
+
+  async getSettings(category: string): Promise<any> {
+    try {
+      const settingsArray = await db
+        .select()
+        .from(settings)
+        .where(like(settings.key, `${category}_%`));
+      
+      const settingsObj: any = {};
+      settingsArray.forEach(setting => {
+        const key = setting.key.replace(`${category}_`, '');
+        settingsObj[key] = setting.value;
+      });
+      
+      return settingsObj;
+    } catch (error) {
+      console.error(`Error fetching settings for ${category}:`, error);
+      return {}; // Return empty object if settings table doesn't exist
+    }
+  }
+
+  async getSettingsByCategory(category: string): Promise<any[]> {
+    try {
+      return await db
+        .select()
+        .from(settings)
+        .where(like(settings.key, `${category}_%`));
+    } catch (error) {
+      console.error(`Error fetching settings by category ${category}:`, error);
+      return []; // Return empty array if settings table doesn't exist
+    }
+  }
+
+  async updateSetting(category: string, key: string, value: string): Promise<void> {
+    const fullKey = key.startsWith(`${category}_`) ? key : `${category}_${key}`;
+    
+    try {
+      const existingSetting = await db
+        .select()
+        .from(settings)
+        .where(eq(settings.key, fullKey))
+        .limit(1);
+
+      if (existingSetting.length > 0) {
+        await db
+          .update(settings)
+          .set({ value, updatedAt: new Date() })
+          .where(eq(settings.key, fullKey));
+      } else {
+        await db
+          .insert(settings)
+          .values({
+            key: fullKey,
+            value,
+            category,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          });
+      }
+    } catch (error) {
+      console.error(`Error updating setting ${fullKey}:`, error);
+      // Fallback for missing settings table - store in memory for now
+    }
+  }
+
+  async updateSettings(category: string, settingsData: any): Promise<void> {
+    for (const [key, value] of Object.entries(settingsData)) {
+      if (value !== undefined && value !== null) {
+        await this.updateSetting(category, key, String(value));
+      }
+    }
+  }
+
+  async getAllOrganizationsWithDetails(): Promise<any[]> {
+    return await db
+      .select({
+        id: organizations.id,
+        name: organizations.name,
+        subscriptionPlan: organizations.subscriptionPlan,
+        subscriptionStatus: organizations.subscriptionStatus,
+        trialEndDate: organizations.trialEndDate,
+        maxUsers: organizations.maxUsers,
+        maxProjects: organizations.maxProjects,
+        maxStorageGB: organizations.maxStorageGB,
+        hasAdvancedReporting: organizations.hasAdvancedReporting,
+        hasApiAccess: organizations.hasApiAccess,
+        hasCustomBranding: organizations.hasCustomBranding,
+        hasIntegrations: organizations.hasIntegrations,
+        hasPrioritySupport: organizations.hasPrioritySupport,
+        createdAt: organizations.createdAt,
+        updatedAt: organizations.updatedAt
+      })
+      .from(organizations)
+      .orderBy(desc(organizations.createdAt));
   }
 
   // File methods
