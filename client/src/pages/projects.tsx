@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -56,6 +56,8 @@ export default function Jobs() {
   const [isMobile, setIsMobile] = useState(false);
   const [showMobileCamera, setShowMobileCamera] = useState(false);
   const [showUserAssignment, setShowUserAssignment] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<any>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -1024,6 +1026,82 @@ export default function Jobs() {
               Close
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* File Preview Dialog */}
+      <Dialog open={!!selectedFile} onOpenChange={() => setSelectedFile(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
+          <DialogHeader>
+            <DialogTitle>{selectedFile?.originalName}</DialogTitle>
+            <DialogDescription>
+              File preview with annotation and editing capabilities
+            </DialogDescription>
+          </DialogHeader>
+          {selectedFile && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Badge variant="outline">{selectedFile.mimeType}</Badge>
+                <Badge variant="outline">{Math.round(selectedFile.fileSize / 1024)}KB</Badge>
+                <Badge variant="outline">{new Date(selectedFile.createdAt).toLocaleDateString()}</Badge>
+              </div>
+              
+              {selectedFile.mimeType?.startsWith('image/') ? (
+                <div className="relative">
+                  <img 
+                    src={`/api/project-files/${selectedFile.id}/download`}
+                    alt={selectedFile.originalName}
+                    className="w-full max-h-96 object-contain rounded-lg"
+                  />
+                  <div className="absolute top-2 right-2 flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => handleDownloadFile(selectedFile)}
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Download
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => {
+                        handleDeleteFile(selectedFile.id);
+                        setSelectedFile(null);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 bg-gray-50 rounded-lg">
+                  <FileText className="h-16 w-16 text-gray-400 mb-4" />
+                  <p className="text-lg font-medium text-gray-600">{selectedFile.originalName}</p>
+                  <p className="text-sm text-gray-500 mb-4">
+                    {selectedFile.mimeType} • {Math.round(selectedFile.fileSize / 1024)}KB
+                  </p>
+                  <div className="flex gap-2">
+                    <Button onClick={() => handleDownloadFile(selectedFile)}>
+                      <Download className="h-4 w-4 mr-2" />
+                      Download
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      onClick={() => {
+                        handleDeleteFile(selectedFile.id);
+                        setSelectedFile(null);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
       </div>
