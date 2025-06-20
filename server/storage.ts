@@ -64,6 +64,12 @@ export interface IStorage {
   updateExpense(id: number, updates: any): Promise<any>;
   deleteExpense(id: number): Promise<void>;
   
+  // Expense categories methods
+  getExpenseCategories(organizationId: number): Promise<any[]>;
+  createExpenseCategory(categoryData: any): Promise<any>;
+  updateExpenseCategory(id: number, updates: any): Promise<any>;
+  deleteExpenseCategory(id: number): Promise<void>;
+  
   // Lead methods
   getLeads(organizationId: number): Promise<any[]>;
   createLead(leadData: any): Promise<any>;
@@ -611,6 +617,35 @@ export class DatabaseStorage implements IStorage {
 
   async deleteExpense(id: number): Promise<void> {
     await db.delete(expenses).where(eq(expenses.id, id));
+  }
+
+  async getExpenseCategories(organizationId: number): Promise<any[]> {
+    return await db
+      .select()
+      .from(expenseCategories)
+      .where(eq(expenseCategories.organizationId, organizationId))
+      .orderBy(expenseCategories.name);
+  }
+
+  async createExpenseCategory(categoryData: any): Promise<any> {
+    const [category] = await db
+      .insert(expenseCategories)
+      .values(categoryData)
+      .returning();
+    return category;
+  }
+
+  async updateExpenseCategory(id: number, updates: any): Promise<any> {
+    const [category] = await db
+      .update(expenseCategories)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(expenseCategories.id, id))
+      .returning();
+    return category;
+  }
+
+  async deleteExpenseCategory(id: number): Promise<void> {
+    await db.delete(expenseCategories).where(eq(expenseCategories.id, id));
   }
 
   // Lead methods
