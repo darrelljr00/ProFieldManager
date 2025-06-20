@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Calendar, Users, CheckCircle, Clock, AlertCircle, Folder, Settings, MapPin, Route, Star, Smartphone } from "lucide-react";
+import { Plus, Calendar, Users, CheckCircle, Clock, AlertCircle, Folder, Settings, MapPin, Route, Star, Smartphone, Eye, Image, FileText, CheckSquare } from "lucide-react";
 import { Link } from "wouter";
 import { format } from "date-fns";
 import type { Project, Customer, User } from "@shared/schema";
@@ -51,6 +51,8 @@ interface CalendarJobWithDetails {
 
 export default function Jobs() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [selectedProject, setSelectedProject] = useState<ProjectWithDetails | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [showMobileCamera, setShowMobileCamera] = useState(false);
   const { toast } = useToast();
@@ -79,6 +81,20 @@ export default function Jobs() {
 
   const { data: calendarJobs = [] } = useQuery<CalendarJobWithDetails[]>({
     queryKey: ["/api/calendar-jobs"],
+  });
+
+  // Fetch project files when viewing details
+  const { data: projectFiles = [], refetch: refetchFiles } = useQuery({
+    queryKey: ["/api/files", selectedProject?.id],
+    queryFn: () => selectedProject ? apiRequest("GET", `/api/files?projectId=${selectedProject.id}`).then(res => res.json()) : [],
+    enabled: !!selectedProject,
+  });
+
+  // Fetch project tasks when viewing details
+  const { data: projectTasks = [], refetch: refetchTasks } = useQuery({
+    queryKey: ["/api/tasks", selectedProject?.id],
+    queryFn: () => selectedProject ? apiRequest("GET", `/api/tasks?projectId=${selectedProject.id}`).then(res => res.json()) : [],
+    enabled: !!selectedProject,
   });
 
 interface CalendarJobWithDetails {
@@ -161,7 +177,7 @@ interface CalendarJobWithDetails {
   createJobMutation.mutate(data);
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string): "default" | "destructive" | "outline" | "secondary" => {
     const colors: Record<string, "default" | "destructive" | "outline" | "secondary"> = {
       active: "default",
       completed: "secondary",
@@ -171,7 +187,7 @@ interface CalendarJobWithDetails {
     return colors[status] || "outline";
   };
 
-  const getPriorityColor = (priority: string) => {
+  const getPriorityColor = (priority: string): "default" | "destructive" | "outline" | "secondary" => {
     const colors: Record<string, "default" | "destructive" | "outline" | "secondary"> = {
       low: "outline",
       medium: "default",
@@ -325,13 +341,17 @@ interface CalendarJobWithDetails {
                 )}
 
                 <div className="flex space-x-2 pt-4">
-                  <Button asChild size="sm" className="flex-1">
-                    <Link href={`/jobs/${project.id}`}>
-                      View Details
-                    </Link>
+                  <Button 
+                    size="sm" 
+                    className="flex-1"
+                    onClick={() => handleViewProject(project)}
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    View Details
                   </Button>
                   <Button asChild variant="outline" size="sm">
                     <Link href={`/jobs/${project.id}/tasks`}>
+                      <CheckSquare className="h-4 w-4 mr-2" />
                       Tasks
                     </Link>
                   </Button>
@@ -684,6 +704,196 @@ interface CalendarJobWithDetails {
         }}
         title="Take Photo for Job"
       />
+
+      {/* Project Details Dialog */}
+      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Job Details</DialogTitle>
+            <DialogDescription>
+              Complete job information, files, tasks, and team members
+            </DialogDescription>
+          </DialogHeader>
+          {selectedProject && (
+            <div className="space-y-6">
+              {/* Basic Info */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">Job Name</Label>
+                  <p className="text-base font-medium">{selectedProject.name}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">Status</Label>
+                  <div className="mt-1">
+                    <Badge variant={getStatusColor(selectedProject.status)}>
+                      {selectedProject.status}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              {/* Description */}
+              {selectedProject.description && (
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">Description</Label>
+                  <p className="text-sm text-gray-700 mt-1">{selectedProject.description}</p>
+                </div>
+              )}
+
+              {/* Location & Weather */}
+              {(selectedProject.address || selectedProject.city) && (
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">Location</Label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <MapPin className="h-4 w-4 text-gray-400" />
+                    <span className="text-sm">
+                      {selectedProject.address}
+                      {selectedProject.city && `, ${selectedProject.city}`}
+                      {selectedProject.state && `, ${selectedProject.state}`}
+                      {selectedProject.zipCode && ` ${selectedProject.zipCode}`}
+                    </span>
+                  </div>
+                  {selectedProject.city && (
+                    <div className="mt-3">
+                      <WeatherWidget 
+                        jobId={selectedProject.id} 
+                        location={`${selectedProject.city}${selectedProject.state ? `, ${selectedProject.state}` : ''}`}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Project Details */}
+              <div className="grid grid-cols-2 gap-4">
+                {selectedProject.budget && (
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500">Budget</Label>
+                    <div className="flex items-center gap-1 mt-1">
+                      <span className="text-base font-medium text-green-600">
+                        ${parseFloat(selectedProject.budget).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                )}
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">Priority</Label>
+                  <div className="mt-1">
+                    <Badge variant={getPriorityColor(selectedProject.priority)}>
+                      {selectedProject.priority}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              {/* Customer & Team */}
+              <div className="grid grid-cols-2 gap-4">
+                {selectedProject.customer && (
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500">Customer</Label>
+                    <p className="text-sm">{selectedProject.customer.name}</p>
+                    {selectedProject.customer.email && (
+                      <p className="text-xs text-gray-500">{selectedProject.customer.email}</p>
+                    )}
+                  </div>
+                )}
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">Team Members</Label>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {selectedProject.users.map(({ user }) => (
+                      <Badge key={user.id} variant="outline" className="text-xs">
+                        {user.firstName} {user.lastName}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Tasks Progress */}
+              {selectedProject.taskCount > 0 && (
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">Tasks Progress</Label>
+                  <div className="mt-2">
+                    <div className="flex justify-between text-sm mb-1">
+                      <span>Completed Tasks</span>
+                      <span>{selectedProject.completedTasks}/{selectedProject.taskCount}</span>
+                    </div>
+                    <Progress value={(selectedProject.completedTasks / selectedProject.taskCount) * 100} className="h-2" />
+                  </div>
+                </div>
+              )}
+
+              {/* Project Tasks */}
+              <div>
+                <Label className="text-sm font-medium text-gray-500">Tasks</Label>
+                <div className="mt-2 space-y-2 max-h-48 overflow-y-auto">
+                  {projectTasks.length > 0 ? (
+                    projectTasks.map((task: any) => (
+                      <div key={task.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                        <div className="flex items-center gap-2">
+                          <CheckSquare className="h-4 w-4 text-gray-400" />
+                          <span className="text-sm">{task.title}</span>
+                        </div>
+                        <Badge variant={task.status === 'completed' ? 'default' : 'outline'} className="text-xs">
+                          {task.status}
+                        </Badge>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-gray-500">No tasks assigned to this job yet</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Project Files & Images */}
+              <div>
+                <Label className="text-sm font-medium text-gray-500">Files & Images</Label>
+                <div className="mt-2 space-y-2 max-h-48 overflow-y-auto">
+                  {projectFiles.length > 0 ? (
+                    <div className="grid grid-cols-2 gap-2">
+                      {projectFiles.map((file: any) => (
+                        <div key={file.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                          {file.mimeType?.startsWith('image/') ? (
+                            <Image className="h-4 w-4 text-blue-500" />
+                          ) : (
+                            <FileText className="h-4 w-4 text-gray-400" />
+                          )}
+                          <span className="text-sm truncate">{file.originalName}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">No files uploaded to this job yet</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Timestamps */}
+              <div className="grid grid-cols-2 gap-4 text-xs text-gray-500">
+                <div>
+                  <Label className="text-xs font-medium text-gray-400">Created</Label>
+                  <p>{new Date(selectedProject.createdAt).toLocaleString()}</p>
+                </div>
+                <div>
+                  <Label className="text-xs font-medium text-gray-400">Updated</Label>
+                  <p>{new Date(selectedProject.updatedAt).toLocaleString()}</p>
+                </div>
+              </div>
+            </div>
+          )}
+          <div className="flex justify-end gap-2 pt-4">
+            <Button variant="outline" onClick={() => setViewDialogOpen(false)}>
+              Close
+            </Button>
+            <Button asChild>
+              <Link href={`/jobs/${selectedProject?.id}/tasks`}>
+                <CheckSquare className="h-4 w-4 mr-2" />
+                Manage Tasks
+              </Link>
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       </div>
     </div>
   );
