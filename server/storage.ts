@@ -84,6 +84,7 @@ export interface IStorage {
   
   // Calendar jobs methods
   getCalendarJobs(organizationId: number): Promise<any[]>;
+  getCalendarJob(id: number, organizationId: number): Promise<any>;
   createCalendarJob(jobData: any): Promise<any>;
   updateCalendarJob(id: number, updates: any): Promise<any>;
   deleteCalendarJob(id: number): Promise<void>;
@@ -626,12 +627,25 @@ export class DatabaseStorage implements IStorage {
 
   // Calendar jobs methods
   async getCalendarJobs(organizationId: number): Promise<any[]> {
-    return await db
+    const results = await db
       .select()
       .from(calendarJobs)
       .innerJoin(users, eq(calendarJobs.userId, users.id))
       .where(eq(users.organizationId, organizationId))
       .orderBy(desc(calendarJobs.createdAt));
+    
+    return results.map(row => row.calendar_jobs);
+  }
+
+  async getCalendarJob(id: number, organizationId: number): Promise<any> {
+    const results = await db
+      .select()
+      .from(calendarJobs)
+      .innerJoin(users, eq(calendarJobs.userId, users.id))
+      .where(and(eq(calendarJobs.id, id), eq(users.organizationId, organizationId)))
+      .limit(1);
+    
+    return results.length > 0 ? results[0].calendar_jobs : null;
   }
 
   async createCalendarJob(jobData: any): Promise<any> {

@@ -177,8 +177,8 @@ export default function CalendarPage() {
     setIsConvertDialogOpen(true);
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
+  const getStatusColor = (status?: string) => {
+    switch (status || 'scheduled') {
       case 'scheduled':
         return 'bg-blue-100 text-blue-800';
       case 'in_progress':
