@@ -84,10 +84,6 @@ export default function Jobs() {
     queryKey: ["/api/users"],
   });
 
-  const { data: calendarJobs = [] } = useQuery<CalendarJobWithDetails[]>({
-    queryKey: ["/api/calendar-jobs"],
-  });
-
   // Fetch project files when viewing details
   const { data: projectFiles = [] } = useQuery({
     queryKey: ["/api/projects", selectedProject?.id, "files"],
@@ -102,26 +98,7 @@ export default function Jobs() {
     enabled: !!selectedProject,
   });
 
-interface CalendarJobWithDetails {
-  id: number;
-  userId: number;
-  customerId?: number;
-  leadId?: number;
-  title: string;
-  description?: string;
-  location?: string;
-  startDate: string;
-  endDate: string;
-  estimatedValue?: string;
-  status: string;
-  priority: string;
-  notes?: string;
-  convertedToProjectId?: number;
-  createdAt: string;
-  updatedAt: string;
-  customer?: Customer;
-  lead?: any;
-}
+
 
   const createJobMutation = useMutation({
     mutationFn: (data: any) => apiRequest("/api/projects", "POST", data),
