@@ -852,23 +852,67 @@ interface CalendarJobWithDetails {
 
               {/* Project Files & Images */}
               <div>
-                <Label className="text-sm font-medium text-gray-500">Files & Images</Label>
+                <div className="flex items-center justify-between mb-2">
+                  <Label className="text-sm font-medium text-gray-500">Files & Images</Label>
+                  <div className="flex gap-1">
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => document.getElementById('file-upload')?.click()}
+                    >
+                      <Upload className="h-3 w-3 mr-1" />
+                      Upload
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => setShowPhotoCapture(true)}
+                    >
+                      <Camera className="h-3 w-3 mr-1" />
+                      Photo
+                    </Button>
+                  </div>
+                </div>
+                <input
+                  id="file-upload"
+                  type="file"
+                  hidden
+                  multiple
+                  accept="image/*,.pdf,.doc,.docx,.txt"
+                  onChange={handleFileUpload}
+                />
                 <div className="mt-2 space-y-2 max-h-48 overflow-y-auto">
                   {projectFiles.length > 0 ? (
                     <div className="grid grid-cols-2 gap-2">
                       {projectFiles.map((file: any) => (
-                        <div key={file.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                        <div key={file.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded hover:bg-gray-100 cursor-pointer">
                           {file.mimeType?.startsWith('image/') ? (
-                            <Image className="h-4 w-4 text-blue-500" />
+                            <div className="relative">
+                              <img 
+                                src={`/api/files/${file.id}/download`}
+                                alt={file.originalName}
+                                className="w-8 h-8 object-cover rounded"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = '/placeholder.png';
+                                }}
+                              />
+                            </div>
                           ) : (
                             <FileText className="h-4 w-4 text-gray-400" />
                           )}
-                          <span className="text-sm truncate">{file.originalName}</span>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-sm truncate block">{file.originalName}</span>
+                            <span className="text-xs text-gray-400">{(file.fileSize / 1024).toFixed(1)}KB</span>
+                          </div>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-gray-500">No files uploaded to this job yet</p>
+                    <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
+                      <FileText className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                      <p className="text-sm text-gray-500">No files uploaded yet</p>
+                      <p className="text-xs text-gray-400">Click Upload or Photo to add files</p>
+                    </div>
                   )}
                 </div>
               </div>

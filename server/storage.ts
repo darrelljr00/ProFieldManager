@@ -51,6 +51,7 @@ export interface IStorage {
   
   // Project/Job methods
   getProjects(organizationId: number): Promise<any[]>;
+  getProject(id: number, userId: number): Promise<any>;
   createProject(projectData: any): Promise<any>;
   updateProject(id: number, updates: any): Promise<any>;
   deleteProject(id: number): Promise<void>;
@@ -473,6 +474,39 @@ export class DatabaseStorage implements IStorage {
     );
 
     return projectsWithDetails;
+  }
+
+  async getProject(id: number, userId: number): Promise<any> {
+    const [project] = await db
+      .select()
+      .from(projects)
+      .where(eq(projects.id, id));
+
+    if (!project) return null;
+
+    // Get task counts
+    const taskCounts = await db
+      .select({
+        total: sql<number>`count(*)`,
+        completed: sql<number>`count(*) filter (where ${tasks.status} = 'completed')`,
+      })
+      .from(tasks)
+      .where(eq(tasks.projectId, project.id));
+
+    // Get customer info
+    const customer = project.customerId ? await db
+      .select()
+      .from(customers)
+      .where(eq(customers.id, project.customerId))
+      .limit(1) : [];
+
+    return {
+      ...project,
+      taskCount: Number(taskCounts[0]?.total) || 0,
+      completedTasks: Number(taskCounts[0]?.completed) || 0,
+      customer: customer[0] || null,
+      users: [], // Empty for now since userProjects table doesn't exist
+    };
   }
 
   async createProject(projectData: any): Promise<any> {
