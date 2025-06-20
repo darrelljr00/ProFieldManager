@@ -1164,22 +1164,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "No file uploaded" });
       }
 
-      // Delete old logo if it exists
-      const oldSettings = await storage.getSettings('company');
-      if (oldSettings.logo) {
-        try {
-          await fs.unlink(oldSettings.logo);
-        } catch (error) {
-          // Ignore if file doesn't exist
-        }
-      }
-
       // Update company settings with new logo path
       const logoPath = req.file.path;
-      await storage.updateSettings('company', { 
-        ...oldSettings,
-        logo: logoPath 
-      });
+      await storage.updateSetting('company', 'logo', logoPath);
 
       res.json({ 
         message: "Logo uploaded successfully",
