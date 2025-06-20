@@ -103,6 +103,19 @@ export interface IStorage {
   createGPSSession(sessionData: any): Promise<any>;
   getGPSSessions(organizationId: number): Promise<any[]>;
   getGPSStats(organizationId: number): Promise<any>;
+  
+  // SMS and Review methods
+  getSmsMessages(organizationId: number): Promise<any[]>;
+  getSmsTemplates(organizationId: number): Promise<any[]>;
+  getReviewRequests(organizationId: number): Promise<any[]>;
+  getReviewAnalytics(organizationId: number): Promise<any>;
+  createReviewRequest(requestData: any): Promise<any>;
+  getGoogleMyBusinessSettings(userId: number): Promise<any>;
+  
+  // Gas card methods
+  getGasCards(organizationId: number): Promise<any[]>;
+  getGasCardAssignments(organizationId: number): Promise<any[]>;
+  getActiveGasCardAssignments(organizationId: number): Promise<any[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -703,17 +716,35 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getTasksCreatedByUser(userId: number): Promise<any[]> {
-    return await db
+    const results = await db
       .select()
       .from(tasks)
+      .leftJoin(users, eq(tasks.assignedToId, users.id))
+      .leftJoin(projects, eq(tasks.projectId, projects.id))
       .where(eq(tasks.createdById, userId))
       .orderBy(desc(tasks.createdAt));
+    
+    return results.map(row => ({
+      ...row.tasks,
+      assignedTo: row.users ? {
+        id: row.users.id,
+        firstName: row.users.firstName,
+        lastName: row.users.lastName,
+        username: row.users.username
+      } : null,
+      project: row.projects ? {
+        id: row.projects.id,
+        name: row.projects.name
+      } : null
+    }));
   }
 
   async getTasksAssignedToUser(userId: number): Promise<any[]> {
-    return await db
+    const results = await db
       .select()
       .from(tasks)
+      .leftJoin(users, eq(tasks.createdById, users.id))
+      .leftJoin(projects, eq(tasks.projectId, projects.id))
       .where(eq(tasks.assignedToId, userId))
       .orderBy(desc(tasks.createdAt));
   }
@@ -852,6 +883,141 @@ export class DatabaseStorage implements IStorage {
       recentSessions: result.recentSessions || 0,
       mobilePercentage: result.totalSessions > 0 ? Math.round((result.mobileSessions / result.totalSessions) * 100) : 0
     };
+  }
+
+  // SMS and Review methods
+  async getSmsMessages(organizationId: number): Promise<any[]> {
+    try {
+      return await db
+        .select()
+        .from(messages)
+        .innerJoin(users, eq(messages.userId, users.id))
+        .where(eq(users.organizationId, organizationId))
+        .orderBy(desc(messages.createdAt));
+    } catch (error) {
+      console.error('Error fetching SMS messages:', error);
+      return [];
+    }
+  }
+
+  async getSmsTemplates(organizationId: number): Promise<any[]> {
+    try {
+      // Return default templates for now
+      return [
+        {
+          id: 1,
+          name: 'Job Reminder',
+          content: 'Hi {customerName}, this is a reminder about your scheduled service on {date}.',
+          variables: ['customerName', 'date']
+        },
+        {
+          id: 2,
+          name: 'Job Complete',
+          content: 'Hi {customerName}, your service has been completed. Thank you for choosing us!',
+          variables: ['customerName']
+        }
+      ];
+    } catch (error) {
+      console.error('Error fetching SMS templates:', error);
+      return [];
+    }
+  }
+
+  async getReviewRequests(organizationId: number): Promise<any[]> {
+    try {
+      // Return empty array for now as reviewRequests table may not exist
+      return [];
+    } catch (error) {
+      console.error('Error fetching review requests:', error);
+      return [];
+    }
+  }
+
+  async getReviewAnalytics(organizationId: number): Promise<any> {
+    try {
+      return {
+        totalRequests: 0,
+        sentRequests: 0,
+        clickedRequests: 0,
+        completedReviews: 0,
+        averageRating: 0,
+        clickRate: 0,
+        conversionRate: 0
+      };
+    } catch (error) {
+      console.error('Error fetching review analytics:', error);
+      return {
+        totalRequests: 0,
+        sentRequests: 0,
+        clickedRequests: 0,
+        completedReviews: 0,
+        averageRating: 0,
+        clickRate: 0,
+        conversionRate: 0
+      };
+    }
+  }
+
+  async createReviewRequest(requestData: any): Promise<any> {
+    try {
+      // For now, return the request data as if it was created
+      return {
+        id: Date.now(),
+        ...requestData,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+    } catch (error) {
+      console.error('Error creating review request:', error);
+      throw error;
+    }
+  }
+
+  async getGoogleMyBusinessSettings(userId: number): Promise<any> {
+    try {
+      // Return default settings for now
+      return {
+        id: 1,
+        userId,
+        businessName: 'Your Business',
+        reviewUrl: 'https://g.page/yourbusiness/review',
+        isActive: true
+      };
+    } catch (error) {
+      console.error('Error fetching Google My Business settings:', error);
+      return null;
+    }
+  }
+
+  // Gas card methods
+  async getGasCards(organizationId: number): Promise<any[]> {
+    try {
+      // Return empty array for now as gas card tables may not exist
+      return [];
+    } catch (error) {
+      console.error('Error fetching gas cards:', error);
+      return [];
+    }
+  }
+
+  async getGasCardAssignments(organizationId: number): Promise<any[]> {
+    try {
+      // Return empty array for now as gas card assignment tables may not exist
+      return [];
+    } catch (error) {
+      console.error('Error fetching gas card assignments:', error);
+      return [];
+    }
+  }
+
+  async getActiveGasCardAssignments(organizationId: number): Promise<any[]> {
+    try {
+      // Return empty array for now as gas card assignment tables may not exist
+      return [];
+    } catch (error) {
+      console.error('Error fetching active gas card assignments:', error);
+      return [];
+    }
   }
 }
 

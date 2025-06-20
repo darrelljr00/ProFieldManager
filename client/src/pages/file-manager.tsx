@@ -42,7 +42,7 @@ interface FileItem {
   description?: string;
   tags?: string[];
   downloadCount: number;
-  uploadedByUser: {
+  uploadedByUser?: {
     username: string;
     firstName?: string;
     lastName?: string;
