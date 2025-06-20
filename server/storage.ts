@@ -4,7 +4,7 @@ import {
   expenses, expenseCategories, expenseReports, gasCards, 
   gasCardAssignments, leads, calendarJobs, messages,
   images, settings, organizations, userSessions, subscriptionPlans,
-  projectFiles, fileManager, userProjects
+  projectFiles, fileManager, projectUsers
 } from "@shared/schema";
 import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull } from "drizzle-orm";
 import type { 
@@ -461,26 +461,26 @@ export class DatabaseStorage implements IStorage {
           .where(eq(customers.id, project.customerId))
           .limit(1) : [];
 
-        const projectUsers = await db
+        const projectTeam = await db
           .select({
             user: {
               id: users.id,
               firstName: users.firstName,
               lastName: users.lastName,
               email: users.email,
-              role: userProjects.role,
+              role: projectUsers.role,
             }
           })
-          .from(userProjects)
-          .innerJoin(users, eq(userProjects.userId, users.id))
-          .where(eq(userProjects.projectId, project.id));
+          .from(projectUsers)
+          .innerJoin(users, eq(projectUsers.userId, users.id))
+          .where(eq(projectUsers.projectId, project.id));
 
         return {
           ...project,
           taskCount: Number(taskCounts[0]?.total) || 0,
           completedTasks: Number(taskCounts[0]?.completed) || 0,
           customer: customer[0] || null,
-          users: projectUsers || [],
+          users: projectTeam || [],
         };
       })
     );
@@ -513,26 +513,26 @@ export class DatabaseStorage implements IStorage {
       .limit(1) : [];
 
     // Get project team members
-    const projectUsers = await db
+    const projectTeam = await db
       .select({
         user: {
           id: users.id,
           firstName: users.firstName,
           lastName: users.lastName,
           email: users.email,
-          role: userProjects.role,
+          role: projectUsers.role,
         }
       })
-      .from(userProjects)
-      .innerJoin(users, eq(userProjects.userId, users.id))
-      .where(eq(userProjects.projectId, project.id));
+      .from(projectUsers)
+      .innerJoin(users, eq(projectUsers.userId, users.id))
+      .where(eq(projectUsers.projectId, project.id));
 
     return {
       ...project,
       taskCount: Number(taskCounts[0]?.total) || 0,
       completedTasks: Number(taskCounts[0]?.completed) || 0,
       customer: customer[0] || null,
-      users: projectUsers || [],
+      users: projectTeam || [],
     };
   }
 
@@ -564,20 +564,17 @@ export class DatabaseStorage implements IStorage {
 
   async assignUserToProject(userId: number, projectId: number, role: string = "member"): Promise<any> {
     const [assignment] = await db
-      .insert(userProjects)
+      .insert(projectUsers)
       .values({ userId, projectId, role })
-      .onConflictDoUpdate({
-        target: [userProjects.userId, userProjects.projectId],
-        set: { role, assignedAt: new Date() }
-      })
+      .onConflictDoNothing()
       .returning();
     return assignment;
   }
 
   async removeUserFromProject(userId: number, projectId: number): Promise<void> {
     await db
-      .delete(userProjects)
-      .where(and(eq(userProjects.userId, userId), eq(userProjects.projectId, projectId)));
+      .delete(projectUsers)
+      .where(and(eq(projectUsers.userId, userId), eq(projectUsers.projectId, projectId)));
   }
 
   // Expense methods
