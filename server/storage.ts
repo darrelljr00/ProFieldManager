@@ -93,10 +93,12 @@ export interface IStorage {
   getTeamTasksForManager(userId: number): Promise<any[]>;
   getTasksCreatedByUser(userId: number): Promise<any[]>;
   getTasksAssignedToUser(userId: number): Promise<any[]>;
+  getTasks(projectId: number, userId: number): Promise<any[]>;
+  getAllTasksForOrganization(organizationId: number): Promise<any[]>;
   createTask(taskData: any): Promise<any>;
   createTaskForOrganization(organizationId: number, taskData: any, userId: number): Promise<any>;
   canUserDelegateTask(userId: number, assignedToId: number): Promise<boolean>;
-  updateTask(id: number, updates: any): Promise<any>;
+  updateTask(id: number, userId: number, updates: any): Promise<any>;
   deleteTask(id: number): Promise<void>;
   
   // GPS tracking methods

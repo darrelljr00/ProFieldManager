@@ -84,16 +84,16 @@ export default function Jobs() {
   });
 
   // Fetch project files when viewing details
-  const { data: projectFiles = [], refetch: refetchFiles } = useQuery({
-    queryKey: ["/api/files", selectedProject?.id],
-    queryFn: () => selectedProject ? apiRequest("GET", `/api/files?projectId=${selectedProject.id}`).then(res => res.json()) : [],
+  const { data: projectFiles = [] } = useQuery({
+    queryKey: ["/api/projects", selectedProject?.id, "files"],
+    queryFn: () => selectedProject ? apiRequest("GET", `/api/projects/${selectedProject.id}/files`).then(res => res.json()) : [],
     enabled: !!selectedProject,
   });
 
-  // Fetch project tasks when viewing details
-  const { data: projectTasks = [], refetch: refetchTasks } = useQuery({
-    queryKey: ["/api/tasks", selectedProject?.id],
-    queryFn: () => selectedProject ? apiRequest("GET", `/api/tasks?projectId=${selectedProject.id}`).then(res => res.json()) : [],
+  // Fetch project tasks when viewing details  
+  const { data: projectTasks = [] } = useQuery({
+    queryKey: ["/api/projects", selectedProject?.id, "tasks"],
+    queryFn: () => selectedProject ? apiRequest("GET", `/api/projects/${selectedProject.id}/tasks`).then(res => res.json()) : [],
     enabled: !!selectedProject,
   });
 

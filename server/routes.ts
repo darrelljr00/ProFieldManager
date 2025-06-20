@@ -1967,6 +1967,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get project files
+  app.get("/api/projects/:id/files", requireAuth, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const files = await storage.getFiles(req.user!.organizationId);
+      // Filter files by project ID
+      const projectFiles = files.filter(file => file.projectId === projectId);
+      res.json(projectFiles);
+    } catch (error: any) {
+      console.error("Error fetching project files:", error);
+      res.status(500).json({ message: "Failed to fetch project files" });
+    }
+  });
+
   // File uploads (multer for handling multipart/form-data)
   app.post("/api/projects/:id/files", requireAuth, upload.single('file'), async (req, res) => {
     try {
