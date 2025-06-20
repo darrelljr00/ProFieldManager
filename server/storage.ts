@@ -838,10 +838,78 @@ export class DatabaseStorage implements IStorage {
     return user?.role === 'admin' || user?.role === 'manager';
   }
 
-  async updateTask(id: number, updates: any): Promise<any> {
+  async getTasks(projectId: number, userId: number): Promise<any[]> {
+    const result = await db
+      .select({
+        id: tasks.id,
+        title: tasks.title,
+        description: tasks.description,
+        status: tasks.status,
+        priority: tasks.priority,
+        dueDate: tasks.dueDate,
+        projectId: tasks.projectId,
+        assignedToId: tasks.assignedToId,
+        createdById: tasks.createdById,
+        createdAt: tasks.createdAt,
+        updatedAt: tasks.updatedAt,
+        assignedTo: {
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          email: users.email,
+        },
+        project: {
+          id: projects.id,
+          name: projects.name,
+        },
+      })
+      .from(tasks)
+      .leftJoin(users, eq(tasks.assignedToId, users.id))
+      .leftJoin(projects, eq(tasks.projectId, projects.id))
+      .where(eq(tasks.projectId, projectId));
+    
+    return result;
+  }
+
+  async getAllTasksForOrganization(organizationId: number): Promise<any[]> {
+    const result = await db
+      .select({
+        id: tasks.id,
+        title: tasks.title,
+        description: tasks.description,
+        status: tasks.status,
+        priority: tasks.priority,
+        dueDate: tasks.dueDate,
+        projectId: tasks.projectId,
+        assignedToId: tasks.assignedToId,
+        createdById: tasks.createdById,
+        createdAt: tasks.createdAt,
+        updatedAt: tasks.updatedAt,
+        assignedTo: {
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          email: users.email,
+        },
+        project: {
+          id: projects.id,
+          name: projects.name,
+        },
+      })
+      .from(tasks)
+      .leftJoin(users, eq(tasks.assignedToId, users.id))
+      .leftJoin(projects, eq(tasks.projectId, projects.id))
+      .innerJoin(userProjects, eq(projects.id, userProjects.projectId))
+      .innerJoin(orgUsers, eq(userProjects.userId, orgUsers.id))
+      .where(eq(orgUsers.organizationId, organizationId));
+    
+    return result;
+  }
+
+  async updateTask(id: number, userId: number, updates: any): Promise<any> {
     const [task] = await db
       .update(tasks)
-      .set(updates)
+      .set({ ...updates, updatedAt: new Date() })
       .where(eq(tasks.id, id))
       .returning();
     return task;
