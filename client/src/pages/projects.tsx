@@ -55,6 +55,7 @@ export default function Jobs() {
   const [selectedProject, setSelectedProject] = useState<ProjectWithDetails | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [showMobileCamera, setShowMobileCamera] = useState(false);
+  const [showUserAssignment, setShowUserAssignment] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -77,6 +78,10 @@ export default function Jobs() {
 
   const { data: customers = [] } = useQuery<Customer[]>({
     queryKey: ["/api/customers"],
+  });
+
+  const { data: allUsers = [] } = useQuery<User[]>({
+    queryKey: ["/api/users"],
   });
 
   const { data: calendarJobs = [] } = useQuery<CalendarJobWithDetails[]>({
@@ -217,6 +222,56 @@ interface CalendarJobWithDetails {
 
     // Reset the input
     event.target.value = '';
+  };
+
+  const handleAssignUserToProject = async (userId: number, role: string = "member") => {
+    if (!selectedProject) return;
+
+    try {
+      await apiRequest('POST', `/api/projects/${selectedProject.id}/assign`, {
+        userId,
+        role,
+      });
+      
+      toast({
+        title: "User assigned successfully",
+        description: "Team member has been added to the project.",
+      });
+
+      // Refresh project data
+      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedProject.id] });
+      setShowUserAssignment(false);
+    } catch (error) {
+      toast({
+        title: "Assignment failed",
+        description: "Failed to assign user to project. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRemoveUserFromProject = async (userId: number) => {
+    if (!selectedProject) return;
+
+    try {
+      await apiRequest('DELETE', `/api/projects/${selectedProject.id}/assign/${userId}`);
+      
+      toast({
+        title: "User removed successfully",
+        description: "Team member has been removed from the project.",
+      });
+
+      // Refresh project data
+      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedProject.id] });
+    } catch (error) {
+      toast({
+        title: "Removal failed",
+        description: "Failed to remove user from project. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const getStatusColor = (status: string): "default" | "destructive" | "outline" | "secondary" => {
@@ -840,13 +895,38 @@ interface CalendarJobWithDetails {
                   </div>
                 )}
                 <div>
-                  <Label className="text-sm font-medium text-gray-500">Team Members</Label>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {selectedProject.users.map(({ user }) => (
-                      <Badge key={user.id} variant="outline" className="text-xs">
-                        {user.firstName} {user.lastName}
-                      </Badge>
-                    ))}
+                  <div className="flex items-center justify-between mb-2">
+                    <Label className="text-sm font-medium text-gray-500">Team Members</Label>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => setShowUserAssignment(true)}
+                    >
+                      <Users className="h-3 w-3 mr-1" />
+                      Assign
+                    </Button>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {selectedProject.users && selectedProject.users.length > 0 ? (
+                      selectedProject.users.map(({ user }) => (
+                        <div key={user.id} className="flex items-center gap-1">
+                          <Badge variant="outline" className="text-xs">
+                            {user.firstName} {user.lastName}
+                            <span className="ml-1 text-xs text-gray-400">({user.role})</span>
+                          </Badge>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-4 w-4 p-0"
+                            onClick={() => handleRemoveUserFromProject(user.id)}
+                          >
+                            ×
+                          </Button>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-xs text-gray-400">No team members assigned</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -979,6 +1059,54 @@ interface CalendarJobWithDetails {
                 <CheckSquare className="h-4 w-4 mr-2" />
                 Manage Tasks
               </Link>
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* User Assignment Dialog */}
+      <Dialog open={showUserAssignment} onOpenChange={setShowUserAssignment}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Assign Team Members</DialogTitle>
+            <DialogDescription>
+              Add team members to {selectedProject?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {allUsers
+              .filter(user => !selectedProject?.users?.some(({ user: projectUser }) => projectUser.id === user.id))
+              .map(user => (
+              <div key={user.id} className="flex items-center justify-between p-3 border rounded-lg">
+                <div>
+                  <p className="font-medium">{user.firstName} {user.lastName}</p>
+                  <p className="text-sm text-gray-500">{user.email}</p>
+                  <p className="text-xs text-gray-400">{user.role}</p>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleAssignUserToProject(user.id, "member")}
+                  >
+                    Member
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => handleAssignUserToProject(user.id, "manager")}
+                  >
+                    Manager
+                  </Button>
+                </div>
+              </div>
+            ))}
+            {allUsers.filter(user => !selectedProject?.users?.some(({ user: projectUser }) => projectUser.id === user.id)).length === 0 && (
+              <p className="text-center text-gray-500 py-4">All users are already assigned to this project</p>
+            )}
+          </div>
+          <div className="flex justify-end">
+            <Button variant="outline" onClick={() => setShowUserAssignment(false)}>
+              Close
             </Button>
           </div>
         </DialogContent>
