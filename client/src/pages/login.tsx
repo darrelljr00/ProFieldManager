@@ -137,12 +137,27 @@ export default function LoginPage() {
 
   const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    e.stopPropagation();
+    
     const formData = new FormData(e.currentTarget);
-    const loginData: LoginData = {
-      username: formData.get("username") as string,
-      password: formData.get("password") as string,
-    };
-    loginMutation.mutate(loginData);
+    const username = formData.get("username") as string;
+    const password = formData.get("password") as string;
+    
+    if (!username || !password) {
+      toast({
+        title: "Missing credentials",
+        description: "Please enter both username and password",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const loginData: LoginData = { username, password };
+    
+    // Add small delay for mobile touch feedback
+    setTimeout(() => {
+      loginMutation.mutate(loginData);
+    }, 100);
   };
 
   const handleRegister = (e: React.FormEvent<HTMLFormElement>) => {
