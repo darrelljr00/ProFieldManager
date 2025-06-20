@@ -610,11 +610,41 @@ export class DatabaseStorage implements IStorage {
 
   // File methods
   async getFiles(organizationId: number): Promise<any[]> {
-    return await db
-      .select()
+    const results = await db
+      .select({
+        id: fileManager.id,
+        organizationId: fileManager.organizationId,
+        uploadedBy: fileManager.uploadedBy,
+        fileName: fileManager.fileName,
+        originalName: fileManager.originalName,
+        filePath: fileManager.filePath,
+        fileSize: fileManager.fileSize,
+        mimeType: fileManager.mimeType,
+        fileType: fileManager.fileType,
+        description: fileManager.description,
+        tags: fileManager.tags,
+        folderId: fileManager.folderId,
+        isPublic: fileManager.isPublic,
+        downloadCount: fileManager.downloadCount,
+        shareableToken: fileManager.shareableToken,
+        shareExpiresAt: fileManager.shareExpiresAt,
+        createdAt: fileManager.createdAt,
+        updatedAt: fileManager.updatedAt,
+        uploadedByUser: {
+          username: users.username,
+          firstName: users.firstName,
+          lastName: users.lastName
+        }
+      })
       .from(fileManager)
+      .leftJoin(users, eq(fileManager.uploadedBy, users.id))
       .where(eq(fileManager.organizationId, organizationId))
       .orderBy(desc(fileManager.createdAt));
+    
+    return results.map(row => ({
+      ...row,
+      uploadedByUser: row.uploadedByUser.username ? row.uploadedByUser : null
+    }));
   }
 
   async createFile(fileData: any): Promise<any> {
