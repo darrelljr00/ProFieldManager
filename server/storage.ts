@@ -81,6 +81,10 @@ export interface IStorage {
   createFile(fileData: any): Promise<any>;
   updateFile(id: number, updates: any): Promise<any>;
   deleteFile(id: number): Promise<void>;
+  uploadProjectFile(fileData: any): Promise<any>;
+  getProjectFiles(projectId: number, userId: number): Promise<any[]>;
+  getProjectFile(fileId: number, userId: number): Promise<any>;
+  deleteProjectFile(fileId: number, userId: number): Promise<boolean>;
   
   // Calendar jobs methods
   getCalendarJobs(organizationId: number): Promise<any[]>;
@@ -668,6 +672,57 @@ export class DatabaseStorage implements IStorage {
 
   async deleteFile(id: number): Promise<void> {
     await db.delete(fileManager).where(eq(fileManager.id, id));
+  }
+
+  async uploadProjectFile(fileData: any): Promise<any> {
+    const [file] = await db
+      .insert(projectFiles)
+      .values(fileData)
+      .returning();
+    return file;
+  }
+
+  async getProjectFiles(projectId: number, userId: number): Promise<any[]> {
+    return await db
+      .select({
+        id: projectFiles.id,
+        projectId: projectFiles.projectId,
+        taskId: projectFiles.taskId,
+        fileName: projectFiles.fileName,
+        originalName: projectFiles.originalName,
+        filePath: projectFiles.filePath,
+        fileSize: projectFiles.fileSize,
+        mimeType: projectFiles.mimeType,
+        fileType: projectFiles.fileType,
+        description: projectFiles.description,
+        uploadedById: projectFiles.uploadedById,
+        createdAt: projectFiles.createdAt,
+        uploadedBy: {
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          email: users.email,
+        }
+      })
+      .from(projectFiles)
+      .leftJoin(users, eq(projectFiles.uploadedById, users.id))
+      .where(eq(projectFiles.projectId, projectId));
+  }
+
+  async getProjectFile(fileId: number, userId: number): Promise<any> {
+    const [file] = await db
+      .select()
+      .from(projectFiles)
+      .where(eq(projectFiles.id, fileId));
+    return file;
+  }
+
+  async deleteProjectFile(fileId: number, userId: number): Promise<boolean> {
+    const result = await db
+      .delete(projectFiles)
+      .where(eq(projectFiles.id, fileId))
+      .returning();
+    return result.length > 0;
   }
 
   // Calendar jobs methods
