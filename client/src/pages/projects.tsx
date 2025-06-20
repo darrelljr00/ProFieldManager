@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Calendar, Users, CheckCircle, Clock, AlertCircle, Folder, Settings, MapPin, Route, Star, Smartphone, Eye, Image, FileText, CheckSquare } from "lucide-react";
+import { Plus, Calendar, Users, CheckCircle, Clock, AlertCircle, Folder, Settings, MapPin, Route, Star, Smartphone, Eye, Image, FileText, CheckSquare, Upload, Camera, DollarSign } from "lucide-react";
 import { Link } from "wouter";
 import { format } from "date-fns";
 import type { Project, Customer, User } from "@shared/schema";
@@ -180,6 +180,43 @@ interface CalendarJobWithDetails {
   const handleViewProject = (project: ProjectWithDetails) => {
     setSelectedProject(project);
     setViewDialogOpen(true);
+    
+    // Fetch project files and tasks
+    if (project.id) {
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', project.id, 'files'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', project.id, 'tasks'] });
+    }
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || !selectedProject) return;
+
+    for (const file of Array.from(files)) {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('description', `Uploaded file: ${file.name}`);
+
+      try {
+        await apiRequest('POST', `/api/projects/${selectedProject.id}/files`, formData);
+        toast({
+          title: "File uploaded successfully",
+          description: `${file.name} has been uploaded to the job.`,
+        });
+        
+        // Refresh files list
+        queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedProject.id, 'files'] });
+      } catch (error) {
+        toast({
+          title: "Upload failed",
+          description: `Failed to upload ${file.name}. Please try again.`,
+          variant: "destructive",
+        });
+      }
+    }
+
+    // Reset the input
+    event.target.value = '';
   };
 
   const getStatusColor = (status: string): "default" | "destructive" | "outline" | "secondary" => {
@@ -889,13 +926,16 @@ interface CalendarJobWithDetails {
                           {file.mimeType?.startsWith('image/') ? (
                             <div className="relative">
                               <img 
-                                src={`/api/files/${file.id}/download`}
+                                src={`/api/project-files/${file.id}/download`}
                                 alt={file.originalName}
                                 className="w-8 h-8 object-cover rounded"
                                 onError={(e) => {
-                                  (e.target as HTMLImageElement).src = '/placeholder.png';
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = 'none';
+                                  target.nextElementSibling?.classList.remove('hidden');
                                 }}
                               />
+                              <Image className="h-4 w-4 text-blue-500 hidden" />
                             </div>
                           ) : (
                             <FileText className="h-4 w-4 text-gray-400" />

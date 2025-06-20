@@ -1971,10 +1971,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/projects/:id/files", requireAuth, async (req, res) => {
     try {
       const projectId = parseInt(req.params.id);
-      const files = await storage.getFiles(req.user!.organizationId);
-      // Filter files by project ID
-      const projectFiles = files.filter(file => file.projectId === projectId);
-      res.json(projectFiles);
+      const userId = req.user!.id;
+      const files = await storage.getProjectFiles(projectId, userId);
+      res.json(files);
     } catch (error: any) {
       console.error("Error fetching project files:", error);
       res.status(500).json({ message: "Failed to fetch project files" });
@@ -2020,6 +2019,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error uploading file:", error);
       res.status(500).json({ message: "Failed to upload file" });
+    }
+  });
+
+  // Download project file
+  app.get("/api/project-files/:id/download", requireAuth, async (req, res) => {
+    try {
+      const fileId = parseInt(req.params.id);
+      const userId = req.user!.id;
+      const file = await storage.getProjectFile(fileId, userId);
+      
+      if (!file) {
+        return res.status(404).json({ message: "File not found" });
+      }
+
+      const filePath = path.join(process.cwd(), file.filePath);
+      res.download(filePath, file.originalName);
+    } catch (error: any) {
+      console.error("Error downloading file:", error);
+      res.status(500).json({ message: "Failed to download file" });
     }
   });
 
