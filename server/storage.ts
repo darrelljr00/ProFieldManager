@@ -747,6 +747,20 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(projects, eq(tasks.projectId, projects.id))
       .where(eq(tasks.assignedToId, userId))
       .orderBy(desc(tasks.createdAt));
+    
+    return results.map(row => ({
+      ...row.tasks,
+      assignedBy: row.users ? {
+        id: row.users.id,
+        firstName: row.users.firstName,
+        lastName: row.users.lastName,
+        username: row.users.username
+      } : null,
+      project: row.projects ? {
+        id: row.projects.id,
+        name: row.projects.name
+      } : null
+    }));
   }
 
   async createTask(taskData: any): Promise<any> {

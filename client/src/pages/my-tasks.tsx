@@ -176,28 +176,28 @@ export default function MyTasks() {
     });
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status?: string) => {
     const colors: Record<string, "default" | "destructive" | "outline" | "secondary"> = {
       todo: "outline",
       "in-progress": "default",
       review: "secondary",
       completed: "secondary",
     };
-    return colors[status] || "outline";
+    return colors[status || "todo"] || "outline";
   };
 
-  const getPriorityColor = (priority: string) => {
+  const getPriorityColor = (priority?: string) => {
     const colors: Record<string, "default" | "destructive" | "outline" | "secondary"> = {
       low: "outline",
       medium: "default",
       high: "secondary",
       urgent: "destructive",
     };
-    return colors[priority] || "outline";
+    return colors[priority || "medium"] || "outline";
   };
 
-  const getPriorityIcon = (priority: string) => {
-    switch (priority) {
+  const getPriorityIcon = (priority?: string) => {
+    switch (priority || "medium") {
       case "urgent":
         return <AlertTriangle className="h-3 w-3" />;
       case "high":
@@ -236,11 +236,11 @@ export default function MyTasks() {
             </CardTitle>
             <div className="flex flex-wrap items-center gap-2 mb-2">
               <Badge variant={getStatusColor(task.status)} className="text-xs">
-                {task.status.replace("-", " ")}
+                {(task.status || "todo").replace("-", " ")}
               </Badge>
               <Badge variant={getPriorityColor(task.priority)} className="flex items-center gap-1 text-xs">
                 {getPriorityIcon(task.priority)}
-                {task.priority}
+                {task.priority || "medium"}
               </Badge>
               {task.project && (
                 <Badge variant="outline" className="text-xs">
@@ -405,7 +405,12 @@ export default function MyTasks() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filterTasks(assignedTasks).map((task) => (
-                <TaskCard key={task.id} task={task} />
+                <TaskCard 
+                  key={`assigned-${task.id}`} 
+                  task={task} 
+                  onUpdate={handleUpdateTask}
+                  onDelete={handleDeleteTask}
+                />
               ))}
             </div>
           )}
@@ -440,7 +445,12 @@ export default function MyTasks() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filterTasks(createdTasks).map((task) => (
-                <TaskCard key={task.id} task={task} />
+                <TaskCard 
+                  key={`created-${task.id}`} 
+                  task={task} 
+                  onUpdate={handleUpdateTask}
+                  onDelete={handleDeleteTask}
+                />
               ))}
             </div>
           )}
@@ -476,7 +486,12 @@ export default function MyTasks() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filterTasks(teamTasks).map((task) => (
-                  <TaskCard key={task.id} task={task} />
+                  <TaskCard 
+                    key={`team-${task.id}`} 
+                    task={task} 
+                    onUpdate={handleUpdateTask}
+                    onDelete={handleDeleteTask}
+                  />
                 ))}
               </div>
             )}
