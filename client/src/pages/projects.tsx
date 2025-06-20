@@ -253,6 +253,50 @@ export default function Jobs() {
     }
   };
 
+
+
+  const handleDownloadFile = async (file: any) => {
+    try {
+      const response = await fetch(`/api/project-files/${file.id}/download`);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = file.originalName;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      toast({
+        title: "Download failed",
+        description: "Failed to download file. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteFile = async (fileId: number) => {
+    if (!selectedProject) return;
+    
+    try {
+      await apiRequest('DELETE', `/api/project-files/${fileId}`);
+      toast({
+        title: "File deleted successfully",
+        description: "File has been removed from the project.",
+      });
+      
+      // Refresh files
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedProject.id, 'files'] });
+    } catch (error) {
+      toast({
+        title: "Delete failed",
+        description: "Failed to delete file. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getStatusColor = (status: string): "default" | "destructive" | "outline" | "secondary" => {
     const colors: Record<string, "default" | "destructive" | "outline" | "secondary"> = {
       active: "default",
@@ -861,6 +905,101 @@ export default function Jobs() {
                   </div>
                 </div>
               )}
+
+              {/* File Gallery Section */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <Label className="text-sm font-medium text-gray-500">Project Files</Label>
+                  <div className="flex gap-2">
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleFileUpload}
+                      multiple
+                      accept="image/*,.pdf,.doc,.docx,.txt,.zip,.rar"
+                      className="hidden"
+                    />
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <Upload className="h-3 w-3 mr-1" />
+                      Upload
+                    </Button>
+                  </div>
+                </div>
+                
+                {/* File Grid */}
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-64 overflow-y-auto">
+                  {projectFiles.length > 0 ? (
+                    projectFiles.map((file: any) => (
+                      <div key={file.id} className="relative group border rounded-lg overflow-hidden bg-white">
+                        {file.mimeType?.startsWith('image/') ? (
+                          <div 
+                            className="aspect-square cursor-pointer relative"
+                            onClick={() => setSelectedFile(file)}
+                          >
+                            <img 
+                              src={`/api/project-files/${file.id}/download`}
+                              alt={file.originalName}
+                              className="w-full h-full object-cover"
+                              loading="lazy"
+                            />
+                            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 flex items-center justify-center">
+                              <Eye className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="aspect-square flex items-center justify-center bg-gray-50 cursor-pointer" onClick={() => setSelectedFile(file)}>
+                            <FileText className="h-8 w-8 text-gray-400" />
+                          </div>
+                        )}
+                        
+                        <div className="p-2">
+                          <p className="text-xs font-medium truncate" title={file.originalName}>
+                            {file.originalName}
+                          </p>
+                          <div className="flex items-center justify-between mt-1">
+                            <span className="text-xs text-gray-500">
+                              {Math.round(file.fileSize / 1024)}KB
+                            </span>
+                            <div className="flex gap-1">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-6 w-6 p-0"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDownloadFile(file);
+                                }}
+                              >
+                                <Download className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteFile(file.id);
+                                }}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="col-span-full text-center py-8 text-gray-400">
+                      <Upload className="h-8 w-8 mx-auto mb-2" />
+                      <p className="text-sm">No files uploaded yet</p>
+                    </div>
+                  )}
+                </div>
+              </div>
 
               {/* Project Tasks */}
               <div>
