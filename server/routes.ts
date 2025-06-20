@@ -2644,8 +2644,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Calendar Jobs API
   app.get("/api/calendar-jobs", requireAuth, async (req, res) => {
     try {
-      const userId = req.user!.id;
-      const jobs = await storage.getCalendarJobs(userId);
+      const user = getAuthenticatedUser(req);
+      const jobs = await storage.getCalendarJobs(user.organizationId);
       res.json(jobs);
     } catch (error: any) {
       console.error("Error fetching calendar jobs:", error);
@@ -2656,9 +2656,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/calendar-jobs/:id", requireAuth, async (req, res) => {
     try {
       const jobId = parseInt(req.params.id);
-      const userId = req.user!.id;
+      const user = getAuthenticatedUser(req);
       
-      const job = await storage.getCalendarJob(jobId, userId);
+      const job = await storage.getCalendarJob(jobId, user.organizationId);
       
       if (!job) {
         return res.status(404).json({ message: "Calendar job not found" });
