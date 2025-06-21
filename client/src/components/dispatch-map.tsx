@@ -119,8 +119,8 @@ export function DispatchMap({ jobs, optimization, startLocation }: DispatchMapPr
       const bounds = new window.google.maps.LatLngBounds();
       const geocodedJobs = [];
       
-      for (let i = 0; i < jobs.length; i++) {
-        const job = jobs[i];
+      for (let index = 0; index < jobs.length; index++) {
+        const job = jobs[index];
         let position = null;
         
         // Try to geocode the actual address

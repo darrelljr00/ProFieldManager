@@ -166,8 +166,9 @@ function Router() {
         <Switch>
           <Route path="/" component={Landing} />
           <Route path="/signup" component={Landing} />
-          <Route path="/login" component={Login} />
-          <Route component={Login} />
+          <Route path="/login" component={SimpleLogin} />
+          <Route path="/login-full" component={Login} />
+          <Route component={SimpleLogin} />
         </Switch>
       </Suspense>
     </div>
