@@ -3,6 +3,7 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { ErrorBoundary } from "@/components/error-boundary";
 import { Sidebar } from "@/components/sidebar";
 import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
@@ -136,7 +137,9 @@ function AuthenticatedApp() {
 }
 
 function Router() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, error } = useAuth();
+
+  console.log('Router state:', { isAuthenticated, isLoading, error });
 
   if (isLoading) {
     return (
@@ -151,23 +154,33 @@ function Router() {
   }
 
   return (
-    <Switch>
-      <Route path="/" component={Landing} />
-      <Route path="/signup" component={Landing} />
-      <Route path="/login" component={Login} />
-      <Route component={Login} />
-    </Switch>
+    <div className="min-h-screen bg-gray-50">
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+        </div>
+      }>
+        <Switch>
+          <Route path="/" component={Landing} />
+          <Route path="/signup" component={Landing} />
+          <Route path="/login" component={Login} />
+          <Route component={Login} />
+        </Switch>
+      </Suspense>
+    </div>
   );
 }
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Router />
-      </TooltipProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Router />
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 

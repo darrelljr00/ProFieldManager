@@ -275,7 +275,12 @@ export default function LoginPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleLogin} className="space-y-4">
+            <form 
+              onSubmit={handleLogin} 
+              className="space-y-4"
+              noValidate
+              style={{ touchAction: 'manipulation' }}
+            >
               <div className="space-y-2">
                 <Label htmlFor="username">Username</Label>
                 <div className="relative">
@@ -283,8 +288,14 @@ export default function LoginPage() {
                   <Input
                     id="username"
                     name="username"
+                    type="text"
+                    autoComplete="username"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck="false"
                     placeholder="Enter your username"
-                    className="pl-10"
+                    className="pl-10 min-h-[48px]"
+                    style={{ fontSize: '16px' }}
                     required
                   />
                 </div>
@@ -298,8 +309,13 @@ export default function LoginPage() {
                     id="password"
                     name="password"
                     type={showPassword ? "text" : "password"}
+                    autoComplete="current-password"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck="false"
                     placeholder="Enter your password"
-                    className="pl-10 pr-10"
+                    className="pl-10 pr-10 min-h-[48px]"
+                    style={{ fontSize: '16px' }}
                     required
                   />
                   <Button
@@ -316,8 +332,14 @@ export default function LoginPage() {
 
               <Button 
                 type="submit" 
-                className="w-full" 
+                className="w-full touch-manipulation" 
                 disabled={loginMutation.isPending}
+                style={{ 
+                  minHeight: '48px',
+                  fontSize: '16px',
+                  WebkitTapHighlightColor: 'transparent',
+                  touchAction: 'manipulation'
+                }}
               >
                 {loginMutation.isPending ? "Signing In..." : "Sign In"}
               </Button>
