@@ -60,7 +60,7 @@ export default function ImageGallery() {
   const [selectedImage, setSelectedImage] = useState<ImageFile | null>(null);
   const [isAnnotationOpen, setIsAnnotationOpen] = useState(false);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
-  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadFiles, setUploadFiles] = useState<File[]>([]);
   const [uploadProjectId, setUploadProjectId] = useState<string>("");
   const [isPhotoEditorOpen, setIsPhotoEditorOpen] = useState(false);
   
@@ -76,34 +76,44 @@ export default function ImageGallery() {
   });
 
   const uploadMutation = useMutation({
-    mutationFn: async (data: FormData) => {
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: data,
-        credentials: 'include',
+    mutationFn: async (files: File[]) => {
+      const uploadPromises = files.map(async (file) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        if (uploadProjectId) {
+          formData.append('projectId', uploadProjectId);
+        }
+
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+          credentials: 'include',
+        });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Upload failed for ${file.name}: ${response.status} ${response.statusText} - ${errorText}`);
+        }
+        
+        return response.json();
       });
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Upload failed: ${response.status} ${response.statusText} - ${errorText}`);
-      }
-      
-      return response.json();
+
+      return Promise.all(uploadPromises);
     },
-    onSuccess: () => {
+    onSuccess: (results) => {
       queryClient.invalidateQueries({ queryKey: ['/api/images'] });
       setIsUploadOpen(false);
-      setUploadFile(null);
+      setUploadFiles([]);
       setUploadProjectId("");
       toast({
         title: "Success",
-        description: "Image uploaded successfully",
+        description: `${results.length} image${results.length > 1 ? 's' : ''} uploaded successfully`,
       });
     },
     onError: (error) => {
       toast({
         title: "Error",
-        description: "Failed to upload image",
+        description: error.message || "Failed to upload images",
         variant: "destructive",
       });
     },
@@ -196,15 +206,27 @@ export default function ImageGallery() {
   };
 
   const handleUpload = () => {
-    if (!uploadFile) return;
+    if (uploadFiles.length === 0) return;
+    uploadMutation.mutate(uploadFiles);
+  };
 
-    const formData = new FormData();
-    formData.append('file', uploadFile);
-    if (uploadProjectId) {
-      formData.append('projectId', uploadProjectId);
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const imageFiles = files.filter(file => file.type.startsWith('image/'));
+    
+    if (imageFiles.length !== files.length) {
+      toast({
+        title: "Invalid files",
+        description: "Only image files are allowed",
+        variant: "destructive",
+      });
     }
+    
+    setUploadFiles(imageFiles);
+  };
 
-    uploadMutation.mutate(formData);
+  const removeFile = (index: number) => {
+    setUploadFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleAnnotate = (image: ImageFile) => {
@@ -282,25 +304,56 @@ export default function ImageGallery() {
                 Upload Image
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-w-2xl">
               <DialogHeader>
-                <DialogTitle>Upload New Image</DialogTitle>
+                <DialogTitle>Upload Images</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="image-upload">Select Image</Label>
+                  <Label htmlFor="image-upload">Select Images</Label>
                   <Input
                     id="image-upload"
                     type="file"
                     accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        setUploadFile(file);
-                      }
-                    }}
+                    multiple
+                    onChange={handleFileSelect}
                   />
+                  <p className="text-sm text-muted-foreground mt-1">
+                    You can select multiple images to upload at once
+                  </p>
                 </div>
+                
+                {uploadFiles.length > 0 && (
+                  <div className="space-y-2">
+                    <Label>Selected Files ({uploadFiles.length})</Label>
+                    <div className="max-h-40 overflow-y-auto space-y-2">
+                      {uploadFiles.map((file, index) => (
+                        <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                          <div className="flex items-center space-x-2">
+                            <div className="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
+                              <Upload className="h-4 w-4 text-blue-600" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">{file.name}</p>
+                              <p className="text-xs text-gray-500">
+                                {(file.size / 1024 / 1024).toFixed(2)} MB
+                              </p>
+                            </div>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeFile(index)}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div>
                   <Label htmlFor="project-select">Project (optional)</Label>
                   <Select value={uploadProjectId} onValueChange={setUploadProjectId}>
@@ -317,14 +370,25 @@ export default function ImageGallery() {
                   </Select>
                 </div>
                 <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => setIsUploadOpen(false)}>
+                  <Button variant="outline" onClick={() => {
+                    setIsUploadOpen(false);
+                    setUploadFiles([]);
+                    setUploadProjectId("");
+                  }}>
                     Cancel
                   </Button>
                   <Button 
                     onClick={handleUpload}
-                    disabled={!uploadFile || uploadMutation.isPending}
+                    disabled={uploadFiles.length === 0 || uploadMutation.isPending}
                   >
-                    Upload
+                    {uploadMutation.isPending ? (
+                      <div className="flex items-center space-x-2">
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <span>Uploading...</span>
+                      </div>
+                    ) : (
+                      `Upload ${uploadFiles.length} Image${uploadFiles.length !== 1 ? 's' : ''}`
+                    )}
                   </Button>
                 </div>
               </div>
