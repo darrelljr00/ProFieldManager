@@ -80,10 +80,12 @@ export default function ImageGallery() {
       const response = await fetch('/api/upload', {
         method: 'POST',
         body: data,
+        credentials: 'include',
       });
       
       if (!response.ok) {
-        throw new Error('Upload failed');
+        const errorText = await response.text();
+        throw new Error(`Upload failed: ${response.status} ${response.statusText} - ${errorText}`);
       }
       
       return response.json();

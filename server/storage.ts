@@ -95,6 +95,12 @@ export interface IStorage {
   getProjectFile(fileId: number, userId: number): Promise<any>;
   deleteProjectFile(fileId: number, userId: number): Promise<boolean>;
   
+  // Image methods
+  getImages(userId: number): Promise<any[]>;
+  createImage(imageData: any): Promise<any>;
+  saveImageAnnotations(imageId: number, userId: number, annotations: any[], annotatedImageUrl?: string): Promise<any>;
+  deleteImage(id: number): Promise<void>;
+  
   // Calendar jobs methods
   getCalendarJobs(organizationId: number): Promise<any[]>;
   getCalendarJob(id: number, organizationId: number): Promise<any>;

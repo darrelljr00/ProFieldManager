@@ -79,7 +79,15 @@ export function MobileCamera({
       if (customerId) formData.append('customerId', customerId.toString());
       formData.append('source', 'camera');
 
-      const response = await apiRequest('/api/upload', 'POST', formData);
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error(`Upload failed: ${response.status}`);
+      }
 
       if (onPhotoTaken) {
         const file = new File([capturedPhoto], fileName, { type: 'image/jpeg' });
