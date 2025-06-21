@@ -35,6 +35,7 @@ import FileManager from "@/pages/file-manager";
 import MyTasks from "@/pages/my-tasks";
 import GpsTracking from "@/pages/gps-tracking";
 import Login from "@/pages/login";
+import SimpleLogin from "@/pages/simple-login";
 import Landing from "@/pages/landing";
 import NotFound from "@/pages/not-found";
 
