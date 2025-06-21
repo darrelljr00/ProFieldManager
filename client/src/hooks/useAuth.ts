@@ -24,11 +24,25 @@ export function useAuth() {
 
   const { data: authData, isLoading, error } = useQuery<{user: User}>({
     queryKey: ["/api/auth/me"],
+    queryFn: async () => {
+      try {
+        const response = await apiRequest('GET', '/api/auth/me');
+        if (!response.ok) {
+          throw new Error(`Auth failed: ${response.status}`);
+        }
+        return response.json();
+      } catch (error) {
+        console.log('Auth check failed:', error);
+        throw error;
+      }
+    },
     retry: false,
     staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
   });
 
-  const user = authData?.user;
+  const user = authData?.user || null;
 
   const logoutMutation = useMutation({
     mutationFn: () => apiRequest("POST", "/api/auth/logout", {}),
@@ -73,10 +87,10 @@ export function useAuth() {
     changePasswordMutation.mutate({ currentPassword, newPassword });
   };
 
-  const isAuthenticated = !!user && !error;
-  const isAdmin = user?.role === "admin";
-  const isManager = user?.role === "manager";
-  const isManagerOrAdmin = isAdmin || isManager;
+  const isAuthenticated = Boolean(user && !error);
+  const isAdmin = Boolean(user?.role === "admin");
+  const isManager = Boolean(user?.role === "manager");
+  const isManagerOrAdmin = Boolean(isAdmin || isManager);
 
   return {
     user,

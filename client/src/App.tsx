@@ -137,9 +137,18 @@ function AuthenticatedApp() {
 }
 
 function Router() {
-  const { isAuthenticated, isLoading, error } = useAuth();
+  let authState;
+  
+  try {
+    authState = useAuth();
+  } catch (error) {
+    console.error('Auth hook error:', error);
+    authState = { isAuthenticated: false, isLoading: false, error };
+  }
 
-  console.log('Router state:', { isAuthenticated, isLoading, error });
+  const { isAuthenticated = false, isLoading = false, error } = authState || {};
+
+  console.log('Router state:', { isAuthenticated, isLoading, hasError: !!error });
 
   if (isLoading) {
     return (
