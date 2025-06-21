@@ -42,7 +42,7 @@ export function useAuth() {
     refetchOnMount: true,
   });
 
-  const user = authData?.user || null;
+  const user = authData?.user;
 
   const logoutMutation = useMutation({
     mutationFn: () => apiRequest("POST", "/api/auth/logout", {}),
