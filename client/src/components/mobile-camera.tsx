@@ -2,7 +2,7 @@ import { useCamera } from '@/hooks/useCamera';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Camera, RotateCcw, X, Check } from 'lucide-react';
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 
@@ -111,11 +111,11 @@ export function MobileCamera({
   };
 
   // Auto-start camera when dialog opens
-  useState(() => {
+  React.useEffect(() => {
     if (isOpen && !stream && !capturedPhoto) {
       handleOpenCamera();
     }
-  });
+  }, [isOpen]);
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
