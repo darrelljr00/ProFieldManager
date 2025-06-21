@@ -1,22 +1,75 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { MapPin } from "lucide-react";
 
 interface LoginData {
   username: string;
   password: string;
+  gpsData?: {
+    latitude?: number;
+    longitude?: number;
+    accuracy?: number;
+  };
 }
 
 export default function SimpleLogin() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [gpsData, setGpsData] = useState<{latitude?: number; longitude?: number; accuracy?: number}>({});
+  const [gpsLoading, setGpsLoading] = useState(false);
+  const [locationRequested, setLocationRequested] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Check if device is mobile and request GPS on component mount
+  useEffect(() => {
+    const isMobile = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    if (isMobile && 'geolocation' in navigator && !locationRequested) {
+      requestLocation();
+      setLocationRequested(true);
+    }
+  }, [locationRequested]);
+
+  const requestLocation = () => {
+    setGpsLoading(true);
+    
+    if (!('geolocation' in navigator)) {
+      setGpsLoading(false);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setGpsData({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracy: position.coords.accuracy,
+        });
+        setGpsLoading(false);
+        toast({
+          title: "Location captured",
+          description: "Your location has been recorded for security purposes",
+        });
+      },
+      (error) => {
+        console.warn('GPS error:', error);
+        setGpsLoading(false);
+        // Don't show error toast for GPS failures to avoid disrupting login
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000,
+      }
+    );
+  };
+
   const loginMutation = useMutation({
     mutationFn: async (data: LoginData) => {
-      const response = await apiRequest("POST", "/api/auth/login", data);
+      const loginDataWithGps = { ...data, gpsData };
+      const response = await apiRequest("POST", "/api/auth/login", loginDataWithGps);
       return response.json();
     },
     onSuccess: () => {
@@ -56,6 +109,18 @@ export default function SimpleLogin() {
           <div className="text-center mb-8">
             <h1 className="text-2xl font-bold text-gray-900">Pro Field Manager</h1>
             <p className="text-gray-600 mt-2">Sign in to your account</p>
+            {gpsLoading && (
+              <div className="flex items-center justify-center gap-2 mt-4 p-2 bg-blue-50 rounded-lg">
+                <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                <span className="text-sm text-blue-700">Capturing location for security...</span>
+              </div>
+            )}
+            {gpsData.latitude && (
+              <div className="flex items-center justify-center gap-2 mt-4 p-2 bg-green-50 rounded-lg">
+                <MapPin className="h-4 w-4 text-green-600" />
+                <span className="text-sm text-green-700">Location captured</span>
+              </div>
+            )}
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
