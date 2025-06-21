@@ -34,6 +34,7 @@ import HumanResources from "@/pages/human-resources";
 import FileManager from "@/pages/file-manager";
 import MyTasks from "@/pages/my-tasks";
 import GpsTracking from "@/pages/gps-tracking";
+import FormBuilder from "@/pages/form-builder";
 import Login from "@/pages/login";
 import SimpleLogin from "@/pages/simple-login";
 import Landing from "@/pages/landing";

@@ -1207,6 +1207,14 @@ export type InsertFileShare = typeof fileShares.$inferInsert;
 export type FileVersion = typeof fileVersions.$inferSelect;
 export type InsertFileVersion = typeof fileVersions.$inferInsert;
 
+// Form Builder types
+export type CustomForm = typeof customForms.$inferSelect;
+export type InsertCustomForm = typeof customForms.$inferInsert;
+export type FormSubmission = typeof formSubmissions.$inferSelect;
+export type InsertFormSubmission = typeof formSubmissions.$inferInsert;
+export type FormTemplate = typeof formTemplates.$inferSelect;
+export type InsertFormTemplate = typeof formTemplates.$inferInsert;
+
 // File Manager Zod schemas
 export const insertFileManagerSchema = z.object({
   organizationId: z.number(),
@@ -1230,6 +1238,35 @@ export const insertFileFolderSchema = z.object({
   parentFolderId: z.number().optional(),
   createdBy: z.number(),
   isSystemFolder: z.boolean().default(false),
+});
+
+// Form Builder Zod schemas
+export const insertCustomFormSchema = z.object({
+  organizationId: z.number(),
+  createdBy: z.number(),
+  name: z.string().min(1),
+  description: z.string().optional(),
+  status: z.enum(['draft', 'published', 'archived']).default('draft'),
+  formData: z.any(), // JSON object for form configuration
+  settings: z.any().optional(),
+  isPublic: z.boolean().default(false),
+});
+
+export const insertFormSubmissionSchema = z.object({
+  formId: z.number(),
+  submittedBy: z.number().optional(),
+  submissionData: z.any(), // JSON object for form data
+  ipAddress: z.string().optional(),
+  userAgent: z.string().optional(),
+});
+
+export const insertFormTemplateSchema = z.object({
+  name: z.string().min(1),
+  description: z.string().optional(),
+  category: z.string().min(1),
+  templateData: z.any(), // JSON object for template configuration
+  isSystem: z.boolean().default(false),
+  createdBy: z.number().optional(),
 });
 
 export const insertFileShareSchema = z.object({

@@ -101,6 +101,18 @@ export interface IStorage {
   saveImageAnnotations(imageId: number, userId: number, annotations: any[], annotatedImageUrl?: string): Promise<any>;
   deleteImage(id: number): Promise<void>;
   
+  // Form Builder methods
+  getCustomForms(organizationId: number): Promise<any[]>;
+  getCustomForm(id: number, organizationId: number): Promise<any>;
+  createCustomForm(formData: any): Promise<any>;
+  updateCustomForm(id: number, updates: any): Promise<any>;
+  deleteCustomForm(id: number): Promise<void>;
+  getFormTemplates(): Promise<any[]>;
+  createFormTemplate(templateData: any): Promise<any>;
+  getFormSubmissions(formId: number): Promise<any[]>;
+  createFormSubmission(submissionData: any): Promise<any>;
+  updateFormSubmissionCount(formId: number): Promise<void>;
+  
   // Calendar jobs methods
   getCalendarJobs(organizationId: number): Promise<any[]>;
   getCalendarJob(id: number, organizationId: number): Promise<any>;
