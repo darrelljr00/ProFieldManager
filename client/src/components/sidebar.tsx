@@ -63,6 +63,7 @@ const navigation = [
   { name: "Image Gallery", href: "/image-gallery", icon: ImageIcon },
   { name: "Text Messaging", href: "/sms", icon: Smartphone },
   { name: "GPS Tracking", href: "/gps-tracking", icon: MapPin },
+  { name: "Mobile Test", href: "/mobile-test", icon: Smartphone },
   { name: "Reviews", href: "/reviews", icon: Star },
   { name: "Human Resources", href: "/human-resources", icon: Briefcase },
   { name: "User Management", href: "/users", icon: UserCog },

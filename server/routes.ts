@@ -5664,6 +5664,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // GPS Location Update endpoint
+  app.post("/api/gps-tracking/update", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { latitude, longitude, accuracy, deviceType, locationTimestamp } = req.body;
+
+      if (!latitude || !longitude) {
+        return res.status(400).json({ message: "Latitude and longitude are required" });
+      }
+
+      // Update the user's most recent session with new location data
+      const [existingSession] = await db
+        .select()
+        .from(userSessions)
+        .where(eq(userSessions.userId, user.id))
+        .orderBy(desc(userSessions.createdAt))
+        .limit(1);
+
+      if (existingSession) {
+        // Update existing session
+        await db
+          .update(userSessions)
+          .set({
+            latitude: latitude.toString(),
+            longitude: longitude.toString(),
+            locationAccuracy: accuracy?.toString(),
+            deviceType: deviceType || 'unknown',
+            locationTimestamp: locationTimestamp ? new Date(locationTimestamp) : new Date(),
+          })
+          .where(eq(userSessions.id, existingSession.id));
+      } else {
+        // Create new session if none exists
+        await db
+          .insert(userSessions)
+          .values({
+            userId: user.id,
+            token: `mobile_${Date.now()}`,
+            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+            latitude: latitude.toString(),
+            longitude: longitude.toString(),
+            locationAccuracy: accuracy?.toString(),
+            deviceType: deviceType || 'mobile',
+            locationTimestamp: locationTimestamp ? new Date(locationTimestamp) : new Date(),
+            userAgent: req.get('User-Agent') || 'Unknown',
+            ipAddress: req.ip || 'Unknown'
+          });
+      }
+
+      res.json({ message: "Location updated successfully" });
+    } catch (error: any) {
+      console.error("Error updating GPS location:", error);
+      res.status(500).json({ message: "Error updating location: " + error.message });
+    }
+  });
+
   // Add broadcast function to the app for use in routes
   (app as any).broadcastToWebUsers = broadcastToWebUsers;
 
