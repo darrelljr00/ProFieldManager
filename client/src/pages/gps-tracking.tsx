@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-// import { GoogleMapsDialog } from "@/components/google-maps";
+import { GoogleMapsContainer } from "@/components/google-maps";
 import { MapPin, Smartphone, Monitor, Tablet, RefreshCw, Users, Calendar, Target } from "lucide-react";
 
 interface GPSSession {
@@ -245,17 +245,12 @@ export default function GPSTracking() {
             <CardContent>
               {mapMarkers.length > 0 ? (
                 <div className="h-[500px] rounded-lg overflow-hidden">
-                  <div className="h-full bg-muted rounded-lg flex items-center justify-center">
-                    <div className="text-center">
-                      <MapPin className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                      <p className="text-sm text-muted-foreground">
-                        Map view showing {sessions.length} GPS locations
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Coordinates: {mapMarkers[0].lat.toFixed(4)}, {mapMarkers[0].lng.toFixed(4)}
-                      </p>
-                    </div>
-                  </div>
+                  <GoogleMapsContainer 
+                    markers={mapMarkers}
+                    center={mapMarkers.length > 0 ? { lat: mapMarkers[0].lat, lng: mapMarkers[0].lng } : undefined}
+                    zoom={10}
+                    className="w-full h-full rounded-lg"
+                  />
                 </div>
               ) : (
                 <div className="h-[500px] flex items-center justify-center bg-muted rounded-lg">
