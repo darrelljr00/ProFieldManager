@@ -113,7 +113,7 @@ export default function FormBuilder() {
       };
 
       // If template selected, use template data
-      if (data.templateId) {
+      if (data.templateId && data.templateId !== "blank") {
         const template = templatesQuery.data?.find((t: FormTemplate) => t.id === parseInt(data.templateId));
         if (template) {
           formData = template.templateData;
@@ -207,7 +207,7 @@ export default function FormBuilder() {
     createFormMutation.mutate({
       name: newFormName.trim(),
       description: newFormDescription.trim() || undefined,
-      templateId: selectedTemplate || undefined,
+      templateId: selectedTemplate && selectedTemplate !== "blank" ? selectedTemplate : undefined,
     });
   };
 
@@ -291,7 +291,7 @@ export default function FormBuilder() {
                     <SelectValue placeholder="Choose a template" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Blank Form</SelectItem>
+                    <SelectItem value="blank">Blank Form</SelectItem>
                     {templates.map((template) => (
                       <SelectItem key={template.id} value={template.id.toString()}>
                         {template.name} - {template.category}
