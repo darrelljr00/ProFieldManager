@@ -3,12 +3,16 @@ import { useGPSTracking } from '@/hooks/use-gps-tracking';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Smartphone, Signal, Clock } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import { MapPin, Smartphone, Signal, Clock, Send } from "lucide-react";
 
 export default function MobileTest() {
   const { isTracking, lastPosition, startTracking, stopTracking } = useGPSTracking();
   const [currentPosition, setCurrentPosition] = useState<GeolocationPosition | null>(null);
   const [gpsError, setGpsError] = useState<string | null>(null);
+  const [isSending, setIsSending] = useState(false);
+  const { toast } = useToast();
 
   const getCurrentLocation = () => {
     if (!navigator.geolocation) {
@@ -33,6 +37,41 @@ export default function MobileTest() {
   };
 
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+  const sendTestLocation = async () => {
+    if (!currentPosition) {
+      toast({
+        title: "No Location",
+        description: "Please get your current location first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSending(true);
+    try {
+      await apiRequest('POST', '/api/gps-tracking/update', {
+        latitude: currentPosition.coords.latitude,
+        longitude: currentPosition.coords.longitude,
+        accuracy: currentPosition.coords.accuracy,
+        deviceType: isMobile ? 'mobile' : 'desktop',
+        locationTimestamp: new Date().toISOString(),
+      });
+
+      toast({
+        title: "Location Sent",
+        description: "GPS location successfully sent to server",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Failed to Send",
+        description: error.message || "Failed to send location to server",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSending(false);
+    }
+  };
 
   useEffect(() => {
     getCurrentLocation();
@@ -117,10 +156,18 @@ export default function MobileTest() {
               </div>
             )}
 
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <Button onClick={getCurrentLocation} variant="outline">
                 <Signal className="h-4 w-4 mr-2" />
                 Get Location
+              </Button>
+              <Button 
+                onClick={sendTestLocation} 
+                disabled={!currentPosition || isSending}
+                variant="default"
+              >
+                <Send className="h-4 w-4 mr-2" />
+                {isSending ? "Sending..." : "Send Test Location"}
               </Button>
               {isTracking ? (
                 <Button onClick={stopTracking} variant="destructive">

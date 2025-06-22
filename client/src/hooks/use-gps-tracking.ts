@@ -76,7 +76,8 @@ export function useGPSTracking() {
   };
 
   const startTracking = () => {
-    if (!user || !navigator.geolocation || !isMobileDevice()) {
+    if (!user || !navigator.geolocation) {
+      console.log('GPS tracking not started:', { hasUser: !!user, hasGeolocation: !!navigator.geolocation, isMobile: isMobileDevice() });
       return;
     }
 
@@ -108,7 +109,8 @@ export function useGPSTracking() {
   };
 
   useEffect(() => {
-    if (user && isMobileDevice()) {
+    if (user) {
+      console.log('Starting GPS tracking for user:', user.username);
       startTracking();
     } else {
       stopTracking();
@@ -122,7 +124,7 @@ export function useGPSTracking() {
     const handleVisibilityChange = () => {
       if (document.hidden) {
         stopTracking();
-      } else if (user && isMobileDevice()) {
+      } else if (user) {
         startTracking();
       }
     };
