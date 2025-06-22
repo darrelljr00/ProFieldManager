@@ -10,6 +10,7 @@ import { Menu } from "lucide-react";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useWebSocket } from "@/hooks/useWebSocket";
+import { useGPSTracking } from "@/hooks/use-gps-tracking";
 import Dashboard from "@/pages/dashboard";
 import Projects from "@/pages/projects";
 import ProjectDetail from "@/pages/project-detail";
@@ -44,6 +45,9 @@ function AuthenticatedApp() {
   const { isAdmin } = useAuth();
   const { isConnected, lastMessage } = useWebSocket();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  
+  // Start GPS tracking for mobile users
+  useGPSTracking();
   
   // Listen for WebSocket updates and invalidate queries
   useEffect(() => {
