@@ -58,6 +58,7 @@ const navigation = [
   { name: "Customers", href: "/customers", icon: Users },
   { name: "Payments", href: "/payments", icon: CreditCard },
   { name: "File Manager", href: "/file-manager", icon: Folder },
+  { name: "Form Builder", href: "/form-builder", icon: FileText },
   { name: "Team Messages", href: "/internal-messages", icon: MessageSquare },
   { name: "Image Gallery", href: "/image-gallery", icon: ImageIcon },
   { name: "Text Messaging", href: "/sms", icon: Smartphone },
