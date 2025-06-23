@@ -127,8 +127,8 @@ export function MobileCamera({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-full h-full md:max-w-lg md:h-auto p-0 rounded-none md:rounded-lg">
-        <DialogHeader className="p-4 border-b">
+      <DialogContent className="max-w-full h-screen md:max-w-lg md:h-auto p-0 rounded-none md:rounded-lg overflow-hidden">
+        <DialogHeader className="p-4 border-b bg-white relative z-10">
           <div className="flex items-center justify-between">
             <DialogTitle className="text-lg">{title}</DialogTitle>
             <Button
@@ -142,13 +142,14 @@ export function MobileCamera({
           </div>
         </DialogHeader>
 
-        <div className="flex-1 relative bg-black">
+        <div className="flex-1 relative bg-black min-h-0" style={{ height: 'calc(100vh - 80px)' }}>
           {/* Camera View */}
           <video
             ref={videoRef}
-            className={`w-full h-full object-cover ${capturedPhoto ? 'hidden' : ''}`}
+            className={`w-full h-full object-cover ${capturedPhoto ? 'hidden' : 'block'}`}
             playsInline
             muted
+            autoPlay
           />
 
           {/* Captured Photo Preview */}
@@ -156,16 +157,26 @@ export function MobileCamera({
             <img
               src={URL.createObjectURL(capturedPhoto)}
               alt="Captured"
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover block"
             />
+          )}
+
+          {/* Loading overlay when processing */}
+          {isUploading && (
+            <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-10">
+              <div className="bg-white rounded-lg p-4 flex items-center space-x-3">
+                <div className="animate-spin w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                <span className="text-gray-900 font-medium">Saving photo...</span>
+              </div>
+            </div>
           )}
 
           {/* Hidden canvas for photo capture */}
           <canvas ref={canvasRef} className="hidden" />
 
           {/* Camera Controls */}
-          <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/50 to-transparent">
-            <div className="flex items-center justify-center space-x-4">
+          <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 via-black/60 to-transparent z-20 min-h-[120px] flex items-end">
+            <div className="w-full flex items-center justify-center space-x-6">
               {!capturedPhoto ? (
                 <>
                   {/* Switch Camera Button */}
@@ -173,7 +184,7 @@ export function MobileCamera({
                     variant="secondary"
                     size="lg"
                     onClick={switchCamera}
-                    className="bg-white/20 hover:bg-white/30 text-white border-white/30"
+                    className="bg-white/20 hover:bg-white/30 text-white border-white/30 h-12 w-12 p-0 rounded-full"
                     disabled={!stream}
                   >
                     <RotateCcw className="h-5 w-5" />
@@ -183,14 +194,14 @@ export function MobileCamera({
                   <Button
                     size="lg"
                     onClick={handleTakePhoto}
-                    className="w-16 h-16 rounded-full bg-white hover:bg-gray-100 text-gray-900"
+                    className="w-20 h-20 rounded-full bg-white hover:bg-gray-100 text-gray-900 border-4 border-white/30"
                     disabled={!stream}
                   >
-                    <Camera className="h-6 w-6" />
+                    <Camera className="h-8 w-8" />
                   </Button>
 
                   {/* Placeholder for symmetry */}
-                  <div className="w-12" />
+                  <div className="w-12 h-12" />
                 </>
               ) : (
                 <>
@@ -199,7 +210,7 @@ export function MobileCamera({
                     variant="secondary"
                     size="lg"
                     onClick={handleRetakePhoto}
-                    className="bg-white/20 hover:bg-white/30 text-white border-white/30"
+                    className="bg-red-600/80 hover:bg-red-700/80 text-white border-red-500/30 px-6 py-3 text-base font-medium rounded-lg"
                   >
                     <RotateCcw className="h-5 w-5 mr-2" />
                     Retake
@@ -210,10 +221,10 @@ export function MobileCamera({
                     size="lg"
                     onClick={handleSavePhoto}
                     disabled={isUploading}
-                    className="bg-green-600 hover:bg-green-700 text-white"
+                    className="bg-green-600/80 hover:bg-green-700/80 text-white px-8 py-3 text-base font-medium rounded-lg disabled:opacity-50"
                   >
                     <Check className="h-5 w-5 mr-2" />
-                    {isUploading ? 'Saving...' : 'Save'}
+                    {isUploading ? 'Saving...' : 'Save Photo'}
                   </Button>
                 </>
               )}
