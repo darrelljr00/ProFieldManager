@@ -4,7 +4,8 @@ import {
   expenses, expenseCategories, expenseReports, gasCards, 
   gasCardAssignments, leads, calendarJobs, messages,
   images, settings, organizations, userSessions, subscriptionPlans,
-  projectFiles, fileManager, projectUsers, timeClock, timeClockSettings
+  projectFiles, fileManager, projectUsers, timeClock, timeClockSettings,
+  internalMessages, internalMessageRecipients, messageGroups, messageGroupMembers
 } from "@shared/schema";
 import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull } from "drizzle-orm";
 import type { 
