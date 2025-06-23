@@ -102,6 +102,10 @@ export default function UsersPage() {
     queryKey: ["/api/admin/users/stats"],
   });
 
+  const { data: organizations = [] } = useQuery({
+    queryKey: ["/api/organizations"],
+  });
+
   const updateUserPermissionsMutation = useMutation({
     mutationFn: ({ userId, permissions }: { userId: number; permissions: any }) =>
       apiRequest("PUT", `/api/admin/users/${userId}/permissions`, permissions),
@@ -235,6 +239,7 @@ export default function UsersPage() {
       lastName: formData.get("lastName") as string,
       role: formData.get("role") as string,
       userType: formData.get("userType") as string,
+      organizationId: parseInt(formData.get("organizationId") as string),
       isActive: formData.get("isActive") === "on",
     };
     createUserMutation.mutate(userData);
@@ -568,6 +573,22 @@ export default function UsersPage() {
                       {showPasswords.newPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </Button>
                   </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="organizationId">Organization *</Label>
+                  <Select name="organizationId" required>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select organization" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {organizations.map((org: any) => (
+                        <SelectItem key={org.id} value={org.id.toString()}>
+                          {org.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">

@@ -4615,6 +4615,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   }
 
+  // Organizations endpoint for user creation dropdown
+  app.get("/api/organizations", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      // Only admins can see all organizations
+      if (user.role !== 'admin') {
+        return res.status(403).json({ message: "Insufficient permissions" });
+      }
+      
+      const organizations = await storage.getAllOrganizations();
+      res.json(organizations);
+    } catch (error: any) {
+      console.error("Error fetching organizations:", error);
+      res.status(500).json({ message: "Failed to fetch organizations" });
+    }
+  });
+
   // SaaS Admin Routes
   
   // Get SaaS metrics and overview data
