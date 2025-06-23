@@ -1390,7 +1390,20 @@ export class DatabaseStorage implements IStorage {
 
   // Time Clock Methods
   async getCurrentTimeClockEntry(userId: number): Promise<any> {
-    const [entry] = await db.select()
+    const [entry] = await db.select({
+      id: timeClock.id,
+      userId: timeClock.userId,
+      clockInTime: timeClock.clockInTime,
+      clockOutTime: timeClock.clockOutTime,
+      breakStart: timeClock.breakStart,
+      breakEnd: timeClock.breakEnd,
+      status: timeClock.status,
+      clockInLocation: timeClock.clockInLocation,
+      clockOutLocation: timeClock.clockOutLocation,
+      totalHours: timeClock.totalHours,
+      breakDuration: timeClock.breakDuration,
+      notes: timeClock.notes
+    })
       .from(timeClock)
       .where(and(
         eq(timeClock.userId, userId),
@@ -1502,6 +1515,7 @@ export class DatabaseStorage implements IStorage {
 
     const entries = await db.select({
       id: timeClock.id,
+      userId: timeClock.userId,
       clockInTime: timeClock.clockInTime,
       clockOutTime: timeClock.clockOutTime,
       totalHours: timeClock.totalHours,
@@ -1509,6 +1523,10 @@ export class DatabaseStorage implements IStorage {
       status: timeClock.status,
       notes: timeClock.notes,
       supervisorApproval: timeClock.supervisorApproval,
+      clockInLocation: timeClock.clockInLocation,
+      clockOutLocation: timeClock.clockOutLocation,
+      clockInIP: timeClock.clockInIP,
+      clockOutIP: timeClock.clockOutIP,
       createdAt: timeClock.createdAt
     })
     .from(timeClock)
@@ -1534,6 +1552,7 @@ export class DatabaseStorage implements IStorage {
       userId: timeClock.userId,
       userName: users.firstName,
       userLastName: users.lastName,
+      userRole: users.role,
       clockInTime: timeClock.clockInTime,
       clockOutTime: timeClock.clockOutTime,
       totalHours: timeClock.totalHours,
@@ -1541,6 +1560,10 @@ export class DatabaseStorage implements IStorage {
       status: timeClock.status,
       notes: timeClock.notes,
       supervisorApproval: timeClock.supervisorApproval,
+      clockInLocation: timeClock.clockInLocation,
+      clockOutLocation: timeClock.clockOutLocation,
+      clockInIP: timeClock.clockInIP,
+      clockOutIP: timeClock.clockOutIP,
       createdAt: timeClock.createdAt
     })
     .from(timeClock)

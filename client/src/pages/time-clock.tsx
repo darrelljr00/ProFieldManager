@@ -7,8 +7,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
+import GoogleMaps from "@/components/google-maps";
 import { 
   Clock, 
   Play, 
@@ -18,7 +22,11 @@ import {
   Calendar,
   Timer,
   User,
-  Settings
+  Settings,
+  Users,
+  Eye,
+  Download,
+  Filter
 } from "lucide-react";
 
 interface TimeClockEntry {
@@ -31,6 +39,11 @@ interface TimeClockEntry {
   notes?: string;
   supervisorApproval: boolean;
   createdAt: string;
+  clockInLocation?: string;
+  clockOutLocation?: string;
+  userName?: string;
+  userLastName?: string;
+  userId?: number;
 }
 
 interface CurrentEntry {
@@ -38,13 +51,31 @@ interface CurrentEntry {
   clockInTime: string;
   status: string;
   breakStart?: string;
+  clockInLocation?: string;
+}
+
+interface LocationData {
+  latitude: number;
+  longitude: number;
+  accuracy?: number;
+  timestamp: string;
+  address?: string;
 }
 
 export default function TimeClock() {
   const [clockOutNotes, setClockOutNotes] = useState("");
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [selectedUser, setSelectedUser] = useState<string>("all");
+  const [dateFilter, setDateFilter] = useState({
+    startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    endDate: new Date().toISOString().split('T')[0]
+  });
+  const [showLocationMap, setShowLocationMap] = useState(false);
+  const [selectedEntryLocations, setSelectedEntryLocations] = useState<LocationData[]>([]);
   const { toast } = useToast();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
+  const isManager = user?.role === 'admin' || user?.role === 'manager';
 
   // Update current time every second
   useEffect(() => {
@@ -60,9 +91,29 @@ export default function TimeClock() {
     refetchInterval: 30000, // Refresh every 30 seconds
   });
 
-  // Get time clock entries
+  // Get users for manager view
+  const { data: users = [] } = useQuery({
+    queryKey: ["/api/users"],
+    enabled: isManager,
+  });
+
+  // Get time clock entries (user or organization based on role)
   const { data: entries = [], isLoading: entriesLoading } = useQuery({
-    queryKey: ["/api/time-clock/entries"],
+    queryKey: isManager 
+      ? ["/api/time-clock/organization-entries", dateFilter.startDate, dateFilter.endDate]
+      : ["/api/time-clock/entries", dateFilter.startDate, dateFilter.endDate],
+    queryFn: () => {
+      const params = new URLSearchParams({
+        startDate: dateFilter.startDate,
+        endDate: dateFilter.endDate
+      });
+      
+      const endpoint = isManager 
+        ? `/api/time-clock/organization-entries?${params}`
+        : `/api/time-clock/entries?${params}`;
+      
+      return apiRequest("GET", endpoint).then(res => res.json());
+    },
   });
 
   // Clock in mutation
@@ -107,7 +158,27 @@ export default function TimeClock() {
   // Clock out mutation
   const clockOutMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest("POST", "/api/time-clock/clock-out", { notes: clockOutNotes });
+      let location = "";
+      
+      // Try to get current location for clock out
+      if (navigator.geolocation) {
+        try {
+          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              timeout: 5000,
+              maximumAge: 300000 // 5 minutes
+            });
+          });
+          location = `${position.coords.latitude},${position.coords.longitude}`;
+        } catch (error) {
+          console.warn("Could not get location for clock out:", error);
+        }
+      }
+
+      return apiRequest("POST", "/api/time-clock/clock-out", { 
+        notes: clockOutNotes,
+        location 
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/time-clock/current"] });
@@ -205,6 +276,76 @@ export default function TimeClock() {
     }
   };
 
+  const parseLocation = (locationString?: string): LocationData | null => {
+    if (!locationString) return null;
+    try {
+      const [lat, lng] = locationString.split(',').map(Number);
+      return {
+        latitude: lat,
+        longitude: lng,
+        timestamp: new Date().toISOString()
+      };
+    } catch {
+      return null;
+    }
+  };
+
+  const viewLocationOnMap = (entry: TimeClockEntry) => {
+    const locations: LocationData[] = [];
+    
+    if (entry.clockInLocation) {
+      const loc = parseLocation(entry.clockInLocation);
+      if (loc) {
+        locations.push({
+          ...loc,
+          address: `Clock In - ${new Date(entry.clockInTime).toLocaleString()}`
+        });
+      }
+    }
+    
+    if (entry.clockOutLocation && entry.clockOutTime) {
+      const loc = parseLocation(entry.clockOutLocation);
+      if (loc) {
+        locations.push({
+          ...loc,
+          address: `Clock Out - ${new Date(entry.clockOutTime).toLocaleString()}`
+        });
+      }
+    }
+
+    setSelectedEntryLocations(locations);
+    setShowLocationMap(true);
+  };
+
+  const filteredEntries = entries.filter((entry: TimeClockEntry) => {
+    if (selectedUser === "all") return true;
+    return entry.userId?.toString() === selectedUser;
+  });
+
+  const exportTimeData = () => {
+    const csvContent = [
+      ['Date', 'Employee', 'Clock In', 'Clock Out', 'Total Hours', 'Break Duration', 'Status', 'Notes'].join(','),
+      ...filteredEntries.map((entry: TimeClockEntry) => [
+        formatDate(entry.clockInTime),
+        isManager ? `${entry.userName || ''} ${entry.userLastName || ''}`.trim() : 'Current User',
+        new Date(entry.clockInTime).toLocaleTimeString(),
+        entry.clockOutTime ? new Date(entry.clockOutTime).toLocaleTimeString() : '',
+        entry.totalHours ? `${parseFloat(entry.totalHours).toFixed(2)}h` : '',
+        entry.breakDuration ? `${parseFloat(entry.breakDuration).toFixed(2)}h` : '',
+        entry.status,
+        entry.notes || ''
+      ].join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `time-clock-report-${dateFilter.startDate}-to-${dateFilter.endDate}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
   if (currentLoading) {
     return (
       <div className="container mx-auto p-6">
@@ -245,6 +386,12 @@ export default function TimeClock() {
             <Calendar className="h-4 w-4 mr-2" />
             Time History
           </TabsTrigger>
+          {isManager && (
+            <TabsTrigger value="management">
+              <Users className="h-4 w-4 mr-2" />
+              Team Management
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="clock" className="space-y-4">
@@ -370,35 +517,102 @@ export default function TimeClock() {
         <TabsContent value="history" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Time Entries</CardTitle>
-              <CardDescription>Your recent time clock entries</CardDescription>
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle>Time Entries</CardTitle>
+                  <CardDescription>
+                    {isManager ? "Employee time clock entries" : "Your recent time clock entries"}
+                  </CardDescription>
+                </div>
+                <div className="flex gap-2">
+                  <Button onClick={exportTimeData} variant="outline" size="sm">
+                    <Download className="h-4 w-4 mr-2" />
+                    Export CSV
+                  </Button>
+                </div>
+              </div>
+              
+              {/* Date and User Filters */}
+              <div className="flex flex-wrap gap-4 items-end">
+                <div className="flex gap-2">
+                  <div>
+                    <Label htmlFor="startDate">Start Date</Label>
+                    <Input
+                      id="startDate"
+                      type="date"
+                      value={dateFilter.startDate}
+                      onChange={(e) => setDateFilter(prev => ({ ...prev, startDate: e.target.value }))}
+                      className="w-40"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="endDate">End Date</Label>
+                    <Input
+                      id="endDate"
+                      type="date"
+                      value={dateFilter.endDate}
+                      onChange={(e) => setDateFilter(prev => ({ ...prev, endDate: e.target.value }))}
+                      className="w-40"
+                    />
+                  </div>
+                </div>
+                
+                {isManager && (
+                  <div>
+                    <Label htmlFor="userFilter">Employee</Label>
+                    <Select value={selectedUser} onValueChange={setSelectedUser}>
+                      <SelectTrigger className="w-48">
+                        <SelectValue placeholder="Select employee" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Employees</SelectItem>
+                        {users.map((user: any) => (
+                          <SelectItem key={user.id} value={user.id.toString()}>
+                            {user.firstName} {user.lastName} ({user.username})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               {entriesLoading ? (
                 <div className="flex items-center justify-center py-8">
                   <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full" />
                 </div>
-              ) : entries.length === 0 ? (
+              ) : filteredEntries.length === 0 ? (
                 <div className="text-center py-8">
                   <Clock className="h-12 w-12 mx-auto mb-2 text-muted-foreground" />
-                  <p className="text-muted-foreground">No time entries found</p>
+                  <p className="text-muted-foreground">No time entries found for the selected criteria</p>
                 </div>
               ) : (
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Date</TableHead>
+                      {isManager && <TableHead>Employee</TableHead>}
                       <TableHead>Clock In</TableHead>
                       <TableHead>Clock Out</TableHead>
                       <TableHead>Total Hours</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead>Location</TableHead>
                       <TableHead>Notes</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {entries.map((entry: TimeClockEntry) => (
+                    {filteredEntries.map((entry: TimeClockEntry) => (
                       <TableRow key={entry.id}>
                         <TableCell>{formatDate(entry.clockInTime)}</TableCell>
+                        {isManager && (
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <User className="h-4 w-4" />
+                              {entry.userName} {entry.userLastName}
+                            </div>
+                          </TableCell>
+                        )}
                         <TableCell className="font-mono">
                           {new Date(entry.clockInTime).toLocaleTimeString('en-US', { hour12: true })}
                         </TableCell>
@@ -415,6 +629,20 @@ export default function TimeClock() {
                           }
                         </TableCell>
                         <TableCell>{getStatusBadge(entry.status)}</TableCell>
+                        <TableCell>
+                          {(entry.clockInLocation || entry.clockOutLocation) ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => viewLocationOnMap(entry)}
+                              className="p-1"
+                            >
+                              <MapPin className="h-4 w-4" />
+                            </Button>
+                          ) : (
+                            "—"
+                          )}
+                        </TableCell>
                         <TableCell className="max-w-48 truncate">
                           {entry.notes || "—"}
                         </TableCell>
@@ -426,7 +654,161 @@ export default function TimeClock() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {isManager && (
+          <TabsContent value="management" className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {/* Active Clock-ins */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Timer className="h-5 w-5" />
+                    Currently Clocked In
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {filteredEntries.filter((entry: TimeClockEntry) => entry.status === 'clocked_in').length}
+                  </div>
+                  <p className="text-muted-foreground">Employees working</p>
+                </CardContent>
+              </Card>
+
+              {/* On Break */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Coffee className="h-5 w-5" />
+                    On Break
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {filteredEntries.filter((entry: TimeClockEntry) => entry.status === 'on_break').length}
+                  </div>
+                  <p className="text-muted-foreground">Employees on break</p>
+                </CardContent>
+              </Card>
+
+              {/* Total Hours Today */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Clock className="h-5 w-5" />
+                    Total Hours Today
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {filteredEntries
+                      .filter((entry: TimeClockEntry) => {
+                        const today = new Date().toDateString();
+                        return new Date(entry.clockInTime).toDateString() === today;
+                      })
+                      .reduce((total, entry) => {
+                        return total + (entry.totalHours ? parseFloat(entry.totalHours) : 0);
+                      }, 0)
+                      .toFixed(1)}h
+                  </div>
+                  <p className="text-muted-foreground">Hours worked today</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Active Employees List */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Active Employee Status</CardTitle>
+                <CardDescription>Real-time view of employee clock status</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {users
+                    .filter((user: any) => {
+                      const userEntry = filteredEntries.find((entry: TimeClockEntry) => 
+                        entry.userId === user.id && 
+                        (entry.status === 'clocked_in' || entry.status === 'on_break')
+                      );
+                      return userEntry;
+                    })
+                    .map((user: any) => {
+                      const userEntry = filteredEntries.find((entry: TimeClockEntry) => 
+                        entry.userId === user.id && 
+                        (entry.status === 'clocked_in' || entry.status === 'on_break')
+                      );
+                      
+                      return (
+                        <div key={user.id} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                              <User className="h-4 w-4" />
+                            </div>
+                            <div>
+                              <div className="font-medium">{user.firstName} {user.lastName}</div>
+                              <div className="text-sm text-muted-foreground">{user.username}</div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {userEntry && getStatusBadge(userEntry.status)}
+                            {userEntry && (
+                              <span className="text-sm text-muted-foreground">
+                                {formatDuration(userEntry.clockInTime)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  
+                  {users.filter((user: any) => {
+                    const userEntry = filteredEntries.find((entry: TimeClockEntry) => 
+                      entry.userId === user.id && 
+                      (entry.status === 'clocked_in' || entry.status === 'on_break')
+                    );
+                    return userEntry;
+                  }).length === 0 && (
+                    <div className="text-center py-8">
+                      <Users className="h-12 w-12 mx-auto mb-2 text-muted-foreground" />
+                      <p className="text-muted-foreground">No employees currently clocked in</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
       </Tabs>
+
+      {/* Location Map Modal */}
+      {showLocationMap && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg w-full max-w-4xl h-96 m-4">
+            <div className="flex justify-between items-center p-4 border-b">
+              <h3 className="text-lg font-semibold">Clock In/Out Locations</h3>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => setShowLocationMap(false)}
+              >
+                ×
+              </Button>
+            </div>
+            <div className="h-80">
+              <GoogleMaps
+                userLocations={selectedEntryLocations.map(loc => ({
+                  userId: 1,
+                  username: loc.address || 'Location',
+                  latitude: loc.latitude,
+                  longitude: loc.longitude,
+                  timestamp: loc.timestamp,
+                  accuracy: loc.accuracy
+                }))}
+                height="320px"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
