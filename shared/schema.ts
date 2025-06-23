@@ -370,6 +370,45 @@ export const timeEntries = pgTable("time_entries", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Time Clock System
+export const timeClock = pgTable("time_clock", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  clockInTime: timestamp("clock_in_time").notNull(),
+  clockOutTime: timestamp("clock_out_time"),
+  breakStart: timestamp("break_start"),
+  breakEnd: timestamp("break_end"),
+  totalHours: decimal("total_hours", { precision: 5, scale: 2 }),
+  breakDuration: decimal("break_duration", { precision: 5, scale: 2 }).default("0.00"),
+  clockInLocation: text("clock_in_location"), // GPS coordinates
+  clockOutLocation: text("clock_out_location"), // GPS coordinates
+  clockInIP: text("clock_in_ip"),
+  clockOutIP: text("clock_out_ip"),
+  status: text("status").notNull().default("clocked_in"), // clocked_in, on_break, clocked_out
+  notes: text("notes"),
+  supervisorApproval: boolean("supervisor_approval").default(false),
+  approvedBy: integer("approved_by").references(() => users.id),
+  approvedAt: timestamp("approved_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const timeClockSettings = pgTable("time_clock_settings", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  requireGPS: boolean("require_gps").default(false),
+  allowedLocations: jsonb("allowed_locations"), // Array of allowed GPS coordinates with radius
+  breakRules: jsonb("break_rules"), // Break policies and rules
+  overtimeRules: jsonb("overtime_rules"), // Overtime calculation rules
+  roundingRules: text("rounding_rules").default("none"), // none, 15min, 30min, hour
+  requireSupervisorApproval: boolean("require_supervisor_approval").default(false),
+  maxDailyHours: decimal("max_daily_hours", { precision: 3, scale: 1 }).default("12.0"),
+  maxWeeklyHours: decimal("max_weekly_hours", { precision: 3, scale: 1 }).default("40.0"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Expense tracking tables
 export const expenses = pgTable("expenses", {
   id: serial("id").primaryKey(),

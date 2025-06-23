@@ -4,7 +4,7 @@ import {
   expenses, expenseCategories, expenseReports, gasCards, 
   gasCardAssignments, leads, calendarJobs, messages,
   images, settings, organizations, userSessions, subscriptionPlans,
-  projectFiles, fileManager, projectUsers
+  projectFiles, fileManager, projectUsers, timeClock, timeClockSettings
 } from "@shared/schema";
 import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull } from "drizzle-orm";
 import type { 
@@ -149,6 +149,18 @@ export interface IStorage {
   getGasCards(organizationId: number): Promise<any[]>;
   getGasCardAssignments(organizationId: number): Promise<any[]>;
   getActiveGasCardAssignments(organizationId: number): Promise<any[]>;
+  
+  // Time clock methods
+  getCurrentTimeClockEntry(userId: number): Promise<any>;
+  clockIn(userId: number, organizationId: number, location?: string, ipAddress?: string): Promise<any>;
+  clockOut(userId: number, notes?: string): Promise<any>;
+  startBreak(userId: number): Promise<any>;
+  endBreak(userId: number): Promise<any>;
+  getTimeClockEntries(userId: number, startDate?: Date, endDate?: Date): Promise<any[]>;
+  getTimeClockEntriesForOrganization(organizationId: number, startDate?: Date, endDate?: Date): Promise<any[]>;
+  updateTimeClockEntry(id: number, updates: any): Promise<any>;
+  getTimeClockSettings(organizationId: number): Promise<any>;
+  updateTimeClockSettings(organizationId: number, settings: any): Promise<any>;
 }
 
 export class DatabaseStorage implements IStorage {
