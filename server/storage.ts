@@ -97,7 +97,10 @@ export interface IStorage {
   deleteProjectFile(fileId: number, userId: number): Promise<boolean>;
   
   // Image methods
+  createImage(imageData: any): Promise<any>;
   getImages(userId: number): Promise<any[]>;
+  saveImageAnnotations(imageId: number, userId: number, annotations: any, annotatedImageUrl: string): Promise<void>;
+  deleteImage(imageId: number, userId: number): Promise<boolean>;
   createImage(imageData: any): Promise<any>;
   saveImageAnnotations(imageId: number, userId: number, annotations: any[], annotatedImageUrl?: string): Promise<any>;
   deleteImage(id: number): Promise<void>;
@@ -1616,6 +1619,82 @@ export class DatabaseStorage implements IStorage {
         })
         .returning();
       return created;
+    }
+  }
+  // Image methods
+  async createImage(imageData: any): Promise<any> {
+    try {
+      const [image] = await db
+        .insert(images)
+        .values({
+          fileName: imageData.filename,
+          originalName: imageData.originalName,
+          filePath: `uploads/${imageData.filename}`,
+          mimeType: imageData.mimeType,
+          fileSize: imageData.size,
+          uploadedBy: imageData.userId,
+          projectId: imageData.projectId || null,
+          customerId: imageData.customerId || null,
+          organizationId: imageData.organizationId || 1,
+        })
+        .returning();
+      return image;
+    } catch (error) {
+      console.error('Error creating image:', error);
+      throw error;
+    }
+  }
+
+  async getImages(userId: number): Promise<any[]> {
+    try {
+      const userInfo = await this.getUser(userId);
+      if (!userInfo) return [];
+
+      return await db
+        .select()
+        .from(images)
+        .where(eq(images.organizationId, userInfo.organizationId))
+        .orderBy(desc(images.createdAt));
+    } catch (error) {
+      console.error('Error fetching images:', error);
+      return [];
+    }
+  }
+
+  async saveImageAnnotations(imageId: number, userId: number, annotations: any, annotatedImageUrl: string): Promise<void> {
+    try {
+      await db
+        .update(images)
+        .set({
+          annotations: JSON.stringify(annotations),
+          annotatedImageUrl,
+          updatedAt: new Date()
+        })
+        .where(eq(images.id, imageId));
+    } catch (error) {
+      console.error('Error saving image annotations:', error);
+      throw error;
+    }
+  }
+
+  async deleteImage(imageId: number, userId: number): Promise<boolean> {
+    try {
+      const userInfo = await this.getUser(userId);
+      if (!userInfo) return false;
+
+      const result = await db
+        .delete(images)
+        .where(
+          and(
+            eq(images.id, imageId),
+            eq(images.organizationId, userInfo.organizationId)
+          )
+        );
+      
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error('Error deleting image:', error);
+      return false;
     }
   }
 }

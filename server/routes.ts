@@ -1186,13 +1186,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // If it's an image file, save metadata to database
       if (req.file.mimetype.startsWith('image/')) {
+        const userInfo = await storage.getUser(req.user!.id);
         const imageData = {
           filename: req.file.filename,
           originalName: req.file.originalname,
           mimeType: req.file.mimetype,
           size: req.file.size,
           userId: req.user!.id,
+          organizationId: userInfo?.organizationId || 1,
           projectId: req.body.projectId ? parseInt(req.body.projectId) : null,
+          customerId: req.body.customerId ? parseInt(req.body.customerId) : null,
         };
 
         await storage.createImage(imageData);
