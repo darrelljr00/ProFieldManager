@@ -1114,35 +1114,7 @@ export const insertExpenseLineItemSchema = z.object({
   category: z.string().optional(),
 });
 
-export const insertCustomFormSchema = z.object({
-  organizationId: z.number(),
-  name: z.string().min(1),
-  description: z.string().optional(),
-  formData: z.any(), // JSON data for form fields
-  settings: z.any().default({}),
-  status: z.enum(['draft', 'published', 'archived']).default('draft'),
-  isPublic: z.boolean().default(false),
-  createdBy: z.number(),
-});
 
-export const insertFormTemplateSchema = z.object({
-  name: z.string().min(1),
-  description: z.string().optional(),
-  category: z.string().min(1),
-  templateData: z.any(), // JSON data for template structure
-  isSystem: z.boolean().default(true),
-  createdBy: z.number().optional(),
-});
-
-export const insertFormSubmissionSchema = z.object({
-  formId: z.number(),
-  submissionData: z.any(), // JSON data from form submission
-  submittedBy: z.number().optional(),
-  submittedByName: z.string().optional(),
-  submittedByEmail: z.string().email().optional(),
-  ipAddress: z.string().optional(),
-  userAgent: z.string().optional(),
-});
 
 export type InsertExpenseLineItem = z.infer<typeof insertExpenseLineItemSchema>;
 export type ExpenseLineItem = typeof expenseLineItems.$inferSelect;
