@@ -732,6 +732,50 @@ export const fileVersions = pgTable("file_versions", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Form Builder System
+export const customForms = pgTable("custom_forms", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  name: text("name").notNull(),
+  description: text("description"),
+  formData: jsonb("form_data").notNull(), // Fields and structure
+  settings: jsonb("settings").notNull().default('{}'), // Form settings
+  status: text("status").notNull().default("draft"), // draft, published, archived
+  isPublic: boolean("is_public").default(false),
+  publicId: text("public_id").unique(),
+  submissionCount: integer("submission_count").default(0),
+  lastSubmission: timestamp("last_submission"),
+  createdBy: integer("created_by").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const formTemplates = pgTable("form_templates", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  category: text("category").notNull(),
+  templateData: jsonb("template_data").notNull(), // Form structure and fields
+  isSystem: boolean("is_system").default(true), // System templates vs user templates
+  usageCount: integer("usage_count").default(0),
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const formSubmissions = pgTable("form_submissions", {
+  id: serial("id").primaryKey(),
+  formId: integer("form_id").notNull().references(() => customForms.id, { onDelete: "cascade" }),
+  submissionData: jsonb("submission_data").notNull(),
+  submittedBy: integer("submitted_by").references(() => users.id), // null for anonymous
+  submittedByName: text("submitted_by_name"),
+  submittedByEmail: text("submitted_by_email"),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  status: text("status").default("received"), // received, processed, archived
+  submittedAt: timestamp("submitted_at").defaultNow().notNull(),
+});
+
 // Insert schemas
 export const insertUserSchema = z.object({
   username: z.string().min(1),
@@ -1068,6 +1112,36 @@ export const insertExpenseLineItemSchema = z.object({
   unitPrice: z.number().positive(),
   amount: z.number().positive(),
   category: z.string().optional(),
+});
+
+export const insertCustomFormSchema = z.object({
+  organizationId: z.number(),
+  name: z.string().min(1),
+  description: z.string().optional(),
+  formData: z.any(), // JSON data for form fields
+  settings: z.any().default({}),
+  status: z.enum(['draft', 'published', 'archived']).default('draft'),
+  isPublic: z.boolean().default(false),
+  createdBy: z.number(),
+});
+
+export const insertFormTemplateSchema = z.object({
+  name: z.string().min(1),
+  description: z.string().optional(),
+  category: z.string().min(1),
+  templateData: z.any(), // JSON data for template structure
+  isSystem: z.boolean().default(true),
+  createdBy: z.number().optional(),
+});
+
+export const insertFormSubmissionSchema = z.object({
+  formId: z.number(),
+  submissionData: z.any(), // JSON data from form submission
+  submittedBy: z.number().optional(),
+  submittedByName: z.string().optional(),
+  submittedByEmail: z.string().email().optional(),
+  ipAddress: z.string().optional(),
+  userAgent: z.string().optional(),
 });
 
 export type InsertExpenseLineItem = z.infer<typeof insertExpenseLineItemSchema>;

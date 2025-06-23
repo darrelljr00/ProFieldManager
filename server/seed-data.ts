@@ -1,6 +1,9 @@
 import { storage } from "./storage";
+import { seedFormTemplates } from "./seed-form-templates";
 
 export async function seedDatabase() {
+  // Seed form templates first
+  await seedFormTemplates();
   try {
     // Create sample customers
     const customer1 = await storage.createCustomer({
