@@ -28,7 +28,8 @@ import {
   Menu,
   X,
   CheckSquare,
-  MapPin
+  MapPin,
+  Clock
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -40,6 +41,7 @@ import { useState, useEffect } from "react";
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: BarChart3 },
   { name: "Calendar", href: "/calendar", icon: Calendar },
+  { name: "Time Clock", href: "/time-clock", icon: Clock },
   { name: "Jobs", href: "/jobs", icon: FolderOpen },
   { name: "My Tasks", href: "/my-tasks", icon: CheckSquare },
   { name: "Leads", href: "/leads", icon: UserPlus },

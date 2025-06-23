@@ -1387,6 +1387,213 @@ export class DatabaseStorage implements IStorage {
       return [];
     }
   }
+
+  // Time Clock Methods
+  async getCurrentTimeClockEntry(userId: number): Promise<any> {
+    const [entry] = await db.select()
+      .from(timeClock)
+      .where(and(
+        eq(timeClock.userId, userId),
+        or(eq(timeClock.status, "clocked_in"), eq(timeClock.status, "on_break"))
+      ))
+      .orderBy(desc(timeClock.clockInTime))
+      .limit(1);
+    
+    return entry;
+  }
+
+  async clockIn(userId: number, organizationId: number, location?: string, ipAddress?: string): Promise<any> {
+    const existing = await this.getCurrentTimeClockEntry(userId);
+    if (existing) {
+      throw new Error("User is already clocked in");
+    }
+
+    const [entry] = await db.insert(timeClock).values({
+      userId,
+      organizationId,
+      clockInTime: new Date(),
+      clockInLocation: location,
+      clockInIP: ipAddress,
+      status: "clocked_in"
+    }).returning();
+
+    return entry;
+  }
+
+  async clockOut(userId: number, notes?: string): Promise<any> {
+    const current = await this.getCurrentTimeClockEntry(userId);
+    if (!current) {
+      throw new Error("User is not currently clocked in");
+    }
+
+    const clockOutTime = new Date();
+    const totalHours = (clockOutTime.getTime() - current.clockInTime.getTime()) / (1000 * 60 * 60);
+
+    const [entry] = await db.update(timeClock)
+      .set({
+        clockOutTime,
+        totalHours: totalHours.toString(),
+        status: "clocked_out",
+        notes,
+        updatedAt: new Date()
+      })
+      .where(eq(timeClock.id, current.id))
+      .returning();
+
+    return entry;
+  }
+
+  async startBreak(userId: number): Promise<any> {
+    const current = await this.getCurrentTimeClockEntry(userId);
+    if (!current) {
+      throw new Error("User is not currently clocked in");
+    }
+    if (current.status === "on_break") {
+      throw new Error("User is already on break");
+    }
+
+    const [entry] = await db.update(timeClock)
+      .set({
+        breakStart: new Date(),
+        status: "on_break",
+        updatedAt: new Date()
+      })
+      .where(eq(timeClock.id, current.id))
+      .returning();
+
+    return entry;
+  }
+
+  async endBreak(userId: number): Promise<any> {
+    const current = await this.getCurrentTimeClockEntry(userId);
+    if (!current || current.status !== "on_break") {
+      throw new Error("User is not currently on break");
+    }
+
+    const breakEnd = new Date();
+    const breakDuration = current.breakStart ? 
+      (breakEnd.getTime() - current.breakStart.getTime()) / (1000 * 60 * 60) : 0;
+
+    const totalBreakDuration = parseFloat(current.breakDuration || "0") + breakDuration;
+
+    const [entry] = await db.update(timeClock)
+      .set({
+        breakEnd,
+        breakDuration: totalBreakDuration.toString(),
+        status: "clocked_in",
+        updatedAt: new Date()
+      })
+      .where(eq(timeClock.id, current.id))
+      .returning();
+
+    return entry;
+  }
+
+  async getTimeClockEntries(userId: number, startDate?: Date, endDate?: Date): Promise<any[]> {
+    let whereConditions = [eq(timeClock.userId, userId)];
+
+    if (startDate) {
+      whereConditions.push(gte(timeClock.clockInTime, startDate));
+    }
+
+    if (endDate) {
+      whereConditions.push(lte(timeClock.clockInTime, endDate));
+    }
+
+    const entries = await db.select({
+      id: timeClock.id,
+      clockInTime: timeClock.clockInTime,
+      clockOutTime: timeClock.clockOutTime,
+      totalHours: timeClock.totalHours,
+      breakDuration: timeClock.breakDuration,
+      status: timeClock.status,
+      notes: timeClock.notes,
+      supervisorApproval: timeClock.supervisorApproval,
+      createdAt: timeClock.createdAt
+    })
+    .from(timeClock)
+    .where(and(...whereConditions))
+    .orderBy(desc(timeClock.clockInTime));
+
+    return entries;
+  }
+
+  async getTimeClockEntriesForOrganization(organizationId: number, startDate?: Date, endDate?: Date): Promise<any[]> {
+    let whereConditions = [eq(timeClock.organizationId, organizationId)];
+
+    if (startDate) {
+      whereConditions.push(gte(timeClock.clockInTime, startDate));
+    }
+
+    if (endDate) {
+      whereConditions.push(lte(timeClock.clockInTime, endDate));
+    }
+
+    const entries = await db.select({
+      id: timeClock.id,
+      userId: timeClock.userId,
+      userName: users.firstName,
+      userLastName: users.lastName,
+      clockInTime: timeClock.clockInTime,
+      clockOutTime: timeClock.clockOutTime,
+      totalHours: timeClock.totalHours,
+      breakDuration: timeClock.breakDuration,
+      status: timeClock.status,
+      notes: timeClock.notes,
+      supervisorApproval: timeClock.supervisorApproval,
+      createdAt: timeClock.createdAt
+    })
+    .from(timeClock)
+    .leftJoin(users, eq(timeClock.userId, users.id))
+    .where(and(...whereConditions))
+    .orderBy(desc(timeClock.clockInTime));
+
+    return entries;
+  }
+
+  async updateTimeClockEntry(id: number, updates: any): Promise<any> {
+    const [entry] = await db.update(timeClock)
+      .set({
+        ...updates,
+        updatedAt: new Date()
+      })
+      .where(eq(timeClock.id, id))
+      .returning();
+
+    return entry;
+  }
+
+  async getTimeClockSettings(organizationId: number): Promise<any> {
+    const [settings] = await db.select()
+      .from(timeClockSettings)
+      .where(eq(timeClockSettings.organizationId, organizationId))
+      .limit(1);
+
+    return settings;
+  }
+
+  async updateTimeClockSettings(organizationId: number, settingsData: any): Promise<any> {
+    const existing = await this.getTimeClockSettings(organizationId);
+
+    if (existing) {
+      const [updated] = await db.update(timeClockSettings)
+        .set({
+          ...settingsData,
+          updatedAt: new Date()
+        })
+        .where(eq(timeClockSettings.organizationId, organizationId))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db.insert(timeClockSettings)
+        .values({
+          organizationId,
+          ...settingsData
+        })
+        .returning();
+      return created;
+    }
+  }
 }
 
 export const storage = new DatabaseStorage();
