@@ -132,6 +132,7 @@ function AuthenticatedApp() {
           <Route path="/file-manager" component={FileManager} />
           <Route path="/my-tasks" component={MyTasks} />
           <Route path="/gps-tracking" component={GpsTracking} />
+          <Route path="/time-clock" component={TimeClock} />
           <Route path="/form-builder" component={FormBuilder} />
           <Route path="/mobile-test" component={MobileTest} />
           {isAdmin && <Route path="/users" component={Users} />}
