@@ -101,8 +101,6 @@ export interface IStorage {
   getImages(userId: number): Promise<any[]>;
   saveImageAnnotations(imageId: number, userId: number, annotations: any, annotatedImageUrl: string): Promise<void>;
   deleteImage(imageId: number, userId: number): Promise<boolean>;
-  createImage(imageData: any): Promise<any>;
-  saveImageAnnotations(imageId: number, userId: number, annotations: any[], annotatedImageUrl?: string): Promise<any>;
   deleteImage(id: number): Promise<void>;
   
   // Form Builder methods
