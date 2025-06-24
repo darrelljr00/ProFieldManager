@@ -265,7 +265,7 @@ export default function InternalMessagesPage() {
         content: messageContent,
         messageType: 'individual',
         recipientIds: [selectedRoom.participants[0].id],
-        subject: '',
+        subject: 'Chat Message',
         priority: 'normal'
       };
 

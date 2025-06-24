@@ -2836,8 +2836,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/internal-messages", requireAuth, async (req, res) => {
     try {
+      console.log('Internal message request received:', {
+        body: req.body,
+        user: req.user?.username
+      });
+
       const { subject, content, priority = 'normal', messageType = 'individual', recipientIds = [], groupIds = [] } = req.body;
       
+      if (!content || content.trim() === '') {
+        return res.status(400).json({ message: "Message content is required" });
+      }
+
       let finalRecipientIds = recipientIds;
       
       // If it's a group message, get all group members
@@ -2845,7 +2854,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         for (const groupId of groupIds) {
           const groupMessage = await storage.sendGroupMessage(groupId, {
             senderId: req.user!.id,
-            subject,
+            subject: subject || 'Chat Message',
             content,
             messageType: 'group',
             priority
@@ -2860,18 +2869,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         finalRecipientIds = allUsers.filter(u => u.id !== req.user!.id).map(u => u.id);
       }
 
+      console.log('Creating message with recipients:', finalRecipientIds);
+
       const message = await storage.createInternalMessage({
         senderId: req.user!.id,
-        subject,
+        subject: subject || 'Chat Message',
         content,
         messageType,
         priority
       }, finalRecipientIds);
 
+      console.log('Message created successfully:', message.id);
+
       res.json(message);
     } catch (error: any) {
       console.error("Error creating internal message:", error);
-      res.status(500).json({ message: "Failed to create internal message" });
+      res.status(500).json({ message: "Failed to create internal message: " + error.message });
     }
   });
 
