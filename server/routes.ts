@@ -1180,9 +1180,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // General file upload for messages and attachments
   app.post("/api/upload", requireAuth, upload.single('file'), async (req, res) => {
     try {
+      console.log('Upload request received:', {
+        file: req.file ? 'Present' : 'Missing',
+        body: req.body,
+        user: req.user?.username
+      });
+
       if (!req.file) {
+        console.log('No file in request');
         return res.status(400).json({ message: "No file uploaded" });
       }
+
+      console.log('File details:', {
+        filename: req.file.filename,
+        originalname: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size
+      });
 
       // If it's an image file, save metadata to database
       if (req.file.mimetype.startsWith('image/')) {
@@ -1198,7 +1212,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           customerId: req.body.customerId ? parseInt(req.body.customerId) : null,
         };
 
+        console.log('Creating image record:', imageData);
         await storage.createImage(imageData);
+        console.log('Image record created successfully');
       }
 
       // File uploaded successfully

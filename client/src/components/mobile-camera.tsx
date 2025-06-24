@@ -85,9 +85,16 @@ export function MobileCamera({
         credentials: 'include',
       });
 
+      console.log('Upload response status:', response.status);
+
       if (!response.ok) {
-        throw new Error(`Upload failed: ${response.status}`);
+        const errorText = await response.text();
+        console.error('Upload failed:', response.status, errorText);
+        throw new Error(`Upload failed: ${response.status} - ${errorText}`);
       }
+
+      const result = await response.json();
+      console.log('Upload successful:', result);
 
       if (onPhotoTaken) {
         const file = new File([capturedPhoto], fileName, { type: 'image/jpeg' });
