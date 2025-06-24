@@ -1219,24 +1219,30 @@ export default function UsersPage() {
                         <TableHead>User</TableHead>
                         <TableHead>Type</TableHead>
                         <TableHead>Dashboard</TableHead>
-                        <TableHead>Customers</TableHead>
-                        <TableHead>Projects</TableHead>
-                        <TableHead>Invoices</TableHead>
-                        <TableHead>Quotes</TableHead>
-                        <TableHead>Expenses</TableHead>
-                        <TableHead>Reports</TableHead>
-                        <TableHead>Payments</TableHead>
-                        <TableHead>Messages</TableHead>
-                        <TableHead>Internal</TableHead>
-                        <TableHead>SMS</TableHead>
                         <TableHead>Calendar</TableHead>
-                        <TableHead>Gallery</TableHead>
-                        <TableHead>Reviews</TableHead>
+                        <TableHead>Time Clock</TableHead>
+                        <TableHead>Jobs</TableHead>
+                        <TableHead>My Tasks</TableHead>
                         <TableHead>Leads</TableHead>
-                        <TableHead>Gas Cards</TableHead>
+                        <TableHead>Expenses</TableHead>
+                        <TableHead>Quotes</TableHead>
+                        <TableHead>Invoices</TableHead>
+                        <TableHead>Customers</TableHead>
+                        <TableHead>Payments</TableHead>
+                        <TableHead>File Manager</TableHead>
+                        <TableHead>Form Builder</TableHead>
+                        <TableHead>Team Messages</TableHead>
+                        <TableHead>Gallery</TableHead>
+                        <TableHead>SMS</TableHead>
+                        <TableHead>GPS Tracking</TableHead>
+                        <TableHead>Mobile Test</TableHead>
+                        <TableHead>Reviews</TableHead>
+                        <TableHead>HR</TableHead>
+                        <TableHead>User Mgmt</TableHead>
+                        <TableHead>SaaS Admin</TableHead>
+                        <TableHead>Admin Settings</TableHead>
+                        <TableHead>Reports</TableHead>
                         <TableHead>Settings</TableHead>
-                        <TableHead>Users</TableHead>
-                        <TableHead>Admin</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1499,6 +1505,19 @@ export default function UsersPage() {
                       <div><strong>Mobile Users:</strong> Access mobile-optimized tabs and functionality</div>
                       <div><strong>Both:</strong> Full access to all web and mobile navigation options</div>
                       <div><strong>Admin Override:</strong> Admin users always have full access regardless of settings</div>
+                    </div>
+                    <div className="mt-4 p-3 bg-green-50 dark:bg-green-950 rounded border border-green-200 dark:border-green-800">
+                      <h5 className="font-medium text-green-800 dark:text-green-200 mb-2">Complete Navigation Control</h5>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs text-green-700 dark:text-green-300">
+                        <div>✓ Dashboard, Calendar, Time Clock</div>
+                        <div>✓ Jobs, Tasks, Leads, Expenses</div>
+                        <div>✓ Quotes, Invoices, Customers, Payments</div>
+                        <div>✓ File Manager, Form Builder, Team Messages</div>
+                        <div>✓ Image Gallery, SMS, GPS Tracking</div>
+                        <div>✓ Mobile Test, Reviews, Human Resources</div>
+                        <div>✓ User Management, SaaS Admin, Admin Settings</div>
+                        <div>✓ Reports, Settings</div>
+                      </div>
                     </div>
                     <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950 rounded border border-blue-200 dark:border-blue-800">
                       <p className="text-sm text-blue-700 dark:text-blue-300">
