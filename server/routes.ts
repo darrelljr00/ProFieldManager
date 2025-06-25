@@ -1599,7 +1599,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.createUserAccount(userData);
       
       // Broadcast to all web users except the creator
-      (app as any).broadcastToWebUsers('user_created', {
+      broadcastToWebUsers('user_created', {
         user: { ...user, password: undefined },
         createdBy: req.user!.username
       }, req.user!.id);
