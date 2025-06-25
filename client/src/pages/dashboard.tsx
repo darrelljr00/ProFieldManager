@@ -25,21 +25,22 @@ export default function Dashboard() {
   return (
     <div className="flex-1">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200 px-4 md:px-6 py-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <header className="bg-white shadow-sm border-b border-gray-200 px-3 sm:px-4 md:px-6 py-3 sm:py-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
           <div>
-            <h2 className="text-xl md:text-2xl font-bold text-gray-900">Dashboard</h2>
-            <p className="text-sm md:text-base text-gray-600">Welcome back! Here's what's happening with your invoices.</p>
+            <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">Dashboard</h2>
+            <p className="text-xs sm:text-sm md:text-base text-gray-600 hidden sm:block">Welcome back! Here's what's happening with your invoices.</p>
           </div>
-          <div className="flex items-center space-x-2 md:space-x-4">
+          <div className="flex items-center space-x-2 sm:space-x-3 md:space-x-4">
             <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
               <DialogTrigger asChild>
-                <Button className="bg-primary hover:bg-blue-700 flex-1 sm:flex-none">
-                  <Plus className="w-4 h-4 mr-2" />
-                  New Invoice
+                <Button className="bg-primary hover:bg-blue-700 flex-1 sm:flex-none text-sm sm:text-base">
+                  <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                  <span className="hidden xs:inline">New Invoice</span>
+                  <span className="xs:hidden">New</span>
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-[95vw] md:max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogContent className="max-w-[95vw] sm:max-w-[85vw] md:max-w-4xl max-h-[90vh] overflow-y-auto">
                 <InvoiceForm onSuccess={() => setIsCreateModalOpen(false)} />
               </DialogContent>
             </Dialog>
