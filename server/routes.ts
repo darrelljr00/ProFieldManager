@@ -189,6 +189,33 @@ const disciplinaryUpload = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  
+  // Create HTTP server first
+  const httpServer = createServer(app);
+
+  // WebSocket server for real-time updates
+  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+  
+  // Store connected clients with user information
+  const connectedClients = new Map<WebSocket, { userId: number; username: string; userType: string }>();
+
+  // Broadcast function to send updates to all connected web users
+  function broadcastToWebUsers(eventType: string, data: any, excludeUserId?: number) {
+    const message = JSON.stringify({
+      type: 'update',
+      eventType,
+      data,
+      timestamp: new Date().toISOString()
+    });
+
+    connectedClients.forEach((clientInfo, ws) => {
+      if (ws.readyState === WebSocket.OPEN && 
+          clientInfo.userType === 'web' && 
+          clientInfo.userId !== excludeUserId) {
+        ws.send(message);
+      }
+    });
+  }
   // PRIORITY: Settings endpoints must be registered first to avoid conflicts
   app.get('/api/settings/payment', async (req, res) => {
     try {
@@ -2884,45 +2911,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Broadcast message to recipients via WebSocket for instant delivery
       if (finalRecipientIds && finalRecipientIds.length > 0) {
         finalRecipientIds.forEach(recipientId => {
-          // Send to specific recipient only
-          const broadcastMessage = JSON.stringify({
-            type: 'update',
-            eventType: 'new_message',
-            data: {
-              message: message,
-              timestamp: new Date().toISOString()
-            },
+          broadcastToWebUsers('new_message', {
+            message: message,
             timestamp: new Date().toISOString()
-          });
-
-          connectedClients.forEach((clientInfo, ws) => {
-            if (ws.readyState === WebSocket.OPEN && 
-                clientInfo.userType === 'web' && 
-                clientInfo.userId === recipientId) {
-              ws.send(broadcastMessage);
-            }
-          });
+          }, recipientId);
         });
       }
 
       // Also broadcast to sender for confirmation
-      const senderMessage = JSON.stringify({
-        type: 'update',
-        eventType: 'message_sent',
-        data: {
-          message: message,
-          timestamp: new Date().toISOString()
-        },
+      broadcastToWebUsers('message_sent', {
+        message: message,
         timestamp: new Date().toISOString()
-      });
-
-      connectedClients.forEach((clientInfo, ws) => {
-        if (ws.readyState === WebSocket.OPEN && 
-            clientInfo.userType === 'web' && 
-            clientInfo.userId === req.user!.id) {
-          ws.send(senderMessage);
-        }
-      });
+      }, req.user!.id);
 
       res.json(message);
     } catch (error: any) {
@@ -4628,67 +4628,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  const httpServer = createServer(app);
 
-  // WebSocket server for real-time updates
-  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
-  
-  // Store connected clients with user information
-  const connectedClients = new Map<WebSocket, { userId: number; username: string; userType: string }>();
-
-  wss.on('connection', (ws, req) => {
-    console.log('New WebSocket connection');
-
-    ws.on('message', (message) => {
-      try {
-        const data = JSON.parse(message.toString());
-        
-        if (data.type === 'auth') {
-          // Authenticate the WebSocket connection
-          connectedClients.set(ws, {
-            userId: data.userId,
-            username: data.username,
-            userType: data.userType || 'web'
-          });
-          
-          ws.send(JSON.stringify({
-            type: 'auth_success',
-            message: 'WebSocket authenticated successfully'
-          }));
-        }
-      } catch (error) {
-        console.error('Error processing WebSocket message:', error);
-      }
-    });
-
-    ws.on('close', () => {
-      connectedClients.delete(ws);
-      console.log('WebSocket connection closed');
-    });
-
-    ws.on('error', (error) => {
-      console.error('WebSocket error:', error);
-      connectedClients.delete(ws);
-    });
-  });
-
-  // Broadcast function to send updates to all connected web users
-  function broadcastToWebUsers(eventType: string, data: any, excludeUserId?: number) {
-    const message = JSON.stringify({
-      type: 'update',
-      eventType,
-      data,
-      timestamp: new Date().toISOString()
-    });
-
-    connectedClients.forEach((clientInfo, ws) => {
-      if (ws.readyState === WebSocket.OPEN && 
-          clientInfo.userType === 'web' && 
-          clientInfo.userId !== excludeUserId) {
-        ws.send(message);
-      }
-    });
-  }
 
   // Organizations endpoint for user creation dropdown
   app.get("/api/organizations", requireAuth, async (req, res) => {
@@ -5810,6 +5750,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error updating GPS location:", error);
       res.status(500).json({ message: "Error updating location: " + error.message });
     }
+  });
+
+  // WebSocket connection handling
+  wss.on('connection', (ws, req) => {
+    console.log('New WebSocket connection');
+
+    ws.on('message', (message) => {
+      try {
+        const data = JSON.parse(message.toString());
+        
+        if (data.type === 'auth') {
+          // Authenticate the WebSocket connection
+          connectedClients.set(ws, {
+            userId: data.userId,
+            username: data.username,
+            userType: data.userType || 'web'
+          });
+          
+          ws.send(JSON.stringify({
+            type: 'auth_success',
+            message: 'WebSocket authenticated successfully'
+          }));
+        }
+      } catch (error) {
+        console.error('Error processing WebSocket message:', error);
+      }
+    });
+
+    ws.on('close', () => {
+      connectedClients.delete(ws);
+      console.log('WebSocket connection closed');
+    });
+
+    ws.on('error', (error) => {
+      console.error('WebSocket error:', error);
+      connectedClients.delete(ws);
+    });
   });
 
   // Add broadcast function to the app for use in routes
