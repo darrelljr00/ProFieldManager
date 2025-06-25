@@ -637,18 +637,36 @@ export class DatabaseStorage implements IStorage {
       isAdmin = user?.role === 'admin';
     }
 
-    let query = db
-      .select()
+    const results = await db
+      .select({
+        id: expenses.id,
+        userId: expenses.userId,
+        projectId: expenses.projectId,
+        amount: expenses.amount,
+        currency: expenses.currency,
+        category: expenses.category,
+        subcategory: expenses.subcategory,
+        description: expenses.description,
+        vendor: expenses.vendor,
+        receiptUrl: expenses.receiptUrl,
+        receiptData: expenses.receiptData,
+        expenseDate: expenses.expenseDate,
+        status: expenses.status,
+        isReimbursable: expenses.isReimbursable,
+        tags: expenses.tags,
+        notes: expenses.notes,
+        approvedBy: expenses.approvedBy,
+        approvedAt: expenses.approvedAt,
+        reimbursedAt: expenses.reimbursedAt,
+        createdAt: expenses.createdAt,
+        updatedAt: expenses.updatedAt
+      })
       .from(expenses)
       .innerJoin(users, eq(expenses.userId, users.id))
+      .where(isAdmin ? undefined : eq(users.organizationId, organizationId))
       .orderBy(desc(expenses.createdAt));
 
-    // If not admin, filter by organization
-    if (!isAdmin) {
-      query = query.where(eq(users.organizationId, organizationId)) as any;
-    }
-
-    return await query;
+    return results;
   }
 
   async createExpense(expenseData: any): Promise<any> {
