@@ -2168,8 +2168,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Expense management routes
   app.get("/api/expenses", requireAuth, async (req, res) => {
     try {
-      const userId = req.user!.id;
-      const expenses = await storage.getExpenses(userId);
+      const user = getAuthenticatedUser(req);
+      const expenses = await storage.getExpenses(user.organizationId, user.id);
       res.json(expenses);
     } catch (error: any) {
       console.error("Error fetching expenses:", error);
