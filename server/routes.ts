@@ -498,7 +498,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         emailVerified: false,
       };
 
-      const user = await storage.createUserAccount(userData);
+      const user = await storage.createUser(userData);
       
       // Create session
       const session = await AuthService.createSession(
