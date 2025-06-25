@@ -65,12 +65,19 @@ const navigation = [
   { name: "Image Gallery", href: "/image-gallery", icon: ImageIcon },
   { name: "Text Messaging", href: "/sms", icon: Smartphone },
   { name: "GPS Tracking", href: "/gps-tracking", icon: MapPin },
-  { name: "Mobile Test", href: "/mobile-test", icon: Smartphone },
   { name: "Reviews", href: "/reviews", icon: Star },
   { name: "Human Resources", href: "/human-resources", icon: Briefcase },
   { name: "User Management", href: "/users", icon: UserCog },
   { name: "SaaS Admin", href: "/saas-admin", icon: Server },
-  { name: "Admin Settings", href: "/admin-settings", icon: Shield },
+  { 
+    name: "Admin Settings", 
+    icon: Shield,
+    hasSubmenu: true,
+    items: [
+      { name: "Settings", href: "/admin-settings" },
+      { name: "Mobile Test", href: "/mobile-test" }
+    ]
+  },
   { name: "Reports", href: "/reports", icon: FileBarChart },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
@@ -139,7 +146,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
   };
 
   const filteredNavigation = navigation.filter(item => {
-    if (item.href === "/users" || item.href === "/admin-settings") {
+    if (item.href === "/users" || item.name === "Admin Settings") {
       return isAdmin;
     }
     return true;
@@ -151,6 +158,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
   };
 
   const isExpensesActive = location === "/expenses" || location === "/expense-reports";
+  const isAdminSettingsActive = location === "/admin-settings" || location === "/mobile-test";
 
 
 
@@ -229,14 +237,18 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
         <ul className="space-y-1 md:space-y-2">
           {filteredNavigation.map((item) => {
             if (item.hasSubmenu) {
-              const isExpanded = expandedMenus.has(item.name) || isExpensesActive;
+              const isExpanded = expandedMenus.has(item.name) || 
+                               (item.name === "Expenses" && isExpensesActive) ||
+                               (item.name === "Admin Settings" && isAdminSettingsActive);
+              const isActiveMenu = (item.name === "Expenses" && isExpensesActive) ||
+                                 (item.name === "Admin Settings" && isAdminSettingsActive);
               return (
                 <li key={item.name}>
                   <button
                     onClick={() => toggleMenu(item.name)}
                     className={cn(
                       "flex items-center justify-between w-full px-3 py-2 md:px-4 md:py-3 rounded-lg font-medium transition-colors text-sm md:text-base",
-                      isExpensesActive 
+                      isActiveMenu
                         ? "text-primary bg-blue-50" 
                         : "text-gray-700 hover:bg-gray-100"
                     )}
