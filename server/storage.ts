@@ -163,6 +163,14 @@ export interface IStorage {
   updateTimeClockEntry(id: number, updates: any): Promise<any>;
   getTimeClockSettings(organizationId: number): Promise<any>;
   updateTimeClockSettings(organizationId: number, settings: any): Promise<any>;
+  
+  // Internal messaging methods
+  getInternalMessages(userId: number): Promise<any[]>;
+  getInternalMessage(messageId: number, userId: number): Promise<any>;
+  createInternalMessage(messageData: any, recipientIds: number[]): Promise<any>;
+  markMessageAsRead(messageId: number, userId: number): Promise<boolean>;
+  deleteInternalMessage(messageId: number, userId: number): Promise<boolean>;
+  sendGroupMessage(groupId: number, messageData: any): Promise<any>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1693,6 +1701,227 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error deleting image:', error);
       return false;
+    }
+  }
+
+  // Internal messaging methods
+  async getInternalMessages(userId: number): Promise<any[]> {
+    try {
+      const userInfo = await this.getUser(userId);
+      if (!userInfo) return [];
+
+      const messagesWithRecipients = await db
+        .select({
+          id: internalMessages.id,
+          senderId: internalMessages.senderId,
+          subject: internalMessages.subject,
+          content: internalMessages.content,
+          messageType: internalMessages.messageType,
+          priority: internalMessages.priority,
+          parentMessageId: internalMessages.parentMessageId,
+          createdAt: internalMessages.createdAt,
+          updatedAt: internalMessages.updatedAt,
+          senderUsername: users.username,
+          senderFirstName: users.firstName,
+          senderLastName: users.lastName,
+          recipients: sql<any[]>`json_agg(json_build_object(
+            'recipientId', ${internalMessageRecipients.recipientId},
+            'isRead', ${internalMessageRecipients.isRead},
+            'readAt', ${internalMessageRecipients.readAt}
+          ))`
+        })
+        .from(internalMessages)
+        .innerJoin(users, eq(internalMessages.senderId, users.id))
+        .leftJoin(internalMessageRecipients, eq(internalMessages.id, internalMessageRecipients.messageId))
+        .where(
+          or(
+            eq(internalMessages.senderId, userId),
+            eq(internalMessageRecipients.recipientId, userId)
+          )
+        )
+        .groupBy(
+          internalMessages.id,
+          internalMessages.senderId,
+          internalMessages.subject,
+          internalMessages.content,
+          internalMessages.messageType,
+          internalMessages.priority,
+          internalMessages.parentMessageId,
+          internalMessages.createdAt,
+          internalMessages.updatedAt,
+          users.username,
+          users.firstName,
+          users.lastName
+        )
+        .orderBy(desc(internalMessages.createdAt));
+
+      return messagesWithRecipients;
+    } catch (error) {
+      console.error('Error fetching internal messages:', error);
+      return [];
+    }
+  }
+
+  async createInternalMessage(messageData: any, recipientIds: number[]): Promise<any> {
+    try {
+      // Create the message
+      const [message] = await db
+        .insert(internalMessages)
+        .values({
+          senderId: messageData.senderId,
+          subject: messageData.subject,
+          content: messageData.content,
+          messageType: messageData.messageType || 'individual',
+          priority: messageData.priority || 'normal',
+          parentMessageId: messageData.parentMessageId || null
+        })
+        .returning();
+
+      // Create recipients
+      if (recipientIds && recipientIds.length > 0) {
+        const recipientData = recipientIds.map(recipientId => ({
+          messageId: message.id,
+          recipientId: recipientId,
+          isRead: false
+        }));
+
+        await db
+          .insert(internalMessageRecipients)
+          .values(recipientData);
+      }
+
+      // Fetch the complete message with sender info
+      const [completeMessage] = await db
+        .select({
+          id: internalMessages.id,
+          senderId: internalMessages.senderId,
+          subject: internalMessages.subject,
+          content: internalMessages.content,
+          messageType: internalMessages.messageType,
+          priority: internalMessages.priority,
+          parentMessageId: internalMessages.parentMessageId,
+          createdAt: internalMessages.createdAt,
+          updatedAt: internalMessages.updatedAt,
+          senderUsername: users.username,
+          senderFirstName: users.firstName,
+          senderLastName: users.lastName
+        })
+        .from(internalMessages)
+        .innerJoin(users, eq(internalMessages.senderId, users.id))
+        .where(eq(internalMessages.id, message.id));
+
+      return completeMessage;
+    } catch (error) {
+      console.error('Error creating internal message:', error);
+      throw error;
+    }
+  }
+
+  async markMessageAsRead(messageId: number, userId: number): Promise<boolean> {
+    try {
+      const result = await db
+        .update(internalMessageRecipients)
+        .set({
+          isRead: true,
+          readAt: new Date()
+        })
+        .where(
+          and(
+            eq(internalMessageRecipients.messageId, messageId),
+            eq(internalMessageRecipients.recipientId, userId)
+          )
+        );
+
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error('Error marking message as read:', error);
+      return false;
+    }
+  }
+
+  async deleteInternalMessage(messageId: number, userId: number): Promise<boolean> {
+    try {
+      // Check if user is the sender
+      const [message] = await db
+        .select()
+        .from(internalMessages)
+        .where(
+          and(
+            eq(internalMessages.id, messageId),
+            eq(internalMessages.senderId, userId)
+          )
+        );
+
+      if (!message) return false;
+
+      // Delete recipients first
+      await db
+        .delete(internalMessageRecipients)
+        .where(eq(internalMessageRecipients.messageId, messageId));
+
+      // Delete the message
+      const result = await db
+        .delete(internalMessages)
+        .where(eq(internalMessages.id, messageId));
+
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error('Error deleting internal message:', error);
+      return false;
+    }
+  }
+
+  async getInternalMessage(messageId: number, userId: number): Promise<any> {
+    try {
+      const [message] = await db
+        .select({
+          id: internalMessages.id,
+          senderId: internalMessages.senderId,
+          subject: internalMessages.subject,
+          content: internalMessages.content,
+          messageType: internalMessages.messageType,
+          priority: internalMessages.priority,
+          parentMessageId: internalMessages.parentMessageId,
+          createdAt: internalMessages.createdAt,
+          updatedAt: internalMessages.updatedAt,
+          senderUsername: users.username,
+          senderFirstName: users.firstName,
+          senderLastName: users.lastName
+        })
+        .from(internalMessages)
+        .innerJoin(users, eq(internalMessages.senderId, users.id))
+        .leftJoin(internalMessageRecipients, eq(internalMessages.id, internalMessageRecipients.messageId))
+        .where(
+          and(
+            eq(internalMessages.id, messageId),
+            or(
+              eq(internalMessages.senderId, userId),
+              eq(internalMessageRecipients.recipientId, userId)
+            )
+          )
+        );
+
+      return message || null;
+    } catch (error) {
+      console.error('Error fetching internal message:', error);
+      return null;
+    }
+  }
+
+  async sendGroupMessage(groupId: number, messageData: any): Promise<any> {
+    try {
+      // Get group members
+      const groupMembers = await db
+        .select({ userId: messageGroupMembers.userId })
+        .from(messageGroupMembers)
+        .where(eq(messageGroupMembers.groupId, groupId));
+
+      const recipientIds = groupMembers.map(member => member.userId);
+      
+      return await this.createInternalMessage(messageData, recipientIds);
+    } catch (error) {
+      console.error('Error sending group message:', error);
+      throw error;
     }
   }
 }
