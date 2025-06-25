@@ -82,6 +82,8 @@ export function useWebSocket() {
       'sms_sent': `SMS message sent by ${data.sentBy}`,
       'lead_created': `New lead added by ${data.createdBy}`,
       'message_created': `New message from ${data.createdBy}`,
+      'new_message': `New message received from ${data.message?.senderUsername || 'someone'}`,
+      'message_sent': `Message sent successfully`,
       'calendar_job_created': `New calendar job scheduled by ${data.createdBy}`,
       'gas_card_created': `New gas card added by ${data.createdBy}`,
       'review_request_sent': `Review request sent by ${data.sentBy}`,

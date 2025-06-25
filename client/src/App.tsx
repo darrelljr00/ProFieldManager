@@ -67,6 +67,8 @@ function AuthenticatedApp() {
         'sms_sent': ['/api/sms'],
         'lead_created': ['/api/leads'],
         'message_created': ['/api/messages'],
+        'new_message': ['/api/internal-messages'],
+        'message_sent': ['/api/internal-messages'],
         'calendar_job_created': ['/api/calendar'],
         'gas_card_created': ['/api/gas-cards'],
         'review_request_sent': ['/api/reviews'],

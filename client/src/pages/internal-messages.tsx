@@ -93,6 +93,24 @@ export default function InternalMessagesPage() {
     refetchOnWindowFocus: true, // Refresh when user returns to tab
   });
 
+  // Listen for WebSocket updates for real-time message delivery
+  useEffect(() => {
+    const handleWebSocketUpdate = (event: CustomEvent) => {
+      const { eventType } = event.detail;
+      
+      if (eventType === 'new_message' || eventType === 'message_sent') {
+        // Immediately refresh messages when new message arrives
+        queryClient.invalidateQueries({ queryKey: ["/api/internal-messages"] });
+      }
+    };
+
+    window.addEventListener('websocket-update', handleWebSocketUpdate as EventListener);
+    
+    return () => {
+      window.removeEventListener('websocket-update', handleWebSocketUpdate as EventListener);
+    };
+  }, [queryClient]);
+
   const { data: users = [] } = useQuery<User[]>({
     queryKey: ["/api/users"],
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes - users don't change often

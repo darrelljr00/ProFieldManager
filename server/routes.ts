@@ -2881,6 +2881,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log('Message created successfully:', message.id);
 
+      // Broadcast message to recipients via WebSocket for instant delivery
+      if (finalRecipientIds && finalRecipientIds.length > 0) {
+        finalRecipientIds.forEach(recipientId => {
+          // Send to specific recipient only
+          const broadcastMessage = JSON.stringify({
+            type: 'update',
+            eventType: 'new_message',
+            data: {
+              message: message,
+              timestamp: new Date().toISOString()
+            },
+            timestamp: new Date().toISOString()
+          });
+
+          connectedClients.forEach((clientInfo, ws) => {
+            if (ws.readyState === WebSocket.OPEN && 
+                clientInfo.userType === 'web' && 
+                clientInfo.userId === recipientId) {
+              ws.send(broadcastMessage);
+            }
+          });
+        });
+      }
+
+      // Also broadcast to sender for confirmation
+      const senderMessage = JSON.stringify({
+        type: 'update',
+        eventType: 'message_sent',
+        data: {
+          message: message,
+          timestamp: new Date().toISOString()
+        },
+        timestamp: new Date().toISOString()
+      });
+
+      connectedClients.forEach((clientInfo, ws) => {
+        if (ws.readyState === WebSocket.OPEN && 
+            clientInfo.userType === 'web' && 
+            clientInfo.userId === req.user!.id) {
+          ws.send(senderMessage);
+        }
+      });
+
       res.json(message);
     } catch (error: any) {
       console.error("Error creating internal message:", error);
