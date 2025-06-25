@@ -116,6 +116,8 @@ Pro Field Manager is a comprehensive SaaS field service management platform buil
 - June 23, 2025. Created "Pro Field Manager" organization with enterprise features and assigned superadmin
 - June 24, 2025. Enhanced Navigation Tab Access Control with all 25+ navigation tabs including Dashboard, Calendar, Time Clock, Jobs, My Tasks, Leads, Expenses, Quotes, Invoices, Customers, Payments, File Manager, Form Builder, Team Messages, Image Gallery, SMS, GPS Tracking, Mobile Test, Reviews, Human Resources, User Management, SaaS Admin, Admin Settings, Reports, and Settings
 - June 25, 2025. Implemented complete internal messaging system with real-time WebSocket updates for instant message delivery, including createInternalMessage storage methods, message recipient handling, and WebSocket broadcasting for seamless team communication
+- June 25, 2025. Fixed "S is undefined" WebSocket error by properly organizing variable scope and declarations in routes.ts
+- June 25, 2025. Resolved expense visibility issue where WebSocket notifications showed expense creation but expenses weren't visible due to organization-based filtering - updated getExpenses to allow admin users to see all expenses across organizations
 
 ## User Preferences
 

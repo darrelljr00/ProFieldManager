@@ -624,13 +624,26 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Expense methods
-  async getExpenses(organizationId: number): Promise<any[]> {
-    return await db
+  async getExpenses(organizationId: number, userId?: number): Promise<any[]> {
+    // Check if user is admin - admins can see all expenses across organizations
+    let isAdmin = false;
+    if (userId) {
+      const user = await this.getUser(userId);
+      isAdmin = user?.role === 'admin';
+    }
+
+    let query = db
       .select()
       .from(expenses)
       .innerJoin(users, eq(expenses.userId, users.id))
-      .where(eq(users.organizationId, organizationId))
       .orderBy(desc(expenses.createdAt));
+
+    // If not admin, filter by organization
+    if (!isAdmin) {
+      query = query.where(eq(users.organizationId, organizationId)) as any;
+    }
+
+    return await query;
   }
 
   async createExpense(expenseData: any): Promise<any> {
