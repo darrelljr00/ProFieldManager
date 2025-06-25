@@ -623,7 +623,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (existingUsers.length === 0) {
         // Create admin user
         const adminPassword = await AuthService.hashPassword("admin123");
-        await storage.createUserAccount({
+        await storage.createUser({
           username: "admin",
           email: "admin@example.com",
           password: adminPassword,
@@ -636,7 +636,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Create manager user  
         const managerPassword = await AuthService.hashPassword("manager123");
-        await storage.createUserAccount({
+        await storage.createUser({
           username: "manager",
           email: "manager@example.com",
           password: managerPassword,
@@ -649,7 +649,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Create regular user
         const userPassword = await AuthService.hashPassword("user123");
-        await storage.createUserAccount({
+        await storage.createUser({
           username: "user",
           email: "user@example.com",
           password: userPassword,
@@ -1596,7 +1596,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         emailVerified: false,
       };
 
-      const user = await storage.createUserAccount(userData);
+      const user = await storage.createUser(userData);
       
       // Broadcast to all web users except the creator
       broadcastToWebUsers('user_created', {
