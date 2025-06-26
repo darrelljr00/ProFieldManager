@@ -223,7 +223,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
           </div>
           <div className="flex items-center gap-2">
             {/* Team Messages Notification */}
-            <Link href="/team-messages" className="relative">
+            <Link href="/internal-messages" className="relative">
               <Button variant="ghost" size="sm" className="p-1 h-8 w-8">
                 <MessageCircle className="h-4 w-4 text-gray-600" />
                 {unreadTeamMessages > 0 && (
