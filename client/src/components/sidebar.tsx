@@ -55,6 +55,7 @@ const navigation = [
     items: [
       { name: "All Expenses", href: "/expenses" },
       { name: "Expense Reports", href: "/expense-reports" },
+      { name: "Gas Card Providers", href: "/gas-card-providers" },
       { name: "Gas Cards", href: "/gas-cards" }
     ]
   },

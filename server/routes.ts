@@ -2429,6 +2429,125 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Gas card provider management routes
+  app.get("/api/gas-card-providers", requireAuth, async (req, res) => {
+    try {
+      const user = req.user as User;
+      const providers = await storage.getGasCardProviders(user.organizationId);
+      res.json(providers);
+    } catch (error: any) {
+      console.error("Error fetching gas card providers:", error);
+      res.status(500).json({ message: "Failed to fetch gas card providers" });
+    }
+  });
+
+  app.get("/api/gas-card-providers/:id", requireAuth, async (req, res) => {
+    try {
+      const user = req.user as User;
+      const id = parseInt(req.params.id);
+      const provider = await storage.getGasCardProvider(id, user.organizationId);
+      
+      if (!provider) {
+        return res.status(404).json({ message: "Gas card provider not found" });
+      }
+      
+      res.json(provider);
+    } catch (error: any) {
+      console.error("Error fetching gas card provider:", error);
+      res.status(500).json({ message: "Failed to fetch gas card provider" });
+    }
+  });
+
+  app.post("/api/gas-card-providers", requireAuth, async (req, res) => {
+    try {
+      const user = req.user as User;
+      const providerData = req.body;
+
+      const provider = await storage.createGasCardProvider({
+        ...providerData,
+        organizationId: user.organizationId,
+      });
+
+      res.status(201).json(provider);
+
+      // Broadcast to WebSocket clients
+      if (wss) {
+        wss.clients.forEach((client) => {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify({
+              type: 'gas_card_provider_created',
+              data: provider
+            }));
+          }
+        });
+      }
+    } catch (error: any) {
+      console.error("Error creating gas card provider:", error);
+      res.status(500).json({ message: "Failed to create gas card provider" });
+    }
+  });
+
+  app.put("/api/gas-card-providers/:id", requireAuth, async (req, res) => {
+    try {
+      const user = req.user as User;
+      const id = parseInt(req.params.id);
+      const updates = req.body;
+
+      const provider = await storage.updateGasCardProvider(id, user.organizationId, updates);
+      
+      if (!provider) {
+        return res.status(404).json({ message: "Gas card provider not found" });
+      }
+
+      res.json(provider);
+
+      // Broadcast to WebSocket clients
+      if (wss) {
+        wss.clients.forEach((client) => {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify({
+              type: 'gas_card_provider_updated',
+              data: provider
+            }));
+          }
+        });
+      }
+    } catch (error: any) {
+      console.error("Error updating gas card provider:", error);
+      res.status(500).json({ message: "Failed to update gas card provider" });
+    }
+  });
+
+  app.delete("/api/gas-card-providers/:id", requireAuth, async (req, res) => {
+    try {
+      const user = req.user as User;
+      const id = parseInt(req.params.id);
+
+      const success = await storage.deleteGasCardProvider(id, user.organizationId);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Gas card provider not found" });
+      }
+
+      res.json({ message: "Gas card provider deleted successfully" });
+
+      // Broadcast to WebSocket clients
+      if (wss) {
+        wss.clients.forEach((client) => {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify({
+              type: 'gas_card_provider_deleted',
+              data: { id }
+            }));
+          }
+        });
+      }
+    } catch (error: any) {
+      console.error("Error deleting gas card provider:", error);
+      res.status(500).json({ message: "Failed to delete gas card provider" });
+    }
+  });
+
   // Expense reports
   app.get("/api/expense-reports", requireAuth, async (req, res) => {
     try {
