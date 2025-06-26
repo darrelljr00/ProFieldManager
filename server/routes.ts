@@ -1656,7 +1656,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const permissions = req.body;
 
       // Get current user to verify it exists
-      const user = await storage.getUserById(userId);
+      const user = await storage.getUser(userId);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
