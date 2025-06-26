@@ -1486,7 +1486,7 @@ export default function UsersPage() {
                           {/* SaaS Admin */}
                           <TableCell>
                             <Switch
-                              checked={user.canAccessSaasAdmin ?? (user.role === 'admin')}
+                              checked={user.canAccessSaasAdmin === true}
                               onCheckedChange={(checked) => 
                                 updateUserPermissionsMutation.mutate({
                                   userId: user.id,
@@ -1499,7 +1499,7 @@ export default function UsersPage() {
                           {/* Admin Settings */}
                           <TableCell>
                             <Switch
-                              checked={user.canAccessAdminSettings ?? (user.role === 'admin')}
+                              checked={user.canAccessAdminSettings === true}
                               onCheckedChange={(checked) => 
                                 updateUserPermissionsMutation.mutate({
                                   userId: user.id,
@@ -1512,7 +1512,7 @@ export default function UsersPage() {
                           {/* Reports */}
                           <TableCell>
                             <Switch
-                              checked={user.canAccessReports ?? (user.role === 'admin' || user.role === 'manager')}
+                              checked={user.canAccessReports === true}
                               onCheckedChange={(checked) => 
                                 updateUserPermissionsMutation.mutate({
                                   userId: user.id,
