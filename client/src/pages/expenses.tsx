@@ -43,17 +43,7 @@ interface ExpenseWithProject extends Expense {
   project?: Project;
 }
 
-const EXPENSE_CATEGORIES = [
-  "travel",
-  "meals",
-  "office_supplies", 
-  "equipment",
-  "software",
-  "marketing",
-  "entertainment",
-  "utilities",
-  "other"
-];
+// Dynamic expense categories are now loaded from the database via API
 
 export default function Expenses() {
   const [expenseDialogOpen, setExpenseDialogOpen] = useState(false);
@@ -1024,14 +1014,32 @@ export default function Expenses() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {EXPENSE_CATEGORIES.map((category) => (
-                  <div key={category} className="border rounded-lg p-3 text-center">
-                    <Tag className="h-6 w-6 mx-auto mb-2 text-gray-600" />
+                {categories
+                  .filter(cat => cat.isActive)
+                  .map((category) => (
+                  <div key={category.id} className="border rounded-lg p-3 text-center">
+                    <div 
+                      className="w-6 h-6 mx-auto mb-2 rounded"
+                      style={{ backgroundColor: category.color }}
+                    />
                     <p className="text-sm font-medium">
-                      {category.replace('_', ' ').toUpperCase()}
+                      {category.name}
                     </p>
+                    {category.description && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        {category.description}
+                      </p>
+                    )}
                   </div>
                 ))}
+              </div>
+              <div className="mt-4 flex justify-center">
+                <Link href="/expense-categories">
+                  <Button variant="outline" size="sm" className="flex items-center gap-2">
+                    <Settings className="h-4 w-4" />
+                    Manage Categories
+                  </Button>
+                </Link>
               </div>
             </CardContent>
           </Card>
