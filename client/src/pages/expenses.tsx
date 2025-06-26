@@ -47,6 +47,170 @@ interface ExpenseWithProject extends Expense {
   project?: Project;
 }
 
+// Vendor Input Component - moved outside main component to fix React dispatcher issues
+interface VendorInputProps {
+  defaultValue?: string;
+  onVendorSelect: (vendorName: string) => void;
+}
+
+function VendorInput({ defaultValue = "", onVendorSelect }: VendorInputProps) {
+  const [open, setOpen] = useState(false);
+  const [value, setValue] = useState(defaultValue);
+  const [showNewVendorDialog, setShowNewVendorDialog] = useState(false);
+  const [newVendorName, setNewVendorName] = useState("");
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Fetch vendors
+  const { data: vendors = [] } = useQuery({
+    queryKey: ["/api/vendors"],
+    queryFn: () => apiRequest("/api/vendors").then(res => res.json()),
+  });
+
+  // Create vendor mutation
+  const createVendorMutation = useMutation({
+    mutationFn: (vendorData: any) => 
+      apiRequest("POST", "/api/vendors", vendorData).then(res => res.json()),
+    onSuccess: (newVendor) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/vendors"] });
+      setValue(newVendor.name);
+      onVendorSelect(newVendor.name);
+      setShowNewVendorDialog(false);
+      setNewVendorName("");
+      toast({
+        title: "Vendor Created",
+        description: `${newVendor.name} has been added to your vendor list.`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create vendor",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleCreateVendor = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newVendorName.trim()) return;
+
+    createVendorMutation.mutate({
+      name: newVendorName.trim(),
+    });
+  };
+
+  return (
+    <>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            className="w-full justify-between"
+          >
+            {value || "Select or type vendor name..."}
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-full p-0">
+          <Command>
+            <CommandInput 
+              placeholder="Search vendors or type new name..." 
+              value={value}
+              onValueChange={setValue}
+            />
+            <CommandList>
+              <CommandEmpty>
+                <div className="text-center p-2">
+                  <p className="text-sm text-muted-foreground mb-2">
+                    No vendor found with that name.
+                  </p>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      setNewVendorName(value);
+                      setShowNewVendorDialog(true);
+                      setOpen(false);
+                    }}
+                    className="w-full"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create "{value}"
+                  </Button>
+                </div>
+              </CommandEmpty>
+              <CommandGroup>
+                {vendors.map((vendor: any) => (
+                  <CommandItem
+                    key={vendor.id}
+                    value={vendor.name}
+                    onSelect={(currentValue) => {
+                      setValue(currentValue);
+                      onVendorSelect(currentValue);
+                      setOpen(false);
+                    }}
+                  >
+                    <Check
+                      className={`mr-2 h-4 w-4 ${
+                        value === vendor.name ? "opacity-100" : "opacity-0"
+                      }`}
+                    />
+                    {vendor.name}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+
+      {/* Hidden input for form submission */}
+      <input type="hidden" name="vendor" value={value} />
+
+      {/* New Vendor Dialog */}
+      <Dialog open={showNewVendorDialog} onOpenChange={setShowNewVendorDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New Vendor</DialogTitle>
+            <DialogDescription>
+              Add a new vendor to your organization's vendor list.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleCreateVendor} className="space-y-4">
+            <div>
+              <Label htmlFor="newVendorName">Vendor Name *</Label>
+              <Input
+                id="newVendorName"
+                value={newVendorName}
+                onChange={(e) => setNewVendorName(e.target.value)}
+                placeholder="Enter vendor name"
+                required
+              />
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowNewVendorDialog(false)}
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={createVendorMutation.isPending || !newVendorName.trim()}
+              >
+                {createVendorMutation.isPending ? "Creating..." : "Create Vendor"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
 // Dynamic expense categories are now loaded from the database via API
 
 export default function Expenses() {
@@ -65,170 +229,9 @@ export default function Expenses() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [selectedExpense, setSelectedExpense] = useState<ExpenseWithProject | null>(null);
   const [showExpenseDetails, setShowExpenseDetails] = useState(false);
+  const [selectedVendor, setSelectedVendor] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
-
-  // Vendor Input Component
-  interface VendorInputProps {
-    defaultValue?: string;
-    onVendorSelect: (vendorName: string) => void;
-  }
-
-  const VendorInput = ({ defaultValue = "", onVendorSelect }: VendorInputProps) => {
-    const [open, setOpen] = useState(false);
-    const [value, setValue] = useState(defaultValue);
-    const [showNewVendorDialog, setShowNewVendorDialog] = useState(false);
-    const [newVendorName, setNewVendorName] = useState("");
-
-    // Fetch vendors
-    const { data: vendors = [] } = useQuery({
-      queryKey: ["/api/vendors"],
-      queryFn: () => apiRequest("/api/vendors").then(res => res.json()),
-    });
-
-    // Create vendor mutation
-    const createVendorMutation = useMutation({
-      mutationFn: (vendorData: any) => 
-        apiRequest("POST", "/api/vendors", vendorData).then(res => res.json()),
-      onSuccess: (newVendor) => {
-        queryClient.invalidateQueries({ queryKey: ["/api/vendors"] });
-        setValue(newVendor.name);
-        onVendorSelect(newVendor.name);
-        setShowNewVendorDialog(false);
-        setNewVendorName("");
-        toast({
-          title: "Vendor Created",
-          description: `${newVendor.name} has been added to your vendor list.`,
-        });
-      },
-      onError: (error: any) => {
-        toast({
-          title: "Error",
-          description: error.message || "Failed to create vendor",
-          variant: "destructive",
-        });
-      },
-    });
-
-    const handleCreateVendor = (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!newVendorName.trim()) return;
-
-      createVendorMutation.mutate({
-        name: newVendorName.trim(),
-      });
-    };
-
-    return (
-      <>
-        <Popover open={open} onOpenChange={setOpen}>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              role="combobox"
-              aria-expanded={open}
-              className="w-full justify-between"
-            >
-              {value || "Select or type vendor name..."}
-              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-full p-0">
-            <Command>
-              <CommandInput 
-                placeholder="Search vendors or type new name..." 
-                value={value}
-                onValueChange={setValue}
-              />
-              <CommandList>
-                <CommandEmpty>
-                  <div className="text-center p-2">
-                    <p className="text-sm text-muted-foreground mb-2">
-                      No vendor found with that name.
-                    </p>
-                    <Button
-                      size="sm"
-                      onClick={() => {
-                        setNewVendorName(value);
-                        setShowNewVendorDialog(true);
-                        setOpen(false);
-                      }}
-                      className="w-full"
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Create "{value}"
-                    </Button>
-                  </div>
-                </CommandEmpty>
-                <CommandGroup>
-                  {vendors.map((vendor: any) => (
-                    <CommandItem
-                      key={vendor.id}
-                      value={vendor.name}
-                      onSelect={(currentValue) => {
-                        setValue(currentValue);
-                        onVendorSelect(currentValue);
-                        setOpen(false);
-                      }}
-                    >
-                      <Check
-                        className={`mr-2 h-4 w-4 ${
-                          value === vendor.name ? "opacity-100" : "opacity-0"
-                        }`}
-                      />
-                      {vendor.name}
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </CommandList>
-            </Command>
-          </PopoverContent>
-        </Popover>
-
-        {/* Hidden input for form submission */}
-        <input type="hidden" name="vendor" value={value} />
-
-        {/* New Vendor Dialog */}
-        <Dialog open={showNewVendorDialog} onOpenChange={setShowNewVendorDialog}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Create New Vendor</DialogTitle>
-              <DialogDescription>
-                Add a new vendor to your organization's vendor list.
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleCreateVendor} className="space-y-4">
-              <div>
-                <Label htmlFor="newVendorName">Vendor Name *</Label>
-                <Input
-                  id="newVendorName"
-                  value={newVendorName}
-                  onChange={(e) => setNewVendorName(e.target.value)}
-                  placeholder="Enter vendor name"
-                  required
-                />
-              </div>
-              <div className="flex justify-end space-x-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShowNewVendorDialog(false)}
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  type="submit" 
-                  disabled={createVendorMutation.isPending || !newVendorName.trim()}
-                >
-                  {createVendorMutation.isPending ? "Creating..." : "Create Vendor"}
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </>
-    );
-  };
 
   const { data: expenses = [], isLoading: expensesLoading } = useQuery<ExpenseWithProject[]>({
     queryKey: ["/api/expenses"],
@@ -284,9 +287,16 @@ export default function Expenses() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     
+    // Add selected vendor to form data
+    if (selectedVendor) {
+      formData.set("vendor", selectedVendor);
+    }
+    
     // If we have OCR data, populate the form with it
     if (ocrResult?.testData) {
-      formData.set("vendor", ocrResult.testData.vendor);
+      if (!selectedVendor) {
+        formData.set("vendor", ocrResult.testData.vendor);
+      }
       formData.set("amount", ocrResult.testData.amount);
       formData.set("expenseDate", ocrResult.testData.date);
       formData.set("category", ocrResult.testData.category);
@@ -646,10 +656,8 @@ export default function Expenses() {
                     <div>
                       <Label htmlFor="vendor">Vendor</Label>
                       <VendorInput 
-                        defaultValue={ocrResult?.testData?.vendor || ""}
-                        onVendorSelect={(vendorName) => {
-                          // The vendor name will be automatically set in the form
-                        }}
+                        defaultValue={ocrResult?.testData?.vendor || selectedVendor}
+                        onVendorSelect={setSelectedVendor}
                       />
                     </div>
                     <div>
