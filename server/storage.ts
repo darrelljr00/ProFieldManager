@@ -65,7 +65,7 @@ export interface IStorage {
   getExpenses(organizationId: number, userId?: number): Promise<any[]>;
   getExpense(id: number, userId?: number): Promise<any>;
   createExpense(expenseData: any): Promise<any>;
-  updateExpense(id: number, updates: any): Promise<any>;
+  updateExpense(id: number, userId: number, updates: any): Promise<any>;
   deleteExpense(id: number, userId?: number): Promise<boolean>;
   approveExpense(id: number, approvedBy: number): Promise<boolean>;
   
