@@ -156,6 +156,13 @@ export interface IStorage {
   getGasCardAssignments(organizationId: number): Promise<any[]>;
   getActiveGasCardAssignments(organizationId: number): Promise<any[]>;
   
+  // Gas card provider methods
+  getGasCardProviders(organizationId: number): Promise<any[]>;
+  getGasCardProvider(id: number, organizationId: number): Promise<any>;
+  createGasCardProvider(providerData: any): Promise<any>;
+  updateGasCardProvider(id: number, organizationId: number, updates: any): Promise<any>;
+  deleteGasCardProvider(id: number, organizationId: number): Promise<boolean>;
+  
   // Time clock methods
   getCurrentTimeClockEntry(userId: number): Promise<any>;
   clockIn(userId: number, organizationId: number, location?: string, ipAddress?: string): Promise<any>;
@@ -2067,6 +2074,62 @@ export class DatabaseStorage implements IStorage {
       console.error('Error sending group message:', error);
       throw error;
     }
+  }
+
+  // Gas card provider methods
+  async getGasCardProviders(organizationId: number): Promise<any[]> {
+    return await db
+      .select()
+      .from(gasCardProviders)
+      .where(eq(gasCardProviders.organizationId, organizationId))
+      .orderBy(gasCardProviders.name);
+  }
+
+  async getGasCardProvider(id: number, organizationId: number): Promise<any> {
+    const [provider] = await db
+      .select()
+      .from(gasCardProviders)
+      .where(
+        and(
+          eq(gasCardProviders.id, id),
+          eq(gasCardProviders.organizationId, organizationId)
+        )
+      );
+    return provider || null;
+  }
+
+  async createGasCardProvider(providerData: any): Promise<any> {
+    const [provider] = await db
+      .insert(gasCardProviders)
+      .values(providerData)
+      .returning();
+    return provider;
+  }
+
+  async updateGasCardProvider(id: number, organizationId: number, updates: any): Promise<any> {
+    const [provider] = await db
+      .update(gasCardProviders)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(
+        and(
+          eq(gasCardProviders.id, id),
+          eq(gasCardProviders.organizationId, organizationId)
+        )
+      )
+      .returning();
+    return provider;
+  }
+
+  async deleteGasCardProvider(id: number, organizationId: number): Promise<boolean> {
+    const result = await db
+      .delete(gasCardProviders)
+      .where(
+        and(
+          eq(gasCardProviders.id, id),
+          eq(gasCardProviders.organizationId, organizationId)
+        )
+      );
+    return result.rowCount > 0;
   }
 }
 
