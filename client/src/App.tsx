@@ -18,6 +18,7 @@ import CalendarPage from "@/pages/calendar";
 import Leads from "@/pages/leads";
 import Expenses from "@/pages/expenses";
 import ExpenseReports from "@/pages/expense-reports";
+import ExpenseCategories from "@/pages/expense-categories";
 import GasCards from "@/pages/gas-cards";
 import Quotes from "@/pages/quotes";
 import Invoices from "@/pages/invoices";
@@ -121,6 +122,7 @@ function AuthenticatedApp() {
           <Route path="/leads" component={Leads} />
           <Route path="/expenses" component={Expenses} />
           <Route path="/expense-reports" component={ExpenseReports} />
+          <Route path="/expense-categories" component={ExpenseCategories} />
           <Route path="/gas-cards" component={GasCards} />
           <Route path="/quotes" component={Quotes} />
           <Route path="/invoices" component={Invoices} />
