@@ -7,7 +7,7 @@ import {
   projectFiles, fileManager, projectUsers, timeClock, timeClockSettings,
   internalMessages, internalMessageRecipients, messageGroups, messageGroupMembers
 } from "@shared/schema";
-import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull } from "drizzle-orm";
+import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull, isNull } from "drizzle-orm";
 import type { 
   User, Customer, Invoice, Quote, Project, Task, 
   Expense, ExpenseCategory, ExpenseReport, GasCard,
@@ -712,7 +712,10 @@ export class DatabaseStorage implements IStorage {
       })
       .from(expenses)
       .innerJoin(users, eq(expenses.userId, users.id))
-      .where(isAdmin ? undefined : eq(users.organizationId, organizationId))
+      .where(and(
+        isNull(expenses.deletedAt), // Only show non-deleted expenses
+        isAdmin ? undefined : eq(users.organizationId, organizationId)
+      ))
       .orderBy(desc(expenses.createdAt));
 
     return results;
@@ -783,9 +786,18 @@ export class DatabaseStorage implements IStorage {
     return expense;
   }
 
-  async deleteExpense(id: number, userId?: number): Promise<boolean> {
-    const result = await db.delete(expenses).where(eq(expenses.id, id));
-    return result.rowCount > 0;
+  async deleteExpense(id: number, userId: number): Promise<boolean> {
+    // Soft delete - set deletedAt timestamp instead of actually deleting
+    const [expense] = await db
+      .update(expenses)
+      .set({ 
+        deletedAt: new Date(),
+        deletedBy: userId,
+        updatedAt: new Date()
+      })
+      .where(eq(expenses.id, id))
+      .returning();
+    return !!expense;
   }
 
   async approveExpense(id: number, approvedBy: number): Promise<boolean> {
