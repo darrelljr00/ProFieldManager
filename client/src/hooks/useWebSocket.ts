@@ -72,6 +72,11 @@ export function useWebSocket() {
   }, [user]);
 
   const handleRealtimeUpdate = (eventType: string, data: any) => {
+    // Dispatch custom event for immediate UI updates
+    window.dispatchEvent(new CustomEvent('websocket-update', {
+      detail: { eventType, data }
+    }));
+
     const notifications: Record<string, string> = {
       'invoice_created': `New invoice created by ${data.createdBy}`,
       'expense_created': `New expense added by ${data.createdBy}`,

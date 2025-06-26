@@ -100,8 +100,9 @@ export default function InternalMessagesPage() {
       const { eventType } = event.detail;
       
       if (eventType === 'new_message' || eventType === 'message_sent') {
-        // Immediately refresh messages when new message arrives
+        // Force immediate refresh for real-time message display
         queryClient.invalidateQueries({ queryKey: ["/api/internal-messages"] });
+        queryClient.refetchQueries({ queryKey: ["/api/internal-messages"] });
       }
     };
 
@@ -123,7 +124,9 @@ export default function InternalMessagesPage() {
       return await apiRequest("POST", "/api/internal-messages", data);
     },
     onSuccess: () => {
+      // Force immediate refresh for instant message display
       queryClient.invalidateQueries({ queryKey: ["/api/internal-messages"] });
+      queryClient.refetchQueries({ queryKey: ["/api/internal-messages"] });
       setNewMessage('');
       setAttachedFiles([]);
       toast({
