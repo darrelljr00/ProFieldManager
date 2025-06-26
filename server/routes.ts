@@ -190,6 +190,9 @@ const disciplinaryUpload = multer({
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
+  // Serve static files from uploads directory
+  app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+  
   // Create HTTP server first
   const httpServer = createServer(app);
 
@@ -2336,12 +2339,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Expense trash management routes
   app.get("/api/expenses/trash", requireAuth, async (req, res) => {
     try {
-      const user = req.user as User;
+      const user = getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      console.log("Fetching trashed expenses for user:", user.id, "organization:", user.organizationId);
+      
+      if (!user.organizationId) {
+        return res.status(400).json({ message: "User organization not found" });
+      }
+      
       const trashedExpenses = await storage.getTrashedExpenses(user.organizationId, user.id);
       res.json(trashedExpenses);
     } catch (error: any) {
       console.error("Error fetching trashed expenses:", error);
-      res.status(500).json({ message: "Failed to fetch trashed expenses" });
+      res.status(500).json({ message: "Failed to fetch expense" });
     }
   });
 

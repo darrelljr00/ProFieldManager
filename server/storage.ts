@@ -821,6 +821,12 @@ export class DatabaseStorage implements IStorage {
 
   // Expense trash management methods
   async getTrashedExpenses(organizationId: number, userId?: number): Promise<any[]> {
+    // Validate organizationId
+    if (!organizationId || isNaN(organizationId)) {
+      console.error("Invalid organizationId:", organizationId);
+      return [];
+    }
+
     // Check if user is admin
     let isAdmin = false;
     if (userId) {
