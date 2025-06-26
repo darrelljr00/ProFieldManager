@@ -80,7 +80,16 @@ const upload = multer({
     },
     filename: (req, file, cb) => {
       const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-      cb(null, 'logo-' + uniqueSuffix + path.extname(file.originalname));
+      // Use appropriate prefix based on the endpoint/file type
+      let prefix = 'file';
+      if (req.path.includes('/expenses') || req.path.includes('/ocr')) {
+        prefix = 'receipt';
+      } else if (req.path.includes('/images') || req.path.includes('/gallery')) {
+        prefix = 'image';
+      } else if (req.path.includes('/documents') || req.path.includes('/files')) {
+        prefix = 'document';
+      }
+      cb(null, prefix + '-' + uniqueSuffix + path.extname(file.originalname));
     }
   }),
   fileFilter: (req, file, cb) => {
