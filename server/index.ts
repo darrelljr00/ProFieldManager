@@ -8,9 +8,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
-// Serve uploaded files statically
-app.use('/uploads', express.static('uploads'));
-
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -43,6 +40,9 @@ app.use((req, res, next) => {
 
 (async () => {
   const server = await registerRoutes(app);
+
+  // Serve uploaded files statically - must be after routes but before Vite
+  app.use('/uploads', express.static('uploads'));
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
