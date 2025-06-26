@@ -89,9 +89,10 @@ export default function InternalMessagesPage() {
 
   const { data: messages = [], isLoading: messagesLoading } = useQuery<ChatMessage[]>({
     queryKey: ["/api/internal-messages"],
-    staleTime: 10000, // Cache for 10 seconds - faster updates
-    refetchInterval: 30000, // Refetch every 30 seconds for better responsiveness
+    staleTime: 1000, // Cache for 1 second only for near real-time updates
+    refetchInterval: 5000, // Refetch every 5 seconds for responsiveness
     refetchOnWindowFocus: true, // Refresh when user returns to tab
+    refetchIntervalInBackground: true, // Keep refetching even when tab is not active
   });
 
   // Listen for WebSocket updates for real-time message delivery
@@ -292,6 +293,12 @@ export default function InternalMessagesPage() {
       };
 
       await sendMessageMutation.mutateAsync(messageData);
+      
+      // Force immediate data refresh after sending
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["/api/internal-messages"] });
+        queryClient.refetchQueries({ queryKey: ["/api/internal-messages"] });
+      }, 100);
       
       // Clear form after successful send
       setNewMessage('');
