@@ -1141,7 +1141,12 @@ export default function Expenses() {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => handleEditExpense(expense)}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                console.log("Edit button clicked directly");
+                                handleEditExpense(expense);
+                              }}
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
