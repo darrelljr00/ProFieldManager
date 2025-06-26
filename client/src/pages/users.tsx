@@ -1106,7 +1106,7 @@ export default function UsersPage() {
                           </TableCell>
                           <TableCell>
                             <Switch
-                              checked={user.canViewProfiles ?? true}
+                              checked={user.canViewProfiles === true}
                               onCheckedChange={(checked) => 
                                 updateUserPermissionsMutation.mutate({
                                   userId: user.id,
@@ -1118,7 +1118,7 @@ export default function UsersPage() {
                           </TableCell>
                           <TableCell>
                             <Switch
-                              checked={user.canEditProfiles ?? false}
+                              checked={user.canEditProfiles === true}
                               onCheckedChange={(checked) => 
                                 updateUserPermissionsMutation.mutate({
                                   userId: user.id,
@@ -1130,7 +1130,7 @@ export default function UsersPage() {
                           </TableCell>
                           <TableCell>
                             <Switch
-                              checked={user.canCreateInvoices ?? true}
+                              checked={user.canCreateInvoices === true}
                               onCheckedChange={(checked) => 
                                 updateUserPermissionsMutation.mutate({
                                   userId: user.id,
@@ -1142,7 +1142,7 @@ export default function UsersPage() {
                           </TableCell>
                           <TableCell>
                             <Switch
-                              checked={user.canViewAllData ?? false}
+                              checked={user.canViewAllData === true}
                               onCheckedChange={(checked) => 
                                 updateUserPermissionsMutation.mutate({
                                   userId: user.id,
@@ -1154,7 +1154,7 @@ export default function UsersPage() {
                           </TableCell>
                           <TableCell>
                             <Switch
-                              checked={user.canManageProjects ?? true}
+                              checked={user.canManageProjects === true}
                               onCheckedChange={(checked) => 
                                 updateUserPermissionsMutation.mutate({
                                   userId: user.id,
@@ -1166,7 +1166,7 @@ export default function UsersPage() {
                           </TableCell>
                           <TableCell>
                             <Switch
-                              checked={user.canAccessReports ?? true}
+                              checked={user.canAccessReports === true}
                               onCheckedChange={(checked) => 
                                 updateUserPermissionsMutation.mutate({
                                   userId: user.id,
