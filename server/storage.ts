@@ -740,10 +740,37 @@ export class DatabaseStorage implements IStorage {
     // Add updatedAt timestamp
     cleanUpdates.updatedAt = new Date();
     
+    // Get the current user to check permissions
+    const currentUser = await this.getUser(userId);
+    
+    // If user is admin, allow updating any expense in their organization
+    // Otherwise, only allow updating their own expenses
+    let whereCondition;
+    if (currentUser?.role === 'admin') {
+      // Admin can update any expense in their organization
+      const [existingExpense] = await db
+        .select({ userId: expenses.userId })
+        .from(expenses)
+        .innerJoin(users, eq(expenses.userId, users.id))
+        .where(and(
+          eq(expenses.id, id),
+          eq(users.organizationId, currentUser.organizationId)
+        ));
+      
+      if (!existingExpense) {
+        return null; // Expense not found in user's organization
+      }
+      
+      whereCondition = eq(expenses.id, id);
+    } else {
+      // Regular user can only update their own expenses
+      whereCondition = and(eq(expenses.id, id), eq(expenses.userId, userId));
+    }
+    
     const [expense] = await db
       .update(expenses)
       .set(cleanUpdates)
-      .where(and(eq(expenses.id, id), eq(expenses.userId, userId)))
+      .where(whereCondition)
       .returning();
     return expense;
   }

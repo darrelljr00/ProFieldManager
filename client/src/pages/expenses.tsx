@@ -69,12 +69,7 @@ function VendorInput({ defaultValue = "", onVendorSelect }: VendorInputProps) {
     refetchOnMount: true,
   });
 
-  // Debug logging
-  useEffect(() => {
-    console.log('Vendors data updated:', vendors);
-    console.log('Vendors loading:', vendorsLoading);
-    console.log('Vendors error:', vendorsError);
-  }, [vendors, vendorsLoading, vendorsError]);
+  // Debug logging (removed after fixing vendor search)
 
   // Create vendor mutation
   const createVendorMutation = useMutation({
