@@ -73,7 +73,7 @@ export default function GasCards() {
   // Create gas card mutation
   const createGasCardMutation = useMutation({
     mutationFn: async (data: any) => {
-      const response = await apiRequest('/api/gas-cards', 'POST', data);
+      const response = await apiRequest('POST', '/api/gas-cards', data);
       return response.json();
     },
     onSuccess: () => {
@@ -90,7 +90,7 @@ export default function GasCards() {
   // Create assignment mutation
   const createAssignmentMutation = useMutation({
     mutationFn: async (data: any) => {
-      const response = await apiRequest('/api/gas-card-assignments', 'POST', data);
+      const response = await apiRequest('POST', '/api/gas-card-assignments', data);
       return response.json();
     },
     onSuccess: () => {
@@ -108,7 +108,7 @@ export default function GasCards() {
   // Return gas card mutation
   const returnGasCardMutation = useMutation({
     mutationFn: async (assignmentId: number) => {
-      const response = await apiRequest(`/api/gas-card-assignments/${assignmentId}/return`, 'PUT', { returnedDate: new Date() });
+      const response = await apiRequest('PUT', `/api/gas-card-assignments/${assignmentId}/return`, { returnedDate: new Date() });
       return response.json();
     },
     onSuccess: () => {
