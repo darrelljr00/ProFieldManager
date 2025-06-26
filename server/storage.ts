@@ -62,10 +62,12 @@ export interface IStorage {
   removeUserFromProject(userId: number, projectId: number): Promise<void>;
   
   // Expense methods
-  getExpenses(organizationId: number): Promise<any[]>;
+  getExpenses(organizationId: number, userId?: number): Promise<any[]>;
+  getExpense(id: number, userId?: number): Promise<any>;
   createExpense(expenseData: any): Promise<any>;
   updateExpense(id: number, updates: any): Promise<any>;
-  deleteExpense(id: number): Promise<void>;
+  deleteExpense(id: number, userId?: number): Promise<boolean>;
+  approveExpense(id: number, approvedBy: number): Promise<boolean>;
   
   // Expense categories methods
   getExpenseCategories(organizationId: number): Promise<any[]>;
@@ -701,8 +703,31 @@ export class DatabaseStorage implements IStorage {
     return expense;
   }
 
-  async deleteExpense(id: number): Promise<void> {
-    await db.delete(expenses).where(eq(expenses.id, id));
+  async getExpense(id: number, userId?: number): Promise<any> {
+    const [expense] = await db
+      .select()
+      .from(expenses)
+      .where(eq(expenses.id, id));
+    return expense;
+  }
+
+  async deleteExpense(id: number, userId?: number): Promise<boolean> {
+    const result = await db.delete(expenses).where(eq(expenses.id, id));
+    return result.rowCount > 0;
+  }
+
+  async approveExpense(id: number, approvedBy: number): Promise<boolean> {
+    const [expense] = await db
+      .update(expenses)
+      .set({ 
+        status: 'approved', 
+        approvedBy, 
+        approvedAt: new Date(),
+        updatedAt: new Date()
+      })
+      .where(eq(expenses.id, id))
+      .returning();
+    return !!expense;
   }
 
   async getExpenseCategories(organizationId: number): Promise<any[]> {
