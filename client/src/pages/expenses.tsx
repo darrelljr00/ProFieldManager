@@ -420,6 +420,12 @@ export default function Expenses() {
       formData.set("vendor", editSelectedVendor);
     }
     
+    // Handle "no_project" value properly
+    const projectId = formData.get("projectId");
+    if (projectId === "no_project") {
+      formData.delete("projectId");
+    }
+    
     updateExpenseMutation.mutate({ id: editingExpense.id, data: formData });
   };
 
@@ -780,11 +786,12 @@ export default function Expenses() {
                     </div>
                     <div>
                       <Label htmlFor="projectId">Project (Optional)</Label>
-                      <Select name="projectId">
+                      <Select name="projectId" defaultValue="no_project">
                         <SelectTrigger>
                           <SelectValue placeholder="Select project" />
                         </SelectTrigger>
                         <SelectContent>
+                          <SelectItem value="no_project">No Project</SelectItem>
                           {projects.map((project) => (
                             <SelectItem key={project.id} value={project.id.toString()}>
                               {project.name}
@@ -1632,12 +1639,12 @@ export default function Expenses() {
                 </div>
                 <div>
                   <Label htmlFor="edit-project">Project</Label>
-                  <Select name="projectId" defaultValue={editingExpense.projectId?.toString() || ""}>
+                  <Select name="projectId" defaultValue={editingExpense.projectId?.toString() || "no_project"}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select project (optional)" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No Project</SelectItem>
+                      <SelectItem value="no_project">No Project</SelectItem>
                       {projects.map((project) => (
                         <SelectItem key={project.id} value={project.id.toString()}>
                           {project.name}
