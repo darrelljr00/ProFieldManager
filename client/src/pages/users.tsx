@@ -1457,21 +1457,23 @@ export default function UsersPage() {
                               disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
                             />
                           </TableCell>
+                          {/* HR */}
                           <TableCell>
                             <Switch
-                              checked={user.canAccessSettings ?? true}
+                              checked={user.canAccessHR ?? (user.role === 'admin' || user.role === 'manager')}
                               onCheckedChange={(checked) => 
                                 updateUserPermissionsMutation.mutate({
                                   userId: user.id,
-                                  permissions: { canAccessSettings: checked }
+                                  permissions: { canAccessHR: checked }
                                 })
                               }
                               disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
                             />
                           </TableCell>
+                          {/* User Management */}
                           <TableCell>
                             <Switch
-                              checked={user.canAccessUsers ?? false}
+                              checked={user.canAccessUsers ?? (user.role === 'admin')}
                               onCheckedChange={(checked) => 
                                 updateUserPermissionsMutation.mutate({
                                   userId: user.id,
@@ -1481,13 +1483,53 @@ export default function UsersPage() {
                               disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
                             />
                           </TableCell>
+                          {/* SaaS Admin */}
                           <TableCell>
                             <Switch
-                              checked={user.canAccessAdminSettings ?? false}
+                              checked={user.canAccessSaasAdmin ?? (user.role === 'admin')}
+                              onCheckedChange={(checked) => 
+                                updateUserPermissionsMutation.mutate({
+                                  userId: user.id,
+                                  permissions: { canAccessSaasAdmin: checked }
+                                })
+                              }
+                              disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
+                            />
+                          </TableCell>
+                          {/* Admin Settings */}
+                          <TableCell>
+                            <Switch
+                              checked={user.canAccessAdminSettings ?? (user.role === 'admin')}
                               onCheckedChange={(checked) => 
                                 updateUserPermissionsMutation.mutate({
                                   userId: user.id,
                                   permissions: { canAccessAdminSettings: checked }
+                                })
+                              }
+                              disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
+                            />
+                          </TableCell>
+                          {/* Reports */}
+                          <TableCell>
+                            <Switch
+                              checked={user.canAccessReports ?? (user.role === 'admin' || user.role === 'manager')}
+                              onCheckedChange={(checked) => 
+                                updateUserPermissionsMutation.mutate({
+                                  userId: user.id,
+                                  permissions: { canAccessReports: checked }
+                                })
+                              }
+                              disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
+                            />
+                          </TableCell>
+                          {/* Settings */}
+                          <TableCell>
+                            <Switch
+                              checked={user.canAccessSettings ?? true}
+                              onCheckedChange={(checked) => 
+                                updateUserPermissionsMutation.mutate({
+                                  userId: user.id,
+                                  permissions: { canAccessSettings: checked }
                                 })
                               }
                               disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
