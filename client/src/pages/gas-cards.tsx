@@ -550,6 +550,7 @@ export default function GasCards() {
                       <TableHead>Assigned To</TableHead>
                       <TableHead>Assigned By</TableHead>
                       <TableHead>Assigned Date</TableHead>
+                      <TableHead>Expected Return</TableHead>
                       <TableHead>Returned Date</TableHead>
                       <TableHead>Purpose</TableHead>
                       <TableHead>Status</TableHead>
@@ -575,6 +576,11 @@ export default function GasCards() {
                             : assignment.assignedByUser?.username}
                         </TableCell>
                         <TableCell>{format(new Date(assignment.assignedDate), 'MMM d, yyyy')}</TableCell>
+                        <TableCell>
+                          {assignment.expectedReturnDate 
+                            ? format(new Date(assignment.expectedReturnDate), 'MMM d, yyyy')
+                            : "—"}
+                        </TableCell>
                         <TableCell>
                           {assignment.returnedDate 
                             ? format(new Date(assignment.returnedDate), 'MMM d, yyyy')
