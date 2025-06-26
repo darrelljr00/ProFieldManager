@@ -2305,8 +2305,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Expense categories
   app.get("/api/expense-categories", requireAuth, async (req, res) => {
     try {
-      const userId = req.user!.id;
-      const categories = await storage.getExpenseCategories(userId);
+      const user = req.user as User;
+      const categories = await storage.getExpenseCategories(user.organizationId);
       res.json(categories);
     } catch (error: any) {
       console.error("Error fetching expense categories:", error);
@@ -2316,12 +2316,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/expense-categories", requireAuth, async (req, res) => {
     try {
-      const userId = req.user!.id;
+      const user = req.user as User;
       const categoryData = req.body;
 
       const category = await storage.createExpenseCategory({
         ...categoryData,
-        userId,
+        organizationId: user.organizationId,
       });
 
       res.status(201).json(category);
