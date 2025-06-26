@@ -773,7 +773,7 @@ export default function Expenses() {
                           {categories
                             .filter(cat => cat.isActive)
                             .map((category) => (
-                            <SelectItem key={category.id} value={category.name}>
+                            <SelectItem key={`create-${category.id}`} value={category.name}>
                               {category.name}
                             </SelectItem>
                           ))}
@@ -879,7 +879,7 @@ export default function Expenses() {
                       {categories
                         .filter(cat => cat.isActive)
                         .map((category) => (
-                        <SelectItem key={category.id} value={category.name}>
+                        <SelectItem key={`filter-${category.id}`} value={category.name}>
                           {category.name}
                         </SelectItem>
                       ))}
@@ -1610,7 +1610,7 @@ export default function Expenses() {
                       {categories
                         .filter(cat => cat.isActive)
                         .map((category) => (
-                        <SelectItem key={category.id} value={category.name.toLowerCase().replace(/\s+/g, '_')}>
+                        <SelectItem key={`edit-${category.id}`} value={category.name.toLowerCase().replace(/\s+/g, '_')}>
                           <div className="flex items-center gap-2">
                             <div 
                               className="w-3 h-3 rounded"
