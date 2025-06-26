@@ -172,30 +172,30 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
   };
 
   // Fetch unread team messages count
-  const { data: messages = [] } = useQuery({
+  const { data: messagesData } = useQuery<any[]>({
     queryKey: ["/api/internal-messages"],
     enabled: !!user,
     refetchInterval: 10000, // Refresh every 10 seconds
   });
 
   // Fetch unread SMS messages count
-  const { data: smsMessages = [] } = useQuery({
+  const { data: smsData } = useQuery<any[]>({
     queryKey: ["/api/sms/messages"],
     enabled: !!user,
     refetchInterval: 10000, // Refresh every 10 seconds
   });
 
   // Calculate unread team messages count
-  const unreadTeamMessages = messages.filter((message: any) => 
+  const unreadTeamMessages = messagesData ? messagesData.filter((message: any) => 
     message.recipients && 
     Array.isArray(message.recipients) && 
     message.recipients.some((r: any) => r && r.recipientId === user?.id && !r.isRead)
-  ).length;
+  ).length : 0;
 
   // Calculate unread SMS messages count (assuming SMS messages have a status field)
-  const unreadSmsMessages = smsMessages.filter((message: any) => 
+  const unreadSmsMessages = smsData ? smsData.filter((message: any) => 
     message.status === 'received' && !message.isRead
-  ).length;
+  ).length : 0;
 
   return (
     <>
