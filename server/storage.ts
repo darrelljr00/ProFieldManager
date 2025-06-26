@@ -7,6 +7,7 @@ import {
   projectFiles, fileManager, projectUsers, timeClock, timeClockSettings,
   internalMessages, internalMessageRecipients, messageGroups, messageGroupMembers
 } from "@shared/schema";
+import type { GasCard, InsertGasCard, GasCardAssignment, InsertGasCardAssignment } from "@shared/schema";
 import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull, isNull } from "drizzle-orm";
 import type { 
   User, Customer, Invoice, Quote, Project, Task, 
@@ -157,9 +158,14 @@ export interface IStorage {
   getGoogleMyBusinessSettings(userId: number): Promise<any>;
   
   // Gas card methods
-  getGasCards(organizationId: number): Promise<any[]>;
-  getGasCardAssignments(organizationId: number): Promise<any[]>;
-  getActiveGasCardAssignments(organizationId: number): Promise<any[]>;
+  getGasCards(): Promise<GasCard[]>;
+  createGasCard(data: InsertGasCard): Promise<GasCard>;
+  updateGasCard(id: number, data: Partial<InsertGasCard>): Promise<GasCard>;
+  deleteGasCard(id: number): Promise<boolean>;
+  getGasCardAssignments(): Promise<GasCardAssignment[]>;
+  getActiveGasCardAssignments(): Promise<GasCardAssignment[]>;
+  createGasCardAssignment(data: InsertGasCardAssignment): Promise<GasCardAssignment>;
+  returnGasCard(assignmentId: number, returnedDate: Date): Promise<GasCardAssignment>;
   
   // Gas card provider methods
   getGasCardProviders(organizationId: number): Promise<any[]>;
@@ -1652,34 +1658,71 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Gas card methods
-  async getGasCards(organizationId: number): Promise<any[]> {
+  async getGasCards(): Promise<GasCard[]> {
     try {
-      // Return empty array for now as gas card tables may not exist
-      return [];
+      const result = await db.select().from(gasCards).orderBy(gasCards.createdAt);
+      return result;
     } catch (error) {
       console.error('Error fetching gas cards:', error);
       return [];
     }
   }
 
-  async getGasCardAssignments(organizationId: number): Promise<any[]> {
+  async createGasCard(data: InsertGasCard): Promise<GasCard> {
+    const [gasCard] = await db.insert(gasCards).values(data).returning();
+    return gasCard;
+  }
+
+  async updateGasCard(id: number, data: Partial<InsertGasCard>): Promise<GasCard> {
+    const [gasCard] = await db.update(gasCards)
+      .set(data)
+      .where(eq(gasCards.id, id))
+      .returning();
+    return gasCard;
+  }
+
+  async deleteGasCard(id: number): Promise<boolean> {
+    const result = await db.delete(gasCards).where(eq(gasCards.id, id));
+    return result.rowCount !== null && result.rowCount > 0;
+  }
+
+  async getGasCardAssignments(): Promise<GasCardAssignment[]> {
     try {
-      // Return empty array for now as gas card assignment tables may not exist
-      return [];
+      const result = await db.select().from(gasCardAssignments).orderBy(gasCardAssignments.createdAt);
+      return result;
     } catch (error) {
       console.error('Error fetching gas card assignments:', error);
       return [];
     }
   }
 
-  async getActiveGasCardAssignments(organizationId: number): Promise<any[]> {
+  async getActiveGasCardAssignments(): Promise<GasCardAssignment[]> {
     try {
-      // Return empty array for now as gas card assignment tables may not exist
-      return [];
+      const result = await db.select()
+        .from(gasCardAssignments)
+        .where(isNull(gasCardAssignments.returnedDate))
+        .orderBy(gasCardAssignments.assignedDate);
+      return result;
     } catch (error) {
       console.error('Error fetching active gas card assignments:', error);
       return [];
     }
+  }
+
+  async createGasCardAssignment(data: InsertGasCardAssignment): Promise<GasCardAssignment> {
+    const [assignment] = await db.insert(gasCardAssignments).values(data).returning();
+    return assignment;
+  }
+
+  async returnGasCard(assignmentId: number, returnedDate: Date): Promise<GasCardAssignment> {
+    const [assignment] = await db.update(gasCardAssignments)
+      .set({ 
+        returnedDate,
+        status: 'returned'
+      })
+      .where(eq(gasCardAssignments.id, assignmentId))
+      .returning();
+    return assignment;
   }
 
   // Time Clock Methods

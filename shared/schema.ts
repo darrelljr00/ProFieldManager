@@ -1021,10 +1021,10 @@ export const insertExpenseReportItemSchema = z.object({
 
 export const insertGasCardSchema = z.object({
   cardNumber: z.string().min(1),
-  provider: z.string(),
-  monthlyLimit: z.number().positive(),
-  isActive: z.boolean().default(true),
-  organizationId: z.number(),
+  cardName: z.string().min(1),
+  provider: z.string().min(1),
+  status: z.string().default("active"),
+  notes: z.string().optional(),
 });
 
 export const insertImageSchema = z.object({
@@ -1061,7 +1061,15 @@ export const insertGasCardAssignmentSchema = z.object({
   assignedToUserId: z.number(),
   assignedBy: z.number(),
   assignedDate: z.date(),
+  purpose: z.string().optional(),
+  notes: z.string().optional(),
 });
+
+// Type exports for gas cards
+export type GasCard = typeof gasCards.$inferSelect;
+export type InsertGasCard = z.infer<typeof insertGasCardSchema>;
+export type GasCardAssignment = typeof gasCardAssignments.$inferSelect;
+export type InsertGasCardAssignment = z.infer<typeof insertGasCardAssignmentSchema>;
 
 export const insertLeadSchema = z.object({
   firstName: z.string(),
