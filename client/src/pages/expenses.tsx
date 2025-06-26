@@ -32,8 +32,10 @@ import {
   TrendingUp,
   TrendingDown,
   Filter,
-  Calculator
+  Calculator,
+  Settings
 } from "lucide-react";
+import { Link } from "wouter";
 import type { Expense, ExpenseCategory, Project } from "@shared/schema";
 import { ExpenseLineItemsForm, type LineItem } from "@/components/expense-line-items-form";
 
@@ -255,8 +257,26 @@ export default function Expenses() {
   return (
     <div className="container mx-auto p-6">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Expense Tracker</h1>
-        <p className="text-gray-600">Manage expenses with OCR receipt scanning</p>
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Expense Tracker</h1>
+            <p className="text-gray-600">Manage expenses with OCR receipt scanning</p>
+          </div>
+          <div className="flex gap-2">
+            <Link href="/expense-categories">
+              <Button variant="outline" className="flex items-center gap-2">
+                <Settings className="h-4 w-4" />
+                Manage Categories
+              </Button>
+            </Link>
+            <Link href="/expense-reports">
+              <Button variant="outline" className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                View Reports
+              </Button>
+            </Link>
+          </div>
+        </div>
       </div>
 
       {/* Statistics Cards */}
@@ -454,9 +474,11 @@ export default function Expenses() {
                           <SelectValue placeholder="Select category" />
                         </SelectTrigger>
                         <SelectContent>
-                          {EXPENSE_CATEGORIES.map((category) => (
-                            <SelectItem key={category} value={category}>
-                              {category.replace('_', ' ').toUpperCase()}
+                          {categories
+                            .filter(cat => cat.isActive)
+                            .map((category) => (
+                            <SelectItem key={category.id} value={category.name}>
+                              {category.name}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -558,9 +580,11 @@ export default function Expenses() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Categories</SelectItem>
-                      {EXPENSE_CATEGORIES.map((category) => (
-                        <SelectItem key={category} value={category}>
-                          {category.replace('_', ' ').toUpperCase()}
+                      {categories
+                        .filter(cat => cat.isActive)
+                        .map((category) => (
+                        <SelectItem key={category.id} value={category.name}>
+                          {category.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
