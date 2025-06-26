@@ -52,13 +52,14 @@ interface ChatMessage {
   content: string;
   messageType: string;
   createdAt: string;
-  sender: User;
-  recipients: Array<{
-    id: number;
+  senderUsername?: string;
+  senderFirstName?: string;
+  senderLastName?: string;
+  recipients?: Array<{
+    id?: number;
     recipientId: number;
     isRead: boolean;
     readAt?: string;
-    user: User;
   }>;
 }
 
@@ -260,14 +261,14 @@ export default function InternalMessagesPage() {
   }));
 
   const selectedRoom = chatRooms.find(room => room.id === selectedChatRoom);
-  const roomMessages = selectedRoom ? messages.filter(m => 
+  const roomMessages = selectedRoom && selectedRoom.participants[0] ? messages.filter(m => 
     m.senderId === selectedRoom.participants[0].id || 
     (m.recipients && m.recipients.some(r => r.recipientId === selectedRoom.participants[0].id))
   ).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()) : [];
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if ((!newMessage.trim() && attachedFiles.length === 0) || !selectedRoom) return;
+    if ((!newMessage.trim() && attachedFiles.length === 0) || !selectedRoom || !selectedRoom.participants[0]) return;
 
     try {
       // Upload files first if any
@@ -282,7 +283,7 @@ export default function InternalMessagesPage() {
       const messageData = {
         content: messageContent,
         messageType: 'individual',
-        recipientIds: [selectedRoom.participants[0].id],
+        recipientIds: selectedRoom.participants[0] ? [selectedRoom.participants[0].id] : [],
         subject: 'Chat Message',
         priority: 'normal'
       };
@@ -410,7 +411,9 @@ export default function InternalMessagesPage() {
                 onClick={() => setSelectedChatRoom(room.id)}
               >
                 <Avatar className="h-10 w-10">
-                  <AvatarFallback>{getUserInitials(room.participants[0])}</AvatarFallback>
+                  <AvatarFallback>
+                    {room.participants[0] ? getUserInitials(room.participants[0]) : 'U'}
+                  </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
@@ -444,12 +447,14 @@ export default function InternalMessagesPage() {
             <div className="p-4 border-b border-border flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Avatar className="h-8 w-8">
-                  <AvatarFallback>{getUserInitials(selectedRoom.participants[0])}</AvatarFallback>
+                  <AvatarFallback>
+                    {selectedRoom.participants[0] ? getUserInitials(selectedRoom.participants[0]) : 'U'}
+                  </AvatarFallback>
                 </Avatar>
                 <div>
                   <p className="font-medium">{selectedRoom.name}</p>
                   <p className="text-sm text-muted-foreground">
-                    {selectedRoom.participants[0].role}
+                    {selectedRoom.participants[0]?.role || 'User'}
                   </p>
                 </div>
               </div>
@@ -480,7 +485,14 @@ export default function InternalMessagesPage() {
                         {!isOwnMessage && (
                           <Avatar className="h-6 w-6">
                             <AvatarFallback className="text-xs">
-                              {getUserInitials(message.sender)}
+                              {message.senderFirstName && message.senderLastName 
+                                ? `${message.senderFirstName[0]}${message.senderLastName[0]}`.toUpperCase()
+                                : message.senderFirstName 
+                                ? message.senderFirstName[0].toUpperCase()
+                                : message.senderUsername
+                                ? message.senderUsername[0].toUpperCase()
+                                : 'U'
+                              }
                             </AvatarFallback>
                           </Avatar>
                         )}
