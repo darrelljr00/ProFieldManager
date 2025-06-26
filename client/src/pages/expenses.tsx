@@ -1108,6 +1108,7 @@ export default function Expenses() {
                       <TableHead>Amount</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Project</TableHead>
+                      <TableHead>Notes</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -1126,14 +1127,7 @@ export default function Expenses() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <div>
-                            <p className="font-medium">{expense.description}</p>
-                            {expense.notes && (
-                              <p className="text-sm text-muted-foreground truncate max-w-[200px]">
-                                {expense.notes}
-                              </p>
-                            )}
-                          </div>
+                          <p className="font-medium">{expense.description}</p>
                         </TableCell>
                         <TableCell>
                           {expense.vendor ? (
@@ -1169,6 +1163,17 @@ export default function Expenses() {
                             <Badge variant="secondary" className="flex items-center gap-1 w-fit">
                               {expense.project.name}
                             </Badge>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {expense.notes ? (
+                            <div className="max-w-[200px]">
+                              <p className="text-sm truncate" title={expense.notes}>
+                                {expense.notes}
+                              </p>
+                            </div>
                           ) : (
                             <span className="text-muted-foreground">—</span>
                           )}
@@ -1441,6 +1446,12 @@ export default function Expenses() {
                               <p className="text-xs text-muted-foreground mb-2">
                                 <Building2 className="h-3 w-3 inline mr-1" />
                                 {expense.vendor}
+                              </p>
+                            )}
+                            
+                            {expense.notes && (
+                              <p className="text-xs text-muted-foreground mb-2 italic">
+                                "{expense.notes}"
                               </p>
                             )}
                             
