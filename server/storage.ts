@@ -18,11 +18,13 @@ export interface IStorage {
   // User methods
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
   createUser(userData: any): Promise<User>;
   updateUser(id: number, updates: any): Promise<User>;
   updateUserStripeInfo(userId: number, customerId: string, subscriptionId?: string): Promise<User>;
   deleteUser(id: number): Promise<void>;
   getAllUsers(organizationId?: number): Promise<User[]>;
+  getUsersByOrganization(organizationId: number): Promise<User[]>;
   getUserStats(organizationId?: number): Promise<any>;
   
   // Organization methods
@@ -349,6 +351,14 @@ export class DatabaseStorage implements IStorage {
       query = query.where(eq(users.organizationId, organizationId)) as any;
     }
     return await query;
+  }
+
+  async getUsersByOrganization(organizationId: number): Promise<User[]> {
+    return await db
+      .select()
+      .from(users)
+      .where(and(eq(users.organizationId, organizationId), eq(users.isActive, true)))
+      .orderBy(users.firstName, users.lastName, users.username);
   }
 
   async getUserStats(organizationId?: number): Promise<any> {

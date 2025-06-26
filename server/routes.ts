@@ -1401,19 +1401,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get users for messaging (authenticated users only)
+  // Get users for messaging (authenticated users only) - filtered by organization
   app.get("/api/users", requireAuth, async (req, res) => {
     try {
-      const users = await storage.getAllUsers();
-      // Remove passwords and sensitive info from response
-      const safeUsers = users.map(user => ({
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        role: user.role,
-      }));
+      const user = getAuthenticatedUser(req);
+      const users = await storage.getUsersByOrganization(user.organizationId);
+      // Remove passwords and sensitive info from response, exclude current user
+      const safeUsers = users
+        .filter(u => u.id !== user.id) // Don't include current user in messaging list
+        .map(user => ({
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+        }));
       res.json(safeUsers);
     } catch (error: any) {
       res.status(500).json({ message: "Error fetching users: " + error.message });
@@ -2894,6 +2897,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (messageType === 'broadcast') {
         const allUsers = await storage.getAllUsers();
         finalRecipientIds = allUsers.filter(u => u.id !== req.user!.id).map(u => u.id);
+      }
+
+      // Validate that all recipients are in the same organization for security
+      if (finalRecipientIds.length > 0) {
+        const user = getAuthenticatedUser(req);
+        const recipientUsers = await Promise.all(
+          finalRecipientIds.map(id => storage.getUser(id))
+        );
+        
+        const invalidRecipients = recipientUsers.filter(
+          recipient => !recipient || recipient.organizationId !== user.organizationId
+        );
+        
+        if (invalidRecipients.length > 0) {
+          return res.status(403).json({ 
+            message: "Cannot send messages to users outside your organization" 
+          });
+        }
       }
 
       console.log('Creating message with recipients:', finalRecipientIds);
