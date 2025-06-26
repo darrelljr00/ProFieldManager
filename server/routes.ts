@@ -768,19 +768,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/customers", async (req, res) => {
+  app.post("/api/customers", requireAuth, async (req, res) => {
     try {
+      const user = await storage.getUser(req.user!.id);
+      if (!user) {
+        return res.status(401).json({ message: "User not found" });
+      }
+
       const customerData = insertCustomerSchema.parse({
         ...req.body,
-        userId: req.user.id,
+        organizationId: user.organizationId,
       });
       const customer = await storage.createCustomer(customerData);
       
       // Broadcast to all web users except the creator
       (app as any).broadcastToWebUsers('customer_created', {
         customer,
-        createdBy: req.user.username
-      }, req.user.id);
+        createdBy: req.user!.username
+      }, req.user!.id);
       
       res.status(201).json(customer);
     } catch (error: any) {
@@ -3131,7 +3136,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(job);
     } catch (error: any) {
       console.error("Error creating calendar job:", error);
-      res.status(500).json({ message: "Failed to create calendar job" });
+      if (error instanceof ZodError) {
+        res.status(400).json({ message: "Validation error", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to create calendar job" });
+      }
     }
   });
 
