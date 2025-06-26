@@ -388,6 +388,12 @@ export default function Expenses() {
       formData.set("vendor", selectedVendor);
     }
     
+    // Handle "no_project" value properly
+    const projectId = formData.get("projectId");
+    if (projectId === "no_project") {
+      formData.delete("projectId");
+    }
+    
     // If we have OCR data, populate the form with it
     if (ocrResult?.testData) {
       if (!selectedVendor) {
