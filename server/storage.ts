@@ -776,6 +776,49 @@ export class DatabaseStorage implements IStorage {
     return category;
   }
 
+  // Vendor methods
+  async getVendors(organizationId: number): Promise<any[]> {
+    return await db
+      .select()
+      .from(vendors)
+      .where(and(eq(vendors.organizationId, organizationId), eq(vendors.isActive, true)))
+      .orderBy(vendors.name);
+  }
+
+  async createVendor(vendorData: any): Promise<any> {
+    const [vendor] = await db
+      .insert(vendors)
+      .values(vendorData)
+      .returning();
+    return vendor;
+  }
+
+  async updateVendor(id: number, updates: any): Promise<any> {
+    const [vendor] = await db
+      .update(vendors)
+      .set(updates)
+      .where(eq(vendors.id, id))
+      .returning();
+    return vendor;
+  }
+
+  async deleteVendor(id: number): Promise<boolean> {
+    const result = await db
+      .update(vendors)
+      .set({ isActive: false })
+      .where(eq(vendors.id, id));
+    return result.rowCount > 0;
+  }
+
+  async getVendorByName(name: string, organizationId: number): Promise<any> {
+    const [vendor] = await db
+      .select()
+      .from(vendors)
+      .where(and(eq(vendors.name, name), eq(vendors.organizationId, organizationId)))
+      .limit(1);
+    return vendor;
+  }
+
   async updateExpenseCategory(id: number, updates: any): Promise<any> {
     const [category] = await db
       .update(expenseCategories)

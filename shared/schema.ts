@@ -447,6 +447,25 @@ export const expenseCategories = pgTable("expense_categories", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+export const vendors = pgTable("vendors", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  name: text("name").notNull(),
+  contactEmail: text("contact_email"),
+  contactPhone: text("contact_phone"),
+  address: text("address"),
+  city: text("city"),
+  state: text("state"),
+  zipCode: text("zip_code"),
+  country: text("country").default("US"),
+  taxId: text("tax_id"),
+  website: text("website"),
+  notes: text("notes"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const expenseReports = pgTable("expense_reports", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
@@ -1115,10 +1134,25 @@ export const insertExpenseLineItemSchema = z.object({
   category: z.string().optional(),
 });
 
-
+export const insertVendorSchema = z.object({
+  name: z.string().min(1),
+  contactEmail: z.string().email().optional().or(z.literal("")),
+  contactPhone: z.string().optional(),
+  address: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  zipCode: z.string().optional(),
+  country: z.string().default("US"),
+  taxId: z.string().optional(),
+  website: z.string().url().optional().or(z.literal("")),
+  notes: z.string().optional(),
+  organizationId: z.number(),
+});
 
 export type InsertExpenseLineItem = z.infer<typeof insertExpenseLineItemSchema>;
 export type ExpenseLineItem = typeof expenseLineItems.$inferSelect;
+export type Vendor = typeof vendors.$inferSelect;
+export type InsertVendor = z.infer<typeof insertVendorSchema>;
 
 export const loginSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),

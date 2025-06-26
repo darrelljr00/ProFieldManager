@@ -2331,6 +2331,104 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Vendor management routes
+  app.get("/api/vendors", requireAuth, async (req, res) => {
+    try {
+      const user = req.user as User;
+      const vendors = await storage.getVendors(user.organizationId);
+      res.json(vendors);
+    } catch (error: any) {
+      console.error("Error fetching vendors:", error);
+      res.status(500).json({ message: "Failed to fetch vendors" });
+    }
+  });
+
+  app.post("/api/vendors", requireAuth, async (req, res) => {
+    try {
+      const user = req.user as User;
+      
+      // Check if vendor with this name already exists
+      const existingVendor = await storage.getVendorByName(req.body.name, user.organizationId);
+      if (existingVendor) {
+        return res.status(400).json({ message: "Vendor with this name already exists" });
+      }
+
+      const vendorData = {
+        ...req.body,
+        organizationId: user.organizationId,
+      };
+
+      const vendor = await storage.createVendor(vendorData);
+      res.status(201).json(vendor);
+
+      // Broadcast to WebSocket clients
+      if (wss) {
+        wss.clients.forEach((client) => {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify({
+              type: 'vendor_created',
+              data: vendor
+            }));
+          }
+        });
+      }
+    } catch (error: any) {
+      console.error("Error creating vendor:", error);
+      res.status(500).json({ message: "Failed to create vendor" });
+    }
+  });
+
+  app.put("/api/vendors/:id", requireAuth, async (req, res) => {
+    try {
+      const vendorId = parseInt(req.params.id);
+      const vendor = await storage.updateVendor(vendorId, req.body);
+      res.json(vendor);
+
+      // Broadcast to WebSocket clients
+      if (wss) {
+        wss.clients.forEach((client) => {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify({
+              type: 'vendor_updated',
+              data: vendor
+            }));
+          }
+        });
+      }
+    } catch (error: any) {
+      console.error("Error updating vendor:", error);
+      res.status(500).json({ message: "Failed to update vendor" });
+    }
+  });
+
+  app.delete("/api/vendors/:id", requireAuth, async (req, res) => {
+    try {
+      const vendorId = parseInt(req.params.id);
+      const success = await storage.deleteVendor(vendorId);
+      
+      if (success) {
+        res.json({ message: "Vendor deleted successfully" });
+
+        // Broadcast to WebSocket clients
+        if (wss) {
+          wss.clients.forEach((client) => {
+            if (client.readyState === WebSocket.OPEN) {
+              client.send(JSON.stringify({
+                type: 'vendor_deleted',
+                data: { id: vendorId }
+              }));
+            }
+          });
+        }
+      } else {
+        res.status(404).json({ message: "Vendor not found" });
+      }
+    } catch (error: any) {
+      console.error("Error deleting vendor:", error);
+      res.status(500).json({ message: "Failed to delete vendor" });
+    }
+  });
+
   // Expense reports
   app.get("/api/expense-reports", requireAuth, async (req, res) => {
     try {
