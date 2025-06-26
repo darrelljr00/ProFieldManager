@@ -119,6 +119,8 @@ Pro Field Manager is a comprehensive SaaS field service management platform buil
 - June 25, 2025. Fixed "S is undefined" WebSocket error by properly organizing variable scope and declarations in routes.ts
 - June 25, 2025. Resolved expense visibility issue where WebSocket notifications showed expense creation but expenses weren't visible due to organization-based filtering - updated getExpenses to allow admin users to see all expenses across organizations
 - June 25, 2025. Moved Mobile Test tab from main navigation to a sub-tab within Admin Settings for better organization of admin-only features
+- June 25, 2025. Fixed user creation error 500 by correcting all storage.createUserAccount() calls to storage.createUser() in routes.ts
+- June 25, 2025. Fixed team messaging security issue by implementing organization-scoped user filtering - users can now only see and message other users within their organization, with proper validation to prevent cross-organization messaging
 
 ## User Preferences
 
