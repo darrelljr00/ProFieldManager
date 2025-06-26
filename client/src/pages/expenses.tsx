@@ -1203,7 +1203,7 @@ export default function Expenses() {
                             )}
                             {expense.receiptUrl && (
                               <Button size="sm" variant="ghost" asChild>
-                                <a href={`/${expense.receiptUrl}`} target="_blank" rel="noopener noreferrer">
+                                <a href={expense.receiptUrl.startsWith('/uploads/') ? expense.receiptUrl : `/uploads/${expense.receiptUrl}`} target="_blank" rel="noopener noreferrer">
                                   <Receipt className="h-4 w-4" />
                                 </a>
                               </Button>
@@ -1295,7 +1295,7 @@ export default function Expenses() {
                         <div className="flex space-x-2">
                           {expense.receiptUrl && (
                             <Button size="sm" variant="ghost" asChild onClick={(e) => e.stopPropagation()}>
-                              <a href={`/${expense.receiptUrl}`} target="_blank" rel="noopener noreferrer">
+                              <a href={expense.receiptUrl.startsWith('/uploads/') ? expense.receiptUrl : `/uploads/${expense.receiptUrl}`} target="_blank" rel="noopener noreferrer">
                                 <Receipt className="h-4 w-4" />
                               </a>
                             </Button>
@@ -1605,7 +1605,7 @@ export default function Expenses() {
                       <Label className="text-sm font-medium text-muted-foreground">Receipt</Label>
                       <div className="mt-1">
                         <Button variant="outline" size="sm" asChild>
-                          <a href={`/${selectedExpense.receiptUrl}`} target="_blank" rel="noopener noreferrer">
+                          <a href={selectedExpense.receiptUrl.startsWith('/uploads/') ? selectedExpense.receiptUrl : `/uploads/${selectedExpense.receiptUrl}`} target="_blank" rel="noopener noreferrer">
                             <Receipt className="h-4 w-4 mr-2" />
                             View Receipt
                           </a>
