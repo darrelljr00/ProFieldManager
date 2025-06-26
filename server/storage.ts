@@ -225,6 +225,36 @@ export class DatabaseStorage implements IStorage {
     if (updates.role !== undefined) updateData.role = updates.role;
     if (updates.isActive !== undefined) updateData.isActive = updates.isActive;
     if (updates.lastLoginAt !== undefined) updateData.lastLoginAt = updates.lastLoginAt;
+    
+    // Permission fields
+    if (updates.canViewProfiles !== undefined) updateData.canViewProfiles = updates.canViewProfiles;
+    if (updates.canEditProfiles !== undefined) updateData.canEditProfiles = updates.canEditProfiles;
+    if (updates.canCreateInvoices !== undefined) updateData.canCreateInvoices = updates.canCreateInvoices;
+    if (updates.canViewAllData !== undefined) updateData.canViewAllData = updates.canViewAllData;
+    if (updates.canManageProjects !== undefined) updateData.canManageProjects = updates.canManageProjects;
+    if (updates.canAccessReports !== undefined) updateData.canAccessReports = updates.canAccessReports;
+    
+    // Tab access permissions
+    if (updates.canAccessDashboard !== undefined) updateData.canAccessDashboard = updates.canAccessDashboard;
+    if (updates.canAccessCustomers !== undefined) updateData.canAccessCustomers = updates.canAccessCustomers;
+    if (updates.canAccessProjects !== undefined) updateData.canAccessProjects = updates.canAccessProjects;
+    if (updates.canAccessInvoices !== undefined) updateData.canAccessInvoices = updates.canAccessInvoices;
+    if (updates.canAccessQuotes !== undefined) updateData.canAccessQuotes = updates.canAccessQuotes;
+    if (updates.canAccessExpenses !== undefined) updateData.canAccessExpenses = updates.canAccessExpenses;
+    if (updates.canAccessExpenseReports !== undefined) updateData.canAccessExpenseReports = updates.canAccessExpenseReports;
+    if (updates.canAccessPayments !== undefined) updateData.canAccessPayments = updates.canAccessPayments;
+    if (updates.canAccessMessages !== undefined) updateData.canAccessMessages = updates.canAccessMessages;
+    if (updates.canAccessInternalMessages !== undefined) updateData.canAccessInternalMessages = updates.canAccessInternalMessages;
+    if (updates.canAccessSMS !== undefined) updateData.canAccessSMS = updates.canAccessSMS;
+    if (updates.canAccessCalendar !== undefined) updateData.canAccessCalendar = updates.canAccessCalendar;
+    if (updates.canAccessImageGallery !== undefined) updateData.canAccessImageGallery = updates.canAccessImageGallery;
+    if (updates.canAccessReviews !== undefined) updateData.canAccessReviews = updates.canAccessReviews;
+    if (updates.canAccessLeads !== undefined) updateData.canAccessLeads = updates.canAccessLeads;
+    if (updates.canAccessGasCards !== undefined) updateData.canAccessGasCards = updates.canAccessGasCards;
+    if (updates.canAccessSettings !== undefined) updateData.canAccessSettings = updates.canAccessSettings;
+    if (updates.canAccessUsers !== undefined) updateData.canAccessUsers = updates.canAccessUsers;
+    if (updates.canAccessAdminSettings !== undefined) updateData.canAccessAdminSettings = updates.canAccessAdminSettings;
+    if (updates.canAccessHR !== undefined) updateData.canAccessHR = updates.canAccessHR;
 
     const [user] = await db
       .update(users)
