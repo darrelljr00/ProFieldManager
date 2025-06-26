@@ -1666,8 +1666,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Cannot modify admin user permissions" });
       }
 
+      // Filter out undefined values and only include valid permission fields
+      const validPermissions = {};
+      Object.keys(permissions).forEach(key => {
+        if (permissions[key] !== undefined && permissions[key] !== null) {
+          validPermissions[key] = permissions[key];
+        }
+      });
+
+      // Only proceed if we have valid permissions to update
+      if (Object.keys(validPermissions).length === 0) {
+        return res.status(400).json({ message: "No valid permissions provided" });
+      }
+
       // Update user permissions
-      const updatedUser = await storage.updateUser(userId, permissions);
+      const updatedUser = await storage.updateUser(userId, validPermissions);
       
       res.json({
         ...updatedUser,

@@ -126,6 +126,7 @@ Pro Field Manager is a comprehensive SaaS field service management platform buil
 - June 26, 2025. Fixed expense deletion and approval functionality by adding missing approveExpense method to storage interface and correcting deleteExpense method signature to return boolean success status
 - June 26, 2025. Fixed navigation tab access control radio buttons for HR, User Management, SaaS Admin, Admin Settings, Reports, and Settings - added missing Switch components to enable proper permission management for these navigation sections
 - June 26, 2025. Fixed user permissions update error by correcting storage.getUserById() call to storage.getUser() in routes.ts - tab access control switches now function properly for updating user permissions
+- June 26, 2025. Added missing canAccessHR column to database schema and users table to support HR tab access control - resolved "No values to set" error when updating user permissions
 
 ## User Preferences
 
