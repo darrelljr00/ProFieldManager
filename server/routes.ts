@@ -190,8 +190,39 @@ const disciplinaryUpload = multer({
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
-  // Serve static files from uploads directory
-  app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+  // Custom static file handler for uploads - must be first to override Vite middleware
+  app.get('/uploads/*', async (req, res) => {
+    try {
+      const filePath = path.join(process.cwd(), req.path);
+      const stat = await fs.stat(filePath);
+      
+      if (stat.isFile()) {
+        // Set appropriate content type based on file extension
+        const ext = path.extname(filePath).toLowerCase();
+        const mimeTypes = {
+          '.png': 'image/png',
+          '.jpg': 'image/jpeg',
+          '.jpeg': 'image/jpeg',
+          '.gif': 'image/gif',
+          '.svg': 'image/svg+xml',
+          '.pdf': 'application/pdf',
+          '.txt': 'text/plain',
+          '.json': 'application/json'
+        };
+        
+        if (mimeTypes[ext]) {
+          res.setHeader('Content-Type', mimeTypes[ext]);
+        }
+        
+        res.sendFile(filePath);
+      } else {
+        res.status(404).json({ error: 'File not found' });
+      }
+    } catch (error) {
+      console.error('Static file serving error:', error);
+      res.status(404).json({ error: 'File not found' });
+    }
+  });
   
   // Create HTTP server first
   const httpServer = createServer(app);
