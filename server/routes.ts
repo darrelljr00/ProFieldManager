@@ -4176,7 +4176,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = insertGasCardAssignmentSchema.parse({
         ...req.body,
         assignedBy: user.id,
-        assignedDate: req.body.assignedDate ? new Date(req.body.assignedDate) : new Date()
+        assignedDate: req.body.assignedDate ? new Date(req.body.assignedDate) : new Date(),
+        expectedReturnDate: req.body.expectedReturnDate ? new Date(req.body.expectedReturnDate) : undefined
       });
       const assignment = await storage.createGasCardAssignment(validatedData);
       res.json(assignment);
