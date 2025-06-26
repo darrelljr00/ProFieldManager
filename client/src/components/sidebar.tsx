@@ -29,7 +29,9 @@ import {
   X,
   CheckSquare,
   MapPin,
-  Clock
+  Clock,
+  Bell,
+  MessageCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -37,6 +39,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: BarChart3 },
@@ -168,6 +171,32 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
     }
   };
 
+  // Fetch unread team messages count
+  const { data: messages = [] } = useQuery({
+    queryKey: ["/api/internal-messages"],
+    enabled: !!user,
+    refetchInterval: 10000, // Refresh every 10 seconds
+  });
+
+  // Fetch unread SMS messages count
+  const { data: smsMessages = [] } = useQuery({
+    queryKey: ["/api/sms/messages"],
+    enabled: !!user,
+    refetchInterval: 10000, // Refresh every 10 seconds
+  });
+
+  // Calculate unread team messages count
+  const unreadTeamMessages = messages.filter((message: any) => 
+    message.recipients && 
+    Array.isArray(message.recipients) && 
+    message.recipients.some((r: any) => r && r.recipientId === user?.id && !r.isRead)
+  ).length;
+
+  // Calculate unread SMS messages count (assuming SMS messages have a status field)
+  const unreadSmsMessages = smsMessages.filter((message: any) => 
+    message.status === 'received' && !message.isRead
+  ).length;
+
   return (
     <>
       {/* Mobile Overlay */}
@@ -192,16 +221,46 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
             </div>
             <h1 className="ml-2 md:ml-3 text-lg md:text-xl font-bold text-gray-900">Pro Field Manager</h1>
           </div>
-          {isMobile && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-              className="p-1 h-8 w-8"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {/* Team Messages Notification */}
+            <Link href="/team-messages" className="relative">
+              <Button variant="ghost" size="sm" className="p-1 h-8 w-8">
+                <MessageCircle className="h-4 w-4 text-gray-600" />
+                {unreadTeamMessages > 0 && (
+                  <Badge 
+                    className="absolute -top-1 -right-1 h-4 w-4 text-xs p-0 flex items-center justify-center bg-red-500 text-white border-0 min-w-[16px]"
+                  >
+                    {unreadTeamMessages > 99 ? '99+' : unreadTeamMessages}
+                  </Badge>
+                )}
+              </Button>
+            </Link>
+            
+            {/* SMS Messages Notification */}
+            <Link href="/sms" className="relative">
+              <Button variant="ghost" size="sm" className="p-1 h-8 w-8">
+                <Smartphone className="h-4 w-4 text-gray-600" />
+                {unreadSmsMessages > 0 && (
+                  <Badge 
+                    className="absolute -top-1 -right-1 h-4 w-4 text-xs p-0 flex items-center justify-center bg-red-500 text-white border-0 min-w-[16px]"
+                  >
+                    {unreadSmsMessages > 99 ? '99+' : unreadSmsMessages}
+                  </Badge>
+                )}
+              </Button>
+            </Link>
+            
+            {isMobile && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onClose}
+                className="p-1 h-8 w-8"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </div>
       </div>
       
