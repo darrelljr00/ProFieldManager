@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -62,12 +62,18 @@ function VendorInput({ defaultValue = "", onVendorSelect }: VendorInputProps) {
   const queryClient = useQueryClient();
 
   // Fetch vendors with refetch on focus and proper stale time
-  const { data: vendors = [], refetch: refetchVendors } = useQuery({
+  const { data: vendors = [], refetch: refetchVendors, isLoading: vendorsLoading } = useQuery({
     queryKey: ["/api/vendors"],
     queryFn: () => apiRequest("/api/vendors").then(res => res.json()),
-    staleTime: 30000, // Consider data fresh for 30 seconds
+    staleTime: 5000, // Consider data fresh for 5 seconds only
     refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
+
+  // Debug logging
+  useEffect(() => {
+    console.log('Vendors data updated:', vendors);
+  }, [vendors]);
 
   // Create vendor mutation
   const createVendorMutation = useMutation({
@@ -153,45 +159,60 @@ function VendorInput({ defaultValue = "", onVendorSelect }: VendorInputProps) {
               onValueChange={setValue}
             />
             <CommandList>
-              <CommandEmpty>
-                <div className="text-center p-2">
-                  <p className="text-sm text-muted-foreground mb-2">
-                    No vendor found with that name.
-                  </p>
-                  <Button
-                    size="sm"
-                    onClick={() => {
-                      setNewVendorName(value);
-                      setShowNewVendorDialog(true);
-                      setOpen(false);
-                    }}
-                    className="w-full"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create "{value}"
-                  </Button>
+              {vendorsLoading ? (
+                <div className="p-4 text-center">
+                  <div className="animate-spin w-4 h-4 border-2 border-primary border-t-transparent rounded-full mx-auto" />
+                  <p className="text-sm text-muted-foreground mt-2">Loading vendors...</p>
                 </div>
-              </CommandEmpty>
-              <CommandGroup>
-                {vendors.map((vendor: any) => (
-                  <CommandItem
-                    key={vendor.id}
-                    value={vendor.name}
-                    onSelect={(currentValue) => {
-                      setValue(currentValue);
-                      onVendorSelect(currentValue);
-                      setOpen(false);
-                    }}
-                  >
-                    <Check
-                      className={`mr-2 h-4 w-4 ${
-                        value === vendor.name ? "opacity-100" : "opacity-0"
-                      }`}
-                    />
-                    {vendor.name}
-                  </CommandItem>
-                ))}
-              </CommandGroup>
+              ) : vendors.length === 0 && !value ? (
+                <div className="p-4 text-center">
+                  <p className="text-sm text-muted-foreground">No vendors yet. Start typing to create one.</p>
+                </div>
+              ) : (
+                <>
+                  <CommandEmpty>
+                    <div className="text-center p-2">
+                      <p className="text-sm text-muted-foreground mb-2">
+                        No vendor found with that name.
+                      </p>
+                      {value && (
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            setNewVendorName(value);
+                            setShowNewVendorDialog(true);
+                            setOpen(false);
+                          }}
+                          className="w-full"
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Create "{value}"
+                        </Button>
+                      )}
+                    </div>
+                  </CommandEmpty>
+                  <CommandGroup>
+                    {vendors.map((vendor: any) => (
+                      <CommandItem
+                        key={vendor.id}
+                        value={vendor.name}
+                        onSelect={(currentValue) => {
+                          setValue(currentValue);
+                          onVendorSelect(currentValue);
+                          setOpen(false);
+                        }}
+                      >
+                        <Check
+                          className={`mr-2 h-4 w-4 ${
+                            value === vendor.name ? "opacity-100" : "opacity-0"
+                          }`}
+                        />
+                        {vendor.name}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </>
+              )}
             </CommandList>
           </Command>
         </PopoverContent>
