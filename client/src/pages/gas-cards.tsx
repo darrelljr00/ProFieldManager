@@ -64,6 +64,7 @@ export default function GasCards() {
       cardId: 0,
       assignedToUserId: 0,
       assignedDate: new Date(),
+      expectedReturnDate: undefined,
       purpose: "",
       notes: "",
     },
@@ -325,9 +326,25 @@ export default function GasCards() {
                         <FormControl>
                           <Input 
                             type="date" 
-                            {...field}
-                            value={field.value ? field.value.toISOString().split('T')[0] : new Date().toISOString().split('T')[0]}
+                            value={field.value instanceof Date ? field.value.toISOString().split('T')[0] : new Date().toISOString().split('T')[0]}
                             onChange={(e) => field.onChange(new Date(e.target.value))}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={assignmentForm.control}
+                    name="expectedReturnDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Expected Return Date (Optional)</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="date" 
+                            value={field.value instanceof Date ? field.value.toISOString().split('T')[0] : ''}
+                            onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value) : undefined)}
                           />
                         </FormControl>
                         <FormMessage />
@@ -407,6 +424,7 @@ export default function GasCards() {
                       <TableHead>Gas Card</TableHead>
                       <TableHead>Assigned To</TableHead>
                       <TableHead>Assigned Date</TableHead>
+                      <TableHead>Expected Return</TableHead>
                       <TableHead>Purpose</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Actions</TableHead>
@@ -434,6 +452,11 @@ export default function GasCards() {
                             <Calendar className="h-4 w-4" />
                             {format(new Date(assignment.assignedDate), 'MMM d, yyyy')}
                           </div>
+                        </TableCell>
+                        <TableCell>
+                          {assignment.expectedReturnDate 
+                            ? format(new Date(assignment.expectedReturnDate), 'MMM d, yyyy')
+                            : "—"}
                         </TableCell>
                         <TableCell>{assignment.purpose || "—"}</TableCell>
                         <TableCell>{getAssignmentStatusBadge(assignment.status)}</TableCell>

@@ -544,6 +544,7 @@ export const gasCardAssignments = pgTable("gas_card_assignments", {
   assignedToUserId: integer("assigned_to_user_id").notNull().references(() => users.id),
   assignedBy: integer("assigned_by").notNull().references(() => users.id),
   assignedDate: timestamp("assigned_date").notNull(),
+  expectedReturnDate: timestamp("expected_return_date"),
   returnedDate: timestamp("returned_date"),
   purpose: text("purpose"), // job site, project, etc.
   notes: text("notes"),
@@ -1061,6 +1062,7 @@ export const insertGasCardAssignmentSchema = z.object({
   assignedToUserId: z.number(),
   assignedBy: z.number(),
   assignedDate: z.date(),
+  expectedReturnDate: z.date().optional(),
   purpose: z.string().optional(),
   notes: z.string().optional(),
 });
