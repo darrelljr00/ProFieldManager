@@ -282,6 +282,9 @@ export default function Expenses() {
   const [selectedExpense, setSelectedExpense] = useState<ExpenseWithProject | null>(null);
   const [showExpenseDetails, setShowExpenseDetails] = useState(false);
   const [selectedVendor, setSelectedVendor] = useState("");
+  const [editExpenseDialogOpen, setEditExpenseDialogOpen] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<ExpenseWithProject | null>(null);
+  const [editSelectedVendor, setEditSelectedVendor] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -335,6 +338,31 @@ export default function Expenses() {
     },
   });
 
+  const updateExpenseMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: FormData }) => 
+      fetch(`/api/expenses/${id}`, {
+        method: "PUT",
+        body: data,
+      }).then(res => res.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/expenses"] });
+      setEditExpenseDialogOpen(false);
+      setEditingExpense(null);
+      setEditSelectedVendor("");
+      toast({
+        title: "Success",
+        description: "Expense updated successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update expense",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleCreateExpense = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -355,6 +383,26 @@ export default function Expenses() {
     }
     
     createExpenseMutation.mutate(formData);
+  };
+
+  const handleEditExpense = (expense: ExpenseWithProject) => {
+    setEditingExpense(expense);
+    setEditSelectedVendor(expense.vendor || "");
+    setEditExpenseDialogOpen(true);
+  };
+
+  const handleUpdateExpense = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!editingExpense) return;
+
+    const formData = new FormData(e.currentTarget);
+    
+    // Add selected vendor to form data
+    if (editSelectedVendor) {
+      formData.set("vendor", editSelectedVendor);
+    }
+    
+    updateExpenseMutation.mutate({ id: editingExpense.id, data: formData });
   };
 
   const handleOcrScan = async () => {
@@ -1072,6 +1120,13 @@ export default function Expenses() {
                         </TableCell>
                         <TableCell>
                           <div className="flex space-x-2" onClick={(e) => e.stopPropagation()}>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEditExpense(expense)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
                             {expense.status === "pending" && (
                               <Button
                                 size="sm"
@@ -1182,6 +1237,16 @@ export default function Expenses() {
                           )}
                         </div>
                         <div className="flex space-x-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditExpense(expense);
+                            }}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
                           {expense.status === "pending" && (
                             <Button
                               size="sm"
