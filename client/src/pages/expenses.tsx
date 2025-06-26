@@ -1396,6 +1396,104 @@ export default function Expenses() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="trash" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Deleted Expenses</CardTitle>
+              <CardDescription>Restore or permanently delete expenses</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {trashedExpensesLoading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4" />
+                  <p className="text-sm text-muted-foreground">Loading deleted expenses...</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {trashedExpenses.length === 0 ? (
+                    <div className="text-center py-12">
+                      <Trash2 className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-xl font-medium text-muted-foreground">No deleted expenses</p>
+                      <p className="text-muted-foreground">When you delete expenses, they'll appear here</p>
+                    </div>
+                  ) : (
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                      {trashedExpenses.map((expense) => (
+                        <Card key={expense.id} className="opacity-75 border-red-200">
+                          <CardContent className="p-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center space-x-2">
+                                <Receipt className="h-4 w-4 text-red-400" />
+                                <span className="font-medium text-red-600">Deleted</span>
+                              </div>
+                              <Badge variant="destructive" className="text-xs">
+                                ${expense.amount}
+                              </Badge>
+                            </div>
+                            
+                            <h3 className="font-medium text-sm mb-1">{expense.description}</h3>
+                            <p className="text-xs text-muted-foreground mb-2">
+                              {expense.category} • {new Date(expense.expenseDate).toLocaleDateString()}
+                            </p>
+                            
+                            {expense.vendor && (
+                              <p className="text-xs text-muted-foreground mb-2">
+                                <Building2 className="h-3 w-3 inline mr-1" />
+                                {expense.vendor}
+                              </p>
+                            )}
+                            
+                            {expense.project && (
+                              <p className="text-xs text-muted-foreground mb-3">
+                                Project: {expense.project.name}
+                              </p>
+                            )}
+                            
+                            <div className="flex space-x-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => restoreExpenseMutation.mutate(expense.id)}
+                                disabled={restoreExpenseMutation.isPending}
+                                className="flex-1"
+                              >
+                                {restoreExpenseMutation.isPending ? (
+                                  <div className="animate-spin w-3 h-3 border-2 border-primary border-t-transparent rounded-full" />
+                                ) : (
+                                  <>
+                                    <CheckCircle className="h-3 w-3 mr-1" />
+                                    Restore
+                                  </>
+                                )}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => permanentDeleteMutation.mutate(expense.id)}
+                                disabled={permanentDeleteMutation.isPending}
+                                className="flex-1"
+                              >
+                                {permanentDeleteMutation.isPending ? (
+                                  <div className="animate-spin w-3 h-3 border-2 border-white border-t-transparent rounded-full" />
+                                ) : (
+                                  <>
+                                    <XCircle className="h-3 w-3 mr-1" />
+                                    Delete Forever
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
 
       {/* Detailed Expense View Dialog */}

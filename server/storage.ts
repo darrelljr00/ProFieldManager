@@ -828,6 +828,13 @@ export class DatabaseStorage implements IStorage {
       isAdmin = user?.role === 'admin';
     }
 
+    const whereConditions = [isNotNull(expenses.deletedAt)];
+    
+    // If not admin, filter by organization
+    if (!isAdmin) {
+      whereConditions.push(eq(users.organizationId, organizationId));
+    }
+
     const results = await db
       .select({
         id: expenses.id,
@@ -852,14 +859,16 @@ export class DatabaseStorage implements IStorage {
         deletedAt: expenses.deletedAt,
         deletedBy: expenses.deletedBy,
         createdAt: expenses.createdAt,
-        updatedAt: expenses.updatedAt
+        updatedAt: expenses.updatedAt,
+        project: {
+          id: projects.id,
+          name: projects.name
+        }
       })
       .from(expenses)
       .innerJoin(users, eq(expenses.userId, users.id))
-      .where(and(
-        isNotNull(expenses.deletedAt), // Only show deleted expenses
-        isAdmin ? undefined : eq(users.organizationId, organizationId)
-      ))
+      .leftJoin(projects, eq(expenses.projectId, projects.id))
+      .where(and(...whereConditions))
       .orderBy(desc(expenses.deletedAt));
 
     return results;
