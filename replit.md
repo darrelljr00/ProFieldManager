@@ -121,6 +121,7 @@ Pro Field Manager is a comprehensive SaaS field service management platform buil
 - June 25, 2025. Moved Mobile Test tab from main navigation to a sub-tab within Admin Settings for better organization of admin-only features
 - June 25, 2025. Fixed user creation error 500 by correcting all storage.createUserAccount() calls to storage.createUser() in routes.ts
 - June 25, 2025. Fixed team messaging security issue by implementing organization-scoped user filtering - users can now only see and message other users within their organization, with proper validation to prevent cross-organization messaging
+- June 26, 2025. Resolved "S is undefined" error in team messaging by adding proper null checks for recipients property in message filtering logic - messaging system now works reliably between organization members
 
 ## User Preferences
 
