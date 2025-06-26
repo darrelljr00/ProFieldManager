@@ -292,6 +292,15 @@ export default function Expenses() {
   const [editExpenseDialogOpen, setEditExpenseDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<ExpenseWithProject | null>(null);
   const [editSelectedVendor, setEditSelectedVendor] = useState("");
+
+  // Debug logging for edit dialog state
+  useEffect(() => {
+    console.log("Edit dialog state changed:", {
+      editExpenseDialogOpen,
+      editingExpense: editingExpense?.id,
+      editSelectedVendor
+    });
+  }, [editExpenseDialogOpen, editingExpense, editSelectedVendor]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -393,9 +402,11 @@ export default function Expenses() {
   };
 
   const handleEditExpense = (expense: ExpenseWithProject) => {
+    console.log("Edit button clicked for expense:", expense);
     setEditingExpense(expense);
     setEditSelectedVendor(expense.vendor || "");
     setEditExpenseDialogOpen(true);
+    console.log("Edit dialog should open now");
   };
 
   const handleUpdateExpense = (e: React.FormEvent<HTMLFormElement>) => {
