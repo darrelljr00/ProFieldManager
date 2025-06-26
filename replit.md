@@ -130,6 +130,7 @@ Pro Field Manager is a comprehensive SaaS field service management platform buil
 - June 26, 2025. Fixed user permissions update functionality by adding all permission fields to updateUser method in storage.ts - all tab access control switches now work properly and save changes to database
 - June 26, 2025. Fixed expense receipt image 404 errors by adding static file serving middleware for uploads directory - images now load properly when clicked
 - June 26, 2025. Enhanced expense notes functionality with dedicated Notes column in table view, separated description and notes into distinct columns, and improved notes visibility across all expense management views including trash
+- June 26, 2025. Fixed expense receipt image loading by implementing custom static file handler that bypasses Vite development server middleware interference - receipt images now display properly when clicked instead of showing 404 errors
 
 ## User Preferences
 
