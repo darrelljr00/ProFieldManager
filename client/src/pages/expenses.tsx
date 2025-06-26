@@ -61,10 +61,12 @@ function VendorInput({ defaultValue = "", onVendorSelect }: VendorInputProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch vendors
-  const { data: vendors = [] } = useQuery({
+  // Fetch vendors with refetch on focus and proper stale time
+  const { data: vendors = [], refetch: refetchVendors } = useQuery({
     queryKey: ["/api/vendors"],
     queryFn: () => apiRequest("/api/vendors").then(res => res.json()),
+    staleTime: 30000, // Consider data fresh for 30 seconds
+    refetchOnWindowFocus: true,
   });
 
   // Create vendor mutation
@@ -72,7 +74,9 @@ function VendorInput({ defaultValue = "", onVendorSelect }: VendorInputProps) {
     mutationFn: (vendorData: any) => 
       apiRequest("POST", "/api/vendors", vendorData).then(res => res.json()),
     onSuccess: (newVendor) => {
+      // Force refetch vendors immediately
       queryClient.invalidateQueries({ queryKey: ["/api/vendors"] });
+      refetchVendors();
       setValue(newVendor.name);
       onVendorSelect(newVendor.name);
       setShowNewVendorDialog(false);
@@ -99,6 +103,33 @@ function VendorInput({ defaultValue = "", onVendorSelect }: VendorInputProps) {
       name: newVendorName.trim(),
     });
   };
+
+  // Listen for WebSocket vendor updates and global websocket events
+  useEffect(() => {
+    const handleWebSocketUpdate = (event: CustomEvent) => {
+      const { eventType } = event.detail;
+      if (eventType === 'vendor_created' || 
+          eventType === 'vendor_updated' || 
+          eventType === 'vendor_deleted') {
+        queryClient.invalidateQueries({ queryKey: ["/api/vendors"] });
+        refetchVendors();
+      }
+    };
+
+    // Listen for global websocket updates
+    window.addEventListener('websocket-update', handleWebSocketUpdate as EventListener);
+
+    return () => {
+      window.removeEventListener('websocket-update', handleWebSocketUpdate as EventListener);
+    };
+  }, [queryClient, refetchVendors]);
+
+  // Force refresh vendors when the popover opens
+  useEffect(() => {
+    if (open) {
+      refetchVendors();
+    }
+  }, [open, refetchVendors]);
 
   return (
     <>
