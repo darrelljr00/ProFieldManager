@@ -59,10 +59,11 @@ export default function GasCards() {
 
   // Assignment form
   const assignmentForm = useForm({
-    resolver: zodResolver(insertGasCardAssignmentSchema.omit({ assignedBy: true, assignedDate: true })),
+    resolver: zodResolver(insertGasCardAssignmentSchema.omit({ assignedBy: true })),
     defaultValues: {
       cardId: 0,
       assignedToUserId: 0,
+      assignedDate: new Date(),
       purpose: "",
       notes: "",
     },
@@ -311,6 +312,24 @@ export default function GasCards() {
                             ))}
                           </SelectContent>
                         </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={assignmentForm.control}
+                    name="assignedDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Assignment Date</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="date" 
+                            {...field}
+                            value={field.value ? field.value.toISOString().split('T')[0] : new Date().toISOString().split('T')[0]}
+                            onChange={(e) => field.onChange(new Date(e.target.value))}
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
