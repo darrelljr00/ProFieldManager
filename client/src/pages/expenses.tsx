@@ -62,9 +62,8 @@ function VendorInput({ defaultValue = "", onVendorSelect }: VendorInputProps) {
   const queryClient = useQueryClient();
 
   // Fetch vendors with refetch on focus and proper stale time
-  const { data: vendors = [], refetch: refetchVendors, isLoading: vendorsLoading } = useQuery({
+  const { data: vendors = [], refetch: refetchVendors, isLoading: vendorsLoading, error: vendorsError } = useQuery({
     queryKey: ["/api/vendors"],
-    queryFn: () => apiRequest("/api/vendors").then(res => res.json()),
     staleTime: 5000, // Consider data fresh for 5 seconds only
     refetchOnWindowFocus: true,
     refetchOnMount: true,
@@ -73,7 +72,9 @@ function VendorInput({ defaultValue = "", onVendorSelect }: VendorInputProps) {
   // Debug logging
   useEffect(() => {
     console.log('Vendors data updated:', vendors);
-  }, [vendors]);
+    console.log('Vendors loading:', vendorsLoading);
+    console.log('Vendors error:', vendorsError);
+  }, [vendors, vendorsLoading, vendorsError]);
 
   // Create vendor mutation
   const createVendorMutation = useMutation({
