@@ -2384,13 +2384,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Authentication required" });
       }
       
-      console.log("Fetching trashed expenses for user:", user.id, "organization:", user.organizationId);
+      // Ensure organizationId is a valid number
+      const organizationId = parseInt(String(user.organizationId));
+      console.log("Fetching trashed expenses for user:", user.id, "organization:", organizationId);
       
-      if (!user.organizationId) {
+      if (!organizationId || isNaN(organizationId)) {
         return res.status(400).json({ message: "User organization not found" });
       }
       
-      const trashedExpenses = await storage.getTrashedExpenses(user.organizationId, user.id);
+      const trashedExpenses = await storage.getTrashedExpenses(organizationId, user.id);
       res.json(trashedExpenses);
     } catch (error: any) {
       console.error("Error fetching trashed expenses:", error);
