@@ -120,6 +120,13 @@ function VendorInput({ defaultValue = "", onVendorSelect }: VendorInputProps) {
         queryClient.invalidateQueries({ queryKey: ["/api/vendors"] });
         refetchVendors();
       }
+      
+      // Handle expense updates
+      if (eventType === 'expense_created' || 
+          eventType === 'expense_updated' || 
+          eventType === 'expense_deleted') {
+        queryClient.invalidateQueries({ queryKey: ["/api/expenses"] });
+      }
     };
 
     // Listen for global websocket updates
@@ -1524,6 +1531,153 @@ export default function Expenses() {
                 </div>
               </div>
             </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Expense Dialog */}
+      <Dialog open={editExpenseDialogOpen} onOpenChange={setEditExpenseDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Expense</DialogTitle>
+            <DialogDescription>
+              Update expense details and receipts
+            </DialogDescription>
+          </DialogHeader>
+          
+          {editingExpense && (
+            <form onSubmit={handleUpdateExpense} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-description">Description *</Label>
+                  <Input 
+                    id="edit-description"
+                    name="description" 
+                    defaultValue={editingExpense.description}
+                    required 
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-amount">Amount *</Label>
+                  <Input 
+                    id="edit-amount"
+                    name="amount" 
+                    type="number" 
+                    step="0.01" 
+                    defaultValue={editingExpense.amount}
+                    required 
+                  />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-category">Category *</Label>
+                  <Select name="category" defaultValue={editingExpense.category}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories
+                        .filter(cat => cat.isActive)
+                        .map((category) => (
+                        <SelectItem key={category.id} value={category.name.toLowerCase().replace(/\s+/g, '_')}>
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="w-3 h-3 rounded"
+                              style={{ backgroundColor: category.color }}
+                            />
+                            {category.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="edit-expense-date">Date *</Label>
+                  <Input 
+                    id="edit-expense-date"
+                    name="expenseDate" 
+                    type="date" 
+                    defaultValue={new Date(editingExpense.expenseDate).toISOString().split('T')[0]}
+                    required 
+                  />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-vendor">Vendor</Label>
+                  <VendorInput 
+                    defaultValue={editingExpense.vendor || ""}
+                    onVendorSelect={setEditSelectedVendor}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-project">Project</Label>
+                  <Select name="projectId" defaultValue={editingExpense.projectId?.toString() || ""}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select project (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">No Project</SelectItem>
+                      {projects.map((project) => (
+                        <SelectItem key={project.id} value={project.id.toString()}>
+                          {project.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <div>
+                <Label htmlFor="edit-notes">Notes</Label>
+                <Textarea 
+                  id="edit-notes"
+                  name="notes" 
+                  placeholder="Additional notes or details..."
+                  defaultValue={editingExpense.notes || ""}
+                  rows={3}
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="edit-receipt">Receipt (optional)</Label>
+                <Input 
+                  id="edit-receipt"
+                  name="receipt" 
+                  type="file" 
+                  accept="image/*,.pdf"
+                />
+                {editingExpense.receiptUrl && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Current receipt: <a href={`/${editingExpense.receiptUrl}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">View</a>
+                  </p>
+                )}
+              </div>
+              
+              <div className="flex justify-end space-x-2 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setEditExpenseDialogOpen(false);
+                    setEditingExpense(null);
+                    setEditSelectedVendor("");
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit"
+                  disabled={updateExpenseMutation.isPending}
+                >
+                  {updateExpenseMutation.isPending ? "Updating..." : "Update Expense"}
+                </Button>
+              </div>
+            </form>
           )}
         </DialogContent>
       </Dialog>

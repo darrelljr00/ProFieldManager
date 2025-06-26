@@ -731,11 +731,19 @@ export class DatabaseStorage implements IStorage {
     return expense;
   }
 
-  async updateExpense(id: number, updates: any): Promise<any> {
+  async updateExpense(id: number, userId: number, updates: any): Promise<any> {
+    // Filter out undefined values to avoid database errors
+    const cleanUpdates = Object.fromEntries(
+      Object.entries(updates).filter(([_, value]) => value !== undefined)
+    );
+    
+    // Add updatedAt timestamp
+    cleanUpdates.updatedAt = new Date();
+    
     const [expense] = await db
       .update(expenses)
-      .set(updates)
-      .where(eq(expenses.id, id))
+      .set(cleanUpdates)
+      .where(and(eq(expenses.id, id), eq(expenses.userId, userId)))
       .returning();
     return expense;
   }

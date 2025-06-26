@@ -2242,22 +2242,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/expenses/:id", requireAuth, async (req, res) => {
+  app.put("/api/expenses/:id", requireAuth, upload.single('receipt'), async (req, res) => {
     try {
       const expenseId = parseInt(req.params.id);
       const userId = req.user!.id;
       const expenseData = req.body;
+      
+      console.log("Expense update request:", { expenseId, userId, expenseData });
+      
+      // Handle file upload
+      let receiptUrl = undefined;
+      let receiptData = undefined;
+      
+      if (req.file) {
+        receiptUrl = req.file.path;
+        receiptData = `Receipt uploaded: ${req.file.originalname}`;
+      }
 
-      const expense = await storage.updateExpense(expenseId, userId, {
-        ...expenseData,
+      const updateData: any = {
+        description: expenseData.description,
         amount: expenseData.amount ? parseFloat(expenseData.amount) : undefined,
+        category: expenseData.category || undefined,
+        vendor: expenseData.vendor || undefined,
         expenseDate: expenseData.expenseDate ? new Date(expenseData.expenseDate) : undefined,
+        projectId: expenseData.projectId ? parseInt(expenseData.projectId) : null,
+        notes: expenseData.notes || undefined,
         tags: expenseData.tags ? expenseData.tags.split(',').map((tag: string) => tag.trim()) : undefined,
-      });
+      };
+
+      // Only update receipt fields if a new file was uploaded
+      if (receiptUrl) {
+        updateData.receiptUrl = receiptUrl;
+        updateData.receiptData = receiptData;
+      }
+
+      const expense = await storage.updateExpense(expenseId, userId, updateData);
 
       if (!expense) {
         return res.status(404).json({ message: "Expense not found" });
       }
+
+      console.log("Expense updated successfully:", expense);
+
+      // Broadcast to all web users except the updater
+      (app as any).broadcastToWebUsers('expense_updated', {
+        expense,
+        updatedBy: req.user!.username
+      }, req.user!.id);
 
       res.json(expense);
     } catch (error: any) {
