@@ -33,7 +33,7 @@ import {
   users, customers, invoices, quotes, projects, tasks, 
   expenses, expenseCategories, expenseReports, gasCards, 
   gasCardAssignments, leads, calendarJobs, messages,
-  images, settings, organizations, userSessions
+  images, settings, organizations, userSessions, vendors
 } from "@shared/schema";
 import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull } from "drizzle-orm";
 import { DocuSignService, getDocuSignConfig } from "./docusign";
