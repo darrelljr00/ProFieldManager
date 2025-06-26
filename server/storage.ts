@@ -1,7 +1,7 @@
 import { db } from "./db";
 import { 
   users, customers, invoices, quotes, projects, tasks, 
-  expenses, expenseCategories, expenseReports, gasCards, 
+  expenses, expenseCategories, vendors, expenseReports, gasCards, 
   gasCardAssignments, leads, calendarJobs, messages,
   images, settings, organizations, userSessions, subscriptionPlans,
   projectFiles, fileManager, projectUsers, timeClock, timeClockSettings,

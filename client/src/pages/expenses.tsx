@@ -13,6 +13,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { 
   Plus, 
   Receipt, 
@@ -22,7 +24,9 @@ import {
   Tag, 
   Building2, 
   Upload, 
-  FileText, 
+  FileText,
+  Check,
+  ChevronsUpDown, 
   CheckCircle, 
   XCircle, 
   Clock, 
@@ -479,10 +483,11 @@ export default function Expenses() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="vendor">Vendor</Label>
-                      <Input 
-                        id="vendor" 
-                        name="vendor" 
+                      <VendorInput 
                         defaultValue={ocrResult?.testData?.vendor || ""}
+                        onVendorSelect={(vendorName) => {
+                          // The vendor name will be automatically set in the form
+                        }}
                       />
                     </div>
                     <div>
