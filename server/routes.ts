@@ -2333,6 +2333,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Expense trash management routes
+  app.get("/api/expenses/trash", requireAuth, async (req, res) => {
+    try {
+      const user = req.user as User;
+      const trashedExpenses = await storage.getTrashedExpenses(user.organizationId, user.id);
+      res.json(trashedExpenses);
+    } catch (error: any) {
+      console.error("Error fetching trashed expenses:", error);
+      res.status(500).json({ message: "Failed to fetch trashed expenses" });
+    }
+  });
+
+  app.post("/api/expenses/:id/restore", requireAuth, async (req, res) => {
+    try {
+      const expenseId = parseInt(req.params.id);
+      const userId = req.user!.id;
+      
+      const success = await storage.restoreExpense(expenseId, userId);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Expense not found in trash" });
+      }
+      
+      res.json({ message: "Expense restored successfully" });
+    } catch (error: any) {
+      console.error("Error restoring expense:", error);
+      res.status(500).json({ message: "Failed to restore expense" });
+    }
+  });
+
+  app.delete("/api/expenses/:id/permanent", requireAuth, async (req, res) => {
+    try {
+      const expenseId = parseInt(req.params.id);
+      const userId = req.user!.id;
+      
+      const success = await storage.permanentlyDeleteExpense(expenseId, userId);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Expense not found" });
+      }
+      
+      res.json({ message: "Expense permanently deleted" });
+    } catch (error: any) {
+      console.error("Error permanently deleting expense:", error);
+      res.status(500).json({ message: "Failed to permanently delete expense" });
+    }
+  });
+
   // Expense categories
   app.get("/api/expense-categories", requireAuth, async (req, res) => {
     try {

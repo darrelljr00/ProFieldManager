@@ -66,8 +66,13 @@ export interface IStorage {
   getExpense(id: number, userId?: number): Promise<any>;
   createExpense(expenseData: any): Promise<any>;
   updateExpense(id: number, userId: number, updates: any): Promise<any>;
-  deleteExpense(id: number, userId?: number): Promise<boolean>;
+  deleteExpense(id: number, userId: number): Promise<boolean>;
   approveExpense(id: number, approvedBy: number): Promise<boolean>;
+  
+  // Expense trash methods
+  getTrashedExpenses(organizationId: number, userId?: number): Promise<any[]>;
+  restoreExpense(id: number, userId: number): Promise<boolean>;
+  permanentlyDeleteExpense(id: number, userId: number): Promise<boolean>;
   
   // Expense categories methods
   getExpenseCategories(organizationId: number): Promise<any[]>;
@@ -812,6 +817,72 @@ export class DatabaseStorage implements IStorage {
       .where(eq(expenses.id, id))
       .returning();
     return !!expense;
+  }
+
+  // Expense trash management methods
+  async getTrashedExpenses(organizationId: number, userId?: number): Promise<any[]> {
+    // Check if user is admin
+    let isAdmin = false;
+    if (userId) {
+      const user = await this.getUser(userId);
+      isAdmin = user?.role === 'admin';
+    }
+
+    const results = await db
+      .select({
+        id: expenses.id,
+        userId: expenses.userId,
+        projectId: expenses.projectId,
+        amount: expenses.amount,
+        currency: expenses.currency,
+        category: expenses.category,
+        subcategory: expenses.subcategory,
+        description: expenses.description,
+        vendor: expenses.vendor,
+        receiptUrl: expenses.receiptUrl,
+        receiptData: expenses.receiptData,
+        expenseDate: expenses.expenseDate,
+        status: expenses.status,
+        isReimbursable: expenses.isReimbursable,
+        tags: expenses.tags,
+        notes: expenses.notes,
+        approvedBy: expenses.approvedBy,
+        approvedAt: expenses.approvedAt,
+        reimbursedAt: expenses.reimbursedAt,
+        deletedAt: expenses.deletedAt,
+        deletedBy: expenses.deletedBy,
+        createdAt: expenses.createdAt,
+        updatedAt: expenses.updatedAt
+      })
+      .from(expenses)
+      .innerJoin(users, eq(expenses.userId, users.id))
+      .where(and(
+        isNotNull(expenses.deletedAt), // Only show deleted expenses
+        isAdmin ? undefined : eq(users.organizationId, organizationId)
+      ))
+      .orderBy(desc(expenses.deletedAt));
+
+    return results;
+  }
+
+  async restoreExpense(id: number, userId: number): Promise<boolean> {
+    // Restore expense by clearing deletedAt and deletedBy
+    const [expense] = await db
+      .update(expenses)
+      .set({ 
+        deletedAt: null,
+        deletedBy: null,
+        updatedAt: new Date()
+      })
+      .where(eq(expenses.id, id))
+      .returning();
+    return !!expense;
+  }
+
+  async permanentlyDeleteExpense(id: number, userId: number): Promise<boolean> {
+    // Permanently delete the expense record
+    const result = await db.delete(expenses).where(eq(expenses.id, id));
+    return result.rowCount > 0;
   }
 
   async getExpenseCategories(organizationId: number): Promise<any[]> {

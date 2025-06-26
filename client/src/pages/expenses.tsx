@@ -304,6 +304,10 @@ export default function Expenses() {
     queryKey: ["/api/expenses"],
   });
 
+  const { data: trashedExpenses = [], isLoading: trashedExpensesLoading } = useQuery<ExpenseWithProject[]>({
+    queryKey: ["/api/expenses/trash"],
+  });
+
   const { data: categories = [] } = useQuery<ExpenseCategory[]>({
     queryKey: ["/api/expense-categories"],
   });
@@ -346,6 +350,29 @@ export default function Expenses() {
       toast({
         title: "Success",
         description: "Expense approved successfully",
+      });
+    },
+  });
+
+  const restoreExpenseMutation = useMutation({
+    mutationFn: (id: number) => apiRequest("POST", `/api/expenses/${id}/restore`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/expenses"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/expenses/trash"] });
+      toast({
+        title: "Success",
+        description: "Expense restored successfully",
+      });
+    },
+  });
+
+  const permanentDeleteMutation = useMutation({
+    mutationFn: (id: number) => apiRequest("DELETE", `/api/expenses/${id}/permanent`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/expenses/trash"] });
+      toast({
+        title: "Success",
+        description: "Expense permanently deleted",
       });
     },
   });
@@ -628,6 +655,7 @@ export default function Expenses() {
             <TabsTrigger value="expenses">All Expenses</TabsTrigger>
             <TabsTrigger value="reports">Reports</TabsTrigger>
             <TabsTrigger value="categories">Categories</TabsTrigger>
+            <TabsTrigger value="trash">Trash</TabsTrigger>
           </TabsList>
           
           <div className="flex space-x-2">
