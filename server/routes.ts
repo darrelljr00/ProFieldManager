@@ -2202,6 +2202,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user!.id;
       const expenseData = req.body;
       
+      console.log("Expense creation request:", { userId, expenseData });
+      
       // Handle file upload
       let receiptUrl = null;
       let receiptData = null;
@@ -2212,16 +2214,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const expense = await storage.createExpense({
-        ...expenseData,
         userId,
-        categoryId: expenseData.categoryId ? parseInt(expenseData.categoryId) : null,
         projectId: expenseData.projectId ? parseInt(expenseData.projectId) : null,
         amount: parseFloat(expenseData.amount),
+        category: expenseData.category || 'general',
+        description: expenseData.description,
+        vendor: expenseData.vendor || null,
         expenseDate: new Date(expenseData.expenseDate),
         receiptUrl,
         receiptData,
+        notes: expenseData.notes || null,
         tags: expenseData.tags ? expenseData.tags.split(',').map((tag: string) => tag.trim()) : [],
       });
+      
+      console.log("Expense created successfully:", expense);
 
       // Broadcast to all web users except the creator
       (app as any).broadcastToWebUsers('expense_created', {
