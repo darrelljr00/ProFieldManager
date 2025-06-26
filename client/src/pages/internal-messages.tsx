@@ -251,18 +251,18 @@ export default function InternalMessagesPage() {
     type: 'direct' as const,
     participants: [u],
     lastMessage: messages.filter(m => 
-      m.senderId === u.id || m.recipients.some(r => r.recipientId === u.id)
+      m.senderId === u.id || (m.recipients && m.recipients.some(r => r.recipientId === u.id))
     ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0],
     unreadCount: messages.filter(m => 
       m.senderId === u.id && 
-      m.recipients.some(r => r.recipientId === user?.id && !r.isRead)
+      m.recipients && m.recipients.some(r => r.recipientId === user?.id && !r.isRead)
     ).length
   }));
 
   const selectedRoom = chatRooms.find(room => room.id === selectedChatRoom);
   const roomMessages = selectedRoom ? messages.filter(m => 
     m.senderId === selectedRoom.participants[0].id || 
-    m.recipients.some(r => r.recipientId === selectedRoom.participants[0].id)
+    (m.recipients && m.recipients.some(r => r.recipientId === selectedRoom.participants[0].id))
   ).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()) : [];
 
   const handleSendMessage = async (e: React.FormEvent) => {
