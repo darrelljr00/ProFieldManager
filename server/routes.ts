@@ -759,9 +759,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Customer routes
-  app.get("/api/customers", async (req, res) => {
+  app.get("/api/customers", requireAuth, async (req, res) => {
     try {
-      const customers = await storage.getCustomers(req.user!.id);
+      const user = await storage.getUser(req.user!.id);
+      if (!user) {
+        return res.status(401).json({ message: "User not found" });
+      }
+      const customers = await storage.getCustomers(user.organizationId);
       res.json(customers);
     } catch (error: any) {
       res.status(500).json({ message: error.message });

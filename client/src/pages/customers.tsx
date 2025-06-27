@@ -76,8 +76,11 @@ export default function Customers() {
 
   const createMutation = useMutation({
     mutationFn: (data: InsertCustomer) => apiRequest("POST", "/api/customers", data),
-    onSuccess: () => {
+    onSuccess: (newCustomer) => {
+      // Force refetch of customers data
       queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+      queryClient.refetchQueries({ queryKey: ["/api/customers"] });
+      
       setIsCreateModalOpen(false);
       setFormData({
         name: "",
