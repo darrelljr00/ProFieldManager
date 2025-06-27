@@ -1420,7 +1420,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // File uploaded successfully
       res.json({
         message: "File uploaded successfully",
-        url: `/uploads/${req.file.filename}`,
+        url: `/uploads/org-${user.organizationId}/files/${req.file.filename}`,
         filename: req.file.originalname,
         size: req.file.size,
         mimetype: req.file.mimetype
@@ -5429,6 +5429,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           trialEndsAt: trialEndsAt,
         });
 
+        // Create folder structure for the new organization
+        await createOrgFolderStructure(organization.id);
+
         // Create admin user for the organization
         const adminUser = await storage.createUser({
           username: adminEmail.split('@')[0],
@@ -5541,6 +5544,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         subscriptionStatus: "trial",
         trialEndsAt: trialEndDate,
       });
+
+      // Create folder structure for the new organization
+      await createOrgFolderStructure(organization.id);
 
       // Create admin user for the organization
       const hashedPassword = await AuthService.hashPassword(password);
