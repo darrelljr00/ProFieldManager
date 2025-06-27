@@ -600,7 +600,7 @@ export default function ImageGallery() {
             const formData = new FormData();
             formData.append('file', file);
             
-            uploadMutation.mutate(formData);
+            uploadMutation.mutate([file]);
             setIsPhotoEditorOpen(false);
           }}
           onClose={() => setIsPhotoEditorOpen(false)}
@@ -614,7 +614,7 @@ export default function ImageGallery() {
         projectId={selectedImages.length > 0 && selectedImages[0].projectId ? selectedImages[0].projectId : 0}
         selectedImages={selectedImages.map(img => ({
           ...img,
-          url: getImageUrl(img.filename)
+          url: getImageUrl(img)
         }))}
         projectName={getProjectNameForSharing()}
         onSuccess={() => {
