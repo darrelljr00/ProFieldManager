@@ -1297,6 +1297,55 @@ export class DatabaseStorage implements IStorage {
     await db.delete(calendarJobs).where(eq(calendarJobs.id, id));
   }
 
+  async convertJobToProject(jobId: number, userId: number, projectData: any): Promise<any> {
+    try {
+      // First, get the calendar job to verify it exists and get its data
+      const calendarJob = await db
+        .select()
+        .from(calendarJobs)
+        .where(eq(calendarJobs.id, jobId))
+        .limit(1);
+
+      if (calendarJob.length === 0) {
+        return null;
+      }
+
+      const job = calendarJob[0];
+
+      // Create a new project based on the calendar job data
+      const projectPayload = {
+        name: projectData.name || job.title,
+        description: projectData.description || job.description || '',
+        userId: userId,
+        customerId: job.customerId,
+        status: 'active',
+        startDate: job.startDate,
+        endDate: job.endDate,
+        estimatedValue: job.estimatedValue,
+      };
+
+      const [newProject] = await db
+        .insert(projects)
+        .values(projectPayload)
+        .returning();
+
+      // Update the calendar job to mark it as converted and link to the new project
+      await db
+        .update(calendarJobs)
+        .set({
+          status: 'converted',
+          convertedToProjectId: newProject.id,
+          updatedAt: new Date(),
+        })
+        .where(eq(calendarJobs.id, jobId));
+
+      return newProject;
+    } catch (error) {
+      console.error('Error converting calendar job to project:', error);
+      throw error;
+    }
+  }
+
   // Task management methods
   async getTeamTasksForManager(userId: number): Promise<any[]> {
     return await db
