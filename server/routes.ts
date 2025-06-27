@@ -67,11 +67,41 @@ const twilioClient = twilio(
   process.env.TWILIO_AUTH_TOKEN || "your_auth_token_here"
 );
 
-// Configure multer for expense receipts specifically
+// Helper function to get organization-based upload directory
+function getOrgUploadDir(organizationId: number, type: 'expenses' | 'images' | 'files'): string {
+  return `./uploads/org-${organizationId}/${type}`;
+}
+
+// Helper function to create organization folder structure
+async function createOrgFolderStructure(organizationId: number): Promise<void> {
+  const basePath = `./uploads/org-${organizationId}`;
+  const folders = ['expenses', 'images', 'files'];
+  
+  try {
+    // Create base organization directory
+    await fs.mkdir(basePath, { recursive: true });
+    
+    // Create subdirectories for each file type
+    for (const folder of folders) {
+      await fs.mkdir(`${basePath}/${folder}`, { recursive: true });
+    }
+    
+    console.log(`Created folder structure for organization ${organizationId}`);
+  } catch (error) {
+    console.error(`Error creating folder structure for organization ${organizationId}:`, error);
+  }
+}
+
+// Configure multer for expense receipts with organization isolation
 const expenseUpload = multer({
   storage: multer.diskStorage({
     destination: async (req, file, cb) => {
-      const uploadDir = './uploads/expenses';
+      const user = getAuthenticatedUser(req);
+      if (!user || !user.organizationId) {
+        return cb(new Error('Organization not found'), '');
+      }
+      
+      const uploadDir = getOrgUploadDir(user.organizationId, 'expenses');
       try {
         await fs.mkdir(uploadDir, { recursive: true });
         cb(null, uploadDir);
@@ -106,11 +136,59 @@ const expenseUpload = multer({
   }
 });
 
-// Configure multer for general file uploads
+// Configure multer for image gallery uploads with organization isolation
+const imageUpload = multer({
+  storage: multer.diskStorage({
+    destination: async (req, file, cb) => {
+      const user = getAuthenticatedUser(req);
+      if (!user || !user.organizationId) {
+        return cb(new Error('Organization not found'), '');
+      }
+      
+      const uploadDir = getOrgUploadDir(user.organizationId, 'images');
+      try {
+        await fs.mkdir(uploadDir, { recursive: true });
+        cb(null, uploadDir);
+      } catch (error) {
+        cb(error as Error, uploadDir);
+      }
+    },
+    filename: (req, file, cb) => {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      cb(null, 'image-' + uniqueSuffix + path.extname(file.originalname));
+    }
+  }),
+  fileFilter: (req, file, cb) => {
+    // Only allow images for image gallery
+    const allowedTypes = /jpeg|jpg|png|gif|webp/;
+    const allowedMimeTypes = [
+      'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'
+    ];
+    
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedMimeTypes.includes(file.mimetype);
+    
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Only image files (JPEG, PNG, GIF, WebP) are allowed'));
+    }
+  },
+  limits: {
+    fileSize: 15 * 1024 * 1024 // 15MB limit for images
+  }
+});
+
+// Configure multer for general file uploads with organization isolation
 const upload = multer({
   storage: multer.diskStorage({
     destination: async (req, file, cb) => {
-      const uploadDir = './uploads';
+      const user = getAuthenticatedUser(req);
+      if (!user || !user.organizationId) {
+        return cb(new Error('Organization not found'), '');
+      }
+      
+      const uploadDir = getOrgUploadDir(user.organizationId, 'files');
       try {
         await fs.mkdir(uploadDir, { recursive: true });
         cb(null, uploadDir);
@@ -1283,13 +1361,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "No file uploaded" });
       }
 
+      const user = getAuthenticatedUser(req);
       // Update company settings with new logo path
       const logoPath = req.file.path;
       await storage.updateSetting('company', 'logo', logoPath);
 
       res.json({ 
         message: "Logo uploaded successfully",
-        logoUrl: `/uploads/${req.file.filename}`
+        logoUrl: `/uploads/org-${user.organizationId}/files/${req.file.filename}`
       });
     } catch (error: any) {
       res.status(500).json({ message: "Error uploading logo: " + error.message });
@@ -1309,6 +1388,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('No file in request');
         return res.status(400).json({ message: "No file uploaded" });
       }
+
+      const user = getAuthenticatedUser(req);
 
       console.log('File details:', {
         filename: req.file.filename,
@@ -2301,7 +2382,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let receiptData = null;
       
       if (req.file) {
-        receiptUrl = `uploads/expenses/${req.file.filename}`;
+        const user = getAuthenticatedUser(req);
+        receiptUrl = `uploads/org-${user.organizationId}/expenses/${req.file.filename}`;
         receiptData = `Receipt uploaded: ${req.file.originalname}`;
       }
 
@@ -2942,7 +3024,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           category: "meals",
           rawText: "Receipt text would appear here after OCR processing"
         },
-        imagePath: `uploads/expenses/${req.file.filename}`
+        imagePath: `uploads/org-${req.user!.organizationId}/expenses/${req.file.filename}`
       });
     } catch (error: any) {
       console.error("Error processing receipt:", error);
