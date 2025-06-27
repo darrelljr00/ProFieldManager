@@ -84,7 +84,7 @@ export default function ImageGallery() {
           formData.append('projectId', uploadProjectId);
         }
 
-        const response = await fetch('/api/upload', {
+        const response = await fetch('/api/upload/image', {
           method: 'POST',
           body: formData,
           credentials: 'include',
@@ -245,13 +245,23 @@ export default function ImageGallery() {
   };
 
   const getImageUrl = (image: ImageFile) => {
-    // For files that start with 'file-', they are in the root uploads directory
-    // For newer files, they may be in organization-specific folders
-    if (image.filename.startsWith('file-')) {
-      return `/uploads/${image.filename}`;
+    // Use the URL from the backend if available (includes proper organization path)
+    if (image.url) {
+      return image.url;
     }
-    // Use the URL from the backend if available, otherwise construct it
-    return image.url || `/uploads/${image.filename}`;
+    
+    // For legacy files that start with 'file-' in organization folder
+    if (image.filename.startsWith('file-')) {
+      return `/uploads/org-2/image_gallery/${image.filename}`;
+    }
+    
+    // For newer gallery files with 'gallery-' prefix
+    if (image.filename.startsWith('gallery-')) {
+      return `/uploads/org-2/image_gallery/${image.filename}`;
+    }
+    
+    // Fallback for any other files
+    return `/uploads/org-2/image_gallery/${image.filename}`;
   };
 
   return (
