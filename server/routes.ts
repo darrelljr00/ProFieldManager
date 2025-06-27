@@ -2924,7 +2924,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // OCR endpoint for receipt processing
-  app.post("/api/ocr/receipt", requireAuth, upload.single('receipt'), async (req, res) => {
+  app.post("/api/ocr/receipt", requireAuth, expenseUpload.single('receipt'), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ message: "No receipt image provided" });
@@ -2941,7 +2941,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           date: new Date().toISOString().split('T')[0],
           category: "meals",
           rawText: "Receipt text would appear here after OCR processing"
-        }
+        },
+        imagePath: `uploads/expenses/${req.file.filename}`
       });
     } catch (error: any) {
       console.error("Error processing receipt:", error);
