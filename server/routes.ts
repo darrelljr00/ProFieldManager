@@ -83,12 +83,22 @@ const upload = multer({
       const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
       // Use appropriate prefix based on the endpoint/file type
       let prefix = 'file';
-      if (req.path.includes('/expenses') || req.path.includes('/ocr')) {
-        prefix = 'receipt';
-      } else if (req.path.includes('/images') || req.path.includes('/gallery')) {
-        prefix = 'image';
-      } else if (req.path.includes('/documents') || req.path.includes('/files')) {
-        prefix = 'document';
+      if (req.route && req.route.path) {
+        if (req.route.path.includes('expenses') || req.route.path.includes('ocr')) {
+          prefix = 'receipt';
+        } else if (req.route.path.includes('images') || req.route.path.includes('gallery')) {
+          prefix = 'image';
+        } else if (req.route.path.includes('documents') || req.route.path.includes('files')) {
+          prefix = 'document';
+        }
+      } else if (req.originalUrl) {
+        if (req.originalUrl.includes('expenses') || req.originalUrl.includes('ocr')) {
+          prefix = 'receipt';
+        } else if (req.originalUrl.includes('images') || req.originalUrl.includes('gallery')) {
+          prefix = 'image';
+        } else if (req.originalUrl.includes('documents') || req.originalUrl.includes('files')) {
+          prefix = 'document';
+        }
       }
       cb(null, prefix + '-' + uniqueSuffix + path.extname(file.originalname));
     }
