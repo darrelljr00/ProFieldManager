@@ -245,6 +245,11 @@ export default function ImageGallery() {
   };
 
   const getImageUrl = (image: ImageFile) => {
+    // For files that start with 'file-', they are in the root uploads directory
+    // For newer files, they may be in organization-specific folders
+    if (image.filename.startsWith('file-')) {
+      return `/uploads/${image.filename}`;
+    }
     // Use the URL from the backend if available, otherwise construct it
     return image.url || `/uploads/${image.filename}`;
   };
