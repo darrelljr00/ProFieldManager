@@ -2017,7 +2017,7 @@ export class DatabaseStorage implements IStorage {
       // Add correct URL paths for organization-based file structure
       return imageResults.map(image => ({
         ...image,
-        url: `/uploads/org-${userInfo.organizationId}/images/${image.filename}`
+        url: `/uploads/org-${userInfo.organizationId}/image_gallery/${image.filename}`
       }));
     } catch (error) {
       console.error('Error fetching images:', error);
