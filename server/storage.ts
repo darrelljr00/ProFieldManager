@@ -1995,7 +1995,7 @@ export class DatabaseStorage implements IStorage {
       
       const orgUserIds = orgUsers.map(u => u.id);
 
-      return await db
+      const imageResults = await db
         .select({
           id: images.id,
           filename: images.filename,
@@ -2013,6 +2013,12 @@ export class DatabaseStorage implements IStorage {
         .from(images)
         .where(inArray(images.userId, orgUserIds))
         .orderBy(desc(images.createdAt));
+
+      // Add correct URL paths for organization-based file structure
+      return imageResults.map(image => ({
+        ...image,
+        url: `/uploads/org-${userInfo.organizationId}/images/${image.filename}`
+      }));
     } catch (error) {
       console.error('Error fetching images:', error);
       return [];

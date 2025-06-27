@@ -1377,7 +1377,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // General file upload for messages and attachments
+  // General file upload for messages and attachments (non-images)
   app.post("/api/upload", requireAuth, upload.single('file'), async (req, res) => {
     try {
       console.log('Upload request received:', {
@@ -1400,25 +1400,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         size: req.file.size
       });
 
-      // If it's an image file, save metadata to database
-      if (req.file.mimetype.startsWith('image/')) {
-        const userInfo = await storage.getUser(req.user!.id);
-        const imageData = {
-          filename: req.file.filename,
-          originalName: req.file.originalname,
-          mimeType: req.file.mimetype,
-          size: req.file.size,
-          userId: req.user!.id,
-          organizationId: userInfo?.organizationId || 1,
-          projectId: req.body.projectId ? parseInt(req.body.projectId) : null,
-          customerId: req.body.customerId ? parseInt(req.body.customerId) : null,
-        };
-
-        console.log('Creating image record:', imageData);
-        await storage.createImage(imageData);
-        console.log('Image record created successfully');
-      }
-
       // File uploaded successfully
       res.json({
         message: "File uploaded successfully",
@@ -1430,6 +1411,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error('File upload error:', error);
       res.status(500).json({ message: "Error uploading file: " + error.message });
+    }
+  });
+
+  // Image upload specifically for image gallery
+  app.post("/api/upload/image", requireAuth, imageUpload.single('file'), async (req, res) => {
+    try {
+      console.log('Image upload request received:', {
+        file: req.file ? 'Present' : 'Missing',
+        body: req.body,
+        user: req.user?.username
+      });
+
+      if (!req.file) {
+        console.log('No image file in request');
+        return res.status(400).json({ message: "No image file uploaded" });
+      }
+
+      const user = getAuthenticatedUser(req);
+
+      console.log('Image file details:', {
+        filename: req.file.filename,
+        originalname: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size
+      });
+
+      // Save image metadata to database
+      const imageData = {
+        filename: req.file.filename,
+        originalName: req.file.originalname,
+        mimeType: req.file.mimetype,
+        size: req.file.size,
+        userId: req.user!.id,
+        organizationId: user.organizationId,
+        projectId: req.body.projectId ? parseInt(req.body.projectId) : null,
+        customerId: req.body.customerId ? parseInt(req.body.customerId) : null,
+      };
+
+      console.log('Creating image record:', imageData);
+      await storage.createImage(imageData);
+      console.log('Image record created successfully');
+
+      // Image uploaded successfully
+      res.json({
+        message: "Image uploaded successfully",
+        url: `/uploads/org-${user.organizationId}/images/${req.file.filename}`,
+        filename: req.file.originalname,
+        size: req.file.size,
+        mimetype: req.file.mimetype
+      });
+    } catch (error: any) {
+      console.error('Image upload error:', error);
+      res.status(500).json({ message: "Error uploading image: " + error.message });
     }
   });
 
