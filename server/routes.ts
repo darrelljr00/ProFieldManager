@@ -783,7 +783,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...req.body,
         organizationId: user.organizationId,
       });
-      const customer = await storage.createCustomer(customerData);
+      const customer = await storage.createCustomer({
+        ...customerData,
+        userId: req.user!.id,
+      });
       
       // Broadcast to all web users except the creator
       (app as any).broadcastToWebUsers('customer_created', {

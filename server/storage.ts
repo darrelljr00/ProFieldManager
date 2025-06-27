@@ -354,7 +354,7 @@ export class DatabaseStorage implements IStorage {
 
   async createCustomer(customerData: any): Promise<Customer> {
     const insertData: any = {
-      userId: customerData.userId || customerData.organizationId, // Handle both userId and organizationId
+      userId: customerData.userId,  // This should be the actual userId who created the customer
       name: customerData.name,
       email: customerData.email
     };
