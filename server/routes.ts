@@ -2414,18 +2414,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Ensure organizationId is a valid number
-      const organizationId = parseInt(String(user.organizationId));
-      console.log("Fetching trashed expenses for user:", user.id, "organization:", organizationId);
+      if (!user.organizationId) {
+        console.log("User missing organizationId:", user);
+        return res.json([]); // Return empty array instead of error
+      }
       
-      if (!organizationId || isNaN(organizationId)) {
-        return res.status(400).json({ message: "User organization not found" });
+      const organizationId = parseInt(String(user.organizationId));
+      
+      if (isNaN(organizationId)) {
+        console.log("Invalid organizationId for user:", user.id, "orgId:", user.organizationId);
+        return res.json([]); // Return empty array instead of error
       }
       
       const trashedExpenses = await storage.getTrashedExpenses(organizationId, user.id);
       res.json(trashedExpenses);
     } catch (error: any) {
       console.error("Error fetching trashed expenses:", error);
-      res.status(500).json({ message: "Failed to fetch expense" });
+      res.status(500).json({ message: "Failed to fetch trashed expenses" });
     }
   });
 
