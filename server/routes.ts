@@ -67,7 +67,46 @@ const twilioClient = twilio(
   process.env.TWILIO_AUTH_TOKEN || "your_auth_token_here"
 );
 
-// Configure multer for file uploads
+// Configure multer for expense receipts specifically
+const expenseUpload = multer({
+  storage: multer.diskStorage({
+    destination: async (req, file, cb) => {
+      const uploadDir = './uploads/expenses';
+      try {
+        await fs.mkdir(uploadDir, { recursive: true });
+        cb(null, uploadDir);
+      } catch (error) {
+        cb(error as Error, uploadDir);
+      }
+    },
+    filename: (req, file, cb) => {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      cb(null, 'receipt-' + uniqueSuffix + path.extname(file.originalname));
+    }
+  }),
+  fileFilter: (req, file, cb) => {
+    // Allow images and PDFs for receipts
+    const allowedTypes = /jpeg|jpg|png|gif|pdf/;
+    const allowedMimeTypes = [
+      'image/jpeg', 'image/jpg', 'image/png', 'image/gif',
+      'application/pdf'
+    ];
+    
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedMimeTypes.includes(file.mimetype);
+    
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Only images (JPEG, PNG, GIF) and PDF files are allowed for receipts'));
+    }
+  },
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB limit for receipts
+  }
+});
+
+// Configure multer for general file uploads
 const upload = multer({
   storage: multer.diskStorage({
     destination: async (req, file, cb) => {
@@ -81,26 +120,7 @@ const upload = multer({
     },
     filename: (req, file, cb) => {
       const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-      // Use appropriate prefix based on the endpoint/file type
-      let prefix = 'file';
-      if (req.route && req.route.path) {
-        if (req.route.path.includes('expenses') || req.route.path.includes('ocr')) {
-          prefix = 'receipt';
-        } else if (req.route.path.includes('images') || req.route.path.includes('gallery')) {
-          prefix = 'image';
-        } else if (req.route.path.includes('documents') || req.route.path.includes('files')) {
-          prefix = 'document';
-        }
-      } else if (req.originalUrl) {
-        if (req.originalUrl.includes('expenses') || req.originalUrl.includes('ocr')) {
-          prefix = 'receipt';
-        } else if (req.originalUrl.includes('images') || req.originalUrl.includes('gallery')) {
-          prefix = 'image';
-        } else if (req.originalUrl.includes('documents') || req.originalUrl.includes('files')) {
-          prefix = 'document';
-        }
-      }
-      cb(null, prefix + '-' + uniqueSuffix + path.extname(file.originalname));
+      cb(null, 'file-' + uniqueSuffix + path.extname(file.originalname));
     }
   }),
   fileFilter: (req, file, cb) => {
@@ -2269,7 +2289,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/expenses", requireAuth, upload.single('receipt'), async (req, res) => {
+  app.post("/api/expenses", requireAuth, expenseUpload.single('receipt'), async (req, res) => {
     try {
       const userId = req.user!.id;
       const expenseData = req.body;
@@ -2281,7 +2301,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let receiptData = null;
       
       if (req.file) {
-        receiptUrl = `uploads/${req.file.filename}`;
+        receiptUrl = `uploads/expenses/${req.file.filename}`;
         receiptData = `Receipt uploaded: ${req.file.originalname}`;
       }
 
