@@ -46,7 +46,7 @@ export default function CalendarPage() {
 
   const createMutation = useMutation({
     mutationFn: (data: Partial<InsertCalendarJob>) => 
-      apiRequest("/api/calendar-jobs", "POST", data),
+      apiRequest("POST", "/api/calendar-jobs", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/calendar-jobs"] });
       setIsDialogOpen(false);
@@ -67,7 +67,7 @@ export default function CalendarPage() {
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: Partial<InsertCalendarJob> }) =>
-      apiRequest(`/api/calendar-jobs/${id}`, "PUT", data),
+      apiRequest("PUT", `/api/calendar-jobs/${id}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/calendar-jobs"] });
       setIsDialogOpen(false);
@@ -88,7 +88,7 @@ export default function CalendarPage() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => 
-      apiRequest(`/api/calendar-jobs/${id}`, "DELETE"),
+      apiRequest("DELETE", `/api/calendar-jobs/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/calendar-jobs"] });
       toast({
@@ -107,7 +107,7 @@ export default function CalendarPage() {
 
   const convertMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: any }) =>
-      apiRequest(`/api/calendar-jobs/${id}/convert-to-job`, "POST", data),
+      apiRequest("POST", `/api/calendar-jobs/${id}/convert-to-job`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/calendar-jobs"] });
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
