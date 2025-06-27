@@ -482,7 +482,7 @@ export default function ImageGallery() {
                       </div>
                     )}
                     <img
-                      src={getImageUrl(image.filename)}
+                      src={getImageUrl(image)}
                       alt={image.originalName}
                       className="w-full h-full object-cover hover:scale-105 transition-transform cursor-pointer"
                       onClick={() => selectionMode ? toggleImageSelection(image) : handleAnnotate(image)}
@@ -505,7 +505,7 @@ export default function ImageGallery() {
                           Annotate
                         </Button>
                         <Button size="sm" variant="outline" asChild>
-                          <a href={getImageUrl(image.filename)} download={image.originalName}>
+                          <a href={getImageUrl(image)} download={image.originalName}>
                             <Download className="h-3 w-3" />
                           </a>
                         </Button>
@@ -518,7 +518,7 @@ export default function ImageGallery() {
                   <div className="flex items-center gap-4">
                     <div className="w-16 h-16 rounded overflow-hidden flex-shrink-0">
                       <img
-                        src={getImageUrl(image.filename)}
+                        src={getImageUrl(image)}
                         alt={image.originalName}
                         className="w-full h-full object-cover cursor-pointer"
                         onClick={() => handleAnnotate(image)}
@@ -545,7 +545,7 @@ export default function ImageGallery() {
                         Annotate
                       </Button>
                       <Button size="sm" variant="outline" asChild>
-                        <a href={getImageUrl(image.filename)} download={image.originalName}>
+                        <a href={getImageUrl(image)} download={image.originalName}>
                           <Download className="h-3 w-3" />
                         </a>
                       </Button>
@@ -569,7 +569,7 @@ export default function ImageGallery() {
           <div className="flex-1 overflow-hidden p-4">
             {selectedImage && (
               <ImageAnnotation
-                imageUrl={getImageUrl(selectedImage.filename)}
+                imageUrl={getImageUrl(selectedImage)}
                 onSave={handleSaveAnnotations}
                 initialAnnotations={selectedImage.annotations || []}
               />
@@ -584,7 +584,7 @@ export default function ImageGallery() {
           images={filteredImages.map(img => ({
             id: img.id,
             fileName: img.filename,
-            filePath: `uploads/${img.filename}`,
+            filePath: getImageUrl(img),
             originalName: img.originalName
           }))}
           onSave={(editedImageData: string, fileName: string) => {
