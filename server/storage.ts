@@ -827,63 +827,69 @@ export class DatabaseStorage implements IStorage {
 
   // Expense trash management methods
   async getTrashedExpenses(organizationId: number, userId?: number): Promise<any[]> {
-    // Validate organizationId
-    if (!organizationId || isNaN(organizationId)) {
-      console.error("Invalid organizationId:", organizationId);
+    try {
+      // Validate organizationId and ensure it's a number
+      const orgId = Number(organizationId);
+      if (!orgId || isNaN(orgId)) {
+        console.error("Invalid organizationId:", organizationId);
+        return [];
+      }
+
+      // Check if user is admin
+      let isAdmin = false;
+      if (userId) {
+        const user = await this.getUser(userId);
+        isAdmin = user?.role === 'admin';
+      }
+
+      const whereConditions = [isNotNull(expenses.deletedAt)];
+      
+      // If not admin, filter by organization - ensure proper type conversion
+      if (!isAdmin) {
+        whereConditions.push(eq(users.organizationId, orgId));
+      }
+
+      const results = await db
+        .select({
+          id: expenses.id,
+          userId: expenses.userId,
+          projectId: expenses.projectId,
+          amount: expenses.amount,
+          currency: expenses.currency,
+          category: expenses.category,
+          subcategory: expenses.subcategory,
+          description: expenses.description,
+          vendor: expenses.vendor,
+          receiptUrl: expenses.receiptUrl,
+          receiptData: expenses.receiptData,
+          expenseDate: expenses.expenseDate,
+          status: expenses.status,
+          isReimbursable: expenses.isReimbursable,
+          tags: expenses.tags,
+          notes: expenses.notes,
+          approvedBy: expenses.approvedBy,
+          approvedAt: expenses.approvedAt,
+          reimbursedAt: expenses.reimbursedAt,
+          deletedAt: expenses.deletedAt,
+          deletedBy: expenses.deletedBy,
+          createdAt: expenses.createdAt,
+          updatedAt: expenses.updatedAt,
+          project: {
+            id: projects.id,
+            name: projects.name
+          }
+        })
+        .from(expenses)
+        .innerJoin(users, eq(expenses.userId, users.id))
+        .leftJoin(projects, eq(expenses.projectId, projects.id))
+        .where(and(...whereConditions))
+        .orderBy(desc(expenses.deletedAt));
+
+      return results;
+    } catch (error) {
+      console.error("Error in getTrashedExpenses:", error);
       return [];
     }
-
-    // Check if user is admin
-    let isAdmin = false;
-    if (userId) {
-      const user = await this.getUser(userId);
-      isAdmin = user?.role === 'admin';
-    }
-
-    const whereConditions = [isNotNull(expenses.deletedAt)];
-    
-    // If not admin, filter by organization
-    if (!isAdmin) {
-      whereConditions.push(eq(users.organizationId, organizationId));
-    }
-
-    const results = await db
-      .select({
-        id: expenses.id,
-        userId: expenses.userId,
-        projectId: expenses.projectId,
-        amount: expenses.amount,
-        currency: expenses.currency,
-        category: expenses.category,
-        subcategory: expenses.subcategory,
-        description: expenses.description,
-        vendor: expenses.vendor,
-        receiptUrl: expenses.receiptUrl,
-        receiptData: expenses.receiptData,
-        expenseDate: expenses.expenseDate,
-        status: expenses.status,
-        isReimbursable: expenses.isReimbursable,
-        tags: expenses.tags,
-        notes: expenses.notes,
-        approvedBy: expenses.approvedBy,
-        approvedAt: expenses.approvedAt,
-        reimbursedAt: expenses.reimbursedAt,
-        deletedAt: expenses.deletedAt,
-        deletedBy: expenses.deletedBy,
-        createdAt: expenses.createdAt,
-        updatedAt: expenses.updatedAt,
-        project: {
-          id: projects.id,
-          name: projects.name
-        }
-      })
-      .from(expenses)
-      .innerJoin(users, eq(expenses.userId, users.id))
-      .leftJoin(projects, eq(expenses.projectId, projects.id))
-      .where(and(...whereConditions))
-      .orderBy(desc(expenses.deletedAt));
-
-    return results;
   }
 
   async restoreExpense(id: number, userId: number): Promise<boolean> {

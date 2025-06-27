@@ -92,6 +92,14 @@ async function createOrgFolderStructure(organizationId: number): Promise<void> {
   }
 }
 
+// Helper function for authenticated requests
+function getAuthenticatedUser(req: Request) {
+  if (!req.user) {
+    throw new Error('User not authenticated');
+  }
+  return req.user;
+}
+
 // Configure multer for expense receipts with organization isolation
 const expenseUpload = multer({
   storage: multer.diskStorage({
@@ -842,13 +850,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return requireAuth(req, res, next);
   });
 
-  // Type assertion helper for authenticated routes
-  function getAuthenticatedUser(req: Request) {
-    if (!req.user) {
-      throw new Error('User not authenticated');
-    }
-    return req.user;
-  }
+
 
   // Dashboard stats
   app.get("/api/dashboard/stats", async (req, res) => {
