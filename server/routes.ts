@@ -68,14 +68,14 @@ const twilioClient = twilio(
 );
 
 // Helper function to get organization-based upload directory
-function getOrgUploadDir(organizationId: number, type: 'expenses' | 'images' | 'files' | 'image_gallery'): string {
+function getOrgUploadDir(organizationId: number, type: 'expenses' | 'images' | 'files' | 'image_gallery' | 'receipt_images'): string {
   return `./uploads/org-${organizationId}/${type}`;
 }
 
 // Helper function to create organization folder structure
 async function createOrgFolderStructure(organizationId: number): Promise<void> {
   const basePath = `./uploads/org-${organizationId}`;
-  const folders = ['expenses', 'images', 'files', 'image_gallery'];
+  const folders = ['expenses', 'images', 'files', 'image_gallery', 'receipt_images'];
   
   try {
     // Create base organization directory
@@ -109,7 +109,7 @@ const expenseUpload = multer({
         return cb(new Error('Organization not found'), '');
       }
       
-      const uploadDir = getOrgUploadDir(user.organizationId, 'expenses');
+      const uploadDir = getOrgUploadDir(user.organizationId, 'receipt_images');
       try {
         await fs.mkdir(uploadDir, { recursive: true });
         cb(null, uploadDir);
@@ -2438,7 +2438,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (req.file) {
         const user = getAuthenticatedUser(req);
-        receiptUrl = `uploads/org-${user.organizationId}/expenses/${req.file.filename}`;
+        receiptUrl = `uploads/org-${user.organizationId}/receipt_images/${req.file.filename}`;
         receiptData = `Receipt uploaded: ${req.file.originalname}`;
       }
 
