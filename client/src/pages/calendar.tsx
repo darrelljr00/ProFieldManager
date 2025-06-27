@@ -134,17 +134,17 @@ export default function CalendarPage() {
     const customerIdValue = formData.get('customerId') as string;
     const leadIdValue = formData.get('leadId') as string;
     
-    const jobData = {
+    const jobData: any = {
       title: formData.get('title') as string,
       description: formData.get('description') as string,
       location: formData.get('location') as string,
       startDate: formData.get('startDate') as string,
       endDate: formData.get('endDate') as string,
-      estimatedValue: formData.get('estimatedValue') as string,
-      customerId: customerIdValue && customerIdValue !== 'none' ? parseInt(customerIdValue) : null,
-      leadId: leadIdValue && leadIdValue !== 'none' ? parseInt(leadIdValue) : null,
-      status: formData.get('status') as string,
-      priority: formData.get('priority') as string,
+      estimatedValue: formData.get('estimatedValue') ? parseFloat(formData.get('estimatedValue') as string) : undefined,
+      customerId: customerIdValue && customerIdValue !== 'none' ? parseInt(customerIdValue) : undefined,
+      leadId: leadIdValue && leadIdValue !== 'none' ? parseInt(leadIdValue) : undefined,
+      status: formData.get('status') as string || 'scheduled',
+      priority: formData.get('priority') as string || 'medium',
       notes: formData.get('notes') as string,
     };
 
