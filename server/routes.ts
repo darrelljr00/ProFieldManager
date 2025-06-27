@@ -68,7 +68,7 @@ const twilioClient = twilio(
 );
 
 // Helper function to get organization-based upload directory
-function getOrgUploadDir(organizationId: number, type: 'expenses' | 'images' | 'files'): string {
+function getOrgUploadDir(organizationId: number, type: 'expenses' | 'images' | 'files' | 'image_gallery'): string {
   return `./uploads/org-${organizationId}/${type}`;
 }
 
