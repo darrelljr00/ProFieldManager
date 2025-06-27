@@ -244,7 +244,10 @@ export default function ImageGallery() {
     });
   };
 
-  const getImageUrl = (filename: string) => `/uploads/${filename}`;
+  const getImageUrl = (image: ImageFile) => {
+    // Use the URL from the backend if available, otherwise construct it
+    return image.url || `/uploads/${image.filename}`;
+  };
 
   return (
     <div className="p-6 space-y-6">
