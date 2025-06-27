@@ -239,8 +239,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.status(404).json({ error: 'File not found' });
       }
     } catch (error) {
-      console.error('Static file serving error:', error);
-      res.status(404).json({ error: 'File not found' });
+      // For missing receipt files, try to serve a placeholder or return 404 gracefully
+      if (req.path.includes('receipt-') || req.path.includes('logo-')) {
+        // Return 404 without error logging for missing receipts to avoid console spam
+        res.status(404).json({ error: 'Receipt file not found' });
+      } else {
+        console.error('Static file serving error:', error);
+        res.status(404).json({ error: 'File not found' });
+      }
     }
   });
   

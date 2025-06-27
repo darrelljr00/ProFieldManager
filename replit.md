@@ -133,6 +133,7 @@ Pro Field Manager is a comprehensive SaaS field service management platform buil
 - June 26, 2025. Fixed expense receipt image loading by implementing custom static file handler that bypasses Vite development server middleware interference - receipt images now display properly when clicked instead of showing 404 errors
 - June 26, 2025. Restored proper receipt file associations by updating database to point each expense to its actual uploaded receipt file instead of generic placeholder - each expense now displays its unique uploaded receipt when clicked
 - June 26, 2025. Completely resolved expense receipt image display issue by mapping all expenses back to their authentic uploaded receipt files with proper logo- prefixes - eliminated placeholder images and restored genuine user-uploaded receipts
+- June 27, 2025. Fixed critical data integrity issue where expense receipt references were incorrectly overwritten with placeholder images - restored NULL values for missing files and preserved authentic receipt file associations for legitimate uploads
 
 ## User Preferences
 
