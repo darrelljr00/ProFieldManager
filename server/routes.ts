@@ -75,7 +75,7 @@ function getOrgUploadDir(organizationId: number, type: 'expenses' | 'images' | '
 // Helper function to create organization folder structure
 async function createOrgFolderStructure(organizationId: number): Promise<void> {
   const basePath = `./uploads/org-${organizationId}`;
-  const folders = ['expenses', 'images', 'files'];
+  const folders = ['expenses', 'images', 'files', 'image_gallery'];
   
   try {
     // Create base organization directory
@@ -153,7 +153,7 @@ const imageUpload = multer({
         return cb(new Error('Organization not found'), '');
       }
       
-      const uploadDir = getOrgUploadDir(user.organizationId, 'images');
+      const uploadDir = getOrgUploadDir(user.organizationId, 'image_gallery');
       try {
         await fs.mkdir(uploadDir, { recursive: true });
         cb(null, uploadDir);
@@ -163,7 +163,7 @@ const imageUpload = multer({
     },
     filename: (req, file, cb) => {
       const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-      cb(null, 'image-' + uniqueSuffix + path.extname(file.originalname));
+      cb(null, 'gallery-' + uniqueSuffix + path.extname(file.originalname));
     }
   }),
   fileFilter: (req, file, cb) => {
@@ -1475,7 +1475,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Image uploaded successfully
       res.json({
         message: "Image uploaded successfully",
-        url: `/uploads/org-${user.organizationId}/images/${req.file.filename}`,
+        url: `/uploads/org-${user.organizationId}/image_gallery/${req.file.filename}`,
         filename: req.file.originalname,
         size: req.file.size,
         mimetype: req.file.mimetype
