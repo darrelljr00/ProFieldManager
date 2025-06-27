@@ -1981,10 +1981,31 @@ export class DatabaseStorage implements IStorage {
       const userInfo = await this.getUser(userId);
       if (!userInfo) return [];
 
+      // Get all images for users in the same organization
+      const orgUsers = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.organizationId, userInfo.organizationId));
+      
+      const orgUserIds = orgUsers.map(u => u.id);
+
       return await db
-        .select()
+        .select({
+          id: images.id,
+          filename: images.filename,
+          originalName: images.originalName,
+          mimeType: images.mimeType,
+          size: images.size,
+          description: images.description,
+          annotations: images.annotations,
+          annotatedImageUrl: images.annotatedImageUrl,
+          createdAt: images.createdAt,
+          updatedAt: images.updatedAt,
+          userId: images.userId,
+          projectId: images.projectId
+        })
         .from(images)
-        .where(eq(images.organizationId, userInfo.organizationId))
+        .where(inArray(images.userId, orgUserIds))
         .orderBy(desc(images.createdAt));
     } catch (error) {
       console.error('Error fetching images:', error);
