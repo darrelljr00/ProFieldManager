@@ -16,6 +16,7 @@ import {
   insertGasCardSchema,
   insertGasCardAssignmentSchema,
   insertSharedPhotoLinkSchema,
+  insertCalendarJobSchema,
   loginSchema,
   registerSchema,
   changePasswordSchema,
@@ -3124,15 +3125,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/calendar-jobs", requireAuth, async (req, res) => {
     try {
       const userId = req.user!.id;
-      const jobData = req.body;
       
-      const job = await storage.createCalendarJob({
-        ...jobData,
+      console.log("Calendar job creation request:", req.body);
+      
+      const jobData = {
+        ...req.body,
         userId,
-        startDate: new Date(jobData.startDate),
-        endDate: new Date(jobData.endDate),
-        estimatedValue: jobData.estimatedValue ? parseFloat(jobData.estimatedValue) : null,
-      });
+        startDate: new Date(req.body.startDate),
+        endDate: new Date(req.body.endDate),
+        estimatedValue: req.body.estimatedValue ? parseFloat(req.body.estimatedValue) : null,
+      };
+      
+      console.log("Processed job data:", jobData);
+      
+      const job = await storage.createCalendarJob(jobData);
 
       // Broadcast to all web users except the creator
       (app as any).broadcastToWebUsers('calendar_job_created', {
