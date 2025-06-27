@@ -2275,7 +2275,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let receiptData = null;
       
       if (req.file) {
-        receiptUrl = req.file.path;
+        receiptUrl = `uploads/${req.file.filename}`;
         receiptData = `Receipt uploaded: ${req.file.originalname}`;
       }
 
