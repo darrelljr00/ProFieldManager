@@ -1960,15 +1960,13 @@ export class DatabaseStorage implements IStorage {
       const [image] = await db
         .insert(images)
         .values({
-          fileName: imageData.filename,
+          filename: imageData.filename,
           originalName: imageData.originalName,
-          filePath: `uploads/${imageData.filename}`,
           mimeType: imageData.mimeType,
-          fileSize: imageData.size,
-          uploadedBy: imageData.userId,
+          size: imageData.size,
+          userId: imageData.userId,
           projectId: imageData.projectId || null,
-          customerId: imageData.customerId || null,
-          organizationId: imageData.organizationId || 1,
+          description: imageData.description || null,
         })
         .returning();
       return image;
