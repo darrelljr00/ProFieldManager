@@ -6,6 +6,7 @@ import twilio from "twilio";
 import multer from "multer";
 import path from "path";
 import fs from "fs/promises";
+import sharp from "sharp";
 import { storage } from "./storage";
 import { weatherService } from './weather';
 import { 
@@ -98,6 +99,35 @@ function getAuthenticatedUser(req: Request) {
     throw new Error('User not authenticated');
   }
   return req.user;
+}
+
+// Image compression helper function
+async function compressImage(inputPath: string, outputPath: string, organizationId: number): Promise<void> {
+  try {
+    // Get compression settings from database
+    const qualitySetting = await storage.getSetting('inspection', 'image_quality');
+    const maxWidthSetting = await storage.getSetting('inspection', 'max_width');
+    const maxHeightSetting = await storage.getSetting('inspection', 'max_height');
+    
+    // Default compression settings
+    const quality = qualitySetting ? parseInt(qualitySetting) : 80;
+    const maxWidth = maxWidthSetting ? parseInt(maxWidthSetting) : 1920;
+    const maxHeight = maxHeightSetting ? parseInt(maxHeightSetting) : 1080;
+
+    await sharp(inputPath)
+      .resize(maxWidth, maxHeight, {
+        fit: 'inside',
+        withoutEnlargement: true
+      })
+      .jpeg({ quality: quality })
+      .toFile(outputPath);
+
+    // Remove the original file
+    await fs.unlink(inputPath);
+  } catch (error) {
+    console.error('Image compression error:', error);
+    // If compression fails, keep the original file
+  }
 }
 
 // Configure multer for expense receipts with organization isolation
@@ -1428,7 +1458,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const user = getAuthenticatedUser(req);
-      const filePaths = files.map(file => `/uploads/org-${user.organizationId}/inspection_report_images/${file.filename}`);
+      const compressedFilePaths: string[] = [];
+
+      // Process each uploaded image with compression
+      for (const file of files) {
+        const originalPath = file.path;
+        const compressedFilename = `compressed-${file.filename.replace(path.extname(file.filename), '.jpg')}`;
+        const compressedPath = path.join(path.dirname(originalPath), compressedFilename);
+        
+        // Apply compression
+        await compressImage(originalPath, compressedPath, user.organizationId);
+        
+        // Add compressed file path to response
+        compressedFilePaths.push(`/uploads/org-${user.organizationId}/inspection_report_images/${compressedFilename}`);
+      }
+
+      const filePaths = compressedFilePaths;
 
       res.json({ 
         message: `${files.length} inspection image(s) uploaded successfully`,
