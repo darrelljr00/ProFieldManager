@@ -95,6 +95,7 @@ export interface IStorage {
   getSettingsByCategory(category: string): Promise<any[]>;
   updateSetting(category: string, key: string, value: string): Promise<void>;
   updateSettings(category: string, settings: any): Promise<void>;
+  updateSystemSetting(key: string, value: string): Promise<void>;
   getAllOrganizationsWithDetails(): Promise<any[]>;
   
   // File methods
@@ -1094,6 +1095,35 @@ export class DatabaseStorage implements IStorage {
       if (value !== undefined && value !== null) {
         await this.updateSetting(category, key, String(value));
       }
+    }
+  }
+
+  async updateSystemSetting(key: string, value: string): Promise<void> {
+    try {
+      const existingSetting = await db
+        .select()
+        .from(settings)
+        .where(eq(settings.keys, key));
+
+      if (existingSetting.length > 0) {
+        await db
+          .update(settings)
+          .set({ value, updatedAt: new Date() })
+          .where(eq(settings.keys, key));
+      } else {
+        await db
+          .insert(settings)
+          .values({
+            keys: key,
+            value,
+            category: 'system',
+            createdAt: new Date(),
+            updatedAt: new Date()
+          });
+      }
+    } catch (error) {
+      console.error(`Error updating system setting ${key}:`, error);
+      throw error;
     }
   }
 
