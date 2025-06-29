@@ -138,6 +138,7 @@ Pro Field Manager is a comprehensive SaaS field service management platform buil
 - June 27, 2025. Implemented comprehensive organization-based file isolation system with complete folder structure separation (uploads/org-{organizationId}/{type}) including dedicated multer configurations for expenses, images, and general files, automatic folder creation for new organizations, and organization-scoped file serving to prevent cross-organization access
 - June 27, 2025. Updated image gallery upload system to use dedicated "image_gallery" folder instead of generic "images" folder for better organization and file type separation - includes updated multer configuration, folder structure creation, and file path mapping
 - June 27, 2025. Updated expense receipt upload system to use dedicated "receipt_images" folder instead of "expenses" folder for better organization and file type separation - includes updated multer configuration, folder structure creation, and receipt URL path mapping
+- June 29, 2025. Fixed recurring expense receipt file loading issues by clearing corrupted file paths from database - removed invalid file references that pointed to non-existent organization folder locations, preventing "ENOENT" file not found errors
 
 ## User Preferences
 
