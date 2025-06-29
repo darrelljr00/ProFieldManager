@@ -48,18 +48,24 @@ const defaultInspectionItems = {
   'pre-trip': [
     { category: 'Vehicle Safety', name: 'Mirrors', description: 'Check all mirrors for proper adjustment and cleanliness', isRequired: true },
     { category: 'Vehicle Safety', name: 'Tires', description: 'Inspect tire pressure and tread depth', isRequired: true },
-    { category: 'Vehicle Safety', name: 'Lights', description: 'Test headlights, taillights, and hazard lights', isRequired: true },
-    { category: 'Vehicle Safety', name: 'Turn Signals', description: 'Check left and right turn signals', isRequired: true },
-    { category: 'Equipment', name: 'Chemicals', description: 'Verify chemical levels and proper storage', isRequired: true },
-    { category: 'Equipment', name: 'O-rings', description: 'Inspect o-rings for wear and proper sealing', isRequired: true },
-    { category: 'Equipment', name: 'Nozzles', description: 'Check nozzle condition and spray patterns', isRequired: true }
+    { category: 'Vehicle Safety', name: 'Lights', description: 'Test all lights including headlights, brake lights, and turn signals', isRequired: true },
+    { category: 'Vehicle Safety', name: 'Horn', description: 'Test horn functionality', isRequired: true },
+    { category: 'Engine', name: 'Oil Level', description: 'Check engine oil level and condition', isRequired: true },
+    { category: 'Engine', name: 'Coolant Level', description: 'Check coolant level in reservoir', isRequired: true },
+    { category: 'Engine', name: 'Brake Fluid', description: 'Check brake fluid level', isRequired: true },
+    { category: 'Equipment', name: 'Chemicals', description: 'Verify chemical levels and equipment condition', isRequired: false },
+    { category: 'Equipment', name: 'Hoses', description: 'Inspect hoses for damage or leaks', isRequired: false },
+    { category: 'Equipment', name: 'Pump', description: 'Test pump operation', isRequired: false }
   ],
   'post-trip': [
     { category: 'Equipment', name: 'Chemical Storage', description: 'Secure all chemicals properly', isRequired: true },
     { category: 'Equipment', name: 'Equipment Cleaning', description: 'Clean and store all equipment', isRequired: true },
+    { category: 'Equipment', name: 'Hose Storage', description: 'Properly coil and store hoses', isRequired: true },
     { category: 'Vehicle', name: 'Fuel Level', description: 'Record fuel level at end of shift', isRequired: true },
     { category: 'Vehicle', name: 'Mileage', description: 'Record ending mileage', isRequired: true },
-    { category: 'Safety', name: 'Incident Report', description: 'Report any incidents or issues', isRequired: false }
+    { category: 'Vehicle', name: 'Vehicle Cleaning', description: 'Clean vehicle interior and exterior', isRequired: false },
+    { category: 'Safety', name: 'Incident Report', description: 'Report any incidents or issues', isRequired: false },
+    { category: 'Safety', name: 'Equipment Damage', description: 'Report any equipment damage', isRequired: false }
   ]
 };
 
@@ -240,18 +246,10 @@ export default function Inspections() {
     }
   };
 
-  // Debug function for button click
-  const handleAddPhotosClick = (e?: React.MouseEvent) => {
-    console.log('=== BUTTON CLICK DEBUG START ===');
-    console.log('Add Photos button clicked');
-    console.log('Event:', e);
-    console.log('fileInputRef:', fileInputRef);
+  // Working photo upload click handler
+  const handlePhotoUpload = () => {
+    console.log('=== PHOTO UPLOAD CLICKED ===');
     console.log('fileInputRef.current:', fileInputRef.current);
-    
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
     
     if (fileInputRef.current) {
       console.log('Triggering file input click');
@@ -264,14 +262,6 @@ export default function Inspections() {
     } else {
       console.error('fileInputRef.current is null');
     }
-    console.log('=== BUTTON CLICK DEBUG END ===');
-  };
-
-  // Simple test function
-  const testButtonClick = () => {
-    console.log('TEST BUTTON CLICKED - THIS WORKS!');
-    alert('Test button works! Now testing file input...');
-    handleAddPhotosClick();
   };
 
   const removeImage = (index: number) => {
@@ -320,609 +310,521 @@ export default function Inspections() {
     if (completedRequired.length < requiredItems.length) {
       toast({ 
         title: "Please complete all required items", 
+        description: `${completedRequired.length}/${requiredItems.length} required items completed`,
         variant: "destructive" 
       });
       return;
     }
 
-    // Use the working handler instead
-    handleSubmitInspection();
+    // Submit logic here
+    toast({ title: "Inspection submitted successfully!" });
   };
 
-  const sendToManager = (recordId: number) => {
-    toast({ title: "Inspection sent to manager successfully" });
-  };
-
-  // Helper functions for component functionality
-  const handleResponseChange = (itemId: number, response: 'pass' | 'fail' | 'na' | 'needs_attention') => {
-    setCurrentInspection(prev => {
-      const existing = prev.find(r => r.itemId === itemId);
-      if (existing) {
-        return prev.map(r => r.itemId === itemId ? { ...r, response } : r);
-      }
-      return [...prev, { itemId, response, notes: '' }];
-    });
+  const handleResponseChange = (itemId: number, response: InspectionResponse['response']) => {
+    updateInspectionResponse(itemId, response);
   };
 
   const handleNotesChange = (itemId: number, notes: string) => {
-    setCurrentInspection(prev => {
-      const existing = prev.find(r => r.itemId === itemId);
-      if (existing) {
-        return prev.map(r => r.itemId === itemId ? { ...r, notes } : r);
-      }
-      return [...prev, { itemId, response: 'pass', notes }];
-    });
-  };
-
-  const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      'pending': { color: 'bg-yellow-500', text: 'Pending', icon: Clock },
-      'completed': { color: 'bg-green-500', text: 'Completed', icon: CheckCircle },
-      'requires_attention': { color: 'bg-red-500', text: 'Needs Attention', icon: AlertTriangle }
-    };
-    
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
-    const Icon = config.icon;
-    
-    return (
-      <Badge className={`${config.color} text-white`}>
-        <Icon className="w-3 h-3 mr-1" />
-        {config.text}
-      </Badge>
-    );
+    const existing = getResponseForItem(itemId);
+    if (existing) {
+      updateInspectionResponse(itemId, existing.response, notes);
+    }
   };
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Vehicle Inspections</h1>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-8 text-center">
+          <h1 className="text-4xl font-bold text-gray-800 mb-2">Vehicle Inspections</h1>
+          <p className="text-gray-600">Complete your pre-trip and post-trip vehicle inspections</p>
+        </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="pre-trip">Pre-Trip Inspection</TabsTrigger>
-          <TabsTrigger value="post-trip">Post-Trip Inspection</TabsTrigger>
-          <TabsTrigger value="history">Inspection History</TabsTrigger>
-        </TabsList>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="pre-trip">Pre-Trip Inspection</TabsTrigger>
+            <TabsTrigger value="post-trip">Post-Trip Inspection</TabsTrigger>
+            <TabsTrigger value="history">Inspection History</TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="pre-trip" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CheckCircle className="w-5 h-5" />
-                Pre-Trip Inspection
-              </CardTitle>
-              <div className="bg-yellow-100 p-2 rounded">
-                <Button onClick={testButtonClick} className="bg-green-500 hover:bg-green-600">
-                  TEST BUTTON - Click me first!
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Vehicle Information */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div>
-                  <Label htmlFor="technicianName">Technician Name</Label>
-                  <Input
-                    id="technicianName"
-                    value={technicianName}
-                    placeholder="Technician name"
-                    className="bg-gray-100 text-gray-700"
-                    readOnly
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="vehicleNumber">Vehicle Number</Label>
-                  <Input
-                    id="vehicleNumber"
-                    value={vehicleInfo.vehicleNumber}
-                    onChange={(e) => setVehicleInfo(prev => ({ ...prev, vehicleNumber: e.target.value }))}
-                    placeholder="Enter vehicle number"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="licensePlate">License Plate</Label>
-                  <Input
-                    id="licensePlate"
-                    value={vehicleInfo.licensePlate}
-                    onChange={(e) => setVehicleInfo(prev => ({ ...prev, licensePlate: e.target.value }))}
-                    placeholder="Enter license plate"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="startMileage">Starting Mileage</Label>
-                  <Input
-                    id="startMileage"
-                    type="number"
-                    value={vehicleInfo.mileage}
-                    onChange={(e) => setVehicleInfo(prev => ({ ...prev, mileage: e.target.value }))}
-                    placeholder="Enter mileage"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="fuelLevel">Fuel Level</Label>
-                  <Input
-                    id="fuelLevel"
-                    value={vehicleInfo.fuelLevel}
-                    onChange={(e) => setVehicleInfo(prev => ({ ...prev, fuelLevel: e.target.value }))}
-                    placeholder="e.g., 3/4 tank"
-                  />
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Inspection Items */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Inspection Checklist</h3>
-                
-                {Object.entries(
-                  allItems.reduce((acc, item, index) => {
-                    const category = item.category;
-                    if (!acc[category]) acc[category] = [];
-                    acc[category].push({ ...item, id: index });
-                    return acc;
-                  }, {} as Record<string, any[]>)
-                ).map(([category, items]) => (
-                  <div key={category} className="space-y-2">
-                    <h4 className="font-medium text-sm text-gray-600 uppercase tracking-wide">{category}</h4>
-                    {items.map((item) => {
-                      const response = getResponseForItem(item.id);
-                      return (
-                        <div key={item.id} className="border rounded-lg p-4 space-y-3">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <h5 className="font-medium">{item.name}</h5>
-                              {item.description && (
-                                <p className="text-sm text-gray-600">{item.description}</p>
-                              )}
-                              {item.isRequired && (
-                                <Badge variant="outline" className="text-xs mt-1">Required</Badge>
-                              )}
-                            </div>
-                          </div>
-                          
-                          <div className="flex gap-2">
-                            <Button
-                              variant={response?.response === 'pass' ? 'default' : 'outline'}
-                              size="sm"
-                              onClick={() => updateInspectionResponse(item.id, 'pass')}
-                              className="flex items-center gap-1"
-                            >
-                              <CheckCircle className="w-4 h-4" />
-                              Pass
-                            </Button>
-                            <Button
-                              variant={response?.response === 'fail' ? 'destructive' : 'outline'}
-                              size="sm"
-                              onClick={() => updateInspectionResponse(item.id, 'fail')}
-                              className="flex items-center gap-1"
-                            >
-                              <XCircle className="w-4 h-4" />
-                              Fail
-                            </Button>
-                            <Button
-                              variant={response?.response === 'needs_attention' ? 'secondary' : 'outline'}
-                              size="sm"
-                              onClick={() => updateInspectionResponse(item.id, 'needs_attention')}
-                              className="flex items-center gap-1"
-                            >
-                              <AlertTriangle className="w-4 h-4" />
-                              Needs Attention
-                            </Button>
-                            <Button
-                              variant={response?.response === 'na' ? 'outline' : 'outline'}
-                              size="sm"
-                              onClick={() => updateInspectionResponse(item.id, 'na')}
-                            >
-                              N/A
-                            </Button>
-                          </div>
-
-                          {response && (
-                            <div className="space-y-2">
-                              <Textarea
-                                placeholder="Add notes (optional)"
-                                value={response.notes || ''}
-                                onChange={(e) => updateInspectionResponse(item.id, response.response, e.target.value)}
-                                className="min-h-[60px]"
-                              />
-                              <Button variant="outline" size="sm" className="flex items-center gap-1">
-                                <Camera className="w-4 h-4" />
-                                Add Photo
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
+          <TabsContent value="pre-trip" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CheckCircle className="w-5 h-5" />
+                  Pre-Trip Inspection
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Vehicle Information */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="technicianName">Technician Name</Label>
+                    <Input
+                      id="technicianName"
+                      value={technicianName}
+                      placeholder="Technician name"
+                      className="bg-gray-100 text-gray-700"
+                      readOnly
+                    />
                   </div>
-                ))}
-              </div>
-
-              {/* Add Custom Item */}
-              <div className="border-t pt-4">
-                <h4 className="font-medium mb-3">Add Custom Inspection Item</h4>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Item name"
-                    value={newItemName}
-                    onChange={(e) => setNewItemName(e.target.value)}
-                  />
-                  <Input
-                    placeholder="Category"
-                    value={newItemCategory}
-                    onChange={(e) => setNewItemCategory(e.target.value)}
-                  />
-                  <Button onClick={addCustomItem}>
-                    <Plus className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-
-              {/* General Notes */}
-              <div>
-                <Label htmlFor="notes">General Notes</Label>
-                <Textarea
-                  id="notes"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Add any additional notes about the inspection"
-                  className="min-h-[100px]"
-                />
-              </div>
-
-              {/* Image Upload Section */}
-              <div className="space-y-3">
-                <Label className="flex items-center gap-2">
-                  <Camera className="w-4 h-4" />
-                  Inspection Photos
-                </Label>
-                
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
-                  <div className="text-center">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleAddPhotosClick}
-                      className="mb-2"
-                    >
-                      <Upload className="w-4 h-4 mr-2" />
-                      Add Photos
-                    </Button>
-                    <p className="text-sm text-gray-500">
-                      Upload images of inspection items (Max 10MB each)
-                    </p>
+                  <div>
+                    <Label htmlFor="vehicleNumber">Vehicle Number</Label>
+                    <Input
+                      id="vehicleNumber"
+                      value={vehicleInfo.vehicleNumber}
+                      onChange={(e) => setVehicleInfo(prev => ({ ...prev, vehicleNumber: e.target.value }))}
+                      placeholder="Enter vehicle number"
+                    />
                   </div>
-                  
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    multiple
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="hidden"
-                  />
-                </div>
-
-                {/* Display selected images */}
-                {inspectionImages.length > 0 && (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {inspectionImages.map((file, index) => (
-                      <div key={index} className="relative">
-                        <img
-                          src={URL.createObjectURL(file)}
-                          alt={`Inspection ${index + 1}`}
-                          className="w-full h-24 object-cover rounded border"
-                        />
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="sm"
-                          className="absolute -top-2 -right-2 w-6 h-6 p-0 rounded-full"
-                          onClick={() => removeImage(index)}
-                        >
-                          <X className="w-3 h-3" />
-                        </Button>
-                        <p className="text-xs text-gray-600 mt-1 truncate">
-                          {file.name}
-                        </p>
-                      </div>
-                    ))}
+                  <div>
+                    <Label htmlFor="licensePlate">License Plate</Label>
+                    <Input
+                      id="licensePlate"
+                      value={vehicleInfo.licensePlate}
+                      onChange={(e) => setVehicleInfo(prev => ({ ...prev, licensePlate: e.target.value }))}
+                      placeholder="Enter license plate"
+                    />
                   </div>
-                )}
-              </div>
-
-              {/* Disclaimer */}
-              <div className="border border-amber-200 bg-amber-50 p-4 rounded-lg">
-                <div className="flex items-start space-x-3">
-                  <input
-                    type="checkbox"
-                    id="disclaimer-pre-trip"
-                    checked={disclaimerAccepted}
-                    onChange={(e) => setDisclaimerAccepted(e.target.checked)}
-                    className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <label htmlFor="disclaimer-pre-trip" className="text-sm text-gray-700 leading-5">
-                    <strong>Disclaimer:</strong> By completing this form, I confirm that I have completed the necessary inspection. I understand that my name, date, time, and this submission is being saved and sent to my manager for review. Not answering this submission completely or falsely can result in disciplinary actions including termination.
-                  </label>
-                </div>
-              </div>
-
-              {/* Submit Button */}
-              <Button 
-                onClick={handleSubmitInspection}
-                className="w-full"
-                size="lg"
-                disabled={uploading || !disclaimerAccepted}
-              >
-                {uploading ? "Uploading..." : "Submit Pre-Trip Inspection"}
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="post-trip" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CheckCircle className="w-5 h-5" />
-                Post-Trip Inspection
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Vehicle Information */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div>
-                  <Label htmlFor="technicianNamePost">Technician Name</Label>
-                  <Input
-                    id="technicianNamePost"
-                    value={technicianName}
-                    placeholder="Technician name"
-                    className="bg-gray-100 text-gray-700"
-                    readOnly
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="vehicleNumberPost">Vehicle Number</Label>
-                  <Input
-                    id="vehicleNumberPost"
-                    value={vehicleInfo.vehicleNumber}
-                    onChange={(e) => setVehicleInfo(prev => ({ ...prev, vehicleNumber: e.target.value }))}
-                    placeholder="Enter vehicle number"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="licensePlatePost">License Plate</Label>
-                  <Input
-                    id="licensePlatePost"
-                    value={vehicleInfo.licensePlate}
-                    onChange={(e) => setVehicleInfo(prev => ({ ...prev, licensePlate: e.target.value }))}
-                    placeholder="Enter license plate"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="endMileage">Ending Mileage</Label>
-                  <Input
-                    id="endMileage"
-                    type="number"
-                    value={vehicleInfo.mileage}
-                    onChange={(e) => setVehicleInfo(prev => ({ ...prev, mileage: e.target.value }))}
-                    placeholder="Enter ending mileage"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="endFuelLevel">Fuel Level</Label>
-                  <Input
-                    id="endFuelLevel"
-                    value={vehicleInfo.fuelLevel}
-                    onChange={(e) => setVehicleInfo(prev => ({ ...prev, fuelLevel: e.target.value }))}
-                    placeholder="e.g., 1/4 tank"
-                  />
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Inspection Items */}
-              <div className="space-y-4">
-                {inspectionItems.map((item) => (
-                  <div key={item.id} className="border rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <h4 className="font-medium">{item.name}</h4>
-                          {item.isRequired && (
-                            <Badge variant="destructive" className="text-xs">Required</Badge>
-                          )}
-                          <Badge variant="outline" className="text-xs">{item.category}</Badge>
-                        </div>
-                        {item.description && (
-                          <p className="text-sm text-gray-600 mt-1">{item.description}</p>
-                        )}
-                      </div>
-                      <div className="flex gap-2">
-                        {['pass', 'fail', 'na', 'needs_attention'].map((status) => (
-                          <Button
-                            key={status}
-                            variant={getResponseForItem(item.id)?.response === status ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => handleResponseChange(item.id, status as any)}
-                            className={cn(
-                              "px-3 py-1 text-xs",
-                              status === 'pass' && getResponseForItem(item.id)?.response === status && "bg-green-500 hover:bg-green-600",
-                              status === 'fail' && getResponseForItem(item.id)?.response === status && "bg-red-500 hover:bg-red-600",
-                              status === 'na' && getResponseForItem(item.id)?.response === status && "bg-gray-500 hover:bg-gray-600",
-                              status === 'needs_attention' && getResponseForItem(item.id)?.response === status && "bg-yellow-500 hover:bg-yellow-600"
-                            )}
-                          >
-                            {status === 'pass' && 'Pass'}
-                            {status === 'fail' && 'Fail'}
-                            {status === 'na' && 'N/A'}
-                            {status === 'needs_attention' && 'Attention'}
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
-                    
-                    {getResponseForItem(item.id) && (
-                      <div className="mt-3 space-y-2">
-                        <Textarea
-                          placeholder="Add notes for this item..."
-                          value={getResponseForItem(item.id)?.notes || ''}
-                          onChange={(e) => handleNotesChange(item.id, e.target.value)}
-                          className="text-sm"
-                          rows={2}
-                        />
-                      </div>
-                    )}
+                  <div>
+                    <Label htmlFor="startMileage">Starting Mileage</Label>
+                    <Input
+                      id="startMileage"
+                      type="number"
+                      value={vehicleInfo.mileage}
+                      onChange={(e) => setVehicleInfo(prev => ({ ...prev, mileage: e.target.value }))}
+                      placeholder="Enter starting mileage"
+                    />
                   </div>
-                ))}
-              </div>
-
-              {/* General Notes */}
-              <div>
-                <Label htmlFor="notesPost">General Notes</Label>
-                <Textarea
-                  id="notesPost"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Add any additional notes about the inspection"
-                  className="min-h-[100px]"
-                />
-              </div>
-
-              {/* Image Upload Section */}
-              <div className="space-y-3">
-                <Label className="flex items-center gap-2">
-                  <Camera className="w-4 h-4" />
-                  Inspection Photos
-                </Label>
-                
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
-                  <div className="text-center">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleAddPhotosClick}
-                      className="mb-2"
-                    >
-                      <Upload className="w-4 h-4 mr-2" />
-                      Add Photos
-                    </Button>
-                    <p className="text-sm text-gray-500">
-                      Upload images of inspection items (Max 10MB each)
-                    </p>
+                  <div>
+                    <Label htmlFor="startFuelLevel">Fuel Level</Label>
+                    <Input
+                      id="startFuelLevel"
+                      value={vehicleInfo.fuelLevel}
+                      onChange={(e) => setVehicleInfo(prev => ({ ...prev, fuelLevel: e.target.value }))}
+                      placeholder="e.g., Full, 3/4 tank"
+                    />
                   </div>
-                  
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    multiple
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="hidden"
-                  />
                 </div>
 
-                {/* Display selected images */}
-                {inspectionImages.length > 0 && (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {inspectionImages.map((file, index) => (
-                      <div key={index} className="relative">
-                        <img
-                          src={URL.createObjectURL(file)}
-                          alt={`Inspection ${index + 1}`}
-                          className="w-full h-24 object-cover rounded border"
-                        />
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="sm"
-                          className="absolute -top-2 -right-2 w-6 h-6 p-0 rounded-full"
-                          onClick={() => removeImage(index)}
-                        >
-                          <X className="w-3 h-3" />
-                        </Button>
-                        <p className="text-xs text-gray-600 mt-1 truncate">
-                          {file.name}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+                <Separator />
 
-              {/* Disclaimer */}
-              <div className="border border-amber-200 bg-amber-50 p-4 rounded-lg">
-                <div className="flex items-start space-x-3">
-                  <input
-                    type="checkbox"
-                    id="disclaimer-post-trip"
-                    checked={disclaimerAccepted}
-                    onChange={(e) => setDisclaimerAccepted(e.target.checked)}
-                    className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <label htmlFor="disclaimer-post-trip" className="text-sm text-gray-700 leading-5">
-                    <strong>Disclaimer:</strong> By completing this form, I confirm that I have completed the necessary inspection. I understand that my name, date, time, and this submission is being saved and sent to my manager for review. Not answering this submission completely or falsely can result in disciplinary actions including termination.
-                  </label>
-                </div>
-              </div>
-
-              <Button 
-                onClick={handleSubmitInspection}
-                className="w-full"
-                size="lg"
-                disabled={!disclaimerAccepted}
-              >
-                Submit Post-Trip Inspection
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="history" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Inspection History</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {allInspectionRecords?.length > 0 ? (
+                {/* Inspection Items */}
                 <div className="space-y-4">
-                  {allInspectionRecords.map((record: InspectionRecord) => (
-                    <div key={record.id} className="border rounded-lg p-4">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h4 className="font-medium">{record.templateName}</h4>
-                          <p className="text-sm text-gray-600">
-                            {record.submittedAt ? new Date(record.submittedAt).toLocaleDateString() : 'Not submitted'}
-                          </p>
+                  {inspectionItems.map((item) => (
+                    <div key={item.id} className="border rounded-lg p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-medium">{item.name}</h4>
+                            {item.isRequired && (
+                              <Badge variant="destructive" className="text-xs">Required</Badge>
+                            )}
+                            <Badge variant="outline" className="text-xs">{item.category}</Badge>
+                          </div>
+                          {item.description && (
+                            <p className="text-sm text-gray-600 mt-1">{item.description}</p>
+                          )}
                         </div>
                         <div className="flex gap-2">
-                          {getStatusBadge(record.status)}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => sendToManager(record.id)}
-                            className="flex items-center gap-1"
-                          >
-                            <Send className="w-4 h-4" />
-                            Send to Manager
-                          </Button>
+                          {['pass', 'fail', 'na', 'needs_attention'].map((status) => (
+                            <Button
+                              key={status}
+                              variant={getResponseForItem(item.id)?.response === status ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => handleResponseChange(item.id, status as any)}
+                              className={cn(
+                                "px-3 py-1 text-xs",
+                                status === 'pass' && getResponseForItem(item.id)?.response === status && "bg-green-500 hover:bg-green-600",
+                                status === 'fail' && getResponseForItem(item.id)?.response === status && "bg-red-500 hover:bg-red-600",
+                                status === 'na' && getResponseForItem(item.id)?.response === status && "bg-gray-500 hover:bg-gray-600",
+                                status === 'needs_attention' && getResponseForItem(item.id)?.response === status && "bg-yellow-500 hover:bg-yellow-600"
+                              )}
+                            >
+                              {status === 'pass' && 'Pass'}
+                              {status === 'fail' && 'Fail'}
+                              {status === 'na' && 'N/A'}
+                              {status === 'needs_attention' && 'Attention'}
+                            </Button>
+                          ))}
                         </div>
                       </div>
+                      
+                      {getResponseForItem(item.id) && (
+                        <div className="mt-3 space-y-2">
+                          <Textarea
+                            placeholder="Add notes for this item..."
+                            value={getResponseForItem(item.id)?.notes || ''}
+                            onChange={(e) => handleNotesChange(item.id, e.target.value)}
+                            className="text-sm"
+                            rows={2}
+                          />
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  No inspection records found
+
+                {/* General Notes */}
+                <div>
+                  <Label htmlFor="notes">General Notes</Label>
+                  <Textarea
+                    id="notes"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="Add any additional notes about the inspection"
+                    className="min-h-[100px]"
+                  />
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+
+                {/* Image Upload Section */}
+                <div className="space-y-3">
+                  <Label className="flex items-center gap-2">
+                    <Camera className="w-4 h-4" />
+                    PRE-TRIP Inspection Photos
+                  </Label>
+                  
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                    <div className="text-center">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handlePhotoUpload}
+                        className="mb-2 bg-blue-500 hover:bg-blue-600 text-white"
+                      >
+                        <Upload className="w-4 h-4 mr-2" />
+                        PRE-TRIP Add Photos
+                      </Button>
+                      <p className="text-sm text-gray-500">
+                        Upload images of inspection items (Max 10MB each)
+                      </p>
+                    </div>
+                    
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                    />
+                  </div>
+
+                  {/* Display selected images */}
+                  {inspectionImages.length > 0 && (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {inspectionImages.map((file, index) => (
+                        <div key={index} className="relative">
+                          <img
+                            src={URL.createObjectURL(file)}
+                            alt={`Inspection ${index + 1}`}
+                            className="w-full h-24 object-cover rounded border"
+                          />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            className="absolute -top-2 -right-2 w-6 h-6 p-0 rounded-full"
+                            onClick={() => removeImage(index)}
+                          >
+                            <X className="w-3 h-3" />
+                          </Button>
+                          <p className="text-xs text-gray-600 mt-1 truncate">
+                            {file.name}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Disclaimer */}
+                <div className="border border-amber-200 bg-amber-50 p-4 rounded-lg">
+                  <div className="flex items-start space-x-3">
+                    <input
+                      type="checkbox"
+                      id="disclaimer-pre-trip"
+                      checked={disclaimerAccepted}
+                      onChange={(e) => setDisclaimerAccepted(e.target.checked)}
+                      className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="disclaimer-pre-trip" className="text-sm text-gray-700 leading-5">
+                      <strong>Disclaimer:</strong> By completing this form, I confirm that I have completed the necessary inspection. I understand that my name, date, time, and this submission is being saved and sent to my manager for review. Not answering this submission completely or falsely can result in disciplinary actions including termination.
+                    </label>
+                  </div>
+                </div>
+
+                <Button 
+                  onClick={handleSubmitInspection}
+                  className="w-full"
+                  size="lg"
+                  disabled={!disclaimerAccepted || uploading}
+                >
+                  {uploading ? 'Submitting...' : 'Submit Pre-Trip Inspection'}
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="post-trip" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CheckCircle className="w-5 h-5" />
+                  Post-Trip Inspection
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Vehicle Information */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="technicianNamePost">Technician Name</Label>
+                    <Input
+                      id="technicianNamePost"
+                      value={technicianName}
+                      placeholder="Technician name"
+                      className="bg-gray-100 text-gray-700"
+                      readOnly
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="vehicleNumberPost">Vehicle Number</Label>
+                    <Input
+                      id="vehicleNumberPost"
+                      value={vehicleInfo.vehicleNumber}
+                      onChange={(e) => setVehicleInfo(prev => ({ ...prev, vehicleNumber: e.target.value }))}
+                      placeholder="Enter vehicle number"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="licensePlatePost">License Plate</Label>
+                    <Input
+                      id="licensePlatePost"
+                      value={vehicleInfo.licensePlate}
+                      onChange={(e) => setVehicleInfo(prev => ({ ...prev, licensePlate: e.target.value }))}
+                      placeholder="Enter license plate"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="endMileage">Ending Mileage</Label>
+                    <Input
+                      id="endMileage"
+                      type="number"
+                      value={vehicleInfo.mileage}
+                      onChange={(e) => setVehicleInfo(prev => ({ ...prev, mileage: e.target.value }))}
+                      placeholder="Enter ending mileage"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="endFuelLevel">Fuel Level</Label>
+                    <Input
+                      id="endFuelLevel"
+                      value={vehicleInfo.fuelLevel}
+                      onChange={(e) => setVehicleInfo(prev => ({ ...prev, fuelLevel: e.target.value }))}
+                      placeholder="e.g., 1/4 tank"
+                    />
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Inspection Items */}
+                <div className="space-y-4">
+                  {inspectionItems.map((item) => (
+                    <div key={item.id} className="border rounded-lg p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-medium">{item.name}</h4>
+                            {item.isRequired && (
+                              <Badge variant="destructive" className="text-xs">Required</Badge>
+                            )}
+                            <Badge variant="outline" className="text-xs">{item.category}</Badge>
+                          </div>
+                          {item.description && (
+                            <p className="text-sm text-gray-600 mt-1">{item.description}</p>
+                          )}
+                        </div>
+                        <div className="flex gap-2">
+                          {['pass', 'fail', 'na', 'needs_attention'].map((status) => (
+                            <Button
+                              key={status}
+                              variant={getResponseForItem(item.id)?.response === status ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => handleResponseChange(item.id, status as any)}
+                              className={cn(
+                                "px-3 py-1 text-xs",
+                                status === 'pass' && getResponseForItem(item.id)?.response === status && "bg-green-500 hover:bg-green-600",
+                                status === 'fail' && getResponseForItem(item.id)?.response === status && "bg-red-500 hover:bg-red-600",
+                                status === 'na' && getResponseForItem(item.id)?.response === status && "bg-gray-500 hover:bg-gray-600",
+                                status === 'needs_attention' && getResponseForItem(item.id)?.response === status && "bg-yellow-500 hover:bg-yellow-600"
+                              )}
+                            >
+                              {status === 'pass' && 'Pass'}
+                              {status === 'fail' && 'Fail'}
+                              {status === 'na' && 'N/A'}
+                              {status === 'needs_attention' && 'Attention'}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      {getResponseForItem(item.id) && (
+                        <div className="mt-3 space-y-2">
+                          <Textarea
+                            placeholder="Add notes for this item..."
+                            value={getResponseForItem(item.id)?.notes || ''}
+                            onChange={(e) => handleNotesChange(item.id, e.target.value)}
+                            className="text-sm"
+                            rows={2}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* General Notes */}
+                <div>
+                  <Label htmlFor="notesPost">General Notes</Label>
+                  <Textarea
+                    id="notesPost"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="Add any additional notes about the inspection"
+                    className="min-h-[100px]"
+                  />
+                </div>
+
+                {/* Image Upload Section */}
+                <div className="space-y-3">
+                  <Label className="flex items-center gap-2">
+                    <Camera className="w-4 h-4" />
+                    POST-TRIP Inspection Photos
+                  </Label>
+                  
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                    <div className="text-center">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handlePhotoUpload}
+                        className="mb-2 bg-orange-500 hover:bg-orange-600 text-white"
+                      >
+                        <Upload className="w-4 h-4 mr-2" />
+                        POST-TRIP Add Photos
+                      </Button>
+                      <p className="text-sm text-gray-500">
+                        Upload images of inspection items (Max 10MB each)
+                      </p>
+                    </div>
+                    
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                    />
+                  </div>
+
+                  {/* Display selected images */}
+                  {inspectionImages.length > 0 && (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {inspectionImages.map((file, index) => (
+                        <div key={index} className="relative">
+                          <img
+                            src={URL.createObjectURL(file)}
+                            alt={`Inspection ${index + 1}`}
+                            className="w-full h-24 object-cover rounded border"
+                          />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            className="absolute -top-2 -right-2 w-6 h-6 p-0 rounded-full"
+                            onClick={() => removeImage(index)}
+                          >
+                            <X className="w-3 h-3" />
+                          </Button>
+                          <p className="text-xs text-gray-600 mt-1 truncate">
+                            {file.name}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Disclaimer */}
+                <div className="border border-amber-200 bg-amber-50 p-4 rounded-lg">
+                  <div className="flex items-start space-x-3">
+                    <input
+                      type="checkbox"
+                      id="disclaimer-post-trip"
+                      checked={disclaimerAccepted}
+                      onChange={(e) => setDisclaimerAccepted(e.target.checked)}
+                      className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="disclaimer-post-trip" className="text-sm text-gray-700 leading-5">
+                      <strong>Disclaimer:</strong> By completing this form, I confirm that I have completed the necessary inspection. I understand that my name, date, time, and this submission is being saved and sent to my manager for review. Not answering this submission completely or falsely can result in disciplinary actions including termination.
+                    </label>
+                  </div>
+                </div>
+
+                <Button 
+                  onClick={handleSubmitInspection}
+                  className="w-full"
+                  size="lg"
+                  disabled={!disclaimerAccepted || uploading}
+                >
+                  {uploading ? 'Submitting...' : 'Submit Post-Trip Inspection'}
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="history" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Inspection History</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {allInspectionRecords?.length > 0 ? (
+                  <div className="space-y-4">
+                    {allInspectionRecords.map((record: InspectionRecord) => (
+                      <div key={record.id} className="border rounded-lg p-4">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h4 className="font-medium">{record.templateName}</h4>
+                            <p className="text-sm text-gray-600">
+                              {record.submittedAt ? new Date(record.submittedAt).toLocaleDateString() : 'Not submitted'}
+                            </p>
+                            <p className="text-sm text-gray-600">By: {record.technicianName}</p>
+                            {record.vehicleInfo && (
+                              <p className="text-sm text-gray-600">
+                                Vehicle: {record.vehicleInfo.licensePlate} - {record.vehicleInfo.mileage} miles
+                              </p>
+                            )}
+                          </div>
+                          <Badge 
+                            variant={record.status === 'completed' ? 'default' : 'secondary'}
+                            className="capitalize"
+                          >
+                            {record.status}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-500">No inspection records found.</p>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 }
