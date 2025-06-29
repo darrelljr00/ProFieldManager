@@ -136,12 +136,38 @@ export default function Inspections() {
         uploadedImagePaths = uploadResponse.filePaths || [];
       }
 
-      // Create new inspection record
-      const newInspectionRecord: InspectionRecord = {
-        id: Date.now(), // Simple ID generation
+      // Submit inspection to backend
+      const submissionData = {
         type: activeTab,
-        status: "completed",
-        submittedAt: new Date().toISOString(),
+        vehicleInfo: {
+          licensePlate: vehicleInfo.licensePlate,
+          mileage: vehicleInfo.mileage,
+          fuelLevel: vehicleInfo.fuelLevel
+        },
+        responses: currentInspection.map(response => ({
+          itemId: response.itemId,
+          response: response.response,
+          note: response.notes || '',
+          photos: uploadedImagePaths
+        })),
+        notes: notes,
+        location: null // Can be enhanced with GPS data later
+      };
+
+      const record = await apiRequest('/api/inspections/submit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(submissionData),
+      });
+
+      // Create display record for local state
+      const newInspectionRecord: InspectionRecord = {
+        id: record.id,
+        type: activeTab,
+        status: record.status || "completed",
+        submittedAt: record.submittedAt || new Date().toISOString(),
         templateName: activeTab === 'pre-trip' ? 'Pre-Trip Inspection' : 'Post-Trip Inspection',
         technicianName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username,
         vehicleInfo: {
