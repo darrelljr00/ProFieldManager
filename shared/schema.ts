@@ -1452,3 +1452,112 @@ export const insertFileShareSchema = z.object({
   expiresAt: z.date().optional(),
   maxAccess: z.number().optional(),
 });
+
+// Vehicle Inspection Tables
+export const inspectionTemplates = pgTable("inspection_templates", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  name: text("name").notNull(),
+  type: text("type").notNull(), // 'pre-trip', 'post-trip'
+  description: text("description"),
+  isDefault: boolean("is_default").default(false),
+  isActive: boolean("is_active").default(true),
+  createdBy: integer("created_by").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const inspectionItems = pgTable("inspection_items", {
+  id: serial("id").primaryKey(),
+  templateId: integer("template_id").notNull().references(() => inspectionTemplates.id),
+  category: text("category").notNull(), // 'safety', 'vehicle', 'equipment'
+  name: text("name").notNull(),
+  description: text("description"),
+  isRequired: boolean("is_required").default(true),
+  sortOrder: integer("sort_order").default(0),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const inspectionRecords = pgTable("inspection_records", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  templateId: integer("template_id").notNull().references(() => inspectionTemplates.id),
+  type: text("type").notNull(), // 'pre-trip', 'post-trip'
+  vehicleInfo: jsonb("vehicle_info"), // Vehicle details like license plate, mileage, etc.
+  status: text("status").notNull().default("pending"), // 'pending', 'completed', 'requires_attention'
+  submittedAt: timestamp("submitted_at"),
+  reviewedBy: integer("reviewed_by").references(() => users.id),
+  reviewedAt: timestamp("reviewed_at"),
+  reviewNotes: text("review_notes"),
+  location: jsonb("location"), // GPS coordinates
+  photos: text("photos").array(), // Array of photo file paths
+  signature: text("signature"), // Base64 encoded signature
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const inspectionResponses = pgTable("inspection_responses", {
+  id: serial("id").primaryKey(),
+  recordId: integer("record_id").notNull().references(() => inspectionRecords.id),
+  itemId: integer("item_id").notNull().references(() => inspectionItems.id),
+  response: text("response").notNull(), // 'pass', 'fail', 'na', 'needs_attention'
+  notes: text("notes"),
+  photos: text("photos").array(), // Array of photo file paths for this specific item
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const inspectionNotifications = pgTable("inspection_notifications", {
+  id: serial("id").primaryKey(),
+  recordId: integer("record_id").notNull().references(() => inspectionRecords.id),
+  sentTo: integer("sent_to").notNull().references(() => users.id),
+  notificationType: text("notification_type").notNull(), // 'submission', 'failure', 'review_required'
+  message: text("message").notNull(),
+  isRead: boolean("is_read").default(false),
+  sentAt: timestamp("sent_at").defaultNow(),
+});
+
+// Inspection Schema Validation
+export const insertInspectionTemplateSchema = createInsertSchema(inspectionTemplates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertInspectionItemSchema = createInsertSchema(inspectionItems).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertInspectionRecordSchema = createInsertSchema(inspectionRecords).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertInspectionResponseSchema = createInsertSchema(inspectionResponses).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertInspectionNotificationSchema = createInsertSchema(inspectionNotifications).omit({
+  id: true,
+  sentAt: true,
+});
+
+// Types
+export type InspectionTemplate = typeof inspectionTemplates.$inferSelect;
+export type InsertInspectionTemplate = z.infer<typeof insertInspectionTemplateSchema>;
+
+export type InspectionItem = typeof inspectionItems.$inferSelect;
+export type InsertInspectionItem = z.infer<typeof insertInspectionItemSchema>;
+
+export type InspectionRecord = typeof inspectionRecords.$inferSelect;
+export type InsertInspectionRecord = z.infer<typeof insertInspectionRecordSchema>;
+
+export type InspectionResponse = typeof inspectionResponses.$inferSelect;
+export type InsertInspectionResponse = z.infer<typeof insertInspectionResponseSchema>;
+
+export type InspectionNotification = typeof inspectionNotifications.$inferSelect;
+export type InsertInspectionNotification = z.infer<typeof insertInspectionNotificationSchema>;

@@ -5,7 +5,8 @@ import {
   gasCardAssignments, leads, calendarJobs, messages,
   images, settings, organizations, userSessions, subscriptionPlans,
   projectFiles, fileManager, projectUsers, timeClock, timeClockSettings,
-  internalMessages, internalMessageRecipients, messageGroups, messageGroupMembers
+  internalMessages, internalMessageRecipients, messageGroups, messageGroupMembers,
+  inspectionTemplates, inspectionItems, inspectionRecords, inspectionResponses, inspectionNotifications
 } from "@shared/schema";
 import type { GasCard, InsertGasCard, GasCardAssignment, InsertGasCardAssignment } from "@shared/schema";
 import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull, isNull } from "drizzle-orm";
@@ -1344,6 +1345,198 @@ export class DatabaseStorage implements IStorage {
       console.error('Error converting calendar job to project:', error);
       throw error;
     }
+  }
+
+  // Inspection Methods
+  async getInspectionTemplates(organizationId: number, type?: string): Promise<any[]> {
+    let query = db
+      .select()
+      .from(inspectionTemplates)
+      .where(and(
+        eq(inspectionTemplates.organizationId, organizationId),
+        eq(inspectionTemplates.isActive, true)
+      ))
+      .orderBy(inspectionTemplates.sortOrder, inspectionTemplates.name);
+
+    if (type) {
+      query = query.where(and(
+        eq(inspectionTemplates.organizationId, organizationId),
+        eq(inspectionTemplates.type, type),
+        eq(inspectionTemplates.isActive, true)
+      ));
+    }
+
+    return await query;
+  }
+
+  async createInspectionTemplate(templateData: any): Promise<any> {
+    const [template] = await db
+      .insert(inspectionTemplates)
+      .values(templateData)
+      .returning();
+    return template;
+  }
+
+  async getInspectionItems(templateId: number): Promise<any[]> {
+    return await db
+      .select()
+      .from(inspectionItems)
+      .where(and(
+        eq(inspectionItems.templateId, templateId),
+        eq(inspectionItems.isActive, true)
+      ))
+      .orderBy(inspectionItems.sortOrder, inspectionItems.name);
+  }
+
+  async createInspectionItem(itemData: any): Promise<any> {
+    const [item] = await db
+      .insert(inspectionItems)
+      .values(itemData)
+      .returning();
+    return item;
+  }
+
+  async getInspectionRecords(userId: number, organizationId: number, type?: string): Promise<any[]> {
+    let query = db
+      .select({
+        id: inspectionRecords.id,
+        userId: inspectionRecords.userId,
+        templateId: inspectionRecords.templateId,
+        type: inspectionRecords.type,
+        vehicleInfo: inspectionRecords.vehicleInfo,
+        status: inspectionRecords.status,
+        submittedAt: inspectionRecords.submittedAt,
+        reviewedBy: inspectionRecords.reviewedBy,
+        reviewedAt: inspectionRecords.reviewedAt,
+        reviewNotes: inspectionRecords.reviewNotes,
+        location: inspectionRecords.location,
+        photos: inspectionRecords.photos,
+        signature: inspectionRecords.signature,
+        createdAt: inspectionRecords.createdAt,
+        templateName: inspectionTemplates.name,
+        reviewerName: users.firstName
+      })
+      .from(inspectionRecords)
+      .innerJoin(inspectionTemplates, eq(inspectionRecords.templateId, inspectionTemplates.id))
+      .leftJoin(users, eq(inspectionRecords.reviewedBy, users.id))
+      .where(and(
+        eq(inspectionRecords.userId, userId),
+        eq(inspectionRecords.organizationId, organizationId)
+      ))
+      .orderBy(desc(inspectionRecords.createdAt));
+
+    if (type) {
+      query = query.where(and(
+        eq(inspectionRecords.userId, userId),
+        eq(inspectionRecords.organizationId, organizationId),
+        eq(inspectionRecords.type, type)
+      ));
+    }
+
+    return await query;
+  }
+
+  async createInspectionRecord(recordData: any): Promise<any> {
+    const [record] = await db
+      .insert(inspectionRecords)
+      .values(recordData)
+      .returning();
+    return record;
+  }
+
+  async getInspectionRecord(recordId: number, userId: number): Promise<any> {
+    const results = await db
+      .select({
+        id: inspectionRecords.id,
+        userId: inspectionRecords.userId,
+        templateId: inspectionRecords.templateId,
+        type: inspectionRecords.type,
+        vehicleInfo: inspectionRecords.vehicleInfo,
+        status: inspectionRecords.status,
+        submittedAt: inspectionRecords.submittedAt,
+        reviewedBy: inspectionRecords.reviewedBy,
+        reviewedAt: inspectionRecords.reviewedAt,
+        reviewNotes: inspectionRecords.reviewNotes,
+        location: inspectionRecords.location,
+        photos: inspectionRecords.photos,
+        signature: inspectionRecords.signature,
+        createdAt: inspectionRecords.createdAt,
+        templateName: inspectionTemplates.name
+      })
+      .from(inspectionRecords)
+      .innerJoin(inspectionTemplates, eq(inspectionRecords.templateId, inspectionTemplates.id))
+      .where(and(
+        eq(inspectionRecords.id, recordId),
+        eq(inspectionRecords.userId, userId)
+      ))
+      .limit(1);
+
+    return results.length > 0 ? results[0] : null;
+  }
+
+  async getInspectionResponses(recordId: number): Promise<any[]> {
+    return await db
+      .select({
+        id: inspectionResponses.id,
+        recordId: inspectionResponses.recordId,
+        itemId: inspectionResponses.itemId,
+        response: inspectionResponses.response,
+        notes: inspectionResponses.notes,
+        photos: inspectionResponses.photos,
+        createdAt: inspectionResponses.createdAt,
+        itemName: inspectionItems.name,
+        itemCategory: inspectionItems.category,
+        itemDescription: inspectionItems.description,
+        isRequired: inspectionItems.isRequired
+      })
+      .from(inspectionResponses)
+      .innerJoin(inspectionItems, eq(inspectionResponses.itemId, inspectionItems.id))
+      .where(eq(inspectionResponses.recordId, recordId))
+      .orderBy(inspectionItems.sortOrder, inspectionItems.name);
+  }
+
+  async createInspectionResponse(responseData: any): Promise<any> {
+    const [response] = await db
+      .insert(inspectionResponses)
+      .values(responseData)
+      .returning();
+    return response;
+  }
+
+  async updateInspectionRecord(recordId: number, updates: any): Promise<any> {
+    const [record] = await db
+      .update(inspectionRecords)
+      .set(updates)
+      .where(eq(inspectionRecords.id, recordId))
+      .returning();
+    return record;
+  }
+
+  async createInspectionNotification(notificationData: any): Promise<any> {
+    const [notification] = await db
+      .insert(inspectionNotifications)
+      .values(notificationData)
+      .returning();
+    return notification;
+  }
+
+  async getInspectionNotifications(userId: number): Promise<any[]> {
+    return await db
+      .select({
+        id: inspectionNotifications.id,
+        recordId: inspectionNotifications.recordId,
+        notificationType: inspectionNotifications.notificationType,
+        message: inspectionNotifications.message,
+        isRead: inspectionNotifications.isRead,
+        sentAt: inspectionNotifications.sentAt,
+        inspectionType: inspectionRecords.type,
+        submitterName: users.firstName
+      })
+      .from(inspectionNotifications)
+      .innerJoin(inspectionRecords, eq(inspectionNotifications.recordId, inspectionRecords.id))
+      .innerJoin(users, eq(inspectionRecords.userId, users.id))
+      .where(eq(inspectionNotifications.sentTo, userId))
+      .orderBy(desc(inspectionNotifications.sentAt));
   }
 
   // Task management methods
