@@ -68,14 +68,14 @@ const twilioClient = twilio(
 );
 
 // Helper function to get organization-based upload directory
-function getOrgUploadDir(organizationId: number, type: 'expenses' | 'images' | 'files' | 'image_gallery' | 'receipt_images'): string {
+function getOrgUploadDir(organizationId: number, type: 'expenses' | 'images' | 'files' | 'image_gallery' | 'receipt_images' | 'inspection_report_images'): string {
   return `./uploads/org-${organizationId}/${type}`;
 }
 
 // Helper function to create organization folder structure
 async function createOrgFolderStructure(organizationId: number): Promise<void> {
   const basePath = `./uploads/org-${organizationId}`;
-  const folders = ['expenses', 'images', 'files', 'image_gallery', 'receipt_images'];
+  const folders = ['expenses', 'images', 'files', 'image_gallery', 'receipt_images', 'inspection_report_images'];
   
   try {
     // Create base organization directory
@@ -233,6 +233,47 @@ const upload = multer({
   },
   limits: {
     fileSize: 50 * 1024 * 1024 // 50MB limit
+  }
+});
+
+// Configure multer for inspection image uploads with organization isolation
+const inspectionImageUpload = multer({
+  storage: multer.diskStorage({
+    destination: async (req, file, cb) => {
+      const user = getAuthenticatedUser(req);
+      if (!user || !user.organizationId) {
+        return cb(new Error('Organization not found'), '');
+      }
+      
+      const uploadDir = getOrgUploadDir(user.organizationId, 'inspection_report_images');
+      try {
+        await fs.mkdir(uploadDir, { recursive: true });
+        cb(null, uploadDir);
+      } catch (error) {
+        cb(error as Error, uploadDir);
+      }
+    },
+    filename: (req, file, cb) => {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      cb(null, 'inspection-' + uniqueSuffix + path.extname(file.originalname));
+    }
+  }),
+  fileFilter: (req, file, cb) => {
+    // Only allow image files for inspection reports
+    const allowedTypes = /jpeg|jpg|png|gif|webp/;
+    const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedMimeTypes.includes(file.mimetype);
+    
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Only image files (JPEG, PNG, GIF, WebP) are allowed'));
+    }
+  },
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB limit for inspection images
   }
 });
 
@@ -1374,6 +1415,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       res.status(500).json({ message: "Error uploading logo: " + error.message });
+    }
+  });
+
+  // Upload inspection images
+  app.post("/api/upload-inspection-images", requireAuth, inspectionImageUpload.array('inspectionImages', 10), async (req, res) => {
+    try {
+      const files = req.files as Express.Multer.File[];
+      
+      if (!files || files.length === 0) {
+        return res.status(400).json({ message: "No images uploaded" });
+      }
+
+      const user = getAuthenticatedUser(req);
+      const filePaths = files.map(file => `/uploads/org-${user.organizationId}/inspection_report_images/${file.filename}`);
+
+      res.json({ 
+        message: `${files.length} inspection image(s) uploaded successfully`,
+        filePaths
+      });
+    } catch (error: any) {
+      console.error('Error uploading inspection images:', error);
+      res.status(500).json({ message: "Error uploading inspection images: " + error.message });
     }
   });
 

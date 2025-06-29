@@ -462,13 +462,75 @@ export default function Inspections() {
                 />
               </div>
 
+              {/* Image Upload Section */}
+              <div className="space-y-3">
+                <Label className="flex items-center gap-2">
+                  <Camera className="w-4 h-4" />
+                  Inspection Photos
+                </Label>
+                
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                  <div className="text-center">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="mb-2"
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      Add Photos
+                    </Button>
+                    <p className="text-sm text-gray-500">
+                      Upload images of inspection items (Max 10MB each)
+                    </p>
+                  </div>
+                  
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
+                </div>
+
+                {/* Display selected images */}
+                {inspectionImages.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {inspectionImages.map((file, index) => (
+                      <div key={index} className="relative">
+                        <img
+                          src={URL.createObjectURL(file)}
+                          alt={`Inspection ${index + 1}`}
+                          className="w-full h-24 object-cover rounded border"
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          className="absolute -top-2 -right-2 w-6 h-6 p-0 rounded-full"
+                          onClick={() => removeImage(index)}
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                        <p className="text-xs text-gray-600 mt-1 truncate">
+                          {file.name}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* Submit Button */}
               <Button 
                 onClick={handleSubmitInspection}
                 className="w-full"
                 size="lg"
+                disabled={uploading}
               >
-                Submit Pre-Trip Inspection
+                {uploading ? "Uploading..." : "Submit Pre-Trip Inspection"}
               </Button>
             </CardContent>
           </Card>
