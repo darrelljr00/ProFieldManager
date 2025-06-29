@@ -241,16 +241,30 @@ export default function Inspections() {
   };
 
   // Debug function for button click
-  const handleAddPhotosClick = () => {
+  const handleAddPhotosClick = (e: React.MouseEvent) => {
+    console.log('=== BUTTON CLICK DEBUG START ===');
     console.log('Add Photos button clicked');
+    console.log('Event:', e);
+    console.log('Event target:', e.target);
+    console.log('fileInputRef:', fileInputRef);
     console.log('fileInputRef.current:', fileInputRef.current);
+    
+    // Prevent any default behavior
+    e.preventDefault();
+    e.stopPropagation();
     
     if (fileInputRef.current) {
       console.log('Triggering file input click');
-      fileInputRef.current.click();
+      try {
+        fileInputRef.current.click();
+        console.log('File input click triggered successfully');
+      } catch (error) {
+        console.error('Error clicking file input:', error);
+      }
     } else {
       console.error('fileInputRef.current is null');
     }
+    console.log('=== BUTTON CLICK DEBUG END ===');
   };
 
   const removeImage = (index: number) => {
