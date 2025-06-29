@@ -29,18 +29,13 @@ export function ImageCompressionSettings() {
 
   // Fetch current compression settings
   const { data: compressionSettings, isLoading } = useQuery({
-    queryKey: ['/api/settings/image-compression'],
-    onSuccess: (data) => {
-      if (data) {
-        setSettings(data);
-      }
-    }
+    queryKey: ['/api/settings/image-compression']
   });
 
   // Update settings when data is fetched
   useEffect(() => {
     if (compressionSettings) {
-      setSettings(compressionSettings);
+      setSettings(compressionSettings as CompressionSettings);
     }
   }, [compressionSettings]);
 

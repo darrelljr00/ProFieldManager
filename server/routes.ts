@@ -102,12 +102,19 @@ function getAuthenticatedUser(req: Request) {
 }
 
 // Image compression helper function
-async function compressImage(inputPath: string, outputPath: string, organizationId: number): Promise<void> {
+async function compressImage(inputPath: string, outputPath: string, organizationId: number): Promise<boolean> {
   try {
     // Get compression settings from database
+    const enabledSetting = await storage.getSetting('inspection', 'compression_enabled');
     const qualitySetting = await storage.getSetting('inspection', 'image_quality');
     const maxWidthSetting = await storage.getSetting('inspection', 'max_width');
     const maxHeightSetting = await storage.getSetting('inspection', 'max_height');
+    
+    // Check if compression is enabled
+    const compressionEnabled = enabledSetting === 'true' || enabledSetting === null; // Default to enabled
+    if (!compressionEnabled) {
+      return false; // Skip compression
+    }
     
     // Default compression settings
     const quality = qualitySetting ? parseInt(qualitySetting) : 80;
@@ -124,9 +131,10 @@ async function compressImage(inputPath: string, outputPath: string, organization
 
     // Remove the original file
     await fs.unlink(inputPath);
+    return true; // Compression applied
   } catch (error) {
     console.error('Image compression error:', error);
-    // If compression fails, keep the original file
+    return false; // Compression failed
   }
 }
 
@@ -1458,26 +1466,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const user = getAuthenticatedUser(req);
-      const compressedFilePaths: string[] = [];
+      const processedFilePaths: string[] = [];
 
-      // Process each uploaded image with compression
+      // Process each uploaded image
       for (const file of files) {
         const originalPath = file.path;
         const compressedFilename = `compressed-${file.filename.replace(path.extname(file.filename), '.jpg')}`;
         const compressedPath = path.join(path.dirname(originalPath), compressedFilename);
         
-        // Apply compression
-        await compressImage(originalPath, compressedPath, user.organizationId);
+        // Try to apply compression
+        const compressionApplied = await compressImage(originalPath, compressedPath, user.organizationId);
         
-        // Add compressed file path to response
-        compressedFilePaths.push(`/uploads/org-${user.organizationId}/inspection_report_images/${compressedFilename}`);
+        if (compressionApplied) {
+          // Use compressed image
+          processedFilePaths.push(`/uploads/org-${user.organizationId}/inspection_report_images/${compressedFilename}`);
+        } else {
+          // Use original image (compression disabled or failed)
+          processedFilePaths.push(`/uploads/org-${user.organizationId}/inspection_report_images/${file.filename}`);
+        }
       }
-
-      const filePaths = compressedFilePaths;
 
       res.json({ 
         message: `${files.length} inspection image(s) uploaded successfully`,
-        filePaths
+        filePaths: processedFilePaths
       });
     } catch (error: any) {
       console.error('Error uploading inspection images:', error);
@@ -4011,6 +4022,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           compressionSettings.maxWidth = parseInt(setting.value) || 1920;
         } else if (key === 'max_height') {
           compressionSettings.maxHeight = parseInt(setting.value) || 1080;
+        } else if (key === 'compression_enabled') {
+          compressionSettings.enabled = setting.value === 'true';
         }
       });
       
@@ -4023,7 +4036,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   settingsRouter.put('/image-compression', requireAuth, async (req, res) => {
     try {
-      const { quality, maxWidth, maxHeight } = req.body;
+      const { quality, maxWidth, maxHeight, enabled } = req.body;
       
       // Validate settings
       if (quality && (quality < 10 || quality > 100)) {
@@ -4045,6 +4058,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       if (maxHeight !== undefined) {
         await storage.updateSetting('inspection', 'max_height', maxHeight.toString());
+      }
+      if (enabled !== undefined) {
+        await storage.updateSetting('inspection', 'compression_enabled', enabled.toString());
       }
 
       res.json({ message: "Compression settings updated successfully" });
