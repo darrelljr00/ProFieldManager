@@ -101,14 +101,14 @@ function getAuthenticatedUser(req: Request) {
   return req.user;
 }
 
-// Image compression helper function
+// Image compression helper function for ALL image uploads
 async function compressImage(inputPath: string, outputPath: string, organizationId: number): Promise<boolean> {
   try {
-    // Get compression settings from database
-    const enabledSetting = await storage.getSetting('inspection', 'compression_enabled');
-    const qualitySetting = await storage.getSetting('inspection', 'image_quality');
-    const maxWidthSetting = await storage.getSetting('inspection', 'max_width');
-    const maxHeightSetting = await storage.getSetting('inspection', 'max_height');
+    // Get compression settings from database (using 'system' category for global settings)
+    const enabledSetting = await storage.getSetting('system', 'compression_enabled');
+    const qualitySetting = await storage.getSetting('system', 'image_quality');
+    const maxWidthSetting = await storage.getSetting('system', 'max_width');
+    const maxHeightSetting = await storage.getSetting('system', 'max_height');
     
     // Check if compression is enabled
     const compressionEnabled = enabledSetting === 'true' || enabledSetting === null; // Default to enabled
@@ -1443,13 +1443,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const user = getAuthenticatedUser(req);
-      // Update company settings with new logo path
-      const logoPath = req.file.path;
-      await storage.updateSetting('company', 'logo', logoPath);
+      
+      // Apply compression if it's an image file
+      let finalPath = req.file.path;
+      let fileName = req.file.filename;
+      
+      if (req.file.mimetype.startsWith('image/')) {
+        const originalPath = req.file.path;
+        const compressedFilename = `compressed-${req.file.filename.replace(path.extname(req.file.filename), '.jpg')}`;
+        const compressedPath = path.join(path.dirname(originalPath), compressedFilename);
+        
+        const compressionApplied = await compressImage(originalPath, compressedPath, user.organizationId);
+        
+        if (compressionApplied) {
+          finalPath = compressedPath;
+          fileName = compressedFilename;
+        }
+      }
+      
+      // Update company settings with logo path
+      await storage.updateSetting('company', 'logo', finalPath);
 
       res.json({ 
         message: "Logo uploaded successfully",
-        logoUrl: `/uploads/org-${user.organizationId}/files/${req.file.filename}`
+        logoUrl: `/uploads/org-${user.organizationId}/files/${fileName}`
       });
     } catch (error: any) {
       res.status(500).json({ message: "Error uploading logo: " + error.message });
@@ -1519,14 +1536,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         size: req.file.size
       });
 
-      // If it's an image file, save metadata to database
+      // Apply compression if it's an image file
+      let finalFileName = req.file.filename;
+      let finalSize = req.file.size;
+      
       if (req.file.mimetype.startsWith('image/')) {
+        const originalPath = req.file.path;
+        const compressedFilename = `compressed-${req.file.filename.replace(path.extname(req.file.filename), '.jpg')}`;
+        const compressedPath = path.join(path.dirname(originalPath), compressedFilename);
+        
+        const compressionApplied = await compressImage(originalPath, compressedPath, user.organizationId);
+        
+        if (compressionApplied) {
+          finalFileName = compressedFilename;
+          // Get compressed file size
+          const fs = require('fs');
+          const stats = await fs.promises.stat(compressedPath);
+          finalSize = stats.size;
+        }
+        
+        // Save image metadata to database
         const userInfo = await storage.getUser(req.user!.id);
         const imageData = {
-          filename: req.file.filename,
+          filename: finalFileName,
           originalName: req.file.originalname,
-          mimeType: req.file.mimetype,
-          size: req.file.size,
+          mimeType: compressionApplied ? 'image/jpeg' : req.file.mimetype,
+          size: finalSize,
           userId: req.user!.id,
           organizationId: userInfo?.organizationId || 1,
           projectId: req.body.projectId ? parseInt(req.body.projectId) : null,
@@ -1541,10 +1576,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // File uploaded successfully
       res.json({
         message: "File uploaded successfully",
-        url: `/uploads/org-${user.organizationId}/files/${req.file.filename}`,
+        url: `/uploads/org-${user.organizationId}/files/${finalFileName}`,
         filename: req.file.originalname,
-        size: req.file.size,
-        mimetype: req.file.mimetype
+        size: finalSize,
+        mimetype: req.file.mimetype.startsWith('image/') && finalFileName.includes('compressed-') ? 'image/jpeg' : req.file.mimetype
       });
     } catch (error: any) {
       console.error('File upload error:', error);
@@ -1575,12 +1610,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         size: req.file.size
       });
 
+      // Apply compression to image
+      const originalPath = req.file.path;
+      const compressedFilename = `compressed-${req.file.filename.replace(path.extname(req.file.filename), '.jpg')}`;
+      const compressedPath = path.join(path.dirname(originalPath), compressedFilename);
+      
+      const compressionApplied = await compressImage(originalPath, compressedPath, user.organizationId);
+      
+      let finalFileName = req.file.filename;
+      let finalSize = req.file.size;
+      let finalMimeType = req.file.mimetype;
+      
+      if (compressionApplied) {
+        finalFileName = compressedFilename;
+        finalMimeType = 'image/jpeg';
+        // Get compressed file size
+        const fs = require('fs');
+        const stats = await fs.promises.stat(compressedPath);
+        finalSize = stats.size;
+      }
+
       // Save image metadata to database
       const imageData = {
-        filename: req.file.filename,
+        filename: finalFileName,
         originalName: req.file.originalname,
-        mimeType: req.file.mimetype,
-        size: req.file.size,
+        mimeType: finalMimeType,
+        size: finalSize,
         userId: req.user!.id,
         organizationId: user.organizationId,
         projectId: req.body.projectId ? parseInt(req.body.projectId) : null,
@@ -1594,10 +1649,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Image uploaded successfully
       res.json({
         message: "Image uploaded successfully",
-        url: `/uploads/org-${user.organizationId}/image_gallery/${req.file.filename}`,
+        url: `/uploads/org-${user.organizationId}/image_gallery/${finalFileName}`,
         filename: req.file.originalname,
-        size: req.file.size,
-        mimetype: req.file.mimetype
+        size: finalSize,
+        mimetype: finalMimeType
       });
     } catch (error: any) {
       console.error('Image upload error:', error);
@@ -4005,7 +4060,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Image compression settings
   settingsRouter.get('/image-compression', requireAuth, async (req, res) => {
     try {
-      const settings = await storage.getSettingsByCategory('inspection');
+      const settings = await storage.getSettingsByCategory('system');
       const defaultSettings = {
         quality: 80,
         maxWidth: 1920,
@@ -4015,14 +4070,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const compressionSettings = { ...defaultSettings };
       settings.forEach((setting: any) => {
-        const key = setting.key.replace('inspection_', '');
-        if (key === 'image_quality') {
+        if (setting.key === 'image_quality') {
           compressionSettings.quality = parseInt(setting.value) || 80;
-        } else if (key === 'max_width') {
+        } else if (setting.key === 'max_width') {
           compressionSettings.maxWidth = parseInt(setting.value) || 1920;
-        } else if (key === 'max_height') {
+        } else if (setting.key === 'max_height') {
           compressionSettings.maxHeight = parseInt(setting.value) || 1080;
-        } else if (key === 'compression_enabled') {
+        } else if (setting.key === 'compression_enabled') {
           compressionSettings.enabled = setting.value === 'true';
         }
       });
@@ -4049,18 +4103,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Max height must be between 100 and 4000 pixels" });
       }
 
-      // Update settings
+      // Update settings in 'system' category for global image compression
       if (quality !== undefined) {
-        await storage.updateSetting('inspection', 'image_quality', quality.toString());
+        await storage.updateSetting('system', 'image_quality', quality.toString());
       }
       if (maxWidth !== undefined) {
-        await storage.updateSetting('inspection', 'max_width', maxWidth.toString());
+        await storage.updateSetting('system', 'max_width', maxWidth.toString());
       }
       if (maxHeight !== undefined) {
-        await storage.updateSetting('inspection', 'max_height', maxHeight.toString());
+        await storage.updateSetting('system', 'max_height', maxHeight.toString());
       }
       if (enabled !== undefined) {
-        await storage.updateSetting('inspection', 'compression_enabled', enabled.toString());
+        await storage.updateSetting('system', 'compression_enabled', enabled.toString());
       }
 
       res.json({ message: "Compression settings updated successfully" });

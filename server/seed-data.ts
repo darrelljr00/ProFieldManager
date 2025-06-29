@@ -3,15 +3,17 @@ import { seedFormTemplates } from "./seed-form-templates";
 
 async function seedImageCompressionSettings() {
   try {
-    // Check if compression settings already exist
-    const existingQuality = await storage.getSetting('inspection', 'image_quality');
+    // Check if compression settings already exist in system category
+    const allSettings = await storage.getSettings();
+    const existingQuality = allSettings.find(s => s.category === 'system' && s.key === 'image_quality');
     
     if (!existingQuality) {
-      // Create default compression settings
-      await storage.updateSetting('inspection', 'image_quality', '80');
-      await storage.updateSetting('inspection', 'max_width', '1920');
-      await storage.updateSetting('inspection', 'max_height', '1080');
-      console.log('Default image compression settings created');
+      // Create default system-wide compression settings
+      await storage.updateSetting('system', 'compression_enabled', 'true');
+      await storage.updateSetting('system', 'image_quality', '80');
+      await storage.updateSetting('system', 'max_width', '1920');
+      await storage.updateSetting('system', 'max_height', '1080');
+      console.log('Default system-wide image compression settings created');
     }
   } catch (error) {
     console.error('Error seeding compression settings:', error);
