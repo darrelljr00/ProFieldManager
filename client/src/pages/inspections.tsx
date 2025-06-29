@@ -185,8 +185,9 @@ export default function Inspections() {
         status: record.status || "completed",
         submittedAt: record.submittedAt || new Date().toISOString(),
         templateName: activeTab === 'pre-trip' ? 'Pre-Trip Inspection' : 'Post-Trip Inspection',
-        technicianName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username,
+        technicianName: technicianName,
         vehicleInfo: {
+          vehicleNumber: vehicleInfo.vehicleNumber,
           licensePlate: vehicleInfo.licensePlate,
           mileage: vehicleInfo.mileage,
           fuelLevel: vehicleInfo.fuelLevel
@@ -623,8 +624,36 @@ export default function Inspections() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Similar structure to pre-trip but with post-trip specific items */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Vehicle Information */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="technicianNamePost">Technician Name</Label>
+                  <Input
+                    id="technicianNamePost"
+                    value={technicianName}
+                    onChange={(e) => setTechnicianName(e.target.value)}
+                    placeholder="Enter technician name"
+                    className="bg-gray-50"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="vehicleNumberPost">Vehicle Number</Label>
+                  <Input
+                    id="vehicleNumberPost"
+                    value={vehicleInfo.vehicleNumber}
+                    onChange={(e) => setVehicleInfo(prev => ({ ...prev, vehicleNumber: e.target.value }))}
+                    placeholder="Enter vehicle number"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="licensePlatePost">License Plate</Label>
+                  <Input
+                    id="licensePlatePost"
+                    value={vehicleInfo.licensePlate}
+                    onChange={(e) => setVehicleInfo(prev => ({ ...prev, licensePlate: e.target.value }))}
+                    placeholder="Enter license plate"
+                  />
+                </div>
                 <div>
                   <Label htmlFor="endMileage">Ending Mileage</Label>
                   <Input

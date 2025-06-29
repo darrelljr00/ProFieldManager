@@ -141,6 +141,7 @@ Pro Field Manager is a comprehensive SaaS field service management platform buil
 - June 29, 2025. Fixed recurring expense receipt file loading issues by clearing corrupted file paths from database - removed invalid file references that pointed to non-existent organization folder locations, preventing "ENOENT" file not found errors
 - June 29, 2025. Consolidated all expense receipts to use only receipt_images folder - moved legacy receipt files from multiple locations (uploads/expenses/, uploads/) to organization-specific uploads/org-{organizationId}/receipt_images/ directories and updated database paths accordingly
 - June 29, 2025. Added mandatory disclaimer checkbox to inspection forms requiring technicians to acknowledge that submissions are tracked, reviewed by managers, and false reporting may result in disciplinary action including termination
+- June 29, 2025. Enhanced inspection forms with vehicle number field and auto-populated technician name field that pulls from logged-in user data - technician name appears with light gray background to indicate it's pre-filled but editable
 
 ## User Preferences
 
