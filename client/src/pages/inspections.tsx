@@ -241,17 +241,17 @@ export default function Inspections() {
   };
 
   // Debug function for button click
-  const handleAddPhotosClick = (e: React.MouseEvent) => {
+  const handleAddPhotosClick = (e?: React.MouseEvent) => {
     console.log('=== BUTTON CLICK DEBUG START ===');
     console.log('Add Photos button clicked');
     console.log('Event:', e);
-    console.log('Event target:', e.target);
     console.log('fileInputRef:', fileInputRef);
     console.log('fileInputRef.current:', fileInputRef.current);
     
-    // Prevent any default behavior
-    e.preventDefault();
-    e.stopPropagation();
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     
     if (fileInputRef.current) {
       console.log('Triggering file input click');
@@ -265,6 +265,13 @@ export default function Inspections() {
       console.error('fileInputRef.current is null');
     }
     console.log('=== BUTTON CLICK DEBUG END ===');
+  };
+
+  // Simple test function
+  const testButtonClick = () => {
+    console.log('TEST BUTTON CLICKED - THIS WORKS!');
+    alert('Test button works! Now testing file input...');
+    handleAddPhotosClick();
   };
 
   const removeImage = (index: number) => {
@@ -385,6 +392,11 @@ export default function Inspections() {
                 <CheckCircle className="w-5 h-5" />
                 Pre-Trip Inspection
               </CardTitle>
+              <div className="bg-yellow-100 p-2 rounded">
+                <Button onClick={testButtonClick} className="bg-green-500 hover:bg-green-600">
+                  TEST BUTTON - Click me first!
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Vehicle Information */}
