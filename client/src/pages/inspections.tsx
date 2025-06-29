@@ -218,17 +218,38 @@ export default function Inspections() {
 
   // Image upload handlers
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('handleImageUpload called', event);
     const files = event.target.files;
+    console.log('Files selected:', files);
+    
     if (files) {
       const newImages = Array.from(files).filter(file => 
         file.type.startsWith('image/') && file.size <= 10 * 1024 * 1024 // 10MB limit
       );
+      
+      console.log('Filtered images:', newImages);
       
       if (newImages.length !== files.length) {
         toast({ title: "Some files were skipped (only images under 10MB allowed)", variant: "destructive" });
       }
       
       setInspectionImages(prev => [...prev, ...newImages]);
+      
+      // Reset the input value so the same file can be selected again if needed
+      event.target.value = '';
+    }
+  };
+
+  // Debug function for button click
+  const handleAddPhotosClick = () => {
+    console.log('Add Photos button clicked');
+    console.log('fileInputRef.current:', fileInputRef.current);
+    
+    if (fileInputRef.current) {
+      console.log('Triggering file input click');
+      fileInputRef.current.click();
+    } else {
+      console.error('fileInputRef.current is null');
     }
   };
 
@@ -537,7 +558,7 @@ export default function Inspections() {
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={() => fileInputRef.current?.click()}
+                      onClick={handleAddPhotosClick}
                       className="mb-2"
                     >
                       <Upload className="w-4 h-4 mr-2" />
@@ -731,6 +752,79 @@ export default function Inspections() {
                     )}
                   </div>
                 ))}
+              </div>
+
+              {/* General Notes */}
+              <div>
+                <Label htmlFor="notesPost">General Notes</Label>
+                <Textarea
+                  id="notesPost"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Add any additional notes about the inspection"
+                  className="min-h-[100px]"
+                />
+              </div>
+
+              {/* Image Upload Section */}
+              <div className="space-y-3">
+                <Label className="flex items-center gap-2">
+                  <Camera className="w-4 h-4" />
+                  Inspection Photos
+                </Label>
+                
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                  <div className="text-center">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleAddPhotosClick}
+                      className="mb-2"
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      Add Photos
+                    </Button>
+                    <p className="text-sm text-gray-500">
+                      Upload images of inspection items (Max 10MB each)
+                    </p>
+                  </div>
+                  
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
+                </div>
+
+                {/* Display selected images */}
+                {inspectionImages.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {inspectionImages.map((file, index) => (
+                      <div key={index} className="relative">
+                        <img
+                          src={URL.createObjectURL(file)}
+                          alt={`Inspection ${index + 1}`}
+                          className="w-full h-24 object-cover rounded border"
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          className="absolute -top-2 -right-2 w-6 h-6 p-0 rounded-full"
+                          onClick={() => removeImage(index)}
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                        <p className="text-xs text-gray-600 mt-1 truncate">
+                          {file.name}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Disclaimer */}
