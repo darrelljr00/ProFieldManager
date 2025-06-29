@@ -80,6 +80,7 @@ export default function Inspections() {
   const [submittedInspections, setSubmittedInspections] = useState<InspectionRecord[]>([]);
   const [inspectionImages, setInspectionImages] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
   
   // Default inspection items for demo
   const defaultInspectionItems: InspectionItem[] = [
@@ -113,6 +114,11 @@ export default function Inspections() {
 
     if (!user) {
       toast({ title: "You must be logged in to submit an inspection", variant: "destructive" });
+      return;
+    }
+
+    if (!disclaimerAccepted) {
+      toast({ title: "You must accept the disclaimer to submit the inspection", variant: "destructive" });
       return;
     }
 
@@ -187,6 +193,7 @@ export default function Inspections() {
       setVehicleInfo({ licensePlate: '', mileage: '', fuelLevel: '' });
       setNotes('');
       setInspectionImages([]);
+      setDisclaimerAccepted(false);
     } catch (error) {
       console.error('Error submitting inspection:', error);
       toast({ title: "Failed to submit inspection", variant: "destructive" });
@@ -549,12 +556,28 @@ export default function Inspections() {
                 )}
               </div>
 
+              {/* Disclaimer */}
+              <div className="border border-amber-200 bg-amber-50 p-4 rounded-lg">
+                <div className="flex items-start space-x-3">
+                  <input
+                    type="checkbox"
+                    id="disclaimer-pre-trip"
+                    checked={disclaimerAccepted}
+                    onChange={(e) => setDisclaimerAccepted(e.target.checked)}
+                    className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <label htmlFor="disclaimer-pre-trip" className="text-sm text-gray-700 leading-5">
+                    <strong>Disclaimer:</strong> By completing this form, I confirm that I have completed the necessary inspection. I understand that my name, date, time, and this submission is being saved and sent to my manager for review. Not answering this submission completely or falsely can result in disciplinary actions including termination.
+                  </label>
+                </div>
+              </div>
+
               {/* Submit Button */}
               <Button 
                 onClick={handleSubmitInspection}
                 className="w-full"
                 size="lg"
-                disabled={uploading}
+                disabled={uploading || !disclaimerAccepted}
               >
                 {uploading ? "Uploading..." : "Submit Pre-Trip Inspection"}
               </Button>
@@ -652,10 +675,27 @@ export default function Inspections() {
                 ))}
               </div>
 
+              {/* Disclaimer */}
+              <div className="border border-amber-200 bg-amber-50 p-4 rounded-lg">
+                <div className="flex items-start space-x-3">
+                  <input
+                    type="checkbox"
+                    id="disclaimer-post-trip"
+                    checked={disclaimerAccepted}
+                    onChange={(e) => setDisclaimerAccepted(e.target.checked)}
+                    className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <label htmlFor="disclaimer-post-trip" className="text-sm text-gray-700 leading-5">
+                    <strong>Disclaimer:</strong> By completing this form, I confirm that I have completed the necessary inspection. I understand that my name, date, time, and this submission is being saved and sent to my manager for review. Not answering this submission completely or falsely can result in disciplinary actions including termination.
+                  </label>
+                </div>
+              </div>
+
               <Button 
                 onClick={handleSubmitInspection}
                 className="w-full"
                 size="lg"
+                disabled={!disclaimerAccepted}
               >
                 Submit Post-Trip Inspection
               </Button>
