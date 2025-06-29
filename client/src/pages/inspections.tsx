@@ -375,8 +375,7 @@ export default function Inspections() {
 
               {/* Submit Button */}
               <Button 
-                onClick={submitInspection}
-                disabled={submitInspectionMutation.isPending}
+                onClick={handleSubmitInspection}
                 className="w-full"
                 size="lg"
               >
@@ -420,14 +419,64 @@ export default function Inspections() {
 
               <Separator />
 
-              {/* Post-trip inspection items would go here with similar structure */}
-              <div className="text-center py-8 text-gray-500">
-                Post-trip inspection items will be loaded here
+              {/* Inspection Items */}
+              <div className="space-y-4">
+                {inspectionItems.map((item) => (
+                  <div key={item.id} className="border rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-medium">{item.name}</h4>
+                          {item.isRequired && (
+                            <Badge variant="destructive" className="text-xs">Required</Badge>
+                          )}
+                          <Badge variant="outline" className="text-xs">{item.category}</Badge>
+                        </div>
+                        {item.description && (
+                          <p className="text-sm text-gray-600 mt-1">{item.description}</p>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        {['pass', 'fail', 'na', 'needs_attention'].map((status) => (
+                          <Button
+                            key={status}
+                            variant={getResponseForItem(item.id)?.response === status ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => handleResponseChange(item.id, status as any)}
+                            className={cn(
+                              "px-3 py-1 text-xs",
+                              status === 'pass' && getResponseForItem(item.id)?.response === status && "bg-green-500 hover:bg-green-600",
+                              status === 'fail' && getResponseForItem(item.id)?.response === status && "bg-red-500 hover:bg-red-600",
+                              status === 'na' && getResponseForItem(item.id)?.response === status && "bg-gray-500 hover:bg-gray-600",
+                              status === 'needs_attention' && getResponseForItem(item.id)?.response === status && "bg-yellow-500 hover:bg-yellow-600"
+                            )}
+                          >
+                            {status === 'pass' && 'Pass'}
+                            {status === 'fail' && 'Fail'}
+                            {status === 'na' && 'N/A'}
+                            {status === 'needs_attention' && 'Attention'}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    {getResponseForItem(item.id) && (
+                      <div className="mt-3 space-y-2">
+                        <Textarea
+                          placeholder="Add notes for this item..."
+                          value={getResponseForItem(item.id)?.notes || ''}
+                          onChange={(e) => handleNotesChange(item.id, e.target.value)}
+                          className="text-sm"
+                          rows={2}
+                        />
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
 
               <Button 
-                onClick={submitInspection}
-                disabled={submitInspectionMutation.isPending}
+                onClick={handleSubmitInspection}
                 className="w-full"
                 size="lg"
               >
