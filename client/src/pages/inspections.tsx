@@ -72,6 +72,7 @@ export default function Inspections() {
   const [customItems, setCustomItems] = useState<InspectionItem[]>([]);
   const [newItemName, setNewItemName] = useState('');
   const [newItemCategory, setNewItemCategory] = useState('');
+  const [submittedInspections, setSubmittedInspections] = useState<InspectionRecord[]>([]);
   
   // Default inspection items for demo
   const defaultInspectionItems: InspectionItem[] = [
@@ -94,7 +95,7 @@ export default function Inspections() {
 
   // Use default data for now
   const inspectionItems = defaultInspectionItems;
-  const inspectionRecords = sampleInspectionRecords;
+  const allInspectionRecords = [...submittedInspections, ...sampleInspectionRecords];
 
   // Submit inspection handler
   const handleSubmitInspection = () => {
@@ -103,8 +104,25 @@ export default function Inspections() {
       return;
     }
 
-    // Simulate successful submission
-    toast({ title: "Inspection submitted successfully" });
+    // Create new inspection record
+    const newInspectionRecord: InspectionRecord = {
+      id: Date.now(), // Simple ID generation
+      type: activeTab,
+      status: "completed",
+      submittedAt: new Date().toISOString(),
+      templateName: activeTab === 'pre-trip' ? 'Pre-Trip Inspection' : 'Post-Trip Inspection',
+      vehicleInfo: {
+        licensePlate: vehicleInfo.licensePlate,
+        mileage: vehicleInfo.mileage,
+        fuelLevel: vehicleInfo.fuelLevel
+      }
+    };
+
+    // Add to submitted inspections
+    setSubmittedInspections(prev => [newInspectionRecord, ...prev]);
+
+    // Show success message and reset form
+    toast({ title: "Inspection submitted successfully and saved to History" });
     setCurrentInspection([]);
     setVehicleInfo({ licensePlate: '', mileage: '', fuelLevel: '' });
     setNotes('');
@@ -502,9 +520,9 @@ export default function Inspections() {
               <CardTitle>Inspection History</CardTitle>
             </CardHeader>
             <CardContent>
-              {inspectionRecords?.length > 0 ? (
+              {allInspectionRecords?.length > 0 ? (
                 <div className="space-y-4">
-                  {inspectionRecords.map((record: InspectionRecord) => (
+                  {allInspectionRecords.map((record: InspectionRecord) => (
                     <div key={record.id} className="border rounded-lg p-4">
                       <div className="flex justify-between items-start">
                         <div>
