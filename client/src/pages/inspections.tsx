@@ -365,7 +365,7 @@ export default function Inspections() {
                     value={newItemCategory}
                     onChange={(e) => setNewItemCategory(e.target.value)}
                   />
-                  <Button onClick={addCustomItem} disabled={addCustomItemMutation.isPending}>
+                  <Button onClick={addCustomItem}>
                     <Plus className="w-4 h-4" />
                   </Button>
                 </div>
