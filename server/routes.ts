@@ -3991,6 +3991,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Image compression settings
+  settingsRouter.get('/image-compression', requireAuth, async (req, res) => {
+    try {
+      const settings = await storage.getSettingsByCategory('inspection');
+      const defaultSettings = {
+        quality: 80,
+        maxWidth: 1920,
+        maxHeight: 1080,
+        enabled: true
+      };
+      
+      const compressionSettings = { ...defaultSettings };
+      settings.forEach((setting: any) => {
+        const key = setting.key.replace('inspection_', '');
+        if (key === 'image_quality') {
+          compressionSettings.quality = parseInt(setting.value) || 80;
+        } else if (key === 'max_width') {
+          compressionSettings.maxWidth = parseInt(setting.value) || 1920;
+        } else if (key === 'max_height') {
+          compressionSettings.maxHeight = parseInt(setting.value) || 1080;
+        }
+      });
+      
+      res.json(compressionSettings);
+    } catch (error: any) {
+      console.error('Error fetching compression settings:', error);
+      res.status(500).json({ message: 'Failed to fetch compression settings' });
+    }
+  });
+
+  settingsRouter.put('/image-compression', requireAuth, async (req, res) => {
+    try {
+      const { quality, maxWidth, maxHeight } = req.body;
+      
+      // Validate settings
+      if (quality && (quality < 10 || quality > 100)) {
+        return res.status(400).json({ message: "Quality must be between 10 and 100" });
+      }
+      if (maxWidth && (maxWidth < 100 || maxWidth > 4000)) {
+        return res.status(400).json({ message: "Max width must be between 100 and 4000 pixels" });
+      }
+      if (maxHeight && (maxHeight < 100 || maxHeight > 4000)) {
+        return res.status(400).json({ message: "Max height must be between 100 and 4000 pixels" });
+      }
+
+      // Update settings
+      if (quality !== undefined) {
+        await storage.updateSetting('inspection', 'image_quality', quality.toString());
+      }
+      if (maxWidth !== undefined) {
+        await storage.updateSetting('inspection', 'max_width', maxWidth.toString());
+      }
+      if (maxHeight !== undefined) {
+        await storage.updateSetting('inspection', 'max_height', maxHeight.toString());
+      }
+
+      res.json({ message: "Compression settings updated successfully" });
+    } catch (error: any) {
+      console.error('Error updating compression settings:', error);
+      res.status(500).json({ message: 'Failed to update compression settings' });
+    }
+  });
+
   // Integration settings
   settingsRouter.get('/integrations', requireAuth, async (req, res) => {
     try {

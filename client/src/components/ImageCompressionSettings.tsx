@@ -1,0 +1,199 @@
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
+import { Slider } from '@/components/ui/slider';
+import { useToast } from '@/hooks/use-toast';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
+
+interface CompressionSettings {
+  quality: number;
+  maxWidth: number;
+  maxHeight: number;
+  enabled: boolean;
+}
+
+export function ImageCompressionSettings() {
+  const [settings, setSettings] = useState<CompressionSettings>({
+    quality: 80,
+    maxWidth: 1920,
+    maxHeight: 1080,
+    enabled: true
+  });
+  
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Fetch current compression settings
+  const { data: compressionSettings, isLoading } = useQuery({
+    queryKey: ['/api/settings/image-compression'],
+    onSuccess: (data) => {
+      if (data) {
+        setSettings(data);
+      }
+    }
+  });
+
+  // Update settings when data is fetched
+  useEffect(() => {
+    if (compressionSettings) {
+      setSettings(compressionSettings);
+    }
+  }, [compressionSettings]);
+
+  // Mutation to update settings
+  const updateSettingsMutation = useMutation({
+    mutationFn: async (newSettings: Partial<CompressionSettings>) => {
+      return await apiRequest('/api/settings/image-compression', 'PUT', newSettings);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Settings Updated",
+        description: "Image compression settings have been saved successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/settings/image-compression'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update compression settings.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const handleSave = () => {
+    updateSettingsMutation.mutate(settings);
+  };
+
+  const handleQualityChange = (value: number[]) => {
+    setSettings(prev => ({ ...prev, quality: value[0] }));
+  };
+
+  const handleInputChange = (field: keyof CompressionSettings, value: string | number | boolean) => {
+    setSettings(prev => ({ ...prev, [field]: value }));
+  };
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Image Compression Settings</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center h-32">
+            <div className="text-muted-foreground">Loading settings...</div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Image Compression Settings</CardTitle>
+        <CardDescription>
+          Configure how inspection images are compressed when uploaded. Lower quality reduces file size but may affect image clarity.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Enable/Disable Compression */}
+        <div className="flex items-center justify-between">
+          <div>
+            <Label htmlFor="compression-enabled">Enable Image Compression</Label>
+            <p className="text-sm text-muted-foreground">
+              Automatically compress uploaded inspection images
+            </p>
+          </div>
+          <Switch
+            id="compression-enabled"
+            checked={settings.enabled}
+            onCheckedChange={(checked) => handleInputChange('enabled', checked)}
+          />
+        </div>
+
+        {settings.enabled && (
+          <>
+            {/* Quality Slider */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label>Image Quality</Label>
+                <span className="text-sm font-medium">{settings.quality}%</span>
+              </div>
+              <Slider
+                value={[settings.quality]}
+                onValueChange={handleQualityChange}
+                min={10}
+                max={100}
+                step={5}
+                className="w-full"
+              />
+              <p className="text-xs text-muted-foreground">
+                Higher quality preserves more detail but increases file size
+              </p>
+            </div>
+
+            {/* Max Width */}
+            <div className="space-y-2">
+              <Label htmlFor="max-width">Maximum Width (pixels)</Label>
+              <Input
+                id="max-width"
+                type="number"
+                min="100"
+                max="4000"
+                value={settings.maxWidth}
+                onChange={(e) => handleInputChange('maxWidth', parseInt(e.target.value) || 1920)}
+                placeholder="1920"
+              />
+              <p className="text-xs text-muted-foreground">
+                Images wider than this will be resized proportionally
+              </p>
+            </div>
+
+            {/* Max Height */}
+            <div className="space-y-2">
+              <Label htmlFor="max-height">Maximum Height (pixels)</Label>
+              <Input
+                id="max-height"
+                type="number"
+                min="100"
+                max="4000"
+                value={settings.maxHeight}
+                onChange={(e) => handleInputChange('maxHeight', parseInt(e.target.value) || 1080)}
+                placeholder="1080"
+              />
+              <p className="text-xs text-muted-foreground">
+                Images taller than this will be resized proportionally
+              </p>
+            </div>
+
+            {/* Preview Information */}
+            <div className="bg-muted p-4 rounded-lg">
+              <h4 className="text-sm font-medium mb-2">Current Settings Summary:</h4>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                <li>• Quality: {settings.quality}% compression</li>
+                <li>• Maximum size: {settings.maxWidth} x {settings.maxHeight} pixels</li>
+                <li>• Format: JPEG (converted from any input format)</li>
+                <li>• Original files are replaced with compressed versions</li>
+              </ul>
+            </div>
+          </>
+        )}
+
+        {/* Save Button */}
+        <div className="flex justify-end pt-4">
+          <Button 
+            onClick={handleSave}
+            disabled={updateSettingsMutation.isPending}
+          >
+            {updateSettingsMutation.isPending ? 'Saving...' : 'Save Settings'}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}

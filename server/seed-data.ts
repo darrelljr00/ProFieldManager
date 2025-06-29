@@ -1,6 +1,23 @@
 import { storage } from "./storage";
 import { seedFormTemplates } from "./seed-form-templates";
 
+async function seedImageCompressionSettings() {
+  try {
+    // Check if compression settings already exist
+    const existingQuality = await storage.getSetting('inspection', 'image_quality');
+    
+    if (!existingQuality) {
+      // Create default compression settings
+      await storage.updateSetting('inspection', 'image_quality', '80');
+      await storage.updateSetting('inspection', 'max_width', '1920');
+      await storage.updateSetting('inspection', 'max_height', '1080');
+      console.log('Default image compression settings created');
+    }
+  } catch (error) {
+    console.error('Error seeding compression settings:', error);
+  }
+}
+
 export async function seedDatabase() {
   // Seed form templates first
   await seedFormTemplates();
@@ -164,6 +181,9 @@ export async function seedDatabase() {
       status: "completed",
       externalId: "pi_1234567890"
     });
+
+    // Seed default image compression settings
+    await seedImageCompressionSettings();
 
     console.log("✅ Sample data seeded successfully");
   } catch (error) {
