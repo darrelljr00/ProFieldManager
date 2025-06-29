@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,11 +11,12 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { 
   CheckCircle, XCircle, Clock, AlertTriangle, 
-  Camera, Send, Plus, Trash2, Edit3 
+  Camera, Send, Plus, Trash2, Edit3, Upload, X 
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
 
 interface InspectionItem {
   id: number;
@@ -31,7 +32,9 @@ interface InspectionRecord {
   status: string;
   submittedAt?: string;
   templateName: string;
+  technicianName: string;
   vehicleInfo?: any;
+  images?: string[];
 }
 
 interface InspectionResponse {
@@ -61,6 +64,8 @@ const defaultInspectionItems = {
 };
 
 export default function Inspections() {
+  const { user } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState('pre-trip');
   const [currentInspection, setCurrentInspection] = useState<InspectionResponse[]>([]);
   const [vehicleInfo, setVehicleInfo] = useState({
@@ -73,6 +78,8 @@ export default function Inspections() {
   const [newItemName, setNewItemName] = useState('');
   const [newItemCategory, setNewItemCategory] = useState('');
   const [submittedInspections, setSubmittedInspections] = useState<InspectionRecord[]>([]);
+  const [inspectionImages, setInspectionImages] = useState<File[]>([]);
+  const [uploading, setUploading] = useState(false);
   
   // Default inspection items for demo
   const defaultInspectionItems: InspectionItem[] = [
@@ -89,8 +96,8 @@ export default function Inspections() {
   ];
 
   const sampleInspectionRecords: InspectionRecord[] = [
-    { id: 1, type: "pre-trip", status: "completed", submittedAt: "2025-06-29T08:30:00Z", templateName: "Standard Pre-Trip", vehicleInfo: { licensePlate: "ABC-123", mileage: "45,230" } },
-    { id: 2, type: "post-trip", status: "completed", submittedAt: "2025-06-28T17:45:00Z", templateName: "Standard Post-Trip", vehicleInfo: { licensePlate: "ABC-123", mileage: "45,180" } }
+    { id: 1, type: "pre-trip", status: "completed", submittedAt: "2025-06-29T08:30:00Z", templateName: "Standard Pre-Trip", technicianName: "John Smith", vehicleInfo: { licensePlate: "ABC-123", mileage: "45,230" } },
+    { id: 2, type: "post-trip", status: "completed", submittedAt: "2025-06-28T17:45:00Z", templateName: "Standard Post-Trip", technicianName: "Mike Johnson", vehicleInfo: { licensePlate: "ABC-123", mileage: "45,180" } }
   ];
 
   // Use default data for now
@@ -98,38 +105,92 @@ export default function Inspections() {
   const allInspectionRecords = [...submittedInspections, ...sampleInspectionRecords];
 
   // Submit inspection handler
-  const handleSubmitInspection = () => {
+  const handleSubmitInspection = async () => {
     if (currentInspection.length === 0) {
       toast({ title: "Please complete at least one inspection item", variant: "destructive" });
       return;
     }
 
-    // Create new inspection record
-    const newInspectionRecord: InspectionRecord = {
-      id: Date.now(), // Simple ID generation
-      type: activeTab,
-      status: "completed",
-      submittedAt: new Date().toISOString(),
-      templateName: activeTab === 'pre-trip' ? 'Pre-Trip Inspection' : 'Post-Trip Inspection',
-      vehicleInfo: {
-        licensePlate: vehicleInfo.licensePlate,
-        mileage: vehicleInfo.mileage,
-        fuelLevel: vehicleInfo.fuelLevel
+    if (!user) {
+      toast({ title: "You must be logged in to submit an inspection", variant: "destructive" });
+      return;
+    }
+
+    setUploading(true);
+    
+    try {
+      let uploadedImagePaths: string[] = [];
+
+      // Upload images if any
+      if (inspectionImages.length > 0) {
+        const formData = new FormData();
+        inspectionImages.forEach((file, index) => {
+          formData.append(`inspectionImages`, file);
+        });
+
+        const uploadResponse = await apiRequest('/api/upload-inspection-images', {
+          method: 'POST',
+          body: formData,
+        });
+
+        uploadedImagePaths = uploadResponse.filePaths || [];
       }
-    };
 
-    // Add to submitted inspections
-    setSubmittedInspections(prev => [newInspectionRecord, ...prev]);
+      // Create new inspection record
+      const newInspectionRecord: InspectionRecord = {
+        id: Date.now(), // Simple ID generation
+        type: activeTab,
+        status: "completed",
+        submittedAt: new Date().toISOString(),
+        templateName: activeTab === 'pre-trip' ? 'Pre-Trip Inspection' : 'Post-Trip Inspection',
+        technicianName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username,
+        vehicleInfo: {
+          licensePlate: vehicleInfo.licensePlate,
+          mileage: vehicleInfo.mileage,
+          fuelLevel: vehicleInfo.fuelLevel
+        },
+        images: uploadedImagePaths
+      };
 
-    // Show success message and reset form
-    toast({ title: "Inspection submitted successfully and saved to History" });
-    setCurrentInspection([]);
-    setVehicleInfo({ licensePlate: '', mileage: '', fuelLevel: '' });
-    setNotes('');
+      // Add to submitted inspections
+      setSubmittedInspections(prev => [newInspectionRecord, ...prev]);
+
+      // Show success message and reset form
+      toast({ title: `Inspection submitted successfully by ${newInspectionRecord.technicianName}` });
+      setCurrentInspection([]);
+      setVehicleInfo({ licensePlate: '', mileage: '', fuelLevel: '' });
+      setNotes('');
+      setInspectionImages([]);
+    } catch (error) {
+      console.error('Error submitting inspection:', error);
+      toast({ title: "Failed to submit inspection", variant: "destructive" });
+    } finally {
+      setUploading(false);
+    }
   };
 
   // Combine default items and custom items
   const allItems = [...defaultInspectionItems, ...customItems];
+
+  // Image upload handlers
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files) {
+      const newImages = Array.from(files).filter(file => 
+        file.type.startsWith('image/') && file.size <= 10 * 1024 * 1024 // 10MB limit
+      );
+      
+      if (newImages.length !== files.length) {
+        toast({ title: "Some files were skipped (only images under 10MB allowed)", variant: "destructive" });
+      }
+      
+      setInspectionImages(prev => [...prev, ...newImages]);
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setInspectionImages(prev => prev.filter((_, i) => i !== index));
+  };
 
   const updateInspectionResponse = (itemId: number, response: InspectionResponse['response'], notes?: string) => {
     setCurrentInspection(prev => {
