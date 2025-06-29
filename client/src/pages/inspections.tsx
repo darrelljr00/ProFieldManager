@@ -502,9 +502,7 @@ export default function Inspections() {
               <CardTitle>Inspection History</CardTitle>
             </CardHeader>
             <CardContent>
-              {recordsLoading ? (
-                <div className="text-center py-8">Loading inspection records...</div>
-              ) : inspectionRecords?.length > 0 ? (
+              {inspectionRecords?.length > 0 ? (
                 <div className="space-y-4">
                   {inspectionRecords.map((record: InspectionRecord) => (
                     <div key={record.id} className="border rounded-lg p-4">
