@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -69,10 +69,12 @@ export default function Inspections() {
   const [activeTab, setActiveTab] = useState('pre-trip');
   const [currentInspection, setCurrentInspection] = useState<InspectionResponse[]>([]);
   const [vehicleInfo, setVehicleInfo] = useState({
+    vehicleNumber: '',
     licensePlate: '',
     mileage: '',
     fuelLevel: ''
   });
+  const [technicianName, setTechnicianName] = useState('');
   const [notes, setNotes] = useState('');
   const [customItems, setCustomItems] = useState<InspectionItem[]>([]);
   const [newItemName, setNewItemName] = useState('');
@@ -81,6 +83,14 @@ export default function Inspections() {
   const [inspectionImages, setInspectionImages] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
+  
+  // Auto-populate technician name when user is logged in
+  useEffect(() => {
+    if (user) {
+      const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username;
+      setTechnicianName(fullName);
+    }
+  }, [user]);
   
   // Default inspection items for demo
   const defaultInspectionItems: InspectionItem[] = [
@@ -190,7 +200,7 @@ export default function Inspections() {
       // Show success message and reset form
       toast({ title: `Inspection submitted successfully by ${newInspectionRecord.technicianName}` });
       setCurrentInspection([]);
-      setVehicleInfo({ licensePlate: '', mileage: '', fuelLevel: '' });
+      setVehicleInfo({ vehicleNumber: '', licensePlate: '', mileage: '', fuelLevel: '' });
       setNotes('');
       setInspectionImages([]);
       setDisclaimerAccepted(false);
@@ -342,7 +352,26 @@ export default function Inspections() {
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Vehicle Information */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="technicianName">Technician Name</Label>
+                  <Input
+                    id="technicianName"
+                    value={technicianName}
+                    onChange={(e) => setTechnicianName(e.target.value)}
+                    placeholder="Enter technician name"
+                    className="bg-gray-50"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="vehicleNumber">Vehicle Number</Label>
+                  <Input
+                    id="vehicleNumber"
+                    value={vehicleInfo.vehicleNumber}
+                    onChange={(e) => setVehicleInfo(prev => ({ ...prev, vehicleNumber: e.target.value }))}
+                    placeholder="Enter vehicle number"
+                  />
+                </div>
                 <div>
                   <Label htmlFor="licensePlate">License Plate</Label>
                   <Input
