@@ -40,6 +40,7 @@ import GpsTracking from "@/pages/gps-tracking";
 import FormBuilder from "@/pages/form-builder";
 import MobileTest from "@/pages/mobile-test";
 import TimeClock from "@/pages/time-clock";
+import Inspections from "@/pages/inspections";
 import Login from "@/pages/login";
 import SimpleLogin from "@/pages/simple-login";
 import Landing from "@/pages/landing";
@@ -140,6 +141,7 @@ function AuthenticatedApp() {
           <Route path="/gps-tracking" component={GpsTracking} />
           <Route path="/time-clock" component={TimeClock} />
           <Route path="/form-builder" component={FormBuilder} />
+          <Route path="/inspections" component={Inspections} />
           <Route path="/mobile-test" component={MobileTest} />
           {isAdmin && <Route path="/users" component={Users} />}
           {isAdmin && <Route path="/admin-settings" component={AdminSettings} />}

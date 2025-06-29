@@ -6375,6 +6375,239 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // Inspection Routes
+  app.get("/api/inspections/templates", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { type } = req.query;
+      const templates = await storage.getInspectionTemplates(user.organizationId, type as string);
+      res.json(templates);
+    } catch (error: any) {
+      console.error("Error fetching inspection templates:", error);
+      res.status(500).json({ message: "Failed to fetch inspection templates" });
+    }
+  });
+
+  app.get("/api/inspections/items", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { type = 'pre-trip' } = req.query;
+      
+      // Get default template for the type
+      const templates = await storage.getInspectionTemplates(user.organizationId, type as string);
+      const defaultTemplate = templates.find(t => t.isDefault) || templates[0];
+      
+      if (!defaultTemplate) {
+        // Return default items if no template exists
+        const defaultItems = {
+          'pre-trip': [
+            { id: 1, category: "Vehicle Safety", name: "Mirrors", description: "Check all mirrors for proper adjustment and cleanliness", isRequired: true },
+            { id: 2, category: "Vehicle Safety", name: "Tires", description: "Inspect tire pressure and tread depth", isRequired: true },
+            { id: 3, category: "Vehicle Safety", name: "Lights", description: "Test headlights, taillights, and hazard lights", isRequired: true },
+            { id: 4, category: "Vehicle Safety", name: "Turn Signals", description: "Check left and right turn signals", isRequired: true },
+            { id: 5, category: "Equipment", name: "Chemicals", description: "Verify chemical levels and proper storage", isRequired: true },
+            { id: 6, category: "Equipment", name: "O-rings", description: "Inspect o-rings for wear and proper sealing", isRequired: true },
+            { id: 7, category: "Equipment", name: "Nozzles", description: "Check nozzle condition and spray patterns", isRequired: true }
+          ],
+          'post-trip': [
+            { id: 8, category: "Equipment", name: "Chemical Storage", description: "Secure all chemicals properly", isRequired: true },
+            { id: 9, category: "Equipment", name: "Equipment Cleaning", description: "Clean and store all equipment", isRequired: true },
+            { id: 10, category: "Vehicle", name: "Fuel Level", description: "Record fuel level at end of shift", isRequired: true },
+            { id: 11, category: "Vehicle", name: "Mileage", description: "Record ending mileage", isRequired: true },
+            { id: 12, category: "Safety", name: "Incident Report", description: "Report any incidents or issues", isRequired: false }
+          ]
+        };
+        return res.json(defaultItems[type as keyof typeof defaultItems] || []);
+      }
+      
+      const items = await storage.getInspectionItems(defaultTemplate.id);
+      res.json(items);
+    } catch (error: any) {
+      console.error("Error fetching inspection items:", error);
+      res.status(500).json({ message: "Failed to fetch inspection items" });
+    }
+  });
+
+  app.get("/api/inspections/records", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { type } = req.query;
+      const records = await storage.getInspectionRecords(user.id, user.organizationId, type as string);
+      res.json(records);
+    } catch (error: any) {
+      console.error("Error fetching inspection records:", error);
+      res.status(500).json({ message: "Failed to fetch inspection records" });
+    }
+  });
+
+  app.post("/api/inspections/submit", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { type, vehicleInfo, responses, notes, location } = req.body;
+      
+      // Get or create default template
+      const templates = await storage.getInspectionTemplates(user.organizationId, type);
+      let templateId = templates.find(t => t.isDefault)?.id;
+      
+      if (!templateId) {
+        // Create default template if none exists
+        const template = await storage.createInspectionTemplate({
+          organizationId: user.organizationId,
+          name: `${type === 'pre-trip' ? 'Pre-Trip' : 'Post-Trip'} Inspection`,
+          type,
+          description: `Standard ${type} vehicle inspection`,
+          isDefault: true,
+          createdBy: user.id
+        });
+        templateId = template.id;
+      }
+      
+      // Create inspection record
+      const recordData = {
+        userId: user.id,
+        organizationId: user.organizationId,
+        templateId,
+        type,
+        vehicleInfo,
+        status: 'completed',
+        submittedAt: new Date(),
+        location,
+        notes
+      };
+      
+      const record = await storage.createInspectionRecord(recordData);
+      
+      // Create responses
+      for (const response of responses) {
+        await storage.createInspectionResponse({
+          recordId: record.id,
+          itemId: response.itemId,
+          response: response.response,
+          notes: response.notes,
+          photos: response.photos || []
+        });
+      }
+      
+      // Check for failed items and notify manager if needed
+      const failedItems = responses.filter(r => r.response === 'fail' || r.response === 'needs_attention');
+      if (failedItems.length > 0) {
+        // Get managers in the organization
+        const managers = await storage.getUsersByOrganization(user.organizationId);
+        const managerUsers = managers.filter(u => u.role === 'admin' || u.role === 'manager');
+        
+        for (const manager of managerUsers) {
+          await storage.createInspectionNotification({
+            recordId: record.id,
+            sentTo: manager.id,
+            notificationType: 'failure',
+            message: `${user.firstName || user.username} submitted a ${type} inspection with ${failedItems.length} failed items requiring attention.`
+          });
+        }
+        
+        // Update record status
+        await storage.updateInspectionRecord(record.id, { status: 'requires_attention' });
+      }
+      
+      // Broadcast to WebSocket
+      broadcastToWebUsers('inspection_submitted', {
+        record,
+        submittedBy: user.firstName || user.username,
+        type,
+        hasFailures: failedItems.length > 0
+      });
+      
+      res.json(record);
+    } catch (error: any) {
+      console.error("Error submitting inspection:", error);
+      res.status(500).json({ message: "Failed to submit inspection" });
+    }
+  });
+
+  app.post("/api/inspections/custom-items", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { name, category, type, isRequired = false } = req.body;
+      
+      // Get or create default template
+      const templates = await storage.getInspectionTemplates(user.organizationId, type);
+      let templateId = templates.find(t => t.isDefault)?.id;
+      
+      if (!templateId) {
+        const template = await storage.createInspectionTemplate({
+          organizationId: user.organizationId,
+          name: `${type === 'pre-trip' ? 'Pre-Trip' : 'Post-Trip'} Inspection`,
+          type,
+          description: `Standard ${type} vehicle inspection`,
+          isDefault: true,
+          createdBy: user.id
+        });
+        templateId = template.id;
+      }
+      
+      const item = await storage.createInspectionItem({
+        templateId,
+        category,
+        name,
+        description: `Custom ${category.toLowerCase()} item`,
+        isRequired,
+        sortOrder: 999
+      });
+      
+      res.json(item);
+    } catch (error: any) {
+      console.error("Error creating custom inspection item:", error);
+      res.status(500).json({ message: "Failed to create custom inspection item" });
+    }
+  });
+
+  app.post("/api/inspections/:id/send-to-manager", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { id } = req.params;
+      
+      const record = await storage.getInspectionRecord(parseInt(id), user.id);
+      if (!record) {
+        return res.status(404).json({ message: "Inspection record not found" });
+      }
+      
+      // Get managers in the organization
+      const managers = await storage.getUsersByOrganization(user.organizationId);
+      const managerUsers = managers.filter(u => u.role === 'admin' || u.role === 'manager');
+      
+      for (const manager of managerUsers) {
+        await storage.createInspectionNotification({
+          recordId: parseInt(id),
+          sentTo: manager.id,
+          notificationType: 'submission',
+          message: `${user.firstName || user.username} has sent you a ${record.type} inspection for review.`
+        });
+      }
+      
+      // Broadcast to managers
+      broadcastToWebUsers('inspection_sent_to_manager', {
+        recordId: parseInt(id),
+        submittedBy: user.firstName || user.username,
+        type: record.type
+      });
+      
+      res.json({ message: "Inspection sent to manager successfully" });
+    } catch (error: any) {
+      console.error("Error sending inspection to manager:", error);
+      res.status(500).json({ message: "Failed to send inspection to manager" });
+    }
+  });
+
+  app.get("/api/inspections/notifications", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const notifications = await storage.getInspectionNotifications(user.id);
+      res.json(notifications);
+    } catch (error: any) {
+      console.error("Error fetching inspection notifications:", error);
+      res.status(500).json({ message: "Failed to fetch inspection notifications" });
+    }
+  });
+
   // Add broadcast function to the app for use in routes
   (app as any).broadcastToWebUsers = broadcastToWebUsers;
 

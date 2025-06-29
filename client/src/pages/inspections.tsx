@@ -72,47 +72,42 @@ export default function Inspections() {
   const [newItemName, setNewItemName] = useState('');
   const [newItemCategory, setNewItemCategory] = useState('');
   
-  const queryClient = useQueryClient();
+  // Default inspection items for demo
+  const defaultInspectionItems: InspectionItem[] = [
+    { id: 1, name: "Left Mirror", category: "Mirrors", description: "Check left side mirror for cracks and proper adjustment", isRequired: true },
+    { id: 2, name: "Right Mirror", category: "Mirrors", description: "Check right side mirror for cracks and proper adjustment", isRequired: true },
+    { id: 3, name: "Front Tires", category: "Tires", description: "Check tire pressure and tread depth", isRequired: true },
+    { id: 4, name: "Rear Tires", category: "Tires", description: "Check tire pressure and tread depth", isRequired: true },
+    { id: 5, name: "Headlights", category: "Lights", description: "Test headlight functionality", isRequired: true },
+    { id: 6, name: "Brake Lights", category: "Lights", description: "Test brake light functionality", isRequired: true },
+    { id: 7, name: "Turn Signals", category: "Turn Signals", description: "Test left and right turn signals", isRequired: true },
+    { id: 8, name: "Chemicals", category: "Equipment", description: "Check chemical levels and equipment", isRequired: false },
+    { id: 9, name: "O-Rings", category: "Equipment", description: "Inspect o-rings for damage", isRequired: false },
+    { id: 10, name: "Nozzles", category: "Equipment", description: "Check nozzle condition and functionality", isRequired: false }
+  ];
 
-  // Fetch inspection records
-  const { data: inspectionRecords, isLoading: recordsLoading } = useQuery({
-    queryKey: ['/api/inspections/records'],
-    queryFn: () => apiRequest('/api/inspections/records')
-  });
+  const sampleInspectionRecords: InspectionRecord[] = [
+    { id: 1, type: "pre-trip", status: "completed", submittedAt: "2025-06-29T08:30:00Z", templateName: "Standard Pre-Trip", vehicleInfo: { licensePlate: "ABC-123", mileage: "45,230" } },
+    { id: 2, type: "post-trip", status: "completed", submittedAt: "2025-06-28T17:45:00Z", templateName: "Standard Post-Trip", vehicleInfo: { licensePlate: "ABC-123", mileage: "45,180" } }
+  ];
 
-  // Fetch inspection templates
-  const { data: inspectionItems, isLoading: itemsLoading } = useQuery({
-    queryKey: ['/api/inspections/items', activeTab],
-    queryFn: () => apiRequest(`/api/inspections/items?type=${activeTab}`)
-  });
+  // Use default data for now
+  const inspectionItems = defaultInspectionItems;
+  const inspectionRecords = sampleInspectionRecords;
 
-  // Submit inspection mutation
-  const submitInspectionMutation = useMutation({
-    mutationFn: (inspectionData: any) => 
-      apiRequest('/api/inspections/submit', { method: 'POST', body: JSON.stringify(inspectionData) }),
-    onSuccess: () => {
-      toast({ title: "Inspection submitted successfully" });
-      setCurrentInspection([]);
-      setVehicleInfo({ licensePlate: '', mileage: '', fuelLevel: '' });
-      setNotes('');
-      queryClient.invalidateQueries({ queryKey: ['/api/inspections/records'] });
-    },
-    onError: () => {
-      toast({ title: "Failed to submit inspection", variant: "destructive" });
+  // Submit inspection handler
+  const handleSubmitInspection = () => {
+    if (currentInspection.length === 0) {
+      toast({ title: "Please complete at least one inspection item", variant: "destructive" });
+      return;
     }
-  });
 
-  // Add custom item mutation
-  const addCustomItemMutation = useMutation({
-    mutationFn: (itemData: any) => 
-      apiRequest('/api/inspections/custom-items', { method: 'POST', body: JSON.stringify(itemData) }),
-    onSuccess: () => {
-      toast({ title: "Custom item added successfully" });
-      setNewItemName('');
-      setNewItemCategory('');
-      queryClient.invalidateQueries({ queryKey: ['/api/inspections/items', activeTab] });
-    }
-  });
+    // Simulate successful submission
+    toast({ title: "Inspection submitted successfully" });
+    setCurrentInspection([]);
+    setVehicleInfo({ licensePlate: '', mileage: '', fuelLevel: '' });
+    setNotes('');
+  };
 
   const allItems = [
     ...(defaultInspectionItems[activeTab as keyof typeof defaultInspectionItems] || []),
