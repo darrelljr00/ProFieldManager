@@ -359,9 +359,9 @@ export default function Inspections() {
                   <Input
                     id="technicianName"
                     value={technicianName}
-                    onChange={(e) => setTechnicianName(e.target.value)}
-                    placeholder="Enter technician name"
-                    className="bg-gray-50"
+                    placeholder="Technician name"
+                    className="bg-gray-100 text-gray-700"
+                    readOnly
                   />
                 </div>
                 <div>
@@ -631,9 +631,9 @@ export default function Inspections() {
                   <Input
                     id="technicianNamePost"
                     value={technicianName}
-                    onChange={(e) => setTechnicianName(e.target.value)}
-                    placeholder="Enter technician name"
-                    className="bg-gray-50"
+                    placeholder="Technician name"
+                    className="bg-gray-100 text-gray-700"
+                    readOnly
                   />
                 </div>
                 <div>
