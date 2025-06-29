@@ -2612,7 +2612,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (req.file) {
         const user = getAuthenticatedUser(req);
-        receiptUrl = `uploads/org-${user.organizationId}/receipt_images/${req.file.filename}`;
+        let finalFileName = req.file.filename;
+
+        // Apply compression if it's an image file
+        const isImageFile = /\.(jpeg|jpg|png|gif|webp)$/i.test(req.file.originalname);
+        if (isImageFile) {
+          const originalPath = req.file.path;
+          const compressedFilename = `compressed-${req.file.filename.replace(path.extname(req.file.filename), '.jpg')}`;
+          const compressedPath = path.join(path.dirname(originalPath), compressedFilename);
+          
+          // Try to apply compression
+          const compressionApplied = await compressImage(originalPath, compressedPath, user.organizationId);
+          
+          if (compressionApplied) {
+            // Use compressed image
+            finalFileName = compressedFilename;
+          }
+        }
+
+        receiptUrl = `uploads/org-${user.organizationId}/receipt_images/${finalFileName}`;
         receiptData = `Receipt uploaded: ${req.file.originalname}`;
       }
 
@@ -2658,7 +2676,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let receiptData = undefined;
       
       if (req.file) {
-        receiptUrl = req.file.path;
+        const user = getAuthenticatedUser(req);
+        let finalFileName = req.file.filename;
+
+        // Apply compression if it's an image file
+        const isImageFile = /\.(jpeg|jpg|png|gif|webp)$/i.test(req.file.originalname);
+        if (isImageFile) {
+          const originalPath = req.file.path;
+          const compressedFilename = `compressed-${req.file.filename.replace(path.extname(req.file.filename), '.jpg')}`;
+          const compressedPath = path.join(path.dirname(originalPath), compressedFilename);
+          
+          // Try to apply compression
+          const compressionApplied = await compressImage(originalPath, compressedPath, user.organizationId);
+          
+          if (compressionApplied) {
+            // Use compressed image
+            finalFileName = compressedFilename;
+          }
+        }
+
+        receiptUrl = `uploads/org-${user.organizationId}/receipt_images/${finalFileName}`;
         receiptData = `Receipt uploaded: ${req.file.originalname}`;
       }
 
@@ -3241,6 +3278,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "No receipt image provided" });
       }
 
+      const user = getAuthenticatedUser(req);
+      let finalFileName = req.file.filename;
+      let finalPath = req.file.path;
+
+      // Apply compression if it's an image file
+      const isImageFile = /\.(jpeg|jpg|png|gif|webp)$/i.test(req.file.originalname);
+      if (isImageFile) {
+        const originalPath = req.file.path;
+        const compressedFilename = `compressed-${req.file.filename.replace(path.extname(req.file.filename), '.jpg')}`;
+        const compressedPath = path.join(path.dirname(originalPath), compressedFilename);
+        
+        // Try to apply compression
+        const compressionApplied = await compressImage(originalPath, compressedPath, user.organizationId);
+        
+        if (compressionApplied) {
+          // Use compressed image
+          finalFileName = compressedFilename;
+          finalPath = compressedPath;
+        }
+      }
+
       // This endpoint requires an OCR API key for full functionality
       // For testing purposes, you can provide test data temporarily
       res.json({
@@ -3253,7 +3311,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           category: "meals",
           rawText: "Receipt text would appear here after OCR processing"
         },
-        imagePath: `uploads/org-${req.user!.organizationId}/expenses/${req.file.filename}`
+        imagePath: `uploads/org-${user.organizationId}/receipt_images/${finalFileName}`
       });
     } catch (error: any) {
       console.error("Error processing receipt:", error);
