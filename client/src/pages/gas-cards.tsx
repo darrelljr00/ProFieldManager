@@ -51,6 +51,11 @@ export default function GasCards() {
     queryKey: ['/api/gas-card-usage'],
   });
 
+  // Fetch gas card providers
+  const { data: gasCardProviders = [] } = useQuery({
+    queryKey: ['/api/gas-card-providers'],
+  });
+
   // Gas card form
   const gasCardForm = useForm({
     resolver: zodResolver(insertGasCardSchema),
@@ -263,6 +268,11 @@ export default function GasCards() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
+                            {gasCardProviders.map((provider: any) => (
+                              <SelectItem key={provider.id} value={provider.name}>
+                                {provider.name}
+                              </SelectItem>
+                            ))}
                             <SelectItem value="Shell">Shell</SelectItem>
                             <SelectItem value="BP">BP</SelectItem>
                             <SelectItem value="Exxon">Exxon</SelectItem>
