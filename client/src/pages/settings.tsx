@@ -11,7 +11,9 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Save, Eye, EyeOff, Upload, X } from "lucide-react";
+import { InvoicePreview } from "@/components/InvoicePreview";
 
 type PaymentSettings = {
   stripeEnabled: boolean;
@@ -1578,7 +1580,7 @@ export default function Settings() {
                 {/* Template Previews */}
                 <div className="space-y-4">
                   <Label>Template Previews</Label>
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {[
                       { id: 'classic', name: 'Classic Professional', color: '#1f2937' },
                       { id: 'modern', name: 'Modern Minimal', color: '#6b7280' },
@@ -1591,14 +1593,35 @@ export default function Settings() {
                       { id: 'tech', name: 'Tech Gradient', color: '#0891b2' },
                       { id: 'vintage', name: 'Vintage Style', color: '#92400e' }
                     ].map((template) => (
-                      <div key={template.id} className="border rounded-lg p-3 hover:border-primary cursor-pointer transition-colors">
+                      <div key={template.id} className="border rounded-lg p-4 hover:border-primary transition-colors">
                         <div 
-                          className="w-full h-20 rounded mb-2 flex items-center justify-center text-white text-xs font-medium"
+                          className="w-full h-20 rounded mb-3 flex items-center justify-center text-white text-xs font-medium"
                           style={{ backgroundColor: template.color }}
                         >
                           LOGO
                         </div>
-                        <p className="text-xs font-medium text-center">{template.name}</p>
+                        <p className="text-sm font-medium text-center mb-3">{template.name}</p>
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button variant="outline" size="sm" className="w-full">
+                              <Eye className="h-4 w-4 mr-2" />
+                              Preview Invoice
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                            <DialogHeader>
+                              <DialogTitle>{template.name} - Invoice Preview</DialogTitle>
+                            </DialogHeader>
+                            <div className="mt-4">
+                              <InvoicePreview 
+                                template={template.id}
+                                logoPosition={invoiceSettings?.logoPosition || 'top-left'}
+                                showSquareFeet={invoiceSettings?.showSquareFeet || false}
+                                squareFeetLabel={invoiceSettings?.squareFeetLabel || 'Square Feet'}
+                              />
+                            </div>
+                          </DialogContent>
+                        </Dialog>
                       </div>
                     ))}
                   </div>
