@@ -67,6 +67,367 @@ import {
   AlertTriangle
 } from "lucide-react";
 
+// Inspection Management Component
+function InspectionManagement() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [selectedType, setSelectedType] = useState<"pre-trip" | "post-trip">("pre-trip");
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<any>(null);
+  const [newItem, setNewItem] = useState({
+    name: "",
+    description: "",
+    category: "Vehicle Safety",
+    isRequired: true,
+  });
+
+  // Fetch inspection items
+  const { data: inspectionItems, isLoading } = useQuery({
+    queryKey: ["/api/inspections/items", selectedType],
+    queryFn: () => apiRequest(`/api/inspections/items?type=${selectedType}`),
+  });
+
+  // Add new inspection item
+  const addItemMutation = useMutation({
+    mutationFn: async (itemData: any) => {
+      return apiRequest("/api/inspections/items", {
+        method: "POST",
+        body: JSON.stringify({
+          ...itemData,
+          type: selectedType,
+        }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/inspections/items"] });
+      setIsAddDialogOpen(false);
+      setNewItem({ name: "", description: "", category: "Vehicle Safety", isRequired: true });
+      toast({
+        title: "Success",
+        description: "Inspection item added successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to add inspection item",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Update inspection item
+  const updateItemMutation = useMutation({
+    mutationFn: async (itemData: any) => {
+      return apiRequest(`/api/inspections/items/${itemData.id}`, {
+        method: "PUT",
+        body: JSON.stringify(itemData),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/inspections/items"] });
+      setEditingItem(null);
+      toast({
+        title: "Success",
+        description: "Inspection item updated successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update inspection item",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete inspection item
+  const deleteItemMutation = useMutation({
+    mutationFn: async (itemId: number) => {
+      return apiRequest(`/api/inspections/items/${itemId}`, {
+        method: "DELETE",
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/inspections/items"] });
+      toast({
+        title: "Success",
+        description: "Inspection item deleted successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete inspection item",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleAddItem = () => {
+    if (!newItem.name.trim()) {
+      toast({
+        title: "Error",
+        description: "Item name is required",
+        variant: "destructive",
+      });
+      return;
+    }
+    addItemMutation.mutate(newItem);
+  };
+
+  const handleUpdateItem = () => {
+    if (!editingItem?.name?.trim()) {
+      toast({
+        title: "Error",
+        description: "Item name is required",
+        variant: "destructive",
+      });
+      return;
+    }
+    updateItemMutation.mutate(editingItem);
+  };
+
+  const categories = ["Vehicle Safety", "Equipment", "Safety", "Vehicle", "Pre-Trip Checks", "Post-Trip Checks"];
+
+  return (
+    <div className="space-y-6">
+      {/* Type Selector */}
+      <div className="flex items-center gap-4">
+        <Label>Inspection Type:</Label>
+        <Select value={selectedType} onValueChange={(value: "pre-trip" | "post-trip") => setSelectedType(value)}>
+          <SelectTrigger className="w-48">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="pre-trip">Pre-Trip Inspection</SelectItem>
+            <SelectItem value="post-trip">Post-Trip Inspection</SelectItem>
+          </SelectContent>
+        </Select>
+        
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="ml-auto">
+              <Plus className="h-4 w-4 mr-2" />
+              Add Item
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add New {selectedType === "pre-trip" ? "Pre-Trip" : "Post-Trip"} Inspection Item</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="itemName">Item Name</Label>
+                <Input
+                  id="itemName"
+                  value={newItem.name}
+                  onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
+                  placeholder="e.g., Check Mirrors"
+                />
+              </div>
+              <div>
+                <Label htmlFor="itemDescription">Description</Label>
+                <Textarea
+                  id="itemDescription"
+                  value={newItem.description}
+                  onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
+                  placeholder="Detailed instructions for this inspection item"
+                />
+              </div>
+              <div>
+                <Label htmlFor="itemCategory">Category</Label>
+                <Select value={newItem.category} onValueChange={(value) => setNewItem({ ...newItem, category: value })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((category) => (
+                      <SelectItem key={category} value={category}>{category}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="itemRequired"
+                  checked={newItem.isRequired}
+                  onCheckedChange={(checked) => setNewItem({ ...newItem, isRequired: checked })}
+                />
+                <Label htmlFor="itemRequired">Required Item</Label>
+              </div>
+              <div className="flex gap-2">
+                <Button onClick={handleAddItem} disabled={addItemMutation.isPending}>
+                  {addItemMutation.isPending ? "Adding..." : "Add Item"}
+                </Button>
+                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* Items List */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CheckCircle className="h-5 w-5" />
+            {selectedType === "pre-trip" ? "Pre-Trip" : "Post-Trip"} Inspection Items
+          </CardTitle>
+          <CardDescription>
+            Manage inspection checklist items for {selectedType} inspections
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="text-center py-8">Loading...</div>
+          ) : inspectionItems?.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead>Required</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {inspectionItems.map((item: any) => (
+                  <TableRow key={item.id}>
+                    <TableCell className="font-medium">{item.name}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{item.category}</Badge>
+                    </TableCell>
+                    <TableCell className="max-w-xs truncate">{item.description}</TableCell>
+                    <TableCell>
+                      {item.isRequired ? (
+                        <Badge variant="default">Required</Badge>
+                      ) : (
+                        <Badge variant="secondary">Optional</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setEditingItem(item)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button size="sm" variant="outline">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Inspection Item</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete "{item.name}"? This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => deleteItemMutation.mutate(item.id)}
+                                disabled={deleteItemMutation.isPending}
+                              >
+                                {deleteItemMutation.isPending ? "Deleting..." : "Delete"}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="text-center py-8">
+              <CheckCircle className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No inspection items</h3>
+              <p className="text-gray-500 mb-4">
+                Get started by adding your first {selectedType} inspection item.
+              </p>
+              <Button onClick={() => setIsAddDialogOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add First Item
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Edit Dialog */}
+      {editingItem && (
+        <Dialog open={!!editingItem} onOpenChange={() => setEditingItem(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Inspection Item</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="editName">Item Name</Label>
+                <Input
+                  id="editName"
+                  value={editingItem.name || ""}
+                  onChange={(e) => setEditingItem({ ...editingItem, name: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="editDescription">Description</Label>
+                <Textarea
+                  id="editDescription"
+                  value={editingItem.description || ""}
+                  onChange={(e) => setEditingItem({ ...editingItem, description: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="editCategory">Category</Label>
+                <Select 
+                  value={editingItem.category || "Vehicle Safety"} 
+                  onValueChange={(value) => setEditingItem({ ...editingItem, category: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((category) => (
+                      <SelectItem key={category} value={category}>{category}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="editRequired"
+                  checked={editingItem.isRequired || false}
+                  onCheckedChange={(checked) => setEditingItem({ ...editingItem, isRequired: checked })}
+                />
+                <Label htmlFor="editRequired">Required Item</Label>
+              </div>
+              <div className="flex gap-2">
+                <Button onClick={handleUpdateItem} disabled={updateItemMutation.isPending}>
+                  {updateItemMutation.isPending ? "Updating..." : "Update Item"}
+                </Button>
+                <Button variant="outline" onClick={() => setEditingItem(null)}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
+  );
+}
+
 type SystemHealth = {
   database: boolean;
   api: boolean;

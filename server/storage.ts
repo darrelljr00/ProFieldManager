@@ -1426,6 +1426,23 @@ export class DatabaseStorage implements IStorage {
     return item;
   }
 
+  async updateInspectionItem(itemId: number, itemData: any): Promise<any> {
+    const [item] = await db
+      .update(inspectionItems)
+      .set(itemData)
+      .where(eq(inspectionItems.id, itemId))
+      .returning();
+    return item;
+  }
+
+  async deleteInspectionItem(itemId: number): Promise<boolean> {
+    const result = await db
+      .update(inspectionItems)
+      .set({ isActive: false })
+      .where(eq(inspectionItems.id, itemId));
+    return result.rowCount > 0;
+  }
+
   async getInspectionRecords(userId: number, organizationId: number, type?: string): Promise<any[]> {
     let query = db
       .select({

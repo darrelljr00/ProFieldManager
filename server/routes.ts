@@ -6859,6 +6859,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Create inspection item (Admin functionality)
+  app.post("/api/inspections/items", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { name, description, category, isRequired, type } = req.body;
+      
+      // Get or create default template for the specified type
+      const templates = await storage.getInspectionTemplates(user.organizationId, type);
+      let templateId = templates.find(t => t.isDefault)?.id;
+      
+      if (!templateId) {
+        const template = await storage.createInspectionTemplate({
+          organizationId: user.organizationId,
+          name: `Standard ${type === 'pre-trip' ? 'Pre-Trip' : 'Post-Trip'} Inspection`,
+          type,
+          description: `Standard ${type} vehicle and equipment inspection`,
+          isDefault: true,
+          createdBy: user.id
+        });
+        templateId = template.id;
+      }
+      
+      const item = await storage.createInspectionItem({
+        templateId,
+        category,
+        name,
+        description,
+        isRequired,
+        sortOrder: 999
+      });
+      
+      res.json(item);
+    } catch (error: any) {
+      console.error("Error creating inspection item:", error);
+      res.status(500).json({ message: "Failed to create inspection item" });
+    }
+  });
+
+  // Update inspection item (Admin functionality)
+  app.put("/api/inspections/items/:id", requireAuth, async (req, res) => {
+    try {
+      const itemId = parseInt(req.params.id);
+      const { name, description, category, isRequired } = req.body;
+      
+      const updatedItem = await storage.updateInspectionItem(itemId, {
+        name,
+        description,
+        category,
+        isRequired
+      });
+      
+      if (!updatedItem) {
+        return res.status(404).json({ message: "Inspection item not found" });
+      }
+      
+      res.json(updatedItem);
+    } catch (error: any) {
+      console.error("Error updating inspection item:", error);
+      res.status(500).json({ message: "Failed to update inspection item" });
+    }
+  });
+
+  // Delete inspection item (Admin functionality)
+  app.delete("/api/inspections/items/:id", requireAuth, async (req, res) => {
+    try {
+      const itemId = parseInt(req.params.id);
+      
+      const success = await storage.deleteInspectionItem(itemId);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Inspection item not found" });
+      }
+      
+      res.json({ message: "Inspection item deleted successfully" });
+    } catch (error: any) {
+      console.error("Error deleting inspection item:", error);
+      res.status(500).json({ message: "Failed to delete inspection item" });
+    }
+  });
+
   app.post("/api/inspections/:id/send-to-manager", requireAuth, async (req, res) => {
     try {
       const user = getAuthenticatedUser(req);
