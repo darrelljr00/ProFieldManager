@@ -12,16 +12,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertGasCardSchema, insertGasCardAssignmentSchema } from "@shared/schema";
-import { CreditCard, Plus, ArrowLeftRight, Calendar, User, Building2 } from "lucide-react";
+import { insertGasCardSchema, insertGasCardAssignmentSchema, insertGasCardUsageSchema } from "@shared/schema";
+import { CreditCard, Plus, ArrowLeftRight, Calendar, User, Building2, Fuel, History } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
-import type { GasCard, GasCardAssignment, User as UserType } from "@shared/schema";
+import type { GasCard, GasCardAssignment, GasCardUsage, User as UserType } from "@shared/schema";
 
 export default function GasCards() {
   const [cardDialogOpen, setCardDialogOpen] = useState(false);
   const [assignmentDialogOpen, setAssignmentDialogOpen] = useState(false);
+  const [usageDialogOpen, setUsageDialogOpen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -43,6 +44,11 @@ export default function GasCards() {
   // Fetch users for assignment dropdown
   const { data: users = [] } = useQuery({
     queryKey: ['/api/admin/users'],
+  });
+
+  // Fetch gas card usage
+  const { data: usageData = [], isLoading: usageLoading } = useQuery({
+    queryKey: ['/api/gas-card-usage'],
   });
 
   // Gas card form

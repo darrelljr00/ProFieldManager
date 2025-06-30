@@ -4710,6 +4710,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Gas card usage tracking routes
+  app.get('/api/gas-card-usage', requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const { cardId, startDate, endDate } = req.query;
+      
+      const usage = await storage.getGasCardUsage(
+        user.organizationId,
+        cardId ? parseInt(cardId as string) : undefined,
+        startDate ? new Date(startDate as string) : undefined,
+        endDate ? new Date(endDate as string) : undefined
+      );
+      
+      res.json(usage);
+    } catch (error: any) {
+      console.error('Error fetching gas card usage:', error);
+      res.status(500).json({ message: 'Failed to fetch gas card usage' });
+    }
+  });
+
+  app.post('/api/gas-card-usage', requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const usageData = {
+        ...req.body,
+        createdBy: user.id,
+        organizationId: user.organizationId,
+        purchaseDate: new Date(req.body.purchaseDate)
+      };
+      
+      const usage = await storage.createGasCardUsage(usageData);
+      res.json(usage);
+    } catch (error: any) {
+      console.error('Error creating gas card usage:', error);
+      res.status(500).json({ message: 'Failed to create gas card usage' });
+    }
+  });
+
+  app.put('/api/gas-card-usage/:id', requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updateData = req.body;
+      
+      if (updateData.purchaseDate) {
+        updateData.purchaseDate = new Date(updateData.purchaseDate);
+      }
+      
+      const usage = await storage.updateGasCardUsage(id, updateData);
+      res.json(usage);
+    } catch (error: any) {
+      console.error('Error updating gas card usage:', error);
+      res.status(500).json({ message: 'Failed to update gas card usage' });
+    }
+  });
+
+  app.delete('/api/gas-card-usage/:id', requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteGasCardUsage(id);
+      
+      if (success) {
+        res.json({ message: 'Gas card usage deleted successfully' });
+      } else {
+        res.status(404).json({ message: 'Gas card usage not found' });
+      }
+    } catch (error: any) {
+      console.error('Error deleting gas card usage:', error);
+      res.status(500).json({ message: 'Failed to delete gas card usage' });
+    }
+  });
+
+  app.put('/api/gas-card-usage/:id/approve', requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const user = req.user!;
+      
+      const usage = await storage.approveGasCardUsage(id, user.id);
+      res.json(usage);
+    } catch (error: any) {
+      console.error('Error approving gas card usage:', error);
+      res.status(500).json({ message: 'Failed to approve gas card usage' });
+    }
+  });
+
   // Image management routes
   app.get('/api/images', requireAuth, async (req, res) => {
     try {

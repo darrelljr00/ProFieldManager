@@ -2645,6 +2645,130 @@ export class DatabaseStorage implements IStorage {
       );
     return result.rowCount > 0;
   }
+
+  // Gas card usage tracking methods
+  async getGasCardUsage(organizationId: number, cardId?: number, startDate?: Date, endDate?: Date): Promise<GasCardUsage[]> {
+    try {
+      let query = db
+        .select({
+          id: gasCardUsage.id,
+          cardId: gasCardUsage.cardId,
+          assignmentId: gasCardUsage.assignmentId,
+          userId: gasCardUsage.userId,
+          purchaseDate: gasCardUsage.purchaseDate,
+          location: gasCardUsage.location,
+          fuelType: gasCardUsage.fuelType,
+          gallons: gasCardUsage.gallons,
+          pricePerGallon: gasCardUsage.pricePerGallon,
+          totalAmount: gasCardUsage.totalAmount,
+          mileage: gasCardUsage.mileage,
+          vehicleInfo: gasCardUsage.vehicleInfo,
+          projectId: gasCardUsage.projectId,
+          purpose: gasCardUsage.purpose,
+          receiptUrl: gasCardUsage.receiptUrl,
+          notes: gasCardUsage.notes,
+          isApproved: gasCardUsage.isApproved,
+          approvedBy: gasCardUsage.approvedBy,
+          approvedAt: gasCardUsage.approvedAt,
+          createdBy: gasCardUsage.createdBy,
+          organizationId: gasCardUsage.organizationId,
+          createdAt: gasCardUsage.createdAt,
+          updatedAt: gasCardUsage.updatedAt,
+          cardNumber: gasCards.cardNumber,
+          cardName: gasCards.cardName,
+          userName: users.username,
+          userFirstName: users.firstName,
+          userLastName: users.lastName
+        })
+        .from(gasCardUsage)
+        .innerJoin(gasCards, eq(gasCardUsage.cardId, gasCards.id))
+        .innerJoin(users, eq(gasCardUsage.userId, users.id))
+        .where(eq(gasCardUsage.organizationId, organizationId));
+
+      if (cardId) {
+        query = query.where(and(eq(gasCardUsage.organizationId, organizationId), eq(gasCardUsage.cardId, cardId)));
+      }
+
+      if (startDate) {
+        query = query.where(and(eq(gasCardUsage.organizationId, organizationId), gte(gasCardUsage.purchaseDate, startDate)));
+      }
+
+      if (endDate) {
+        query = query.where(and(eq(gasCardUsage.organizationId, organizationId), lte(gasCardUsage.purchaseDate, endDate)));
+      }
+
+      const usage = await query.orderBy(desc(gasCardUsage.purchaseDate));
+      return usage as GasCardUsage[];
+    } catch (error) {
+      console.error('Error fetching gas card usage:', error);
+      return [];
+    }
+  }
+
+  async createGasCardUsage(data: InsertGasCardUsage): Promise<GasCardUsage> {
+    try {
+      const [usage] = await db
+        .insert(gasCardUsage)
+        .values({
+          ...data,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+        .returning();
+      return usage;
+    } catch (error) {
+      console.error('Error creating gas card usage:', error);
+      throw error;
+    }
+  }
+
+  async updateGasCardUsage(id: number, data: Partial<InsertGasCardUsage>): Promise<GasCardUsage> {
+    try {
+      const [usage] = await db
+        .update(gasCardUsage)
+        .set({
+          ...data,
+          updatedAt: new Date()
+        })
+        .where(eq(gasCardUsage.id, id))
+        .returning();
+      return usage;
+    } catch (error) {
+      console.error('Error updating gas card usage:', error);
+      throw error;
+    }
+  }
+
+  async deleteGasCardUsage(id: number): Promise<boolean> {
+    try {
+      const result = await db
+        .delete(gasCardUsage)
+        .where(eq(gasCardUsage.id, id));
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error('Error deleting gas card usage:', error);
+      return false;
+    }
+  }
+
+  async approveGasCardUsage(id: number, approvedBy: number): Promise<GasCardUsage> {
+    try {
+      const [usage] = await db
+        .update(gasCardUsage)
+        .set({
+          isApproved: true,
+          approvedBy,
+          approvedAt: new Date(),
+          updatedAt: new Date()
+        })
+        .where(eq(gasCardUsage.id, id))
+        .returning();
+      return usage;
+    } catch (error) {
+      console.error('Error approving gas card usage:', error);
+      throw error;
+    }
+  }
 }
 
 export const storage = new DatabaseStorage();
