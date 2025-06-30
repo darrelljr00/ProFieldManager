@@ -397,23 +397,14 @@ export default function ImageGallery() {
   };
 
   const getImageUrl = (image: ImageFile) => {
-    // Use the URL from the backend if available (includes proper organization path)
+    // Always use the URL from the backend response which includes correct organization path
     if (image.url) {
       return image.url;
     }
     
-    // For legacy files that start with 'file-' in organization folder
-    if (image.filename.startsWith('file-')) {
-      return `/uploads/org-2/image_gallery/${image.filename}`;
-    }
-    
-    // For newer gallery files with 'gallery-' prefix
-    if (image.filename.startsWith('gallery-')) {
-      return `/uploads/org-2/image_gallery/${image.filename}`;
-    }
-    
-    // Fallback for any other files
-    return `/uploads/org-2/image_gallery/${image.filename}`;
+    // Fallback - this shouldn't happen with properly configured backend
+    console.warn('Image missing URL property, using fallback path');
+    return `/uploads/${image.filename}`;
   };
 
   return (
