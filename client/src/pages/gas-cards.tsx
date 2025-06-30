@@ -127,12 +127,52 @@ export default function GasCards() {
     },
   });
 
+  // Gas card usage form
+  const usageForm = useForm({
+    resolver: zodResolver(insertGasCardUsageSchema.omit({ organizationId: true, createdBy: true })),
+    defaultValues: {
+      cardId: 0,
+      userId: 0,
+      purchaseDate: new Date(),
+      location: "",
+      fuelType: "regular",
+      gallons: 0,
+      pricePerGallon: 0,
+      totalAmount: 0,
+      mileage: 0,
+      vehicleInfo: "",
+      purpose: "",
+      notes: ""
+    }
+  });
+
+  // Create gas card usage mutation
+  const createUsageMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const response = await apiRequest('POST', '/api/gas-card-usage', data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/gas-card-usage'] });
+      setUsageDialogOpen(false);
+      usageForm.reset();
+      toast({ title: "Gas card usage recorded successfully" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Error recording usage", description: error.message, variant: "destructive" });
+    },
+  });
+
   const handleCreateGasCard = (data: any) => {
     createGasCardMutation.mutate(data);
   };
 
   const handleCreateAssignment = (data: any) => {
     createAssignmentMutation.mutate(data);
+  };
+
+  const handleCreateUsage = (data: any) => {
+    createUsageMutation.mutate(data);
   };
 
   const handleReturnCard = (assignmentId: number) => {
@@ -403,6 +443,7 @@ export default function GasCards() {
           <TabsTrigger value="active">Active Assignments</TabsTrigger>
           <TabsTrigger value="cards">All Gas Cards</TabsTrigger>
           <TabsTrigger value="history">Assignment History</TabsTrigger>
+          <TabsTrigger value="usage">Historical Usage</TabsTrigger>
         </TabsList>
 
         <TabsContent value="active" className="space-y-4">
@@ -594,6 +635,309 @@ export default function GasCards() {
                         </TableCell>
                         <TableCell>{assignment.purpose || "—"}</TableCell>
                         <TableCell>{getAssignmentStatusBadge(assignment.status)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="usage" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <CreditCard className="h-5 w-5" />
+                    Historical Gas Card Usage
+                  </CardTitle>
+                  <CardDescription>
+                    Record and track historical fuel purchases for gas cards
+                  </CardDescription>
+                </div>
+                <Dialog open={usageDialogOpen} onOpenChange={setUsageDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Record Usage
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                      <DialogTitle>Record Gas Card Usage</DialogTitle>
+                      <DialogDescription>Record a historical fuel purchase for tracking purposes</DialogDescription>
+                    </DialogHeader>
+                    <Form {...usageForm}>
+                      <form onSubmit={usageForm.handleSubmit(handleCreateUsage)} className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <FormField
+                            control={usageForm.control}
+                            name="cardId"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Gas Card</FormLabel>
+                                <Select onValueChange={(value) => field.onChange(parseInt(value))} defaultValue={field.value?.toString()}>
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select a gas card" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {gasCards.map((card: GasCard) => (
+                                      <SelectItem key={card.id} value={card.id.toString()}>
+                                        {card.cardName} - {card.provider}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={usageForm.control}
+                            name="userId"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>User</FormLabel>
+                                <Select onValueChange={(value) => field.onChange(parseInt(value))} defaultValue={field.value?.toString()}>
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select user" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {users.map((user: UserType) => (
+                                      <SelectItem key={user.id} value={user.id.toString()}>
+                                        {user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.username}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                          <FormField
+                            control={usageForm.control}
+                            name="purchaseDate"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Purchase Date</FormLabel>
+                                <FormControl>
+                                  <Input type="datetime-local" {...field} value={field.value instanceof Date ? field.value.toISOString().slice(0, 16) : field.value} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={usageForm.control}
+                            name="location"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Location</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Gas station location" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-4">
+                          <FormField
+                            control={usageForm.control}
+                            name="gallons"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Gallons</FormLabel>
+                                <FormControl>
+                                  <Input type="number" step="0.01" placeholder="0.00" {...field} onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={usageForm.control}
+                            name="pricePerGallon"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Price Per Gallon</FormLabel>
+                                <FormControl>
+                                  <Input type="number" step="0.01" placeholder="$0.00" {...field} onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={usageForm.control}
+                            name="totalAmount"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Total Amount</FormLabel>
+                                <FormControl>
+                                  <Input type="number" step="0.01" placeholder="$0.00" {...field} onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <FormField
+                            control={usageForm.control}
+                            name="fuelType"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Fuel Type</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select fuel type" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <SelectItem value="regular">Regular</SelectItem>
+                                    <SelectItem value="mid-grade">Mid-Grade</SelectItem>
+                                    <SelectItem value="premium">Premium</SelectItem>
+                                    <SelectItem value="diesel">Diesel</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={usageForm.control}
+                            name="mileage"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Odometer Reading</FormLabel>
+                                <FormControl>
+                                  <Input type="number" placeholder="Miles" {...field} onChange={(e) => field.onChange(parseInt(e.target.value) || 0)} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        <FormField
+                          control={usageForm.control}
+                          name="vehicleInfo"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Vehicle Information</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Vehicle make, model, license plate" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={usageForm.control}
+                          name="purpose"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Purpose</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Business purpose for fuel purchase" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={usageForm.control}
+                          name="notes"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Notes</FormLabel>
+                              <FormControl>
+                                <textarea 
+                                  className="w-full p-2 border rounded-md" 
+                                  rows={3} 
+                                  placeholder="Additional notes about the purchase"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <div className="flex justify-end gap-2">
+                          <Button type="button" variant="outline" onClick={() => setUsageDialogOpen(false)}>
+                            Cancel
+                          </Button>
+                          <Button type="submit" disabled={createUsageMutation.isPending}>
+                            {createUsageMutation.isPending ? "Recording..." : "Record Usage"}
+                          </Button>
+                        </div>
+                      </form>
+                    </Form>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {usageLoading ? (
+                <div className="flex justify-center py-8">Loading usage history...</div>
+              ) : usageData.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No gas card usage recorded yet
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Gas Card</TableHead>
+                      <TableHead>User</TableHead>
+                      <TableHead>Location</TableHead>
+                      <TableHead>Fuel Type</TableHead>
+                      <TableHead>Gallons</TableHead>
+                      <TableHead>Price/Gal</TableHead>
+                      <TableHead>Total</TableHead>
+                      <TableHead>Odometer</TableHead>
+                      <TableHead>Purpose</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {usageData.map((usage: GasCardUsage) => (
+                      <TableRow key={usage.id}>
+                        <TableCell>{format(new Date(usage.purchaseDate), 'MMM d, yyyy')}</TableCell>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{usage.cardName}</div>
+                            <div className="text-sm text-muted-foreground">{usage.cardNumber}</div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {usage.userFirstName && usage.userLastName 
+                            ? `${usage.userFirstName} ${usage.userLastName}`
+                            : usage.userName}
+                        </TableCell>
+                        <TableCell>{usage.location}</TableCell>
+                        <TableCell className="capitalize">{usage.fuelType}</TableCell>
+                        <TableCell>{usage.gallons} gal</TableCell>
+                        <TableCell>${usage.pricePerGallon.toFixed(2)}</TableCell>
+                        <TableCell className="font-medium">${usage.totalAmount}</TableCell>
+                        <TableCell>{usage.mileage ? `${usage.mileage} mi` : "—"}</TableCell>
+                        <TableCell>{usage.purpose || "—"}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
