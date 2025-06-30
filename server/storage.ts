@@ -2321,9 +2321,10 @@ export class DatabaseStorage implements IStorage {
         .where(inArray(images.userId, orgUserIds))
         .orderBy(desc(images.createdAt));
 
-      // Add correct URL paths for organization-based file structure
+      // Add correct URL paths for organization-based file structure and map date field
       return imageResults.map(image => ({
         ...image,
+        uploadDate: image.createdAt, // Map createdAt to uploadDate for frontend compatibility
         url: `/uploads/org-${userInfo.organizationId}/image_gallery/${image.filename}`
       }));
     } catch (error) {

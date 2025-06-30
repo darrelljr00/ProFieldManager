@@ -513,7 +513,7 @@ export default function ImageGallery() {
                       )}
                       <div className="flex justify-between items-center text-sm text-muted-foreground">
                         <span>{(image.size / 1024).toFixed(1)} KB</span>
-                        <span>{new Date(image.uploadDate).toLocaleDateString()}</span>
+                        <span>{image.uploadDate ? new Date(image.uploadDate).toLocaleDateString() : 'No date'}</span>
                       </div>
                       <div className="flex gap-2">
                         <Button size="sm" variant="outline" onClick={() => handleAnnotate(image)}>
@@ -551,7 +551,7 @@ export default function ImageGallery() {
                           {(image.size / 1024).toFixed(1)} KB
                         </span>
                         <span className="text-sm text-muted-foreground">
-                          {new Date(image.uploadDate).toLocaleDateString()}
+                          {image.uploadDate ? new Date(image.uploadDate).toLocaleDateString() : 'No date'}
                         </span>
                       </div>
                     </div>
