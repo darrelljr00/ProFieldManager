@@ -2,13 +2,13 @@ import { db } from "./db";
 import { 
   users, customers, invoices, quotes, projects, tasks, 
   expenses, expenseCategories, vendors, expenseReports, gasCards, 
-  gasCardAssignments, gasCardUsage, leads, calendarJobs, messages,
+  gasCardAssignments, gasCardUsage, gasCardProviders, leads, calendarJobs, messages,
   images, settings, organizations, userSessions, subscriptionPlans,
   projectFiles, fileManager, projectUsers, timeClock, timeClockSettings,
   internalMessages, internalMessageRecipients, messageGroups, messageGroupMembers,
   inspectionTemplates, inspectionItems, inspectionRecords, inspectionResponses, inspectionNotifications
 } from "@shared/schema";
-import type { GasCard, InsertGasCard, GasCardAssignment, InsertGasCardAssignment, GasCardUsage, InsertGasCardUsage } from "@shared/schema";
+import type { GasCard, InsertGasCard, GasCardAssignment, InsertGasCardAssignment, GasCardUsage, InsertGasCardUsage, GasCardProvider, InsertGasCardProvider } from "@shared/schema";
 import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull, isNull } from "drizzle-orm";
 import type { 
   User, Customer, Invoice, Quote, Project, Task, 
