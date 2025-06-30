@@ -293,6 +293,17 @@ export class DatabaseStorage implements IStorage {
     if (updates.canAccessUsers !== undefined) updateData.canAccessUsers = updates.canAccessUsers;
     if (updates.canAccessAdminSettings !== undefined) updateData.canAccessAdminSettings = updates.canAccessAdminSettings;
     if (updates.canAccessHR !== undefined) updateData.canAccessHR = updates.canAccessHR;
+    if (updates.canAccessSaasAdmin !== undefined) updateData.canAccessSaasAdmin = updates.canAccessSaasAdmin;
+    if (updates.canAccessExpenseCategories !== undefined) updateData.canAccessExpenseCategories = updates.canAccessExpenseCategories;
+    if (updates.canAccessGasCardProviders !== undefined) updateData.canAccessGasCardProviders = updates.canAccessGasCardProviders;
+    if (updates.canAccessFileManager !== undefined) updateData.canAccessFileManager = updates.canAccessFileManager;
+    if (updates.canAccessFormBuilder !== undefined) updateData.canAccessFormBuilder = updates.canAccessFormBuilder;
+    if (updates.canAccessTimeClock !== undefined) updateData.canAccessTimeClock = updates.canAccessTimeClock;
+    if (updates.canAccessMyTasks !== undefined) updateData.canAccessMyTasks = updates.canAccessMyTasks;
+    if (updates.canAccessInspections !== undefined) updateData.canAccessInspections = updates.canAccessInspections;
+    if (updates.canAccessGpsTracking !== undefined) updateData.canAccessGpsTracking = updates.canAccessGpsTracking;
+    if (updates.canAccessMobileTest !== undefined) updateData.canAccessMobileTest = updates.canAccessMobileTest;
+    if (updates.canAccessJobs !== undefined) updateData.canAccessJobs = updates.canAccessJobs;
 
     const [user] = await db
       .update(users)
