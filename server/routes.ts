@@ -4404,9 +4404,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return acc;
       }, {
         twilioEnabled: false,
-        accountSid: '',
-        authToken: '',
-        phoneNumber: ''
+        twilioAccountSid: '',
+        twilioAuthToken: '',
+        twilioPhoneNumber: '',
+        webhookUrl: ''
       });
       res.json(twilioSettings);
     } catch (error: any) {
@@ -4418,13 +4419,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put('/api/settings/twilio', requireAuth, async (req, res) => {
     try {
       const settings = req.body;
+      
+      // Map frontend field names to storage keys
+      const keyMapping = {
+        twilioEnabled: 'twilio_twilioEnabled',
+        twilioAccountSid: 'twilio_twilioAccountSid', 
+        twilioAuthToken: 'twilio_twilioAuthToken',
+        twilioPhoneNumber: 'twilio_twilioPhoneNumber',
+        webhookUrl: 'twilio_webhookUrl'
+      };
+
       for (const [key, value] of Object.entries(settings)) {
-        await storage.updateSetting('twilio', `twilio_${key}`, String(value));
+        const storageKey = keyMapping[key] || `twilio_${key}`;
+        await storage.updateSetting('twilio', storageKey, String(value));
       }
-      res.json({ message: 'Twilio settings updated successfully' });
+      
+      res.json({ 
+        message: 'Twilio settings updated successfully',
+        settings: settings
+      });
     } catch (error: any) {
       console.error('Error updating Twilio settings:', error);
       res.status(500).json({ message: 'Failed to update Twilio settings' });
+    }
+  });
+
+  // Test Twilio connection
+  app.post('/api/settings/twilio/test', requireAuth, async (req, res) => {
+    try {
+      const { twilioAccountSid, twilioAuthToken, twilioPhoneNumber } = req.body;
+      
+      if (!twilioAccountSid || !twilioAuthToken || !twilioPhoneNumber) {
+        return res.status(400).json({ 
+          message: 'Account SID, Auth Token, and Phone Number are required for testing' 
+        });
+      }
+
+      // Import Twilio and test the connection
+      const twilio = require('twilio');
+      const client = twilio(twilioAccountSid, twilioAuthToken);
+
+      // Verify account by fetching account information
+      const account = await client.api.accounts(twilioAccountSid).fetch();
+      
+      // Verify the phone number exists
+      const phoneNumber = await client.incomingPhoneNumbers.list({
+        phoneNumber: twilioPhoneNumber,
+        limit: 1
+      });
+
+      if (phoneNumber.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Phone number not found in your Twilio account'
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'Twilio connection successful',
+        accountName: account.friendlyName,
+        phoneNumber: twilioPhoneNumber,
+        status: account.status
+      });
+
+    } catch (error: any) {
+      console.error('Twilio test error:', error);
+      res.status(400).json({
+        success: false,
+        message: `Connection failed: ${error.message}`,
+        details: error.code || 'Unknown error'
+      });
     }
   });
 

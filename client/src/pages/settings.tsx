@@ -186,13 +186,31 @@ export default function Settings() {
       queryClient.invalidateQueries({ queryKey: ["/api/settings/twilio"] });
       toast({
         title: "Success",
-        description: "Twilio settings saved successfully",
+        description: "Twilio settings saved successfully. SMS functionality is now configured.",
       });
     },
     onError: (error: any) => {
       toast({
         title: "Error",
         description: error.message || "Failed to save Twilio settings",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const twilioTestMutation = useMutation({
+    mutationFn: (data: { twilioAccountSid: string; twilioAuthToken: string; twilioPhoneNumber: string }) =>
+      apiRequest("POST", "/api/settings/twilio/test", data),
+    onSuccess: (response) => {
+      toast({
+        title: "Connection Successful",
+        description: `Connected to ${response.accountName}. Phone number ${response.phoneNumber} verified.`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Connection Failed",
+        description: error.message || "Failed to connect to Twilio",
         variant: "destructive",
       });
     },
@@ -397,6 +415,28 @@ export default function Settings() {
       webhookUrl: formData.get('webhookUrl') as string,
     };
     twilioMutation.mutate(data);
+  };
+
+  const handleTwilioTest = (e: React.FormEvent) => {
+    e.preventDefault();
+    const form = e.currentTarget as HTMLFormElement;
+    const formData = new FormData(form);
+    const data = {
+      twilioAccountSid: formData.get('twilioAccountSid') as string,
+      twilioAuthToken: formData.get('twilioAuthToken') as string,
+      twilioPhoneNumber: formData.get('twilioPhoneNumber') as string,
+    };
+    
+    if (!data.twilioAccountSid || !data.twilioAuthToken || !data.twilioPhoneNumber) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in Account SID, Auth Token, and Phone Number before testing.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    twilioTestMutation.mutate(data);
   };
 
   const handleOcrSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -1010,13 +1050,35 @@ export default function Settings() {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleTwilioSubmit} className="space-y-6">
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    name="twilioEnabled"
-                    id="twilioEnabled"
-                    defaultChecked={twilioSettings?.twilioEnabled}
-                  />
-                  <Label htmlFor="twilioEnabled">Enable Twilio SMS</Label>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      name="twilioEnabled"
+                      id="twilioEnabled"
+                      defaultChecked={twilioSettings?.twilioEnabled}
+                    />
+                    <Label htmlFor="twilioEnabled">Enable Twilio SMS</Label>
+                  </div>
+                  
+                  {/* Status Indicator */}
+                  <div className="flex items-center space-x-2">
+                    <div className={`w-2 h-2 rounded-full ${
+                      twilioSettings?.twilioEnabled && 
+                      twilioSettings?.twilioAccountSid && 
+                      twilioSettings?.twilioAuthToken && 
+                      twilioSettings?.twilioPhoneNumber 
+                        ? 'bg-green-500' 
+                        : 'bg-gray-300'
+                    }`} />
+                    <span className="text-sm text-muted-foreground">
+                      {twilioSettings?.twilioEnabled && 
+                       twilioSettings?.twilioAccountSid && 
+                       twilioSettings?.twilioAuthToken && 
+                       twilioSettings?.twilioPhoneNumber 
+                        ? 'Configured' 
+                        : 'Not Configured'}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -1096,7 +1158,16 @@ export default function Settings() {
                   </ol>
                 </div>
 
-                <div className="flex justify-end">
+                <div className="flex justify-between items-center">
+                  <Button 
+                    type="button" 
+                    variant="outline"
+                    onClick={handleTwilioTest}
+                    disabled={twilioTestMutation.isPending}
+                  >
+                    {twilioTestMutation.isPending ? "Testing..." : "Test Connection"}
+                  </Button>
+                  
                   <Button type="submit" disabled={twilioMutation.isPending}>
                     <Save className="h-4 w-4 mr-2" />
                     {twilioMutation.isPending ? "Saving..." : "Save SMS Settings"}
