@@ -6076,7 +6076,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Create folder structure for the new organization
-      await createOrgFolderStructure(organization.id);
+      const { createOrganizationFolders } = require('./folderCreation');
+      await createOrganizationFolders(organization.id);
 
       // Create admin user for the organization
       const hashedPassword = await AuthService.hashPassword(password);

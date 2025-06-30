@@ -2339,21 +2339,7 @@ export class DatabaseStorage implements IStorage {
 
       // Get images filtered by organization for proper multi-tenant isolation
       const imageResults = await db
-        .select({
-          id: images.id,
-          filename: images.filename,
-          originalName: images.originalName,
-          mimeType: images.mimeType,
-          size: images.size,
-          description: images.description,
-          annotations: images.annotations,
-          annotatedImageUrl: images.annotatedImageUrl,
-          createdAt: images.createdAt,
-          updatedAt: images.updatedAt,
-          userId: images.userId,
-          organizationId: images.organizationId,
-          projectId: images.projectId
-        })
+        .select()
         .from(images)
         .where(eq(images.organizationId, userInfo.organizationId))
         .orderBy(desc(images.createdAt));
