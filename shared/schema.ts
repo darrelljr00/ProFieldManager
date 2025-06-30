@@ -470,24 +470,26 @@ export const vendors = pgTable("vendors", {
 
 export const gasCardProviders = pgTable("gas_card_providers", {
   id: serial("id").primaryKey(),
-  organizationId: integer("organizationid").references(() => organizations.id),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
   name: text("name").notNull(),
-  providerType: text("providertype").default("fuel"), // fuel, fleet, corporate
-  accountNumber: text("accountnumber"),
-  contactEmail: text("contactemail"),
-  contactPhone: text("contactphone"),
+  description: text("description"),
+  contactInfo: text("contact_info"),
+  accountNumber: text("account_number"),
+  providerType: text("provider_type").default("fuel"), // fuel, fleet, corporate
+  contactEmail: text("contact_email"),
+  contactPhone: text("contact_phone"),
   website: text("website"),
-  apiKey: text("apikey"), // For integration if available
-  fuelTypes: text("fueltypes").array().default(['gasoline', 'diesel']), // Types of fuel accepted
-  networkType: text("networktype"), // universal, branded, restricted
-  acceptedLocations: text("acceptedlocations").array(), // Station brands or networks
-  monthlyLimit: decimal("monthlylimit", { precision: 10, scale: 2 }),
-  perTransactionLimit: decimal("pertransactionlimit", { precision: 10, scale: 2 }),
-  restrictionRules: jsonb("restrictionrules"), // JSON object for complex rules
+  apiKey: text("api_key"), // For integration if available
+  fuelTypes: text("fuel_types").array().default(['gasoline', 'diesel']), // Types of fuel accepted
+  networkType: text("network_type"), // universal, branded, restricted
+  acceptedLocations: text("accepted_locations").array(), // Station brands or networks
+  monthlyLimit: decimal("monthly_limit", { precision: 10, scale: 2 }),
+  perTransactionLimit: decimal("per_transaction_limit", { precision: 10, scale: 2 }),
+  restrictionRules: jsonb("restriction_rules"), // JSON object for complex rules
   notes: text("notes"),
-  isActive: boolean("isactive").default(true),
-  createdAt: timestamp("createdat").defaultNow().notNull(),
-  updatedAt: timestamp("updatedat").defaultNow().notNull(),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 export const expenseReports = pgTable("expense_reports", {
@@ -1238,8 +1240,10 @@ export type InsertVendor = z.infer<typeof insertVendorSchema>;
 
 export const insertGasCardProviderSchema = z.object({
   name: z.string().min(1, "Provider name is required"),
-  providerType: z.enum(["fuel", "fleet", "corporate"]).default("fuel"),
+  description: z.string().optional(),
+  contactInfo: z.string().optional(),
   accountNumber: z.string().optional(),
+  providerType: z.enum(["fuel", "fleet", "corporate"]).default("fuel"),
   contactEmail: z.string().email().optional().or(z.literal("")),
   contactPhone: z.string().optional(),
   website: z.string().url().optional().or(z.literal("")),
