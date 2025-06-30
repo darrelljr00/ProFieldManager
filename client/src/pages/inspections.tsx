@@ -737,7 +737,7 @@ export default function Inspections() {
                     </div>
                     
                     <input
-                      ref={fileInputRef}
+                      ref={postTripFileInputRef}
                       type="file"
                       multiple
                       accept="image/*"
