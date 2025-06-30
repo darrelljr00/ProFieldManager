@@ -77,6 +77,14 @@ type CalendarSettings = {
   defaultJobDuration: number;
 };
 
+type InvoiceSettings = {
+  selectedTemplate: string;
+  logoPosition: 'top-left' | 'top-center' | 'top-right' | 'bottom-left' | 'bottom-center' | 'bottom-right';
+  showSquareFeet: boolean;
+  squareFeetLabel: string;
+  templateCustomizations: Record<string, any>;
+};
+
 export default function Settings() {
   const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -106,6 +114,10 @@ export default function Settings() {
 
   const { data: calendarSettings, isLoading: calendarLoading } = useQuery<CalendarSettings>({
     queryKey: ["/api/settings/calendar"],
+  });
+
+  const { data: invoiceSettings, isLoading: invoiceLoading } = useQuery<InvoiceSettings>({
+    queryKey: ["/api/settings/invoice"],
   });
 
   const paymentMutation = useMutation({
@@ -217,6 +229,25 @@ export default function Settings() {
       toast({
         title: "Error",
         description: error.message || "Failed to save calendar settings",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const invoiceMutation = useMutation({
+    mutationFn: (data: Partial<InvoiceSettings>) =>
+      apiRequest("PUT", "/api/settings/invoice", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/invoice"] });
+      toast({
+        title: "Success",
+        description: "Invoice settings saved successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save invoice settings",
         variant: "destructive",
       });
     },
@@ -403,6 +434,18 @@ export default function Settings() {
     calendarMutation.mutate(data);
   };
 
+  const handleInvoiceSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const data: Partial<InvoiceSettings> = {
+      selectedTemplate: formData.get('selectedTemplate') as string,
+      logoPosition: formData.get('logoPosition') as 'top-left' | 'top-center' | 'top-right' | 'bottom-left' | 'bottom-center' | 'bottom-right',
+      showSquareFeet: formData.get('showSquareFeet') === 'on',
+      squareFeetLabel: formData.get('squareFeetLabel') as string,
+    };
+    invoiceMutation.mutate(data);
+  };
+
   const handleReviewSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -418,7 +461,7 @@ export default function Settings() {
     reviewMutation.mutate(data);
   };
 
-  if (paymentLoading || companyLoading || emailLoading || twilioLoading || ocrLoading || calendarLoading) {
+  if (paymentLoading || companyLoading || emailLoading || twilioLoading || ocrLoading || calendarLoading || invoiceLoading) {
     return (
       <div className="p-6">
         <div className="space-y-4">
@@ -437,7 +480,7 @@ export default function Settings() {
       </div>
 
       <Tabs defaultValue="payment" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-7">
+        <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="payment">Payment Processing</TabsTrigger>
           <TabsTrigger value="company">Company Info</TabsTrigger>
           <TabsTrigger value="email">Email Settings</TabsTrigger>
@@ -445,6 +488,7 @@ export default function Settings() {
           <TabsTrigger value="calendar">Calendar</TabsTrigger>
           <TabsTrigger value="ocr">OCR Settings</TabsTrigger>
           <TabsTrigger value="reviews">Reviews</TabsTrigger>
+          <TabsTrigger value="invoices">Invoice Templates</TabsTrigger>
         </TabsList>
 
         <TabsContent value="payment">
