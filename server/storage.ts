@@ -111,6 +111,7 @@ export interface IStorage {
   // Image methods
   createImage(imageData: any): Promise<any>;
   getImages(userId: number): Promise<any[]>;
+  getImageById(imageId: number): Promise<any>;
   saveImageAnnotations(imageId: number, userId: number, annotations: any, annotatedImageUrl: string): Promise<void>;
   deleteImage(imageId: number, userId: number): Promise<boolean>;
   deleteImage(id: number): Promise<void>;
@@ -2297,6 +2298,35 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error creating image:', error);
       throw error;
+    }
+  }
+
+  async getImageById(imageId: number): Promise<any> {
+    try {
+      const [image] = await db
+        .select({
+          id: images.id,
+          filename: images.filename,
+          originalName: images.originalName,
+          mimeType: images.mimeType,
+          size: images.size,
+          description: images.description,
+          annotations: images.annotations,
+          annotatedImageUrl: images.annotatedImageUrl,
+          createdAt: images.createdAt,
+          updatedAt: images.updatedAt,
+          userId: images.userId,
+          projectId: images.projectId,
+          organizationId: users.organizationId
+        })
+        .from(images)
+        .leftJoin(users, eq(images.userId, users.id))
+        .where(eq(images.id, imageId));
+      
+      return image || null;
+    } catch (error) {
+      console.error('Error fetching image by ID:', error);
+      return null;
     }
   }
 

@@ -1687,6 +1687,95 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Duplicate image endpoint
+  app.post("/api/images/:id/duplicate", requireAuth, async (req, res) => {
+    try {
+      const imageId = parseInt(req.params.id);
+      const userId = req.user!.id;
+      const user = getAuthenticatedUser(req);
+      
+      // Get original image data
+      const originalImage = await storage.getImageById(imageId);
+      if (!originalImage) {
+        return res.status(404).json({ message: 'Image not found' });
+      }
+
+      // Check if user has access to this image
+      if (originalImage.userId !== userId && originalImage.organizationId !== user.organizationId) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+
+      // Copy the file
+      const fs = require('fs');
+      const path = require('path');
+      const originalPath = `./uploads/org-${originalImage.organizationId}/image_gallery/${originalImage.filename}`;
+      const duplicateFilename = `copy-${Date.now()}-${originalImage.filename}`;
+      const duplicatePath = `./uploads/org-${originalImage.organizationId}/image_gallery/${duplicateFilename}`;
+
+      await fs.promises.copyFile(originalPath, duplicatePath);
+
+      // Create new image record
+      const duplicateImageData = {
+        filename: duplicateFilename,
+        originalName: `Copy of ${originalImage.originalName}`,
+        mimeType: originalImage.mimeType,
+        size: originalImage.size,
+        userId: userId,
+        organizationId: originalImage.organizationId,
+        projectId: originalImage.projectId,
+        customerId: originalImage.customerId,
+      };
+
+      const newImage = await storage.createImage(duplicateImageData);
+      
+      res.json({ 
+        message: 'Image duplicated successfully',
+        image: newImage
+      });
+    } catch (error: any) {
+      console.error('Error duplicating image:', error);
+      res.status(500).json({ message: 'Failed to duplicate image' });
+    }
+  });
+
+  // Delete image endpoint
+  app.delete("/api/images/:id", requireAuth, async (req, res) => {
+    try {
+      const imageId = parseInt(req.params.id);
+      const userId = req.user!.id;
+      const user = getAuthenticatedUser(req);
+      
+      // Get image data
+      const image = await storage.getImageById(imageId);
+      if (!image) {
+        return res.status(404).json({ message: 'Image not found' });
+      }
+
+      // Check if user has access to this image
+      if (image.userId !== userId && image.organizationId !== user.organizationId) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+
+      // Delete the file
+      const fs = require('fs');
+      const filePath = `./uploads/org-${image.organizationId}/image_gallery/${image.filename}`;
+      
+      try {
+        await fs.promises.unlink(filePath);
+      } catch (fileError) {
+        console.warn('File not found on disk:', filePath);
+      }
+
+      // Delete from database
+      await storage.deleteImage(imageId);
+      
+      res.json({ message: 'Image deleted successfully' });
+    } catch (error: any) {
+      console.error('Error deleting image:', error);
+      res.status(500).json({ message: 'Failed to delete image' });
+    }
+  });
+
   // Serve uploaded files (static files don't need auth for this use case)
   app.use('/uploads', express.static('./uploads'));
 
