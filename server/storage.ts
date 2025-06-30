@@ -2290,7 +2290,9 @@ export class DatabaseStorage implements IStorage {
           mimeType: imageData.mimeType,
           size: imageData.size,
           userId: imageData.userId,
+          organizationId: imageData.organizationId,
           projectId: imageData.projectId || null,
+          customerId: imageData.customerId || null,
           description: imageData.description || null,
         })
         .returning();
@@ -2335,14 +2337,7 @@ export class DatabaseStorage implements IStorage {
       const userInfo = await this.getUser(userId);
       if (!userInfo) return [];
 
-      // Get all images for users in the same organization
-      const orgUsers = await db
-        .select({ id: users.id })
-        .from(users)
-        .where(eq(users.organizationId, userInfo.organizationId));
-      
-      const orgUserIds = orgUsers.map(u => u.id);
-
+      // Get images filtered by organization for proper multi-tenant isolation
       const imageResults = await db
         .select({
           id: images.id,
@@ -2356,10 +2351,11 @@ export class DatabaseStorage implements IStorage {
           createdAt: images.createdAt,
           updatedAt: images.updatedAt,
           userId: images.userId,
+          organizationId: images.organizationId,
           projectId: images.projectId
         })
         .from(images)
-        .where(inArray(images.userId, orgUserIds))
+        .where(eq(images.organizationId, userInfo.organizationId))
         .orderBy(desc(images.createdAt));
 
       // Add correct URL paths for organization-based file structure and map date field
