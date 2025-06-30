@@ -84,18 +84,14 @@ function InspectionManagement() {
   // Fetch inspection items
   const { data: inspectionItems, isLoading } = useQuery({
     queryKey: ["/api/inspections/items", selectedType],
-    queryFn: () => apiRequest(`/api/inspections/items?type=${selectedType}`),
   });
 
   // Add new inspection item
   const addItemMutation = useMutation({
     mutationFn: async (itemData: any) => {
-      return apiRequest("/api/inspections/items", {
-        method: "POST",
-        body: JSON.stringify({
-          ...itemData,
-          type: selectedType,
-        }),
+      return apiRequest("/api/inspections/items", "POST", {
+        ...itemData,
+        type: selectedType,
       });
     },
     onSuccess: () => {
@@ -119,10 +115,7 @@ function InspectionManagement() {
   // Update inspection item
   const updateItemMutation = useMutation({
     mutationFn: async (itemData: any) => {
-      return apiRequest(`/api/inspections/items/${itemData.id}`, {
-        method: "PUT",
-        body: JSON.stringify(itemData),
-      });
+      return apiRequest(`/api/inspections/items/${itemData.id}`, "PUT", itemData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/inspections/items"] });
@@ -144,9 +137,7 @@ function InspectionManagement() {
   // Delete inspection item
   const deleteItemMutation = useMutation({
     mutationFn: async (itemId: number) => {
-      return apiRequest(`/api/inspections/items/${itemId}`, {
-        method: "DELETE",
-      });
+      return apiRequest(`/api/inspections/items/${itemId}`, "DELETE");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/inspections/items"] });

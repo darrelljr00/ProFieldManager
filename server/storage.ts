@@ -195,6 +195,17 @@ export interface IStorage {
   markMessageAsRead(messageId: number, userId: number): Promise<boolean>;
   deleteInternalMessage(messageId: number, userId: number): Promise<boolean>;
   sendGroupMessage(groupId: number, messageData: any): Promise<any>;
+  
+  // Inspection methods
+  getInspectionTemplates(organizationId: number, type?: string): Promise<any[]>;
+  createInspectionTemplate(templateData: any): Promise<any>;
+  getInspectionItems(templateId: number): Promise<any[]>;
+  createInspectionItem(itemData: any): Promise<any>;
+  updateInspectionItem(itemId: number, itemData: any): Promise<any>;
+  deleteInspectionItem(itemId: number): Promise<boolean>;
+  getInspectionRecords(userId: number, organizationId: number, type?: string): Promise<any[]>;
+  createInspectionRecord(recordData: any): Promise<any>;
+  getInspectionRecord(recordId: number, userId: number): Promise<any>;
 }
 
 export class DatabaseStorage implements IStorage {
