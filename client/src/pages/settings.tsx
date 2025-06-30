@@ -1493,6 +1493,127 @@ export default function Settings() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="invoices">
+          <Card>
+            <CardHeader>
+              <CardTitle>Invoice Templates</CardTitle>
+              <CardDescription>
+                Customize your invoice appearance with professional templates and add custom fields
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleInvoiceSubmit} className="space-y-6">
+                {/* Template Selection */}
+                <div className="space-y-4">
+                  <Label htmlFor="selectedTemplate">Choose Invoice Template</Label>
+                  <Select name="selectedTemplate" defaultValue={invoiceSettings?.selectedTemplate || "classic"}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a template" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="classic">Classic Professional</SelectItem>
+                      <SelectItem value="modern">Modern Minimal</SelectItem>
+                      <SelectItem value="corporate">Corporate Blue</SelectItem>
+                      <SelectItem value="elegant">Elegant Gray</SelectItem>
+                      <SelectItem value="creative">Creative Colorful</SelectItem>
+                      <SelectItem value="simple">Simple Clean</SelectItem>
+                      <SelectItem value="bold">Bold Statement</SelectItem>
+                      <SelectItem value="luxury">Luxury Gold</SelectItem>
+                      <SelectItem value="tech">Tech Gradient</SelectItem>
+                      <SelectItem value="vintage">Vintage Style</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <Separator />
+
+                {/* Logo Position */}
+                <div className="space-y-4">
+                  <Label htmlFor="logoPosition">Logo Position</Label>
+                  <Select name="logoPosition" defaultValue={invoiceSettings?.logoPosition || "top-left"}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select logo position" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="top-left">Top Left</SelectItem>
+                      <SelectItem value="top-center">Top Center</SelectItem>
+                      <SelectItem value="top-right">Top Right</SelectItem>
+                      <SelectItem value="bottom-left">Bottom Left</SelectItem>
+                      <SelectItem value="bottom-center">Bottom Center</SelectItem>
+                      <SelectItem value="bottom-right">Bottom Right</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <Separator />
+
+                {/* Square Feet Field */}
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      name="showSquareFeet"
+                      id="showSquareFeet"
+                      defaultChecked={invoiceSettings?.showSquareFeet || false}
+                    />
+                    <Label htmlFor="showSquareFeet">Include Square Feet Field</Label>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="squareFeetLabel">Square Feet Field Label</Label>
+                    <Input
+                      id="squareFeetLabel"
+                      name="squareFeetLabel"
+                      placeholder="Square Feet"
+                      defaultValue={invoiceSettings?.squareFeetLabel || "Square Feet"}
+                    />
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Customize the label for the square footage field on invoices
+                    </p>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Template Previews */}
+                <div className="space-y-4">
+                  <Label>Template Previews</Label>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                    {[
+                      { id: 'classic', name: 'Classic Professional', color: '#1f2937' },
+                      { id: 'modern', name: 'Modern Minimal', color: '#6b7280' },
+                      { id: 'corporate', name: 'Corporate Blue', color: '#2563eb' },
+                      { id: 'elegant', name: 'Elegant Gray', color: '#374151' },
+                      { id: 'creative', name: 'Creative Colorful', color: '#7c3aed' },
+                      { id: 'simple', name: 'Simple Clean', color: '#059669' },
+                      { id: 'bold', name: 'Bold Statement', color: '#dc2626' },
+                      { id: 'luxury', name: 'Luxury Gold', color: '#d97706' },
+                      { id: 'tech', name: 'Tech Gradient', color: '#0891b2' },
+                      { id: 'vintage', name: 'Vintage Style', color: '#92400e' }
+                    ].map((template) => (
+                      <div key={template.id} className="border rounded-lg p-3 hover:border-primary cursor-pointer transition-colors">
+                        <div 
+                          className="w-full h-20 rounded mb-2 flex items-center justify-center text-white text-xs font-medium"
+                          style={{ backgroundColor: template.color }}
+                        >
+                          LOGO
+                        </div>
+                        <p className="text-xs font-medium text-center">{template.name}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex justify-end">
+                  <Button type="submit" disabled={invoiceMutation.isPending}>
+                    <Save className="h-4 w-4 mr-2" />
+                    {invoiceMutation.isPending ? "Saving..." : "Save Invoice Settings"}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
     </div>
   );

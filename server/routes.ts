@@ -3462,6 +3462,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Invoice Settings API
+  app.get("/api/settings/invoice", requireAuth, async (req, res) => {
+    try {
+      const settings = await storage.getSettingsByCategory('invoice');
+      const invoiceSettings = {
+        selectedTemplate: 'classic',
+        logoPosition: 'top-left',
+        showSquareFeet: false,
+        squareFeetLabel: 'Square Feet',
+        templateCustomizations: {}
+      };
+      
+      if (settings && settings.length > 0) {
+        settings.forEach((setting: any) => {
+          const key = setting.key.replace('invoice_', '');
+          if (key in invoiceSettings) {
+            if (key === 'showSquareFeet') {
+              invoiceSettings[key] = setting.value === 'true';
+            } else if (key === 'templateCustomizations') {
+              try {
+                invoiceSettings[key] = JSON.parse(setting.value || '{}');
+              } catch {
+                invoiceSettings[key] = {};
+              }
+            } else {
+              invoiceSettings[key] = setting.value;
+            }
+          }
+        });
+      }
+      
+      res.json(invoiceSettings);
+    } catch (error: any) {
+      console.error("Error fetching invoice settings:", error);
+      res.status(500).json({ message: "Failed to fetch invoice settings" });
+    }
+  });
+
+  app.put("/api/settings/invoice", requireAuth, async (req, res) => {
+    try {
+      const settings = req.body;
+      for (const [key, value] of Object.entries(settings)) {
+        let valueToStore = value;
+        if (key === 'templateCustomizations') {
+          valueToStore = JSON.stringify(value);
+        }
+        await storage.updateSetting('invoice', `invoice_${key}`, String(valueToStore));
+      }
+      res.json({ message: 'Invoice settings updated successfully' });
+    } catch (error: any) {
+      console.error('Error updating invoice settings:', error);
+      res.status(500).json({ message: 'Failed to update invoice settings' });
+    }
+  });
+
   // Company Settings API
   app.get("/api/settings/company", requireAuth, async (req, res) => {
     try {
