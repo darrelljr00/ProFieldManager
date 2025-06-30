@@ -1604,7 +1604,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = getAuthenticatedUser(req);
 
       // Ensure organization folder structure exists for this organization
-      await createOrgFolderStructure(user.organizationId);
+      const { ensureOrganizationFolders } = require('./folderCreation');
+      await ensureOrganizationFolders(user.organizationId);
 
       console.log('Image file details:', {
         filename: req.file.filename,
