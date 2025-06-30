@@ -2282,6 +2282,13 @@ export class DatabaseStorage implements IStorage {
   // Image methods
   async createImage(imageData: any): Promise<any> {
     try {
+      // Ensure organization folders exist for multi-tenant isolation
+      const { ensureOrganizationFolders } = require('./folderCreation');
+      
+      if (imageData.organizationId) {
+        await ensureOrganizationFolders(imageData.organizationId);
+      }
+      
       const [image] = await db
         .insert(images)
         .values({

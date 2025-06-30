@@ -2095,6 +2095,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const user = await storage.createUser(userData);
       
+      // Ensure organization folders exist for multi-tenant isolation
+      const { ensureOrganizationFolders } = require('./folderCreation');
+      if (user.organizationId) {
+        await ensureOrganizationFolders(user.organizationId);
+      }
+      
       // Broadcast to all web users except the creator
       broadcastToWebUsers('user_created', {
         user: { ...user, password: undefined },

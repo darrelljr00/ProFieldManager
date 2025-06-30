@@ -677,6 +677,7 @@ export const messageGroupMembers = pgTable("message_group_members", {
 export const images = pgTable("images", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
   projectId: integer("project_id").references(() => projects.id),
   filename: text("filename").notNull().unique(),
   originalName: text("original_name").notNull(),
