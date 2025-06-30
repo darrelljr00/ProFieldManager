@@ -71,7 +71,8 @@ const defaultInspectionItems = {
 
 export default function Inspections() {
   const { user } = useAuth();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const preTripFileInputRef = useRef<HTMLInputElement>(null);
+  const postTripFileInputRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState('pre-trip');
   const [currentInspection, setCurrentInspection] = useState<InspectionResponse[]>([]);
   const [vehicleInfo, setVehicleInfo] = useState({
@@ -246,21 +247,38 @@ export default function Inspections() {
     }
   };
 
-  // Working photo upload click handler
-  const handlePhotoUpload = () => {
-    console.log('=== PHOTO UPLOAD CLICKED ===');
-    console.log('fileInputRef.current:', fileInputRef.current);
+  // Photo upload click handlers for each tab
+  const handlePreTripPhotoUpload = () => {
+    console.log('=== PRE-TRIP PHOTO UPLOAD CLICKED ===');
+    console.log('preTripFileInputRef.current:', preTripFileInputRef.current);
     
-    if (fileInputRef.current) {
-      console.log('Triggering file input click');
+    if (preTripFileInputRef.current) {
+      console.log('Triggering pre-trip file input click');
       try {
-        fileInputRef.current.click();
-        console.log('File input click triggered successfully');
+        preTripFileInputRef.current.click();
+        console.log('Pre-trip file input click triggered successfully');
       } catch (error) {
-        console.error('Error clicking file input:', error);
+        console.error('Error clicking pre-trip file input:', error);
       }
     } else {
-      console.error('fileInputRef.current is null');
+      console.error('preTripFileInputRef.current is null');
+    }
+  };
+
+  const handlePostTripPhotoUpload = () => {
+    console.log('=== POST-TRIP PHOTO UPLOAD CLICKED ===');
+    console.log('postTripFileInputRef.current:', postTripFileInputRef.current);
+    
+    if (postTripFileInputRef.current) {
+      console.log('Triggering post-trip file input click');
+      try {
+        postTripFileInputRef.current.click();
+        console.log('Post-trip file input click triggered successfully');
+      } catch (error) {
+        console.error('Error clicking post-trip file input:', error);
+      }
+    } else {
+      console.error('postTripFileInputRef.current is null');
     }
   };
 
@@ -488,7 +506,7 @@ export default function Inspections() {
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={handlePhotoUpload}
+                        onClick={handlePreTripPhotoUpload}
                         className="mb-2 bg-blue-500 hover:bg-blue-600 text-white"
                       >
                         <Upload className="w-4 h-4 mr-2" />
@@ -500,7 +518,7 @@ export default function Inspections() {
                     </div>
                     
                     <input
-                      ref={fileInputRef}
+                      ref={preTripFileInputRef}
                       type="file"
                       multiple
                       accept="image/*"
@@ -707,7 +725,7 @@ export default function Inspections() {
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={handlePhotoUpload}
+                        onClick={handlePostTripPhotoUpload}
                         className="mb-2 bg-orange-500 hover:bg-orange-600 text-white"
                       >
                         <Upload className="w-4 h-4 mr-2" />
