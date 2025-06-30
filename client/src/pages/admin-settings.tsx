@@ -37,6 +37,14 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import {
   Settings,
   Users,
   Shield,
@@ -48,13 +56,15 @@ import {
   FileText,
   Download,
   Upload,
+  Plus,
   Trash2,
+  Edit,
+  CheckCircle,
   RefreshCw,
   UserCheck,
   UserX,
   Clock,
-  AlertTriangle,
-  CheckCircle
+  AlertTriangle
 } from "lucide-react";
 
 type SystemHealth = {
@@ -310,10 +320,11 @@ export default function AdminSettingsPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="company">Company</TabsTrigger>
           <TabsTrigger value="system">System</TabsTrigger>
+          <TabsTrigger value="inspections">Inspections</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
           <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
           <TabsTrigger value="logs">Activity Logs</TabsTrigger>
@@ -1015,6 +1026,23 @@ export default function AdminSettingsPage() {
                   Export System Data
                 </Button>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="inspections" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                Inspection Management
+              </CardTitle>
+              <CardDescription>
+                Manage pre-trip and post-trip inspection options
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <InspectionManagement />
             </CardContent>
           </Card>
         </TabsContent>
