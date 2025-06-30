@@ -553,6 +553,33 @@ export const gasCardAssignments = pgTable("gas_card_assignments", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Gas card usage tracking table
+export const gasCardUsage = pgTable("gas_card_usage", {
+  id: serial("id").primaryKey(),
+  cardId: integer("card_id").notNull().references(() => gasCards.id),
+  assignmentId: integer("assignment_id").references(() => gasCardAssignments.id),
+  userId: integer("user_id").notNull().references(() => users.id), // Who used the card
+  purchaseDate: timestamp("purchase_date").notNull(),
+  location: text("location"), // Gas station name/address
+  fuelType: text("fuel_type").notNull().default("regular"), // regular, premium, diesel
+  gallons: decimal("gallons", { precision: 8, scale: 3 }), // Amount of fuel purchased
+  pricePerGallon: decimal("price_per_gallon", { precision: 6, scale: 3 }),
+  totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
+  mileage: integer("mileage"), // Vehicle mileage at purchase
+  vehicleInfo: text("vehicle_info"), // Vehicle make/model/license
+  projectId: integer("project_id").references(() => projects.id), // Associated project
+  purpose: text("purpose"), // Work-related purpose
+  receiptUrl: text("receipt_url"), // Receipt image
+  notes: text("notes"),
+  isApproved: boolean("is_approved").default(false),
+  approvedBy: integer("approved_by").references(() => users.id),
+  approvedAt: timestamp("approved_at"),
+  createdBy: integer("created_by").notNull().references(() => users.id), // Who recorded this entry
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Leads table
 export const leads = pgTable("leads", {
   id: serial("id").primaryKey(),
@@ -1067,10 +1094,31 @@ export const insertGasCardAssignmentSchema = z.object({
   notes: z.string().optional(),
 });
 
+export const insertGasCardUsageSchema = z.object({
+  cardId: z.number(),
+  assignmentId: z.number().optional(),
+  userId: z.number(),
+  purchaseDate: z.date(),
+  location: z.string().optional(),
+  fuelType: z.enum(["regular", "premium", "diesel"]).default("regular"),
+  gallons: z.number().positive().optional(),
+  pricePerGallon: z.number().positive().optional(),
+  totalAmount: z.number().positive(),
+  mileage: z.number().int().positive().optional(),
+  vehicleInfo: z.string().optional(),
+  projectId: z.number().optional(),
+  purpose: z.string().optional(),
+  receiptUrl: z.string().optional(),
+  notes: z.string().optional(),
+  organizationId: z.number(),
+});
+
 // Type exports for gas cards
 export type GasCard = typeof gasCards.$inferSelect;
 export type InsertGasCard = z.infer<typeof insertGasCardSchema>;
 export type GasCardAssignment = typeof gasCardAssignments.$inferSelect;
+export type GasCardUsage = typeof gasCardUsage.$inferSelect;
+export type InsertGasCardUsage = z.infer<typeof insertGasCardUsageSchema>;
 export type InsertGasCardAssignment = z.infer<typeof insertGasCardAssignmentSchema>;
 
 export const insertLeadSchema = z.object({

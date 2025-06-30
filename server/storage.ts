@@ -2,13 +2,13 @@ import { db } from "./db";
 import { 
   users, customers, invoices, quotes, projects, tasks, 
   expenses, expenseCategories, vendors, expenseReports, gasCards, 
-  gasCardAssignments, leads, calendarJobs, messages,
+  gasCardAssignments, gasCardUsage, leads, calendarJobs, messages,
   images, settings, organizations, userSessions, subscriptionPlans,
   projectFiles, fileManager, projectUsers, timeClock, timeClockSettings,
   internalMessages, internalMessageRecipients, messageGroups, messageGroupMembers,
   inspectionTemplates, inspectionItems, inspectionRecords, inspectionResponses, inspectionNotifications
 } from "@shared/schema";
-import type { GasCard, InsertGasCard, GasCardAssignment, InsertGasCardAssignment } from "@shared/schema";
+import type { GasCard, InsertGasCard, GasCardAssignment, InsertGasCardAssignment, GasCardUsage, InsertGasCardUsage } from "@shared/schema";
 import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull, isNull } from "drizzle-orm";
 import type { 
   User, Customer, Invoice, Quote, Project, Task, 
@@ -168,6 +168,13 @@ export interface IStorage {
   getActiveGasCardAssignments(): Promise<GasCardAssignment[]>;
   createGasCardAssignment(data: InsertGasCardAssignment): Promise<GasCardAssignment>;
   returnGasCard(assignmentId: number, returnedDate: Date): Promise<GasCardAssignment>;
+  
+  // Gas card usage tracking methods
+  getGasCardUsage(organizationId: number, cardId?: number, startDate?: Date, endDate?: Date): Promise<GasCardUsage[]>;
+  createGasCardUsage(data: InsertGasCardUsage): Promise<GasCardUsage>;
+  updateGasCardUsage(id: number, data: Partial<InsertGasCardUsage>): Promise<GasCardUsage>;
+  deleteGasCardUsage(id: number): Promise<boolean>;
+  approveGasCardUsage(id: number, approvedBy: number): Promise<GasCardUsage>;
   
   // Gas card provider methods
   getGasCardProviders(organizationId: number): Promise<any[]>;
