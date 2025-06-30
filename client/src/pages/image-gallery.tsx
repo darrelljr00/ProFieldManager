@@ -29,7 +29,15 @@ import {
   Palette,
   Share2,
   CheckSquare,
-  Square
+  Square,
+  Edit3,
+  Copy,
+  Scissors,
+  RotateCw,
+  Crop,
+  Filter,
+  Layers,
+  Image as ImageIcon
 } from "lucide-react";
 import { ImageAnnotation } from "@/components/image-annotation";
 import { PhotoEditor } from "@/components/photo-editor";
@@ -63,6 +71,9 @@ export default function ImageGallery() {
   const [uploadFiles, setUploadFiles] = useState<File[]>([]);
   const [uploadProjectId, setUploadProjectId] = useState<string>("");
   const [isPhotoEditorOpen, setIsPhotoEditorOpen] = useState(false);
+  const [isCollageOpen, setIsCollageOpen] = useState(false);
+  const [editingImage, setEditingImage] = useState<ImageFile | null>(null);
+  const [showEditOptions, setShowEditOptions] = useState<number | null>(null);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -244,6 +255,147 @@ export default function ImageGallery() {
     });
   };
 
+  const handleEditImage = (image: ImageFile) => {
+    setEditingImage(image);
+    setIsPhotoEditorOpen(true);
+  };
+
+  const handleCreateCollage = () => {
+    if (selectedImages.length < 2) {
+      toast({
+        title: "Select Images",
+        description: "Please select at least 2 images to create a collage",
+        variant: "destructive",
+      });
+      return;
+    }
+    setIsCollageOpen(true);
+  };
+
+  const handleDuplicateImage = async (image: ImageFile) => {
+    try {
+      const response = await fetch(`/api/images/${image.id}/duplicate`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to duplicate image');
+      }
+
+      await queryClient.invalidateQueries({ queryKey: ['/api/images'] });
+      toast({
+        title: "Success",
+        description: "Image duplicated successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to duplicate image",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteImage = async (image: ImageFile) => {
+    try {
+      const response = await fetch(`/api/images/${image.id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete image');
+      }
+
+      await queryClient.invalidateQueries({ queryKey: ['/api/images'] });
+      toast({
+        title: "Success",
+        description: "Image deleted successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete image",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDownloadImage = (image: ImageFile) => {
+    const link = document.createElement('a');
+    link.href = getImageUrl(image);
+    link.download = image.originalName || image.filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleCreateCollageFile = async () => {
+    try {
+      // Create a canvas to combine images
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      // Set canvas size based on layout
+      const collageSize = 800;
+      canvas.width = collageSize;
+      canvas.height = collageSize;
+
+      // Calculate grid dimensions
+      const imageCount = selectedImages.length;
+      const cols = Math.ceil(Math.sqrt(imageCount));
+      const rows = Math.ceil(imageCount / cols);
+      const cellWidth = collageSize / cols;
+      const cellHeight = collageSize / rows;
+
+      // Load and draw each image
+      const loadImagePromises = selectedImages.map((image, index) => {
+        return new Promise<void>((resolve, reject) => {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => {
+            const col = index % cols;
+            const row = Math.floor(index / cols);
+            const x = col * cellWidth;
+            const y = row * cellHeight;
+
+            // Draw image to fit cell
+            ctx.drawImage(img, x, y, cellWidth, cellHeight);
+            resolve();
+          };
+          img.onerror = reject;
+          img.src = getImageUrl(image);
+        });
+      });
+
+      await Promise.all(loadImagePromises);
+
+      // Convert canvas to blob and upload
+      canvas.toBlob(async (blob) => {
+        if (!blob) return;
+
+        const file = new File([blob], `collage-${Date.now()}.png`, { type: 'image/png' });
+        uploadMutation.mutate([file]);
+        setIsCollageOpen(false);
+        clearSelection();
+        
+        toast({
+          title: "Success",
+          description: "Collage created and uploaded successfully",
+        });
+      }, 'image/png');
+
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create collage",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getImageUrl = (image: ImageFile) => {
     // Use the URL from the backend if available (includes proper organization path)
     if (image.url) {
@@ -295,6 +447,15 @@ export default function ImageGallery() {
               >
                 <Share2 className="h-4 w-4 mr-2" />
                 Share Selected ({selectedImages.length})
+              </Button>
+              <Button 
+                onClick={handleCreateCollage}
+                disabled={selectedImages.length < 2}
+                size="sm"
+                variant="outline"
+              >
+                <Layers className="h-4 w-4 mr-2" />
+                Create Collage ({selectedImages.length})
               </Button>
             </>
           )}
@@ -479,7 +640,11 @@ export default function ImageGallery() {
             <Card key={image.id} className={`overflow-hidden ${selectedImages.some(img => img.id === image.id) ? 'ring-2 ring-primary' : ''}`}>
               {viewMode === "grid" ? (
                 <div>
-                  <div className="aspect-square relative overflow-hidden">
+                  <div 
+                    className="aspect-square relative overflow-hidden group"
+                    onMouseEnter={() => setShowEditOptions(image.id)}
+                    onMouseLeave={() => setShowEditOptions(null)}
+                  >
                     {selectionMode && (
                       <div className="absolute top-2 left-2 z-10">
                         <Button
@@ -496,6 +661,58 @@ export default function ImageGallery() {
                         </Button>
                       </div>
                     )}
+                    
+                    {/* Edit Options Overlay */}
+                    {!selectionMode && showEditOptions === image.id && (
+                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center gap-2 z-10">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="h-8 w-8 p-0"
+                          onClick={() => handleEditImage(image)}
+                          title="Edit Image"
+                        >
+                          <Edit3 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="h-8 w-8 p-0"
+                          onClick={() => handleAnnotate(image)}
+                          title="Annotate"
+                        >
+                          <Palette className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="h-8 w-8 p-0"
+                          onClick={() => handleDuplicateImage(image)}
+                          title="Duplicate"
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="h-8 w-8 p-0"
+                          onClick={() => handleDownloadImage(image)}
+                          title="Download"
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          className="h-8 w-8 p-0"
+                          onClick={() => handleDeleteImage(image)}
+                          title="Delete"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                    
                     <img
                       src={getImageUrl(image)}
                       alt={image.originalName}
@@ -621,6 +838,59 @@ export default function ImageGallery() {
           onClose={() => setIsPhotoEditorOpen(false)}
         />
       )}
+
+      {/* Collage Creation Dialog */}
+      <Dialog open={isCollageOpen} onOpenChange={setIsCollageOpen}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Create Collage</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
+              {selectedImages.map((image, index) => (
+                <div key={image.id} className="relative">
+                  <img
+                    src={getImageUrl(image)}
+                    alt={image.originalName}
+                    className="w-full h-24 object-cover rounded"
+                  />
+                  <div className="absolute top-1 right-1 bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs">
+                    {index + 1}
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            <div className="space-y-3">
+              <Label>Collage Layout</Label>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                <Button variant="outline" className="h-16">
+                  <div className="text-xs">Grid 2x2</div>
+                </Button>
+                <Button variant="outline" className="h-16">
+                  <div className="text-xs">Grid 3x3</div>
+                </Button>
+                <Button variant="outline" className="h-16">
+                  <div className="text-xs">Horizontal</div>
+                </Button>
+                <Button variant="outline" className="h-16">
+                  <div className="text-xs">Vertical</div>
+                </Button>
+              </div>
+            </div>
+            
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setIsCollageOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleCreateCollageFile}>
+                <ImageIcon className="h-4 w-4 mr-2" />
+                Create Collage
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Share Photos Dialog */}
       <SharePhotosDialog
