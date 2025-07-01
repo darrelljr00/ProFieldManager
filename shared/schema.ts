@@ -861,6 +861,36 @@ export const formSubmissions = pgTable("form_submissions", {
   submittedAt: timestamp("submitted_at").defaultNow().notNull(),
 });
 
+// SMS Messages
+export const smsMessages = pgTable("sms_messages", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  recipient: text("recipient").notNull(),
+  message: text("message").notNull(),
+  status: text("status").notNull().default("pending"), // pending, sent, delivered, failed
+  sentAt: timestamp("sent_at"),
+  deliveredAt: timestamp("delivered_at"),
+  cost: decimal("cost", { precision: 10, scale: 4 }).default("0"),
+  twilioSid: text("twilio_sid"), // Twilio message SID for tracking
+  errorMessage: text("error_message"),
+  sentBy: integer("sent_by").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// SMS Templates  
+export const smsTemplates = pgTable("sms_templates", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  name: text("name").notNull(),
+  content: text("content").notNull(),
+  category: text("category").notNull(), // appointment, reminder, follow-up, etc.
+  usageCount: integer("usage_count").default(0),
+  isActive: boolean("is_active").default(true),
+  createdBy: integer("created_by").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Insert schemas
 export const insertUserSchema = z.object({
   username: z.string().min(1),

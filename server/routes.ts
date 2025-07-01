@@ -4644,32 +4644,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Recipient and message are required' });
       }
 
-      // Get Twilio settings
-      const twilioSettings = await storage.getSystemSettings();
-      const accountSid = twilioSettings.find(s => s.keys === 'twilio_account_sid')?.value;
-      const authToken = twilioSettings.find(s => s.keys === 'twilio_auth_token')?.value;
-      const phoneNumber = twilioSettings.find(s => s.keys === 'twilio_phone_number')?.value;
+      // Get Twilio settings using the correct method
+      const settings = await storage.getSettingsByCategory('twilio');
+      const twilioSettings = settings.reduce((acc: any, setting: any) => {
+        const key = setting.key.replace('twilio_', '');
+        acc[key] = setting.value === 'true' ? true : setting.value === 'false' ? false : setting.value;
+        return acc;
+      }, {});
+      
+      const accountSid = twilioSettings.twilioAccountSid;
+      const authToken = twilioSettings.twilioAuthToken;
+      const phoneNumber = twilioSettings.twilioPhoneNumber;
 
       if (!accountSid || !authToken || !phoneNumber) {
         return res.status(400).json({ message: 'Twilio configuration is incomplete' });
       }
 
-      // For development, create a mock SMS message
-      const smsMessage = await storage.createSmsMessage({
-        recipient,
-        message,
-        status: 'sent',
-        sentAt: new Date(),
-        cost: 0.0075 // Standard SMS cost
-      });
+      // Check if Twilio is enabled
+      if (!twilioSettings.twilioEnabled) {
+        return res.status(400).json({ message: 'Twilio SMS is disabled' });
+      }
 
-      // Broadcast to all web users except the creator
-      (app as any).broadcastToWebUsers('sms_sent', {
-        smsMessage,
-        sentBy: req.user!.username
-      }, req.user!.id);
+      try {
+        // Import and initialize Twilio client
+        const twilio = require('twilio');
+        const client = twilio(accountSid, authToken);
 
-      res.json(smsMessage);
+        // Send SMS using Twilio
+        const twilioMessage = await client.messages.create({
+          body: message,
+          from: phoneNumber,
+          to: recipient
+        });
+
+        // Create SMS message record with Twilio SID
+        const smsMessage = await storage.createSmsMessage({
+          recipient,
+          message,
+          status: 'sent',
+          sentAt: new Date(),
+          cost: 0.0075, // Standard SMS cost
+          twilioSid: twilioMessage.sid
+        });
+
+        // Broadcast to all web users except the creator
+        (app as any).broadcastToWebUsers('sms_sent', {
+          smsMessage,
+          sentBy: req.user!.username
+        }, req.user!.id);
+
+        res.json({
+          ...smsMessage,
+          twilioSid: twilioMessage.sid,
+          status: 'sent'
+        });
+
+      } catch (twilioError: any) {
+        console.error('Twilio SMS sending failed:', twilioError);
+        
+        // Create SMS message record with failed status
+        const smsMessage = await storage.createSmsMessage({
+          recipient,
+          message,
+          status: 'failed',
+          sentAt: new Date(),
+          cost: 0,
+          errorMessage: twilioError.message
+        });
+
+        return res.status(400).json({ 
+          message: `Failed to send SMS: ${twilioError.message}`,
+          error: twilioError.code || 'SMS_SEND_FAILED',
+          smsMessage
+        });
+      }
     } catch (error: any) {
       console.error('Error sending SMS:', error);
       res.status(500).json({ message: 'Failed to send SMS message' });

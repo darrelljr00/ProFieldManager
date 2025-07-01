@@ -154,7 +154,9 @@ export interface IStorage {
   
   // SMS and Review methods
   getSmsMessages(organizationId: number): Promise<any[]>;
+  createSmsMessage(messageData: any): Promise<any>;
   getSmsTemplates(organizationId: number): Promise<any[]>;
+  createSmsTemplate(templateData: any): Promise<any>;
   getReviewRequests(organizationId: number): Promise<any[]>;
   getReviewAnalytics(organizationId: number): Promise<any>;
   createReviewRequest(requestData: any): Promise<any>;
