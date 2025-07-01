@@ -528,12 +528,18 @@ export function PhotoEditor({ images, onSave, onClose }: PhotoEditorProps) {
                         </Select>
                       </div>
 
-                      <Button onClick={createCollage} className="w-full">
-                        Create Collage
+                      <Button 
+                        onClick={createCollage} 
+                        className="w-full"
+                        disabled={selectedImages.length < 2}
+                      >
+                        Create Collage ({selectedImages.length} images)
                       </Button>
 
                       <div className="text-xs text-gray-500">
-                        Select images above and create a collage
+                        {selectedImages.length < 2 
+                          ? "Select at least 2 images to create a collage" 
+                          : `Ready to create collage with ${selectedImages.length} images`}
                       </div>
                     </CardContent>
                   </Card>
