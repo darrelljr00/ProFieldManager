@@ -74,7 +74,7 @@ export function PhotoEditor({ images, onSave, onClose }: PhotoEditorProps) {
       ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
       setCurrentImage(img);
     };
-    img.src = `/${imagePath}`;
+    img.src = imagePath;
   };
 
   const applyFilters = () => {
@@ -242,7 +242,7 @@ export function PhotoEditor({ images, onSave, onClose }: PhotoEditorProps) {
 
         ctx.drawImage(img, imgX, imgY, scaledWidth, scaledHeight);
       };
-      img.src = `/${imagePath}`;
+      img.src = imagePath;
     });
   };
 
@@ -329,35 +329,99 @@ export function PhotoEditor({ images, onSave, onClose }: PhotoEditorProps) {
                 <TabsContent value="images" className="space-y-4">
                   <Card>
                     <CardHeader>
-                      <CardTitle className="text-sm">Select Images</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      {images.map((image) => (
-                        <div key={image.id} className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            id={`img-${image.id}`}
-                            checked={selectedImages.includes(image.filePath)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setSelectedImages([...selectedImages, image.filePath]);
-                              } else {
-                                setSelectedImages(selectedImages.filter(path => path !== image.filePath));
-                              }
-                            }}
-                          />
-                          <label htmlFor={`img-${image.id}`} className="text-sm cursor-pointer flex-1">
-                            {image.originalName}
-                          </label>
+                      <CardTitle className="text-sm flex items-center justify-between">
+                        Select Images
+                        <div className="flex gap-1">
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => loadImageToCanvas(image.filePath)}
+                            onClick={() => setSelectedImages(images.map(img => img.filePath))}
+                            disabled={images.length === 0}
                           >
-                            Load
+                            All
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setSelectedImages([])}
+                            disabled={selectedImages.length === 0}
+                          >
+                            Clear
                           </Button>
                         </div>
-                      ))}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      {images.length === 0 ? (
+                        <div className="text-center py-4 text-muted-foreground">
+                          No images available
+                        </div>
+                      ) : (
+                        images.map((image) => (
+                          <div key={image.id} className="flex items-center space-x-3 p-2 border rounded-lg hover:bg-gray-50">
+                            {/* Thumbnail */}
+                            <div className="flex-shrink-0">
+                              <img
+                                src={image.filePath}
+                                alt={image.originalName}
+                                className="w-12 h-12 object-cover rounded border"
+                                loading="lazy"
+                              />
+                            </div>
+                            
+                            {/* Selection checkbox */}
+                            <div 
+                              className={`w-5 h-5 border-2 rounded cursor-pointer flex items-center justify-center ${
+                                selectedImages.includes(image.filePath) 
+                                  ? 'bg-blue-500 border-blue-500' 
+                                  : 'border-gray-300 hover:border-blue-400'
+                              }`}
+                              onClick={() => {
+                                if (selectedImages.includes(image.filePath)) {
+                                  setSelectedImages(selectedImages.filter(path => path !== image.filePath));
+                                } else {
+                                  setSelectedImages([...selectedImages, image.filePath]);
+                                }
+                              }}
+                            >
+                              {selectedImages.includes(image.filePath) && (
+                                <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                </svg>
+                              )}
+                            </div>
+                            
+                            {/* Image name */}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-900 truncate">
+                                {image.originalName}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {image.fileName}
+                              </p>
+                            </div>
+                            
+                            {/* Load button */}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => loadImageToCanvas(image.filePath)}
+                              className="flex-shrink-0"
+                            >
+                              Load
+                            </Button>
+                          </div>
+                        ))
+                      )}
+                      
+                      {/* Selection status */}
+                      {selectedImages.length > 0 && (
+                        <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded-md">
+                          <p className="text-sm text-blue-800">
+                            {selectedImages.length} image{selectedImages.length > 1 ? 's' : ''} selected for collage
+                          </p>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 </TabsContent>
