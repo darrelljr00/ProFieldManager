@@ -4754,10 +4754,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Name, content, and category are required' });
       }
 
+      const user = getAuthenticatedUser(req);
+      
       const template = await storage.createSmsTemplate({
+        organizationId: user.organizationId,
         name,
         content,
-        category
+        category,
+        createdBy: req.user!.id
       });
 
       res.json(template);
