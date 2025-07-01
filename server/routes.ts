@@ -4628,7 +4628,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // SMS API endpoints
   app.get('/api/sms/messages', requireAuth, async (req, res) => {
     try {
-      const messages = await storage.getSmsMessages();
+      const user = getAuthenticatedUser(req);
+      const messages = await storage.getSmsMessages(user.organizationId);
       res.json(messages);
     } catch (error: any) {
       console.error('Error fetching SMS messages:', error);
@@ -4677,14 +4678,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           to: recipient
         });
 
+        // Get user's organization ID
+        const user = getAuthenticatedUser(req);
+        
         // Create SMS message record with Twilio SID
         const smsMessage = await storage.createSmsMessage({
+          organizationId: user.organizationId,
           recipient,
           message,
           status: 'sent',
           sentAt: new Date(),
           cost: 0.0075, // Standard SMS cost
-          twilioSid: twilioMessage.sid
+          twilioSid: twilioMessage.sid,
+          sentBy: req.user!.id
         });
 
         // Broadcast to all web users except the creator
@@ -4702,14 +4708,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch (twilioError: any) {
         console.error('Twilio SMS sending failed:', twilioError);
         
+        // Get user's organization ID for failed message
+        const user = getAuthenticatedUser(req);
+        
         // Create SMS message record with failed status
         const smsMessage = await storage.createSmsMessage({
+          organizationId: user.organizationId,
           recipient,
           message,
           status: 'failed',
           sentAt: new Date(),
           cost: 0,
-          errorMessage: twilioError.message
+          errorMessage: twilioError.message,
+          sentBy: req.user!.id
         });
 
         return res.status(400).json({ 
@@ -4726,7 +4737,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/sms/templates', requireAuth, async (req, res) => {
     try {
-      const templates = await storage.getSmsTemplates();
+      const user = getAuthenticatedUser(req);
+      const templates = await storage.getSmsTemplates(user.organizationId);
       res.json(templates);
     } catch (error: any) {
       console.error('Error fetching SMS templates:', error);

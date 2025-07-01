@@ -6,7 +6,8 @@ import {
   images, settings, organizations, userSessions, subscriptionPlans,
   projectFiles, fileManager, projectUsers, timeClock, timeClockSettings,
   internalMessages, internalMessageRecipients, messageGroups, messageGroupMembers,
-  inspectionTemplates, inspectionItems, inspectionRecords, inspectionResponses, inspectionNotifications
+  inspectionTemplates, inspectionItems, inspectionRecords, inspectionResponses, inspectionNotifications,
+  smsMessages, smsTemplates
 } from "@shared/schema";
 import type { GasCard, InsertGasCard, GasCardAssignment, InsertGasCardAssignment, GasCardUsage, InsertGasCardUsage, GasCardProvider, InsertGasCardProvider } from "@shared/schema";
 import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull, isNull } from "drizzle-orm";
@@ -1885,36 +1886,69 @@ export class DatabaseStorage implements IStorage {
     try {
       return await db
         .select()
-        .from(messages)
-        .innerJoin(users, eq(messages.userId, users.id))
-        .where(eq(users.organizationId, organizationId))
-        .orderBy(desc(messages.createdAt));
+        .from(smsMessages)
+        .where(eq(smsMessages.organizationId, organizationId))
+        .orderBy(desc(smsMessages.createdAt));
     } catch (error) {
       console.error('Error fetching SMS messages:', error);
       return [];
     }
   }
 
+  async createSmsMessage(messageData: any): Promise<any> {
+    try {
+      const [smsMessage] = await db.insert(smsMessages)
+        .values({
+          organizationId: messageData.organizationId,
+          recipient: messageData.recipient,
+          message: messageData.message,
+          status: messageData.status || 'pending',
+          sentAt: messageData.sentAt,
+          deliveredAt: messageData.deliveredAt,
+          cost: messageData.cost || '0',
+          twilioSid: messageData.twilioSid,
+          errorMessage: messageData.errorMessage,
+          sentBy: messageData.sentBy
+        })
+        .returning();
+      return smsMessage;
+    } catch (error: any) {
+      console.error('Error creating SMS message:', error);
+      throw new Error('Failed to create SMS message');
+    }
+  }
+
   async getSmsTemplates(organizationId: number): Promise<any[]> {
     try {
-      // Return default templates for now
-      return [
-        {
-          id: 1,
-          name: 'Job Reminder',
-          content: 'Hi {customerName}, this is a reminder about your scheduled service on {date}.',
-          variables: ['customerName', 'date']
-        },
-        {
-          id: 2,
-          name: 'Job Complete',
-          content: 'Hi {customerName}, your service has been completed. Thank you for choosing us!',
-          variables: ['customerName']
-        }
-      ];
+      return await db
+        .select()
+        .from(smsTemplates)
+        .where(and(
+          eq(smsTemplates.organizationId, organizationId),
+          eq(smsTemplates.isActive, true)
+        ))
+        .orderBy(asc(smsTemplates.name));
     } catch (error) {
       console.error('Error fetching SMS templates:', error);
       return [];
+    }
+  }
+
+  async createSmsTemplate(templateData: any): Promise<any> {
+    try {
+      const [template] = await db.insert(smsTemplates)
+        .values({
+          organizationId: templateData.organizationId,
+          name: templateData.name,
+          content: templateData.content,
+          category: templateData.category,
+          createdBy: templateData.createdBy
+        })
+        .returning();
+      return template;
+    } catch (error: any) {
+      console.error('Error creating SMS template:', error);
+      throw new Error('Failed to create SMS template');
     }
   }
 
