@@ -1752,7 +1752,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Copy the file
       // fs already imported as fsSync
-      const path = require('path');
+      // path already imported
       const originalPath = `./uploads/org-${originalImage.organizationId}/image_gallery/${originalImage.filename}`;
       const duplicateFilename = `copy-${Date.now()}-${originalImage.filename}`;
       const duplicatePath = `./uploads/org-${originalImage.organizationId}/image_gallery/${duplicateFilename}`;
@@ -2138,7 +2138,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.createUser(userData);
       
       // Ensure organization folders exist for multi-tenant isolation
-      const { ensureOrganizationFolders } = require('./folderCreation');
+      // ensureOrganizationFolders already imported
       if (user.organizationId) {
         await ensureOrganizationFolders(user.organizationId);
       }
@@ -4586,7 +4586,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Import Twilio and test the connection
-      const twilio = require('twilio');
+      // twilio already imported
       const client = twilio(twilioAccountSid, twilioAuthToken);
 
       // Verify account by fetching account information
@@ -4798,7 +4798,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       try {
         // Import and initialize Twilio client
-        const twilio = require('twilio');
+        // twilio already imported
         const client = twilio(accountSid, authToken);
 
         // Send SMS using Twilio
@@ -6397,7 +6397,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Create folder structure for the new organization
-      const { createOrganizationFolders } = require('./folderCreation');
+      // createOrganizationFolders already imported
       await createOrganizationFolders(organization.id);
 
       // Create admin user for the organization
