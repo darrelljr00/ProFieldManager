@@ -39,6 +39,7 @@ import {
 } from "@shared/schema";
 import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull } from "drizzle-orm";
 import { DocuSignService, getDocuSignConfig } from "./docusign";
+import { ensureOrganizationFolders } from "./folderCreation";
 
 // Extend Express Request type to include user
 declare global {
@@ -1645,7 +1646,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = getAuthenticatedUser(req);
 
       // Ensure organization folder structure exists for this organization
-      const { ensureOrganizationFolders } = require('./folderCreation');
       await ensureOrganizationFolders(user.organizationId);
 
       console.log('Image file details:', {
