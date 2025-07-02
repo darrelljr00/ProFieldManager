@@ -3633,6 +3633,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Weather Settings API
+  app.get("/api/settings/weather", requireAuth, async (req, res) => {
+    try {
+      const settings = await storage.getSettingsByCategory('weather');
+      const weatherSettings = {
+        enabled: true,
+        defaultZipCode: '',
+        apiKey: ''
+      };
+      
+      if (settings && settings.length > 0) {
+        settings.forEach((setting: any) => {
+          const key = setting.key.replace('weather_', '');
+          if (key === 'enabled') {
+            weatherSettings.enabled = setting.value === 'true';
+          } else if (key === 'defaultZipCode') {
+            weatherSettings.defaultZipCode = setting.value;
+          } else if (key === 'apiKey') {
+            weatherSettings.apiKey = setting.value;
+          }
+        });
+      }
+
+      res.json(weatherSettings);
+    } catch (error: any) {
+      console.error("Error fetching weather settings:", error);
+      res.status(500).json({ message: "Failed to fetch weather settings" });
+    }
+  });
+
+  app.put("/api/settings/weather", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const { enabled, defaultZipCode, apiKey } = req.body;
+      
+      const updates = [
+        { key: 'weather_enabled', value: enabled.toString(), isSecret: false },
+        { key: 'weather_defaultZipCode', value: defaultZipCode || '', isSecret: false },
+        { key: 'weather_apiKey', value: apiKey || '', isSecret: true }
+      ];
+
+      for (const update of updates) {
+        await storage.updateSettings(update.key, update.value, update.isSecret);
+      }
+
+      res.json({ message: "Weather settings updated successfully" });
+    } catch (error: any) {
+      console.error("Error updating weather settings:", error);
+      res.status(500).json({ message: "Failed to update weather settings" });
+    }
+  });
+
   // Invoice Settings API
   app.get("/api/settings/invoice", requireAuth, async (req, res) => {
     try {

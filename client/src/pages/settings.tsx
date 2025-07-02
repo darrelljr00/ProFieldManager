@@ -97,6 +97,12 @@ type DashboardSettings = {
   widgetOrder: string[];
 };
 
+type WeatherSettings = {
+  defaultZipCode: string;
+  enabled: boolean;
+  apiKey: string;
+};
+
 export default function Settings() {
   const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -134,6 +140,10 @@ export default function Settings() {
 
   const { data: dashboardSettings, isLoading: dashboardLoading } = useQuery<DashboardSettings>({
     queryKey: ["/api/settings/dashboard"],
+  });
+
+  const { data: weatherSettings, isLoading: weatherLoading } = useQuery<WeatherSettings>({
+    queryKey: ["/api/settings/weather"],
   });
 
   const paymentMutation = useMutation({
@@ -301,6 +311,25 @@ export default function Settings() {
       toast({
         title: "Error",
         description: error.message || "Failed to save dashboard settings",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const weatherMutation = useMutation({
+    mutationFn: (data: Partial<WeatherSettings>) =>
+      apiRequest("PUT", "/api/settings/weather", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/weather"] });
+      toast({
+        title: "Success",
+        description: "Weather settings saved successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save weather settings",
         variant: "destructive",
       });
     },
@@ -555,7 +584,7 @@ export default function Settings() {
       </div>
 
       <Tabs defaultValue="payment" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-10">
+        <TabsList className="grid w-full grid-cols-11">
           <TabsTrigger value="payment">Payment Processing</TabsTrigger>
           <TabsTrigger value="company">Company Info</TabsTrigger>
           <TabsTrigger value="email">Email Settings</TabsTrigger>
@@ -565,6 +594,7 @@ export default function Settings() {
           <TabsTrigger value="reviews">Reviews</TabsTrigger>
           <TabsTrigger value="invoices">Invoice Templates</TabsTrigger>
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+          <TabsTrigger value="weather">Weather</TabsTrigger>
           <TabsTrigger value="navigation">Navigation Access</TabsTrigger>
         </TabsList>
 
@@ -1885,6 +1915,105 @@ export default function Settings() {
                     >
                       <Save className="w-4 h-4 mr-2" />
                       {dashboardMutation.isPending ? "Saving..." : "Save Settings"}
+                    </Button>
+                  </div>
+                </form>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="weather">
+          <Card>
+            <CardHeader>
+              <CardTitle>Weather Settings</CardTitle>
+              <CardDescription>
+                Configure weather functionality and default location settings.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {weatherLoading ? (
+                <div>Loading weather settings...</div>
+              ) : (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const formData = new FormData(e.target as HTMLFormElement);
+                    const settings = {
+                      enabled: formData.get("enabled") === "on",
+                      defaultZipCode: formData.get("defaultZipCode") as string,
+                      apiKey: formData.get("apiKey") as string,
+                    };
+                    weatherMutation.mutate(settings);
+                  }}
+                  className="space-y-6"
+                >
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="enabled">Enable Weather</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Enable weather functionality across the application
+                        </p>
+                      </div>
+                      <Switch
+                        id="enabled"
+                        name="enabled"
+                        defaultChecked={weatherSettings?.enabled ?? true}
+                      />
+                    </div>
+
+                    <Separator />
+
+                    <div className="space-y-2">
+                      <Label htmlFor="defaultZipCode">Default Zip Code</Label>
+                      <Input
+                        id="defaultZipCode"
+                        name="defaultZipCode"
+                        placeholder="Enter default zip code (e.g., 75006)"
+                        defaultValue={weatherSettings?.defaultZipCode || ""}
+                        className="max-w-xs"
+                      />
+                      <p className="text-sm text-muted-foreground">
+                        This zip code will be used as the default location for weather displays when no specific location is provided.
+                      </p>
+                    </div>
+
+                    <Separator />
+
+                    <div className="space-y-2">
+                      <Label htmlFor="apiKey">Weather API Key</Label>
+                      <div className="relative max-w-md">
+                        <Input
+                          id="apiKey"
+                          name="apiKey"
+                          type={showSecrets.weatherApiKey ? "text" : "password"}
+                          placeholder="Enter your weather API key"
+                          defaultValue={weatherSettings?.apiKey || ""}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-1 top-1/2 -translate-y-1/2"
+                          onClick={() => toggleSecretVisibility('weatherApiKey')}
+                        >
+                          {showSecrets.weatherApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        API key for weather data service (e.g., WeatherAPI.com or OpenWeatherMap).
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <Button
+                      type="submit"
+                      disabled={weatherMutation.isPending}
+                    >
+                      <Save className="w-4 h-4 mr-2" />
+                      {weatherMutation.isPending ? "Saving..." : "Save Weather Settings"}
                     </Button>
                   </div>
                 </form>
