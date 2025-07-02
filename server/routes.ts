@@ -69,14 +69,14 @@ const twilioClient = twilio(
 );
 
 // Helper function to get organization-based upload directory
-function getOrgUploadDir(organizationId: number, type: 'expenses' | 'images' | 'files' | 'image_gallery' | 'receipt_images' | 'inspection_report_images'): string {
+function getOrgUploadDir(organizationId: number, type: 'expenses' | 'images' | 'files' | 'image_gallery' | 'receipt_images' | 'inspection_report_images' | 'historical_job_images'): string {
   return `./uploads/org-${organizationId}/${type}`;
 }
 
 // Helper function to create organization folder structure
 async function createOrgFolderStructure(organizationId: number): Promise<void> {
   const basePath = `./uploads/org-${organizationId}`;
-  const folders = ['expenses', 'images', 'files', 'image_gallery', 'receipt_images', 'inspection_report_images'];
+  const folders = ['expenses', 'images', 'files', 'image_gallery', 'receipt_images', 'inspection_report_images', 'historical_job_images'];
   
   try {
     // Create base organization directory
@@ -312,6 +312,47 @@ const inspectionImageUpload = multer({
   },
   limits: {
     fileSize: 10 * 1024 * 1024 // 10MB limit for inspection images
+  }
+});
+
+// Configure multer for historical job image uploads with organization isolation
+const historicalJobImageUpload = multer({
+  storage: multer.diskStorage({
+    destination: async (req, file, cb) => {
+      const user = getAuthenticatedUser(req);
+      if (!user || !user.organizationId) {
+        return cb(new Error('Organization not found'), '');
+      }
+      
+      const uploadDir = getOrgUploadDir(user.organizationId, 'historical_job_images');
+      try {
+        await fs.mkdir(uploadDir, { recursive: true });
+        cb(null, uploadDir);
+      } catch (error) {
+        cb(error as Error, uploadDir);
+      }
+    },
+    filename: (req, file, cb) => {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      cb(null, 'historical-job-' + uniqueSuffix + path.extname(file.originalname));
+    }
+  }),
+  fileFilter: (req, file, cb) => {
+    // Only allow image files for historical jobs
+    const allowedTypes = /jpeg|jpg|png|gif/;
+    const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+    
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedMimeTypes.includes(file.mimetype);
+    
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Only image files (JPEG, PNG, GIF) are allowed for historical jobs'));
+    }
+  },
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB limit for historical job images
   }
 });
 
@@ -2368,6 +2409,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error creating historical job:", error);
       res.status(500).json({ message: "Failed to create historical job" });
+    }
+  });
+
+  // Historical Job Image Upload Endpoint
+  app.post("/api/projects/historical/:id/images", requireAuth, historicalJobImageUpload.array('images', 10), async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const userId = req.user!.id;
+      const organizationId = req.user!.organizationId;
+      const files = req.files as Express.Multer.File[];
+
+      if (!files || files.length === 0) {
+        return res.status(400).json({ message: "No files uploaded" });
+      }
+
+      // Verify the historical job exists and belongs to the user's organization
+      const project = await storage.getProject(projectId, userId);
+      if (!project || project.status !== 'completed') {
+        return res.status(404).json({ message: "Historical job not found" });
+      }
+
+      const uploadedImages = [];
+
+      for (const file of files) {
+        // Apply compression if settings allow
+        const compressionSettings = await storage.getSettings(organizationId, 'system');
+        const enableCompression = compressionSettings.find(s => s.key === 'enable_image_compression')?.value === 'true';
+        
+        if (enableCompression) {
+          await compressImage(file.path, file.path, organizationId);
+        }
+
+        const imagePath = `/api/uploads/org-${organizationId}/historical_job_images/${file.filename}`;
+        uploadedImages.push({
+          filename: file.filename,
+          originalname: file.originalname,
+          path: imagePath,
+          size: file.size,
+          projectId
+        });
+      }
+
+      // Broadcast to WebSocket clients
+      broadcastToWebUsers('historical_job_images_uploaded', {
+        message: `${files.length} image(s) uploaded for historical job`,
+        projectId,
+        images: uploadedImages
+      }, userId);
+
+      res.json({
+        message: "Images uploaded successfully",
+        images: uploadedImages
+      });
+    } catch (error: any) {
+      console.error("Error uploading historical job images:", error);
+      res.status(500).json({ message: "Failed to upload images" });
     }
   });
 
