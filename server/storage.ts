@@ -7,7 +7,7 @@ import {
   projectFiles, fileManager, projectUsers, timeClock, timeClockSettings,
   internalMessages, internalMessageRecipients, messageGroups, messageGroupMembers,
   inspectionTemplates, inspectionItems, inspectionRecords, inspectionResponses, inspectionNotifications,
-  smsMessages, smsTemplates
+  smsMessages, smsTemplates, sharedPhotoLinks
 } from "@shared/schema";
 import type { GasCard, InsertGasCard, GasCardAssignment, InsertGasCardAssignment, GasCardUsage, InsertGasCardUsage, GasCardProvider, InsertGasCardProvider } from "@shared/schema";
 import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull, isNull } from "drizzle-orm";
@@ -217,6 +217,17 @@ export interface IStorage {
   getInspectionRecords(userId: number, organizationId: number, type?: string): Promise<any[]>;
   createInspectionRecord(recordData: any): Promise<any>;
   getInspectionRecord(recordId: number, userId: number): Promise<any>;
+  
+  // Shared photo link methods
+  createSharedPhotoLink(linkData: any): Promise<any>;
+  getSharedPhotoLinks(userId: number): Promise<any[]>;
+  getSharedPhotoLink(token: string): Promise<any>;
+  updateSharedPhotoLinkAccess(token: string): Promise<any>;
+  deactivateSharedPhotoLink(linkId: number, userId: number): Promise<boolean>;
+  deleteSharedPhotoLink(linkId: number, userId: number): Promise<boolean>;
+  
+  // Image annotation methods
+  saveImageAnnotations(imageId: number, userId: number, annotations: any, annotatedImageUrl: string): Promise<any>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2833,6 +2844,150 @@ export class DatabaseStorage implements IStorage {
       return usage;
     } catch (error) {
       console.error('Error approving gas card usage:', error);
+      throw error;
+    }
+  }
+
+  // Shared photo link methods
+  async createSharedPhotoLink(linkData: any): Promise<any> {
+    try {
+      const [link] = await db
+        .insert(sharedPhotoLinks)
+        .values(linkData)
+        .returning();
+      return link;
+    } catch (error) {
+      console.error('Error creating shared photo link:', error);
+      throw error;
+    }
+  }
+
+  async getSharedPhotoLinks(userId: number): Promise<any[]> {
+    try {
+      const links = await db
+        .select()
+        .from(sharedPhotoLinks)
+        .where(eq(sharedPhotoLinks.createdBy, userId))
+        .orderBy(desc(sharedPhotoLinks.createdAt));
+      return links;
+    } catch (error) {
+      console.error('Error fetching shared photo links:', error);
+      throw error;
+    }
+  }
+
+  async getSharedPhotoLink(token: string): Promise<any> {
+    try {
+      const [link] = await db
+        .select({
+          id: sharedPhotoLinks.id,
+          shareToken: sharedPhotoLinks.shareToken,
+          projectId: sharedPhotoLinks.projectId,
+          imageIds: sharedPhotoLinks.imageIds,
+          createdBy: sharedPhotoLinks.createdBy,
+          recipientEmail: sharedPhotoLinks.recipientEmail,
+          recipientName: sharedPhotoLinks.recipientName,
+          expiresAt: sharedPhotoLinks.expiresAt,
+          accessCount: sharedPhotoLinks.accessCount,
+          maxAccess: sharedPhotoLinks.maxAccess,
+          isActive: sharedPhotoLinks.isActive,
+          message: sharedPhotoLinks.message,
+          createdAt: sharedPhotoLinks.createdAt,
+          lastAccessedAt: sharedPhotoLinks.lastAccessedAt,
+          project: {
+            id: projects.id,
+            name: projects.name
+          }
+        })
+        .from(sharedPhotoLinks)
+        .leftJoin(projects, eq(sharedPhotoLinks.projectId, projects.id))
+        .where(and(
+          eq(sharedPhotoLinks.shareToken, token),
+          eq(sharedPhotoLinks.isActive, true)
+        ));
+
+      if (!link) return null;
+
+      // Get images based on imageIds
+      const imageIdsArray = Array.isArray(link.imageIds) ? link.imageIds : JSON.parse(link.imageIds as string);
+      const imageList = await db
+        .select()
+        .from(images)
+        .where(inArray(images.id, imageIdsArray));
+
+      return {
+        ...link,
+        images: imageList
+      };
+    } catch (error) {
+      console.error('Error fetching shared photo link:', error);
+      throw error;
+    }
+  }
+
+  async updateSharedPhotoLinkAccess(token: string): Promise<any> {
+    try {
+      const [link] = await db
+        .update(sharedPhotoLinks)
+        .set({
+          accessCount: sql`${sharedPhotoLinks.accessCount} + 1`,
+          lastAccessedAt: new Date()
+        })
+        .where(eq(sharedPhotoLinks.shareToken, token))
+        .returning();
+      return link;
+    } catch (error) {
+      console.error('Error updating shared photo link access:', error);
+      throw error;
+    }
+  }
+
+  async deactivateSharedPhotoLink(linkId: number, userId: number): Promise<boolean> {
+    try {
+      const result = await db
+        .update(sharedPhotoLinks)
+        .set({ isActive: false })
+        .where(and(
+          eq(sharedPhotoLinks.id, linkId),
+          eq(sharedPhotoLinks.createdBy, userId)
+        ));
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error('Error deactivating shared photo link:', error);
+      return false;
+    }
+  }
+
+  async deleteSharedPhotoLink(linkId: number, userId: number): Promise<boolean> {
+    try {
+      const result = await db
+        .delete(sharedPhotoLinks)
+        .where(and(
+          eq(sharedPhotoLinks.id, linkId),
+          eq(sharedPhotoLinks.createdBy, userId)
+        ));
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error('Error deleting shared photo link:', error);
+      return false;
+    }
+  }
+
+  // Image annotation methods
+  async saveImageAnnotations(imageId: number, userId: number, annotations: any, annotatedImageUrl: string): Promise<any> {
+    try {
+      const [updatedImage] = await db
+        .update(images)
+        .set({
+          annotations: JSON.stringify(annotations),
+          annotatedImageUrl: annotatedImageUrl,
+          updatedAt: new Date()
+        })
+        .where(eq(images.id, imageId))
+        .returning();
+      return updatedImage;
+    } catch (error) {
+      console.error('Error saving image annotations:', error);
       throw error;
     }
   }
