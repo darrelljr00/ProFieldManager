@@ -47,9 +47,11 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Users, 
-  UserPlus, 
-  Edit, 
+  UserPlus,
+  Camera,
+  Upload,
   Trash2, 
+  Edit, 
   Shield, 
   ShieldOff,
   Key,
@@ -108,6 +110,7 @@ type User = {
   canAccessAdminSettings?: boolean;
   canAccessReports?: boolean;
   canAccessSettings?: boolean;
+  profilePicture?: string;
 };
 
 export default function UsersPage() {
@@ -124,6 +127,8 @@ export default function UsersPage() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [showProfilePictureDialog, setShowProfilePictureDialog] = useState(false);
+  const [selectedFileForUpload, setSelectedFileForUpload] = useState<File | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -282,6 +287,48 @@ export default function UsersPage() {
     },
   });
 
+  const uploadProfilePictureMutation = useMutation({
+    mutationFn: ({ userId, file }: { userId: number; file: File }) => {
+      const formData = new FormData();
+      formData.append('profilePicture', file);
+      return apiRequest("POST", `/api/admin/users/${userId}/profile-picture`, formData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      setShowProfilePictureDialog(false);
+      setSelectedFileForUpload(null);
+      toast({
+        title: "Success",
+        description: "Profile picture uploaded successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to upload profile picture",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteProfilePictureMutation = useMutation({
+    mutationFn: (userId: number) => apiRequest("DELETE", `/api/admin/users/${userId}/profile-picture`, {}),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      toast({
+        title: "Success",
+        description: "Profile picture deleted successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete profile picture",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleCreateUser = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -419,6 +466,33 @@ export default function UsersPage() {
       action,
       value
     });
+  };
+
+  const openProfilePictureDialog = (user: User) => {
+    setSelectedUser(user);
+    setShowProfilePictureDialog(true);
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setSelectedFileForUpload(file);
+    }
+  };
+
+  const handleUploadProfilePicture = () => {
+    if (!selectedUser || !selectedFileForUpload) return;
+    
+    uploadProfilePictureMutation.mutate({
+      userId: selectedUser.id,
+      file: selectedFileForUpload
+    });
+  };
+
+  const handleDeleteProfilePicture = (user: User) => {
+    if (confirm(`Are you sure you want to delete ${user.firstName || user.username}'s profile picture?`)) {
+      deleteProfilePictureMutation.mutate(user.id);
+    }
   };
 
   // Helper functions for handling pending permissions
@@ -830,14 +904,29 @@ export default function UsersPage() {
                     />
                   </TableCell>
                   <TableCell>
-                    <div>
-                      <div className="font-medium">{user.username}</div>
-                      <div className="text-sm text-muted-foreground">{user.email}</div>
-                      {(user.firstName || user.lastName) && (
-                        <div className="text-sm text-muted-foreground">
-                          {user.firstName} {user.lastName}
-                        </div>
-                      )}
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center overflow-hidden">
+                        {user.profilePicture ? (
+                          <img
+                            src={`/api/admin/users/${user.id}/profile-picture`}
+                            alt="Profile"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-xs text-muted-foreground">
+                            {(user.firstName?.[0] || user.username[0]).toUpperCase()}
+                          </span>
+                        )}
+                      </div>
+                      <div>
+                        <div className="font-medium">{user.username}</div>
+                        <div className="text-sm text-muted-foreground">{user.email}</div>
+                        {(user.firstName || user.lastName) && (
+                          <div className="text-sm text-muted-foreground">
+                            {user.firstName} {user.lastName}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>{getRoleBadge(user.role)}</TableCell>
@@ -895,6 +984,24 @@ export default function UsersPage() {
                       >
                         {user.isActive ? <ShieldOff className="h-4 w-4" /> : <Shield className="h-4 w-4" />}
                       </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => openProfilePictureDialog(user)}
+                        title="Upload Profile Picture"
+                      >
+                        <Camera className="h-4 w-4" />
+                      </Button>
+                      {user.profilePicture && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteProfilePicture(user)}
+                          title="Delete Profile Picture"
+                        >
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </Button>
+                      )}
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button variant="ghost" size="sm">
@@ -1150,6 +1257,69 @@ export default function UsersPage() {
                 Cancel
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Profile Picture Upload Dialog */}
+      <Dialog open={showProfilePictureDialog} onOpenChange={setShowProfilePictureDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Upload Profile Picture</DialogTitle>
+            <DialogDescription>
+              Upload a profile picture for {selectedUser?.firstName || selectedUser?.username}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <input
+                type="file"
+                id="profile-picture-input"
+                accept="image/*"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+              <Button
+                variant="outline"
+                onClick={() => document.getElementById('profile-picture-input')?.click()}
+                className="w-full"
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Select Image
+              </Button>
+              {selectedFileForUpload && (
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Selected: {selectedFileForUpload.name}
+                </p>
+              )}
+            </div>
+            {selectedUser?.profilePicture && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Current Profile Picture:</p>
+                <img
+                  src={`/api/admin/users/${selectedUser.id}/profile-picture`}
+                  alt="Current profile picture"
+                  className="w-16 h-16 rounded-full object-cover border"
+                />
+              </div>
+            )}
+          </div>
+          <div className="flex justify-end space-x-2">
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setShowProfilePictureDialog(false);
+                setSelectedFileForUpload(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleUploadProfilePicture}
+              disabled={!selectedFileForUpload || uploadProfilePictureMutation.isPending}
+            >
+              {uploadProfilePictureMutation.isPending ? "Uploading..." : "Upload"}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

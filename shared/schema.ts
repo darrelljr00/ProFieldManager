@@ -128,6 +128,7 @@ export const users = pgTable("users", {
   emailVerified: boolean("email_verified").default(false),
   emailVerificationToken: text("email_verification_token"),
   companyName: text("company_name"),
+  profilePicture: text("profile_picture"), // Path to uploaded profile picture
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
   squareApplicationId: text("square_application_id"),

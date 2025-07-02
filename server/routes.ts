@@ -71,14 +71,14 @@ const twilioClient = twilio(
 );
 
 // Helper function to get organization-based upload directory
-function getOrgUploadDir(organizationId: number, type: 'expenses' | 'images' | 'files' | 'image_gallery' | 'receipt_images' | 'inspection_report_images' | 'historical_job_images'): string {
+function getOrgUploadDir(organizationId: number, type: 'expenses' | 'images' | 'files' | 'image_gallery' | 'receipt_images' | 'inspection_report_images' | 'historical_job_images' | 'profile_pictures'): string {
   return `./uploads/org-${organizationId}/${type}`;
 }
 
 // Helper function to create organization folder structure
 async function createOrgFolderStructure(organizationId: number): Promise<void> {
   const basePath = `./uploads/org-${organizationId}`;
-  const folders = ['expenses', 'images', 'files', 'image_gallery', 'receipt_images', 'inspection_report_images', 'historical_job_images'];
+  const folders = ['expenses', 'images', 'files', 'image_gallery', 'receipt_images', 'inspection_report_images', 'historical_job_images', 'profile_pictures'];
   
   try {
     // Create base organization directory
@@ -433,6 +433,47 @@ const disciplinaryUpload = multer({
   },
   limits: {
     fileSize: 10 * 1024 * 1024 // 10MB limit for PDFs
+  }
+});
+
+// Configure multer for profile picture uploads with organization isolation
+const profilePictureUpload = multer({
+  storage: multer.diskStorage({
+    destination: async (req, file, cb) => {
+      const user = getAuthenticatedUser(req);
+      if (!user || !user.organizationId) {
+        return cb(new Error('Organization not found'), '');
+      }
+      
+      const uploadDir = getOrgUploadDir(user.organizationId, 'profile_pictures');
+      try {
+        await fs.mkdir(uploadDir, { recursive: true });
+        cb(null, uploadDir);
+      } catch (error) {
+        cb(error as Error, uploadDir);
+      }
+    },
+    filename: (req, file, cb) => {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      cb(null, 'profile-' + uniqueSuffix + path.extname(file.originalname));
+    }
+  }),
+  fileFilter: (req, file, cb) => {
+    // Only allow image files for profile pictures
+    const allowedTypes = /jpeg|jpg|png|gif|webp/;
+    const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedMimeTypes.includes(file.mimetype);
+    
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Only image files (JPEG, PNG, GIF, WebP) are allowed'));
+    }
+  },
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit for profile pictures
   }
 });
 
@@ -4281,6 +4322,143 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Batch permissions update error:", error);
       res.status(500).json({ message: "Failed to update user permissions" });
+    }
+  });
+
+  // Profile picture upload for users (Manager/Admin only)
+  app.post('/api/admin/users/:id/profile-picture', requireManagerOrAdmin, profilePictureUpload.single('profilePicture'), async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const user = getAuthenticatedUser(req);
+      
+      if (!req.file) {
+        return res.status(400).json({ message: 'No profile picture file provided' });
+      }
+      
+      // Get the target user to check organization
+      const targetUser = await storage.getUser(userId);
+      if (!targetUser) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      
+      // Ensure manager/admin can only upload pictures for users in their organization
+      if (user.role !== 'admin' && targetUser.organizationId !== user.organizationId) {
+        return res.status(403).json({ message: 'Cannot upload profile picture for users outside your organization' });
+      }
+      
+      const originalPath = req.file.path;
+      const fileExtension = path.extname(req.file.filename);
+      const compressedPath = originalPath.replace(fileExtension, '_compressed' + fileExtension);
+      
+      // Apply compression if enabled
+      let finalFilePath = originalPath;
+      const compressionApplied = await compressImage(originalPath, compressedPath, user.organizationId);
+      if (compressionApplied) {
+        finalFilePath = compressedPath;
+      }
+      
+      // Update user's profile picture path in database
+      const profilePicturePath = `uploads/org-${user.organizationId}/profile_pictures/${path.basename(finalFilePath)}`;
+      const updatedUser = await storage.updateUser(userId, { 
+        profilePicture: profilePicturePath 
+      });
+      
+      if (!updatedUser) {
+        return res.status(500).json({ message: 'Failed to update user profile picture' });
+      }
+      
+      res.json({
+        message: 'Profile picture uploaded successfully',
+        user: {
+          ...updatedUser,
+          password: undefined, // Don't return password
+        },
+        profilePictureUrl: `/api/files/profile-pictures/${path.basename(finalFilePath)}?org=${user.organizationId}`
+      });
+    } catch (error: any) {
+      console.error('Profile picture upload error:', error);
+      res.status(500).json({ message: 'Failed to upload profile picture: ' + error.message });
+    }
+  });
+
+  // Get profile picture (organization-scoped)
+  app.get('/api/files/profile-pictures/:filename', async (req, res) => {
+    try {
+      const { filename } = req.params;
+      const { org } = req.query;
+      
+      if (!org) {
+        return res.status(400).json({ message: 'Organization ID required' });
+      }
+      
+      const filePath = path.join(process.cwd(), `uploads/org-${org}/profile_pictures/${filename}`);
+      
+      // Check if file exists
+      try {
+        await fs.stat(filePath);
+      } catch (error) {
+        console.error('Profile picture file not found:', { filePath, filename, org });
+        return res.status(404).json({ message: 'Profile picture not found' });
+      }
+      
+      // Set appropriate headers
+      res.setHeader('Content-Type', 'image/*');
+      res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
+      
+      res.sendFile(filePath);
+    } catch (error: any) {
+      console.error('Profile picture serving error:', error);
+      res.status(500).json({ message: 'Failed to serve profile picture' });
+    }
+  });
+
+  // Delete profile picture (Manager/Admin only)
+  app.delete('/api/admin/users/:id/profile-picture', requireManagerOrAdmin, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const user = getAuthenticatedUser(req);
+      
+      // Get the target user to check organization
+      const targetUser = await storage.getUser(userId);
+      if (!targetUser) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      
+      // Ensure manager/admin can only delete pictures for users in their organization
+      if (user.role !== 'admin' && targetUser.organizationId !== user.organizationId) {
+        return res.status(403).json({ message: 'Cannot delete profile picture for users outside your organization' });
+      }
+      
+      // Delete the physical file if it exists
+      if (targetUser.profilePicture) {
+        const filePath = path.join(process.cwd(), targetUser.profilePicture);
+        try {
+          await fs.unlink(filePath);
+        } catch (error) {
+          console.error('Failed to delete profile picture file:', error);
+          // Continue anyway - remove from database even if file deletion fails
+        }
+      }
+      
+      // Remove profile picture path from database
+      const updatedUser = await storage.updateUser(userId, { 
+        profilePicture: null 
+      });
+      
+      if (!updatedUser) {
+        return res.status(500).json({ message: 'Failed to remove profile picture' });
+      }
+      
+      res.json({
+        message: 'Profile picture removed successfully',
+        user: {
+          ...updatedUser,
+          password: undefined, // Don't return password
+        }
+      });
+    } catch (error: any) {
+      console.error('Profile picture deletion error:', error);
+      res.status(500).json({ message: 'Failed to delete profile picture: ' + error.message });
     }
   });
 
