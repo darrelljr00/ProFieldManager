@@ -3966,12 +3966,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user!.id;
       const jobData = req.body;
       
-      const updatedJob = await storage.updateCalendarJob(jobId, userId, {
-        ...jobData,
-        startDate: jobData.startDate ? new Date(jobData.startDate) : undefined,
-        endDate: jobData.endDate ? new Date(jobData.endDate) : undefined,
-        estimatedValue: jobData.estimatedValue ? parseFloat(jobData.estimatedValue) : null,
-      });
+      // Filter out undefined values and empty strings to prevent "No values to set" error
+      const updates = Object.fromEntries(
+        Object.entries({
+          ...jobData,
+          startDate: jobData.startDate ? new Date(jobData.startDate) : undefined,
+          endDate: jobData.endDate ? new Date(jobData.endDate) : undefined,
+          estimatedValue: jobData.estimatedValue ? parseFloat(jobData.estimatedValue) : null,
+        }).filter(([_, value]) => value !== undefined && value !== '' && value !== null)
+      );
+
+      if (Object.keys(updates).length === 0) {
+        return res.status(400).json({ message: "No valid updates provided" });
+      }
+
+      const updatedJob = await storage.updateCalendarJob(jobId, updates);
       
       if (!updatedJob) {
         return res.status(404).json({ message: "Calendar job not found" });
