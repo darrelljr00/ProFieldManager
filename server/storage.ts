@@ -1,4 +1,5 @@
 import { db } from "./db";
+import { ensureOrganizationFolders } from "./folderCreation";
 import { 
   users, customers, invoices, quotes, projects, tasks, 
   expenses, expenseCategories, vendors, expenseReports, gasCards, 
@@ -2330,8 +2331,6 @@ export class DatabaseStorage implements IStorage {
   async createImage(imageData: any): Promise<any> {
     try {
       // Ensure organization folders exist for multi-tenant isolation
-      const { ensureOrganizationFolders } = require('./folderCreation');
-      
       if (imageData.organizationId) {
         await ensureOrganizationFolders(imageData.organizationId);
       }

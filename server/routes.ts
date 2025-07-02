@@ -6,6 +6,7 @@ import twilio from "twilio";
 import multer from "multer";
 import path from "path";
 import fs from "fs/promises";
+import fsSync from "fs";
 import sharp from "sharp";
 import { storage } from "./storage";
 import { weatherService } from './weather';
@@ -39,7 +40,7 @@ import {
 } from "@shared/schema";
 import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull } from "drizzle-orm";
 import { DocuSignService, getDocuSignConfig } from "./docusign";
-import { ensureOrganizationFolders } from "./folderCreation";
+import { ensureOrganizationFolders, createOrganizationFolders } from "./folderCreation";
 
 // Extend Express Request type to include user
 declare global {
@@ -1592,8 +1593,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (compressionApplied) {
           finalFileName = compressedFilename;
           // Get compressed file size
-          const fs = require('fs');
-          const stats = await fs.promises.stat(compressedPath);
+          const stats = await fs.stat(compressedPath);
           finalSize = stats.size;
         }
         
@@ -1670,7 +1670,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         finalFileName = compressedFilename;
         finalMimeType = 'image/jpeg';
         // Get compressed file size
-        const fs = require('fs');
+        // fs already imported as fsSync
         const stats = await fs.promises.stat(compressedPath);
         finalSize = stats.size;
       }
@@ -1751,7 +1751,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Copy the file
-      const fs = require('fs');
+      // fs already imported as fsSync
       const path = require('path');
       const originalPath = `./uploads/org-${originalImage.organizationId}/image_gallery/${originalImage.filename}`;
       const duplicateFilename = `copy-${Date.now()}-${originalImage.filename}`;
@@ -1802,7 +1802,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Delete the file
-      const fs = require('fs');
+      // fs already imported as fsSync
       const filePath = `./uploads/org-${image.organizationId}/image_gallery/${image.filename}`;
       
       try {
