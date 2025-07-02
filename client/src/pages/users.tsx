@@ -1412,14 +1412,11 @@ export default function UsersPage() {
                           </TableCell>
                           <TableCell>
                             <Switch
-                              checked={user.canAccessExpenses === true}
+                              checked={getUserPermissionValue(user, 'canAccessExpenses') === true}
                               onCheckedChange={(checked) => 
-                                updateUserPermissionsMutation.mutate({
-                                  userId: user.id,
-                                  permissions: { canAccessExpenses: checked }
-                                })
+                                updatePendingPermission(user.id, 'canAccessExpenses', checked)
                               }
-                              disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
+                              disabled={user.role === 'admin' || batchSavePermissionsMutation.isPending}
                             />
                           </TableCell>
                           <TableCell>
