@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Calendar, Users, CheckCircle, Clock, AlertCircle, Folder, Settings, MapPin, Route, Star, Smartphone, Eye, Image, FileText, CheckSquare, Upload, Camera, DollarSign, Download, Trash2 } from "lucide-react";
+import { Plus, Calendar, Users, CheckCircle, Clock, AlertCircle, Folder, Settings, MapPin, Route, Star, Smartphone, Eye, Image, FileText, CheckSquare, Upload, Camera, DollarSign, Download, Trash2, Archive } from "lucide-react";
 import { Link } from "wouter";
 import { format } from "date-fns";
 import type { Project, Customer, User } from "@shared/schema";
@@ -22,6 +22,249 @@ import { DispatchRouting } from "@/components/dispatch-routing";
 import { WeatherWidget } from "@/components/weather-widget";
 import { MobileCamera } from "@/components/mobile-camera";
 import { MediaGallery } from "@/components/media-gallery";
+
+// Historical Jobs Component
+function HistoricalJobs() {
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  const { data: customers = [] } = useQuery<Customer[]>({
+    queryKey: ["/api/customers"],
+  });
+
+  const { data: users = [] } = useQuery<User[]>({
+    queryKey: ["/api/users"],
+  });
+
+  const createHistoricalJobMutation = useMutation({
+    mutationFn: async (formData: FormData) => {
+      return apiRequest("/api/projects/historical", {
+        method: "POST",
+        body: formData,
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Historical job created",
+        description: "Historical job has been successfully added",
+      });
+      setCreateDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create historical job",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleCreateHistoricalJob = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    
+    // Set status to completed for historical jobs
+    formData.set('status', 'completed');
+    
+    createHistoricalJobMutation.mutate(formData);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-xl font-semibold">Historical Jobs</h2>
+          <p className="text-gray-600">Add jobs that were completed in the past</p>
+        </div>
+        <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Historical Job
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Add Historical Job</DialogTitle>
+              <DialogDescription>
+                Create a record for a job that was already completed
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleCreateHistoricalJob} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="historical-name">Job Name *</Label>
+                  <Input
+                    id="historical-name"
+                    name="name"
+                    required
+                    placeholder="Job name"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="historical-customer">Customer *</Label>
+                  <Select name="customerId" required>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select customer" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {customers.map((customer) => (
+                        <SelectItem key={customer.id} value={customer.id?.toString() || ""}>
+                          {customer.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="historical-description">Description</Label>
+                <Textarea
+                  id="historical-description"
+                  name="description"
+                  placeholder="Describe the work that was completed"
+                  rows={3}
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="historical-start-date">Start Date</Label>
+                  <Input
+                    id="historical-start-date"
+                    name="startDate"
+                    type="date"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="historical-end-date">End Date</Label>
+                  <Input
+                    id="historical-end-date"
+                    name="endDate"
+                    type="date"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="historical-value">Job Value ($)</Label>
+                  <Input
+                    id="historical-value"
+                    name="estimatedValue"
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="historical-assigned">Assigned To</Label>
+                  <Select name="assignedToId">
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select team member" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {users.map((user) => (
+                        <SelectItem key={user.id} value={user.id?.toString() || ""}>
+                          {user.firstName} {user.lastName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="historical-priority">Priority</Label>
+                  <Select name="priority" defaultValue="medium">
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">Low</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="urgent">Urgent</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="historical-address">Address</Label>
+                  <Input
+                    id="historical-address"
+                    name="address"
+                    placeholder="Street address"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="historical-city">City</Label>
+                  <Input
+                    id="historical-city"
+                    name="city"
+                    placeholder="City"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="historical-state">State</Label>
+                  <Input
+                    id="historical-state"
+                    name="state"
+                    placeholder="State"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="historical-zip">ZIP Code</Label>
+                  <Input
+                    id="historical-zip"
+                    name="zipCode"
+                    placeholder="ZIP code"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-2 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setCreateDialogOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={createHistoricalJobMutation.isPending}>
+                  {createHistoricalJobMutation.isPending ? "Creating..." : "Create Historical Job"}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <Card>
+        <CardContent className="text-center py-12">
+          <Archive className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No historical jobs yet</h3>
+          <p className="text-gray-600 mb-4">
+            Add records of jobs that were completed in the past to maintain a complete job history
+          </p>
+          <Button onClick={() => setCreateDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Historical Job
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
 
 interface ProjectWithDetails extends Project {
   users: { user: User }[];
@@ -671,7 +914,7 @@ export default function Jobs() {
         </Card>
       ) : (
         <Tabs defaultValue="in-progress" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="upcoming" className="flex items-center gap-2">
               <Clock className="h-4 w-4" />
               Upcoming ({upcoming.length})
@@ -683,6 +926,10 @@ export default function Jobs() {
             <TabsTrigger value="completed" className="flex items-center gap-2">
               <CheckCircle className="h-4 w-4" />
               Completed ({completed.length})
+            </TabsTrigger>
+            <TabsTrigger value="historical" className="flex items-center gap-2">
+              <Archive className="h-4 w-4" />
+              Historical Jobs
             </TabsTrigger>
             <TabsTrigger value="dispatch" className="flex items-center gap-2">
               <Route className="h-4 w-4" />
@@ -700,6 +947,10 @@ export default function Jobs() {
 
           <TabsContent value="completed">
             {renderJobGrid(completed, "No completed jobs")}
+          </TabsContent>
+
+          <TabsContent value="historical">
+            <HistoricalJobs />
           </TabsContent>
 
           <TabsContent value="dispatch">
