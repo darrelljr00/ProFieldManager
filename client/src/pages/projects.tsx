@@ -39,11 +39,8 @@ function HistoricalJobs() {
   });
 
   const createHistoricalJobMutation = useMutation({
-    mutationFn: async (formData: FormData) => {
-      return apiRequest("/api/projects/historical", {
-        method: "POST",
-        body: formData,
-      });
+    mutationFn: async (data: any) => {
+      return apiRequest("/api/projects/historical", data);
     },
     onSuccess: () => {
       toast({
@@ -66,10 +63,16 @@ function HistoricalJobs() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     
-    // Set status to completed for historical jobs
-    formData.set('status', 'completed');
+    // Convert FormData to object
+    const data: any = {};
+    formData.forEach((value, key) => {
+      data[key] = value;
+    });
     
-    createHistoricalJobMutation.mutate(formData);
+    // Set status to completed for historical jobs
+    data.status = 'completed';
+    
+    createHistoricalJobMutation.mutate(data);
   };
 
   return (

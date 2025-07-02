@@ -2338,6 +2338,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Historical Jobs Endpoint
+  app.post("/api/projects/historical", requireAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const organizationId = req.user!.organizationId;
+      const { startDate, endDate, ...otherData } = req.body;
+      
+      const historicalJobData = {
+        ...otherData,
+        userId,
+        organizationId,
+        status: 'completed', // Historical jobs are always completed
+        startDate: startDate ? new Date(startDate) : new Date(),
+        endDate: endDate ? new Date(endDate) : new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+
+      const project = await storage.createProject(historicalJobData);
+      
+      // Broadcast to WebSocket clients
+      broadcastToWebUsers('project_created', {
+        message: 'Historical job added successfully',
+        project
+      }, userId);
+
+      res.json(project);
+    } catch (error: any) {
+      console.error("Error creating historical job:", error);
+      res.status(500).json({ message: "Failed to create historical job" });
+    }
+  });
+
   app.get("/api/projects/:id", requireAuth, async (req, res) => {
     try {
       const projectId = parseInt(req.params.id);
