@@ -3690,6 +3690,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Dashboard Settings API
+  app.get("/api/settings/dashboard", requireAuth, async (req, res) => {
+    try {
+      const settings = await storage.getSettings('dashboard');
+      
+      // Default dashboard widget settings if none exist
+      const defaultSettings = {
+        showStatsCards: true,
+        showRevenueChart: true,
+        showRecentActivity: true,
+        showRecentInvoices: true,
+        showNotifications: true,
+        showQuickActions: true,
+        widgetOrder: ['stats', 'revenue', 'activity', 'invoices']
+      };
+      
+      // Merge with stored settings
+      const mergedSettings = { ...defaultSettings };
+      settings.forEach((setting: any) => {
+        const key = setting.key.replace('dashboard_', '');
+        if (key === 'widgetOrder') {
+          try {
+            mergedSettings[key] = JSON.parse(setting.value);
+          } catch {
+            mergedSettings[key] = defaultSettings.widgetOrder;
+          }
+        } else {
+          mergedSettings[key] = setting.value === 'true';
+        }
+      });
+      
+      res.json(mergedSettings);
+    } catch (error: any) {
+      console.error("Error fetching dashboard settings:", error);
+      res.status(500).json({ message: "Failed to fetch dashboard settings" });
+    }
+  });
+
+  app.put("/api/settings/dashboard", requireAuth, async (req, res) => {
+    try {
+      const settingsData = req.body;
+      
+      // Convert settings to key-value pairs for storage
+      const settingsMap = {
+        showStatsCards: settingsData.showStatsCards?.toString(),
+        showRevenueChart: settingsData.showRevenueChart?.toString(),
+        showRecentActivity: settingsData.showRecentActivity?.toString(),
+        showRecentInvoices: settingsData.showRecentInvoices?.toString(),
+        showNotifications: settingsData.showNotifications?.toString(),
+        showQuickActions: settingsData.showQuickActions?.toString(),
+        widgetOrder: JSON.stringify(settingsData.widgetOrder || ['stats', 'revenue', 'activity', 'invoices'])
+      };
+
+      // Update each setting individually
+      for (const [key, value] of Object.entries(settingsMap)) {
+        if (value !== undefined && value !== null) {
+          await storage.updateSetting('dashboard', key, value);
+        }
+      }
+
+      res.json({ message: "Dashboard settings updated successfully" });
+    } catch (error: any) {
+      console.error("Error updating dashboard settings:", error);
+      res.status(500).json({ message: "Failed to update dashboard settings" });
+    }
+  });
+
   // Leads API
   app.get("/api/leads", requireAuth, async (req, res) => {
     try {

@@ -87,6 +87,16 @@ type InvoiceSettings = {
   templateCustomizations: Record<string, any>;
 };
 
+type DashboardSettings = {
+  showStatsCards: boolean;
+  showRevenueChart: boolean;
+  showRecentActivity: boolean;
+  showRecentInvoices: boolean;
+  showNotifications: boolean;
+  showQuickActions: boolean;
+  widgetOrder: string[];
+};
+
 export default function Settings() {
   const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -120,6 +130,10 @@ export default function Settings() {
 
   const { data: invoiceSettings, isLoading: invoiceLoading } = useQuery<InvoiceSettings>({
     queryKey: ["/api/settings/invoice"],
+  });
+
+  const { data: dashboardSettings, isLoading: dashboardLoading } = useQuery<DashboardSettings>({
+    queryKey: ["/api/settings/dashboard"],
   });
 
   const paymentMutation = useMutation({
@@ -268,6 +282,25 @@ export default function Settings() {
       toast({
         title: "Error",
         description: error.message || "Failed to save invoice settings",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const dashboardMutation = useMutation({
+    mutationFn: (data: Partial<DashboardSettings>) =>
+      apiRequest("PUT", "/api/settings/dashboard", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/dashboard"] });
+      toast({
+        title: "Success",
+        description: "Dashboard settings saved successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save dashboard settings",
         variant: "destructive",
       });
     },
@@ -522,7 +555,7 @@ export default function Settings() {
       </div>
 
       <Tabs defaultValue="payment" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-8">
+        <TabsList className="grid w-full grid-cols-9">
           <TabsTrigger value="payment">Payment Processing</TabsTrigger>
           <TabsTrigger value="company">Company Info</TabsTrigger>
           <TabsTrigger value="email">Email Settings</TabsTrigger>
@@ -531,6 +564,7 @@ export default function Settings() {
           <TabsTrigger value="ocr">OCR Settings</TabsTrigger>
           <TabsTrigger value="reviews">Reviews</TabsTrigger>
           <TabsTrigger value="invoices">Invoice Templates</TabsTrigger>
+          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
         </TabsList>
 
         <TabsContent value="payment">
@@ -1705,6 +1739,155 @@ export default function Settings() {
                   </Button>
                 </div>
               </form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="dashboard">
+          <Card>
+            <CardHeader>
+              <CardTitle>Dashboard Customization</CardTitle>
+              <CardDescription>
+                Choose which widgets and sections to display on your dashboard home page.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {dashboardLoading ? (
+                <div>Loading dashboard settings...</div>
+              ) : (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const formData = new FormData(e.target as HTMLFormElement);
+                    const settings = {
+                      showStatsCards: formData.get("showStatsCards") === "on",
+                      showRevenueChart: formData.get("showRevenueChart") === "on",
+                      showRecentActivity: formData.get("showRecentActivity") === "on",
+                      showRecentInvoices: formData.get("showRecentInvoices") === "on",
+                      showNotifications: formData.get("showNotifications") === "on",
+                      showQuickActions: formData.get("showQuickActions") === "on",
+                      widgetOrder: dashboardSettings?.widgetOrder || ['stats', 'revenue', 'activity', 'invoices']
+                    };
+                    dashboardMutation.mutate(settings);
+                  }}
+                  className="space-y-6"
+                >
+                  <div className="grid gap-6">
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-medium">Dashboard Widgets</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Select which widgets you want to see on your dashboard.
+                      </p>
+                      
+                      <div className="grid gap-4">
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <Label htmlFor="showStatsCards">Stats Cards</Label>
+                            <p className="text-sm text-muted-foreground">
+                              Revenue, invoices, and performance metrics
+                            </p>
+                          </div>
+                          <Switch
+                            id="showStatsCards"
+                            name="showStatsCards"
+                            defaultChecked={dashboardSettings?.showStatsCards ?? true}
+                          />
+                        </div>
+                        
+                        <Separator />
+                        
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <Label htmlFor="showRevenueChart">Revenue Chart</Label>
+                            <p className="text-sm text-muted-foreground">
+                              Monthly revenue and growth trends
+                            </p>
+                          </div>
+                          <Switch
+                            id="showRevenueChart"
+                            name="showRevenueChart"
+                            defaultChecked={dashboardSettings?.showRevenueChart ?? true}
+                          />
+                        </div>
+                        
+                        <Separator />
+                        
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <Label htmlFor="showRecentActivity">Recent Activity</Label>
+                            <p className="text-sm text-muted-foreground">
+                              Latest projects and system activity
+                            </p>
+                          </div>
+                          <Switch
+                            id="showRecentActivity"
+                            name="showRecentActivity"
+                            defaultChecked={dashboardSettings?.showRecentActivity ?? true}
+                          />
+                        </div>
+                        
+                        <Separator />
+                        
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <Label htmlFor="showRecentInvoices">Recent Invoices</Label>
+                            <p className="text-sm text-muted-foreground">
+                              Latest invoices and payment status
+                            </p>
+                          </div>
+                          <Switch
+                            id="showRecentInvoices"
+                            name="showRecentInvoices"
+                            defaultChecked={dashboardSettings?.showRecentInvoices ?? true}
+                          />
+                        </div>
+                        
+                        <Separator />
+                        
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <Label htmlFor="showNotifications">Notifications</Label>
+                            <p className="text-sm text-muted-foreground">
+                              Alert badge on notification bell
+                            </p>
+                          </div>
+                          <Switch
+                            id="showNotifications"
+                            name="showNotifications"
+                            defaultChecked={dashboardSettings?.showNotifications ?? true}
+                          />
+                        </div>
+                        
+                        <Separator />
+                        
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <Label htmlFor="showQuickActions">Quick Actions</Label>
+                            <p className="text-sm text-muted-foreground">
+                              "New Invoice" button and other quick actions
+                            </p>
+                          </div>
+                          <Switch
+                            id="showQuickActions"
+                            name="showQuickActions"
+                            defaultChecked={dashboardSettings?.showQuickActions ?? true}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <Button
+                      type="submit"
+                      disabled={dashboardMutation.isPending}
+                    >
+                      <Save className="w-4 h-4 mr-2" />
+                      {dashboardMutation.isPending ? "Saving..." : "Save Settings"}
+                    </Button>
+                  </div>
+                </form>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
