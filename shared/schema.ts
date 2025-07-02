@@ -1119,12 +1119,17 @@ export const insertImageAnnotationSchema = z.object({
 });
 
 export const insertSharedPhotoLinkSchema = z.object({
-  imageIds: z.array(z.number()),
-  accessToken: z.string(),
-  expiresAt: z.date().optional(),
-  allowDownload: z.boolean().default(false),
+  shareToken: z.string(),
+  projectId: z.number(),
+  imageIds: z.union([z.array(z.number()), z.string()]), // Can be array or JSON string
   createdBy: z.number(),
-  organizationId: z.number(),
+  recipientEmail: z.string().email().optional(),
+  recipientName: z.string().optional(),
+  expiresAt: z.date(),
+  maxAccess: z.number().optional(),
+  message: z.string().optional(),
+  isActive: z.boolean().default(true),
+  accessCount: z.number().default(0),
 });
 
 export const insertGasCardAssignmentSchema = z.object({
