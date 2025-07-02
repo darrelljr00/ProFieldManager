@@ -1376,50 +1376,38 @@ export default function UsersPage() {
                           </TableCell>
                           <TableCell>
                             <Switch
-                              checked={user.canAccessCustomers === true}
+                              checked={getUserPermissionValue(user, 'canAccessCustomers') === true}
                               onCheckedChange={(checked) => 
-                                updateUserPermissionsMutation.mutate({
-                                  userId: user.id,
-                                  permissions: { canAccessCustomers: checked }
-                                })
+                                updatePendingPermission(user.id, 'canAccessCustomers', checked)
                               }
-                              disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
+                              disabled={user.role === 'admin' || batchSavePermissionsMutation.isPending}
                             />
                           </TableCell>
                           <TableCell>
                             <Switch
-                              checked={user.canAccessProjects === true}
+                              checked={getUserPermissionValue(user, 'canAccessProjects') === true}
                               onCheckedChange={(checked) => 
-                                updateUserPermissionsMutation.mutate({
-                                  userId: user.id,
-                                  permissions: { canAccessProjects: checked }
-                                })
+                                updatePendingPermission(user.id, 'canAccessProjects', checked)
                               }
-                              disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
+                              disabled={user.role === 'admin' || batchSavePermissionsMutation.isPending}
                             />
                           </TableCell>
                           <TableCell>
                             <Switch
-                              checked={user.canAccessInvoices === true}
+                              checked={getUserPermissionValue(user, 'canAccessInvoices') === true}
                               onCheckedChange={(checked) => 
-                                updateUserPermissionsMutation.mutate({
-                                  userId: user.id,
-                                  permissions: { canAccessInvoices: checked }
-                                })
+                                updatePendingPermission(user.id, 'canAccessInvoices', checked)
                               }
-                              disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
+                              disabled={user.role === 'admin' || batchSavePermissionsMutation.isPending}
                             />
                           </TableCell>
                           <TableCell>
                             <Switch
-                              checked={user.canAccessQuotes === true}
+                              checked={getUserPermissionValue(user, 'canAccessQuotes') === true}
                               onCheckedChange={(checked) => 
-                                updateUserPermissionsMutation.mutate({
-                                  userId: user.id,
-                                  permissions: { canAccessQuotes: checked }
-                                })
+                                updatePendingPermission(user.id, 'canAccessQuotes', checked)
                               }
-                              disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
+                              disabled={user.role === 'admin' || batchSavePermissionsMutation.isPending}
                             />
                           </TableCell>
                           <TableCell>
