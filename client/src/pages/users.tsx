@@ -449,7 +449,28 @@ export default function UsersPage() {
       return;
     }
     
-    batchSavePermissionsMutation.mutate(pendingPermissions);
+    // Filter out empty permission objects and only send actual changes
+    const validChanges: Record<number, Partial<User>> = {};
+    
+    Object.entries(pendingPermissions).forEach(([userIdStr, permissions]) => {
+      const userId = parseInt(userIdStr);
+      const permissionKeys = Object.keys(permissions || {});
+      
+      // Only include users that have actual permission changes
+      if (permissionKeys.length > 0) {
+        validChanges[userId] = permissions;
+      }
+    });
+    
+    if (Object.keys(validChanges).length === 0) {
+      toast({
+        title: "No Valid Changes",
+        description: "No valid permission changes to save",
+      });
+      return;
+    }
+    
+    batchSavePermissionsMutation.mutate(validChanges);
   };
 
   const handleDiscardChanges = () => {
