@@ -18,9 +18,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Calendar, ChevronLeft, ChevronRight, Plus, Edit, Trash2, PlayCircle, DollarSign, MapPin, Eye } from "lucide-react";
+import { Calendar, ChevronLeft, ChevronRight, Plus, Edit, Trash2, PlayCircle, DollarSign, MapPin, Eye, Navigation } from "lucide-react";
 import type { CalendarJob, InsertCalendarJob, Customer, Lead } from "@shared/schema";
 import { WeatherWidget } from "@/components/weather-widget";
+import { DirectionsButton } from "@/components/google-maps";
 
 export default function CalendarPage() {
   const [selectedJob, setSelectedJob] = useState<CalendarJob | null>(null);
@@ -566,6 +567,12 @@ export default function CalendarPage() {
                     </div>
                     
                     <div className="flex gap-2">
+                      {job.location && (
+                        <DirectionsButton 
+                          address={job.location}
+                          className="text-xs"
+                        />
+                      )}
                       {job.status === 'scheduled' && (
                         <Button
                           variant="outline"
@@ -687,9 +694,15 @@ export default function CalendarPage() {
               {selectedJob.location && (
                 <div>
                   <Label className="text-sm font-medium text-gray-500">Location</Label>
-                  <div className="flex items-center gap-2 mt-1">
-                    <MapPin className="h-4 w-4 text-gray-400" />
-                    <span className="text-sm">{selectedJob.location}</span>
+                  <div className="flex items-center justify-between mt-1">
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-gray-400" />
+                      <span className="text-sm">{selectedJob.location}</span>
+                    </div>
+                    <DirectionsButton 
+                      address={selectedJob.location}
+                      className="ml-2"
+                    />
                   </div>
                   <div className="mt-3">
                     <WeatherWidget 
