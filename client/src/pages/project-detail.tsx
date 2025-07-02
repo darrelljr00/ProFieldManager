@@ -336,6 +336,8 @@ export default function ProjectDetail() {
             )}
             
             {/* Project Address and Directions */}
+            {/* Debug: Check project data */}
+            {console.log('Project data for address:', { address: project.address, city: project.city, state: project.state, zipCode: project.zipCode })}
             {(project.address || project.city) && (
               <div className="mt-4 p-4 bg-gray-50 rounded-lg">
                 <div className="flex items-start justify-between">
