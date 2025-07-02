@@ -62,7 +62,9 @@ import {
   Download,
   Search,
   UserCheck,
-  UserX
+  UserX,
+  Save,
+  X
 } from "lucide-react";
 
 type User = {
@@ -118,6 +120,8 @@ export default function UsersPage() {
   const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
   const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
   const [searchQuery, setSearchQuery] = useState("");
+  const [pendingPermissions, setPendingPermissions] = useState<Record<number, Partial<User>>>({});
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const { toast } = useToast();
@@ -149,6 +153,27 @@ export default function UsersPage() {
       toast({
         title: "Error",
         description: error.message || "Failed to update user permissions",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const batchSavePermissionsMutation = useMutation({
+    mutationFn: (changes: Record<number, Partial<User>>) =>
+      apiRequest("PUT", "/api/admin/users/batch-permissions", { changes }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      setPendingPermissions({});
+      setHasUnsavedChanges(false);
+      toast({
+        title: "Success",
+        description: "All permission changes saved successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save permission changes",
         variant: "destructive",
       });
     },
@@ -393,6 +418,46 @@ export default function UsersPage() {
       userIds: selectedUsers,
       action,
       value
+    });
+  };
+
+  // Helper functions for handling pending permissions
+  const updatePendingPermission = (userId: number, permission: string, value: boolean) => {
+    setPendingPermissions(prev => ({
+      ...prev,
+      [userId]: {
+        ...prev[userId],
+        [permission]: value
+      }
+    }));
+    setHasUnsavedChanges(true);
+  };
+
+  const getUserPermissionValue = (user: User, permission: string) => {
+    if (pendingPermissions[user.id] && pendingPermissions[user.id].hasOwnProperty(permission)) {
+      return pendingPermissions[user.id][permission as keyof User];
+    }
+    return user[permission as keyof User];
+  };
+
+  const handleSaveAllChanges = () => {
+    if (Object.keys(pendingPermissions).length === 0) {
+      toast({
+        title: "No Changes",
+        description: "No permission changes to save",
+      });
+      return;
+    }
+    
+    batchSavePermissionsMutation.mutate(pendingPermissions);
+  };
+
+  const handleDiscardChanges = () => {
+    setPendingPermissions({});
+    setHasUnsavedChanges(false);
+    toast({
+      title: "Changes Discarded",
+      description: "All unsaved permission changes have been discarded",
     });
   };
 
@@ -1302,14 +1367,11 @@ export default function UsersPage() {
                           </TableCell>
                           <TableCell>
                             <Switch
-                              checked={user.canAccessDashboard === true}
+                              checked={getUserPermissionValue(user, 'canAccessDashboard') === true}
                               onCheckedChange={(checked) => 
-                                updateUserPermissionsMutation.mutate({
-                                  userId: user.id,
-                                  permissions: { canAccessDashboard: checked }
-                                })
+                                updatePendingPermission(user.id, 'canAccessDashboard', checked)
                               }
-                              disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
+                              disabled={user.role === 'admin' || batchSavePermissionsMutation.isPending}
                             />
                           </TableCell>
                           <TableCell>
@@ -1658,6 +1720,39 @@ export default function UsersPage() {
                       ))}
                     </TableBody>
                   </Table>
+
+                  {/* Save Changes Section */}
+                  {hasUnsavedChanges && (
+                    <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="font-medium text-blue-900 dark:text-blue-100">Unsaved Changes</h4>
+                          <p className="text-sm text-blue-700 dark:text-blue-300">
+                            You have {Object.keys(pendingPermissions).length} user(s) with pending permission changes
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleDiscardChanges}
+                            disabled={batchSavePermissionsMutation.isPending}
+                          >
+                            <X className="h-4 w-4 mr-2" />
+                            Discard
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={handleSaveAllChanges}
+                            disabled={batchSavePermissionsMutation.isPending}
+                          >
+                            <Save className="h-4 w-4 mr-2" />
+                            {batchSavePermissionsMutation.isPending ? "Saving..." : "Save All Changes"}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   
                   <div className="mt-6 p-4 bg-muted rounded-lg">
                     <h4 className="font-medium mb-2">Tab Access Control:</h4>
