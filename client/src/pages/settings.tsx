@@ -555,7 +555,7 @@ export default function Settings() {
       </div>
 
       <Tabs defaultValue="payment" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-9">
+        <TabsList className="grid w-full grid-cols-10">
           <TabsTrigger value="payment">Payment Processing</TabsTrigger>
           <TabsTrigger value="company">Company Info</TabsTrigger>
           <TabsTrigger value="email">Email Settings</TabsTrigger>
@@ -565,6 +565,7 @@ export default function Settings() {
           <TabsTrigger value="reviews">Reviews</TabsTrigger>
           <TabsTrigger value="invoices">Invoice Templates</TabsTrigger>
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+          <TabsTrigger value="navigation">Navigation Access</TabsTrigger>
         </TabsList>
 
         <TabsContent value="payment">
