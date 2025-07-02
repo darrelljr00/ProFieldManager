@@ -334,6 +334,37 @@ export default function ProjectDetail() {
             {project.description && (
               <p className="text-gray-600 max-w-2xl">{project.description}</p>
             )}
+            
+            {/* Project Address and Directions */}
+            {(project.address || project.city) && (
+              <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center mb-2">
+                      <MapPin className="h-4 w-4 text-gray-500 mr-2" />
+                      <span className="text-sm font-medium text-gray-700">Project Location</span>
+                    </div>
+                    {project.address && (
+                      <p className="text-sm text-gray-600 mb-1">{project.address}</p>
+                    )}
+                    {(project.city || project.state || project.zipCode) && (
+                      <p className="text-sm text-gray-600">
+                        {[project.city, project.state, project.zipCode].filter(Boolean).join(", ")}
+                      </p>
+                    )}
+                  </div>
+                  <div className="ml-4">
+                    <DirectionsButton
+                      address={project.address}
+                      city={project.city}
+                      state={project.state}
+                      zipCode={project.zipCode}
+                      className="whitespace-nowrap"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
           
           <div className="text-right">
