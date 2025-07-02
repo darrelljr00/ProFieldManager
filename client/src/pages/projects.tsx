@@ -26,6 +26,7 @@ import { MediaGallery } from "@/components/media-gallery";
 // Historical Jobs Component
 function HistoricalJobs() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [historicalJobImages, setHistoricalJobImages] = useState<File[]>([]);
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -42,12 +43,40 @@ function HistoricalJobs() {
     mutationFn: async (data: any) => {
       return apiRequest("/api/projects/historical", data);
     },
-    onSuccess: () => {
-      toast({
-        title: "Historical job created",
-        description: "Historical job has been successfully added",
-      });
+    onSuccess: async (project: any) => {
+      // Upload images if any were selected
+      if (historicalJobImages.length > 0) {
+        try {
+          const formData = new FormData();
+          historicalJobImages.forEach((file) => {
+            formData.append('images', file);
+          });
+
+          await fetch(`/api/projects/historical/${project.id}/images`, {
+            method: 'POST',
+            body: formData,
+          });
+
+          toast({
+            title: "Historical job created",
+            description: `Historical job created with ${historicalJobImages.length} image(s)`,
+          });
+        } catch (error) {
+          toast({
+            title: "Historical job created",
+            description: "Job created but image upload failed",
+            variant: "destructive",
+          });
+        }
+      } else {
+        toast({
+          title: "Historical job created",
+          description: "Historical job has been successfully added",
+        });
+      }
+      
       setCreateDialogOpen(false);
+      setHistoricalJobImages([]);
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
     },
     onError: (error: any) => {
@@ -233,6 +262,32 @@ function HistoricalJobs() {
                     placeholder="ZIP code"
                   />
                 </div>
+              </div>
+
+              {/* Image Upload Section */}
+              <div>
+                <Label htmlFor="historical-job-images">Upload Job Images (Optional)</Label>
+                <input
+                  id="historical-job-images"
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={(e) => setHistoricalJobImages(Array.from(e.target.files || []))}
+                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 mt-2"
+                />
+                {historicalJobImages.length > 0 && (
+                  <div className="mt-2">
+                    <p className="text-sm text-gray-600">Selected {historicalJobImages.length} image(s):</p>
+                    <ul className="text-xs text-gray-500 mt-1 space-y-1">
+                      {historicalJobImages.map((file, index) => (
+                        <li key={index} className="flex items-center">
+                          <Camera className="h-3 w-3 mr-1" />
+                          {file.name}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-end space-x-2 pt-4">
