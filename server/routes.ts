@@ -2638,7 +2638,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const projectId = parseInt(req.params.id);
       const projectUserData = { ...req.body, projectId };
-      const projectUser = await storage.addUserToProject(projectUserData);
+      const projectUser = await storage.assignUserToProject(projectUserData.userId, projectId, projectUserData.role);
       
       // Get updated project data for WebSocket broadcast
       const updatedProject = await storage.getProject(projectId, req.user!.id);
@@ -2701,7 +2701,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const userId of userIds) {
         try {
           const projectUserData = { userId: parseInt(userId), projectId, role };
-          const projectUser = await storage.addUserToProject(projectUserData);
+          const projectUser = await storage.assignUserToProject(parseInt(userId), projectId, role);
           assignments.push(projectUser);
         } catch (error) {
           console.error(`Error assigning user ${userId} to project ${projectId}:`, error);
