@@ -41,7 +41,7 @@ function HistoricalJobs() {
 
   const createHistoricalJobMutation = useMutation({
     mutationFn: async (data: any) => {
-      return apiRequest("/api/projects/historical", data);
+      return apiRequest("POST", "/api/projects/historical", data);
     },
     onSuccess: async (project: any) => {
       // Upload images if any were selected
