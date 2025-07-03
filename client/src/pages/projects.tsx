@@ -39,6 +39,13 @@ function HistoricalJobs() {
     queryKey: ["/api/users"],
   });
 
+  const { data: projects = [] } = useQuery<Project[]>({
+    queryKey: ["/api/projects"],
+  });
+
+  // Filter for historical jobs (completed status and marked as historical)
+  const historicalJobs = projects.filter(project => project.status === 'completed');
+
   const createHistoricalJobMutation = useMutation({
     mutationFn: async (data: any) => {
       return apiRequest("POST", "/api/projects/historical", data);
@@ -307,19 +314,93 @@ function HistoricalJobs() {
         </Dialog>
       </div>
 
-      <Card>
-        <CardContent className="text-center py-12">
-          <Archive className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No historical jobs yet</h3>
-          <p className="text-gray-600 mb-4">
-            Add records of jobs that were completed in the past to maintain a complete job history
-          </p>
-          <Button onClick={() => setCreateDialogOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Historical Job
-          </Button>
-        </CardContent>
-      </Card>
+      {historicalJobs.length === 0 ? (
+        <Card>
+          <CardContent className="text-center py-12">
+            <Archive className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No historical jobs yet</h3>
+            <p className="text-gray-600 mb-4">
+              Add records of jobs that were completed in the past to maintain a complete job history
+            </p>
+            <Button onClick={() => setCreateDialogOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Historical Job
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {historicalJobs.map((project) => (
+            <Card key={project.id} className="hover:shadow-md transition-shadow">
+              <CardHeader className="pb-3">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <CardTitle className="text-lg mb-1">
+                      <Link href={`/jobs/${project.id}`} className="hover:text-primary">
+                        {project.name}
+                      </Link>
+                    </CardTitle>
+                    <div className="flex items-center space-x-2">
+                      <Badge variant="secondary">Historical</Badge>
+                      <Badge variant="outline" className="flex items-center gap-1">
+                        <Archive className="h-3 w-3" />
+                        Completed
+                      </Badge>
+                    </div>
+                  </div>
+                  <Link href={`/jobs/${project.id}/settings`}>
+                    <Button variant="ghost" size="sm">
+                      <Settings className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {project.description && (
+                    <p className="text-sm text-gray-600 line-clamp-2">
+                      {project.description}
+                    </p>
+                  )}
+                  
+                  <div className="flex items-center justify-between text-sm text-gray-500">
+                    <div className="flex items-center">
+                      <Calendar className="h-4 w-4 mr-1" />
+                      {project.startDate ? new Date(project.startDate).toLocaleDateString() : 'No date'}
+                    </div>
+                    {project.estimatedValue && (
+                      <div className="flex items-center">
+                        <DollarSign className="h-4 w-4 mr-1" />
+                        ${Number(project.estimatedValue).toLocaleString()}
+                      </div>
+                    )}
+                  </div>
+
+                  {(project.address || project.city || project.state) && (
+                    <div className="flex items-start text-sm text-gray-500">
+                      <MapPin className="h-4 w-4 mr-1 mt-0.5 flex-shrink-0" />
+                      <span className="line-clamp-2">
+                        {[project.address, project.city, project.state].filter(Boolean).join(', ')}
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center text-gray-500">
+                      <User className="h-4 w-4 mr-1" />
+                      {users.find(u => u.id === project.userId)?.username || 'Unknown'}
+                    </div>
+                    <div className="flex items-center text-gray-500">
+                      <Clock className="h-4 w-4 mr-1" />
+                      {project.createdAt ? new Date(project.createdAt).toLocaleDateString() : 'Unknown'}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
