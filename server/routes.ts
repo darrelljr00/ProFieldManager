@@ -2000,6 +2000,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get users for assignment (includes current user) - filtered by organization
+  app.get("/api/users/assignment", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const users = await storage.getUsersByOrganization(user.organizationId);
+      // Remove passwords and sensitive info from response, include current user for assignment
+      const safeUsers = users
+        .map(user => ({
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+        }));
+      res.json(safeUsers);
+    } catch (error: any) {
+      res.status(500).json({ message: "Error fetching users for assignment: " + error.message });
+    }
+  });
+
   // GPS Tracking endpoints
   app.get("/api/gps-tracking/sessions", requireAuth, async (req, res) => {
     try {

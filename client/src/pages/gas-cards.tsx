@@ -43,7 +43,7 @@ export default function GasCards() {
 
   // Fetch users for assignment dropdown
   const { data: users = [] } = useQuery({
-    queryKey: ['/api/admin/users'],
+    queryKey: ['/api/users/assignment'],
   });
 
   // Fetch gas card usage

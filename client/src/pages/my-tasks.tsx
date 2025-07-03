@@ -82,7 +82,7 @@ export default function MyTasks() {
 
   // Fetch all users for task assignment
   const { data: users = [] } = useQuery<UserType[]>({
-    queryKey: ["/api/users"],
+    queryKey: ["/api/users/assignment"],
   });
 
   // Fetch projects for task assignment

@@ -465,7 +465,7 @@ export default function Jobs() {
   });
 
   const { data: allUsers = [] } = useQuery<User[]>({
-    queryKey: ["/api/users"],
+    queryKey: ["/api/users/assignment"],
   });
 
   // Fetch project files when viewing details
