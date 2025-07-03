@@ -7053,6 +7053,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get weather forecast for configured location (used by Weather tab)
+  app.get('/api/weather/forecast', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const settings = await storage.getSettingsByCategory('weather');
+      
+      let weatherSettings = {
+        enabled: false,
+        defaultZipCode: '',
+        apiKey: ''
+      };
+      
+      if (settings && settings.length > 0) {
+        settings.forEach((setting: any) => {
+          const key = setting.key.replace('weather_', '');
+          if (key === 'enabled') {
+            weatherSettings.enabled = setting.value === 'true';
+          } else if (key === 'defaultZipCode') {
+            weatherSettings.defaultZipCode = setting.value;
+          } else if (key === 'apiKey') {
+            weatherSettings.apiKey = setting.value;
+          }
+        });
+      }
+      
+      if (!weatherSettings.enabled) {
+        return res.status(400).json({ 
+          message: "Weather service is disabled. Please enable it in Settings." 
+        });
+      }
+
+      if (!weatherSettings.defaultZipCode) {
+        return res.status(400).json({ 
+          message: "Weather location not configured. Please set your default zip code in Settings." 
+        });
+      }
+
+      if (!weatherSettings.apiKey) {
+        return res.status(400).json({ 
+          message: "Weather API key not configured. Please set your API key in Settings." 
+        });
+      }
+
+      const days = parseInt(req.query.days as string) || 5;
+      const weather = await weatherService.getForecast(weatherSettings.defaultZipCode, Math.min(days, 14));
+      
+      res.json(weather);
+    } catch (error: any) {
+      console.error('Weather forecast API error:', error);
+      res.status(500).json({ 
+        message: 'Failed to fetch weather forecast. Please check your weather settings.' 
+      });
+    }
+  });
+
   app.get('/api/weather/jobs/:jobId', requireAuth, async (req, res) => {
     try {
       const jobId = parseInt(req.params.jobId);

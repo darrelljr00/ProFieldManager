@@ -31,7 +31,8 @@ import {
   MapPin,
   Clock,
   Bell,
-  MessageCircle
+  MessageCircle,
+  Cloud
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -70,6 +71,7 @@ const navigation = [
   { name: "Image Gallery", href: "/image-gallery", icon: ImageIcon },
   { name: "Text Messaging", href: "/sms", icon: Smartphone },
   { name: "GPS Tracking", href: "/gps-tracking", icon: MapPin },
+  { name: "Weather", href: "/weather", icon: Cloud },
   { name: "Reviews", href: "/reviews", icon: Star },
   { name: "Human Resources", href: "/human-resources", icon: Briefcase },
   { name: "User Management", href: "/users", icon: UserCog },

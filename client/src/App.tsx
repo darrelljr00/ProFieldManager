@@ -41,6 +41,7 @@ import FormBuilder from "@/pages/form-builder";
 import MobileTest from "@/pages/mobile-test";
 import TimeClock from "@/pages/time-clock";
 import Inspections from "@/pages/inspections";
+import Weather from "@/pages/weather";
 import Login from "@/pages/login";
 import SimpleLogin from "@/pages/simple-login";
 import Landing from "@/pages/landing";
@@ -139,6 +140,7 @@ function AuthenticatedApp() {
           <Route path="/file-manager" component={FileManager} />
           <Route path="/my-tasks" component={MyTasks} />
           <Route path="/gps-tracking" component={GpsTracking} />
+          <Route path="/weather" component={Weather} />
           <Route path="/time-clock" component={TimeClock} />
           <Route path="/form-builder" component={FormBuilder} />
           <Route path="/inspections" component={Inspections} />
