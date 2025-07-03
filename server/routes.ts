@@ -2188,9 +2188,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Hash password and create user
       const hashedPassword = await AuthService.hashPassword(validatedData.password);
+      
+      // Get the admin's organization ID for automatic assignment
+      const adminUser = getAuthenticatedUser(req);
+      
       const userData = {
         ...validatedData,
         password: hashedPassword,
+        organizationId: adminUser.organizationId, // Use admin's organization instead of from request
         role: req.body.role || "user",
         userType: req.body.userType || "both",
         isActive: req.body.isActive !== false,

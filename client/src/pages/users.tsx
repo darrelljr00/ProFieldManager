@@ -342,7 +342,6 @@ export default function UsersPage() {
       lastName: formData.get("lastName") as string,
       role: formData.get("role") as string,
       userType: formData.get("userType") as string,
-      organizationId: parseInt(formData.get("organizationId") as string),
       isActive: formData.get("isActive") === "on",
     };
     createUserMutation.mutate(userData);
@@ -767,24 +766,15 @@ export default function UsersPage() {
                 </div>
 
                 <div>
-                  <Label htmlFor="organizationId">Organization *</Label>
-                  {currentUser?.email !== 'superadmin@profieldmanager.com' && organizations.length === 1 && (
-                    <p className="text-sm text-muted-foreground mb-2">
-                      As an admin, you can only create users within your organization: <strong>{organizations[0]?.name}</strong>
+                  <Label>Organization</Label>
+                  <div className="p-3 bg-muted rounded-md">
+                    <p className="text-sm text-muted-foreground">
+                      New users will be automatically assigned to your organization:
                     </p>
-                  )}
-                  <Select name="organizationId" required defaultValue={organizations.length === 1 ? organizations[0]?.id.toString() : undefined}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select organization" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {organizations.map((org: any) => (
-                        <SelectItem key={org.id} value={org.id.toString()}>
-                          {org.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    <p className="font-medium">
+                      {organizations.find((org: any) => org.id === currentUser?.organizationId)?.name || 'Your Organization'}
+                    </p>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
