@@ -29,7 +29,7 @@ export default function CalendarPage() {
   const [isConvertDialogOpen, setIsConvertDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
+  const [viewMode, setViewMode] = useState<'1month' | '3months' | '1week' | '2weeks'>('1month');
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -235,6 +235,162 @@ export default function CalendarPage() {
     });
   };
 
+  const getViewTitle = () => {
+    const formatOptions: Intl.DateTimeFormatOptions = { month: 'long', year: 'numeric' };
+    
+    switch (viewMode) {
+      case '1week':
+        const weekStart = new Date(currentDate);
+        weekStart.setDate(currentDate.getDate() - currentDate.getDay());
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekStart.getDate() + 6);
+        return `${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+      
+      case '2weeks':
+        const twoWeekStart = new Date(currentDate);
+        twoWeekStart.setDate(currentDate.getDate() - currentDate.getDay());
+        const twoWeekEnd = new Date(twoWeekStart);
+        twoWeekEnd.setDate(twoWeekStart.getDate() + 13);
+        return `${twoWeekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${twoWeekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+      
+      case '1month':
+        return currentDate.toLocaleDateString('en-US', formatOptions);
+      
+      case '3months':
+        const threeMonthStart = new Date(currentDate);
+        threeMonthStart.setMonth(currentDate.getMonth() - 1);
+        const threeMonthEnd = new Date(currentDate);
+        threeMonthEnd.setMonth(currentDate.getMonth() + 1);
+        return `${threeMonthStart.toLocaleDateString('en-US', { month: 'short' })} - ${threeMonthEnd.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`;
+      
+      default:
+        return currentDate.toLocaleDateString('en-US', formatOptions);
+    }
+  };
+
+  const navigateView = (direction: 'prev' | 'next') => {
+    setCurrentDate(prev => {
+      const newDate = new Date(prev);
+      const factor = direction === 'next' ? 1 : -1;
+      
+      switch (viewMode) {
+        case '1week':
+          newDate.setDate(prev.getDate() + (7 * factor));
+          break;
+        case '2weeks':
+          newDate.setDate(prev.getDate() + (14 * factor));
+          break;
+        case '1month':
+          newDate.setMonth(prev.getMonth() + factor);
+          break;
+        case '3months':
+          newDate.setMonth(prev.getMonth() + (3 * factor));
+          break;
+        default:
+          newDate.setMonth(prev.getMonth() + factor);
+      }
+      
+      return newDate;
+    });
+  };
+
+  const getDaysForView = () => {
+    switch (viewMode) {
+      case '1week':
+        return getDaysInWeek(currentDate);
+      case '2weeks':
+        return getDaysInTwoWeeks(currentDate);
+      case '1month':
+        return getDaysInMonth(currentDate);
+      case '3months':
+        return getDaysInThreeMonths(currentDate);
+      default:
+        return getDaysInMonth(currentDate);
+    }
+  };
+
+  const getDaysInWeek = (date: Date) => {
+    const days = [];
+    const startOfWeek = new Date(date);
+    startOfWeek.setDate(date.getDate() - date.getDay());
+    
+    for (let i = 0; i < 7; i++) {
+      const day = new Date(startOfWeek);
+      day.setDate(startOfWeek.getDate() + i);
+      days.push(day);
+    }
+    
+    return days;
+  };
+
+  const getDaysInTwoWeeks = (date: Date) => {
+    const days = [];
+    const startOfWeek = new Date(date);
+    startOfWeek.setDate(date.getDate() - date.getDay());
+    
+    for (let i = 0; i < 14; i++) {
+      const day = new Date(startOfWeek);
+      day.setDate(startOfWeek.getDate() + i);
+      days.push(day);
+    }
+    
+    return days;
+  };
+
+  const getDaysInThreeMonths = (date: Date) => {
+    const days = [];
+    const startMonth = new Date(date);
+    startMonth.setMonth(date.getMonth() - 1);
+    startMonth.setDate(1);
+    
+    const endMonth = new Date(date);
+    endMonth.setMonth(date.getMonth() + 2, 0);
+    
+    const startDate = new Date(startMonth);
+    startDate.setDate(startDate.getDate() - startMonth.getDay());
+    
+    const current = new Date(startDate);
+    while (current <= endMonth || days.length % 7 !== 0) {
+      days.push(new Date(current));
+      current.setDate(current.getDate() + 1);
+    }
+    
+    return days;
+  };
+
+  const getGridLayout = () => {
+    switch (viewMode) {
+      case '1week':
+        return 'grid-cols-7'; // 7 days in a week
+      case '2weeks':
+        return 'grid-cols-7'; // Still 7 columns, but 2 rows
+      case '1month':
+        return 'grid-cols-7'; // Standard month view
+      case '3months':
+        return 'grid-cols-7'; // 7 columns for 3 months
+      default:
+        return 'grid-cols-7';
+    }
+  };
+
+  const getIsCurrentPeriod = (day: Date) => {
+    switch (viewMode) {
+      case '1week':
+      case '2weeks':
+        // For week views, show all days as current
+        return true;
+      case '1month':
+        return day.getMonth() === currentDate.getMonth();
+      case '3months':
+        const currentMonth = currentDate.getMonth();
+        const dayMonth = day.getMonth();
+        // Show days within the 3-month range
+        return Math.abs(dayMonth - currentMonth) <= 1;
+      default:
+        return day.getMonth() === currentDate.getMonth();
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="p-6">
@@ -246,8 +402,7 @@ export default function CalendarPage() {
     );
   }
 
-  const days = getDaysInMonth(currentDate);
-  const monthName = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const days = getDaysForView();
 
   return (
     <div className="p-6 space-y-6">
@@ -433,18 +588,37 @@ export default function CalendarPage() {
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5" />
-              {monthName}
+              {getViewTitle()}
             </CardTitle>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => navigateMonth('prev')}>
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setCurrentDate(new Date())}>
-                Today
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => navigateMonth('next')}>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
+            <div className="flex items-center gap-4">
+              {/* View Selection */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-muted-foreground">View:</span>
+                <Select value={viewMode} onValueChange={(value) => setViewMode(value as typeof viewMode)}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1week">1 Week</SelectItem>
+                    <SelectItem value="2weeks">2 Weeks</SelectItem>
+                    <SelectItem value="1month">1 Month</SelectItem>
+                    <SelectItem value="3months">3 Months</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Navigation Controls */}
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => navigateView('prev')}>
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setCurrentDate(new Date())}>
+                  Today
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => navigateView('next')}>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
         </CardHeader>
@@ -458,10 +632,10 @@ export default function CalendarPage() {
             ))}
           </div>
           
-          <div className="grid grid-cols-7 gap-1">
+          <div className={`grid gap-1 ${getGridLayout()}`}>
             {days.map((day, index) => {
               const dayJobs = getJobsForDate(day);
-              const isCurrentMonth = day.getMonth() === currentDate.getMonth();
+              const isCurrentMonth = getIsCurrentPeriod(day);
               const isToday = day.toDateString() === new Date().toDateString();
               
               return (
