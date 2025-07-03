@@ -78,7 +78,11 @@ function AuthenticatedApp() {
         'review_request_sent': ['/api/reviews'],
         'user_created': ['/api/users'],
         'payment_processed': ['/api/payments', '/api/invoices', '/api/dashboard'],
-        'disciplinary_action_created': ['/api/disciplinary-actions']
+        'disciplinary_action_created': ['/api/disciplinary-actions'],
+        'project_user_assigned': ['/api/projects'],
+        'project_user_removed': ['/api/projects'],
+        'project_users_assigned': ['/api/projects'], 
+        'project_users_removed': ['/api/projects']
       };
       
       const queriesToInvalidate = queryInvalidationMap[eventType];

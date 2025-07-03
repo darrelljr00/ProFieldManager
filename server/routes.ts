@@ -2634,6 +2634,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const projectId = parseInt(req.params.id);
       const projectUserData = { ...req.body, projectId };
       const projectUser = await storage.addUserToProject(projectUserData);
+      
+      // Get updated project data for WebSocket broadcast
+      const updatedProject = await storage.getProject(projectId, req.user!.id);
+      
+      // Broadcast project assignment update to all web users
+      broadcastToWebUsers('project_user_assigned', {
+        projectId,
+        userId: projectUserData.userId,
+        role: projectUserData.role,
+        project: updatedProject
+      });
+      
       res.status(201).json(projectUser);
     } catch (error: any) {
       console.error("Error adding user to project:", error);
@@ -2651,10 +2663,112 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found in project" });
       }
       
+      // Get updated project data for WebSocket broadcast
+      const updatedProject = await storage.getProject(projectId, req.user!.id);
+      
+      // Broadcast project user removal update to all web users
+      broadcastToWebUsers('project_user_removed', {
+        projectId,
+        userId,
+        project: updatedProject
+      });
+      
       res.json({ message: "User removed from project successfully" });
     } catch (error: any) {
       console.error("Error removing user from project:", error);
       res.status(500).json({ message: "Failed to remove user from project" });
+    }
+  });
+
+  // Bulk Project Assignment - Assign multiple users at once
+  app.post("/api/projects/:id/assign", requireAuth, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const { userIds, role = 'member' } = req.body;
+
+      if (!Array.isArray(userIds) || userIds.length === 0) {
+        return res.status(400).json({ message: "Must provide at least one user ID" });
+      }
+
+      const assignments = [];
+      
+      // Add each user to the project
+      for (const userId of userIds) {
+        try {
+          const projectUserData = { userId: parseInt(userId), projectId, role };
+          const projectUser = await storage.addUserToProject(projectUserData);
+          assignments.push(projectUser);
+        } catch (error) {
+          console.error(`Error assigning user ${userId} to project ${projectId}:`, error);
+          // Continue with other assignments even if one fails
+        }
+      }
+
+      // Get updated project data for WebSocket broadcast
+      const updatedProject = await storage.getProject(projectId, req.user!.id);
+      
+      // Broadcast project assignment update to all web users
+      broadcastToWebUsers('project_users_assigned', {
+        projectId,
+        userIds,
+        role,
+        project: updatedProject,
+        assignmentsCount: assignments.length
+      });
+      
+      res.status(201).json({
+        message: `Successfully assigned ${assignments.length} users to project`,
+        assignments,
+        project: updatedProject
+      });
+    } catch (error: any) {
+      console.error("Error bulk assigning users to project:", error);
+      res.status(500).json({ message: "Failed to assign users to project" });
+    }
+  });
+
+  // Remove multiple users from project
+  app.delete("/api/projects/:id/assign", requireAuth, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const { userIds } = req.body;
+
+      if (!Array.isArray(userIds) || userIds.length === 0) {
+        return res.status(400).json({ message: "Must provide at least one user ID" });
+      }
+
+      let removedCount = 0;
+      
+      // Remove each user from the project
+      for (const userId of userIds) {
+        try {
+          const removed = await storage.removeUserFromProject(projectId, parseInt(userId));
+          if (removed) removedCount++;
+        } catch (error) {
+          console.error(`Error removing user ${userId} from project ${projectId}:`, error);
+          // Continue with other removals even if one fails
+        }
+      }
+
+      // Get updated project data for WebSocket broadcast
+      const updatedProject = await storage.getProject(projectId, req.user!.id);
+      
+      // Broadcast project user removal update to all web users
+      broadcastToWebUsers('project_users_removed', {
+        projectId,
+        userIds,
+        project: updatedProject,
+        removedCount
+      });
+      
+      res.json({
+        message: `Successfully removed ${removedCount} users from project`,
+        removedCount,
+        project: updatedProject
+      });
+    } catch (error: any) {
+      console.error("Error bulk removing users from project:", error);
+      res.status(500).json({ message: "Failed to remove users from project" });
     }
   });
 

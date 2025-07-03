@@ -439,6 +439,8 @@ export default function Jobs() {
   const [isMobile, setIsMobile] = useState(false);
   const [showMobileCamera, setShowMobileCamera] = useState(false);
   const [showUserAssignment, setShowUserAssignment] = useState(false);
+  const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
+  const [bulkAssignmentRole, setBulkAssignmentRole] = useState<string>("member");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -589,7 +591,7 @@ export default function Jobs() {
     if (!selectedProject) return;
 
     try {
-      await apiRequest('POST', `/api/projects/${selectedProject.id}/assign`, {
+      await apiRequest('POST', `/api/projects/${selectedProject.id}/users`, {
         userId,
         role,
       });
@@ -602,7 +604,6 @@ export default function Jobs() {
       // Refresh project data
       queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
       queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedProject.id] });
-      setShowUserAssignment(false);
     } catch (error) {
       toast({
         title: "Assignment failed",
@@ -612,11 +613,39 @@ export default function Jobs() {
     }
   };
 
+  const handleBulkAssignUsers = async (userIds: number[], role: string = "member") => {
+    if (!selectedProject || userIds.length === 0) return;
+
+    try {
+      const response = await apiRequest('POST', `/api/projects/${selectedProject.id}/assign`, {
+        userIds,
+        role,
+      });
+      
+      toast({
+        title: "Users assigned successfully",
+        description: `${response.assignmentsCount} team members have been added to the project.`,
+      });
+
+      // Refresh project data
+      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedProject.id] });
+      setSelectedUsers([]);
+      setShowUserAssignment(false);
+    } catch (error) {
+      toast({
+        title: "Assignment failed",
+        description: "Failed to assign users to project. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleRemoveUserFromProject = async (userId: number) => {
     if (!selectedProject) return;
 
     try {
-      await apiRequest('DELETE', `/api/projects/${selectedProject.id}/assign/${userId}`);
+      await apiRequest('DELETE', `/api/projects/${selectedProject.id}/users/${userId}`);
       
       toast({
         title: "User removed successfully",
@@ -632,6 +661,28 @@ export default function Jobs() {
         description: "Failed to remove user from project. Please try again.",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleUserSelection = (userId: number, checked: boolean) => {
+    if (checked) {
+      setSelectedUsers(prev => [...prev, userId]);
+    } else {
+      setSelectedUsers(prev => prev.filter(id => id !== userId));
+    }
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (!selectedProject) return;
+    
+    const availableUsers = allUsers.filter(user => 
+      !selectedProject.users?.some(({ user: projectUser }) => projectUser.id === user.id)
+    );
+    
+    if (checked) {
+      setSelectedUsers(availableUsers.map(user => user.id));
+    } else {
+      setSelectedUsers([]);
     }
   };
 
@@ -1425,22 +1476,76 @@ export default function Jobs() {
 
       {/* User Assignment Dialog */}
       <Dialog open={showUserAssignment} onOpenChange={setShowUserAssignment}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Assign Team Members</DialogTitle>
             <DialogDescription>
-              Add team members to {selectedProject?.name}
+              Add team members to {selectedProject?.name}. Select multiple users for bulk assignment.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          
+          {/* Bulk Assignment Controls */}
+          {selectedUsers.length > 0 && (
+            <div className="flex items-center gap-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+              <span className="font-medium">{selectedUsers.length} users selected</span>
+              <Select value={bulkAssignmentRole} onValueChange={setBulkAssignmentRole}>
+                <SelectTrigger className="w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="member">Member</SelectItem>
+                  <SelectItem value="manager">Manager</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button 
+                size="sm" 
+                onClick={() => handleBulkAssignUsers(selectedUsers, bulkAssignmentRole)}
+              >
+                Assign All ({selectedUsers.length})
+              </Button>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                onClick={() => setSelectedUsers([])}
+              >
+                Clear
+              </Button>
+            </div>
+          )}
+
+          <div className="space-y-2 max-h-80 overflow-y-auto">
+            {/* Select All Option */}
+            {allUsers.filter(user => !selectedProject?.users?.some(({ user: projectUser }) => projectUser.id === user.id)).length > 0 && (
+              <div className="flex items-center p-3 border rounded-lg bg-gray-50 dark:bg-gray-800">
+                <input
+                  type="checkbox"
+                  checked={selectedUsers.length === allUsers.filter(user => !selectedProject?.users?.some(({ user: projectUser }) => projectUser.id === user.id)).length}
+                  onChange={(e) => handleSelectAll(e.target.checked)}
+                  className="mr-3"
+                />
+                <div className="flex-1">
+                  <p className="font-medium">Select All Available Users</p>
+                  <p className="text-sm text-gray-500">Assign all unassigned users to this project</p>
+                </div>
+              </div>
+            )}
+
             {allUsers
               .filter(user => !selectedProject?.users?.some(({ user: projectUser }) => projectUser.id === user.id))
               .map(user => (
               <div key={user.id} className="flex items-center justify-between p-3 border rounded-lg">
-                <div>
-                  <p className="font-medium">{user.firstName} {user.lastName}</p>
-                  <p className="text-sm text-gray-500">{user.email}</p>
-                  <p className="text-xs text-gray-400">{user.role}</p>
+                <div className="flex items-center flex-1">
+                  <input
+                    type="checkbox"
+                    checked={selectedUsers.includes(user.id)}
+                    onChange={(e) => handleUserSelection(user.id, e.target.checked)}
+                    className="mr-3"
+                  />
+                  <div className="flex-1">
+                    <p className="font-medium">{user.firstName} {user.lastName}</p>
+                    <p className="text-sm text-gray-500">{user.email}</p>
+                    <p className="text-xs text-gray-400">{user.role}</p>
+                  </div>
                 </div>
                 <div className="flex gap-2">
                   <Button
@@ -1464,7 +1569,10 @@ export default function Jobs() {
             )}
           </div>
           <div className="flex justify-end">
-            <Button variant="outline" onClick={() => setShowUserAssignment(false)}>
+            <Button variant="outline" onClick={() => {
+              setShowUserAssignment(false);
+              setSelectedUsers([]);
+            }}>
               Close
             </Button>
           </div>
