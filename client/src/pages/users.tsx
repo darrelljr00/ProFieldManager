@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -131,6 +132,7 @@ export default function UsersPage() {
   const [selectedFileForUpload, setSelectedFileForUpload] = useState<File | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user: currentUser, isAdmin } = useAuth();
 
   const { data: users = [], isLoading } = useQuery<User[]>({
     queryKey: ["/api/admin/users"],
@@ -766,7 +768,12 @@ export default function UsersPage() {
 
                 <div>
                   <Label htmlFor="organizationId">Organization *</Label>
-                  <Select name="organizationId" required>
+                  {currentUser?.email !== 'superadmin@profieldmanager.com' && organizations.length === 1 && (
+                    <p className="text-sm text-muted-foreground mb-2">
+                      As an admin, you can only create users within your organization: <strong>{organizations[0]?.name}</strong>
+                    </p>
+                  )}
+                  <Select name="organizationId" required defaultValue={organizations.length === 1 ? organizations[0]?.id.toString() : undefined}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select organization" />
                     </SelectTrigger>

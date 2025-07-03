@@ -6390,13 +6390,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const user = getAuthenticatedUser(req);
       
-      // Only admins can see all organizations
-      if (user.role !== 'admin') {
+      // Only admins and managers can access this endpoint
+      if (user.role !== 'admin' && user.role !== 'manager') {
         return res.status(403).json({ message: "Insufficient permissions" });
       }
       
-      const organizations = await storage.getAllOrganizations();
-      res.json(organizations);
+      // Regular admins can only see their own organization
+      // Superadmin (admin@profieldmanager.com) can see all organizations
+      if (user.email === 'superadmin@profieldmanager.com') {
+        const organizations = await storage.getAllOrganizations();
+        res.json(organizations);
+      } else {
+        // Regular admin - only return their organization
+        const organization = await storage.getOrganizationById(user.organizationId);
+        if (!organization) {
+          return res.status(404).json({ message: "Organization not found" });
+        }
+        res.json([organization]);
+      }
     } catch (error: any) {
       console.error("Error fetching organizations:", error);
       res.status(500).json({ message: "Failed to fetch organizations" });
