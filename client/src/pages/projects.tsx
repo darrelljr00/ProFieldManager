@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Calendar, Users, CheckCircle, Clock, AlertCircle, Folder, Settings, MapPin, Route, Star, Smartphone, Eye, Image, FileText, CheckSquare, Upload, Camera, DollarSign, Download, Trash2, Archive } from "lucide-react";
+import { Plus, Calendar, Users, CheckCircle, Clock, AlertCircle, Folder, Settings, MapPin, Route, Star, Smartphone, Eye, Image, FileText, CheckSquare, Upload, Camera, DollarSign, Download, Trash2, Archive, User as UserIcon } from "lucide-react";
 import { Link } from "wouter";
 import { format } from "date-fns";
 import type { Project, Customer, User } from "@shared/schema";
@@ -35,7 +35,7 @@ function HistoricalJobs() {
     queryKey: ["/api/customers"],
   });
 
-  const { data: users = [] } = useQuery<User[]>({
+  const { data: users = [] } = useQuery({
     queryKey: ["/api/users"],
   });
 
@@ -368,10 +368,10 @@ function HistoricalJobs() {
                       <Calendar className="h-4 w-4 mr-1" />
                       {project.startDate ? new Date(project.startDate).toLocaleDateString() : 'No date'}
                     </div>
-                    {project.estimatedValue && (
+                    {(project as any).estimatedValue && (
                       <div className="flex items-center">
                         <DollarSign className="h-4 w-4 mr-1" />
-                        ${Number(project.estimatedValue).toLocaleString()}
+                        ${Number((project as any).estimatedValue).toLocaleString()}
                       </div>
                     )}
                   </div>
@@ -387,8 +387,8 @@ function HistoricalJobs() {
 
                   <div className="flex items-center justify-between text-sm">
                     <div className="flex items-center text-gray-500">
-                      <User className="h-4 w-4 mr-1" />
-                      {users.find(u => u.id === project.userId)?.username || 'Unknown'}
+                      <UserIcon className="h-4 w-4 mr-1" />
+                      {Array.isArray(users) ? users.find((u: any) => u.id === project.userId)?.username || 'Unknown' : 'Unknown'}
                     </div>
                     <div className="flex items-center text-gray-500">
                       <Clock className="h-4 w-4 mr-1" />
