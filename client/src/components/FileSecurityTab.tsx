@@ -120,7 +120,7 @@ export default function FileSecurityTab() {
 
   // Get all organizations for admin
   const { data: organizations } = useQuery({
-    queryKey: ["/api/saas/organizations"],
+    queryKey: ["/api/admin/saas/organizations"],
   });
 
   // Get security settings for selected organization
