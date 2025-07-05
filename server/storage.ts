@@ -8,7 +8,7 @@ import {
   projectFiles, fileManager, projectUsers, timeClock, timeClockSettings,
   internalMessages, internalMessageRecipients, messageGroups, messageGroupMembers,
   inspectionTemplates, inspectionItems, inspectionRecords, inspectionResponses, inspectionNotifications,
-  smsMessages, smsTemplates, sharedPhotoLinks
+  smsMessages, smsTemplates, sharedPhotoLinks, fileSecuritySettings, fileSecurityScans, fileAccessLogs
 } from "@shared/schema";
 import type { GasCard, InsertGasCard, GasCardAssignment, InsertGasCardAssignment, GasCardUsage, InsertGasCardUsage, GasCardProvider, InsertGasCardProvider } from "@shared/schema";
 import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull, isNull } from "drizzle-orm";
@@ -229,6 +229,15 @@ export interface IStorage {
   
   // Image annotation methods
   saveImageAnnotations(imageId: number, userId: number, annotations: any, annotatedImageUrl: string): Promise<any>;
+  
+  // File security methods
+  getFileSecuritySettings(organizationId: number): Promise<any>;
+  updateFileSecuritySettings(organizationId: number, settings: any): Promise<any>;
+  createFileSecurityScan(scanData: any): Promise<any>;
+  getFileSecurityScans(organizationId: number, limit?: number): Promise<any[]>;
+  getFileSecurityStats(organizationId: number): Promise<any>;
+  logFileAccess(accessData: any): Promise<any>;
+  getFileAccessLogs(organizationId: number, limit?: number): Promise<any[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2987,6 +2996,210 @@ export class DatabaseStorage implements IStorage {
       return updatedImage;
     } catch (error) {
       console.error('Error saving image annotations:', error);
+      throw error;
+    }
+  }
+
+  // File security methods
+  async getFileSecuritySettings(organizationId: number): Promise<any> {
+    try {
+      const [settings] = await db
+        .select()
+        .from(fileSecuritySettings)
+        .where(eq(fileSecuritySettings.organizationId, organizationId))
+        .limit(1);
+      
+      if (!settings) {
+        // Create default settings if none exist
+        const [newSettings] = await db
+          .insert(fileSecuritySettings)
+          .values({ organizationId })
+          .returning();
+        return newSettings;
+      }
+      
+      return settings;
+    } catch (error) {
+      console.error('Error getting file security settings:', error);
+      throw error;
+    }
+  }
+
+  async updateFileSecuritySettings(organizationId: number, settings: any): Promise<any> {
+    try {
+      const [updatedSettings] = await db
+        .update(fileSecuritySettings)
+        .set({
+          ...settings,
+          updatedAt: new Date()
+        })
+        .where(eq(fileSecuritySettings.organizationId, organizationId))
+        .returning();
+      
+      return updatedSettings;
+    } catch (error) {
+      console.error('Error updating file security settings:', error);
+      throw error;
+    }
+  }
+
+  async createFileSecurityScan(scanData: any): Promise<any> {
+    try {
+      const [scan] = await db
+        .insert(fileSecurityScans)
+        .values(scanData)
+        .returning();
+      
+      return scan;
+    } catch (error) {
+      console.error('Error creating file security scan:', error);
+      throw error;
+    }
+  }
+
+  async getFileSecurityScans(organizationId: number, limit: number = 50): Promise<any[]> {
+    try {
+      const scans = await db
+        .select()
+        .from(fileSecurityScans)
+        .where(eq(fileSecurityScans.organizationId, organizationId))
+        .orderBy(desc(fileSecurityScans.createdAt))
+        .limit(limit);
+      
+      return scans;
+    } catch (error) {
+      console.error('Error getting file security scans:', error);
+      throw error;
+    }
+  }
+
+  async getFileSecurityStats(organizationId: number): Promise<any> {
+    try {
+      const thirtyDaysAgo = new Date(Date.now() - (30 * 24 * 60 * 60 * 1000));
+      
+      const [
+        totalScans,
+        recentScans,
+        threatsDetected,
+        quarantinedFiles,
+        totalAccess,
+        recentAccess,
+        suspiciousActivity,
+        deniedAccess
+      ] = await Promise.all([
+        // Total scans
+        db.select({ count: sql`count(*)` })
+          .from(fileSecurityScans)
+          .where(eq(fileSecurityScans.organizationId, organizationId)),
+        
+        // Recent scans (last 30 days)
+        db.select({ count: sql`count(*)` })
+          .from(fileSecurityScans)
+          .where(
+            and(
+              eq(fileSecurityScans.organizationId, organizationId),
+              gte(fileSecurityScans.createdAt, thirtyDaysAgo)
+            )
+          ),
+        
+        // Threats detected
+        db.select({ count: sql`count(*)` })
+          .from(fileSecurityScans)
+          .where(
+            and(
+              eq(fileSecurityScans.organizationId, organizationId),
+              gt(fileSecurityScans.threatCount, 0)
+            )
+          ),
+        
+        // Quarantined files
+        db.select({ count: sql`count(*)` })
+          .from(fileSecurityScans)
+          .where(
+            and(
+              eq(fileSecurityScans.organizationId, organizationId),
+              eq(fileSecurityScans.actionTaken, 'quarantined')
+            )
+          ),
+        
+        // Total access logs
+        db.select({ count: sql`count(*)` })
+          .from(fileAccessLogs)
+          .where(eq(fileAccessLogs.organizationId, organizationId)),
+        
+        // Recent access (last 30 days)
+        db.select({ count: sql`count(*)` })
+          .from(fileAccessLogs)
+          .where(
+            and(
+              eq(fileAccessLogs.organizationId, organizationId),
+              gte(fileAccessLogs.createdAt, thirtyDaysAgo)
+            )
+          ),
+        
+        // Suspicious activity
+        db.select({ count: sql`count(*)` })
+          .from(fileAccessLogs)
+          .where(
+            and(
+              eq(fileAccessLogs.organizationId, organizationId),
+              eq(fileAccessLogs.suspiciousActivity, true)
+            )
+          ),
+        
+        // Denied access
+        db.select({ count: sql`count(*)` })
+          .from(fileAccessLogs)
+          .where(
+            and(
+              eq(fileAccessLogs.organizationId, organizationId),
+              eq(fileAccessLogs.accessDenied, true)
+            )
+          )
+      ]);
+      
+      return {
+        totalScans: parseInt(totalScans[0]?.count?.toString() || '0'),
+        recentScans: parseInt(recentScans[0]?.count?.toString() || '0'),
+        threatsDetected: parseInt(threatsDetected[0]?.count?.toString() || '0'),
+        quarantinedFiles: parseInt(quarantinedFiles[0]?.count?.toString() || '0'),
+        totalAccess: parseInt(totalAccess[0]?.count?.toString() || '0'),
+        recentAccess: parseInt(recentAccess[0]?.count?.toString() || '0'),
+        suspiciousActivity: parseInt(suspiciousActivity[0]?.count?.toString() || '0'),
+        deniedAccess: parseInt(deniedAccess[0]?.count?.toString() || '0'),
+      };
+    } catch (error) {
+      console.error('Error getting file security stats:', error);
+      throw error;
+    }
+  }
+
+  async logFileAccess(accessData: any): Promise<any> {
+    try {
+      const [accessLog] = await db
+        .insert(fileAccessLogs)
+        .values(accessData)
+        .returning();
+      
+      return accessLog;
+    } catch (error) {
+      console.error('Error logging file access:', error);
+      throw error;
+    }
+  }
+
+  async getFileAccessLogs(organizationId: number, limit: number = 100): Promise<any[]> {
+    try {
+      const logs = await db
+        .select()
+        .from(fileAccessLogs)
+        .where(eq(fileAccessLogs.organizationId, organizationId))
+        .orderBy(desc(fileAccessLogs.createdAt))
+        .limit(limit);
+      
+      return logs;
+    } catch (error) {
+      console.error('Error getting file access logs:', error);
       throw error;
     }
   }

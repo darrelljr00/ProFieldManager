@@ -741,6 +741,118 @@ export const googleMyBusinessSettings = pgTable("google_my_business_settings", {
 });
 
 // Shared photo links table
+// File Security Settings
+export const fileSecuritySettings = pgTable("file_security_settings", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  
+  // Malware and Virus Scanning
+  enableMalwareScan: boolean("enable_malware_scan").default(true),
+  enableVirusScan: boolean("enable_virus_scan").default(true),
+  quarantineOnThreatDetection: boolean("quarantine_on_threat_detection").default(true),
+  
+  // File Type Restrictions
+  allowedMimeTypes: jsonb("allowed_mime_types").default('["image/jpeg","image/png","image/gif","image/webp","application/pdf","text/plain","application/msword","application/vnd.openxmlformats-officedocument.wordprocessingml.document","application/vnd.ms-excel","application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"]'),
+  blockedMimeTypes: jsonb("blocked_mime_types").default('["application/x-executable","application/x-msdownload","application/x-msdos-program","application/vnd.microsoft.portable-executable"]'),
+  allowedExtensions: jsonb("allowed_extensions").default('[".jpg",".jpeg",".png",".gif",".webp",".pdf",".txt",".doc",".docx",".xls",".xlsx",".zip",".csv"]'),
+  blockedExtensions: jsonb("blocked_extensions").default('[".exe",".bat",".cmd",".scr",".pif",".com",".dll",".sys",".vbs",".js",".jar"]'),
+  
+  // File Size Limits (in bytes)
+  maxFileSize: integer("max_file_size").default(50000000), // 50MB default
+  maxTotalUploadSize: integer("max_total_upload_size").default(100000000), // 100MB per request
+  
+  // Upload Limits
+  maxFilesPerUpload: integer("max_files_per_upload").default(10),
+  maxDailyUploads: integer("max_daily_uploads").default(100),
+  
+  // Security Scanning Providers
+  primaryScanProvider: text("primary_scan_provider").default("clamav"), // clamav, virustotal, defender
+  enableMultipleProviders: boolean("enable_multiple_providers").default(false),
+  scanTimeout: integer("scan_timeout").default(30), // seconds
+  
+  // Access Controls
+  requireAuthentication: boolean("require_authentication").default(true),
+  enableAccessLogging: boolean("enable_access_logging").default(true),
+  enableDownloadTracking: boolean("enable_download_tracking").default(true),
+  allowPublicSharing: boolean("allow_public_sharing").default(false),
+  maxShareDuration: integer("max_share_duration").default(168), // hours (1 week)
+  
+  // Content Validation
+  enableContentTypeValidation: boolean("enable_content_type_validation").default(true),
+  enableFileHeaderValidation: boolean("enable_file_header_validation").default(true),
+  blockSuspiciousFileNames: boolean("block_suspicious_file_names").default(true),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// File Security Scan Log
+export const fileSecurityScans = pgTable("file_security_scans", {
+  id: serial("id").primaryKey(),
+  fileId: integer("file_id"), // Can be null for orphaned scans
+  fileName: text("file_name").notNull(),
+  filePath: text("file_path").notNull(),
+  fileSize: integer("file_size").notNull(),
+  mimeType: text("mime_type").notNull(),
+  uploadedBy: integer("uploaded_by").references(() => users.id),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  
+  // Scan Results
+  scanStatus: text("scan_status").notNull().default("pending"), // pending, scanning, clean, infected, error, timeout
+  scanProvider: text("scan_provider").notNull(),
+  scanStarted: timestamp("scan_started").defaultNow().notNull(),
+  scanCompleted: timestamp("scan_completed"),
+  scanDuration: integer("scan_duration"), // milliseconds
+  
+  // Threat Detection
+  threatsDetected: jsonb("threats_detected").default('[]'), // Array of threat objects
+  threatCount: integer("threat_count").default(0),
+  threatSeverity: text("threat_severity"), // low, medium, high, critical
+  
+  // Actions Taken
+  actionTaken: text("action_taken").default("none"), // none, quarantined, deleted, allowed
+  quarantinePath: text("quarantine_path"),
+  
+  // Scan Details
+  scanHash: text("scan_hash"), // File hash for verification
+  scanResults: jsonb("scan_results"), // Raw scan results from provider
+  errorMessage: text("error_message"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// File Access Log
+export const fileAccessLogs = pgTable("file_access_logs", {
+  id: serial("id").primaryKey(),
+  fileId: integer("file_id"), // Can reference various file tables
+  fileName: text("file_name").notNull(),
+  filePath: text("file_path").notNull(),
+  userId: integer("user_id").references(() => users.id),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  
+  // Access Details
+  accessType: text("access_type").notNull(), // view, download, share, upload, delete
+  accessMethod: text("access_method").default("web"), // web, api, mobile
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  
+  // Share Information (if accessed via share)
+  shareToken: text("share_token"),
+  shareExpiresAt: timestamp("share_expires_at"),
+  
+  // Geolocation
+  latitude: text("latitude"),
+  longitude: text("longitude"),
+  location: text("location"), // Human readable location
+  
+  // Security Flags
+  suspiciousActivity: boolean("suspicious_activity").default(false),
+  accessDenied: boolean("access_denied").default(false),
+  denialReason: text("denial_reason"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const sharedPhotoLinks = pgTable("shared_photo_links", {
   id: serial("id").primaryKey(),
   shareToken: text("share_token").notNull().unique(),

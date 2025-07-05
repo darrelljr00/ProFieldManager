@@ -58,6 +58,7 @@ import {
   Save,
   Trash,
 } from "lucide-react";
+import FileSecurityTab from "@/components/FileSecurityTab";
 
 
 export default function SaasAdminPage() {
@@ -383,12 +384,13 @@ export default function SaasAdminPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="organizations">Organizations</TabsTrigger>
           <TabsTrigger value="users">User Management</TabsTrigger>
           <TabsTrigger value="plans">Subscription Plans</TabsTrigger>
           <TabsTrigger value="billing">Billing</TabsTrigger>
+          <TabsTrigger value="security">File Security</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
         </TabsList>
 
@@ -1358,6 +1360,10 @@ export default function SaasAdminPage() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="security" className="space-y-6">
+          <FileSecurityTab />
         </TabsContent>
 
         <TabsContent value="settings" className="space-y-6">

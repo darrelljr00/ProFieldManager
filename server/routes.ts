@@ -8049,6 +8049,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // File Security API Routes
+  app.get("/api/file-security/settings/:organizationId", requireAuth, async (req, res) => {
+    try {
+      const organizationId = parseInt(req.params.organizationId);
+      const settings = await storage.getFileSecuritySettings(organizationId);
+      res.json(settings);
+    } catch (error) {
+      console.error("Error fetching file security settings:", error);
+      res.status(500).json({ message: "Failed to fetch security settings" });
+    }
+  });
+
+  app.put("/api/file-security/settings/:organizationId", requireAuth, async (req, res) => {
+    try {
+      const organizationId = parseInt(req.params.organizationId);
+      const settings = await storage.updateFileSecuritySettings(organizationId, req.body);
+      res.json(settings);
+    } catch (error) {
+      console.error("Error updating file security settings:", error);
+      res.status(500).json({ message: "Failed to update security settings" });
+    }
+  });
+
+  app.get("/api/file-security/stats/:organizationId", requireAuth, async (req, res) => {
+    try {
+      const organizationId = parseInt(req.params.organizationId);
+      const stats = await storage.getFileSecurityStats(organizationId);
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching file security stats:", error);
+      res.status(500).json({ message: "Failed to fetch security stats" });
+    }
+  });
+
+  app.get("/api/file-security/scans/:organizationId", requireAuth, async (req, res) => {
+    try {
+      const organizationId = parseInt(req.params.organizationId);
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
+      const scans = await storage.getFileSecurityScans(organizationId, limit);
+      res.json(scans);
+    } catch (error) {
+      console.error("Error fetching file security scans:", error);
+      res.status(500).json({ message: "Failed to fetch security scans" });
+    }
+  });
+
+  app.post("/api/file-security/scan-all/:organizationId", requireAuth, async (req, res) => {
+    try {
+      const organizationId = parseInt(req.params.organizationId);
+      // This would initiate a full scan of all files for the organization
+      // For now, we'll just return a success message
+      res.json({ message: "Full security scan initiated", organizationId });
+    } catch (error) {
+      console.error("Error initiating full security scan:", error);
+      res.status(500).json({ message: "Failed to initiate security scan" });
+    }
+  });
+
+  app.get("/api/file-security/access-logs/:organizationId", requireAuth, async (req, res) => {
+    try {
+      const organizationId = parseInt(req.params.organizationId);
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 100;
+      const logs = await storage.getFileAccessLogs(organizationId, limit);
+      res.json(logs);
+    } catch (error) {
+      console.error("Error fetching file access logs:", error);
+      res.status(500).json({ message: "Failed to fetch access logs" });
+    }
+  });
+
   // Add broadcast function to the app for use in routes
   (app as any).broadcastToWebUsers = broadcastToWebUsers;
 
