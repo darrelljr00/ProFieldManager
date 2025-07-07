@@ -8119,6 +8119,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // File integrity check endpoint
+  app.get("/api/admin/file-integrity-check", requireAdmin, async (req, res) => {
+    try {
+      const fs = await import('fs/promises');
+      const path = await import('path');
+      
+      const allFiles = await storage.getAllProjectFiles();
+      const integrityReport = {
+        totalFileRecords: allFiles.length,
+        missingFiles: [],
+        validFiles: 0,
+        checkedAt: new Date()
+      };
+      
+      for (const file of allFiles) {
+        try {
+          await fs.stat(file.filePath);
+          integrityReport.validFiles++;
+        } catch (error) {
+          integrityReport.missingFiles.push({
+            id: file.id,
+            fileName: file.fileName,
+            filePath: file.filePath,
+            projectId: file.projectId
+          });
+        }
+      }
+      
+      res.json(integrityReport);
+    } catch (error: any) {
+      console.error("Error checking file integrity:", error);
+      res.status(500).json({ message: "Failed to check file integrity" });
+    }
+  });
+
+  // Clean up orphaned file references
+  app.post("/api/admin/cleanup-orphaned-files", requireAdmin, async (req, res) => {
+    try {
+      const fs = await import('fs/promises');
+      const allFiles = await storage.getAllProjectFiles();
+      const deletedRecords = [];
+      
+      for (const file of allFiles) {
+        try {
+          await fs.stat(file.filePath);
+        } catch (error) {
+          // File doesn't exist, remove database record
+          await storage.deleteProjectFile(file.id);
+          deletedRecords.push({
+            id: file.id,
+            fileName: file.fileName,
+            filePath: file.filePath
+          });
+        }
+      }
+      
+      res.json({
+        message: `Cleaned up ${deletedRecords.length} orphaned file references`,
+        deletedRecords,
+        cleanedAt: new Date()
+      });
+    } catch (error: any) {
+      console.error("Error cleaning orphaned files:", error);
+      res.status(500).json({ message: "Failed to cleanup orphaned files" });
+    }
+  });
+
   // Add broadcast function to the app for use in routes
   (app as any).broadcastToWebUsers = broadcastToWebUsers;
 

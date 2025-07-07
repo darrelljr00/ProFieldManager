@@ -238,6 +238,10 @@ export interface IStorage {
   getFileSecurityStats(organizationId: number): Promise<any>;
   logFileAccess(accessData: any): Promise<any>;
   getFileAccessLogs(organizationId: number, limit?: number): Promise<any[]>;
+  
+  // File integrity methods
+  getAllProjectFiles(): Promise<any[]>;
+  deleteProjectFile(fileId: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -3200,6 +3204,42 @@ export class DatabaseStorage implements IStorage {
       return logs;
     } catch (error) {
       console.error('Error getting file access logs:', error);
+      throw error;
+    }
+  }
+
+  // File integrity methods
+  async getAllProjectFiles(): Promise<any[]> {
+    try {
+      const files = await db
+        .select({
+          id: projectFiles.id,
+          projectId: projectFiles.projectId,
+          fileName: projectFiles.fileName,
+          filePath: projectFiles.filePath,
+          fileSize: projectFiles.fileSize,
+          mimeType: projectFiles.mimeType,
+          createdAt: projectFiles.createdAt
+        })
+        .from(projectFiles)
+        .orderBy(desc(projectFiles.createdAt));
+      
+      return files;
+    } catch (error) {
+      console.error('Error getting all project files:', error);
+      throw error;
+    }
+  }
+
+  async deleteProjectFile(fileId: number): Promise<boolean> {
+    try {
+      const result = await db
+        .delete(projectFiles)
+        .where(eq(projectFiles.id, fileId));
+      
+      return true;
+    } catch (error) {
+      console.error('Error deleting project file:', error);
       throw error;
     }
   }
