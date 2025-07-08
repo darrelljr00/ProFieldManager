@@ -421,6 +421,14 @@ export const timeClockSettings = pgTable("time_clock_settings", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+export const userDashboardSettings = pgTable("user_dashboard_settings", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  settings: jsonb("settings").notNull(), // JSON blob of dashboard settings
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Expense tracking tables
 export const expenses = pgTable("expenses", {
   id: serial("id").primaryKey(),

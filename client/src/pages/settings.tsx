@@ -1,7 +1,8 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -134,8 +135,12 @@ export default function Settings() {
   const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  // Admin dashboard management state
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [selectedUserDashboard, setSelectedUserDashboard] = useState<any>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const { data: paymentSettings, isLoading: paymentLoading } = useQuery<PaymentSettings>({
     queryKey: ["/api/settings/payment"],
@@ -171,6 +176,18 @@ export default function Settings() {
 
   const { data: weatherSettings, isLoading: weatherLoading } = useQuery<WeatherSettings>({
     queryKey: ["/api/settings/weather"],
+  });
+
+  // Get organization users for admin dashboard management
+  const { data: organizationUsers } = useQuery({
+    queryKey: ["/api/users"],
+    enabled: user?.role === 'admin',
+  });
+
+  // Get selected user's dashboard settings
+  const { data: selectedUserDashboardData } = useQuery({
+    queryKey: ["/api/settings/dashboard", selectedUserId],
+    enabled: !!selectedUserId && user?.role === 'admin',
   });
 
   const paymentMutation = useMutation({
@@ -343,6 +360,48 @@ export default function Settings() {
     },
   });
 
+  // Admin mutation for updating user-specific dashboard settings
+  const userDashboardMutation = useMutation({
+    mutationFn: (data: { userId: number; settings: Partial<DashboardSettings> }) =>
+      apiRequest("PUT", `/api/users/${data.userId}/dashboard-settings`, data.settings),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/dashboard", selectedUserId] });
+      toast({
+        title: "Success",
+        description: "User dashboard settings updated successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update user dashboard settings",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Admin handlers for dashboard management
+  const handleUserSelect = (userId: string) => {
+    setSelectedUserId(userId);
+    setSelectedUserDashboard(null);
+  };
+
+  const handleSaveUserDashboard = () => {
+    if (selectedUserId && selectedUserDashboard) {
+      userDashboardMutation.mutate({
+        userId: parseInt(selectedUserId),
+        settings: selectedUserDashboard
+      });
+    }
+  };
+
+  // Load selected user's dashboard settings when user changes
+  React.useEffect(() => {
+    if (selectedUserDashboardData) {
+      setSelectedUserDashboard(selectedUserDashboardData);
+    }
+  }, [selectedUserDashboardData]);
+
   const weatherMutation = useMutation({
     mutationFn: (data: Partial<WeatherSettings>) =>
       apiRequest("PUT", "/api/settings/weather", data),
@@ -393,6 +452,27 @@ export default function Settings() {
       });
     },
   });
+
+
+
+  // Handle resetting user dashboard to defaults
+  const handleResetUserDashboard = () => {
+    const defaultDashboard = {
+      showStatsCards: true,
+      showRevenueChart: true,
+      showRecentActivity: true,
+      showRecentInvoices: true,
+      showNotifications: true,
+      showQuickActions: true,
+      showProjectsOverview: false,
+      showWeatherWidget: false,
+      showTasksWidget: false,
+      showCalendarWidget: false,
+      showMessagesWidget: false,
+      showTeamOverview: false,
+    };
+    setSelectedUserDashboard(defaultDashboard);
+  };
 
   const reviewMutation = useMutation({
     mutationFn: (data: any) => apiRequest('/api/reviews/settings', 'POST', data),
@@ -1941,6 +2021,122 @@ export default function Settings() {
                   className="space-y-8"
                 >
                   <div className="grid gap-8">
+                    {/* Admin Dashboard Control Section */}
+                    {user?.role === 'admin' && (
+                      <div className="bg-blue-50 dark:bg-blue-950 p-6 rounded-lg border border-blue-200 dark:border-blue-800 space-y-4">
+                        <div className="flex items-center gap-2">
+                          <Settings className="h-5 w-5 text-blue-600" />
+                          <h3 className="text-lg font-medium text-blue-900 dark:text-blue-100">Admin Dashboard Control</h3>
+                        </div>
+                        <p className="text-sm text-blue-800 dark:text-blue-200">
+                          As an admin, you can control which dashboard widgets each team member can see and customize.
+                        </p>
+                        
+                        <div className="space-y-4">
+                          <div>
+                            <Label htmlFor="userSelect" className="text-blue-900 dark:text-blue-100">
+                              Select Team Member
+                            </Label>
+                            <Select 
+                              value={selectedUserId || ''} 
+                              onValueChange={setSelectedUserId}
+                            >
+                              <SelectTrigger className="mt-1">
+                                <SelectValue placeholder="Choose a team member to manage their dashboard..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {organizationUsers?.map((orgUser: any) => (
+                                  <SelectItem key={orgUser.id} value={orgUser.id.toString()}>
+                                    {orgUser.firstName} {orgUser.lastName} ({orgUser.email}) - {orgUser.role}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                              Select a team member to customize their dashboard widget permissions
+                            </p>
+                          </div>
+
+                          {selectedUserId && (
+                            <div className="bg-white dark:bg-gray-900 p-4 rounded border">
+                              <div className="flex items-center justify-between mb-3">
+                                <h4 className="font-medium">
+                                  Dashboard Permissions for {organizationUsers?.find((u: any) => u.id.toString() === selectedUserId)?.firstName} {organizationUsers?.find((u: any) => u.id.toString() === selectedUserId)?.lastName}
+                                </h4>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={handleResetUserDashboard}
+                                  disabled={dashboardUpdateMutation.isPending}
+                                >
+                                  Reset to Default
+                                </Button>
+                              </div>
+                              <div className="grid grid-cols-2 gap-3 text-sm">
+                                {[
+                                  { key: 'showStatsCards', label: 'Stats Cards' },
+                                  { key: 'showRevenueChart', label: 'Revenue Chart' },
+                                  { key: 'showRecentActivity', label: 'Recent Activity' },
+                                  { key: 'showRecentInvoices', label: 'Recent Invoices' },
+                                  { key: 'showNotifications', label: 'Notifications' },
+                                  { key: 'showQuickActions', label: 'Quick Actions' },
+                                  { key: 'showProjectsOverview', label: 'Projects Overview' },
+                                  { key: 'showWeatherWidget', label: 'Weather Widget' },
+                                  { key: 'showTasksWidget', label: 'My Tasks' },
+                                  { key: 'showCalendarWidget', label: 'Calendar Widget' },
+                                  { key: 'showMessagesWidget', label: 'Team Messages' },
+                                  { key: 'showTeamOverview', label: 'Team Overview' }
+                                ].map((widget) => (
+                                  <div key={widget.key} className="flex items-center justify-between">
+                                    <Label htmlFor={`admin_${widget.key}`} className="text-xs">
+                                      {widget.label}
+                                    </Label>
+                                    <Switch
+                                      id={`admin_${widget.key}`}
+                                      checked={selectedUserDashboard?.[widget.key] ?? true}
+                                      onCheckedChange={(checked) => 
+                                        setSelectedUserDashboard((prev: any) => ({
+                                          ...prev,
+                                          [widget.key]: checked
+                                        }))
+                                      }
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                              
+                              <div className="mt-4 flex gap-2">
+                                <Button
+                                  type="button"
+                                  onClick={handleSaveUserDashboard}
+                                  disabled={userDashboardMutation.isPending}
+                                  size="sm"
+                                >
+                                  {userDashboardMutation.isPending ? 'Saving...' : 'Save Changes'}
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  onClick={() => setSelectedUserId(null)}
+                                  size="sm"
+                                >
+                                  Cancel
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded">
+                          <p className="text-xs text-amber-800 dark:text-amber-200">
+                            <strong>Note:</strong> Changes you make here will override the user's personal dashboard settings. 
+                            Users will see a notice that their dashboard is managed by an administrator.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Widget Visibility Section */}
                     <div className="space-y-6">
                       <div>

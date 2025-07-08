@@ -3777,6 +3777,80 @@ export class DatabaseStorage implements IStorage {
       throw error;
     }
   }
+
+  // User-specific dashboard settings
+  async getUserDashboardSettings(userId: number): Promise<any> {
+    try {
+      const [result] = await db.select()
+        .from(userDashboardSettings)
+        .where(eq(userDashboardSettings.userId, userId));
+      
+      if (result) {
+        return JSON.parse(result.settings);
+      }
+      
+      // Return default settings if none exist
+      return {
+        showStatsCards: true,
+        showRevenueChart: true,
+        showRecentActivity: true,
+        showRecentInvoices: true,
+        showNotifications: true,
+        showQuickActions: true,
+        showProjectsOverview: false,
+        showWeatherWidget: false,
+        showTasksWidget: false,
+        showCalendarWidget: false,
+        showMessagesWidget: false,
+        showTeamOverview: false,
+        layoutType: 'grid',
+        gridColumns: 3,
+        widgetSize: 'medium',
+        colorTheme: 'default',
+        animationsEnabled: true,
+        statsCardsCount: 4,
+        recentItemsCount: 5,
+        refreshInterval: 30,
+        showWelcomeMessage: true,
+        compactMode: false,
+        widgetOrder: ['stats', 'revenue', 'activity', 'invoices']
+      };
+    } catch (error) {
+      console.error("Error getting user dashboard settings:", error);
+      throw error;
+    }
+  }
+
+  async saveUserDashboardSettings(userId: number, settings: any): Promise<void> {
+    try {
+      // Check if settings already exist for this user
+      const [existing] = await db.select()
+        .from(userDashboardSettings)
+        .where(eq(userDashboardSettings.userId, userId));
+
+      if (existing) {
+        // Update existing settings
+        await db.update(userDashboardSettings)
+          .set({
+            settings: JSON.stringify(settings),
+            updatedAt: new Date()
+          })
+          .where(eq(userDashboardSettings.userId, userId));
+      } else {
+        // Insert new settings
+        await db.insert(userDashboardSettings)
+          .values({
+            userId,
+            settings: JSON.stringify(settings),
+            createdAt: new Date(),
+            updatedAt: new Date()
+          });
+      }
+    } catch (error) {
+      console.error("Error saving user dashboard settings:", error);
+      throw error;
+    }
+  }
 }
 
 export const storage = new DatabaseStorage();

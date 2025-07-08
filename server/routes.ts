@@ -4033,6 +4033,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin-specific dashboard management endpoints
+  app.get("/api/settings/dashboard/:userId", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      
+      // Get user-specific dashboard settings or fall back to defaults
+      const userSettings = await storage.getUserDashboardSettings(parseInt(userId));
+      
+      res.json(userSettings);
+    } catch (error: any) {
+      console.error("Error fetching user dashboard settings:", error);
+      res.status(500).json({ message: "Failed to fetch user dashboard settings" });
+    }
+  });
+
+  app.put("/api/users/:userId/dashboard-settings", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const settingsData = req.body;
+      
+      // Save admin-controlled dashboard settings for specific user
+      await storage.saveUserDashboardSettings(parseInt(userId), settingsData);
+      
+      res.json({ message: "User dashboard settings updated successfully" });
+    } catch (error: any) {
+      console.error("Error updating user dashboard settings:", error);
+      res.status(500).json({ message: "Failed to update user dashboard settings" });
+    }
+  });
+
   // Leads API
   app.get("/api/leads", requireAuth, async (req, res) => {
     try {
