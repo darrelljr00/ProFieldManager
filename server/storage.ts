@@ -9,7 +9,7 @@ import {
   internalMessages, internalMessageRecipients, messageGroups, messageGroupMembers,
   inspectionTemplates, inspectionItems, inspectionRecords, inspectionResponses, inspectionNotifications,
   smsMessages, smsTemplates, sharedPhotoLinks, fileSecuritySettings, fileSecurityScans, fileAccessLogs,
-  digitalSignatures, departments, employees, timeOffRequests, performanceReviews, disciplinaryActions
+  digitalSignatures, departments, employees, employeeDocuments, timeOffRequests, performanceReviews, disciplinaryActions
 } from "@shared/schema";
 import type { GasCard, InsertGasCard, GasCardAssignment, InsertGasCardAssignment, GasCardUsage, InsertGasCardUsage, GasCardProvider, InsertGasCardProvider } from "@shared/schema";
 import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull, isNull } from "drizzle-orm";
@@ -267,6 +267,13 @@ export interface IStorage {
   createEmployee(employeeData: any): Promise<Employee>;
   updateEmployee(id: number, updates: any): Promise<Employee>;
   deleteEmployee(id: number): Promise<boolean>;
+  
+  // Employee Document methods
+  getEmployeeDocuments(employeeId: number, organizationId: number): Promise<any[]>;
+  getEmployeeDocument(id: number, organizationId: number): Promise<any | undefined>;
+  createEmployeeDocument(documentData: any): Promise<any>;
+  updateEmployeeDocument(id: number, updates: any): Promise<any>;
+  deleteEmployeeDocument(id: number): Promise<boolean>;
   
   // Time off request methods
   getTimeOffRequests(organizationId: number, employeeId?: number): Promise<TimeOffRequest[]>;
@@ -3575,6 +3582,108 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error deleting employee:', error);
       throw error;
+    }
+  }
+
+  // Employee Document methods
+  async getEmployeeDocuments(employeeId: number, organizationId: number): Promise<any[]> {
+    try {
+      const documents = await db
+        .select()
+        .from(employeeDocuments)
+        .where(and(
+          eq(employeeDocuments.employeeId, employeeId),
+          eq(employeeDocuments.organizationId, organizationId)
+        ))
+        .orderBy(desc(employeeDocuments.createdAt));
+      
+      return documents;
+    } catch (error) {
+      console.error('Error getting employee documents:', error);
+      throw error;
+    }
+  }
+
+  async getEmployeeDocument(id: number, organizationId: number): Promise<any | undefined> {
+    try {
+      const [document] = await db
+        .select()
+        .from(employeeDocuments)
+        .where(and(
+          eq(employeeDocuments.id, id),
+          eq(employeeDocuments.organizationId, organizationId)
+        ));
+      
+      return document || undefined;
+    } catch (error) {
+      console.error('Error getting employee document:', error);
+      throw error;
+    }
+  }
+
+  async createEmployeeDocument(documentData: any): Promise<any> {
+    try {
+      const [document] = await db
+        .insert(employeeDocuments)
+        .values({
+          employeeId: documentData.employeeId,
+          organizationId: documentData.organizationId,
+          uploadedBy: documentData.uploadedBy,
+          fileName: documentData.fileName,
+          originalName: documentData.originalName,
+          filePath: documentData.filePath,
+          fileSize: documentData.fileSize,
+          mimeType: documentData.mimeType,
+          fileType: documentData.fileType,
+          documentType: documentData.documentType,
+          category: documentData.category,
+          title: documentData.title,
+          description: documentData.description,
+          tags: documentData.tags,
+          confidentialityLevel: documentData.confidentialityLevel,
+          accessLevel: documentData.accessLevel,
+          status: documentData.status || 'active',
+          expirationDate: documentData.expirationDate,
+          reminderDate: documentData.reminderDate,
+          notes: documentData.notes,
+        })
+        .returning();
+      
+      return document;
+    } catch (error) {
+      console.error('Error creating employee document:', error);
+      throw error;
+    }
+  }
+
+  async updateEmployeeDocument(id: number, updates: any): Promise<any> {
+    try {
+      const [document] = await db
+        .update(employeeDocuments)
+        .set({
+          ...updates,
+          updatedAt: new Date(),
+        })
+        .where(eq(employeeDocuments.id, id))
+        .returning();
+      
+      return document;
+    } catch (error) {
+      console.error('Error updating employee document:', error);
+      throw error;
+    }
+  }
+
+  async deleteEmployeeDocument(id: number): Promise<boolean> {
+    try {
+      await db
+        .delete(employeeDocuments)
+        .where(eq(employeeDocuments.id, id));
+      
+      return true;
+    } catch (error) {
+      console.error('Error deleting employee document:', error);
+      return false;
     }
   }
 

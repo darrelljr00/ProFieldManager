@@ -15,7 +15,8 @@ export async function createOrganizationFolders(organizationId: number): Promise
     'files',
     'documents',
     'avatars',
-    'logos'
+    'logos',
+    'employee_documents'
   ];
 
   try {

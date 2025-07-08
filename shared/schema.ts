@@ -1642,6 +1642,50 @@ export const employees = pgTable("employees", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Employee Documents
+export const employeeDocuments = pgTable("employee_documents", {
+  id: serial("id").primaryKey(),
+  employeeId: integer("employee_id").notNull().references(() => employees.id, { onDelete: "cascade" }),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  uploadedBy: integer("uploaded_by").notNull().references(() => users.id),
+  
+  // File Information
+  fileName: text("file_name").notNull(),
+  originalName: text("original_name").notNull(),
+  filePath: text("file_path").notNull(),
+  fileSize: integer("file_size").notNull(),
+  mimeType: text("mime_type").notNull(),
+  fileType: text("file_type").notNull(), // document, image, video, other
+  
+  // Document Classification
+  documentType: text("document_type").notNull(), // resume, contract, id_copy, tax_form, certification, training, performance, medical, other
+  category: text("category").notNull().default("general"), // personal, legal, training, hr, medical, financial
+  title: text("title").notNull(),
+  description: text("description"),
+  tags: text("tags").array(),
+  
+  // Security & Access
+  confidentialityLevel: text("confidentiality_level").notNull().default("internal"), // public, internal, confidential, restricted
+  accessLevel: text("access_level").notNull().default("hr_only"), // employee_only, hr_only, manager_access, full_access
+  
+  // Document Lifecycle
+  status: text("status").notNull().default("active"), // active, archived, expired, under_review
+  expirationDate: timestamp("expiration_date"),
+  reminderDate: timestamp("reminder_date"), // When to remind about expiration
+  version: integer("version").notNull().default(1),
+  supersededBy: integer("superseded_by").references((): any => employeeDocuments.id), // Reference to newer version
+  
+  // Metadata
+  notes: text("notes"),
+  reviewedBy: integer("reviewed_by").references(() => users.id),
+  reviewedAt: timestamp("reviewed_at"),
+  lastAccessedAt: timestamp("last_accessed_at"),
+  downloadCount: integer("download_count").notNull().default(0),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Time Off Requests
 export const timeOffRequests = pgTable("time_off_requests", {
   id: serial("id").primaryKey(),
@@ -1920,6 +1964,12 @@ export const insertEmployeeSchema = createInsertSchema(employees).omit({
   updatedAt: true,
 });
 
+export const insertEmployeeDocumentSchema = createInsertSchema(employeeDocuments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertTimeOffRequestSchema = createInsertSchema(timeOffRequests).omit({
   id: true,
   requestedAt: true,
@@ -1946,6 +1996,9 @@ export type InsertDepartment = z.infer<typeof insertDepartmentSchema>;
 // Employee Management Types
 export type Employee = typeof employees.$inferSelect;
 export type InsertEmployee = z.infer<typeof insertEmployeeSchema>;
+
+export type EmployeeDocument = typeof employeeDocuments.$inferSelect;
+export type InsertEmployeeDocument = z.infer<typeof insertEmployeeDocumentSchema>;
 
 export type TimeOffRequest = typeof timeOffRequests.$inferSelect;
 export type InsertTimeOffRequest = z.infer<typeof insertTimeOffRequestSchema>;

@@ -6804,6 +6804,227 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Employee Document API Routes
+  
+  // Multer configuration for employee documents
+  const employeeDocumentStorage = multer.diskStorage({
+    destination: async (req, file, cb) => {
+      try {
+        const user = getAuthenticatedUser(req);
+        const uploadsDir = path.join(process.cwd(), 'uploads', `org-${user.organizationId}`, 'employee_documents');
+        await ensureOrganizationFolders(user.organizationId);
+        cb(null, uploadsDir);
+      } catch (error) {
+        cb(error as Error, '');
+      }
+    },
+    filename: (req, file, cb) => {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      const ext = path.extname(file.originalname);
+      cb(null, `doc-${uniqueSuffix}${ext}`);
+    }
+  });
+
+  const uploadEmployeeDocument = multer({ 
+    storage: employeeDocumentStorage,
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+    fileFilter: (req, file, cb) => {
+      // Allow documents, images, and some common file types
+      const allowedTypes = [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'text/plain',
+        'image/jpeg',
+        'image/png',
+        'image/gif'
+      ];
+      
+      if (allowedTypes.includes(file.mimetype)) {
+        cb(null, true);
+      } else {
+        cb(new Error('Invalid file type. Only documents and images are allowed.'), false);
+      }
+    }
+  });
+
+  // Get employee documents
+  app.get("/api/employees/:employeeId/documents", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { employeeId } = req.params;
+      
+      const documents = await storage.getEmployeeDocuments(parseInt(employeeId), user.organizationId);
+      res.json(documents);
+    } catch (error: any) {
+      console.error("Error fetching employee documents:", error);
+      res.status(500).json({ message: "Failed to fetch employee documents" });
+    }
+  });
+
+  // Get single employee document
+  app.get("/api/employee-documents/:id", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { id } = req.params;
+      
+      const document = await storage.getEmployeeDocument(parseInt(id), user.organizationId);
+      
+      if (!document) {
+        return res.status(404).json({ message: "Document not found" });
+      }
+      
+      res.json(document);
+    } catch (error: any) {
+      console.error("Error fetching employee document:", error);
+      res.status(500).json({ message: "Failed to fetch employee document" });
+    }
+  });
+
+  // Upload employee document
+  app.post("/api/employees/:employeeId/documents", requireAuth, uploadEmployeeDocument.single('document'), async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { employeeId } = req.params;
+      const file = req.file;
+      
+      if (!file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      const { documentType, category, title, description, confidentialityLevel, accessLevel } = req.body;
+
+      if (!documentType || !title) {
+        return res.status(400).json({ message: "Document type and title are required" });
+      }
+
+      // Determine file type based on mime type
+      let fileType = 'other';
+      if (file.mimetype.startsWith('image/')) {
+        fileType = 'image';
+      } else if (file.mimetype.includes('pdf') || file.mimetype.includes('word') || file.mimetype.includes('document')) {
+        fileType = 'document';
+      }
+
+      const documentData = {
+        employeeId: parseInt(employeeId),
+        organizationId: user.organizationId,
+        uploadedBy: user.id,
+        fileName: file.filename,
+        originalName: file.originalname,
+        filePath: file.path,
+        fileSize: file.size,
+        mimeType: file.mimetype,
+        fileType,
+        documentType,
+        category: category || 'general',
+        title,
+        description: description || '',
+        confidentialityLevel: confidentialityLevel || 'internal',
+        accessLevel: accessLevel || 'hr_only',
+        tags: req.body.tags ? JSON.parse(req.body.tags) : []
+      };
+
+      const document = await storage.createEmployeeDocument(documentData);
+      res.status(201).json(document);
+    } catch (error: any) {
+      console.error("Error uploading employee document:", error);
+      res.status(500).json({ message: "Failed to upload document" });
+    }
+  });
+
+  // Update employee document
+  app.put("/api/employee-documents/:id", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { id } = req.params;
+      const updates = req.body;
+      
+      // Verify document exists and belongs to organization
+      const existingDocument = await storage.getEmployeeDocument(parseInt(id), user.organizationId);
+      if (!existingDocument) {
+        return res.status(404).json({ message: "Document not found" });
+      }
+
+      const document = await storage.updateEmployeeDocument(parseInt(id), updates);
+      res.json(document);
+    } catch (error: any) {
+      console.error("Error updating employee document:", error);
+      res.status(500).json({ message: "Failed to update document" });
+    }
+  });
+
+  // Delete employee document
+  app.delete("/api/employee-documents/:id", requireManagerOrAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { id } = req.params;
+      
+      // Verify document exists and belongs to organization
+      const existingDocument = await storage.getEmployeeDocument(parseInt(id), user.organizationId);
+      if (!existingDocument) {
+        return res.status(404).json({ message: "Document not found" });
+      }
+
+      // Delete the file from disk
+      try {
+        await fs.unlink(existingDocument.filePath);
+      } catch (fileError) {
+        console.warn("Could not delete file from disk:", fileError);
+      }
+
+      const deleted = await storage.deleteEmployeeDocument(parseInt(id));
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "Document not found" });
+      }
+      
+      res.status(204).send();
+    } catch (error: any) {
+      console.error("Error deleting employee document:", error);
+      res.status(500).json({ message: "Failed to delete document" });
+    }
+  });
+
+  // Serve employee document files
+  app.get("/api/employee-documents/:id/download", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { id } = req.params;
+      
+      const document = await storage.getEmployeeDocument(parseInt(id), user.organizationId);
+      
+      if (!document) {
+        return res.status(404).json({ message: "Document not found" });
+      }
+
+      // Check if file exists
+      const fileExists = fsSync.existsSync(document.filePath);
+      if (!fileExists) {
+        return res.status(404).json({ message: "File not found on disk" });
+      }
+
+      // Update download count and last accessed
+      await storage.updateEmployeeDocument(parseInt(id), {
+        downloadCount: document.downloadCount + 1,
+        lastAccessedAt: new Date()
+      });
+
+      // Set appropriate headers
+      res.setHeader('Content-Disposition', `attachment; filename="${document.originalName}"`);
+      res.setHeader('Content-Type', document.mimeType);
+      
+      // Stream the file
+      const fileStream = fsSync.createReadStream(document.filePath);
+      fileStream.pipe(res);
+    } catch (error: any) {
+      console.error("Error downloading employee document:", error);
+      res.status(500).json({ message: "Failed to download document" });
+    }
+  });
+
   // Time Off Request API Routes
   
   // Get time off requests

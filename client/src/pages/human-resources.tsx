@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { EmployeeDocuments } from "@/components/employee-documents";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -277,6 +278,8 @@ export default function HumanResources() {
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [disciplinaryDialogOpen, setDisciplinaryDialogOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [employeeDetailOpen, setEmployeeDetailOpen] = useState(false);
+  const [employeeDetailTab, setEmployeeDetailTab] = useState("overview");
   const [searchTerm, setSearchTerm] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -908,11 +911,31 @@ export default function HumanResources() {
                       </TableCell>
                       <TableCell>
                         <div className="flex space-x-2">
-                          <Button variant="ghost" size="sm">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => {
+                              setSelectedEmployee(employee);
+                              setEmployeeDetailOpen(true);
+                              setEmployeeDetailTab("overview");
+                            }}
+                          >
                             <Eye className="h-4 w-4" />
                           </Button>
                           <Button variant="ghost" size="sm">
                             <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => {
+                              setSelectedEmployee(employee);
+                              setEmployeeDetailOpen(true);
+                              setEmployeeDetailTab("documents");
+                            }}
+                            title="View Documents"
+                          >
+                            <FileText className="h-4 w-4" />
                           </Button>
                         </div>
                       </TableCell>
@@ -1728,6 +1751,135 @@ export default function HumanResources() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Employee Detail Dialog */}
+      <Dialog open={employeeDetailOpen} onOpenChange={setEmployeeDetailOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedEmployee && (
+                <div className="flex items-center space-x-3">
+                  <Avatar>
+                    <AvatarImage src={selectedEmployee.profileImage} />
+                    <AvatarFallback>
+                      {selectedEmployee.firstName[0]}{selectedEmployee.lastName[0]}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <h3 className="text-lg font-semibold">
+                      {selectedEmployee.firstName} {selectedEmployee.lastName}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedEmployee.position} • {selectedEmployee.department}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+
+          {selectedEmployee && (
+            <Tabs value={employeeDetailTab} onValueChange={setEmployeeDetailTab}>
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="overview">Overview</TabsTrigger>
+                <TabsTrigger value="documents">Documents</TabsTrigger>
+                <TabsTrigger value="activity">Activity</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="overview" className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">Contact Information</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex items-center space-x-2">
+                        <Mail className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm">{selectedEmployee.email}</span>
+                      </div>
+                      {selectedEmployee.phone && (
+                        <div className="flex items-center space-x-2">
+                          <Phone className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">{selectedEmployee.phone}</span>
+                        </div>
+                      )}
+                      {selectedEmployee.location && (
+                        <div className="flex items-center space-x-2">
+                          <MapPin className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">{selectedEmployee.location}</span>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">Employment Details</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex justify-between">
+                        <span className="text-sm text-muted-foreground">Employee ID:</span>
+                        <span className="text-sm font-medium">{selectedEmployee.id}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-muted-foreground">Hire Date:</span>
+                        <span className="text-sm font-medium">
+                          {new Date(selectedEmployee.hireDate).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-muted-foreground">Status:</span>
+                        <Badge className={getStatusColor(selectedEmployee.status)}>
+                          {selectedEmployee.status.replace('_', ' ')}
+                        </Badge>
+                      </div>
+                      {selectedEmployee.salary && (
+                        <div className="flex justify-between">
+                          <span className="text-sm text-muted-foreground">Salary:</span>
+                          <span className="text-sm font-medium">
+                            ${Number(selectedEmployee.salary).toLocaleString()}
+                          </span>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {selectedEmployee.notes && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">Notes</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground">{selectedEmployee.notes}</p>
+                    </CardContent>
+                  </Card>
+                )}
+              </TabsContent>
+
+              <TabsContent value="documents" className="space-y-4">
+                <EmployeeDocuments 
+                  employeeId={selectedEmployee.id} 
+                  employeeName={`${selectedEmployee.firstName} ${selectedEmployee.lastName}`}
+                />
+              </TabsContent>
+
+              <TabsContent value="activity" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Recent Activity</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground">
+                      Activity tracking coming soon...
+                    </p>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
