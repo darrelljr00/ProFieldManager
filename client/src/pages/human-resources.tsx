@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -268,11 +269,17 @@ export default function HumanResources() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [showUserSync, setShowUserSync] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string>("");
   const { toast } = useToast();
 
   // Real API queries
   const { data: employees = [], isLoading: employeesLoading } = useQuery({
     queryKey: ["/api/employees"],
+  });
+
+  const { data: users = [], isLoading: usersLoading } = useQuery({
+    queryKey: ["/api/users"],
   });
 
   const { data: timeOffRequests = [], isLoading: timeOffLoading } = useQuery({
@@ -287,6 +294,26 @@ export default function HumanResources() {
     queryKey: ["/api/disciplinary-actions"],
   });
 
+  // Helper function to get users that aren't already employees
+  const availableUsers = users.filter(user => 
+    !employees.some(emp => emp.userId === user.id)
+  );
+
+  // Function to handle user sync
+  const handleUserSync = (userId: string) => {
+    const user = users.find(u => u.id === parseInt(userId));
+    if (user) {
+      // Pre-fill form with user data
+      const form = document.forms.namedItem('addEmployeeForm') as HTMLFormElement;
+      if (form) {
+        (form.elements.namedItem('firstName') as HTMLInputElement).value = user.firstName || '';
+        (form.elements.namedItem('lastName') as HTMLInputElement).value = user.lastName || '';
+        (form.elements.namedItem('email') as HTMLInputElement).value = user.email;
+        (form.elements.namedItem('phone') as HTMLInputElement).value = user.phone || '';
+      }
+    }
+  };
+
   // Mutations for employee management
   const createEmployeeMutation = useMutation({
     mutationFn: (data: any) => apiRequest("/api/employees", {
@@ -296,6 +323,8 @@ export default function HumanResources() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/employees"] });
       setEmployeeDialogOpen(false);
+      setShowUserSync(false);
+      setSelectedUserId("");
       toast({
         title: "Success",
         description: "Employee created successfully",
@@ -595,7 +624,48 @@ export default function HumanResources() {
                         Add a new team member to your organization
                       </DialogDescription>
                     </DialogHeader>
-                    <form className="space-y-4">
+                    
+                    {/* User Sync Option */}
+                    <div className="border rounded-lg p-4 bg-gray-50">
+                      <div className="flex items-center space-x-2 mb-3">
+                        <Checkbox
+                          id="syncWithUser"
+                          checked={showUserSync}
+                          onCheckedChange={setShowUserSync}
+                        />
+                        <Label htmlFor="syncWithUser" className="text-sm font-medium">
+                          Sync with existing user profile
+                        </Label>
+                      </div>
+                      
+                      {showUserSync && (
+                        <div>
+                          <Label htmlFor="userSelect" className="text-sm">Select User</Label>
+                          <Select value={selectedUserId} onValueChange={(value) => {
+                            setSelectedUserId(value);
+                            handleUserSync(value);
+                          }}>
+                            <SelectTrigger className="mt-1">
+                              <SelectValue placeholder="Choose a user to sync with..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {availableUsers.map((user) => (
+                                <SelectItem key={user.id} value={user.id.toString()}>
+                                  {user.firstName} {user.lastName} ({user.email})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {availableUsers.length === 0 && (
+                            <p className="text-sm text-gray-500 mt-1">
+                              All users already have employee records
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <form name="addEmployeeForm" className="space-y-4">
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <Label htmlFor="firstName">First Name</Label>
@@ -652,8 +722,32 @@ export default function HumanResources() {
                         <Label htmlFor="location">Location</Label>
                         <Input id="location" name="location" />
                       </div>
-                      <Button type="submit" className="w-full">
-                        Add Employee
+                      <Button 
+                        type="submit" 
+                        className="w-full"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          const form = e.currentTarget.closest('form') as HTMLFormElement;
+                          const formData = new FormData(form);
+                          
+                          const employeeData = {
+                            firstName: formData.get('firstName'),
+                            lastName: formData.get('lastName'),
+                            email: formData.get('email'),
+                            phone: formData.get('phone'),
+                            position: formData.get('position'),
+                            department: formData.get('department'),
+                            hireDate: formData.get('hireDate'),
+                            salary: formData.get('salary') ? parseFloat(formData.get('salary') as string) : null,
+                            location: formData.get('location'),
+                            ...(showUserSync && selectedUserId && { userId: parseInt(selectedUserId) })
+                          };
+                          
+                          createEmployeeMutation.mutate(employeeData);
+                        }}
+                        disabled={createEmployeeMutation.isPending}
+                      >
+                        {createEmployeeMutation.isPending ? 'Adding...' : 'Add Employee'}
                       </Button>
                     </form>
                   </DialogContent>
