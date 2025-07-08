@@ -39,10 +39,7 @@ type CompanySettings = {
   companyCountry: string;
   companyWebsite: string;
   logo: string;
-  taxRate: number;
-  defaultCurrency: string;
-  invoiceTerms: string;
-  invoiceFooter: string;
+  logoSize: string;
 };
 
 type EmailSettings = {
@@ -90,6 +87,10 @@ type InvoiceSettings = {
   showSquareFeet: boolean;
   squareFeetLabel: string;
   templateCustomizations: Record<string, any>;
+  taxRate: number;
+  defaultCurrency: string;
+  invoiceTerms: string;
+  invoiceFooter: string;
 };
 
 type DashboardSettings = {
@@ -451,10 +452,6 @@ export default function Settings() {
       companyZipCode: formData.get('companyZipCode') as string,
       companyCountry: formData.get('companyCountry') as string,
       companyWebsite: formData.get('companyWebsite') as string,
-      taxRate: parseFloat(formData.get('taxRate') as string) || 0,
-      defaultCurrency: formData.get('defaultCurrency') as string,
-      invoiceTerms: formData.get('invoiceTerms') as string,
-      invoiceFooter: formData.get('invoiceFooter') as string,
       logoSize: formData.get('logoSize') as string,
     };
     companyMutation.mutate(data);
@@ -556,6 +553,10 @@ export default function Settings() {
       logoPosition: formData.get('logoPosition') as 'top-left' | 'top-center' | 'top-right' | 'bottom-left' | 'bottom-center' | 'bottom-right',
       showSquareFeet: formData.get('showSquareFeet') === 'on',
       squareFeetLabel: formData.get('squareFeetLabel') as string,
+      taxRate: parseFloat(formData.get('taxRate') as string) || 0,
+      defaultCurrency: formData.get('defaultCurrency') as string,
+      invoiceTerms: formData.get('invoiceTerms') as string,
+      invoiceFooter: formData.get('invoiceFooter') as string,
     };
     invoiceMutation.mutate(data);
   };
@@ -989,56 +990,7 @@ export default function Settings() {
                   </p>
                 </div>
 
-                <Separator />
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="taxRate">Default Tax Rate (%)</Label>
-                    <Input
-                      id="taxRate"
-                      name="taxRate"
-                      type="number"
-                      step="0.01"
-                      placeholder="8.25"
-                      defaultValue={companySettings?.taxRate}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="defaultCurrency">Default Currency</Label>
-                    <Select name="defaultCurrency" defaultValue={companySettings?.defaultCurrency || "USD"}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select currency" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="USD">USD - US Dollar</SelectItem>
-                        <SelectItem value="EUR">EUR - Euro</SelectItem>
-                        <SelectItem value="GBP">GBP - British Pound</SelectItem>
-                        <SelectItem value="CAD">CAD - Canadian Dollar</SelectItem>
-                        <SelectItem value="AUD">AUD - Australian Dollar</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="invoiceTerms">Invoice Terms</Label>
-                  <Textarea
-                    id="invoiceTerms"
-                    name="invoiceTerms"
-                    placeholder="Payment is due within 30 days of invoice date..."
-                    defaultValue={companySettings?.invoiceTerms}
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="invoiceFooter">Invoice Footer</Label>
-                  <Textarea
-                    id="invoiceFooter"
-                    name="invoiceFooter"
-                    placeholder="Thank you for your business!"
-                    defaultValue={companySettings?.invoiceFooter}
-                  />
-                </div>
 
                 <div className="flex justify-end">
                   <Button type="submit" disabled={companyMutation.isPending}>
@@ -1776,6 +1728,79 @@ export default function Settings() {
                     />
                     <p className="text-sm text-muted-foreground mt-1">
                       Customize the label for the square footage field on invoices
+                    </p>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Invoice Footer Settings */}
+                <div className="space-y-4">
+                  <Label className="text-lg font-semibold">Invoice Footer Settings</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Configure default values that appear on all invoices
+                  </p>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="taxRate">Default Tax Rate (%)</Label>
+                      <Input
+                        id="taxRate"
+                        name="taxRate"
+                        type="number"
+                        step="0.01"
+                        placeholder="8.25"
+                        defaultValue={invoiceSettings?.taxRate}
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Applied to all invoices unless overridden
+                      </p>
+                    </div>
+                    <div>
+                      <Label htmlFor="defaultCurrency">Default Currency</Label>
+                      <Select name="defaultCurrency" defaultValue={invoiceSettings?.defaultCurrency || "USD"}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select currency" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="USD">USD - US Dollar</SelectItem>
+                          <SelectItem value="EUR">EUR - Euro</SelectItem>
+                          <SelectItem value="GBP">GBP - British Pound</SelectItem>
+                          <SelectItem value="CAD">CAD - Canadian Dollar</SelectItem>
+                          <SelectItem value="AUD">AUD - Australian Dollar</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Currency symbol used on invoices
+                      </p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="invoiceTerms">Invoice Terms</Label>
+                    <Textarea
+                      id="invoiceTerms"
+                      name="invoiceTerms"
+                      placeholder="Payment is due within 30 days of invoice date. Late payments may incur additional fees."
+                      defaultValue={invoiceSettings?.invoiceTerms}
+                      rows={3}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Payment terms and conditions that appear on invoices
+                    </p>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="invoiceFooter">Invoice Footer Message</Label>
+                    <Textarea
+                      id="invoiceFooter"
+                      name="invoiceFooter"
+                      placeholder="Thank you for your business! We appreciate your trust in our services."
+                      defaultValue={invoiceSettings?.invoiceFooter}
+                      rows={2}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Custom message that appears at the bottom of invoices
                     </p>
                   </div>
                 </div>
