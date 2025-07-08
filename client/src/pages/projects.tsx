@@ -484,6 +484,24 @@ export default function Jobs() {
     enabled: !!selectedProject,
   });
 
+  // Helper function to construct correct image URLs using existing filenames
+  const getProjectFileUrl = (file: any) => {
+    // Use existing filename without any modification
+    if (file.filePath) {
+      // If filePath already contains the full path, use it directly
+      return file.filePath;
+    }
+    
+    // For project files, construct URL using organization-based structure and existing filename
+    const organizationId = user?.organizationId;
+    if (organizationId && file.fileName) {
+      return `/api/uploads/org-${organizationId}/files/${file.fileName}`;
+    }
+    
+    // Fallback to original download endpoint
+    return `/api/project-files/${file.id}/download`;
+  };
+
 
 
   const createJobMutation = useMutation({
@@ -1338,7 +1356,7 @@ export default function Jobs() {
                       id: file.id,
                       fileName: file.fileName,
                       originalName: file.originalName,
-                      filePath: file.filePath,
+                      filePath: getProjectFileUrl(file),
                       fileSize: file.fileSize,
                       fileType: file.mimeType?.startsWith('image/') ? 'image' : 'document',
                       mimeType: file.mimeType,
@@ -1416,7 +1434,7 @@ export default function Jobs() {
                           {file.mimeType?.startsWith('image/') ? (
                             <div className="relative">
                               <img 
-                                src={`/api/project-files/${file.id}/download`}
+                                src={getProjectFileUrl(file)}
                                 alt={file.originalName}
                                 className="w-8 h-8 object-cover rounded"
                                 onError={(e) => {
