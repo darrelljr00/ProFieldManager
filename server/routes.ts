@@ -4294,7 +4294,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/signatures/:id", requireAuth, async (req, res) => {
+  app.delete("/api/projects/:projectId/signatures/:id", requireAuth, async (req, res) => {
     try {
       const signatureId = parseInt(req.params.id);
       const success = await storage.deleteSignature(signatureId);

@@ -22,6 +22,7 @@ import { DispatchRouting } from "@/components/dispatch-routing";
 import { WeatherWidget } from "@/components/weather-widget";
 import { MobileCamera } from "@/components/mobile-camera";
 import { MediaGallery } from "@/components/media-gallery";
+import JobSignatureCapture from "@/components/JobSignatureCapture";
 
 // Historical Jobs Component
 function HistoricalJobs() {
@@ -1377,6 +1378,16 @@ export default function Jobs() {
                     <p className="text-sm text-gray-500">No tasks assigned to this job yet</p>
                   )}
                 </div>
+              </div>
+
+              {/* Job Signature Capture */}
+              <div>
+                <Label className="text-sm font-medium text-gray-500 mb-3 block">Job Signatures</Label>
+                <JobSignatureCapture 
+                  projectId={selectedProject.id}
+                  jobTitle={selectedProject.name}
+                  customerName={selectedProject.customer?.name}
+                />
               </div>
 
               {/* Project Files & Images */}
