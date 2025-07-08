@@ -4407,6 +4407,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         startDate: new Date(req.body.startDate),
         endDate: new Date(req.body.endDate),
         estimatedValue: req.body.estimatedValue ? parseFloat(req.body.estimatedValue) : null,
+        // Image timestamp settings
+        enableImageTimestamp: req.body.enableImageTimestamp || false,
+        timestampFormat: req.body.timestampFormat || "MM/dd/yyyy hh:mm a",
+        includeGpsCoords: req.body.includeGpsCoords || false,
+        timestampPosition: req.body.timestampPosition || "bottom-right",
       };
       
       console.log("Processed job data:", jobData);

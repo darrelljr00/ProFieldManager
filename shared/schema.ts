@@ -646,6 +646,11 @@ export const calendarJobs = pgTable("calendar_jobs", {
   priority: text("priority").notNull().default("medium"), // low, medium, high
   notes: text("notes"),
   convertedToProjectId: integer("converted_to_project_id").references(() => projects.id),
+  // Image timestamp settings
+  enableImageTimestamp: boolean("enable_image_timestamp").default(false),
+  timestampFormat: text("timestamp_format").default("MM/dd/yyyy hh:mm a"),
+  includeGpsCoords: boolean("include_gps_coords").default(false),
+  timestampPosition: text("timestamp_position").default("bottom-right"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

@@ -147,6 +147,11 @@ export default function CalendarPage() {
       status: formData.get('status') as string || 'scheduled',
       priority: formData.get('priority') as string || 'medium',
       notes: formData.get('notes') as string,
+      // Image timestamp settings
+      enableImageTimestamp: formData.get("enableImageTimestamp") === "true",
+      timestampFormat: formData.get("timestampFormat") || "MM/dd/yyyy hh:mm a",
+      includeGpsCoords: formData.get("includeGpsCoords") === "true",
+      timestampPosition: formData.get("timestampPosition") || "bottom-right",
     };
 
     if (selectedJob) {
@@ -555,6 +560,103 @@ export default function CalendarPage() {
                       <SelectItem value="low">Low</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+              </div>
+
+              {/* Image Timestamp Settings */}
+              <div className="space-y-4 p-4 border rounded-lg bg-gray-50 dark:bg-gray-800">
+                <h4 className="font-semibold text-sm">Image Timestamp Settings</h4>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Auto-add timestamp to uploaded images</Label>
+                  <div className="flex items-center space-x-6">
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        id="calendarTimestampEnabled"
+                        name="enableImageTimestamp"
+                        value="true"
+                        className="w-4 h-4"
+                      />
+                      <Label htmlFor="calendarTimestampEnabled" className="text-sm">
+                        Yes, add timestamp
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        id="calendarTimestampDisabled"
+                        name="enableImageTimestamp"
+                        value="false"
+                        defaultChecked
+                        className="w-4 h-4"
+                      />
+                      <Label htmlFor="calendarTimestampDisabled" className="text-sm">
+                        No timestamp
+                      </Label>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="calendarTimestampFormat" className="text-sm">Timestamp Format</Label>
+                    <Select name="timestampFormat" defaultValue="MM/dd/yyyy hh:mm a">
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="MM/dd/yyyy hh:mm a">12/31/2024 02:30 PM</SelectItem>
+                        <SelectItem value="dd/MM/yyyy HH:mm">31/12/2024 14:30</SelectItem>
+                        <SelectItem value="yyyy-MM-dd HH:mm">2024-12-31 14:30</SelectItem>
+                        <SelectItem value="MMM dd, yyyy h:mm a">Dec 31, 2024 2:30 PM</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="calendarTimestampPosition" className="text-sm">Position</Label>
+                    <Select name="timestampPosition" defaultValue="bottom-right">
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="bottom-right">Bottom Right</SelectItem>
+                        <SelectItem value="bottom-left">Bottom Left</SelectItem>
+                        <SelectItem value="top-right">Top Right</SelectItem>
+                        <SelectItem value="top-left">Top Left</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Include GPS coordinates (when available)</Label>
+                  <div className="flex items-center space-x-6">
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        id="calendarGpsEnabled"
+                        name="includeGpsCoords"
+                        value="true"
+                        className="w-4 h-4"
+                      />
+                      <Label htmlFor="calendarGpsEnabled" className="text-sm">
+                        Include GPS
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        id="calendarGpsDisabled"
+                        name="includeGpsCoords"
+                        value="false"
+                        defaultChecked
+                        className="w-4 h-4"
+                      />
+                      <Label htmlFor="calendarGpsDisabled" className="text-sm">
+                        No GPS
+                      </Label>
+                    </div>
+                  </div>
                 </div>
               </div>
 
