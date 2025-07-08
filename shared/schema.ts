@@ -1601,6 +1601,92 @@ export type InsertFormSubmission = typeof formSubmissions.$inferInsert;
 export type FormTemplate = typeof formTemplates.$inferSelect;
 export type InsertFormTemplate = typeof formTemplates.$inferInsert;
 
+// Employee Management
+export const employees = pgTable("employees", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }).unique(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  employeeId: text("employee_id"), // Custom employee ID
+  firstName: text("first_name").notNull(),
+  lastName: text("last_name").notNull(),
+  email: text("email").notNull(),
+  phone: text("phone"),
+  position: text("position").notNull(),
+  department: text("department").notNull(),
+  hireDate: timestamp("hire_date").notNull(),
+  salary: decimal("salary", { precision: 10, scale: 2 }),
+  status: text("status").notNull().default("active"), // active, inactive, on_leave, terminated
+  managerId: integer("manager_id").references(() => employees.id),
+  location: text("location"),
+  emergencyContact: jsonb("emergency_contact"), // {name, phone, relationship}
+  profileImage: text("profile_image"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Time Off Requests
+export const timeOffRequests = pgTable("time_off_requests", {
+  id: serial("id").primaryKey(),
+  employeeId: integer("employee_id").notNull().references(() => employees.id, { onDelete: "cascade" }),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  type: text("type").notNull(), // vacation, sick, personal, other
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date").notNull(),
+  days: decimal("days", { precision: 5, scale: 2 }).notNull(),
+  status: text("status").notNull().default("pending"), // pending, approved, rejected
+  reason: text("reason"),
+  approvedBy: integer("approved_by").references(() => users.id),
+  approvedAt: timestamp("approved_at"),
+  rejectedReason: text("rejected_reason"),
+  requestedAt: timestamp("requested_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Performance Reviews
+export const performanceReviews = pgTable("performance_reviews", {
+  id: serial("id").primaryKey(),
+  employeeId: integer("employee_id").notNull().references(() => employees.id, { onDelete: "cascade" }),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  reviewPeriod: text("review_period").notNull(),
+  overallRating: decimal("overall_rating", { precision: 3, scale: 2 }),
+  goals: jsonb("goals"), // Array of goals
+  feedback: text("feedback"),
+  reviewDate: timestamp("review_date"),
+  reviewerId: integer("reviewer_id").notNull().references(() => users.id),
+  status: text("status").notNull().default("draft"), // draft, completed, pending_employee_review
+  employeeComments: text("employee_comments"),
+  employeeSignedAt: timestamp("employee_signed_at"),
+  managerSignedAt: timestamp("manager_signed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Disciplinary Actions
+export const disciplinaryActions = pgTable("disciplinary_actions", {
+  id: serial("id").primaryKey(),
+  employeeId: integer("employee_id").notNull().references(() => employees.id, { onDelete: "cascade" }),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  type: text("type").notNull(), // verbal_warning, written_warning, suspension, termination, counseling
+  severity: text("severity").notNull(), // low, medium, high, critical
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  incident: text("incident").notNull(),
+  actionTaken: text("action_taken").notNull(),
+  followUpRequired: boolean("follow_up_required").default(false),
+  followUpDate: timestamp("follow_up_date"),
+  issuedBy: integer("issued_by").notNull().references(() => users.id),
+  witnessedBy: integer("witnessed_by").references(() => users.id),
+  employeeAcknowledged: boolean("employee_acknowledged").default(false),
+  employeeAcknowledgedAt: timestamp("employee_acknowledged_at"),
+  employeeComments: text("employee_comments"),
+  attachments: jsonb("attachments"), // Array of file paths
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Digital Signatures
 export const digitalSignatures = pgTable("digital_signatures", {
   id: serial("id").primaryKey(),
@@ -1802,3 +1888,42 @@ export const insertDigitalSignatureSchema = createInsertSchema(digitalSignatures
 // Digital Signature Types
 export type DigitalSignature = typeof digitalSignatures.$inferSelect;
 export type InsertDigitalSignature = z.infer<typeof insertDigitalSignatureSchema>;
+
+// Employee Management Schema Validation
+export const insertEmployeeSchema = createInsertSchema(employees).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertTimeOffRequestSchema = createInsertSchema(timeOffRequests).omit({
+  id: true,
+  requestedAt: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertPerformanceReviewSchema = createInsertSchema(performanceReviews).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertDisciplinaryActionSchema = createInsertSchema(disciplinaryActions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Employee Management Types
+export type Employee = typeof employees.$inferSelect;
+export type InsertEmployee = z.infer<typeof insertEmployeeSchema>;
+
+export type TimeOffRequest = typeof timeOffRequests.$inferSelect;
+export type InsertTimeOffRequest = z.infer<typeof insertTimeOffRequestSchema>;
+
+export type PerformanceReview = typeof performanceReviews.$inferSelect;
+export type InsertPerformanceReview = z.infer<typeof insertPerformanceReviewSchema>;
+
+export type DisciplinaryAction = typeof disciplinaryActions.$inferSelect;
+export type InsertDisciplinaryAction = z.infer<typeof insertDisciplinaryActionSchema>;

@@ -9,14 +9,15 @@ import {
   internalMessages, internalMessageRecipients, messageGroups, messageGroupMembers,
   inspectionTemplates, inspectionItems, inspectionRecords, inspectionResponses, inspectionNotifications,
   smsMessages, smsTemplates, sharedPhotoLinks, fileSecuritySettings, fileSecurityScans, fileAccessLogs,
-  digitalSignatures
+  digitalSignatures, employees, timeOffRequests, performanceReviews, disciplinaryActions
 } from "@shared/schema";
 import type { GasCard, InsertGasCard, GasCardAssignment, InsertGasCardAssignment, GasCardUsage, InsertGasCardUsage, GasCardProvider, InsertGasCardProvider } from "@shared/schema";
 import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull, isNull } from "drizzle-orm";
 import type { 
   User, Customer, Invoice, Quote, Project, Task, 
   Expense, ExpenseCategory, ExpenseReport, GasCard,
-  Lead, CalendarJob, Message, Organization
+  Lead, CalendarJob, Message, Organization, Employee,
+  TimeOffRequest, PerformanceReview, DisciplinaryAction
 } from "@shared/schema";
 
 export interface IStorage {
@@ -34,9 +35,12 @@ export interface IStorage {
   
   // Organization methods
   getOrganization(id: number): Promise<Organization | undefined>;
+  getOrganizationById(id: number): Promise<Organization | undefined>;
   createOrganization(orgData: any): Promise<Organization>;
   updateOrganization(id: number, updates: any): Promise<Organization>;
   getAllOrganizations(): Promise<Organization[]>;
+  getAllOrganizationsWithDetails(): Promise<any[]>;
+  getOrganizationUsage(organizationId: number): Promise<any>;
   
   // Customer methods
   getCustomers(organizationId: number): Promise<Customer[]>;
@@ -248,6 +252,31 @@ export interface IStorage {
   createDigitalSignature(signatureData: any): Promise<any>;
   getProjectSignatures(projectId: number): Promise<any[]>;
   deleteSignature(signatureId: number): Promise<boolean>;
+  
+  // Employee methods
+  getEmployees(organizationId: number): Promise<Employee[]>;
+  getEmployee(id: number): Promise<Employee | undefined>;
+  getEmployeeByUserId(userId: number): Promise<Employee | undefined>;
+  createEmployee(employeeData: any): Promise<Employee>;
+  updateEmployee(id: number, updates: any): Promise<Employee>;
+  deleteEmployee(id: number): Promise<boolean>;
+  
+  // Time off request methods
+  getTimeOffRequests(organizationId: number, employeeId?: number): Promise<TimeOffRequest[]>;
+  createTimeOffRequest(requestData: any): Promise<TimeOffRequest>;
+  updateTimeOffRequest(id: number, updates: any): Promise<TimeOffRequest>;
+  approveTimeOffRequest(id: number, approvedBy: number): Promise<TimeOffRequest>;
+  rejectTimeOffRequest(id: number, approvedBy: number, reason: string): Promise<TimeOffRequest>;
+  
+  // Performance review methods
+  getPerformanceReviews(organizationId: number, employeeId?: number): Promise<PerformanceReview[]>;
+  createPerformanceReview(reviewData: any): Promise<PerformanceReview>;
+  updatePerformanceReview(id: number, updates: any): Promise<PerformanceReview>;
+  
+  // Disciplinary action methods
+  getDisciplinaryActions(organizationId: number, employeeId?: number): Promise<DisciplinaryAction[]>;
+  createDisciplinaryAction(actionData: any): Promise<DisciplinaryAction>;
+  updateDisciplinaryAction(id: number, updates: any): Promise<DisciplinaryAction>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -286,6 +315,25 @@ export class DatabaseStorage implements IStorage {
       .insert(users)
       .values(insertData)
       .returning();
+
+    // Automatically create employee record when user is created
+    try {
+      await this.createEmployee({
+        userId: user.id,
+        organizationId: user.organizationId,
+        firstName: user.firstName || user.username,
+        lastName: user.lastName || '',
+        email: user.email,
+        position: userData.position || 'Employee',
+        department: userData.department || 'General',
+        hireDate: new Date(),
+        status: 'active'
+      });
+    } catch (error) {
+      console.error('Error creating employee record for user:', error);
+      // Don't fail user creation if employee creation fails
+    }
+
     return user;
   }
 
@@ -500,6 +548,46 @@ export class DatabaseStorage implements IStorage {
   // Organization methods
   async getAllOrganizations(): Promise<Organization[]> {
     return await db.select().from(organizations);
+  }
+
+  async getOrganizationById(id: number): Promise<Organization | undefined> {
+    try {
+      const [organization] = await db
+        .select()
+        .from(organizations)
+        .where(eq(organizations.id, id));
+      
+      return organization || undefined;
+    } catch (error) {
+      console.error('Error getting organization by ID:', error);
+      throw error;
+    }
+  }
+
+  async getOrganizationUsage(organizationId: number): Promise<any> {
+    try {
+      // Get user count
+      const userCount = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(users)
+        .where(eq(users.organizationId, organizationId));
+
+      // Get project count  
+      const projectCount = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(projects)
+        .innerJoin(users, eq(projects.userId, users.id))
+        .where(eq(users.organizationId, organizationId));
+
+      return {
+        userCount: userCount[0]?.count || 0,
+        projectCount: projectCount[0]?.count || 0,
+        storageUsedGB: 0 // Placeholder for storage calculation
+      };
+    } catch (error) {
+      console.error('Error getting organization usage:', error);
+      throw error;
+    }
   }
 
   // Invoice methods
@@ -3289,6 +3377,312 @@ export class DatabaseStorage implements IStorage {
       return true;
     } catch (error) {
       console.error('Error deleting signature:', error);
+      throw error;
+    }
+  }
+
+  // Employee methods
+  async getEmployees(organizationId: number): Promise<Employee[]> {
+    try {
+      const employeeList = await db
+        .select()
+        .from(employees)
+        .where(eq(employees.organizationId, organizationId))
+        .orderBy(asc(employees.firstName), asc(employees.lastName));
+      
+      return employeeList;
+    } catch (error) {
+      console.error('Error getting employees:', error);
+      throw error;
+    }
+  }
+
+  async getEmployee(id: number): Promise<Employee | undefined> {
+    try {
+      const [employee] = await db
+        .select()
+        .from(employees)
+        .where(eq(employees.id, id));
+      
+      return employee || undefined;
+    } catch (error) {
+      console.error('Error getting employee:', error);
+      throw error;
+    }
+  }
+
+  async getEmployeeByUserId(userId: number): Promise<Employee | undefined> {
+    try {
+      const [employee] = await db
+        .select()
+        .from(employees)
+        .where(eq(employees.userId, userId));
+      
+      return employee || undefined;
+    } catch (error) {
+      console.error('Error getting employee by user ID:', error);
+      throw error;
+    }
+  }
+
+  async createEmployee(employeeData: any): Promise<Employee> {
+    try {
+      const [employee] = await db
+        .insert(employees)
+        .values({
+          userId: employeeData.userId,
+          organizationId: employeeData.organizationId,
+          employeeId: employeeData.employeeId,
+          firstName: employeeData.firstName,
+          lastName: employeeData.lastName,
+          email: employeeData.email,
+          phone: employeeData.phone,
+          position: employeeData.position,
+          department: employeeData.department,
+          hireDate: employeeData.hireDate || new Date(),
+          salary: employeeData.salary,
+          status: employeeData.status || 'active',
+          managerId: employeeData.managerId,
+          location: employeeData.location,
+          emergencyContact: employeeData.emergencyContact,
+          notes: employeeData.notes,
+        })
+        .returning();
+      
+      return employee;
+    } catch (error) {
+      console.error('Error creating employee:', error);
+      throw error;
+    }
+  }
+
+  async updateEmployee(id: number, updates: any): Promise<Employee> {
+    try {
+      const [employee] = await db
+        .update(employees)
+        .set({
+          ...updates,
+          updatedAt: new Date(),
+        })
+        .where(eq(employees.id, id))
+        .returning();
+      
+      return employee;
+    } catch (error) {
+      console.error('Error updating employee:', error);
+      throw error;
+    }
+  }
+
+  async deleteEmployee(id: number): Promise<boolean> {
+    try {
+      await db
+        .delete(employees)
+        .where(eq(employees.id, id));
+      
+      return true;
+    } catch (error) {
+      console.error('Error deleting employee:', error);
+      throw error;
+    }
+  }
+
+  // Time off request methods
+  async getTimeOffRequests(organizationId: number, employeeId?: number): Promise<TimeOffRequest[]> {
+    try {
+      let query = db
+        .select()
+        .from(timeOffRequests)
+        .where(eq(timeOffRequests.organizationId, organizationId));
+      
+      if (employeeId) {
+        query = query.where(eq(timeOffRequests.employeeId, employeeId));
+      }
+      
+      const requests = await query.orderBy(desc(timeOffRequests.requestedAt));
+      return requests;
+    } catch (error) {
+      console.error('Error getting time off requests:', error);
+      throw error;
+    }
+  }
+
+  async createTimeOffRequest(requestData: any): Promise<TimeOffRequest> {
+    try {
+      const [request] = await db
+        .insert(timeOffRequests)
+        .values(requestData)
+        .returning();
+      
+      return request;
+    } catch (error) {
+      console.error('Error creating time off request:', error);
+      throw error;
+    }
+  }
+
+  async updateTimeOffRequest(id: number, updates: any): Promise<TimeOffRequest> {
+    try {
+      const [request] = await db
+        .update(timeOffRequests)
+        .set({
+          ...updates,
+          updatedAt: new Date(),
+        })
+        .where(eq(timeOffRequests.id, id))
+        .returning();
+      
+      return request;
+    } catch (error) {
+      console.error('Error updating time off request:', error);
+      throw error;
+    }
+  }
+
+  async approveTimeOffRequest(id: number, approvedBy: number): Promise<TimeOffRequest> {
+    try {
+      const [request] = await db
+        .update(timeOffRequests)
+        .set({
+          status: 'approved',
+          approvedBy,
+          approvedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(timeOffRequests.id, id))
+        .returning();
+      
+      return request;
+    } catch (error) {
+      console.error('Error approving time off request:', error);
+      throw error;
+    }
+  }
+
+  async rejectTimeOffRequest(id: number, approvedBy: number, reason: string): Promise<TimeOffRequest> {
+    try {
+      const [request] = await db
+        .update(timeOffRequests)
+        .set({
+          status: 'rejected',
+          approvedBy,
+          rejectedReason: reason,
+          approvedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(timeOffRequests.id, id))
+        .returning();
+      
+      return request;
+    } catch (error) {
+      console.error('Error rejecting time off request:', error);
+      throw error;
+    }
+  }
+
+  // Performance review methods
+  async getPerformanceReviews(organizationId: number, employeeId?: number): Promise<PerformanceReview[]> {
+    try {
+      let query = db
+        .select()
+        .from(performanceReviews)
+        .where(eq(performanceReviews.organizationId, organizationId));
+      
+      if (employeeId) {
+        query = query.where(eq(performanceReviews.employeeId, employeeId));
+      }
+      
+      const reviews = await query.orderBy(desc(performanceReviews.createdAt));
+      return reviews;
+    } catch (error) {
+      console.error('Error getting performance reviews:', error);
+      throw error;
+    }
+  }
+
+  async createPerformanceReview(reviewData: any): Promise<PerformanceReview> {
+    try {
+      const [review] = await db
+        .insert(performanceReviews)
+        .values(reviewData)
+        .returning();
+      
+      return review;
+    } catch (error) {
+      console.error('Error creating performance review:', error);
+      throw error;
+    }
+  }
+
+  async updatePerformanceReview(id: number, updates: any): Promise<PerformanceReview> {
+    try {
+      const [review] = await db
+        .update(performanceReviews)
+        .set({
+          ...updates,
+          updatedAt: new Date(),
+        })
+        .where(eq(performanceReviews.id, id))
+        .returning();
+      
+      return review;
+    } catch (error) {
+      console.error('Error updating performance review:', error);
+      throw error;
+    }
+  }
+
+  // Disciplinary action methods
+  async getDisciplinaryActions(organizationId: number, employeeId?: number): Promise<DisciplinaryAction[]> {
+    try {
+      let query = db
+        .select()
+        .from(disciplinaryActions)
+        .where(and(
+          eq(disciplinaryActions.organizationId, organizationId),
+          eq(disciplinaryActions.isActive, true)
+        ));
+      
+      if (employeeId) {
+        query = query.where(eq(disciplinaryActions.employeeId, employeeId));
+      }
+      
+      const actions = await query.orderBy(desc(disciplinaryActions.createdAt));
+      return actions;
+    } catch (error) {
+      console.error('Error getting disciplinary actions:', error);
+      throw error;
+    }
+  }
+
+  async createDisciplinaryAction(actionData: any): Promise<DisciplinaryAction> {
+    try {
+      const [action] = await db
+        .insert(disciplinaryActions)
+        .values(actionData)
+        .returning();
+      
+      return action;
+    } catch (error) {
+      console.error('Error creating disciplinary action:', error);
+      throw error;
+    }
+  }
+
+  async updateDisciplinaryAction(id: number, updates: any): Promise<DisciplinaryAction> {
+    try {
+      const [action] = await db
+        .update(disciplinaryActions)
+        .set({
+          ...updates,
+          updatedAt: new Date(),
+        })
+        .where(eq(disciplinaryActions.id, id))
+        .returning();
+      
+      return action;
+    } catch (error) {
+      console.error('Error updating disciplinary action:', error);
       throw error;
     }
   }

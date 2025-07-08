@@ -6561,6 +6561,244 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
 
+  // Employee Management API Routes
+  
+  // Get all employees for organization
+  app.get("/api/employees", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const employees = await storage.getEmployees(user.organizationId);
+      res.json(employees);
+    } catch (error: any) {
+      console.error("Error fetching employees:", error);
+      res.status(500).json({ message: "Failed to fetch employees" });
+    }
+  });
+
+  // Get single employee
+  app.get("/api/employees/:id", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const employee = await storage.getEmployee(parseInt(id));
+      if (!employee) {
+        return res.status(404).json({ message: "Employee not found" });
+      }
+      res.json(employee);
+    } catch (error: any) {
+      console.error("Error fetching employee:", error);
+      res.status(500).json({ message: "Failed to fetch employee" });
+    }
+  });
+
+  // Create new employee
+  app.post("/api/employees", requireManagerOrAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const employeeData = {
+        ...req.body,
+        organizationId: user.organizationId
+      };
+      
+      const employee = await storage.createEmployee(employeeData);
+      res.status(201).json(employee);
+    } catch (error: any) {
+      console.error("Error creating employee:", error);
+      res.status(500).json({ message: "Failed to create employee" });
+    }
+  });
+
+  // Update employee
+  app.put("/api/employees/:id", requireManagerOrAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updates = req.body;
+      
+      const employee = await storage.updateEmployee(parseInt(id), updates);
+      res.json(employee);
+    } catch (error: any) {
+      console.error("Error updating employee:", error);
+      res.status(500).json({ message: "Failed to update employee" });
+    }
+  });
+
+  // Delete employee
+  app.delete("/api/employees/:id", requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteEmployee(parseInt(id));
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "Employee not found" });
+      }
+      
+      res.status(204).send();
+    } catch (error: any) {
+      console.error("Error deleting employee:", error);
+      res.status(500).json({ message: "Failed to delete employee" });
+    }
+  });
+
+  // Time Off Request API Routes
+  
+  // Get time off requests
+  app.get("/api/time-off-requests", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { employeeId } = req.query;
+      
+      const requests = await storage.getTimeOffRequests(
+        user.organizationId, 
+        employeeId ? parseInt(employeeId as string) : undefined
+      );
+      res.json(requests);
+    } catch (error: any) {
+      console.error("Error fetching time off requests:", error);
+      res.status(500).json({ message: "Failed to fetch time off requests" });
+    }
+  });
+
+  // Create time off request
+  app.post("/api/time-off-requests", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const requestData = {
+        ...req.body,
+        organizationId: user.organizationId
+      };
+      
+      const request = await storage.createTimeOffRequest(requestData);
+      res.status(201).json(request);
+    } catch (error: any) {
+      console.error("Error creating time off request:", error);
+      res.status(500).json({ message: "Failed to create time off request" });
+    }
+  });
+
+  // Approve/reject time off request
+  app.patch("/api/time-off-requests/:id", requireManagerOrAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status, rejectedReason } = req.body;
+      const user = getAuthenticatedUser(req);
+      
+      let request;
+      if (status === 'approved') {
+        request = await storage.approveTimeOffRequest(parseInt(id), user.id);
+      } else if (status === 'rejected') {
+        request = await storage.rejectTimeOffRequest(parseInt(id), user.id, rejectedReason);
+      } else {
+        request = await storage.updateTimeOffRequest(parseInt(id), req.body);
+      }
+      
+      res.json(request);
+    } catch (error: any) {
+      console.error("Error updating time off request:", error);
+      res.status(500).json({ message: "Failed to update time off request" });
+    }
+  });
+
+  // Performance Review API Routes
+  
+  // Get performance reviews
+  app.get("/api/performance-reviews", requireManagerOrAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { employeeId } = req.query;
+      
+      const reviews = await storage.getPerformanceReviews(
+        user.organizationId,
+        employeeId ? parseInt(employeeId as string) : undefined
+      );
+      res.json(reviews);
+    } catch (error: any) {
+      console.error("Error fetching performance reviews:", error);
+      res.status(500).json({ message: "Failed to fetch performance reviews" });
+    }
+  });
+
+  // Create performance review
+  app.post("/api/performance-reviews", requireManagerOrAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const reviewData = {
+        ...req.body,
+        organizationId: user.organizationId,
+        reviewerId: user.id
+      };
+      
+      const review = await storage.createPerformanceReview(reviewData);
+      res.status(201).json(review);
+    } catch (error: any) {
+      console.error("Error creating performance review:", error);
+      res.status(500).json({ message: "Failed to create performance review" });
+    }
+  });
+
+  // Update performance review
+  app.put("/api/performance-reviews/:id", requireManagerOrAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updates = req.body;
+      
+      const review = await storage.updatePerformanceReview(parseInt(id), updates);
+      res.json(review);
+    } catch (error: any) {
+      console.error("Error updating performance review:", error);
+      res.status(500).json({ message: "Failed to update performance review" });
+    }
+  });
+
+  // Disciplinary Action API Routes
+  
+  // Get disciplinary actions
+  app.get("/api/disciplinary-actions", requireManagerOrAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { employeeId } = req.query;
+      
+      const actions = await storage.getDisciplinaryActions(
+        user.organizationId,
+        employeeId ? parseInt(employeeId as string) : undefined
+      );
+      res.json(actions);
+    } catch (error: any) {
+      console.error("Error fetching disciplinary actions:", error);
+      res.status(500).json({ message: "Failed to fetch disciplinary actions" });
+    }
+  });
+
+  // Create disciplinary action
+  app.post("/api/disciplinary-actions", requireManagerOrAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const actionData = {
+        ...req.body,
+        organizationId: user.organizationId,
+        issuedBy: user.id
+      };
+      
+      const action = await storage.createDisciplinaryAction(actionData);
+      res.status(201).json(action);
+    } catch (error: any) {
+      console.error("Error creating disciplinary action:", error);
+      res.status(500).json({ message: "Failed to create disciplinary action" });
+    }
+  });
+
+  // Update disciplinary action
+  app.put("/api/disciplinary-actions/:id", requireManagerOrAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updates = req.body;
+      
+      const action = await storage.updateDisciplinaryAction(parseInt(id), updates);
+      res.json(action);
+    } catch (error: any) {
+      console.error("Error updating disciplinary action:", error);
+      res.status(500).json({ message: "Failed to update disciplinary action" });
+    }
+  });
+
   // Organizations endpoint for user creation dropdown
   app.get("/api/organizations", requireAuth, async (req, res) => {
     try {

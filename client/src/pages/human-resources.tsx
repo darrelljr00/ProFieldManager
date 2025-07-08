@@ -270,11 +270,111 @@ export default function HumanResources() {
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
 
-  // Mock queries - replace with actual API calls
-  const employees = mockEmployees;
-  const timeOffRequests = mockTimeOffRequests;
-  const performanceReviews = mockPerformanceReviews;
-  const disciplinaryActions = mockDisciplinaryActions;
+  // Real API queries
+  const { data: employees = [], isLoading: employeesLoading } = useQuery({
+    queryKey: ["/api/employees"],
+  });
+
+  const { data: timeOffRequests = [], isLoading: timeOffLoading } = useQuery({
+    queryKey: ["/api/time-off-requests"],
+  });
+
+  const { data: performanceReviews = [], isLoading: reviewsLoading } = useQuery({
+    queryKey: ["/api/performance-reviews"],
+  });
+
+  const { data: disciplinaryActions = [], isLoading: disciplinaryLoading } = useQuery({
+    queryKey: ["/api/disciplinary-actions"],
+  });
+
+  // Mutations for employee management
+  const createEmployeeMutation = useMutation({
+    mutationFn: (data: any) => apiRequest("/api/employees", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/employees"] });
+      setEmployeeDialogOpen(false);
+      toast({
+        title: "Success",
+        description: "Employee created successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create employee",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const createTimeOffMutation = useMutation({
+    mutationFn: (data: any) => apiRequest("/api/time-off-requests", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/time-off-requests"] });
+      setTimeOffDialogOpen(false);
+      toast({
+        title: "Success",
+        description: "Time off request submitted successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to submit time off request",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const createPerformanceReviewMutation = useMutation({
+    mutationFn: (data: any) => apiRequest("/api/performance-reviews", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/performance-reviews"] });
+      setReviewDialogOpen(false);
+      toast({
+        title: "Success",
+        description: "Performance review created successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create performance review",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const createDisciplinaryMutation = useMutation({
+    mutationFn: (data: any) => apiRequest("/api/disciplinary-actions", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/disciplinary-actions"] });
+      setDisciplinaryDialogOpen(false);
+      toast({
+        title: "Success",
+        description: "Disciplinary action created successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create disciplinary action",
+        variant: "destructive",
+      });
+    },
+  });
 
   const filteredEmployees = employees.filter(employee => {
     const matchesSearch = searchTerm === "" || 
@@ -615,7 +715,20 @@ export default function HumanResources() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredEmployees.map((employee) => (
+                  {employeesLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8">
+                        Loading employees...
+                      </TableCell>
+                    </TableRow>
+                  ) : filteredEmployees.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8">
+                        No employees found
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredEmployees.map((employee) => (
                     <TableRow key={employee.id}>
                       <TableCell>
                         <div className="flex items-center space-x-3">
@@ -650,7 +763,8 @@ export default function HumanResources() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))}
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </CardContent>
