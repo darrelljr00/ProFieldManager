@@ -56,8 +56,6 @@ export default function Dashboard() {
     queryKey: ["/api/settings/dashboard"],
   });
 
-  const recentInvoices = invoices?.slice(0, settings.recentItemsCount || 5) || [];
-
   // Use default settings if not loaded yet
   const settings = dashboardSettings || {
     showStatsCards: true,
@@ -84,6 +82,8 @@ export default function Dashboard() {
     compactMode: false,
     widgetOrder: ['stats', 'revenue', 'activity', 'invoices']
   };
+
+  const recentInvoices = invoices?.slice(0, settings.recentItemsCount || 5) || [];
 
   return (
     <div className="flex-1">
