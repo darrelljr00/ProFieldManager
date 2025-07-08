@@ -44,6 +44,7 @@ import { PhotoEditor } from "@/components/photo-editor";
 import { SharePhotosDialog } from "@/components/share-photos-dialog";
 import { MobileCamera } from "@/components/mobile-camera";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 interface ImageFile {
   id: number;
@@ -76,10 +77,17 @@ export default function ImageGallery() {
   const [showEditOptions, setShowEditOptions] = useState<number | null>(null);
   
   const { toast } = useToast();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
 
   const imagesQuery = useQuery({
     queryKey: ['/api/images'],
+    onSuccess: (data) => {
+      console.log('Image gallery data received:', data);
+      if (data && data.length > 0) {
+        console.log('Sample image:', data[0]);
+      }
+    }
   });
 
   const projectsQuery = useQuery({
@@ -402,9 +410,20 @@ export default function ImageGallery() {
       return image.url;
     }
     
-    // Fallback - this shouldn't happen with properly configured backend
-    console.warn('Image missing URL property, using fallback path');
-    return `/uploads/${image.filename}`;
+    // Enhanced fallback - try to construct organization-based path from filename
+    if (image.filename && user?.organizationId) {
+      // If filename contains gallery prefix, use organization-based path
+      if (image.filename.includes('gallery-')) {
+        console.warn('Image missing URL property, constructing organization path');
+        return `/uploads/org-${user.organizationId}/image_gallery/${image.filename}`;
+      }
+      // If it's a generic filename, try the standard path
+      return `/uploads/${image.filename}`;
+    }
+    
+    // Last resort fallback
+    console.error('Image missing both URL and filename properties, or user not loaded');
+    return '';
   };
 
   return (
