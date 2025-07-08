@@ -24,6 +24,11 @@ import { MobileCamera } from "@/components/mobile-camera";
 import { MediaGallery } from "@/components/media-gallery";
 import JobSignatureCapture from "@/components/JobSignatureCapture";
 
+// Utility function to get project file URL
+function getProjectFileUrl(file: any): string {
+  return `/api/projects/${file.projectId}/files/${file.id}/download`;
+}
+
 // Historical Jobs Component
 function HistoricalJobs() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
