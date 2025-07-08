@@ -484,23 +484,7 @@ export default function Jobs() {
     enabled: !!selectedProject,
   });
 
-  // Helper function to construct correct image URLs using existing filenames
-  const getProjectFileUrl = (file: any) => {
-    // Use existing filename without any modification
-    if (file.filePath) {
-      // If filePath already contains the full path, use it directly
-      return file.filePath;
-    }
-    
-    // For project files, construct URL using organization-based structure and existing filename
-    const organizationId = user?.organizationId;
-    if (organizationId && file.fileName) {
-      return `/api/uploads/org-${organizationId}/files/${file.fileName}`;
-    }
-    
-    // Fallback to original download endpoint
-    return `/api/project-files/${file.id}/download`;
-  };
+
 
 
 
