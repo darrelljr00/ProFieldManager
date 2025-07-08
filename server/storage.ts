@@ -65,6 +65,7 @@ export interface IStorage {
   // Project/Job methods
   getProjects(organizationId: number): Promise<any[]>;
   getProject(id: number, userId: number): Promise<any>;
+  getProjectById(id: number): Promise<any>;
   createProject(projectData: any): Promise<any>;
   updateProject(id: number, updates: any): Promise<any>;
   deleteProject(id: number): Promise<void>;
@@ -778,6 +779,15 @@ export class DatabaseStorage implements IStorage {
     );
 
     return projectsWithDetails;
+  }
+
+  async getProjectById(id: number): Promise<any> {
+    const [project] = await db
+      .select()
+      .from(projects)
+      .where(eq(projects.id, id));
+
+    return project || null;
   }
 
   async getProject(id: number, userId: number): Promise<any> {

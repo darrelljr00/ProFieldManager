@@ -26,6 +26,7 @@ export function MobileCamera({
   const { toast } = useToast();
   const [capturedPhoto, setCapturedPhoto] = useState<Blob | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [gpsLocation, setGpsLocation] = useState<{latitude: number, longitude: number} | null>(null);
   const {
     isSupported,
     stream,
@@ -45,6 +46,24 @@ export function MobileCamera({
         variant: "destructive",
       });
       return;
+    }
+
+    // Get GPS location when opening camera
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setGpsLocation({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude
+          });
+          console.log('GPS location captured:', position.coords.latitude, position.coords.longitude);
+        },
+        (error) => {
+          console.warn('Could not get GPS location:', error);
+          setGpsLocation(null);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+      );
     }
 
     const success = await startCamera({ facingMode: 'environment' });
@@ -78,6 +97,13 @@ export function MobileCamera({
       if (projectId) formData.append('projectId', projectId.toString());
       if (customerId) formData.append('customerId', customerId.toString());
       formData.append('source', 'camera');
+      
+      // Include GPS data if available
+      if (gpsLocation) {
+        formData.append('gpsLatitude', gpsLocation.latitude.toString());
+        formData.append('gpsLongitude', gpsLocation.longitude.toString());
+        formData.append('customText', `Photo taken with GPS location`);
+      }
 
       const response = await fetch('/api/upload', {
         method: 'POST',

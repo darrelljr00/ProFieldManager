@@ -549,6 +549,11 @@ export default function Jobs() {
       state: formData.get("state"),
       zipCode: formData.get("zipCode"),
       country: "US",
+      // Image timestamp settings
+      enableImageTimestamp: formData.get("enableImageTimestamp") === "on",
+      timestampFormat: formData.get("timestampFormat") || "MM/dd/yyyy hh:mm a",
+      includeGpsCoords: formData.get("includeGpsCoords") === "on",
+      timestampPosition: formData.get("timestampPosition") || "bottom-right",
     };
   createJobMutation.mutate(data);
   };
@@ -1045,6 +1050,65 @@ export default function Jobs() {
                   max="99999999.99"
                   placeholder="0.00"
                 />
+              </div>
+
+              {/* Image Timestamp Settings */}
+              <div className="space-y-4 p-4 border rounded-lg bg-gray-50 dark:bg-gray-800">
+                <h4 className="font-semibold text-sm">Image Timestamp Settings</h4>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="enableImageTimestamp"
+                    name="enableImageTimestamp"
+                    className="rounded"
+                  />
+                  <Label htmlFor="enableImageTimestamp" className="text-sm">
+                    Auto-add timestamp to uploaded images
+                  </Label>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="timestampFormat" className="text-sm">Timestamp Format</Label>
+                    <Select name="timestampFormat" defaultValue="MM/dd/yyyy hh:mm a">
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="MM/dd/yyyy hh:mm a">12/31/2024 02:30 PM</SelectItem>
+                        <SelectItem value="dd/MM/yyyy HH:mm">31/12/2024 14:30</SelectItem>
+                        <SelectItem value="yyyy-MM-dd HH:mm">2024-12-31 14:30</SelectItem>
+                        <SelectItem value="MMM dd, yyyy h:mm a">Dec 31, 2024 2:30 PM</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="timestampPosition" className="text-sm">Position</Label>
+                    <Select name="timestampPosition" defaultValue="bottom-right">
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="bottom-right">Bottom Right</SelectItem>
+                        <SelectItem value="bottom-left">Bottom Left</SelectItem>
+                        <SelectItem value="top-right">Top Right</SelectItem>
+                        <SelectItem value="top-left">Top Left</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="includeGpsCoords"
+                    name="includeGpsCoords"
+                    className="rounded"
+                  />
+                  <Label htmlFor="includeGpsCoords" className="text-sm">
+                    Include GPS coordinates (when available)
+                  </Label>
+                </div>
               </div>
 
               <div>

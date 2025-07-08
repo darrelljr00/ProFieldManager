@@ -298,6 +298,11 @@ export const projects = pgTable("projects", {
   state: text("state"),
   zipCode: text("zip_code"),
   country: text("country").default("US"),
+  // Image timestamp overlay settings
+  enableImageTimestamp: boolean("enable_image_timestamp").default(false),
+  timestampFormat: text("timestamp_format").default("MM/dd/yyyy hh:mm a"), // Date format for overlay
+  includeGpsCoords: boolean("include_gps_coords").default(false),
+  timestampPosition: text("timestamp_position").default("bottom-right"), // bottom-right, bottom-left, top-right, top-left
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

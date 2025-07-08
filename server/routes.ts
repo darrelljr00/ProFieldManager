@@ -8,6 +8,7 @@ import path from "path";
 import fs from "fs/promises";
 import fsSync from "fs";
 import sharp from "sharp";
+import { addTimestampToImage, TimestampOptions } from "./imageTimestamp";
 import { storage } from "./storage";
 import { weatherService } from './weather';
 import { 
@@ -2499,7 +2500,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/projects", requireAuth, async (req, res) => {
     try {
       const userId = req.user!.id;
-      const { startDate, endDate, deadline, budget, ...otherData } = req.body;
+      const { 
+        startDate, 
+        endDate, 
+        deadline, 
+        budget, 
+        enableImageTimestamp,
+        timestampFormat,
+        includeGpsCoords,
+        timestampPosition,
+        ...otherData 
+      } = req.body;
       
       // Validate budget if provided
       let validatedBudget = null;
@@ -2522,6 +2533,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         startDate: startDate ? new Date(startDate) : null,
         endDate: endDate ? new Date(endDate) : null,
         deadline: deadline ? new Date(deadline) : null,
+        // Image timestamp settings
+        enableImageTimestamp: enableImageTimestamp || false,
+        timestampFormat: timestampFormat || "MM/dd/yyyy hh:mm a",
+        includeGpsCoords: includeGpsCoords || false,
+        timestampPosition: timestampPosition || "bottom-right",
       };
       
       const project = await storage.createProject(projectData);
@@ -2945,6 +2961,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user!.id;
       const taskId = req.body.taskId ? parseInt(req.body.taskId) : null;
 
+      // Get project settings to check if timestamp overlay is enabled
+      const project = await storage.getProjectById(projectId);
+      let finalFilePath = req.file.path;
+      let finalFilename = req.file.filename;
+
+      // Apply timestamp overlay if it's an image and project has timestamp enabled
+      if (req.file.mimetype.startsWith('image/') && project?.enableImageTimestamp) {
+        try {
+          const timestampOptions: TimestampOptions = {
+            enableTimestamp: true,
+            timestampFormat: project.timestampFormat || "MM/dd/yyyy hh:mm a",
+            includeGpsCoords: project.includeGpsCoords || false,
+            timestampPosition: project.timestampPosition || "bottom-right",
+            gpsLatitude: req.body.gpsLatitude ? parseFloat(req.body.gpsLatitude) : undefined,
+            gpsLongitude: req.body.gpsLongitude ? parseFloat(req.body.gpsLongitude) : undefined,
+            customText: req.body.customText || undefined,
+          };
+
+          // Create timestamped version filename
+          const timestampedFilename = `timestamped-${req.file.filename}`;
+          const timestampedPath = path.join(path.dirname(req.file.path), timestampedFilename);
+
+          const result = await addTimestampToImage(req.file.path, timestampedPath, timestampOptions);
+          
+          if (result.success) {
+            // Use the timestamped image
+            finalFilePath = timestampedPath;
+            finalFilename = timestampedFilename;
+            console.log('Timestamp overlay applied successfully to:', finalFilename);
+          } else {
+            console.warn('Failed to apply timestamp overlay:', result.error);
+            // Continue with original file
+          }
+        } catch (timestampError) {
+          console.error('Error applying timestamp overlay:', timestampError);
+          // Continue with original file if timestamp fails
+        }
+      }
+
       // Determine file type based on MIME type
       let fileType = 'other';
       if (req.file.mimetype.startsWith('image/')) {
@@ -2959,9 +3014,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         projectId,
         taskId,
         uploadedById: userId,
-        fileName: req.file.filename,
+        fileName: finalFilename,
         originalName: req.file.originalname,
-        filePath: req.file.path.replace('./uploads/', 'uploads/'),
+        filePath: finalFilePath.replace('./uploads/', 'uploads/'),
         fileSize: req.file.size,
         mimeType: req.file.mimetype,
         fileType,
