@@ -51,6 +51,7 @@ export interface IStorage {
   // Invoice methods
   getInvoices(organizationId: number): Promise<any[]>;
   createInvoice(invoiceData: any): Promise<any>;
+  createUploadedInvoice(invoiceData: any): Promise<any>;
   updateInvoice(id: number, updates: any): Promise<any>;
   deleteInvoice(id: number): Promise<void>;
   getInvoiceStats(organizationId: number): Promise<any>;
@@ -618,6 +619,18 @@ export class DatabaseStorage implements IStorage {
     const [invoice] = await db
       .insert(invoices)
       .values(invoiceData)
+      .returning();
+    return invoice;
+  }
+
+  async createUploadedInvoice(invoiceData: any): Promise<any> {
+    // For uploaded invoices, we don't require a customer ID
+    const [invoice] = await db
+      .insert(invoices)
+      .values({
+        ...invoiceData,
+        customerId: invoiceData.customerId || null, // Allow null for uploaded invoices
+      })
       .returning();
     return invoice;
   }

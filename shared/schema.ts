@@ -154,7 +154,7 @@ export const customers = pgTable("customers", {
 export const invoices = pgTable("invoices", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
-  customerId: integer("customer_id").notNull().references(() => customers.id),
+  customerId: integer("customer_id").references(() => customers.id), // Made nullable for uploaded invoices
   invoiceNumber: text("invoice_number").notNull(),
   status: text("status").notNull().default("draft"), // draft, sent, paid, overdue, cancelled
   subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
@@ -169,6 +169,9 @@ export const invoices = pgTable("invoices", {
   stripePaymentIntentId: text("stripe_payment_intent_id"),
   squarePaymentId: text("square_payment_id"),
   paymentMethod: text("payment_method"), // stripe, square, manual
+  attachmentUrl: text("attachment_url"), // For uploaded previous invoices
+  originalFileName: text("original_file_name"), // Original name of uploaded file
+  isUploadedInvoice: boolean("is_uploaded_invoice").default(false), // Flag for uploaded vs created invoices
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

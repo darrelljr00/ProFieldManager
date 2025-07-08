@@ -477,6 +477,53 @@ const profilePictureUpload = multer({
   }
 });
 
+// Configure multer for previous invoice uploads with organization isolation
+const invoiceUpload = multer({
+  storage: multer.diskStorage({
+    destination: async (req, file, cb) => {
+      const user = getAuthenticatedUser(req);
+      if (!user || !user.organizationId) {
+        return cb(new Error('Organization not found'), '');
+      }
+      
+      const uploadDir = getOrgUploadDir(user.organizationId, 'files');
+      try {
+        await fs.mkdir(uploadDir, { recursive: true });
+        cb(null, uploadDir);
+      } catch (error) {
+        cb(error as Error, uploadDir);
+      }
+    },
+    filename: (req, file, cb) => {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      const sanitizedName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+      cb(null, 'invoice-' + uniqueSuffix + '-' + sanitizedName);
+    }
+  }),
+  fileFilter: (req, file, cb) => {
+    // Allow PDF, images, and Office documents for invoices
+    const allowedTypes = /jpeg|jpg|png|gif|pdf|doc|docx/;
+    const allowedMimeTypes = [
+      'image/jpeg', 'image/jpg', 'image/png', 'image/gif',
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ];
+    
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedMimeTypes.includes(file.mimetype);
+    
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Only PDF, image files (JPEG, PNG, GIF), and Word documents are allowed for invoices'));
+    }
+  },
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit for invoice uploads
+  }
+});
+
 export async function registerRoutes(app: Express): Promise<Server> {
   
   // Custom static file handler for uploads - must be first to override Vite middleware
@@ -1203,6 +1250,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(204).send();
     } catch (error: any) {
       res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Upload previous invoice
+  app.post("/api/invoices/upload", invoiceUpload.single('invoice'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      const user = getAuthenticatedUser(req);
+      if (!user) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+
+      // Get original file name from request
+      const originalFileName = req.body.originalName || req.file.originalname;
+      
+      // Create a special invoice record for uploaded files
+      const invoiceData = {
+        userId: user.id,
+        customerId: null, // Set to null for uploaded invoices without customer
+        invoiceNumber: `UPL-${Date.now()}`, // Special prefix for uploaded invoices
+        status: 'uploaded' as const,
+        subtotal: "0.00",
+        total: "0.00",
+        currency: "USD",
+        invoiceDate: new Date(),
+        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+        attachmentUrl: `/uploads/org-${user.organizationId}/files/${req.file.filename}`,
+        originalFileName: originalFileName,
+        isUploadedInvoice: true,
+        notes: `Uploaded previous invoice: ${originalFileName}`
+      };
+
+      const invoice = await storage.createUploadedInvoice(invoiceData);
+      
+      res.status(201).json({
+        message: "Invoice uploaded successfully",
+        invoice: invoice,
+        filename: req.file.filename,
+        originalName: originalFileName
+      });
+    } catch (error: any) {
+      console.error("Error uploading invoice:", error);
+      res.status(500).json({ message: error.message || "Failed to upload invoice" });
     }
   });
 
