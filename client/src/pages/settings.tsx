@@ -32,6 +32,11 @@ type CompanySettings = {
   companyEmail: string;
   companyPhone: string;
   companyAddress: string;
+  companyStreetAddress: string;
+  companyCity: string;
+  companyState: string;
+  companyZipCode: string;
+  companyCountry: string;
   companyWebsite: string;
   logo: string;
   taxRate: number;
@@ -440,6 +445,11 @@ export default function Settings() {
       companyEmail: formData.get('companyEmail') as string,
       companyPhone: formData.get('companyPhone') as string,
       companyAddress: formData.get('companyAddress') as string,
+      companyStreetAddress: formData.get('companyStreetAddress') as string,
+      companyCity: formData.get('companyCity') as string,
+      companyState: formData.get('companyState') as string,
+      companyZipCode: formData.get('companyZipCode') as string,
+      companyCountry: formData.get('companyCountry') as string,
       companyWebsite: formData.get('companyWebsite') as string,
       taxRate: parseFloat(formData.get('taxRate') as string) || 0,
       defaultCurrency: formData.get('defaultCurrency') as string,
@@ -830,14 +840,73 @@ export default function Settings() {
                   </div>
                 </div>
 
-                <div>
-                  <Label htmlFor="companyAddress">Address</Label>
-                  <Textarea
-                    id="companyAddress"
-                    name="companyAddress"
-                    placeholder="123 Main St, City, State 12345"
-                    defaultValue={companySettings?.companyAddress}
-                  />
+                <div className="space-y-4">
+                  <Label>Company Address (for Invoices)</Label>
+                  <div className="grid grid-cols-1 gap-4">
+                    <div>
+                      <Label htmlFor="companyStreetAddress">Street Address</Label>
+                      <Input
+                        id="companyStreetAddress"
+                        name="companyStreetAddress"
+                        placeholder="123 Main Street"
+                        defaultValue={companySettings?.companyStreetAddress}
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="companyCity">City</Label>
+                        <Input
+                          id="companyCity"
+                          name="companyCity"
+                          placeholder="Dallas"
+                          defaultValue={companySettings?.companyCity}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="companyState">State</Label>
+                        <Input
+                          id="companyState"
+                          name="companyState"
+                          placeholder="TX"
+                          defaultValue={companySettings?.companyState}
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="companyZipCode">ZIP Code</Label>
+                        <Input
+                          id="companyZipCode"
+                          name="companyZipCode"
+                          placeholder="75201"
+                          defaultValue={companySettings?.companyZipCode}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="companyCountry">Country</Label>
+                        <Input
+                          id="companyCountry"
+                          name="companyCountry"
+                          placeholder="United States"
+                          defaultValue={companySettings?.companyCountry || "United States"}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="companyAddress">Full Address (Legacy)</Label>
+                    <Textarea
+                      id="companyAddress"
+                      name="companyAddress"
+                      placeholder="Complete address for backward compatibility"
+                      defaultValue={companySettings?.companyAddress}
+                      className="text-sm text-gray-600"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      This field is maintained for backward compatibility. The structured fields above will be used for new invoices.
+                    </p>
+                  </div>
                 </div>
 
                 <div>
