@@ -740,44 +740,58 @@ export default function CalendarPage() {
                       )}
                     </div>
                     
-                    <div className="flex gap-2">
-                      {job.location && (
-                        <DirectionsButton 
-                          address={job.location}
-                          className="text-xs"
-                        />
-                      )}
+                    <div className="flex flex-col gap-2">
+                      {/* Primary Action Row */}
                       {job.status === 'scheduled' && (
+                        <div className="flex gap-2">
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => openConvertDialog(job)}
+                            className="bg-green-600 hover:bg-green-700 text-white"
+                          >
+                            <PlayCircle className="h-3 w-3 mr-1" />
+                            Convert to Project
+                          </Button>
+                          {job.location && (
+                            <DirectionsButton 
+                              address={job.location}
+                              className="text-xs"
+                            />
+                          )}
+                        </div>
+                      )}
+                      
+                      {/* Secondary Actions Row */}
+                      <div className="flex gap-2">
+                        {job.status !== 'scheduled' && job.location && (
+                          <DirectionsButton 
+                            address={job.location}
+                            className="text-xs"
+                          />
+                        )}
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => openConvertDialog(job)}
+                          onClick={() => handleView(job)}
                         >
-                          <PlayCircle className="h-3 w-3 mr-1" />
-                          Convert to Project
+                          <Eye className="h-3 w-3" />
                         </Button>
-                      )}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleView(job)}
-                      >
-                        <Eye className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => openDialog(job)}
-                      >
-                        <Edit className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => deleteMutation.mutate(job.id)}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openDialog(job)}
+                        >
+                          <Edit className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => deleteMutation.mutate(job.id)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>
