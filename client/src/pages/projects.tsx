@@ -550,9 +550,9 @@ export default function Jobs() {
       zipCode: formData.get("zipCode"),
       country: "US",
       // Image timestamp settings
-      enableImageTimestamp: formData.get("enableImageTimestamp") === "on",
+      enableImageTimestamp: formData.get("enableImageTimestamp") === "true",
       timestampFormat: formData.get("timestampFormat") || "MM/dd/yyyy hh:mm a",
-      includeGpsCoords: formData.get("includeGpsCoords") === "on",
+      includeGpsCoords: formData.get("includeGpsCoords") === "true",
       timestampPosition: formData.get("timestampPosition") || "bottom-right",
     };
   createJobMutation.mutate(data);
@@ -1055,16 +1055,35 @@ export default function Jobs() {
               {/* Image Timestamp Settings */}
               <div className="space-y-4 p-4 border rounded-lg bg-gray-50 dark:bg-gray-800">
                 <h4 className="font-semibold text-sm">Image Timestamp Settings</h4>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="enableImageTimestamp"
-                    name="enableImageTimestamp"
-                    className="rounded"
-                  />
-                  <Label htmlFor="enableImageTimestamp" className="text-sm">
-                    Auto-add timestamp to uploaded images
-                  </Label>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Auto-add timestamp to uploaded images</Label>
+                  <div className="flex items-center space-x-6">
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        id="timestampEnabled"
+                        name="enableImageTimestamp"
+                        value="true"
+                        className="w-4 h-4"
+                      />
+                      <Label htmlFor="timestampEnabled" className="text-sm">
+                        Yes, add timestamp
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        id="timestampDisabled"
+                        name="enableImageTimestamp"
+                        value="false"
+                        defaultChecked
+                        className="w-4 h-4"
+                      />
+                      <Label htmlFor="timestampDisabled" className="text-sm">
+                        No timestamp
+                      </Label>
+                    </div>
+                  </div>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
@@ -1098,16 +1117,35 @@ export default function Jobs() {
                   </div>
                 </div>
                 
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="includeGpsCoords"
-                    name="includeGpsCoords"
-                    className="rounded"
-                  />
-                  <Label htmlFor="includeGpsCoords" className="text-sm">
-                    Include GPS coordinates (when available)
-                  </Label>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Include GPS coordinates (when available)</Label>
+                  <div className="flex items-center space-x-6">
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        id="gpsEnabled"
+                        name="includeGpsCoords"
+                        value="true"
+                        className="w-4 h-4"
+                      />
+                      <Label htmlFor="gpsEnabled" className="text-sm">
+                        Include GPS
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        id="gpsDisabled"
+                        name="includeGpsCoords"
+                        value="false"
+                        defaultChecked
+                        className="w-4 h-4"
+                      />
+                      <Label htmlFor="gpsDisabled" className="text-sm">
+                        No GPS
+                      </Label>
+                    </div>
+                  </div>
                 </div>
               </div>
 
