@@ -1029,23 +1029,18 @@ export const insertCustomerSchema = z.object({
   organizationId: z.number(),
 });
 
-export const insertInvoiceSchema = z.object({
-  customerId: z.number(),
-  invoiceNumber: z.string().min(1),
-  invoiceDate: z.date(),
-  dueDate: z.date(),
-  subtotal: z.number(),
-  tax: z.number(),
-  total: z.number(),
-  status: z.enum(['draft', 'sent', 'paid', 'overdue']),
-  notes: z.string().optional(),
-  organizationId: z.number(),
+export const insertInvoiceSchema = createInsertSchema(invoices, {
+  paymentMethod: z.enum(['check', 'ach', 'square', 'stripe']).optional(),
   lineItems: z.array(z.object({
     description: z.string().min(1),
     quantity: z.number().positive(),
     rate: z.number().positive(),
     amount: z.number().positive(),
-  })),
+  })).optional(),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
 });
 
 export const insertQuoteSchema = z.object({

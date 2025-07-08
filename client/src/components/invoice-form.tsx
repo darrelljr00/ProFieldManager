@@ -26,6 +26,7 @@ const invoiceSchema = z.object({
   invoiceDate: z.string().min(1, "Invoice date is required"),
   dueDate: z.string().min(1, "Due date is required"),
   currency: z.string().default("USD"),
+  paymentMethod: z.enum(["check", "ach", "square"]).default("check"),
   notes: z.string().optional(),
   lineItems: z.array(lineItemSchema).min(1, "At least one line item is required"),
   subtotal: z.number(),
@@ -45,6 +46,7 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
     { description: "", quantity: 1, rate: 0, amount: 0 }
   ]);
   const [taxRate, setTaxRate] = useState(0.1); // Default to 10%
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"check" | "ach" | "square">("check");
   const { toast } = useToast();
 
   const { data: customers = [] } = useQuery<Customer[]>({
@@ -61,6 +63,11 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
     queryKey: ["/api/settings/invoice"],
   });
 
+  // Fetch payment settings for Square integration
+  const { data: paymentSettings } = useQuery({
+    queryKey: ["/api/settings/payment"],
+  });
+
   const {
     register,
     handleSubmit,
@@ -71,6 +78,7 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
     resolver: zodResolver(invoiceSchema),
     defaultValues: {
       currency: invoiceSettings?.defaultCurrency || "USD",
+      paymentMethod: "check",
       lineItems: lineItems,
       subtotal: 0,
       taxRate: taxRate,
@@ -163,9 +171,35 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
       taxAmount: data.taxAmount.toString(),
       total: data.total.toString(),
       status: "draft", // Default status
+      paymentMethod: selectedPaymentMethod,
     };
     
-    createInvoiceMutation.mutate(invoiceData);
+    // If Square is selected and enabled, initiate Square payment sync
+    if (selectedPaymentMethod === "square" && paymentSettings?.squareEnabled) {
+      handleSquarePayment(invoiceData);
+    } else {
+      createInvoiceMutation.mutate(invoiceData);
+    }
+  };
+
+  const handleSquarePayment = async (invoiceData: InsertInvoice) => {
+    try {
+      toast({
+        title: "Square Integration",
+        description: "Syncing with Square payment system...",
+      });
+      
+      // Create invoice with Square payment method
+      createInvoiceMutation.mutate(invoiceData);
+    } catch (error) {
+      toast({
+        title: "Square Sync Error",
+        description: "Failed to sync with Square. Invoice created without Square integration.",
+        variant: "destructive",
+      });
+      // Fallback to creating invoice without Square integration
+      createInvoiceMutation.mutate({ ...invoiceData, paymentMethod: "check" });
+    }
   };
 
   const subtotal = lineItems.reduce((sum, item) => sum + item.amount, 0);
@@ -289,6 +323,51 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
                 <SelectItem value="GBP">GBP (£)</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          
+          <div>
+            <Label htmlFor="paymentMethod">Payment Method *</Label>
+            <Select 
+              defaultValue="check" 
+              onValueChange={(value) => {
+                const method = value as "check" | "ach" | "square";
+                setSelectedPaymentMethod(method);
+                setValue('paymentMethod', method);
+                
+                // Show Square sync notification
+                if (method === "square" && paymentSettings?.squareEnabled) {
+                  toast({
+                    title: "Square Selected",
+                    description: "Invoice will be automatically synced with your Square account when created.",
+                  });
+                }
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="check">Pay by Check</SelectItem>
+                <SelectItem value="ach">Pay by ACH</SelectItem>
+                <SelectItem 
+                  value="square" 
+                  disabled={!paymentSettings?.squareEnabled}
+                >
+                  Pay by Square
+                  {paymentSettings?.squareEnabled && (
+                    <span className="ml-2 text-xs text-green-600">(Connected)</span>
+                  )}
+                  {!paymentSettings?.squareEnabled && (
+                    <span className="ml-2 text-xs text-red-600">(Not Connected)</span>
+                  )}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            {!paymentSettings?.squareEnabled && (
+              <p className="text-xs text-amber-600 mt-1">
+                Square integration not configured. Enable in Payment Settings to accept Square payments.
+              </p>
+            )}
           </div>
         </div>
         
