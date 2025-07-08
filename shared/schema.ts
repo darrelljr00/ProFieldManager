@@ -1601,6 +1601,25 @@ export type InsertFormSubmission = typeof formSubmissions.$inferInsert;
 export type FormTemplate = typeof formTemplates.$inferSelect;
 export type InsertFormTemplate = typeof formTemplates.$inferInsert;
 
+// Digital Signatures
+export const digitalSignatures = pgTable("digital_signatures", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  signatureData: text("signature_data").notNull(), // Base64 encoded signature image
+  signerName: text("signer_name").notNull(),
+  signerEmail: text("signer_email"),
+  signerRole: text("signer_role"), // customer, contractor, inspector, etc.
+  signatureType: text("signature_type").notNull().default("digital"), // digital, docusign, manual
+  signedAt: timestamp("signed_at").defaultNow().notNull(),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  signedBy: integer("signed_by").references(() => users.id), // Internal user who captured signature
+  notes: text("notes"),
+  status: text("status").notNull().default("completed"), // pending, completed, voided
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // File Manager Zod schemas
 export const insertFileManagerSchema = z.object({
   organizationId: z.number(),
@@ -1772,3 +1791,14 @@ export type InsertInspectionResponse = z.infer<typeof insertInspectionResponseSc
 
 export type InspectionNotification = typeof inspectionNotifications.$inferSelect;
 export type InsertInspectionNotification = z.infer<typeof insertInspectionNotificationSchema>;
+
+// Digital Signature Schema Validation
+export const insertDigitalSignatureSchema = createInsertSchema(digitalSignatures).omit({
+  id: true,
+  signedAt: true,
+  createdAt: true,
+});
+
+// Digital Signature Types
+export type DigitalSignature = typeof digitalSignatures.$inferSelect;
+export type InsertDigitalSignature = z.infer<typeof insertDigitalSignatureSchema>;

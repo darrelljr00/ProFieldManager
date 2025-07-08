@@ -4086,6 +4086,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Digital Signatures API
+  app.get("/api/projects/:id/signatures", requireAuth, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const signatures = await storage.getProjectSignatures(projectId);
+      res.json(signatures);
+    } catch (error: any) {
+      console.error("Error fetching project signatures:", error);
+      res.status(500).json({ message: "Failed to fetch signatures" });
+    }
+  });
+
+  app.post("/api/projects/:id/signatures", requireAuth, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const user = getAuthenticatedUser(req);
+      const signatureData = {
+        ...req.body,
+        projectId,
+        signedBy: user.id,
+        organizationId: user.organizationId,
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent']
+      };
+
+      const signature = await storage.createDigitalSignature(signatureData);
+      
+      // Broadcast signature creation
+      broadcastToWebUsers('signature_created', {
+        signature,
+        projectId,
+        createdBy: user.username
+      });
+
+      res.status(201).json(signature);
+    } catch (error: any) {
+      console.error("Error creating signature:", error);
+      res.status(500).json({ message: "Failed to create signature" });
+    }
+  });
+
+  app.delete("/api/signatures/:id", requireAuth, async (req, res) => {
+    try {
+      const signatureId = parseInt(req.params.id);
+      const success = await storage.deleteSignature(signatureId);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Signature not found" });
+      }
+      
+      res.json({ message: "Signature deleted successfully" });
+    } catch (error: any) {
+      console.error("Error deleting signature:", error);
+      res.status(500).json({ message: "Failed to delete signature" });
+    }
+  });
+
   // Calendar Jobs API
   app.get("/api/calendar-jobs", requireAuth, async (req, res) => {
     try {

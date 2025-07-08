@@ -36,7 +36,8 @@ import {
   UserPlus,
   UserMinus,
   MapPin,
-  Smartphone
+  Smartphone,
+  FileSignature
 } from "lucide-react";
 import { Link } from "wouter";
 import type { Project, Customer, User, Task, ProjectFile, TimeEntry } from "@shared/schema";
@@ -44,6 +45,7 @@ import { DirectionsButton } from "@/components/google-maps";
 import { MediaGallery } from "@/components/media-gallery";
 import { DocuSignSignatureDialog } from "@/components/docusign-signature-dialog";
 import { MobileCamera } from "@/components/mobile-camera";
+import DigitalSignature from "@/components/DigitalSignature";
 import { useAuth } from "@/hooks/useAuth";
 
 interface ProjectWithDetails extends Project {
@@ -64,6 +66,7 @@ export default function ProjectDetail() {
   const [timeDialogOpen, setTimeDialogOpen] = useState(false);
   const [teamDialogOpen, setTeamDialogOpen] = useState(false);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
+  const [signatureDialogOpen, setSignatureDialogOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [showMobileCamera, setShowMobileCamera] = useState(false);
   const { toast } = useToast();
@@ -386,13 +389,23 @@ export default function ProjectDetail() {
       </div>
 
       <Tabs defaultValue="tasks" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="tasks">Tasks</TabsTrigger>
-          <TabsTrigger value="team">Team Members</TabsTrigger>
-          <TabsTrigger value="contact">Contact Info</TabsTrigger>
-          <TabsTrigger value="files">Files</TabsTrigger>
-          <TabsTrigger value="time">Time Tracking</TabsTrigger>
-        </TabsList>
+        <div className="flex justify-between items-center">
+          <TabsList>
+            <TabsTrigger value="tasks">Tasks</TabsTrigger>
+            <TabsTrigger value="team">Team Members</TabsTrigger>
+            <TabsTrigger value="contact">Contact Info</TabsTrigger>
+            <TabsTrigger value="files">Files</TabsTrigger>
+            <TabsTrigger value="time">Time Tracking</TabsTrigger>
+          </TabsList>
+          
+          <Button 
+            onClick={() => setSignatureDialogOpen(true)}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            <FileSignature className="h-4 w-4 mr-2" />
+            Digital Signature
+          </Button>
+        </div>
 
         <TabsContent value="tasks" className="space-y-4">
           <div className="flex justify-between items-center">
@@ -1145,6 +1158,13 @@ export default function ProjectDetail() {
           });
         }}
         title="Take Photo for Project"
+      />
+      
+      {/* Digital Signature Dialog */}
+      <DigitalSignature
+        projectId={projectId}
+        open={signatureDialogOpen}
+        onOpenChange={setSignatureDialogOpen}
       />
     </div>
   );

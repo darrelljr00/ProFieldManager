@@ -8,7 +8,8 @@ import {
   projectFiles, fileManager, projectUsers, timeClock, timeClockSettings,
   internalMessages, internalMessageRecipients, messageGroups, messageGroupMembers,
   inspectionTemplates, inspectionItems, inspectionRecords, inspectionResponses, inspectionNotifications,
-  smsMessages, smsTemplates, sharedPhotoLinks, fileSecuritySettings, fileSecurityScans, fileAccessLogs
+  smsMessages, smsTemplates, sharedPhotoLinks, fileSecuritySettings, fileSecurityScans, fileAccessLogs,
+  digitalSignatures
 } from "@shared/schema";
 import type { GasCard, InsertGasCard, GasCardAssignment, InsertGasCardAssignment, GasCardUsage, InsertGasCardUsage, GasCardProvider, InsertGasCardProvider } from "@shared/schema";
 import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull, isNull } from "drizzle-orm";
@@ -242,6 +243,11 @@ export interface IStorage {
   // File integrity methods
   getAllProjectFiles(): Promise<any[]>;
   deleteProjectFile(fileId: number): Promise<boolean>;
+  
+  // Digital signature methods
+  createDigitalSignature(signatureData: any): Promise<any>;
+  getProjectSignatures(projectId: number): Promise<any[]>;
+  deleteSignature(signatureId: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -3240,6 +3246,49 @@ export class DatabaseStorage implements IStorage {
       return true;
     } catch (error) {
       console.error('Error deleting project file:', error);
+      throw error;
+    }
+  }
+
+  // Digital signature methods
+  async createDigitalSignature(signatureData: any): Promise<any> {
+    try {
+      const [signature] = await db
+        .insert(digitalSignatures)
+        .values(signatureData)
+        .returning();
+      
+      return signature;
+    } catch (error) {
+      console.error('Error creating digital signature:', error);
+      throw error;
+    }
+  }
+
+  async getProjectSignatures(projectId: number): Promise<any[]> {
+    try {
+      const signatures = await db
+        .select()
+        .from(digitalSignatures)
+        .where(eq(digitalSignatures.projectId, projectId))
+        .orderBy(desc(digitalSignatures.signedAt));
+      
+      return signatures;
+    } catch (error) {
+      console.error('Error getting project signatures:', error);
+      throw error;
+    }
+  }
+
+  async deleteSignature(signatureId: number): Promise<boolean> {
+    try {
+      await db
+        .delete(digitalSignatures)
+        .where(eq(digitalSignatures.id, signatureId));
+      
+      return true;
+    } catch (error) {
+      console.error('Error deleting signature:', error);
       throw error;
     }
   }
