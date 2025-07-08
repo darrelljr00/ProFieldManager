@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -44,11 +44,21 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
   const [lineItems, setLineItems] = useState([
     { description: "", quantity: 1, rate: 0, amount: 0 }
   ]);
-  const [taxRate, setTaxRate] = useState(0.1); // 10% default
+  const [taxRate, setTaxRate] = useState(0.1); // Default to 10%
   const { toast } = useToast();
 
   const { data: customers = [] } = useQuery<Customer[]>({
     queryKey: ["/api/customers"],
+  });
+
+  // Fetch company settings for invoice header
+  const { data: companySettings } = useQuery({
+    queryKey: ["/api/settings/company"],
+  });
+
+  // Fetch invoice settings for default values
+  const { data: invoiceSettings } = useQuery({
+    queryKey: ["/api/settings/invoice"],
   });
 
   const {
@@ -60,7 +70,7 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
   } = useForm<InvoiceFormData>({
     resolver: zodResolver(invoiceSchema),
     defaultValues: {
-      currency: "USD",
+      currency: invoiceSettings?.defaultCurrency || "USD",
       lineItems: lineItems,
       subtotal: 0,
       taxRate: taxRate,
@@ -68,6 +78,19 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
       total: 0,
     },
   });
+
+  // Update defaults when invoice settings are loaded
+  useEffect(() => {
+    if (invoiceSettings?.taxRate) {
+      setTaxRate(invoiceSettings.taxRate / 100);
+    }
+    if (invoiceSettings?.defaultCurrency) {
+      setValue('currency', invoiceSettings.defaultCurrency);
+    }
+    if (invoiceSettings?.invoiceFooter) {
+      setValue('notes', invoiceSettings.invoiceFooter);
+    }
+  }, [invoiceSettings, setValue]);
 
   const createInvoiceMutation = useMutation({
     mutationFn: (data: InsertInvoice) => apiRequest("POST", "/api/invoices", data),
@@ -153,6 +176,50 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
     <div className="p-6">
       <div className="mb-6">
         <h3 className="text-xl font-semibold text-gray-900">Create New Invoice</h3>
+      </div>
+
+      {/* Company Information Header */}
+      <div className="mb-6 bg-gray-50 border rounded-lg p-4">
+        <div className="flex justify-between items-start">
+          <div className="space-y-2">
+            <h4 className="text-lg font-semibold text-gray-900">
+              {companySettings?.companyName || "Your Company Name"}
+            </h4>
+            <div className="text-sm text-gray-600 space-y-1">
+              {companySettings?.companyStreetAddress && (
+                <p>{companySettings.companyStreetAddress}</p>
+              )}
+              {(companySettings?.companyCity || companySettings?.companyState || companySettings?.companyZipCode) && (
+                <p>
+                  {[companySettings?.companyCity, companySettings?.companyState, companySettings?.companyZipCode]
+                    .filter(Boolean)
+                    .join(', ')}
+                </p>
+              )}
+              {companySettings?.companyCountry && (
+                <p>{companySettings.companyCountry}</p>
+              )}
+              {companySettings?.companyPhone && (
+                <p>Phone: {companySettings.companyPhone}</p>
+              )}
+              {companySettings?.companyEmail && (
+                <p>Email: {companySettings.companyEmail}</p>
+              )}
+              {companySettings?.companyWebsite && (
+                <p>Website: {companySettings.companyWebsite}</p>
+              )}
+            </div>
+          </div>
+          {companySettings?.logo && (
+            <div className="ml-4">
+              <img 
+                src={companySettings.logo} 
+                alt="Company Logo" 
+                className="h-16 w-16 object-contain"
+              />
+            </div>
+          )}
+        </div>
       </div>
       
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -300,7 +367,7 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
             <Textarea
               id="notes"
               rows={4}
-              placeholder="Additional notes..."
+              placeholder={invoiceSettings?.invoiceFooter || "Additional notes..."}
               {...register('notes')}
             />
           </div>
