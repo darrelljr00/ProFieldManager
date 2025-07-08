@@ -88,6 +88,18 @@ interface PerformanceReview {
   status: "draft" | "completed" | "pending_employee_review";
 }
 
+interface Department {
+  id: number;
+  organizationId: number;
+  name: string;
+  description?: string;
+  managerId?: number;
+  budget?: number;
+  location?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface DisciplinaryAction {
   id: number;
   employeeId: number;
@@ -260,6 +272,7 @@ const mockDisciplinaryActions: DisciplinaryAction[] = [
 export default function HumanResources() {
   const [selectedTab, setSelectedTab] = useState("employees");
   const [employeeDialogOpen, setEmployeeDialogOpen] = useState(false);
+  const [departmentDialogOpen, setDepartmentDialogOpen] = useState(false);
   const [timeOffDialogOpen, setTimeOffDialogOpen] = useState(false);
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [disciplinaryDialogOpen, setDisciplinaryDialogOpen] = useState(false);
@@ -292,6 +305,10 @@ export default function HumanResources() {
 
   const { data: disciplinaryActions = [], isLoading: disciplinaryLoading } = useQuery({
     queryKey: ["/api/disciplinary-actions"],
+  });
+
+  const { data: departments = [], isLoading: departmentsLoading } = useQuery({
+    queryKey: ["/api/departments"],
   });
 
   // Helper function to get users that aren't already employees
@@ -405,6 +422,48 @@ export default function HumanResources() {
     },
   });
 
+  const createDepartmentMutation = useMutation({
+    mutationFn: (data: any) => apiRequest("/api/departments", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/departments"] });
+      setDepartmentDialogOpen(false);
+      toast({
+        title: "Success",
+        description: "Department created successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create department",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteDepartmentMutation = useMutation({
+    mutationFn: (id: number) => apiRequest(`/api/departments/${id}`, {
+      method: "DELETE",
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/departments"] });
+      toast({
+        title: "Success",
+        description: "Department deleted successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete department",
+        variant: "destructive",
+      });
+    },
+  });
+
   const filteredEmployees = employees.filter(employee => {
     const matchesSearch = searchTerm === "" || 
       `${employee.firstName} ${employee.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -429,7 +488,7 @@ export default function HumanResources() {
     }
   };
 
-  const departments = Array.from(new Set(employees.map(emp => emp.department)));
+  const departmentList = Array.from(new Set(employees.map(emp => emp.department)));
   const totalEmployees = employees.length;
   const activeEmployees = employees.filter(emp => emp.status === "active").length;
   const onLeaveEmployees = employees.filter(emp => emp.status === "on_leave").length;
@@ -594,8 +653,9 @@ export default function HumanResources() {
       </div>
 
       <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="employees">Employees</TabsTrigger>
+          <TabsTrigger value="departments">Departments</TabsTrigger>
           <TabsTrigger value="timeoff">Time Off</TabsTrigger>
           <TabsTrigger value="performance">Performance</TabsTrigger>
           <TabsTrigger value="disciplinary">Disciplinary</TabsTrigger>
@@ -774,7 +834,7 @@ export default function HumanResources() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Departments</SelectItem>
-                      {departments.map((dept) => (
+                      {departmentList.map((dept) => (
                         <SelectItem key={dept} value={dept}>{dept}</SelectItem>
                       ))}
                     </SelectContent>
@@ -861,6 +921,149 @@ export default function HumanResources() {
                   )}
                 </TableBody>
               </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="departments" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle>Department Management</CardTitle>
+                  <CardDescription>Manage your organization's departments and structure</CardDescription>
+                </div>
+                <Dialog open={departmentDialogOpen} onOpenChange={setDepartmentDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Department
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Add New Department</DialogTitle>
+                      <DialogDescription>
+                        Create a new department to organize your team structure.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={(e) => {
+                      e.preventDefault();
+                      const formData = new FormData(e.target as HTMLFormElement);
+                      createDepartmentMutation.mutate({
+                        name: formData.get('name'),
+                        description: formData.get('description'),
+                        managerId: formData.get('managerId') ? parseInt(formData.get('managerId') as string) : null,
+                        budget: formData.get('budget') ? parseFloat(formData.get('budget') as string) : null,
+                        location: formData.get('location'),
+                      });
+                    }} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="name">Department Name *</Label>
+                        <Input id="name" name="name" placeholder="e.g., Engineering, Sales, Marketing" required />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="description">Description</Label>
+                        <Textarea id="description" name="description" placeholder="Brief description of the department" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="managerId">Department Manager</Label>
+                        <Select name="managerId">
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select manager (optional)" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {employees.map(employee => (
+                              <SelectItem key={employee.id} value={employee.id.toString()}>
+                                {employee.firstName} {employee.lastName} - {employee.position}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="budget">Annual Budget</Label>
+                        <Input id="budget" name="budget" type="number" placeholder="e.g., 500000" step="0.01" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="location">Location</Label>
+                        <Input id="location" name="location" placeholder="e.g., Building A, Floor 2" />
+                      </div>
+                      <div className="flex justify-end space-x-2">
+                        <Button type="button" variant="outline" onClick={() => setDepartmentDialogOpen(false)}>
+                          Cancel
+                        </Button>
+                        <Button type="submit" disabled={createDepartmentMutation.isPending}>
+                          {createDepartmentMutation.isPending ? "Creating..." : "Create Department"}
+                        </Button>
+                      </div>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {departmentsLoading ? (
+                <div className="flex justify-center py-8">
+                  <div className="text-gray-500">Loading departments...</div>
+                </div>
+              ) : departments.length === 0 ? (
+                <div className="text-center py-8">
+                  <Building2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-500 mb-4">No departments created yet</p>
+                  <Button onClick={() => setDepartmentDialogOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Your First Department
+                  </Button>
+                </div>
+              ) : (
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {departments.map((department: Department) => (
+                    <Card key={department.id} className="p-4">
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <h3 className="font-semibold text-lg">{department.name}</h3>
+                          {department.description && (
+                            <p className="text-sm text-gray-600 mt-1">{department.description}</p>
+                          )}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => deleteDepartmentMutation.mutate(department.id)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <div className="space-y-2 text-sm">
+                        {department.managerId && (
+                          <div className="flex items-center space-x-2">
+                            <Users className="h-4 w-4 text-gray-400" />
+                            <span>Manager: {employees.find(emp => emp.id === department.managerId)?.firstName} {employees.find(emp => emp.id === department.managerId)?.lastName}</span>
+                          </div>
+                        )}
+                        {department.location && (
+                          <div className="flex items-center space-x-2">
+                            <MapPin className="h-4 w-4 text-gray-400" />
+                            <span>{department.location}</span>
+                          </div>
+                        )}
+                        {department.budget && (
+                          <div className="flex items-center space-x-2">
+                            <DollarSign className="h-4 w-4 text-gray-400" />
+                            <span>Budget: ${department.budget.toLocaleString()}</span>
+                          </div>
+                        )}
+                        <div className="flex items-center space-x-2">
+                          <Users className="h-4 w-4 text-gray-400" />
+                          <span>Employees: {employees.filter(emp => emp.departmentId === department.id).length}</span>
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -1111,7 +1314,7 @@ export default function HumanResources() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
-                      {departments.map((dept) => {
+                      {departmentList.map((dept) => {
                         const count = employees.filter(emp => emp.department === dept).length;
                         const percentage = (count / totalEmployees) * 100;
                         return (

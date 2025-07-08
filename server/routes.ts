@@ -6561,6 +6561,98 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
 
+  // Department Management API Routes
+  
+  // Get all departments for organization
+  app.get("/api/departments", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const departments = await storage.getDepartments(user.organizationId);
+      res.json(departments);
+    } catch (error: any) {
+      console.error("Error fetching departments:", error);
+      res.status(500).json({ message: "Failed to fetch departments" });
+    }
+  });
+
+  // Get single department
+  app.get("/api/departments/:id", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const department = await storage.getDepartment(parseInt(id));
+      if (!department) {
+        return res.status(404).json({ message: "Department not found" });
+      }
+      res.json(department);
+    } catch (error: any) {
+      console.error("Error fetching department:", error);
+      res.status(500).json({ message: "Failed to fetch department" });
+    }
+  });
+
+  // Create new department
+  app.post("/api/departments", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      if (user.role !== 'admin') {
+        return res.status(403).json({ message: "Only admins can create departments" });
+      }
+
+      const departmentData = {
+        ...req.body,
+        organizationId: user.organizationId
+      };
+
+      const newDepartment = await storage.createDepartment(departmentData);
+      res.status(201).json(newDepartment);
+    } catch (error: any) {
+      console.error("Error creating department:", error);
+      res.status(500).json({ message: "Failed to create department" });
+    }
+  });
+
+  // Update department
+  app.put("/api/departments/:id", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      if (user.role !== 'admin') {
+        return res.status(403).json({ message: "Only admins can update departments" });
+      }
+
+      const { id } = req.params;
+      const updatedDepartment = await storage.updateDepartment(parseInt(id), req.body);
+      res.json(updatedDepartment);
+    } catch (error: any) {
+      console.error("Error updating department:", error);
+      res.status(500).json({ message: "Failed to update department" });
+    }
+  });
+
+  // Delete department
+  app.delete("/api/departments/:id", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      if (user.role !== 'admin') {
+        return res.status(403).json({ message: "Only admins can delete departments" });
+      }
+
+      const { id } = req.params;
+      const success = await storage.deleteDepartment(parseInt(id));
+      
+      if (!success) {
+        return res.status(404).json({ message: "Department not found" });
+      }
+
+      res.json({ message: "Department deleted successfully" });
+    } catch (error: any) {
+      console.error("Error deleting department:", error);
+      res.status(500).json({ message: "Failed to delete department" });
+    }
+  });
+
   // Employee Management API Routes
   
   // Get all employees for organization

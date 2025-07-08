@@ -1601,18 +1601,32 @@ export type InsertFormSubmission = typeof formSubmissions.$inferInsert;
 export type FormTemplate = typeof formTemplates.$inferSelect;
 export type InsertFormTemplate = typeof formTemplates.$inferInsert;
 
+// Departments
+export const departments = pgTable("departments", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  name: text("name").notNull(),
+  description: text("description"),
+  managerId: integer("manager_id").references(() => employees.id),
+  budget: decimal("budget", { precision: 12, scale: 2 }),
+  location: text("location"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Employee Management
 export const employees = pgTable("employees", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }).unique(),
   organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  departmentId: integer("department_id").references(() => departments.id),
   employeeId: text("employee_id"), // Custom employee ID
   firstName: text("first_name").notNull(),
   lastName: text("last_name").notNull(),
   email: text("email").notNull(),
   phone: text("phone"),
   position: text("position").notNull(),
-  department: text("department").notNull(),
+  department: text("department").notNull(), // Keep for backward compatibility
   hireDate: timestamp("hire_date").notNull(),
   salary: decimal("salary", { precision: 10, scale: 2 }),
   status: text("status").notNull().default("active"), // active, inactive, on_leave, terminated
@@ -1889,6 +1903,13 @@ export const insertDigitalSignatureSchema = createInsertSchema(digitalSignatures
 export type DigitalSignature = typeof digitalSignatures.$inferSelect;
 export type InsertDigitalSignature = z.infer<typeof insertDigitalSignatureSchema>;
 
+// Department Schema Validation
+export const insertDepartmentSchema = createInsertSchema(departments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Employee Management Schema Validation
 export const insertEmployeeSchema = createInsertSchema(employees).omit({
   id: true,
@@ -1914,6 +1935,10 @@ export const insertDisciplinaryActionSchema = createInsertSchema(disciplinaryAct
   createdAt: true,
   updatedAt: true,
 });
+
+// Department Types
+export type Department = typeof departments.$inferSelect;
+export type InsertDepartment = z.infer<typeof insertDepartmentSchema>;
 
 // Employee Management Types
 export type Employee = typeof employees.$inferSelect;

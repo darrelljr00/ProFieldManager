@@ -9,15 +9,15 @@ import {
   internalMessages, internalMessageRecipients, messageGroups, messageGroupMembers,
   inspectionTemplates, inspectionItems, inspectionRecords, inspectionResponses, inspectionNotifications,
   smsMessages, smsTemplates, sharedPhotoLinks, fileSecuritySettings, fileSecurityScans, fileAccessLogs,
-  digitalSignatures, employees, timeOffRequests, performanceReviews, disciplinaryActions
+  digitalSignatures, departments, employees, timeOffRequests, performanceReviews, disciplinaryActions
 } from "@shared/schema";
 import type { GasCard, InsertGasCard, GasCardAssignment, InsertGasCardAssignment, GasCardUsage, InsertGasCardUsage, GasCardProvider, InsertGasCardProvider } from "@shared/schema";
 import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull, isNull } from "drizzle-orm";
 import type { 
   User, Customer, Invoice, Quote, Project, Task, 
   Expense, ExpenseCategory, ExpenseReport, GasCard,
-  Lead, CalendarJob, Message, Organization, Employee,
-  TimeOffRequest, PerformanceReview, DisciplinaryAction
+  Lead, CalendarJob, Message, Organization, Department,
+  Employee, TimeOffRequest, PerformanceReview, DisciplinaryAction
 } from "@shared/schema";
 
 export interface IStorage {
@@ -253,6 +253,13 @@ export interface IStorage {
   getProjectSignatures(projectId: number): Promise<any[]>;
   deleteSignature(signatureId: number): Promise<boolean>;
   
+  // Department methods
+  getDepartments(organizationId: number): Promise<Department[]>;
+  getDepartment(id: number): Promise<Department | undefined>;
+  createDepartment(departmentData: any): Promise<Department>;
+  updateDepartment(id: number, updates: any): Promise<Department>;
+  deleteDepartment(id: number): Promise<boolean>;
+
   // Employee methods
   getEmployees(organizationId: number): Promise<Employee[]>;
   getEmployee(id: number): Promise<Employee | undefined>;
@@ -3378,6 +3385,90 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error deleting signature:', error);
       throw error;
+    }
+  }
+
+  // Department methods
+  async getDepartments(organizationId: number): Promise<Department[]> {
+    try {
+      const departmentList = await db
+        .select()
+        .from(departments)
+        .where(eq(departments.organizationId, organizationId))
+        .orderBy(asc(departments.name));
+      
+      return departmentList;
+    } catch (error) {
+      console.error('Error getting departments:', error);
+      throw error;
+    }
+  }
+
+  async getDepartment(id: number): Promise<Department | undefined> {
+    try {
+      const [department] = await db
+        .select()
+        .from(departments)
+        .where(eq(departments.id, id));
+      
+      return department || undefined;
+    } catch (error) {
+      console.error('Error getting department:', error);
+      throw error;
+    }
+  }
+
+  async createDepartment(departmentData: any): Promise<Department> {
+    try {
+      const [department] = await db
+        .insert(departments)
+        .values({
+          organizationId: departmentData.organizationId,
+          name: departmentData.name,
+          description: departmentData.description,
+          managerId: departmentData.managerId,
+          budget: departmentData.budget,
+          location: departmentData.location,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+        .returning();
+      
+      return department;
+    } catch (error) {
+      console.error('Error creating department:', error);
+      throw error;
+    }
+  }
+
+  async updateDepartment(id: number, updates: any): Promise<Department> {
+    try {
+      const [department] = await db
+        .update(departments)
+        .set({
+          ...updates,
+          updatedAt: new Date()
+        })
+        .where(eq(departments.id, id))
+        .returning();
+      
+      return department;
+    } catch (error) {
+      console.error('Error updating department:', error);
+      throw error;
+    }
+  }
+
+  async deleteDepartment(id: number): Promise<boolean> {
+    try {
+      const result = await db
+        .delete(departments)
+        .where(eq(departments.id, id));
+      
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error('Error deleting department:', error);
+      return false;
     }
   }
 
