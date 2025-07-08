@@ -3929,12 +3929,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Default dashboard widget settings if none exist
       const defaultSettings = {
+        // Widget visibility
         showStatsCards: true,
         showRevenueChart: true,
         showRecentActivity: true,
         showRecentInvoices: true,
         showNotifications: true,
         showQuickActions: true,
+        showProjectsOverview: false,
+        showWeatherWidget: false,
+        showTasksWidget: false,
+        showCalendarWidget: false,
+        showMessagesWidget: false,
+        showTeamOverview: false,
+        
+        // Layout and appearance
+        layoutType: 'grid',
+        gridColumns: 3,
+        widgetSize: 'medium',
+        colorTheme: 'default',
+        animationsEnabled: true,
+        
+        // Widget-specific settings
+        statsCardsCount: 4,
+        recentItemsCount: 5,
+        refreshInterval: 30,
+        showWelcomeMessage: true,
+        compactMode: false,
+        
         widgetOrder: ['stats', 'revenue', 'activity', 'invoices']
       };
       
@@ -3966,12 +3988,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Convert settings to key-value pairs for storage
       const settingsMap = {
+        // Widget visibility
         showStatsCards: settingsData.showStatsCards?.toString(),
         showRevenueChart: settingsData.showRevenueChart?.toString(),
         showRecentActivity: settingsData.showRecentActivity?.toString(),
         showRecentInvoices: settingsData.showRecentInvoices?.toString(),
         showNotifications: settingsData.showNotifications?.toString(),
         showQuickActions: settingsData.showQuickActions?.toString(),
+        showProjectsOverview: settingsData.showProjectsOverview?.toString(),
+        showWeatherWidget: settingsData.showWeatherWidget?.toString(),
+        showTasksWidget: settingsData.showTasksWidget?.toString(),
+        showCalendarWidget: settingsData.showCalendarWidget?.toString(),
+        showMessagesWidget: settingsData.showMessagesWidget?.toString(),
+        showTeamOverview: settingsData.showTeamOverview?.toString(),
+        
+        // Layout and appearance  
+        layoutType: settingsData.layoutType?.toString(),
+        gridColumns: settingsData.gridColumns?.toString(),
+        widgetSize: settingsData.widgetSize?.toString(),
+        colorTheme: settingsData.colorTheme?.toString(),
+        animationsEnabled: settingsData.animationsEnabled?.toString(),
+        
+        // Widget-specific settings
+        statsCardsCount: settingsData.statsCardsCount?.toString(),
+        recentItemsCount: settingsData.recentItemsCount?.toString(),
+        refreshInterval: settingsData.refreshInterval?.toString(),
+        showWelcomeMessage: settingsData.showWelcomeMessage?.toString(),
+        compactMode: settingsData.compactMode?.toString(),
+        
         widgetOrder: JSON.stringify(settingsData.widgetOrder || ['stats', 'revenue', 'activity', 'invoices'])
       };
 

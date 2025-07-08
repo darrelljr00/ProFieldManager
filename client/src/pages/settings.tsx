@@ -94,13 +94,34 @@ type InvoiceSettings = {
 };
 
 type DashboardSettings = {
+  // Widget visibility
   showStatsCards: boolean;
   showRevenueChart: boolean;
   showRecentActivity: boolean;
   showRecentInvoices: boolean;
   showNotifications: boolean;
   showQuickActions: boolean;
+  showProjectsOverview: boolean;
+  showWeatherWidget: boolean;
+  showTasksWidget: boolean;
+  showCalendarWidget: boolean;
+  showMessagesWidget: boolean;
+  showTeamOverview: boolean;
+  
+  // Layout and appearance
   widgetOrder: string[];
+  layoutType: 'grid' | 'list' | 'compact';
+  gridColumns: number;
+  widgetSize: 'small' | 'medium' | 'large';
+  colorTheme: 'default' | 'dark' | 'blue' | 'green' | 'purple';
+  animationsEnabled: boolean;
+  
+  // Widget-specific settings
+  statsCardsCount: number;
+  recentItemsCount: number;
+  refreshInterval: number;
+  showWelcomeMessage: boolean;
+  compactMode: boolean;
 };
 
 type WeatherSettings = {
@@ -1885,24 +1906,49 @@ export default function Settings() {
                     e.preventDefault();
                     const formData = new FormData(e.target as HTMLFormElement);
                     const settings = {
+                      // Widget visibility
                       showStatsCards: formData.get("showStatsCards") === "on",
                       showRevenueChart: formData.get("showRevenueChart") === "on",
                       showRecentActivity: formData.get("showRecentActivity") === "on",
                       showRecentInvoices: formData.get("showRecentInvoices") === "on",
                       showNotifications: formData.get("showNotifications") === "on",
                       showQuickActions: formData.get("showQuickActions") === "on",
+                      showProjectsOverview: formData.get("showProjectsOverview") === "on",
+                      showWeatherWidget: formData.get("showWeatherWidget") === "on",
+                      showTasksWidget: formData.get("showTasksWidget") === "on",
+                      showCalendarWidget: formData.get("showCalendarWidget") === "on",
+                      showMessagesWidget: formData.get("showMessagesWidget") === "on",
+                      showTeamOverview: formData.get("showTeamOverview") === "on",
+                      
+                      // Layout and appearance
+                      layoutType: formData.get("layoutType") as string || "grid",
+                      gridColumns: parseInt(formData.get("gridColumns") as string || "3"),
+                      widgetSize: formData.get("widgetSize") as string || "medium",
+                      colorTheme: formData.get("colorTheme") as string || "default",
+                      animationsEnabled: formData.get("animationsEnabled") === "on",
+                      
+                      // Widget-specific settings
+                      statsCardsCount: parseInt(formData.get("statsCardsCount") as string || "4"),
+                      recentItemsCount: parseInt(formData.get("recentItemsCount") as string || "5"),
+                      refreshInterval: parseInt(formData.get("refreshInterval") as string || "30"),
+                      showWelcomeMessage: formData.get("showWelcomeMessage") === "on",
+                      compactMode: formData.get("compactMode") === "on",
+                      
                       widgetOrder: dashboardSettings?.widgetOrder || ['stats', 'revenue', 'activity', 'invoices']
                     };
                     dashboardMutation.mutate(settings);
                   }}
-                  className="space-y-6"
+                  className="space-y-8"
                 >
-                  <div className="grid gap-6">
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-medium">Dashboard Widgets</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Select which widgets you want to see on your dashboard.
-                      </p>
+                  <div className="grid gap-8">
+                    {/* Widget Visibility Section */}
+                    <div className="space-y-6">
+                      <div>
+                        <h3 className="text-lg font-medium">Dashboard Widgets</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Choose which widgets appear on your dashboard and customize their behavior.
+                        </p>
+                      </div>
                       
                       <div className="grid gap-4">
                         <div className="flex items-center justify-between">
@@ -1998,6 +2044,295 @@ export default function Settings() {
                             defaultChecked={dashboardSettings?.showQuickActions ?? true}
                           />
                         </div>
+                        
+                        <Separator />
+                        
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <Label htmlFor="showProjectsOverview">Projects Overview</Label>
+                            <p className="text-sm text-muted-foreground">
+                              Active projects status and progress tracking
+                            </p>
+                          </div>
+                          <Switch
+                            id="showProjectsOverview"
+                            name="showProjectsOverview"
+                            defaultChecked={dashboardSettings?.showProjectsOverview ?? false}
+                          />
+                        </div>
+                        
+                        <Separator />
+                        
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <Label htmlFor="showWeatherWidget">Weather Widget</Label>
+                            <p className="text-sm text-muted-foreground">
+                              Current weather conditions and forecast
+                            </p>
+                          </div>
+                          <Switch
+                            id="showWeatherWidget"
+                            name="showWeatherWidget"
+                            defaultChecked={dashboardSettings?.showWeatherWidget ?? false}
+                          />
+                        </div>
+                        
+                        <Separator />
+                        
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <Label htmlFor="showTasksWidget">My Tasks</Label>
+                            <p className="text-sm text-muted-foreground">
+                              Assigned tasks and deadlines overview
+                            </p>
+                          </div>
+                          <Switch
+                            id="showTasksWidget"
+                            name="showTasksWidget"
+                            defaultChecked={dashboardSettings?.showTasksWidget ?? false}
+                          />
+                        </div>
+                        
+                        <Separator />
+                        
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <Label htmlFor="showCalendarWidget">Calendar Widget</Label>
+                            <p className="text-sm text-muted-foreground">
+                              Upcoming appointments and schedule preview
+                            </p>
+                          </div>
+                          <Switch
+                            id="showCalendarWidget"
+                            name="showCalendarWidget"
+                            defaultChecked={dashboardSettings?.showCalendarWidget ?? false}
+                          />
+                        </div>
+                        
+                        <Separator />
+                        
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <Label htmlFor="showMessagesWidget">Team Messages</Label>
+                            <p className="text-sm text-muted-foreground">
+                              Recent team communications and alerts
+                            </p>
+                          </div>
+                          <Switch
+                            id="showMessagesWidget"
+                            name="showMessagesWidget"
+                            defaultChecked={dashboardSettings?.showMessagesWidget ?? false}
+                          />
+                        </div>
+                        
+                        <Separator />
+                        
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <Label htmlFor="showTeamOverview">Team Overview</Label>
+                            <p className="text-sm text-muted-foreground">
+                              Team status, time tracking, and productivity metrics
+                            </p>
+                          </div>
+                          <Switch
+                            id="showTeamOverview"
+                            name="showTeamOverview"
+                            defaultChecked={dashboardSettings?.showTeamOverview ?? false}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Layout Customization Section */}
+                    <div className="space-y-6">
+                      <div>
+                        <h3 className="text-lg font-medium">Layout & Appearance</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Customize how your dashboard looks and feels.
+                        </p>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                          <Label htmlFor="layoutType">Layout Type</Label>
+                          <Select name="layoutType" defaultValue={dashboardSettings?.layoutType || "grid"}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="grid">Grid Layout</SelectItem>
+                              <SelectItem value="list">List Layout</SelectItem>
+                              <SelectItem value="compact">Compact Layout</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-muted-foreground">
+                            How widgets are arranged on your dashboard
+                          </p>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="gridColumns">Grid Columns</Label>
+                          <Select name="gridColumns" defaultValue={dashboardSettings?.gridColumns?.toString() || "3"}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="2">2 Columns</SelectItem>
+                              <SelectItem value="3">3 Columns</SelectItem>
+                              <SelectItem value="4">4 Columns</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-muted-foreground">
+                            Number of columns in grid layout
+                          </p>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="widgetSize">Widget Size</Label>
+                          <Select name="widgetSize" defaultValue={dashboardSettings?.widgetSize || "medium"}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="small">Small</SelectItem>
+                              <SelectItem value="medium">Medium</SelectItem>
+                              <SelectItem value="large">Large</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-muted-foreground">
+                            Default size for dashboard widgets
+                          </p>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="colorTheme">Color Theme</Label>
+                          <Select name="colorTheme" defaultValue={dashboardSettings?.colorTheme || "default"}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="default">Default</SelectItem>
+                              <SelectItem value="dark">Dark Mode</SelectItem>
+                              <SelectItem value="blue">Blue Theme</SelectItem>
+                              <SelectItem value="green">Green Theme</SelectItem>
+                              <SelectItem value="purple">Purple Theme</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-muted-foreground">
+                            Color scheme for dashboard widgets
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="animationsEnabled">Smooth Animations</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Enable smooth transitions and animations
+                          </p>
+                        </div>
+                        <Switch
+                          id="animationsEnabled"
+                          name="animationsEnabled"
+                          defaultChecked={dashboardSettings?.animationsEnabled ?? true}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Widget Behavior Section */}
+                    <div className="space-y-6">
+                      <div>
+                        <h3 className="text-lg font-medium">Widget Behavior</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Fine-tune how widgets behave and update.
+                        </p>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                          <Label htmlFor="statsCardsCount">Stats Cards Count</Label>
+                          <Select name="statsCardsCount" defaultValue={dashboardSettings?.statsCardsCount?.toString() || "4"}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="3">3 Cards</SelectItem>
+                              <SelectItem value="4">4 Cards</SelectItem>
+                              <SelectItem value="5">5 Cards</SelectItem>
+                              <SelectItem value="6">6 Cards</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-muted-foreground">
+                            Number of stats cards to display
+                          </p>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="recentItemsCount">Recent Items Count</Label>
+                          <Select name="recentItemsCount" defaultValue={dashboardSettings?.recentItemsCount?.toString() || "5"}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="3">3 Items</SelectItem>
+                              <SelectItem value="5">5 Items</SelectItem>
+                              <SelectItem value="10">10 Items</SelectItem>
+                              <SelectItem value="15">15 Items</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-muted-foreground">
+                            Number of recent items to show in lists
+                          </p>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="refreshInterval">Auto-Refresh (seconds)</Label>
+                          <Select name="refreshInterval" defaultValue={dashboardSettings?.refreshInterval?.toString() || "30"}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="15">15 seconds</SelectItem>
+                              <SelectItem value="30">30 seconds</SelectItem>
+                              <SelectItem value="60">1 minute</SelectItem>
+                              <SelectItem value="300">5 minutes</SelectItem>
+                              <SelectItem value="0">Disabled</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-muted-foreground">
+                            How often data refreshes automatically
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="showWelcomeMessage">Welcome Message</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Show personalized welcome message at the top
+                          </p>
+                        </div>
+                        <Switch
+                          id="showWelcomeMessage"
+                          name="showWelcomeMessage"
+                          defaultChecked={dashboardSettings?.showWelcomeMessage ?? true}
+                        />
+                      </div>
+                      
+                      <Separator />
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="compactMode">Compact Mode</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Reduce padding and spacing for more content
+                          </p>
+                        </div>
+                        <Switch
+                          id="compactMode"
+                          name="compactMode"
+                          defaultChecked={dashboardSettings?.compactMode ?? false}
+                        />
                       </div>
                     </div>
                   </div>

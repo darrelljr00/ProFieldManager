@@ -6,17 +6,39 @@ import { InvoicesTable } from "@/components/invoices-table";
 import { Button } from "@/components/ui/button";
 import { InvoiceForm } from "@/components/invoice-form";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import { Bell, Plus } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Bell, Plus, Calendar, MessageCircle, Users, CheckSquare, Cloud, Briefcase } from "lucide-react";
 import { useState } from "react";
 
 type DashboardSettings = {
+  // Widget visibility
   showStatsCards: boolean;
   showRevenueChart: boolean;
   showRecentActivity: boolean;
   showRecentInvoices: boolean;
   showNotifications: boolean;
   showQuickActions: boolean;
+  showProjectsOverview: boolean;
+  showWeatherWidget: boolean;
+  showTasksWidget: boolean;
+  showCalendarWidget: boolean;
+  showMessagesWidget: boolean;
+  showTeamOverview: boolean;
+  
+  // Layout and appearance
   widgetOrder: string[];
+  layoutType: 'grid' | 'list' | 'compact';
+  gridColumns: number;
+  widgetSize: 'small' | 'medium' | 'large';
+  colorTheme: 'default' | 'dark' | 'blue' | 'green' | 'purple';
+  animationsEnabled: boolean;
+  
+  // Widget-specific settings
+  statsCardsCount: number;
+  recentItemsCount: number;
+  refreshInterval: number;
+  showWelcomeMessage: boolean;
+  compactMode: boolean;
 };
 
 export default function Dashboard() {
@@ -34,7 +56,7 @@ export default function Dashboard() {
     queryKey: ["/api/settings/dashboard"],
   });
 
-  const recentInvoices = invoices?.slice(0, 5) || [];
+  const recentInvoices = invoices?.slice(0, settings.recentItemsCount || 5) || [];
 
   // Use default settings if not loaded yet
   const settings = dashboardSettings || {
@@ -44,6 +66,22 @@ export default function Dashboard() {
     showRecentInvoices: true,
     showNotifications: true,
     showQuickActions: true,
+    showProjectsOverview: false,
+    showWeatherWidget: false,
+    showTasksWidget: false,
+    showCalendarWidget: false,
+    showMessagesWidget: false,
+    showTeamOverview: false,
+    layoutType: 'grid' as const,
+    gridColumns: 3,
+    widgetSize: 'medium' as const,
+    colorTheme: 'default' as const,
+    animationsEnabled: true,
+    statsCardsCount: 4,
+    recentItemsCount: 5,
+    refreshInterval: 30,
+    showWelcomeMessage: true,
+    compactMode: false,
     widgetOrder: ['stats', 'revenue', 'activity', 'invoices']
   };
 
@@ -122,6 +160,180 @@ export default function Dashboard() {
             />
           </div>
         )}
+
+        {/* Additional Widgets Row */}
+        {(settings.showProjectsOverview || settings.showWeatherWidget || settings.showTasksWidget || settings.showCalendarWidget || settings.showMessagesWidget || settings.showTeamOverview) && (
+          <div className={`mt-6 md:mt-8 ${settings.layoutType === 'grid' ? `grid grid-cols-1 md:grid-cols-2 lg:grid-cols-${Math.min(settings.gridColumns, 3)} gap-4 md:gap-6` : 'space-y-4'}`}>
+            
+            {/* Projects Overview Widget */}
+            {settings.showProjectsOverview && (
+              <Card className={`${settings.animationsEnabled ? 'transition-all duration-300 hover:shadow-lg' : ''} ${settings.widgetSize === 'small' ? 'p-3' : settings.widgetSize === 'large' ? 'p-6' : 'p-4'}`}>
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Briefcase className="h-5 w-5 text-blue-600" />
+                    Active Projects
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">In Progress</span>
+                      <span className="font-semibold">8</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">Completed</span>
+                      <span className="font-semibold text-green-600">24</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">On Hold</span>
+                      <span className="font-semibold text-yellow-600">3</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Weather Widget */}
+            {settings.showWeatherWidget && (
+              <Card className={`${settings.animationsEnabled ? 'transition-all duration-300 hover:shadow-lg' : ''} ${settings.widgetSize === 'small' ? 'p-3' : settings.widgetSize === 'large' ? 'p-6' : 'p-4'}`}>
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Cloud className="h-5 w-5 text-blue-500" />
+                    Weather
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-4">
+                    <div className="text-3xl font-bold">72°F</div>
+                    <div className="text-sm text-gray-600">
+                      <div>Partly Cloudy</div>
+                      <div>Dallas, TX</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Tasks Widget */}
+            {settings.showTasksWidget && (
+              <Card className={`${settings.animationsEnabled ? 'transition-all duration-300 hover:shadow-lg' : ''} ${settings.widgetSize === 'small' ? 'p-3' : settings.widgetSize === 'large' ? 'p-6' : 'p-4'}`}>
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <CheckSquare className="h-5 w-5 text-green-600" />
+                    My Tasks
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                      <span className="text-sm">Complete project report</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                      <span className="text-sm">Review invoices</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <span className="text-sm">Team meeting at 3 PM</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Calendar Widget */}
+            {settings.showCalendarWidget && (
+              <Card className={`${settings.animationsEnabled ? 'transition-all duration-300 hover:shadow-lg' : ''} ${settings.widgetSize === 'small' ? 'p-3' : settings.widgetSize === 'large' ? 'p-6' : 'p-4'}`}>
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Calendar className="h-5 w-5 text-purple-600" />
+                    Upcoming
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="text-sm">
+                      <div className="font-semibold">Client Meeting</div>
+                      <div className="text-gray-600">Today, 2:00 PM</div>
+                    </div>
+                    <div className="text-sm">
+                      <div className="font-semibold">Project Deadline</div>
+                      <div className="text-gray-600">Tomorrow, 5:00 PM</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Messages Widget */}
+            {settings.showMessagesWidget && (
+              <Card className={`${settings.animationsEnabled ? 'transition-all duration-300 hover:shadow-lg' : ''} ${settings.widgetSize === 'small' ? 'p-3' : settings.widgetSize === 'large' ? 'p-6' : 'p-4'}`}>
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <MessageCircle className="h-5 w-5 text-indigo-600" />
+                    Messages
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs">JD</div>
+                      <div className="text-sm">
+                        <div className="font-semibold">John Doe</div>
+                        <div className="text-gray-600">Project update ready</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center text-xs">SM</div>
+                      <div className="text-sm">
+                        <div className="font-semibold">Sarah Miller</div>
+                        <div className="text-gray-600">Invoice approved</div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Team Overview Widget */}
+            {settings.showTeamOverview && (
+              <Card className={`${settings.animationsEnabled ? 'transition-all duration-300 hover:shadow-lg' : ''} ${settings.widgetSize === 'small' ? 'p-3' : settings.widgetSize === 'large' ? 'p-6' : 'p-4'}`}>
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Users className="h-5 w-5 text-orange-600" />
+                    Team Status
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">Online</span>
+                      <span className="font-semibold text-green-600">6</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">In Field</span>
+                      <span className="font-semibold text-blue-600">4</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">Offline</span>
+                      <span className="font-semibold text-gray-600">2</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        )}
+        
+        {/* Settings Note */}
+        <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <p className="text-sm text-blue-800">
+            <strong>Dashboard Customization:</strong> Your dashboard layout is now customizable! 
+            Go to <strong>Settings → Dashboard</strong> to control which widgets appear, adjust the layout, 
+            and personalize your experience.
+          </p>
+        </div>
       </main>
     </div>
   );
