@@ -33,13 +33,15 @@ import {
   Bell,
   MessageCircle,
   Cloud,
-  GripVertical
+  GripVertical,
+  Search
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -234,6 +236,7 @@ export function Sidebar() {
   const [isOpen, setIsOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [navigationOrder, setNavigationOrder] = useState<string[]>(DEFAULT_NAVIGATION_ORDER);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Drag and drop sensors
   const sensors = useSensors(
@@ -296,6 +299,13 @@ export function Sidebar() {
       });
     }
   }, [user]);
+
+  // Clear search when sidebar is collapsed
+  useEffect(() => {
+    if (isCollapsed) {
+      setSearchQuery("");
+    }
+  }, [isCollapsed]);
 
   const navigationItems: NavigationItem[] = [
     { name: "Dashboard", href: "/", icon: BarChart3, requiresAuth: true },
@@ -365,7 +375,7 @@ export function Sidebar() {
     }
   ];
 
-  // Get ordered navigation items
+  // Get ordered navigation items with search filtering
   const getOrderedNavigationItems = () => {
     const orderedItems: NavigationItem[] = [];
     
@@ -383,6 +393,16 @@ export function Sidebar() {
         orderedItems.push(item);
       }
     });
+    
+    // Filter by search query if present
+    if (searchQuery.trim()) {
+      return orderedItems.filter(item => 
+        item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (item.subItems && item.subItems.some(subItem => 
+          subItem.name.toLowerCase().includes(searchQuery.toLowerCase())
+        ))
+      );
+    }
     
     return orderedItems;
   };
@@ -507,6 +527,22 @@ export function Sidebar() {
               )}
             </div>
           </div>
+
+          {/* Search Bar */}
+          {!isCollapsed && (
+            <div className="p-4 border-b border-border">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Input
+                  type="text"
+                  placeholder="Search navigation tabs..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 h-8 text-sm bg-muted/50 border-muted-foreground/20 focus:bg-background"
+                />
+              </div>
+            </div>
+          )}
 
           {/* Navigation */}
           <nav className="flex-1 overflow-y-auto px-2 py-4">
