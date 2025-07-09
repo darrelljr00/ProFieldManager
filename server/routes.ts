@@ -1173,6 +1173,108 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Customer Excel Import endpoint
+  app.post("/api/customers/import", requireAuth, upload.single('file'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      const user = await storage.getUser(req.user!.id);
+      if (!user) {
+        return res.status(401).json({ message: "User not found" });
+      }
+
+      // Import XLSX library
+      const XLSX = require('xlsx');
+      
+      // Read the uploaded Excel file
+      const workbook = XLSX.readFile(req.file.path);
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+      let imported = 0;
+      let skipped = 0;
+      const errors: string[] = [];
+
+      for (const row of jsonData) {
+        try {
+          // Map Excel columns to customer fields (case-insensitive)
+          const customerData = {
+            name: row['Name'] || row['name'] || row['NAME'] || '',
+            email: row['Email'] || row['email'] || row['EMAIL'] || '',
+            phone: row['Phone'] || row['phone'] || row['PHONE'] || row['Phone Number'] || row['phone_number'] || '',
+            address: row['Address'] || row['address'] || row['ADDRESS'] || '',
+            city: row['City'] || row['city'] || row['CITY'] || '',
+            state: row['State'] || row['state'] || row['STATE'] || '',
+            zipCode: row['ZipCode'] || row['zipcode'] || row['zip_code'] || row['ZIP'] || row['Zip Code'] || '',
+            country: row['Country'] || row['country'] || row['COUNTRY'] || 'US',
+            organizationId: user.organizationId,
+            userId: req.user!.id,
+          };
+
+          // Skip rows without required fields
+          if (!customerData.name || !customerData.email) {
+            skipped++;
+            continue;
+          }
+
+          // Check if customer already exists (by email within organization)
+          const existingCustomer = await storage.getCustomerByEmail(customerData.email, user.organizationId);
+          if (existingCustomer) {
+            skipped++;
+            continue;
+          }
+
+          // Validate and create customer
+          const validatedData = insertCustomerSchema.parse(customerData);
+          await storage.createCustomer(validatedData);
+          imported++;
+
+        } catch (error: any) {
+          errors.push(`Row ${imported + skipped + 1}: ${error.message}`);
+          skipped++;
+        }
+      }
+
+      // Clean up uploaded file
+      const fs = require('fs');
+      fs.unlinkSync(req.file.path);
+
+      // Broadcast to all web users
+      if (imported > 0) {
+        (app as any).broadcastToWebUsers('customers_imported', {
+          imported,
+          skipped,
+          importedBy: req.user!.username
+        }, req.user!.id);
+      }
+
+      res.json({
+        imported,
+        skipped,
+        errors: errors.slice(0, 10), // Limit error messages
+        totalProcessed: imported + skipped
+      });
+
+    } catch (error: any) {
+      console.error("Error importing customers:", error);
+      
+      // Clean up uploaded file if it exists
+      if (req.file) {
+        const fs = require('fs');
+        try {
+          fs.unlinkSync(req.file.path);
+        } catch (cleanupError) {
+          console.error("Error cleaning up file:", cleanupError);
+        }
+      }
+      
+      res.status(500).json({ message: "Failed to import customers: " + error.message });
+    }
+  });
+
   // Invoice routes
   app.get("/api/invoices", async (req, res) => {
     try {

@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Plus, Users, Mail, Phone, MapPin, Edit, Trash2, Search, SortAsc, X } from "lucide-react";
+import { Plus, Users, Mail, Phone, MapPin, Edit, Trash2, Search, SortAsc, X, FileSpreadsheet, Upload } from "lucide-react";
 import type { Customer, InsertCustomer } from "@shared/schema";
 
 export default function Customers() {
@@ -17,6 +17,10 @@ export default function Customers() {
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState<"name" | "email" | "firstName" | "lastName">("name");
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importPreview, setImportPreview] = useState<any[]>([]);
+  const [isProcessingImport, setIsProcessingImport] = useState(false);
   const [formData, setFormData] = useState<Partial<InsertCustomer>>({
     name: "",
     email: "",
@@ -109,9 +113,19 @@ export default function Customers() {
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: Partial<InsertCustomer> }) => 
       apiRequest("PUT", `/api/customers/${id}`, data),
-    onSuccess: () => {
+    onSuccess: (updatedCustomer) => {
       queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
       setEditingCustomer(null);
+      setFormData({
+        name: "",
+        email: "",
+        phone: "",
+        address: "",
+        city: "",
+        state: "",
+        zipCode: "",
+        country: "US",
+      });
       toast({
         title: "Success",
         description: "Customer updated successfully",
@@ -144,6 +158,29 @@ export default function Customers() {
     },
   });
 
+  const importMutation = useMutation({
+    mutationFn: (formData: FormData) => apiRequest("POST", "/api/customers/import", formData),
+    onSuccess: (result: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+      setIsImportModalOpen(false);
+      setImportFile(null);
+      setImportPreview([]);
+      setIsProcessingImport(false);
+      toast({
+        title: "Import Successful",
+        description: `Imported ${result.imported} customers successfully. ${result.skipped || 0} duplicate entries were skipped.`,
+      });
+    },
+    onError: (error: any) => {
+      setIsProcessingImport(false);
+      toast({
+        title: "Import Failed",
+        description: error.message || "Failed to import customers",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (editingCustomer) {
@@ -153,7 +190,7 @@ export default function Customers() {
     }
   };
 
-  const openEditModal = (customer: Customer) => {
+  const handleEdit = (customer: Customer) => {
     setEditingCustomer(customer);
     setFormData({
       name: customer.name,
@@ -180,6 +217,55 @@ export default function Customers() {
       zipCode: "",
       country: "US",
     });
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
+      toast({
+        title: "Invalid File",
+        description: "Please select an Excel file (.xlsx or .xls)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setImportFile(file);
+    
+    // Read file and show preview
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const data = new Uint8Array(e.target?.result as ArrayBuffer);
+        // We'll import XLSX dynamically to avoid bundle size issues
+        const XLSX = await import('xlsx');
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+        
+        // Take first 5 rows for preview
+        setImportPreview(jsonData.slice(0, 5));
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to read Excel file",
+          variant: "destructive",
+        });
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
+  const handleImport = () => {
+    if (!importFile) return;
+    
+    setIsProcessingImport(true);
+    const formData = new FormData();
+    formData.append('file', importFile);
+    importMutation.mutate(formData);
   };
 
   return (
@@ -229,106 +315,203 @@ export default function Customers() {
               </Select>
             </div>
           </div>
-          <Dialog open={isCreateModalOpen || !!editingCustomer} onOpenChange={(open) => !open && closeModal()}>
-            <DialogTrigger asChild>
-              <Button className="bg-primary hover:bg-blue-700" onClick={() => setIsCreateModalOpen(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                New Customer
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>{editingCustomer ? "Edit Customer" : "Create New Customer"}</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="name">Name *</Label>
-                    <Input
-                      id="name"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="email">Email *</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="phone">Phone</Label>
-                    <Input
-                      id="phone"
-                      value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="country">Country</Label>
-                    <Input
-                      id="country"
-                      value={formData.country}
-                      onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                    />
-                  </div>
+          
+          <div className="flex space-x-2">
+            <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-primary hover:bg-blue-700">
+                  <Plus className="w-4 h-4 mr-2" />
+                  New Customer
+                </Button>
+              </DialogTrigger>
+            </Dialog>
+            
+            <Dialog open={isImportModalOpen} onOpenChange={setIsImportModalOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="border-green-500 text-green-600 hover:bg-green-50">
+                  <FileSpreadsheet className="w-4 h-4 mr-2" />
+                  Import Excel
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-4xl">
+                <DialogHeader>
+                  <DialogTitle>Import Customers from Excel</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  {!importFile && (
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                      <FileSpreadsheet className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">Upload Excel File</h3>
+                      <p className="text-gray-500 mb-4">
+                        Upload an Excel file (.xlsx or .xls) with customer data
+                      </p>
+                      <p className="text-sm text-gray-400 mb-4">
+                        Expected columns: Name, Email, Phone, Address, City, State, ZipCode, Country
+                      </p>
+                      <input
+                        type="file"
+                        accept=".xlsx,.xls"
+                        onChange={handleFileUpload}
+                        className="hidden"
+                        id="excel-upload"
+                      />
+                      <label
+                        htmlFor="excel-upload"
+                        className="cursor-pointer inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                      >
+                        <Upload className="w-4 h-4 mr-2" />
+                        Choose Excel File
+                      </label>
+                    </div>
+                  )}
+                  
+                  {importFile && importPreview.length > 0 && (
+                    <div>
+                      <h4 className="text-lg font-medium mb-2">Preview (First 5 rows)</h4>
+                      <div className="border rounded-lg overflow-auto max-h-96">
+                        <table className="w-full text-sm">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              {Object.keys(importPreview[0] || {}).map((key) => (
+                                <th key={key} className="px-4 py-2 text-left font-medium text-gray-700 border-b">
+                                  {key}
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {importPreview.map((row, index) => (
+                              <tr key={index} className="border-b">
+                                {Object.values(row).map((value: any, colIndex) => (
+                                  <td key={colIndex} className="px-4 py-2 text-gray-600">
+                                    {value?.toString() || ''}
+                                  </td>
+                                ))}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      <div className="flex justify-between mt-4">
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setImportFile(null);
+                            setImportPreview([]);
+                          }}
+                        >
+                          Choose Different File
+                        </Button>
+                        <Button
+                          onClick={handleImport}
+                          disabled={isProcessingImport}
+                          className="bg-green-600 hover:bg-green-700"
+                        >
+                          {isProcessingImport ? "Importing..." : "Import Customers"}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <Label htmlFor="address">Address</Label>
-                  <Textarea
-                    id="address"
-                    value={formData.address}
-                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  />
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <Label htmlFor="city">City</Label>
-                    <Input
-                      id="city"
-                      value={formData.city}
-                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="state">State</Label>
-                    <Input
-                      id="state"
-                      value={formData.state}
-                      onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="zipCode">ZIP Code</Label>
-                    <Input
-                      id="zipCode"
-                      value={formData.zipCode}
-                      onChange={(e) => setFormData({ ...formData, zipCode: e.target.value })}
-                    />
-                  </div>
-                </div>
-                <div className="flex justify-end space-x-2 pt-4">
-                  <Button type="button" variant="outline" onClick={closeModal}>
-                    Cancel
-                  </Button>
-                  <Button 
-                    type="submit" 
-                    disabled={createMutation.isPending || updateMutation.isPending}
-                    className="bg-primary hover:bg-blue-700"
-                  >
-                    {editingCustomer ? "Update" : "Create"} Customer
-                  </Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
       </header>
+
+      {/* Customer Create/Edit Dialog */}
+      <Dialog open={isCreateModalOpen || !!editingCustomer} onOpenChange={(open) => !open && closeModal()}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{editingCustomer ? "Edit Customer" : "Create New Customer"}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="name">Name *</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="email">Email *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="phone">Phone</Label>
+                <Input
+                  id="phone"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="country">Country</Label>
+                <Input
+                  id="country"
+                  value={formData.country}
+                  onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="address">Address</Label>
+              <Textarea
+                id="address"
+                value={formData.address}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+              />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="city">City</Label>
+                <Input
+                  id="city"
+                  value={formData.city}
+                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="state">State</Label>
+                <Input
+                  id="state"
+                  value={formData.state}
+                  onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="zipCode">Zip Code</Label>
+                <Input
+                  id="zipCode"
+                  value={formData.zipCode}
+                  onChange={(e) => setFormData({ ...formData, zipCode: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button type="button" variant="outline" onClick={closeModal}>
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={createMutation.isPending || updateMutation.isPending}
+                className="bg-primary hover:bg-blue-700"
+              >
+                {editingCustomer ? "Update" : "Create"} Customer
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Main Content */}
       <main className="p-6">
@@ -363,59 +546,73 @@ export default function Customers() {
         ) : filteredAndSortedCustomers.length === 0 ? (
           <div className="text-center py-12">
             <Users className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">
-              {searchTerm ? "No customers found" : "No customers"}
-            </h3>
+            <h3 className="mt-2 text-sm font-medium text-gray-900">No customers found</h3>
             <p className="mt-1 text-sm text-gray-500">
-              {searchTerm ? "Try adjusting your search criteria." : "Get started by creating a new customer."}
+              {searchTerm ? `No customers match "${searchTerm}"` : "Get started by creating your first customer."}
             </p>
+            {!searchTerm && (
+              <div className="mt-6">
+                <Button onClick={() => setIsCreateModalOpen(true)}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  New Customer
+                </Button>
+              </div>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredAndSortedCustomers.map((customer) => (
-              <Card key={customer.id} className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span className="text-lg font-semibold">{customer.name}</span>
+              <Card key={customer.id} className="hover:shadow-md transition-shadow">
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <CardTitle className="text-lg font-medium text-gray-900 mb-1">
+                        {customer.name}
+                      </CardTitle>
+                      <div className="flex items-center text-sm text-gray-500">
+                        <Mail className="w-4 h-4 mr-1" />
+                        {customer.email}
+                      </div>
+                    </div>
                     <div className="flex space-x-1">
                       <Button
                         variant="ghost"
-                        size="icon"
-                        onClick={() => openEditModal(customer)}
+                        size="sm"
+                        onClick={() => handleEdit(customer)}
+                        className="text-gray-400 hover:text-blue-600"
                       >
                         <Edit className="w-4 h-4" />
                       </Button>
                       <Button
                         variant="ghost"
-                        size="icon"
+                        size="sm"
                         onClick={() => deleteMutation.mutate(customer.id)}
-                        disabled={deleteMutation.isPending}
+                        className="text-gray-400 hover:text-red-600"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
-                  </CardTitle>
+                  </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Mail className="w-4 h-4 mr-2" />
-                      {customer.email}
-                    </div>
+                <CardContent className="pt-0">
+                  <div className="space-y-2 text-sm">
                     {customer.phone && (
-                      <div className="flex items-center text-sm text-gray-600">
-                        <Phone className="w-4 h-4 mr-2" />
+                      <div className="flex items-center text-gray-600">
+                        <Phone className="w-4 h-4 mr-2 text-gray-400" />
                         {customer.phone}
                       </div>
                     )}
-                    {customer.address && (
-                      <div className="flex items-center text-sm text-gray-600">
-                        <MapPin className="w-4 h-4 mr-2" />
-                        <span className="truncate">
-                          {customer.address}
-                          {customer.city && `, ${customer.city}`}
-                          {customer.state && `, ${customer.state}`}
-                        </span>
+                    {(customer.address || customer.city || customer.state) && (
+                      <div className="flex items-start text-gray-600">
+                        <MapPin className="w-4 h-4 mr-2 text-gray-400 mt-0.5 flex-shrink-0" />
+                        <div>
+                          {customer.address && <div>{customer.address}</div>}
+                          {(customer.city || customer.state) && (
+                            <div>
+                              {customer.city}{customer.city && customer.state ? ", " : ""}{customer.state} {customer.zipCode}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>

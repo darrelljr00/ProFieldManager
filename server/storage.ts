@@ -44,9 +44,11 @@ export interface IStorage {
   
   // Customer methods
   getCustomers(organizationId: number): Promise<Customer[]>;
+  getCustomer(id: number, userId: number): Promise<Customer | undefined>;
+  getCustomerByEmail(email: string, organizationId: number): Promise<Customer | undefined>;
   createCustomer(customerData: any): Promise<Customer>;
-  updateCustomer(id: number, updates: any): Promise<Customer>;
-  deleteCustomer(id: number): Promise<void>;
+  updateCustomer(id: number, userId: number, updates: any): Promise<Customer>;
+  deleteCustomer(id: number, userId: number): Promise<boolean>;
   
   // Invoice methods
   getInvoices(organizationId: number): Promise<any[]>;
@@ -482,6 +484,27 @@ export class DatabaseStorage implements IStorage {
     return results;
   }
 
+  async getCustomer(id: number, userId: number): Promise<Customer | undefined> {
+    const [customer] = await db
+      .select()
+      .from(customers)
+      .innerJoin(users, eq(customers.userId, users.id))
+      .where(eq(customers.id, id));
+    return customer || undefined;
+  }
+
+  async getCustomerByEmail(email: string, organizationId: number): Promise<Customer | undefined> {
+    const [customer] = await db
+      .select()
+      .from(customers)
+      .innerJoin(users, eq(customers.userId, users.id))
+      .where(and(
+        eq(customers.email, email),
+        eq(users.organizationId, organizationId)
+      ));
+    return customer || undefined;
+  }
+
   async createCustomer(customerData: any): Promise<Customer> {
     const insertData: any = {
       userId: customerData.userId,  // This should be the actual userId who created the customer
@@ -494,12 +517,29 @@ export class DatabaseStorage implements IStorage {
     if (customerData.city) insertData.city = customerData.city;
     if (customerData.state) insertData.state = customerData.state;
     if (customerData.zipCode) insertData.zipCode = customerData.zipCode;
+    if (customerData.country) insertData.country = customerData.country;
 
     const [customer] = await db
       .insert(customers)
       .values(insertData)
       .returning();
     return customer;
+  }
+
+  async updateCustomer(id: number, userId: number, updates: any): Promise<Customer> {
+    const [customer] = await db
+      .update(customers)
+      .set(updates)
+      .where(eq(customers.id, id))
+      .returning();
+    return customer;
+  }
+
+  async deleteCustomer(id: number, userId: number): Promise<boolean> {
+    const result = await db
+      .delete(customers)
+      .where(eq(customers.id, id));
+    return result.rowCount > 0;
   }
 
   async updateCustomer(id: number, updates: any): Promise<Customer> {
