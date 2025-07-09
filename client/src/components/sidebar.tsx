@@ -311,8 +311,8 @@ export function Sidebar() {
     { name: "Dashboard", href: "/", icon: BarChart3, requiresAuth: true },
     { name: "Calendar", href: "/calendar", icon: Calendar, requiresAuth: true },
     { name: "Time Clock", href: "/time-clock", icon: Clock, requiresAuth: true },
-    { name: "Jobs", href: "/projects", icon: Briefcase, requiresAuth: true },
-    { name: "My Tasks", href: "/tasks", icon: CheckSquare, requiresAuth: true },
+    { name: "Jobs", href: "/jobs", icon: Briefcase, requiresAuth: true },
+    { name: "My Tasks", href: "/my-tasks", icon: CheckSquare, requiresAuth: true },
     { name: "Leads", href: "/leads", icon: UserPlus, requiresAuth: true },
     { 
       name: "Expenses", 
