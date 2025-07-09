@@ -9,7 +9,8 @@ import {
   internalMessages, internalMessageRecipients, messageGroups, messageGroupMembers,
   inspectionTemplates, inspectionItems, inspectionRecords, inspectionResponses, inspectionNotifications,
   smsMessages, smsTemplates, sharedPhotoLinks, fileSecuritySettings, fileSecurityScans, fileAccessLogs,
-  digitalSignatures, departments, employees, employeeDocuments, timeOffRequests, performanceReviews, disciplinaryActions
+  digitalSignatures, departments, employees, employeeDocuments, timeOffRequests, performanceReviews, disciplinaryActions,
+  navigationOrder
 } from "@shared/schema";
 import type { GasCard, InsertGasCard, GasCardAssignment, InsertGasCardAssignment, GasCardUsage, InsertGasCardUsage, GasCardProvider, InsertGasCardProvider } from "@shared/schema";
 import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull, isNull } from "drizzle-orm";
@@ -17,7 +18,8 @@ import type {
   User, Customer, Invoice, Quote, Project, Task, 
   Expense, ExpenseCategory, ExpenseReport, GasCard,
   Lead, CalendarJob, Message, Organization, Department,
-  Employee, TimeOffRequest, PerformanceReview, DisciplinaryAction
+  Employee, TimeOffRequest, PerformanceReview, DisciplinaryAction,
+  NavigationOrder, InsertNavigationOrder
 } from "@shared/schema";
 
 export interface IStorage {
@@ -246,6 +248,11 @@ export interface IStorage {
   getFileSecurityScans(organizationId: number, limit?: number): Promise<any[]>;
   getFileSecurityStats(organizationId: number): Promise<any>;
   logFileAccess(accessData: any): Promise<any>;
+  
+  // Navigation order methods
+  getNavigationOrder(userId: number, organizationId: number): Promise<NavigationOrder | undefined>;
+  saveNavigationOrder(userId: number, organizationId: number, navigationItems: string[]): Promise<NavigationOrder>;
+  resetNavigationOrder(userId: number, organizationId: number): Promise<boolean>;
   getFileAccessLogs(organizationId: number, limit?: number): Promise<any[]>;
   
   // File integrity methods
@@ -295,6 +302,11 @@ export interface IStorage {
   getDisciplinaryActions(organizationId: number, employeeId?: number): Promise<DisciplinaryAction[]>;
   createDisciplinaryAction(actionData: any): Promise<DisciplinaryAction>;
   updateDisciplinaryAction(id: number, updates: any): Promise<DisciplinaryAction>;
+
+  // Navigation order methods
+  getNavigationOrder(userId: number, organizationId: number): Promise<NavigationOrder | undefined>;
+  saveNavigationOrder(userId: number, organizationId: number, navigationItems: string[]): Promise<NavigationOrder>;
+  resetNavigationOrder(userId: number, organizationId: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -4021,6 +4033,81 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error("Error saving user dashboard settings:", error);
       throw error;
+    }
+  }
+
+  // Navigation order methods
+  async getNavigationOrder(userId: number, organizationId: number): Promise<NavigationOrder | undefined> {
+    try {
+      const [order] = await db
+        .select()
+        .from(navigationOrder)
+        .where(and(
+          eq(navigationOrder.userId, userId),
+          eq(navigationOrder.organizationId, organizationId)
+        ));
+      
+      return order || undefined;
+    } catch (error) {
+      console.error('Error getting navigation order:', error);
+      throw error;
+    }
+  }
+
+  async saveNavigationOrder(userId: number, organizationId: number, navigationItems: string[]): Promise<NavigationOrder> {
+    try {
+      // Check if order already exists
+      const existing = await this.getNavigationOrder(userId, organizationId);
+      
+      if (existing) {
+        // Update existing order
+        const [order] = await db
+          .update(navigationOrder)
+          .set({
+            navigationItems: navigationItems,
+            updatedAt: new Date()
+          })
+          .where(and(
+            eq(navigationOrder.userId, userId),
+            eq(navigationOrder.organizationId, organizationId)
+          ))
+          .returning();
+        
+        return order;
+      } else {
+        // Create new order
+        const [order] = await db
+          .insert(navigationOrder)
+          .values({
+            userId,
+            organizationId,
+            navigationItems: navigationItems,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          })
+          .returning();
+        
+        return order;
+      }
+    } catch (error) {
+      console.error('Error saving navigation order:', error);
+      throw error;
+    }
+  }
+
+  async resetNavigationOrder(userId: number, organizationId: number): Promise<boolean> {
+    try {
+      const result = await db
+        .delete(navigationOrder)
+        .where(and(
+          eq(navigationOrder.userId, userId),
+          eq(navigationOrder.organizationId, organizationId)
+        ));
+      
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error('Error resetting navigation order:', error);
+      return false;
     }
   }
 }

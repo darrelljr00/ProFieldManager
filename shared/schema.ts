@@ -1025,6 +1025,27 @@ export const smsTemplates = pgTable("sms_templates", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Navigation Order - Store custom sidebar order for users
+export const navigationOrder = pgTable("navigation_order", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  navigationItems: jsonb("navigation_items").notNull(), // Array of navigation item names in custom order
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Navigation Order insert schema
+export const insertNavigationOrderSchema = z.object({
+  userId: z.number(),
+  organizationId: z.number(),
+  navigationItems: z.array(z.string()),
+});
+
+// Types
+export type NavigationOrder = typeof navigationOrder.$inferSelect;
+export type InsertNavigationOrder = z.infer<typeof insertNavigationOrderSchema>;
+
 // Insert schemas
 export const insertUserSchema = z.object({
   username: z.string().min(1),

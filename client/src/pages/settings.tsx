@@ -2533,6 +2533,47 @@ export default function Settings() {
                     </div>
                   </div>
 
+                  {/* Navigation Order Reset Section */}
+                  <div className="space-y-4 border-t pt-6">
+                    <div>
+                      <h3 className="text-lg font-medium">Navigation Sidebar</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Manage your sidebar navigation tab order.
+                      </p>
+                    </div>
+                    
+                    <div className="flex items-center justify-between p-4 border rounded-lg">
+                      <div className="space-y-0.5">
+                        <Label className="text-base">Reset Sidebar Tabs to Default Order</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Restore the navigation tabs to their original default order. This will undo any custom reordering.
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={async () => {
+                          try {
+                            await apiRequest("DELETE", "/api/navigation-order");
+                            queryClient.invalidateQueries({ queryKey: ["/api/navigation-order"] });
+                            toast({
+                              title: "Success",
+                              description: "Navigation order reset to default successfully",
+                            });
+                          } catch (error: any) {
+                            toast({
+                              title: "Error",
+                              description: error.message || "Failed to reset navigation order",
+                              variant: "destructive",
+                            });
+                          }
+                        }}
+                      >
+                        Reset to Default
+                      </Button>
+                    </div>
+                  </div>
+
                   <div className="flex justify-end">
                     <Button
                       type="submit"

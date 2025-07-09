@@ -4313,6 +4313,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Navigation Order API
+  app.get("/api/navigation-order", requireAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const organizationId = req.user!.organizationId;
+      
+      const navigationOrder = await storage.getNavigationOrder(userId, organizationId);
+      res.json(navigationOrder);
+    } catch (error: any) {
+      console.error("Error fetching navigation order:", error);
+      res.status(500).json({ message: "Failed to fetch navigation order" });
+    }
+  });
+
+  app.post("/api/navigation-order", requireAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const organizationId = req.user!.organizationId;
+      const { navigationItems } = req.body;
+      
+      if (!Array.isArray(navigationItems)) {
+        return res.status(400).json({ message: "navigationItems must be an array" });
+      }
+      
+      const savedOrder = await storage.saveNavigationOrder(userId, organizationId, navigationItems);
+      res.json(savedOrder);
+    } catch (error: any) {
+      console.error("Error saving navigation order:", error);
+      res.status(500).json({ message: "Failed to save navigation order" });
+    }
+  });
+
+  app.delete("/api/navigation-order", requireAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const organizationId = req.user!.organizationId;
+      
+      const success = await storage.resetNavigationOrder(userId, organizationId);
+      res.json({ success, message: success ? "Navigation order reset successfully" : "No navigation order found" });
+    } catch (error: any) {
+      console.error("Error resetting navigation order:", error);
+      res.status(500).json({ message: "Failed to reset navigation order" });
+    }
+  });
+
   // Leads API
   app.get("/api/leads", requireAuth, async (req, res) => {
     try {

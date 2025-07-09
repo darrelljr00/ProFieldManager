@@ -32,7 +32,8 @@ import {
   Clock,
   Bell,
   MessageCircle,
-  Cloud
+  Cloud,
+  GripVertical
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -40,353 +41,377 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
-const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: BarChart3 },
-  { name: "Calendar", href: "/calendar", icon: Calendar },
-  { name: "Time Clock", href: "/time-clock", icon: Clock },
-  { name: "Inspections", href: "/inspections", icon: CheckSquare },
-  { name: "Jobs", href: "/jobs", icon: FolderOpen },
-  { name: "My Tasks", href: "/my-tasks", icon: CheckSquare },
-  { name: "Leads", href: "/leads", icon: UserPlus },
-  { 
-    name: "Expenses", 
-    icon: Receipt, 
-    hasSubmenu: true,
-    items: [
-      { name: "All Expenses", href: "/expenses" },
-      { name: "Expense Reports", href: "/expense-reports" },
-      { name: "Gas Card Providers", href: "/gas-card-providers" },
-      { name: "Gas Cards", href: "/gas-cards" }
-    ]
-  },
-  { name: "Quotes", href: "/quotes", icon: Quote },
-  { name: "Invoices", href: "/invoices", icon: FileText },
-  { name: "Customers", href: "/customers", icon: Users },
-  { name: "Payments", href: "/payments", icon: CreditCard },
-  { name: "File Manager", href: "/file-manager", icon: Folder },
-  { name: "Form Builder", href: "/form-builder", icon: FileText },
-  { name: "Team Messages", href: "/internal-messages", icon: MessageSquare },
-  { name: "Image Gallery", href: "/image-gallery", icon: ImageIcon },
-  { name: "Text Messaging", href: "/sms", icon: Smartphone },
-  { name: "GPS Tracking", href: "/gps-tracking", icon: MapPin },
-  { name: "Weather", href: "/weather", icon: Cloud },
-  { name: "Reviews", href: "/reviews", icon: Star },
-  { name: "Human Resources", href: "/human-resources", icon: Briefcase },
-  { name: "User Management", href: "/users", icon: UserCog },
-  { name: "SaaS Admin", href: "/saas-admin", icon: Server },
-  { 
-    name: "Admin Settings", 
-    icon: Shield,
-    hasSubmenu: true,
-    items: [
-      { name: "Settings", href: "/admin-settings" },
-      { name: "Mobile Test", href: "/mobile-test" }
-    ]
-  },
-  { name: "Reports", href: "/reports", icon: FileBarChart },
-  { name: "Settings", href: "/settings", icon: Settings },
-];
-
-interface SidebarProps {
-  isOpen?: boolean;
-  onClose?: () => void;
+interface NavigationItem {
+  name: string;
+  href: string;
+  icon: any;
+  requiresAuth?: boolean;
+  adminOnly?: boolean;
+  subItems?: NavigationItem[];
+  permission?: string;
+  unreadCount?: number;
 }
 
-export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
+// Default navigation order
+const DEFAULT_NAVIGATION_ORDER = [
+  "Dashboard",
+  "Calendar", 
+  "Time Clock",
+  "Jobs",
+  "My Tasks",
+  "Leads",
+  "Expenses",
+  "Quotes",
+  "Invoices",
+  "Customers",
+  "Payments",
+  "File Manager",
+  "Form Builder",
+  "Team Messages",
+  "Image Gallery",
+  "SMS",
+  "GPS Tracking",
+  "Reviews",
+  "Human Resources",
+  "User Management",
+  "SaaS Admin",
+  "Admin Settings",
+  "Reports",
+  "Settings"
+];
+
+export function Sidebar() {
+  const { user, isAuthenticated } = useAuth();
   const [location] = useLocation();
-  const { user, logout, isAdmin } = useAuth();
-  const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
-  const [isMobile, setIsMobile] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [expandedItems, setExpandedItems] = useState<{[key: string]: boolean}>({});
+  const [isOpen, setIsOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [navigationOrder, setNavigationOrder] = useState<string[]>(DEFAULT_NAVIGATION_ORDER);
 
-  useEffect(() => {
-    const checkIsMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    
-    checkIsMobile();
-    window.addEventListener('resize', checkIsMobile);
-    
-    return () => window.removeEventListener('resize', checkIsMobile);
-  }, []);
-
-  useEffect(() => {
-    if (isMobile && isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [isMobile, isOpen]);
-
-  const getInitials = (firstName?: string, lastName?: string, username?: string) => {
-    if (firstName && lastName) {
-      return `${firstName[0]}${lastName[0]}`.toUpperCase();
-    }
-    if (username) {
-      return username.slice(0, 2).toUpperCase();
-    }
-    return "U";
-  };
-
-  const getRoleBadge = (role: string) => {
-    const colors: Record<string, "default" | "destructive" | "outline" | "secondary"> = {
-      admin: "destructive",
-      manager: "secondary",
-      user: "outline"
-    };
-    return <Badge variant={colors[role] || "outline"} className="text-xs">{role}</Badge>;
-  };
-
-  const toggleMenu = (menuName: string) => {
-    const newExpanded = new Set(expandedMenus);
-    if (newExpanded.has(menuName)) {
-      newExpanded.delete(menuName);
-    } else {
-      newExpanded.add(menuName);
-    }
-    setExpandedMenus(newExpanded);
-  };
-
-  const filteredNavigation = navigation.filter(item => {
-    if (item.href === "/users" || item.name === "Admin Settings") {
-      return isAdmin;
-    }
-    return true;
-  });
-
-  const isActiveItem = (href?: string) => {
-    if (!href) return false;
-    return location === href || (href === "/dashboard" && location === "/");
-  };
-
-  const isExpensesActive = location === "/expenses" || location === "/expense-reports";
-  const isAdminSettingsActive = location === "/admin-settings" || location === "/mobile-test";
-
-
-
-  const handleLinkClick = () => {
-    if (isMobile && onClose) {
-      onClose();
-    }
-  };
-
-  // Fetch unread team messages count
-  const { data: messagesData } = useQuery<any[]>({
+  // Fetch unread message count
+  const { data: messages } = useQuery({
     queryKey: ["/api/internal-messages"],
-    enabled: !!user,
-    refetchInterval: 10000, // Refresh every 10 seconds
+    enabled: isAuthenticated,
+    refetchInterval: 30000, // Poll every 30 seconds
   });
 
-  // Fetch unread SMS messages count
-  const { data: smsData } = useQuery<any[]>({
-    queryKey: ["/api/sms/messages"],
-    enabled: !!user,
-    refetchInterval: 10000, // Refresh every 10 seconds
+  // Load custom navigation order
+  const { data: savedOrder } = useQuery({
+    queryKey: ["/api/navigation-order"],
+    enabled: isAuthenticated && !!user?.id,
   });
 
-  // Calculate unread team messages count
-  const unreadTeamMessages = messagesData ? messagesData.filter((message: any) => 
-    message.recipients && 
-    Array.isArray(message.recipients) && 
-    message.recipients.some((r: any) => r && r.recipientId === user?.id && !r.isRead)
-  ).length : 0;
+  useEffect(() => {
+    if (savedOrder && savedOrder.length > 0) {
+      setNavigationOrder(savedOrder);
+    }
+  }, [savedOrder]);
 
-  // Calculate unread SMS messages count (assuming SMS messages have a status field)
-  const unreadSmsMessages = smsData ? smsData.filter((message: any) => 
-    message.status === 'received' && !message.isRead
-  ).length : 0;
+  useEffect(() => {
+    if (messages) {
+      const unread = messages.filter((msg: any) => !msg.isRead && msg.senderId !== user?.id).length;
+      setUnreadCount(unread);
+    }
+  }, [messages, user?.id]);
+
+  const navigationItems: NavigationItem[] = [
+    { name: "Dashboard", href: "/", icon: BarChart3, requiresAuth: true },
+    { name: "Calendar", href: "/calendar", icon: Calendar, requiresAuth: true },
+    { name: "Time Clock", href: "/time-clock", icon: Clock, requiresAuth: true },
+    { name: "Jobs", href: "/projects", icon: Briefcase, requiresAuth: true },
+    { name: "My Tasks", href: "/tasks", icon: CheckSquare, requiresAuth: true },
+    { name: "Leads", href: "/leads", icon: UserPlus, requiresAuth: true },
+    { 
+      name: "Expenses", 
+      href: "/expenses", 
+      icon: Receipt, 
+      requiresAuth: true,
+      subItems: [
+        { name: "All Expenses", href: "/expenses", icon: Receipt },
+        { name: "Expense Reports", href: "/expense-reports", icon: FileBarChart },
+        { name: "Categories", href: "/expense-categories", icon: Folder },
+        { name: "Gas Card Providers", href: "/gas-card-providers", icon: CreditCard },
+        { name: "Gas Cards", href: "/gas-cards", icon: CreditCard }
+      ]
+    },
+    { name: "Quotes", href: "/quotes", icon: Quote, requiresAuth: true },
+    { name: "Invoices", href: "/invoices", icon: FileText, requiresAuth: true },
+    { name: "Customers", href: "/customers", icon: Users, requiresAuth: true },
+    { name: "Payments", href: "/payments", icon: CreditCard, requiresAuth: true },
+    { name: "File Manager", href: "/files", icon: FolderOpen, requiresAuth: true },
+    { name: "Form Builder", href: "/forms", icon: ClipboardList, requiresAuth: true },
+    { 
+      name: "Team Messages", 
+      href: "/internal-messages", 
+      icon: MessageSquare, 
+      requiresAuth: true,
+      unreadCount: unreadCount
+    },
+    { name: "Image Gallery", href: "/image-gallery", icon: ImageIcon, requiresAuth: true },
+    { name: "SMS", href: "/sms", icon: Smartphone, requiresAuth: true },
+    { name: "GPS Tracking", href: "/gps-tracking", icon: MapPin, requiresAuth: true },
+    { name: "Reviews", href: "/reviews", icon: Star, requiresAuth: true },
+    { name: "Human Resources", href: "/hr", icon: User, requiresAuth: true, permission: "canAccessHR" },
+    { name: "User Management", href: "/users", icon: UserCog, requiresAuth: true, permission: "canAccessUserManagement" },
+    { name: "SaaS Admin", href: "/saas-admin", icon: Server, requiresAuth: true, permission: "canAccessSaasAdmin" },
+    {
+      name: "Admin Settings",
+      href: "/admin-settings",
+      icon: Shield,
+      requiresAuth: true,
+      permission: "canAccessAdminSettings",
+      subItems: [
+        { name: "General Settings", href: "/admin-settings", icon: Settings },
+        { name: "File Security", href: "/file-security", icon: Shield },
+        { name: "Mobile Test", href: "/mobile-test", icon: Smartphone }
+      ]
+    },
+    { name: "Reports", href: "/reports", icon: BarChart3, requiresAuth: true, permission: "canAccessReports" },
+    { 
+      name: "Settings", 
+      href: "/settings", 
+      icon: Settings, 
+      requiresAuth: true,
+      subItems: [
+        { name: "General", href: "/settings", icon: Settings },
+        { name: "Dashboard", href: "/settings?tab=dashboard", icon: BarChart3 },
+        { name: "Notifications", href: "/settings?tab=notifications", icon: Bell },
+        { name: "Messages", href: "/settings?tab=messages", icon: MessageCircle },
+        { name: "Weather", href: "/settings?tab=weather", icon: Cloud }
+      ]
+    }
+  ];
+
+  // Get ordered navigation items
+  const getOrderedNavigationItems = () => {
+    const orderedItems: NavigationItem[] = [];
+    
+    // Add items in the order specified by navigationOrder
+    navigationOrder.forEach(orderName => {
+      const item = navigationItems.find(item => item.name === orderName);
+      if (item) {
+        orderedItems.push(item);
+      }
+    });
+    
+    // Add any remaining items that might not be in the order
+    navigationItems.forEach(item => {
+      if (!orderedItems.find(orderedItem => orderedItem.name === item.name)) {
+        orderedItems.push(item);
+      }
+    });
+    
+    return orderedItems;
+  };
+
+  const orderedItems = getOrderedNavigationItems();
+
+  const toggleExpanded = (itemName: string) => {
+    setExpandedItems(prev => ({
+      ...prev,
+      [itemName]: !prev[itemName]
+    }));
+  };
+
+  const hasPermission = (item: NavigationItem): boolean => {
+    if (!item.permission) return true;
+    if (!user) return false;
+    
+    return (user as any)[item.permission] === true;
+  };
+
+  const isCurrentPath = (href: string) => {
+    if (href === "/" && location === "/") return true;
+    if (href !== "/" && location.startsWith(href)) return true;
+    return false;
+  };
+
+  const handleLogout = async () => {
+    try {
+      await apiRequest("/api/auth/logout", { method: "POST" });
+      window.location.reload();
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+  };
+
+  if (!isAuthenticated) {
+    return null;
+  }
 
   return (
     <>
-      {/* Mobile Overlay */}
-      {isMobile && isOpen && (
+      {/* Mobile overlay */}
+      {isOpen && (
         <div 
-          className="fixed inset-0 z-40 mobile-overlay md:hidden" 
-          onClick={onClose}
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
+          onClick={() => setIsOpen(false)}
         />
       )}
-      
+
+      {/* Mobile menu button */}
+      <Button
+        variant="ghost"
+        size="sm"
+        className="fixed top-4 left-4 z-50 md:hidden"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+      </Button>
+
       {/* Sidebar */}
       <div className={cn(
-        "fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg flex flex-col transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0",
-        isMobile && !isOpen && "-translate-x-full",
-        isMobile && isOpen && "translate-x-0"
+        "fixed left-0 top-0 z-50 h-screen bg-background border-r border-border transition-transform duration-300 ease-in-out md:relative md:translate-x-0",
+        isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
+        isCollapsed ? "w-16" : "w-64"
       )}>
-      <div className="p-4 md:p-6 border-b border-gray-200">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            <div className="w-8 h-8 md:w-10 md:h-10 bg-primary rounded-lg flex items-center justify-center">
-              <Briefcase className="text-white text-sm md:text-lg" />
-            </div>
-            <h1 className="ml-2 md:ml-3 text-lg md:text-xl font-bold text-gray-900">Pro Field Manager</h1>
-          </div>
-          <div className="flex items-center gap-2">
-            {/* Team Messages Notification */}
-            <Link href="/internal-messages" className="relative">
-              <Button variant="ghost" size="sm" className="p-1 h-8 w-8">
-                <MessageCircle className="h-4 w-4 text-gray-600" />
-                {unreadTeamMessages > 0 && (
-                  <Badge 
-                    className="absolute -top-1 -right-1 h-4 w-4 text-xs p-0 flex items-center justify-center bg-red-500 text-white border-0 min-w-[16px]"
-                  >
-                    {unreadTeamMessages > 99 ? '99+' : unreadTeamMessages}
-                  </Badge>
-                )}
-              </Button>
-            </Link>
-            
-            {/* SMS Messages Notification */}
-            <Link href="/sms" className="relative">
-              <Button variant="ghost" size="sm" className="p-1 h-8 w-8">
-                <Smartphone className="h-4 w-4 text-gray-600" />
-                {unreadSmsMessages > 0 && (
-                  <Badge 
-                    className="absolute -top-1 -right-1 h-4 w-4 text-xs p-0 flex items-center justify-center bg-red-500 text-white border-0 min-w-[16px]"
-                  >
-                    {unreadSmsMessages > 99 ? '99+' : unreadSmsMessages}
-                  </Badge>
-                )}
-              </Button>
-            </Link>
-            
-            {isMobile && (
+        <div className="flex flex-col h-full">
+          {/* Header */}
+          <div className="p-4 border-b border-border">
+            <div className="flex items-center justify-between">
+              {!isCollapsed && (
+                <h2 className="text-lg font-semibold text-foreground">
+                  Pro Field Manager
+                </h2>
+              )}
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={onClose}
-                className="p-1 h-8 w-8"
+                onClick={() => setIsCollapsed(!isCollapsed)}
+                className="hidden md:flex"
               >
-                <X className="h-4 w-4" />
+                <Menu className="h-4 w-4" />
               </Button>
-            )}
-          </div>
-        </div>
-      </div>
-      
-      {/* User Info Section */}
-      {user && (
-        <div className="p-3 md:p-4 border-b border-gray-200">
-          <div className="flex items-center space-x-2 md:space-x-3">
-            <Avatar className="h-8 w-8 md:h-10 md:w-10">
-              <AvatarFallback className="bg-blue-100 text-blue-600 text-xs md:text-sm">
-                {getInitials(user.firstName, user.lastName, user.username)}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1 md:gap-2">
-                <p className="text-xs md:text-sm font-medium text-gray-900 truncate">
-                  {user.firstName && user.lastName 
-                    ? `${user.firstName} ${user.lastName}`
-                    : user.username
-                  }
-                </p>
-                {isAdmin && <Shield className="h-2.5 w-2.5 md:h-3 md:w-3 text-red-500" />}
-              </div>
-              <div className="flex items-center gap-1 md:gap-2 mt-0.5 md:mt-1">
-                <p className="text-xs text-gray-500 truncate">{user.email}</p>
-                {getRoleBadge(user.role)}
-              </div>
             </div>
           </div>
-        </div>
-      )}
-      
-      <nav className="flex-1 p-2 md:p-4 overflow-y-auto">
-        <ul className="space-y-1 md:space-y-2">
-          {filteredNavigation.map((item) => {
-            if (item.hasSubmenu) {
-              const isExpanded = expandedMenus.has(item.name) || 
-                               (item.name === "Expenses" && isExpensesActive) ||
-                               (item.name === "Admin Settings" && isAdminSettingsActive);
-              const isActiveMenu = (item.name === "Expenses" && isExpensesActive) ||
-                                 (item.name === "Admin Settings" && isAdminSettingsActive);
-              return (
-                <li key={item.name}>
-                  <button
-                    onClick={() => toggleMenu(item.name)}
-                    className={cn(
-                      "flex items-center justify-between w-full px-3 py-2 md:px-4 md:py-3 rounded-lg font-medium transition-colors text-sm md:text-base",
-                      isActiveMenu
-                        ? "text-primary bg-blue-50" 
-                        : "text-gray-700 hover:bg-gray-100"
-                    )}
-                  >
-                    <div className="flex items-center">
-                      <item.icon className="w-4 h-4 md:w-5 md:h-5 mr-2 md:mr-3" />
-                      {item.name}
-                    </div>
-                    {isExpanded ? (
-                      <ChevronDown className="w-3 h-3 md:w-4 md:h-4" />
-                    ) : (
-                      <ChevronRight className="w-3 h-3 md:w-4 md:h-4" />
-                    )}
-                  </button>
-                  {isExpanded && (
-                    <ul className="ml-6 md:ml-8 mt-1 md:mt-2 space-y-1">
-                      {item.items?.map((subItem) => (
-                        <li key={subItem.name}>
-                          <Link
-                            href={subItem.href}
-                            onClick={handleLinkClick}
+
+          {/* User info */}
+          <div className="p-4 border-b border-border">
+            <div className="flex items-center space-x-3">
+              <Avatar className="h-8 w-8">
+                <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+                  {user?.username?.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              {!isCollapsed && (
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">
+                    {user?.username}
+                  </p>
+                  <p className="text-xs text-muted-foreground capitalize">
+                    {user?.role}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Navigation */}
+          <nav className="flex-1 overflow-y-auto px-2 py-4">
+            <ul className="space-y-1">
+              {orderedItems.map((item) => {
+                if (item.adminOnly && user?.role !== "admin") return null;
+                if (item.permission && !hasPermission(item)) return null;
+
+                const isExpanded = expandedItems[item.name];
+                const hasSubItems = item.subItems && item.subItems.length > 0;
+                const isActive = isCurrentPath(item.href);
+
+                return (
+                  <li key={item.name}>
+                    <div className="relative">
+                      {!hasSubItems ? (
+                        <Link
+                          href={item.href}
+                          className={cn(
+                            "flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                            isActive
+                              ? "bg-primary text-primary-foreground"
+                              : "text-foreground hover:bg-muted hover:text-foreground"
+                          )}
+                          onClick={() => setIsOpen(false)}
+                        >
+                          <item.icon className="w-4 h-4 md:w-5 md:h-5 mr-2 md:mr-3" />
+                          {!isCollapsed && (
+                            <>
+                              {item.name}
+                              {item.name === "Team Messages" && item.unreadCount > 0 && (
+                                <Badge variant="destructive" className="ml-auto h-5 w-5 flex items-center justify-center p-0 text-xs">
+                                  {item.unreadCount > 99 ? "99+" : item.unreadCount}
+                                </Badge>
+                              )}
+                            </>
+                          )}
+                        </Link>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => toggleExpanded(item.name)}
                             className={cn(
-                              "flex items-center px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-medium transition-colors",
-                              isActiveItem(subItem.href)
-                                ? "text-primary bg-blue-50"
-                                : "text-gray-600 hover:bg-gray-100"
+                              "flex items-center w-full px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                              "text-foreground hover:bg-muted hover:text-foreground"
                             )}
                           >
-                            {subItem.name}
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </li>
-              );
-            } else {
-              const isActive = isActiveItem(item.href);
-              return (
-                <li key={item.name}>
-                  <Link 
-                    href={item.href}
-                    onClick={handleLinkClick}
-                    className={cn(
-                      "flex items-center px-3 py-2 md:px-4 md:py-3 rounded-lg font-medium transition-colors text-sm md:text-base",
-                      isActive 
-                        ? "text-primary bg-blue-50" 
-                        : "text-gray-700 hover:bg-gray-100"
-                    )}
-                  >
-                    <item.icon className="w-4 h-4 md:w-5 md:h-5 mr-2 md:mr-3" />
-                    {item.name}
-                  </Link>
-                </li>
-              );
-            }
-          })}
-        </ul>
-      </nav>
-      
-      {/* Logout Button */}
-      <div className="p-3 md:p-4 border-t border-gray-200">
-        <Button 
-          variant="ghost" 
-          className="w-full justify-start text-gray-600 hover:text-gray-900 text-sm md:text-base"
-          onClick={() => {
-            logout();
-            handleLinkClick();
-          }}
-        >
-          <LogOut className="mr-2 md:mr-3 h-4 w-4 md:h-5 md:w-5" />
-          Sign Out
-        </Button>
+                            <item.icon className="w-4 h-4 md:w-5 md:h-5 mr-2 md:mr-3" />
+                            {!isCollapsed && (
+                              <>
+                                <span className="flex-1 text-left">{item.name}</span>
+                                {isExpanded ? (
+                                  <ChevronDown className="w-4 h-4" />
+                                ) : (
+                                  <ChevronRight className="w-4 h-4" />
+                                )}
+                              </>
+                            )}
+                          </button>
+                          {isExpanded && !isCollapsed && item.subItems && (
+                            <ul className="mt-1 ml-6 space-y-1">
+                              {item.subItems.map((subItem) => (
+                                <li key={subItem.name}>
+                                  <Link
+                                    href={subItem.href}
+                                    className={cn(
+                                      "flex items-center px-3 py-2 text-sm rounded-md transition-colors",
+                                      isCurrentPath(subItem.href)
+                                        ? "bg-primary text-primary-foreground"
+                                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                                    )}
+                                    onClick={() => setIsOpen(false)}
+                                  >
+                                    <subItem.icon className="w-4 h-4 mr-2" />
+                                    {subItem.name}
+                                  </Link>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
+
+          {/* Footer */}
+          <div className="p-4 border-t border-border">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleLogout}
+              className="w-full justify-start"
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              {!isCollapsed && "Logout"}
+            </Button>
+          </div>
+        </div>
       </div>
-    </div>
     </>
   );
 }
