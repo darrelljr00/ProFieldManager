@@ -1035,6 +1035,76 @@ export const navigationOrder = pgTable("navigation_order", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Backup Settings and Jobs
+export const backupSettings = pgTable("backup_settings", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  
+  // Backup Configuration
+  isEnabled: boolean("is_enabled").default(true),
+  backupFrequency: text("backup_frequency").default("weekly"), // daily, weekly, monthly
+  backupTime: text("backup_time").default("02:00"), // HH:mm format
+  retentionDays: integer("retention_days").default(30), // How long to keep backups
+  
+  // What to include in backup
+  includeCustomers: boolean("include_customers").default(true),
+  includeProjects: boolean("include_projects").default(true),
+  includeInvoices: boolean("include_invoices").default(true),
+  includeExpenses: boolean("include_expenses").default(true),
+  includeFiles: boolean("include_files").default(false), // Files can be large
+  includeImages: boolean("include_images").default(false),
+  includeUsers: boolean("include_users").default(true),
+  includeSettings: boolean("include_settings").default(true),
+  includeMessages: boolean("include_messages").default(false),
+  
+  // Storage settings
+  storageLocation: text("storage_location").default("local"), // local, aws_s3, google_drive
+  awsS3Bucket: text("aws_s3_bucket"),
+  awsAccessKey: text("aws_access_key"),
+  awsSecretKey: text("aws_secret_key"),
+  awsRegion: text("aws_region").default("us-east-1"),
+  
+  // Email notifications
+  emailOnSuccess: boolean("email_on_success").default(false),
+  emailOnFailure: boolean("email_on_failure").default(true),
+  notificationEmails: text("notification_emails").array(),
+  
+  lastBackupAt: timestamp("last_backup_at"),
+  nextBackupAt: timestamp("next_backup_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const backupJobs = pgTable("backup_jobs", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  
+  // Job details
+  status: text("status").notNull().default("pending"), // pending, running, completed, failed
+  type: text("type").notNull().default("automatic"), // automatic, manual
+  
+  // Backup metadata
+  fileName: text("file_name"), // Generated backup file name
+  filePath: text("file_path"), // Where backup is stored
+  fileSize: integer("file_size"), // Size in bytes
+  recordCount: integer("record_count"), // Total records backed up
+  
+  // What was included
+  includedTables: text("included_tables").array(),
+  
+  // Timing
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  duration: integer("duration"), // Duration in seconds
+  
+  // Error handling
+  errorMessage: text("error_message"),
+  retryCount: integer("retry_count").default(0),
+  
+  createdBy: integer("created_by").references(() => users.id), // null for automatic
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Navigation Order insert schema
 export const insertNavigationOrderSchema = z.object({
   userId: z.number(),
@@ -1042,9 +1112,37 @@ export const insertNavigationOrderSchema = z.object({
   navigationItems: z.array(z.string()),
 });
 
+export const insertBackupSettingsSchema = z.object({
+  organizationId: z.number(),
+  isEnabled: z.boolean().default(true),
+  backupFrequency: z.enum(["daily", "weekly", "monthly"]).default("weekly"),
+  backupTime: z.string().default("02:00"),
+  retentionDays: z.number().min(1).max(365).default(30),
+  includeCustomers: z.boolean().default(true),
+  includeProjects: z.boolean().default(true),
+  includeInvoices: z.boolean().default(true),
+  includeExpenses: z.boolean().default(true),
+  includeFiles: z.boolean().default(false),
+  includeImages: z.boolean().default(false),
+  includeUsers: z.boolean().default(true),
+  includeSettings: z.boolean().default(true),
+  includeMessages: z.boolean().default(false),
+  storageLocation: z.enum(["local", "aws_s3", "google_drive"]).default("local"),
+  awsS3Bucket: z.string().optional(),
+  awsAccessKey: z.string().optional(),
+  awsSecretKey: z.string().optional(),
+  awsRegion: z.string().default("us-east-1"),
+  emailOnSuccess: z.boolean().default(false),
+  emailOnFailure: z.boolean().default(true),
+  notificationEmails: z.array(z.string().email()).default([]),
+});
+
 // Types
 export type NavigationOrder = typeof navigationOrder.$inferSelect;
 export type InsertNavigationOrder = z.infer<typeof insertNavigationOrderSchema>;
+export type BackupSettings = typeof backupSettings.$inferSelect;
+export type InsertBackupSettings = z.infer<typeof insertBackupSettingsSchema>;
+export type BackupJob = typeof backupJobs.$inferSelect;
 
 // Insert schemas
 export const insertUserSchema = z.object({

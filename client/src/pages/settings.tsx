@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Save, Eye, EyeOff, Upload, X } from "lucide-react";
+import { Save, Eye, EyeOff, Upload, X, Download, Database, Clock, AlertTriangle } from "lucide-react";
 import { InvoicePreview } from "@/components/InvoicePreview";
 
 type PaymentSettings = {
@@ -131,6 +131,55 @@ type WeatherSettings = {
   apiKey: string;
 };
 
+type BackupSettings = {
+  id: number;
+  organizationId: number;
+  isEnabled: boolean;
+  backupFrequency: string;
+  backupTime: string;
+  retentionDays: number;
+  includeCustomers: boolean;
+  includeProjects: boolean;
+  includeInvoices: boolean;
+  includeExpenses: boolean;
+  includeFiles: boolean;
+  includeImages: boolean;
+  includeUsers: boolean;
+  includeSettings: boolean;
+  includeMessages: boolean;
+  storageLocation: string;
+  awsS3Bucket?: string;
+  awsAccessKey?: string;
+  awsSecretKey?: string;
+  awsRegion: string;
+  emailOnSuccess: boolean;
+  emailOnFailure: boolean;
+  notificationEmails: string[];
+  lastBackupAt?: string;
+  nextBackupAt?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type BackupJob = {
+  id: number;
+  organizationId: number;
+  status: string;
+  type: string;
+  fileName?: string;
+  filePath?: string;
+  fileSize?: number;
+  recordCount?: number;
+  includedTables?: string[];
+  startedAt?: string;
+  completedAt?: string;
+  duration?: number;
+  errorMessage?: string;
+  retryCount: number;
+  createdBy?: number;
+  createdAt: string;
+};
+
 export default function Settings() {
   const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -176,6 +225,14 @@ export default function Settings() {
 
   const { data: weatherSettings, isLoading: weatherLoading } = useQuery<WeatherSettings>({
     queryKey: ["/api/settings/weather"],
+  });
+
+  const { data: backupSettings, isLoading: backupLoading } = useQuery<BackupSettings>({
+    queryKey: ["/api/backup/settings"],
+  });
+
+  const { data: backupJobs, isLoading: backupJobsLoading } = useQuery<BackupJob[]>({
+    queryKey: ["/api/backup/jobs"],
   });
 
   // Get organization users for admin dashboard management
@@ -416,6 +473,44 @@ export default function Settings() {
       toast({
         title: "Error",
         description: error.message || "Failed to save weather settings",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const backupSettingsMutation = useMutation({
+    mutationFn: (data: Partial<BackupSettings>) =>
+      apiRequest("PUT", "/api/backup/settings", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/backup/settings"] });
+      toast({
+        title: "Success",
+        description: "Backup settings saved successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save backup settings",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const createBackupMutation = useMutation({
+    mutationFn: (options: any) =>
+      apiRequest("POST", "/api/backup/create", options),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/backup/jobs"] });
+      toast({
+        title: "Backup Started",
+        description: "Backup process has been initiated. Check the jobs list for progress.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create backup",
         variant: "destructive",
       });
     },
@@ -696,7 +791,7 @@ export default function Settings() {
       </div>
 
       <Tabs defaultValue="payment" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-11">
+        <TabsList className="grid w-full grid-cols-12">
           <TabsTrigger value="payment">Payment Processing</TabsTrigger>
           <TabsTrigger value="company">Company Info</TabsTrigger>
           <TabsTrigger value="email">Email Settings</TabsTrigger>
@@ -707,6 +802,7 @@ export default function Settings() {
           <TabsTrigger value="invoices">Invoice Templates</TabsTrigger>
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="weather">Weather</TabsTrigger>
+          <TabsTrigger value="backup">Backup</TabsTrigger>
           <TabsTrigger value="navigation">Navigation Access</TabsTrigger>
         </TabsList>
 
@@ -2683,6 +2779,444 @@ export default function Settings() {
                     </Button>
                   </div>
                 </form>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="backup">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Database className="w-5 h-5" />
+                Backup & Recovery Settings
+              </CardTitle>
+              <CardDescription>
+                Configure automated backups and manage data recovery options
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {backupLoading ? (
+                <div className="flex items-center justify-center h-32">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+              ) : (
+                <div className="space-y-8">
+                  {/* Backup Settings Form */}
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      const formData = new FormData(e.target as HTMLFormElement);
+                      const settings = {
+                        isEnabled: formData.get("isEnabled") === "on",
+                        backupFrequency: formData.get("backupFrequency") as string,
+                        backupTime: formData.get("backupTime") as string,
+                        retentionDays: parseInt(formData.get("retentionDays") as string),
+                        includeCustomers: formData.get("includeCustomers") === "on",
+                        includeProjects: formData.get("includeProjects") === "on",
+                        includeInvoices: formData.get("includeInvoices") === "on",
+                        includeExpenses: formData.get("includeExpenses") === "on",
+                        includeFiles: formData.get("includeFiles") === "on",
+                        includeImages: formData.get("includeImages") === "on",
+                        includeUsers: formData.get("includeUsers") === "on",
+                        includeSettings: formData.get("includeSettings") === "on",
+                        includeMessages: formData.get("includeMessages") === "on",
+                        storageLocation: formData.get("storageLocation") as string,
+                        awsS3Bucket: formData.get("awsS3Bucket") as string,
+                        awsAccessKey: formData.get("awsAccessKey") as string,
+                        awsSecretKey: formData.get("awsSecretKey") as string,
+                        awsRegion: formData.get("awsRegion") as string,
+                        emailOnSuccess: formData.get("emailOnSuccess") === "on",
+                        emailOnFailure: formData.get("emailOnFailure") === "on",
+                        notificationEmails: (formData.get("notificationEmails") as string).split(',').map(e => e.trim()).filter(e => e)
+                      };
+                      backupSettingsMutation.mutate(settings);
+                    }}
+                    className="space-y-6"
+                  >
+                    {/* Basic Settings */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-medium">Basic Settings</h3>
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="isEnabled">Enable Automated Backups</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Automatically create backups based on the schedule below
+                          </p>
+                        </div>
+                        <Switch
+                          id="isEnabled"
+                          name="isEnabled"
+                          defaultChecked={backupSettings?.isEnabled ?? true}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-4">
+                        <div>
+                          <Label htmlFor="backupFrequency">Backup Frequency</Label>
+                          <Select name="backupFrequency" defaultValue={backupSettings?.backupFrequency || "weekly"}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select frequency" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="daily">Daily</SelectItem>
+                              <SelectItem value="weekly">Weekly</SelectItem>
+                              <SelectItem value="monthly">Monthly</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="backupTime">Backup Time</Label>
+                          <Input
+                            id="backupTime"
+                            name="backupTime"
+                            type="time"
+                            defaultValue={backupSettings?.backupTime || "02:00"}
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="retentionDays">Retention (Days)</Label>
+                          <Input
+                            id="retentionDays"
+                            name="retentionDays"
+                            type="number"
+                            min="1"
+                            max="365"
+                            defaultValue={backupSettings?.retentionDays || 30}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    {/* Data Selection */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-medium">Data to Include</h3>
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="flex items-center space-x-2">
+                          <Switch
+                            id="includeCustomers"
+                            name="includeCustomers"
+                            defaultChecked={backupSettings?.includeCustomers ?? true}
+                          />
+                          <Label htmlFor="includeCustomers">Customers</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Switch
+                            id="includeProjects"
+                            name="includeProjects"
+                            defaultChecked={backupSettings?.includeProjects ?? true}
+                          />
+                          <Label htmlFor="includeProjects">Projects</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Switch
+                            id="includeInvoices"
+                            name="includeInvoices"
+                            defaultChecked={backupSettings?.includeInvoices ?? true}
+                          />
+                          <Label htmlFor="includeInvoices">Invoices</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Switch
+                            id="includeExpenses"
+                            name="includeExpenses"
+                            defaultChecked={backupSettings?.includeExpenses ?? true}
+                          />
+                          <Label htmlFor="includeExpenses">Expenses</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Switch
+                            id="includeUsers"
+                            name="includeUsers"
+                            defaultChecked={backupSettings?.includeUsers ?? true}
+                          />
+                          <Label htmlFor="includeUsers">Users</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Switch
+                            id="includeSettings"
+                            name="includeSettings"
+                            defaultChecked={backupSettings?.includeSettings ?? true}
+                          />
+                          <Label htmlFor="includeSettings">Settings</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Switch
+                            id="includeFiles"
+                            name="includeFiles"
+                            defaultChecked={backupSettings?.includeFiles ?? false}
+                          />
+                          <Label htmlFor="includeFiles">Files</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Switch
+                            id="includeImages"
+                            name="includeImages"
+                            defaultChecked={backupSettings?.includeImages ?? false}
+                          />
+                          <Label htmlFor="includeImages">Images</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Switch
+                            id="includeMessages"
+                            name="includeMessages"
+                            defaultChecked={backupSettings?.includeMessages ?? false}
+                          />
+                          <Label htmlFor="includeMessages">Messages</Label>
+                        </div>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    {/* Storage Location */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-medium">Storage Configuration</h3>
+                      
+                      <div>
+                        <Label htmlFor="storageLocation">Storage Location</Label>
+                        <Select name="storageLocation" defaultValue={backupSettings?.storageLocation || "local"}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select storage location" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="local">Local Storage</SelectItem>
+                            <SelectItem value="aws_s3">AWS S3</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      {/* AWS S3 Settings - shown conditionally based on storage location */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="awsS3Bucket">S3 Bucket Name</Label>
+                          <Input
+                            id="awsS3Bucket"
+                            name="awsS3Bucket"
+                            placeholder="my-backup-bucket"
+                            defaultValue={backupSettings?.awsS3Bucket || ""}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="awsRegion">AWS Region</Label>
+                          <Input
+                            id="awsRegion"
+                            name="awsRegion"
+                            placeholder="us-east-1"
+                            defaultValue={backupSettings?.awsRegion || "us-east-1"}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="awsAccessKey">AWS Access Key</Label>
+                          <div className="relative">
+                            <Input
+                              id="awsAccessKey"
+                              name="awsAccessKey"
+                              type={showSecrets.awsAccessKey ? "text" : "password"}
+                              placeholder="AKIAIOSFODNN7EXAMPLE"
+                              defaultValue={backupSettings?.awsAccessKey || ""}
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="absolute right-1 top-1/2 -translate-y-1/2"
+                              onClick={() => toggleSecretVisibility('awsAccessKey')}
+                            >
+                              {showSecrets.awsAccessKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </Button>
+                          </div>
+                        </div>
+                        <div>
+                          <Label htmlFor="awsSecretKey">AWS Secret Key</Label>
+                          <div className="relative">
+                            <Input
+                              id="awsSecretKey"
+                              name="awsSecretKey"
+                              type={showSecrets.awsSecretKey ? "text" : "password"}
+                              placeholder="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+                              defaultValue={backupSettings?.awsSecretKey || ""}
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="absolute right-1 top-1/2 -translate-y-1/2"
+                              onClick={() => toggleSecretVisibility('awsSecretKey')}
+                            >
+                              {showSecrets.awsSecretKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    {/* Notification Settings */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-medium">Notifications</h3>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="flex items-center space-x-2">
+                          <Switch
+                            id="emailOnSuccess"
+                            name="emailOnSuccess"
+                            defaultChecked={backupSettings?.emailOnSuccess ?? false}
+                          />
+                          <Label htmlFor="emailOnSuccess">Email on Backup Success</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Switch
+                            id="emailOnFailure"
+                            name="emailOnFailure"
+                            defaultChecked={backupSettings?.emailOnFailure ?? true}
+                          />
+                          <Label htmlFor="emailOnFailure">Email on Backup Failure</Label>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="notificationEmails">Notification Email Addresses</Label>
+                        <Input
+                          id="notificationEmails"
+                          name="notificationEmails"
+                          placeholder="admin@company.com, backup@company.com"
+                          defaultValue={backupSettings?.notificationEmails?.join(', ') || ""}
+                        />
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Enter email addresses separated by commas
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end">
+                      <Button
+                        type="submit"
+                        disabled={backupSettingsMutation.isPending}
+                      >
+                        <Save className="w-4 h-4 mr-2" />
+                        {backupSettingsMutation.isPending ? "Saving..." : "Save Backup Settings"}
+                      </Button>
+                    </div>
+                  </form>
+
+                  <Separator />
+
+                  {/* Manual Backup and Job History */}
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-lg font-medium">Manual Backup</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Create an immediate backup of your data
+                        </p>
+                      </div>
+                      <Button
+                        onClick={() => {
+                          createBackupMutation.mutate({
+                            type: 'manual',
+                            includeFiles: true,
+                            includeImages: true
+                          });
+                        }}
+                        disabled={createBackupMutation.isPending}
+                      >
+                        <Database className="w-4 h-4 mr-2" />
+                        {createBackupMutation.isPending ? "Creating..." : "Create Backup Now"}
+                      </Button>
+                    </div>
+
+                    {/* Backup Job History */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-medium">Recent Backup Jobs</h3>
+                      
+                      {backupJobsLoading ? (
+                        <div className="flex items-center justify-center h-32">
+                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                        </div>
+                      ) : (
+                        <div className="border rounded-lg">
+                          <div className="max-h-96 overflow-y-auto">
+                            {backupJobs && backupJobs.length > 0 ? (
+                              <div className="divide-y">
+                                {backupJobs.map((job) => (
+                                  <div key={job.id} className="p-4 flex items-center justify-between">
+                                    <div className="flex items-center space-x-3">
+                                      <div className={`w-2 h-2 rounded-full ${
+                                        job.status === 'completed' ? 'bg-green-500' :
+                                        job.status === 'failed' ? 'bg-red-500' :
+                                        job.status === 'running' ? 'bg-blue-500 animate-pulse' :
+                                        'bg-gray-400'
+                                      }`} />
+                                      <div>
+                                        <div className="flex items-center space-x-2">
+                                          <span className="font-medium">{job.type} Backup</span>
+                                          <span className={`px-2 py-1 text-xs rounded-full ${
+                                            job.status === 'completed' ? 'bg-green-100 text-green-800' :
+                                            job.status === 'failed' ? 'bg-red-100 text-red-800' :
+                                            job.status === 'running' ? 'bg-blue-100 text-blue-800' :
+                                            'bg-gray-100 text-gray-800'
+                                          }`}>
+                                            {job.status}
+                                          </span>
+                                        </div>
+                                        <div className="text-sm text-muted-foreground">
+                                          {job.startedAt && (
+                                            <span className="flex items-center space-x-1">
+                                              <Clock className="w-3 h-3" />
+                                              <span>{new Date(job.startedAt).toLocaleString()}</span>
+                                              {job.duration && <span>({job.duration}s)</span>}
+                                            </span>
+                                          )}
+                                          {job.recordCount && (
+                                            <span className="text-xs">
+                                              {job.recordCount} records • {job.fileSize ? `${(job.fileSize / 1024 / 1024).toFixed(1)} MB` : 'Size unknown'}
+                                            </span>
+                                          )}
+                                        </div>
+                                        {job.errorMessage && (
+                                          <div className="flex items-center space-x-1 text-sm text-red-600 mt-1">
+                                            <AlertTriangle className="w-3 h-3" />
+                                            <span>{job.errorMessage}</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                    
+                                    {job.status === 'completed' && job.filePath && (
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => {
+                                          window.open(`/api/backup/download/${job.id}`, '_blank');
+                                        }}
+                                      >
+                                        <Download className="w-4 h-4 mr-1" />
+                                        Download
+                                      </Button>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="p-8 text-center text-muted-foreground">
+                                <Database className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                                <p>No backup jobs found</p>
+                                <p className="text-sm">Create your first backup using the button above</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
               )}
             </CardContent>
           </Card>

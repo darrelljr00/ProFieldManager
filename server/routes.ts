@@ -4358,6 +4358,109 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Backup API endpoints
+  app.get("/api/backup/settings", requireAuth, async (req, res) => {
+    try {
+      const organizationId = req.user!.organizationId;
+      
+      let settings = await storage.getBackupSettings(organizationId);
+      
+      // Create default settings if none exist
+      if (!settings) {
+        settings = await storage.createBackupSettings({
+          organizationId,
+          isEnabled: true,
+          backupFrequency: 'weekly',
+          backupTime: '02:00',
+          retentionDays: 30,
+          includeCustomers: true,
+          includeProjects: true,
+          includeInvoices: true,
+          includeExpenses: true,
+          includeFiles: false,
+          includeImages: false,
+          includeUsers: true,
+          includeSettings: true,
+          includeMessages: false,
+          storageLocation: 'local',
+          awsRegion: 'us-east-1',
+          emailOnSuccess: false,
+          emailOnFailure: true,
+          notificationEmails: []
+        });
+      }
+      
+      res.json(settings);
+    } catch (error: any) {
+      console.error("Error fetching backup settings:", error);
+      res.status(500).json({ message: "Failed to fetch backup settings" });
+    }
+  });
+
+  app.put("/api/backup/settings", requireAuth, async (req, res) => {
+    try {
+      const organizationId = req.user!.organizationId;
+      const updates = req.body;
+      
+      const settings = await storage.updateBackupSettings(organizationId, updates);
+      res.json(settings);
+    } catch (error: any) {
+      console.error("Error updating backup settings:", error);
+      res.status(500).json({ message: "Failed to update backup settings" });
+    }
+  });
+
+  app.get("/api/backup/jobs", requireAuth, async (req, res) => {
+    try {
+      const organizationId = req.user!.organizationId;
+      const limit = parseInt(req.query.limit as string) || 20;
+      
+      const jobs = await storage.getBackupJobs(organizationId, limit);
+      res.json(jobs);
+    } catch (error: any) {
+      console.error("Error fetching backup jobs:", error);
+      res.status(500).json({ message: "Failed to fetch backup jobs" });
+    }
+  });
+
+  app.post("/api/backup/create", requireAuth, async (req, res) => {
+    try {
+      const organizationId = req.user!.organizationId;
+      const userId = req.user!.id;
+      const options = req.body;
+      
+      const job = await storage.createManualBackup(organizationId, userId, options);
+      res.json(job);
+    } catch (error: any) {
+      console.error("Error creating backup:", error);
+      res.status(500).json({ message: "Failed to create backup" });
+    }
+  });
+
+  app.get("/api/backup/download/:jobId", requireAuth, async (req, res) => {
+    try {
+      const jobId = parseInt(req.params.jobId);
+      const organizationId = req.user!.organizationId;
+      
+      const jobs = await storage.getBackupJobs(organizationId, 100);
+      const job = jobs.find(j => j.id === jobId);
+      
+      if (!job || job.status !== 'completed' || !job.filePath) {
+        return res.status(404).json({ message: "Backup file not found" });
+      }
+      
+      const fs = require('fs');
+      if (!fs.existsSync(job.filePath)) {
+        return res.status(404).json({ message: "Backup file not found on disk" });
+      }
+      
+      res.download(job.filePath, job.fileName || 'backup.json');
+    } catch (error: any) {
+      console.error("Error downloading backup:", error);
+      res.status(500).json({ message: "Failed to download backup" });
+    }
+  });
+
   // Leads API
   app.get("/api/leads", requireAuth, async (req, res) => {
     try {

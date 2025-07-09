@@ -10,7 +10,7 @@ import {
   inspectionTemplates, inspectionItems, inspectionRecords, inspectionResponses, inspectionNotifications,
   smsMessages, smsTemplates, sharedPhotoLinks, fileSecuritySettings, fileSecurityScans, fileAccessLogs,
   digitalSignatures, departments, employees, employeeDocuments, timeOffRequests, performanceReviews, disciplinaryActions,
-  navigationOrder
+  navigationOrder, backupSettings, backupJobs
 } from "@shared/schema";
 import type { GasCard, InsertGasCard, GasCardAssignment, InsertGasCardAssignment, GasCardUsage, InsertGasCardUsage, GasCardProvider, InsertGasCardProvider } from "@shared/schema";
 import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull, isNull } from "drizzle-orm";
@@ -19,7 +19,7 @@ import type {
   Expense, ExpenseCategory, ExpenseReport, GasCard,
   Lead, CalendarJob, Message, Organization, Department,
   Employee, TimeOffRequest, PerformanceReview, DisciplinaryAction,
-  NavigationOrder, InsertNavigationOrder
+  NavigationOrder, InsertNavigationOrder, BackupSettings, BackupJob
 } from "@shared/schema";
 
 export interface IStorage {
@@ -297,6 +297,15 @@ export interface IStorage {
   getPerformanceReviews(organizationId: number, employeeId?: number): Promise<PerformanceReview[]>;
   createPerformanceReview(reviewData: any): Promise<PerformanceReview>;
   updatePerformanceReview(id: number, updates: any): Promise<PerformanceReview>;
+  
+  // Backup methods
+  getBackupSettings(organizationId: number): Promise<BackupSettings | undefined>;
+  createBackupSettings(settingsData: any): Promise<BackupSettings>;
+  updateBackupSettings(organizationId: number, updates: any): Promise<BackupSettings>;
+  getBackupJobs(organizationId: number, limit?: number): Promise<BackupJob[]>;
+  createBackupJob(jobData: any): Promise<BackupJob>;
+  updateBackupJob(id: number, updates: any): Promise<BackupJob>;
+  createManualBackup(organizationId: number, userId: number, options: any): Promise<any>;
   
   // Disciplinary action methods
   getDisciplinaryActions(organizationId: number, employeeId?: number): Promise<DisciplinaryAction[]>;
@@ -4108,6 +4117,242 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error resetting navigation order:', error);
       return false;
+    }
+  }
+
+  // Backup methods
+  async getBackupSettings(organizationId: number): Promise<BackupSettings | undefined> {
+    try {
+      const [settings] = await db
+        .select()
+        .from(backupSettings)
+        .where(eq(backupSettings.organizationId, organizationId));
+      
+      return settings || undefined;
+    } catch (error) {
+      console.error('Error getting backup settings:', error);
+      throw error;
+    }
+  }
+
+  async createBackupSettings(settingsData: any): Promise<BackupSettings> {
+    try {
+      const [settings] = await db
+        .insert(backupSettings)
+        .values(settingsData)
+        .returning();
+      
+      return settings;
+    } catch (error) {
+      console.error('Error creating backup settings:', error);
+      throw error;
+    }
+  }
+
+  async updateBackupSettings(organizationId: number, updates: any): Promise<BackupSettings> {
+    try {
+      const [settings] = await db
+        .update(backupSettings)
+        .set({
+          ...updates,
+          updatedAt: new Date()
+        })
+        .where(eq(backupSettings.organizationId, organizationId))
+        .returning();
+      
+      return settings;
+    } catch (error) {
+      console.error('Error updating backup settings:', error);
+      throw error;
+    }
+  }
+
+  async getBackupJobs(organizationId: number, limit: number = 20): Promise<BackupJob[]> {
+    try {
+      const jobs = await db
+        .select()
+        .from(backupJobs)
+        .where(eq(backupJobs.organizationId, organizationId))
+        .orderBy(desc(backupJobs.createdAt))
+        .limit(limit);
+      
+      return jobs;
+    } catch (error) {
+      console.error('Error getting backup jobs:', error);
+      throw error;
+    }
+  }
+
+  async createBackupJob(jobData: any): Promise<BackupJob> {
+    try {
+      const [job] = await db
+        .insert(backupJobs)
+        .values(jobData)
+        .returning();
+      
+      return job;
+    } catch (error) {
+      console.error('Error creating backup job:', error);
+      throw error;
+    }
+  }
+
+  async updateBackupJob(id: number, updates: any): Promise<BackupJob> {
+    try {
+      const [job] = await db
+        .update(backupJobs)
+        .set({
+          ...updates,
+          updatedAt: new Date()
+        })
+        .where(eq(backupJobs.id, id))
+        .returning();
+      
+      return job;
+    } catch (error) {
+      console.error('Error updating backup job:', error);
+      throw error;
+    }
+  }
+
+  async createManualBackup(organizationId: number, userId: number, options: any): Promise<any> {
+    try {
+      // Create backup job record
+      const job = await this.createBackupJob({
+        organizationId,
+        status: 'running',
+        type: 'manual',
+        createdBy: userId,
+        startedAt: new Date(),
+        includedTables: options.includedTables || []
+      });
+
+      // Start backup process in background
+      this.processBackup(job.id, organizationId, options).catch(error => {
+        console.error('Backup process failed:', error);
+        this.updateBackupJob(job.id, {
+          status: 'failed',
+          errorMessage: error.message,
+          completedAt: new Date()
+        });
+      });
+
+      return job;
+    } catch (error) {
+      console.error('Error creating manual backup:', error);
+      throw error;
+    }
+  }
+
+  private async processBackup(jobId: number, organizationId: number, options: any): Promise<void> {
+    const startTime = Date.now();
+    let recordCount = 0;
+    const includedTables: string[] = [];
+    const backupData: any = {};
+
+    try {
+      // Include different data types based on options
+      if (options.includeCustomers) {
+        const customers = await db.select().from(customers).where(eq(customers.organizationId, organizationId));
+        backupData.customers = customers;
+        recordCount += customers.length;
+        includedTables.push('customers');
+      }
+
+      if (options.includeProjects) {
+        const projects = await db.select().from(projects).where(eq(projects.organizationId, organizationId));
+        backupData.projects = projects;
+        recordCount += projects.length;
+        includedTables.push('projects');
+      }
+
+      if (options.includeInvoices) {
+        const invoices = await db.select().from(invoices).where(eq(invoices.organizationId, organizationId));
+        backupData.invoices = invoices;
+        recordCount += invoices.length;
+        includedTables.push('invoices');
+      }
+
+      if (options.includeExpenses) {
+        const expenses = await db.select().from(expenses).where(eq(expenses.organizationId, organizationId));
+        backupData.expenses = expenses;
+        recordCount += expenses.length;
+        includedTables.push('expenses');
+      }
+
+      if (options.includeUsers) {
+        const users = await db.select().from(users).where(eq(users.organizationId, organizationId));
+        backupData.users = users.map(user => ({ ...user, password: '[REDACTED]' })); // Don't backup passwords
+        recordCount += users.length;
+        includedTables.push('users');
+      }
+
+      if (options.includeSettings) {
+        const settings = await db.select().from(settings).where(eq(settings.organizationId, organizationId));
+        backupData.settings = settings;
+        recordCount += settings.length;
+        includedTables.push('settings');
+      }
+
+      if (options.includeMessages) {
+        const messages = await db.select().from(internalMessages).where(eq(internalMessages.organizationId, organizationId));
+        backupData.messages = messages;
+        recordCount += messages.length;
+        includedTables.push('messages');
+      }
+
+      // Generate backup file
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const fileName = `backup-org-${organizationId}-${timestamp}.json`;
+      const filePath = `./backups/${fileName}`;
+      
+      // Create backups directory if it doesn't exist
+      const fs = require('fs');
+      const path = require('path');
+      const backupDir = './backups';
+      if (!fs.existsSync(backupDir)) {
+        fs.mkdirSync(backupDir, { recursive: true });
+      }
+
+      // Add metadata to backup
+      const backupWithMetadata = {
+        metadata: {
+          organizationId,
+          backupDate: new Date().toISOString(),
+          version: '1.0',
+          includedTables,
+          recordCount
+        },
+        data: backupData
+      };
+
+      // Write backup file
+      fs.writeFileSync(filePath, JSON.stringify(backupWithMetadata, null, 2));
+      
+      const fileSize = fs.statSync(filePath).size;
+      const duration = Math.round((Date.now() - startTime) / 1000);
+
+      // Update job as completed
+      await this.updateBackupJob(jobId, {
+        status: 'completed',
+        fileName,
+        filePath,
+        fileSize,
+        recordCount,
+        includedTables,
+        duration,
+        completedAt: new Date()
+      });
+
+    } catch (error) {
+      const duration = Math.round((Date.now() - startTime) / 1000);
+      await this.updateBackupJob(jobId, {
+        status: 'failed',
+        errorMessage: error.message,
+        duration,
+        completedAt: new Date()
+      });
+      throw error;
     }
   }
 }
