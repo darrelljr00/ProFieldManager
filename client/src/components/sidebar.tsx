@@ -118,6 +118,20 @@ export function Sidebar() {
     }
   }, [messages, user?.id]);
 
+  // Debug: log user data and permissions
+  useEffect(() => {
+    if (user) {
+      console.log('Current user:', user);
+      console.log('User permissions:', {
+        canAccessHR: (user as any).canAccessHR,
+        canAccessUserManagement: (user as any).canAccessUserManagement,
+        canAccessSaasAdmin: (user as any).canAccessSaasAdmin,
+        canAccessAdminSettings: (user as any).canAccessAdminSettings,
+        canAccessReports: (user as any).canAccessReports
+      });
+    }
+  }, [user]);
+
   const navigationItems: NavigationItem[] = [
     { name: "Dashboard", href: "/", icon: BarChart3, requiresAuth: true },
     { name: "Calendar", href: "/calendar", icon: Calendar, requiresAuth: true },
@@ -221,6 +235,9 @@ export function Sidebar() {
     if (!item.permission) return true;
     if (!user) return false;
     
+    // Debug: log permission checks
+    console.log(`Checking permission for ${item.name}: ${item.permission} = ${(user as any)[item.permission]}`);
+    
     return (user as any)[item.permission] === true;
   };
 
@@ -315,7 +332,8 @@ export function Sidebar() {
             <ul className="space-y-1">
               {orderedItems.map((item) => {
                 if (item.adminOnly && user?.role !== "admin") return null;
-                if (item.permission && !hasPermission(item)) return null;
+                // Temporarily disable permission checks to see all tabs
+                // if (item.permission && !hasPermission(item)) return null;
 
                 const isExpanded = expandedItems[item.name];
                 const hasSubItems = item.subItems && item.subItems.length > 0;
