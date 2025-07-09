@@ -13,7 +13,7 @@ import {
   navigationOrder, backupSettings, backupJobs
 } from "@shared/schema";
 import type { GasCard, InsertGasCard, GasCardAssignment, InsertGasCardAssignment, GasCardUsage, InsertGasCardUsage, GasCardProvider, InsertGasCardProvider } from "@shared/schema";
-import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull, isNull } from "drizzle-orm";
+import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull, isNull, exists } from "drizzle-orm";
 import type { 
   User, Customer, Invoice, Quote, Project, Task, 
   Expense, ExpenseCategory, ExpenseReport, GasCard,
@@ -2657,6 +2657,42 @@ export class DatabaseStorage implements IStorage {
       const userInfo = await this.getUser(userId);
       if (!userInfo) return [];
 
+      let whereCondition;
+      
+      // If user is admin, show all messages within their organization
+      if (userInfo.role === 'admin') {
+        // For admins, get all messages where sender or any recipient is in the same organization
+        whereCondition = and(
+          or(
+            // Messages sent by users in the same organization
+            exists(
+              db.select()
+                .from(users)
+                .where(and(
+                  eq(users.id, internalMessages.senderId),
+                  eq(users.organizationId, userInfo.organizationId)
+                ))
+            ),
+            // Messages received by users in the same organization
+            exists(
+              db.select()
+                .from(internalMessageRecipients)
+                .innerJoin(users, eq(internalMessageRecipients.recipientId, users.id))
+                .where(and(
+                  eq(internalMessageRecipients.messageId, internalMessages.id),
+                  eq(users.organizationId, userInfo.organizationId)
+                ))
+            )
+          )
+        );
+      } else {
+        // For regular users, only show messages they sent or received
+        whereCondition = or(
+          eq(internalMessages.senderId, userId),
+          eq(internalMessageRecipients.recipientId, userId)
+        );
+      }
+
       const messagesWithRecipients = await db
         .select({
           id: internalMessages.id,
@@ -2680,12 +2716,7 @@ export class DatabaseStorage implements IStorage {
         .from(internalMessages)
         .innerJoin(users, eq(internalMessages.senderId, users.id))
         .leftJoin(internalMessageRecipients, eq(internalMessages.id, internalMessageRecipients.messageId))
-        .where(
-          or(
-            eq(internalMessages.senderId, userId),
-            eq(internalMessageRecipients.recipientId, userId)
-          )
-        )
+        .where(whereCondition)
         .groupBy(
           internalMessages.id,
           internalMessages.senderId,
