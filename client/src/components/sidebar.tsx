@@ -331,8 +331,8 @@ export function Sidebar() {
     { name: "Invoices", href: "/invoices", icon: FileText, requiresAuth: true },
     { name: "Customers", href: "/customers", icon: Users, requiresAuth: true },
     { name: "Payments", href: "/payments", icon: CreditCard, requiresAuth: true },
-    { name: "File Manager", href: "/files", icon: FolderOpen, requiresAuth: true },
-    { name: "Form Builder", href: "/forms", icon: ClipboardList, requiresAuth: true },
+    { name: "File Manager", href: "/file-manager", icon: FolderOpen, requiresAuth: true },
+    { name: "Form Builder", href: "/form-builder", icon: ClipboardList, requiresAuth: true },
     { 
       name: "Team Messages", 
       href: "/internal-messages", 
@@ -344,7 +344,7 @@ export function Sidebar() {
     { name: "SMS", href: "/sms", icon: Smartphone, requiresAuth: true },
     { name: "GPS Tracking", href: "/gps-tracking", icon: MapPin, requiresAuth: true },
     { name: "Reviews", href: "/reviews", icon: Star, requiresAuth: true },
-    { name: "Human Resources", href: "/hr", icon: User, requiresAuth: true, permission: "canAccessHR" },
+    { name: "Human Resources", href: "/human-resources", icon: User, requiresAuth: true, permission: "canAccessHR" },
     { name: "User Management", href: "/users", icon: UserCog, requiresAuth: true, permission: "canAccessUserManagement" },
     { name: "SaaS Admin", href: "/saas-admin", icon: Server, requiresAuth: true, permission: "canAccessSaasAdmin" },
     {
