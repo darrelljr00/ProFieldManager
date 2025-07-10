@@ -3065,11 +3065,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get project settings to check if timestamp overlay is enabled
       const project = await storage.getProjectById(projectId);
+      console.log('=== TIMESTAMP DEBUG ===');
+      console.log('Project ID:', projectId);
+      console.log('Project settings:', {
+        enableImageTimestamp: project?.enableImageTimestamp,
+        timestampFormat: project?.timestampFormat,
+        timestampPosition: project?.timestampPosition,
+        includeGpsCoords: project?.includeGpsCoords
+      });
+      console.log('File MIME type:', req.file.mimetype);
+      console.log('Is image?', req.file.mimetype.startsWith('image/'));
+      
       let finalFilePath = req.file.path;
       let finalFilename = req.file.filename;
 
       // Apply timestamp overlay if it's an image and project has timestamp enabled
       if (req.file.mimetype.startsWith('image/') && project?.enableImageTimestamp) {
+        console.log('Applying timestamp overlay...');
         try {
           const timestampOptions: TimestampOptions = {
             enableTimestamp: true,
@@ -3091,9 +3103,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Use the timestamped image
             finalFilePath = timestampedPath;
             finalFilename = timestampedFilename;
-            console.log('Timestamp overlay applied successfully to:', finalFilename);
+            console.log('✅ Timestamp overlay applied successfully to:', finalFilename);
+            console.log('Final file path:', finalFilePath);
           } else {
-            console.warn('Failed to apply timestamp overlay:', result.error);
+            console.warn('❌ Failed to apply timestamp overlay:', result.error);
+            console.log('Using original file instead');
             // Continue with original file
           }
         } catch (timestampError) {
