@@ -229,7 +229,7 @@ const DEFAULT_NAVIGATION_ORDER = [
 ];
 
 export function Sidebar() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
   const [location] = useLocation();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [expandedItems, setExpandedItems] = useState<{[key: string]: boolean}>({});
@@ -448,13 +448,8 @@ export function Sidebar() {
     return false;
   };
 
-  const handleLogout = async () => {
-    try {
-      await apiRequest("/api/auth/logout", { method: "POST" });
-      window.location.reload();
-    } catch (error) {
-      console.error("Logout failed:", error);
-    }
+  const handleLogout = () => {
+    logout();
   };
 
   if (!isAuthenticated) {
