@@ -1417,7 +1417,7 @@ export default function Jobs() {
                 </div>
               )}
 
-              {/* File Gallery with Full Annotation Support */}
+              {/* Enhanced Project Files & Media Gallery */}
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <Label className="text-sm font-medium text-gray-500">Project Files & Media</Label>
@@ -1438,30 +1438,64 @@ export default function Jobs() {
                       <Upload className="h-3 w-3 mr-1" />
                       Upload
                     </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => setShowMobileCamera(true)}
+                    >
+                      <Camera className="h-3 w-3 mr-1" />
+                      Photo
+                    </Button>
                   </div>
                 </div>
                 
-                {/* Use MediaGallery Component for Full Functionality */}
-                <div className="max-h-96 overflow-y-auto">
-                  <MediaGallery 
-                    files={projectFiles.map((file: any) => ({
-                      id: file.id,
-                      fileName: file.fileName,
-                      originalName: file.originalName,
-                      filePath: getProjectFileUrl(file),
-                      fileSize: file.fileSize,
-                      fileType: file.mimeType?.startsWith('image/') ? 'image' : 'document',
-                      mimeType: file.mimeType,
-                      description: file.description,
-                      createdAt: file.createdAt,
-                      annotations: file.annotations ? JSON.parse(file.annotations) : [],
-                      annotatedImageUrl: file.annotatedImageUrl,
-                      signatureStatus: file.signatureStatus,
-                      docusignEnvelopeId: file.docusignEnvelopeId,
-                      signatureUrl: file.signatureUrl
-                    }))} 
-                    projectId={selectedProject.id}
-                  />
+                {/* Enhanced MediaGallery with Full Image Preview Functionality */}
+                <div className="max-h-96 overflow-y-auto border rounded-lg">
+                  {projectFiles.length > 0 ? (
+                    <MediaGallery 
+                      files={projectFiles.map((file: any) => ({
+                        id: file.id,
+                        fileName: file.fileName,
+                        originalName: file.originalName,
+                        filePath: getProjectFileUrl(file),
+                        fileSize: file.fileSize,
+                        fileType: file.mimeType?.startsWith('image/') ? 'image' : 'document',
+                        mimeType: file.mimeType,
+                        description: file.description,
+                        createdAt: file.createdAt,
+                        annotations: file.annotations ? JSON.parse(file.annotations) : [],
+                        annotatedImageUrl: file.annotatedImageUrl,
+                        signatureStatus: file.signatureStatus,
+                        docusignEnvelopeId: file.docusignEnvelopeId,
+                        signatureUrl: file.signatureUrl
+                      }))} 
+                      projectId={selectedProject.id}
+                    />
+                  ) : (
+                    <div className="text-center py-12">
+                      <Image className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-sm text-gray-500 mb-2">No files uploaded yet</p>
+                      <p className="text-xs text-gray-400 mb-4">Upload files or take photos to get started</p>
+                      <div className="flex gap-2 justify-center">
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => fileInputRef.current?.click()}
+                        >
+                          <Upload className="h-3 w-3 mr-1" />
+                          Upload Files
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => setShowMobileCamera(true)}
+                        >
+                          <Camera className="h-3 w-3 mr-1" />
+                          Take Photo
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1497,75 +1531,7 @@ export default function Jobs() {
                 />
               </div>
 
-              {/* Project Files & Images */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <Label className="text-sm font-medium text-gray-500">Files & Images</Label>
-                  <div className="flex gap-1">
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      onClick={() => document.getElementById('file-upload')?.click()}
-                    >
-                      <Upload className="h-3 w-3 mr-1" />
-                      Upload
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      onClick={() => setShowPhotoCapture(true)}
-                    >
-                      <Camera className="h-3 w-3 mr-1" />
-                      Photo
-                    </Button>
-                  </div>
-                </div>
-                <input
-                  id="file-upload"
-                  type="file"
-                  hidden
-                  multiple
-                  accept="image/*,.pdf,.doc,.docx,.txt"
-                  onChange={handleFileUpload}
-                />
-                <div className="mt-2 space-y-2 max-h-48 overflow-y-auto">
-                  {projectFiles.length > 0 ? (
-                    <div className="grid grid-cols-2 gap-2">
-                      {projectFiles.map((file: any) => (
-                        <div key={file.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded hover:bg-gray-100 cursor-pointer">
-                          {file.mimeType?.startsWith('image/') ? (
-                            <div className="relative">
-                              <img 
-                                src={getProjectFileUrl(file)}
-                                alt={file.originalName}
-                                className="w-8 h-8 object-cover rounded"
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement;
-                                  target.style.display = 'none';
-                                  target.nextElementSibling?.classList.remove('hidden');
-                                }}
-                              />
-                              <Image className="h-4 w-4 text-blue-500 hidden" />
-                            </div>
-                          ) : (
-                            <FileText className="h-4 w-4 text-gray-400" />
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <span className="text-sm truncate block">{file.originalName}</span>
-                            <span className="text-xs text-gray-400">{(file.fileSize / 1024).toFixed(1)}KB</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
-                      <FileText className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                      <p className="text-sm text-gray-500">No files uploaded yet</p>
-                      <p className="text-xs text-gray-400">Click Upload or Photo to add files</p>
-                    </div>
-                  )}
-                </div>
-              </div>
+
 
               {/* Timestamps */}
               <div className="grid grid-cols-2 gap-4 text-xs text-gray-500">
