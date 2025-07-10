@@ -791,20 +791,20 @@ export default function Settings() {
       </div>
 
       <Tabs defaultValue="payment" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-12">
-          <TabsTrigger value="payment">Payment Processing</TabsTrigger>
-          <TabsTrigger value="company">Company Info</TabsTrigger>
-          <TabsTrigger value="email">Email Settings</TabsTrigger>
-          <TabsTrigger value="sms">SMS Settings</TabsTrigger>
-          <TabsTrigger value="calendar">Calendar</TabsTrigger>
-          <TabsTrigger value="ocr">OCR Settings</TabsTrigger>
-          <TabsTrigger value="reviews">Reviews</TabsTrigger>
-          <TabsTrigger value="invoices">Invoice Templates</TabsTrigger>
-          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-          <TabsTrigger value="weather">Weather</TabsTrigger>
-          <TabsTrigger value="backup">Backup</TabsTrigger>
-          <TabsTrigger value="navigation">Navigation Access</TabsTrigger>
-        </TabsList>
+        <div className="flex flex-wrap gap-1 p-1 bg-muted rounded-lg">
+          <TabsTrigger value="payment" className="data-[state=active]:bg-background data-[state=active]:text-foreground">Payment</TabsTrigger>
+          <TabsTrigger value="company" className="data-[state=active]:bg-background data-[state=active]:text-foreground">Company</TabsTrigger>
+          <TabsTrigger value="email" className="data-[state=active]:bg-background data-[state=active]:text-foreground">Email</TabsTrigger>
+          <TabsTrigger value="sms" className="data-[state=active]:bg-background data-[state=active]:text-foreground">SMS</TabsTrigger>
+          <TabsTrigger value="calendar" className="data-[state=active]:bg-background data-[state=active]:text-foreground">Calendar</TabsTrigger>
+          <TabsTrigger value="ocr" className="data-[state=active]:bg-background data-[state=active]:text-foreground">OCR</TabsTrigger>
+          <TabsTrigger value="reviews" className="data-[state=active]:bg-background data-[state=active]:text-foreground">Reviews</TabsTrigger>
+          <TabsTrigger value="invoices" className="data-[state=active]:bg-background data-[state=active]:text-foreground">Templates</TabsTrigger>
+          <TabsTrigger value="dashboard" className="data-[state=active]:bg-background data-[state=active]:text-foreground">Dashboard</TabsTrigger>
+          <TabsTrigger value="weather" className="data-[state=active]:bg-background data-[state=active]:text-foreground">Weather</TabsTrigger>
+          <TabsTrigger value="backup" className="data-[state=active]:bg-background data-[state=active]:text-foreground">Backup</TabsTrigger>
+          <TabsTrigger value="navigation" className="data-[state=active]:bg-background data-[state=active]:text-foreground">Navigation</TabsTrigger>
+        </div>
 
         <TabsContent value="payment">
           <Card>
