@@ -617,8 +617,20 @@ export default function ProjectDetail() {
 
           <MediaGallery 
             files={files.map(file => ({
-              ...file,
+              id: file.id,
+              fileName: file.fileName,
+              originalName: file.originalName,
+              filePath: file.filePath,
+              fileSize: file.fileSize,
+              fileType: file.mimeType?.startsWith('image/') ? 'image' : (file.mimeType?.startsWith('video/') ? 'video' : 'document'),
+              mimeType: file.mimeType,
+              description: file.description,
+              createdAt: file.createdAt,
               annotations: file.annotations ? JSON.parse(file.annotations) : [],
+              annotatedImageUrl: file.annotatedImageUrl,
+              signatureStatus: file.signatureStatus,
+              docusignEnvelopeId: file.docusignEnvelopeId,
+              signatureUrl: file.signatureUrl
             }))} 
             projectId={Number(projectId)} 
           />
