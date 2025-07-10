@@ -69,6 +69,8 @@ export default function FileManager() {
   const [folderDialogOpen, setFolderDialogOpen] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [docusignDialogOpen, setDocusignDialogOpen] = useState(false);
+  const [createFileDialogOpen, setCreateFileDialogOpen] = useState(false);
+  const [editFileDialogOpen, setEditFileDialogOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [folderName, setFolderName] = useState("");
@@ -81,6 +83,9 @@ export default function FileManager() {
   const [docusignEmail, setDocusignEmail] = useState("");
   const [docusignName, setDocusignName] = useState("");
   const [docusignSubject, setDocusignSubject] = useState("");
+  const [newFileName, setNewFileName] = useState("");
+  const [newFileContent, setNewFileContent] = useState("");
+  const [editingFileContent, setEditingFileContent] = useState("");
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -216,6 +221,87 @@ export default function FileManager() {
     },
   });
 
+  // Create text file mutation
+  const createTextFileMutation = useMutation({
+    mutationFn: async (data: { name: string; content: string; folderId?: number }) => {
+      return await apiRequest("POST", "/api/files/create-text", data).then(res => res.json());
+    },
+    onSuccess: () => {
+      toast({
+        title: "File created successfully",
+        description: "New text file has been created.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/files"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/files", selectedFolderId] });
+      setCreateFileDialogOpen(false);
+      setNewFileName("");
+      setNewFileContent("");
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to create file",
+        description: error.message || "An error occurred",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Update file content mutation
+  const updateFileContentMutation = useMutation({
+    mutationFn: async (data: { fileId: number; content: string }) => {
+      return await apiRequest("PUT", `/api/files/${data.fileId}/content`, { content: data.content }).then(res => res.json());
+    },
+    onSuccess: () => {
+      toast({
+        title: "File updated successfully",
+        description: "File content has been saved.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/files"] });
+      setEditFileDialogOpen(false);
+      setSelectedFile(null);
+      setEditingFileContent("");
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to update file",
+        description: error.message || "An error occurred",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Convert to PDF mutation
+  const convertToPdfMutation = useMutation({
+    mutationFn: async (fileId: number) => {
+      return await apiRequest("POST", `/api/files/${fileId}/convert-to-pdf`).then(res => res.json());
+    },
+    onSuccess: (response) => {
+      toast({
+        title: "File converted to PDF",
+        description: "PDF version has been created and added to your files.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/files"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/files", selectedFolderId] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to convert to PDF",
+        description: error.message || "An error occurred",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Fetch file content query
+  const { data: fileContent, refetch: refetchFileContent } = useQuery({
+    queryKey: ["/api/files", selectedFile?.id, "content"],
+    queryFn: () => 
+      selectedFile ? 
+        apiRequest("GET", `/api/files/${selectedFile.id}/content`).then(res => res.json()) : 
+        null,
+    enabled: !!selectedFile && editFileDialogOpen,
+  });
+
   const handleUpload = () => {
     if (!uploadFile) return;
 
@@ -256,6 +342,38 @@ export default function FileManager() {
       recipientName: docusignName,
       subject: docusignSubject || undefined,
     });
+  };
+
+  const handleCreateTextFile = () => {
+    if (!newFileName || !newFileContent) return;
+
+    createTextFileMutation.mutate({
+      name: newFileName,
+      content: newFileContent,
+      folderId: selectedFolderId,
+    });
+  };
+
+  const handleEditFile = async (file: FileItem) => {
+    setSelectedFile(file);
+    setEditFileDialogOpen(true);
+    // Fetch file content when dialog opens
+    const response = await apiRequest("GET", `/api/files/${file.id}/content`);
+    const data = await response.json();
+    setEditingFileContent(data.content || "");
+  };
+
+  const handleUpdateFileContent = () => {
+    if (!selectedFile) return;
+
+    updateFileContentMutation.mutate({
+      fileId: selectedFile.id,
+      content: editingFileContent,
+    });
+  };
+
+  const handleConvertToPdf = (file: FileItem) => {
+    convertToPdfMutation.mutate(file.id);
   };
 
   const handleDownload = async (file: FileItem) => {
@@ -345,6 +463,48 @@ export default function FileManager() {
                     className="w-full"
                   >
                     {createFolderMutation.isPending ? "Creating..." : "Create Folder"}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={createFileDialogOpen} onOpenChange={setCreateFileDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <FileText className="mr-2 h-4 w-4" />
+                  Create Text File
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Create New Text File</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="new-file-name">File Name</Label>
+                    <Input
+                      id="new-file-name"
+                      value={newFileName}
+                      onChange={(e) => setNewFileName(e.target.value)}
+                      placeholder="Enter file name (e.g., document.txt)"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="new-file-content">Content</Label>
+                    <Textarea
+                      id="new-file-content"
+                      value={newFileContent}
+                      onChange={(e) => setNewFileContent(e.target.value)}
+                      placeholder="Enter file content"
+                      rows={10}
+                    />
+                  </div>
+                  <Button 
+                    onClick={handleCreateTextFile} 
+                    disabled={!newFileName || !newFileContent || createTextFileMutation.isPending}
+                    className="w-full"
+                  >
+                    {createTextFileMutation.isPending ? "Creating..." : "Create File"}
                   </Button>
                 </div>
               </DialogContent>
@@ -465,6 +625,18 @@ export default function FileManager() {
                             <Download className="mr-2 h-4 w-4" />
                             Download
                           </DropdownMenuItem>
+                          {file.fileType === 'text' && (
+                            <DropdownMenuItem onClick={() => handleEditFile(file)}>
+                              <Edit className="mr-2 h-4 w-4" />
+                              Edit
+                            </DropdownMenuItem>
+                          )}
+                          {file.fileType === 'text' && (
+                            <DropdownMenuItem onClick={() => handleConvertToPdf(file)}>
+                              <FileText className="mr-2 h-4 w-4" />
+                              Convert to PDF
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuItem 
                             onClick={() => {
                               setSelectedFile(file);
@@ -628,6 +800,47 @@ export default function FileManager() {
               >
                 {docusignMutation.isPending ? "Sending..." : "Send for Signature"}
               </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit File Dialog */}
+        <Dialog open={editFileDialogOpen} onOpenChange={setEditFileDialogOpen}>
+          <DialogContent className="max-w-4xl">
+            <DialogHeader>
+              <DialogTitle>Edit File: {selectedFile?.originalName}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="edit-file-content">File Content</Label>
+                <Textarea
+                  id="edit-file-content"
+                  value={editingFileContent}
+                  onChange={(e) => setEditingFileContent(e.target.value)}
+                  placeholder="Edit file content..."
+                  rows={15}
+                  className="font-mono text-sm"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  onClick={handleUpdateFileContent} 
+                  disabled={updateFileContentMutation.isPending}
+                  className="flex-1"
+                >
+                  {updateFileContentMutation.isPending ? "Saving..." : "Save Changes"}
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    setEditFileDialogOpen(false);
+                    setSelectedFile(null);
+                    setEditingFileContent("");
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
             </div>
           </DialogContent>
         </Dialog>

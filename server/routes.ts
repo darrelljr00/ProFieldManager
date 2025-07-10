@@ -8755,6 +8755,253 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // File creation and editing routes
+  app.post("/api/files/create-text", requireAuth, async (req, res) => {
+    try {
+      const user = req.user as User;
+      const { name, content, folderId } = req.body;
+      
+      if (!name || !content) {
+        return res.status(400).json({ message: "Name and content are required" });
+      }
+      
+      const file = await storage.createTextFile(
+        user.organizationId, 
+        user.id, 
+        name, 
+        content, 
+        folderId || null
+      );
+      
+      res.status(201).json(file);
+      
+      // Broadcast to WebSocket clients
+      if (wss) {
+        wss.clients.forEach((client) => {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify({
+              type: 'file_created',
+              data: file
+            }));
+          }
+        });
+      }
+    } catch (error: any) {
+      console.error("Error creating text file:", error);
+      res.status(500).json({ message: "Failed to create text file" });
+    }
+  });
+
+  app.get("/api/files/:id/content", requireAuth, async (req, res) => {
+    try {
+      const fileId = parseInt(req.params.id);
+      const user = req.user as User;
+      
+      // Get the file to ensure it belongs to the user's organization
+      const file = await storage.getFile(fileId, user.organizationId);
+      if (!file) {
+        return res.status(404).json({ message: "File not found" });
+      }
+      
+      const fs = require('fs');
+      const path = require('path');
+      
+      try {
+        const fullPath = path.join(process.cwd(), file.filePath);
+        const content = fs.readFileSync(fullPath, 'utf8');
+        res.json({ content });
+      } catch (fsError) {
+        console.error("Error reading file:", fsError);
+        res.status(404).json({ message: "File content not found" });
+      }
+    } catch (error: any) {
+      console.error("Error getting file content:", error);
+      res.status(500).json({ message: "Failed to get file content" });
+    }
+  });
+
+  app.put("/api/files/:id/content", requireAuth, async (req, res) => {
+    try {
+      const fileId = parseInt(req.params.id);
+      const user = req.user as User;
+      const { content } = req.body;
+      
+      if (!content && content !== '') {
+        return res.status(400).json({ message: "Content is required" });
+      }
+      
+      // Get the file to ensure it belongs to the user's organization
+      const file = await storage.getFile(fileId, user.organizationId);
+      if (!file) {
+        return res.status(404).json({ message: "File not found" });
+      }
+      
+      const updatedFile = await storage.updateTextFile(fileId, content);
+      
+      res.json(updatedFile);
+      
+      // Broadcast to WebSocket clients
+      if (wss) {
+        wss.clients.forEach((client) => {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify({
+              type: 'file_updated',
+              data: updatedFile
+            }));
+          }
+        });
+      }
+    } catch (error: any) {
+      console.error("Error updating file content:", error);
+      res.status(500).json({ message: "Failed to update file content" });
+    }
+  });
+
+  app.post("/api/files/:id/convert-to-pdf", requireAuth, async (req, res) => {
+    try {
+      const fileId = parseInt(req.params.id);
+      const user = req.user as User;
+      
+      // Get the file to ensure it belongs to the user's organization
+      const file = await storage.getFile(fileId, user.organizationId);
+      if (!file) {
+        return res.status(404).json({ message: "File not found" });
+      }
+      
+      // Check if file is text-based
+      if (!file.mimeType?.includes('text') && file.fileType !== 'text') {
+        return res.status(400).json({ message: "Only text files can be converted to PDF" });
+      }
+      
+      const pdfPath = await storage.convertToPdf(fileId, user.organizationId);
+      
+      res.json({ 
+        message: "File converted to PDF successfully", 
+        pdfPath,
+        downloadUrl: `/${pdfPath}`
+      });
+      
+      // Broadcast to WebSocket clients
+      if (wss) {
+        wss.clients.forEach((client) => {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify({
+              type: 'file_converted_to_pdf',
+              data: { fileId, pdfPath }
+            }));
+          }
+        });
+      }
+    } catch (error: any) {
+      console.error("Error converting file to PDF:", error);
+      res.status(500).json({ message: "Failed to convert file to PDF" });
+    }
+  });
+
+  // Folder management routes
+  app.get("/api/folders", requireAuth, async (req, res) => {
+    try {
+      const user = req.user as User;
+      const parentId = req.query.parentId ? parseInt(req.query.parentId as string) : undefined;
+      
+      const folders = await storage.getFolders(user.organizationId, parentId);
+      res.json(folders);
+    } catch (error: any) {
+      console.error("Error fetching folders:", error);
+      res.status(500).json({ message: "Failed to fetch folders" });
+    }
+  });
+
+  app.post("/api/folders", requireAuth, async (req, res) => {
+    try {
+      const user = req.user as User;
+      const { name, description, parentId } = req.body;
+      
+      if (!name) {
+        return res.status(400).json({ message: "Folder name is required" });
+      }
+      
+      const folderData = {
+        organizationId: user.organizationId,
+        createdBy: user.id,
+        name,
+        description: description || null,
+        parentId: parentId || null,
+      };
+      
+      const folder = await storage.createFolder(folderData);
+      res.status(201).json(folder);
+      
+      // Broadcast to WebSocket clients
+      if (wss) {
+        wss.clients.forEach((client) => {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify({
+              type: 'folder_created',
+              data: folder
+            }));
+          }
+        });
+      }
+    } catch (error: any) {
+      console.error("Error creating folder:", error);
+      res.status(500).json({ message: "Failed to create folder" });
+    }
+  });
+
+  app.put("/api/folders/:id", requireAuth, async (req, res) => {
+    try {
+      const folderId = parseInt(req.params.id);
+      const { name, description } = req.body;
+      
+      if (!name) {
+        return res.status(400).json({ message: "Folder name is required" });
+      }
+      
+      const folder = await storage.updateFolder(folderId, { name, description });
+      res.json(folder);
+      
+      // Broadcast to WebSocket clients
+      if (wss) {
+        wss.clients.forEach((client) => {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify({
+              type: 'folder_updated',
+              data: folder
+            }));
+          }
+        });
+      }
+    } catch (error: any) {
+      console.error("Error updating folder:", error);
+      res.status(500).json({ message: "Failed to update folder" });
+    }
+  });
+
+  app.delete("/api/folders/:id", requireAuth, async (req, res) => {
+    try {
+      const folderId = parseInt(req.params.id);
+      
+      await storage.deleteFolder(folderId);
+      res.json({ message: "Folder deleted successfully" });
+      
+      // Broadcast to WebSocket clients
+      if (wss) {
+        wss.clients.forEach((client) => {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify({
+              type: 'folder_deleted',
+              data: { id: folderId }
+            }));
+          }
+        });
+      }
+    } catch (error: any) {
+      console.error("Error deleting folder:", error);
+      res.status(500).json({ message: "Failed to delete folder" });
+    }
+  });
+
   // GPS Location Update endpoint
   app.post("/api/gps-tracking/update", requireAuth, async (req, res) => {
     try {

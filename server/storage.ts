@@ -112,14 +112,24 @@ export interface IStorage {
   getAllOrganizationsWithDetails(): Promise<any[]>;
   
   // File methods
-  getFiles(organizationId: number): Promise<any[]>;
+  getFiles(organizationId: number, folderId?: number): Promise<any[]>;
+  getFile(id: number, organizationId: number): Promise<any>;
   createFile(fileData: any): Promise<any>;
   updateFile(id: number, updates: any): Promise<any>;
   deleteFile(id: number): Promise<void>;
+  createTextFile(organizationId: number, userId: number, name: string, content: string, folderId?: number): Promise<any>;
+  updateTextFile(id: number, content: string): Promise<any>;
+  convertToPdf(fileId: number, organizationId: number): Promise<string>;
   uploadProjectFile(fileData: any): Promise<any>;
   getProjectFiles(projectId: number, userId: number): Promise<any[]>;
   getProjectFile(fileId: number, userId: number): Promise<any>;
   deleteProjectFile(fileId: number, userId: number): Promise<boolean>;
+  
+  // Folder methods
+  getFolders(organizationId: number, parentId?: number): Promise<any[]>;
+  createFolder(folderData: any): Promise<any>;
+  updateFolder(id: number, updates: any): Promise<any>;
+  deleteFolder(id: number): Promise<void>;
   
   // Image methods
   createImage(imageData: any): Promise<any>;
@@ -1401,7 +1411,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // File methods
-  async getFiles(organizationId: number): Promise<any[]> {
+  async getFiles(organizationId: number, folderId?: number): Promise<any[]> {
     const results = await db
       .select({
         id: fileManager.id,
@@ -1430,7 +1440,11 @@ export class DatabaseStorage implements IStorage {
       })
       .from(fileManager)
       .leftJoin(users, eq(fileManager.uploadedBy, users.id))
-      .where(eq(fileManager.organizationId, organizationId))
+      .where(
+        folderId 
+          ? and(eq(fileManager.organizationId, organizationId), eq(fileManager.folderId, folderId))
+          : and(eq(fileManager.organizationId, organizationId), isNull(fileManager.folderId))
+      )
       .orderBy(desc(fileManager.createdAt));
     
     return results.map(row => ({
@@ -4383,6 +4397,236 @@ export class DatabaseStorage implements IStorage {
         duration,
         completedAt: new Date()
       });
+      throw error;
+    }
+  }
+  // File methods - Additional methods for file management
+  async getFile(id: number, organizationId: number): Promise<any> {
+    try {
+      const [file] = await db
+        .select()
+        .from(fileManager)
+        .where(
+          and(
+            eq(fileManager.id, id),
+            eq(fileManager.organizationId, organizationId)
+          )
+        )
+        .limit(1);
+      
+      return file || null;
+    } catch (error) {
+      console.error('Error getting file:', error);
+      throw error;
+    }
+  }
+
+  async createTextFile(organizationId: number, userId: number, name: string, content: string, folderId?: number): Promise<any> {
+    try {
+      const fs = require('fs');
+      const path = require('path');
+      
+      // Create the organization folder if it doesn't exist
+      const orgDir = path.join(process.cwd(), 'uploads', `org-${organizationId}`, 'files');
+      if (!fs.existsSync(orgDir)) {
+        fs.mkdirSync(orgDir, { recursive: true });
+      }
+      
+      // Create the file
+      const fileName = `${name}.txt`;
+      const filePath = path.join(orgDir, fileName);
+      fs.writeFileSync(filePath, content);
+      
+      // Get file stats
+      const stats = fs.statSync(filePath);
+      const relativePath = `uploads/org-${organizationId}/files/${fileName}`;
+      
+      // Save to database
+      const [file] = await db
+        .insert(fileManager)
+        .values({
+          organizationId,
+          uploadedBy: userId,
+          fileName,
+          originalName: fileName,
+          filePath: relativePath,
+          fileSize: stats.size,
+          mimeType: 'text/plain',
+          fileType: 'text',
+          description: 'Text file',
+          folderId,
+          isPublic: false,
+          downloadCount: 0,
+        })
+        .returning();
+      
+      return file;
+    } catch (error) {
+      console.error('Error creating text file:', error);
+      throw error;
+    }
+  }
+
+  async updateTextFile(id: number, content: string): Promise<any> {
+    try {
+      const fs = require('fs');
+      const path = require('path');
+      
+      // Get the file record
+      const [file] = await db
+        .select()
+        .from(fileManager)
+        .where(eq(fileManager.id, id))
+        .limit(1);
+      
+      if (!file) {
+        throw new Error('File not found');
+      }
+      
+      // Update the file content
+      const fullPath = path.join(process.cwd(), file.filePath);
+      fs.writeFileSync(fullPath, content);
+      
+      // Update file stats
+      const stats = fs.statSync(fullPath);
+      
+      // Update database record
+      const [updatedFile] = await db
+        .update(fileManager)
+        .set({
+          fileSize: stats.size,
+          updatedAt: new Date(),
+        })
+        .where(eq(fileManager.id, id))
+        .returning();
+      
+      return updatedFile;
+    } catch (error) {
+      console.error('Error updating text file:', error);
+      throw error;
+    }
+  }
+
+  async convertToPdf(fileId: number, organizationId: number): Promise<string> {
+    try {
+      const fs = require('fs');
+      const path = require('path');
+      const { textToPdf } = require('./pdfConverter');
+      
+      // Get the file record
+      const [file] = await db
+        .select()
+        .from(fileManager)
+        .where(
+          and(
+            eq(fileManager.id, fileId),
+            eq(fileManager.organizationId, organizationId)
+          )
+        )
+        .limit(1);
+      
+      if (!file) {
+        throw new Error('File not found');
+      }
+      
+      // Read the file content
+      const fullPath = path.join(process.cwd(), file.filePath);
+      const content = fs.readFileSync(fullPath, 'utf8');
+      
+      // Generate PDF
+      const pdfFileName = file.fileName.replace(/\.[^/.]+$/, '.pdf');
+      const pdfPath = path.join(process.cwd(), 'uploads', `org-${organizationId}`, 'files', pdfFileName);
+      
+      await textToPdf(content, pdfPath);
+      
+      // Create a new file record for the PDF
+      const stats = fs.statSync(pdfPath);
+      const relativePath = `uploads/org-${organizationId}/files/${pdfFileName}`;
+      
+      const [pdfFile] = await db
+        .insert(fileManager)
+        .values({
+          organizationId,
+          uploadedBy: file.uploadedBy,
+          fileName: pdfFileName,
+          originalName: pdfFileName,
+          filePath: relativePath,
+          fileSize: stats.size,
+          mimeType: 'application/pdf',
+          fileType: 'pdf',
+          description: `PDF version of ${file.fileName}`,
+          folderId: file.folderId,
+          isPublic: false,
+          downloadCount: 0,
+        })
+        .returning();
+      
+      return relativePath;
+    } catch (error) {
+      console.error('Error converting to PDF:', error);
+      throw error;
+    }
+  }
+
+  // Folder methods
+  async getFolders(organizationId: number, parentId?: number): Promise<any[]> {
+    try {
+      const folders = await db
+        .select()
+        .from(fileFolders)
+        .where(
+          parentId 
+            ? and(eq(fileFolders.organizationId, organizationId), eq(fileFolders.parentId, parentId))
+            : and(eq(fileFolders.organizationId, organizationId), isNull(fileFolders.parentId))
+        )
+        .orderBy(asc(fileFolders.name));
+      
+      return folders;
+    } catch (error) {
+      console.error('Error getting folders:', error);
+      throw error;
+    }
+  }
+
+  async createFolder(folderData: any): Promise<any> {
+    try {
+      const [folder] = await db
+        .insert(fileFolders)
+        .values(folderData)
+        .returning();
+      
+      return folder;
+    } catch (error) {
+      console.error('Error creating folder:', error);
+      throw error;
+    }
+  }
+
+  async updateFolder(id: number, updates: any): Promise<any> {
+    try {
+      const [folder] = await db
+        .update(fileFolders)
+        .set({
+          ...updates,
+          updatedAt: new Date(),
+        })
+        .where(eq(fileFolders.id, id))
+        .returning();
+      
+      return folder;
+    } catch (error) {
+      console.error('Error updating folder:', error);
+      throw error;
+    }
+  }
+
+  async deleteFolder(id: number): Promise<void> {
+    try {
+      await db
+        .delete(fileFolders)
+        .where(eq(fileFolders.id, id));
+    } catch (error) {
+      console.error('Error deleting folder:', error);
       throw error;
     }
   }
