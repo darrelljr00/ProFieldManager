@@ -1064,11 +1064,32 @@ export default function CalendarPage() {
                 </div>
               )}
 
-              {/* Conversion Status */}
-              {selectedJob.convertedToProjectId && (
+              {/* Conversion Status & Images */}
+              {selectedJob.convertedToProjectId ? (
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500">Project Conversion</Label>
+                    <p className="text-sm text-green-600">Converted to Project ID: {selectedJob.convertedToProjectId}</p>
+                  </div>
+                  
+                  {/* Project Images */}
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500">Project Images</Label>
+                    <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                      <p className="text-sm text-blue-700">
+                        📁 This job has been converted to a project. To view images and files, go to the <strong>Jobs</strong> page and view the project details.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
                 <div>
-                  <Label className="text-sm font-medium text-gray-500">Project Conversion</Label>
-                  <p className="text-sm text-green-600">Converted to Project ID: {selectedJob.convertedToProjectId}</p>
+                  <Label className="text-sm font-medium text-gray-500">Images & Files</Label>
+                  <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-md">
+                    <p className="text-sm text-amber-700">
+                      📷 To add images and files, convert this job to a project first. Calendar jobs don't support file attachments.
+                    </p>
+                  </div>
                 </div>
               )}
 
