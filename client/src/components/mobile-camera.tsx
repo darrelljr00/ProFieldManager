@@ -89,52 +89,33 @@ export function MobileCamera({
     try {
       setIsUploading(true);
       
-      const formData = new FormData();
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       const fileName = `camera-photo-${timestamp}.jpg`;
       
-      formData.append('file', capturedPhoto, fileName);
-      if (projectId) formData.append('projectId', projectId.toString());
-      if (customerId) formData.append('customerId', customerId.toString());
-      formData.append('source', 'camera');
+      console.log('📸 Creating file from captured photo blob:', fileName);
+      console.log('📍 GPS location available:', !!gpsLocation);
+      console.log('🎯 Project ID:', projectId);
       
-      // Include GPS data if available
-      if (gpsLocation) {
-        formData.append('gpsLatitude', gpsLocation.latitude.toString());
-        formData.append('gpsLongitude', gpsLocation.longitude.toString());
-        formData.append('customText', `Photo taken with GPS location`);
-      }
-
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-        credentials: 'include',
-      });
-
-      console.log('Upload response status:', response.status);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Upload failed:', response.status, errorText);
-        throw new Error(`Upload failed: ${response.status} - ${errorText}`);
-      }
-
-      const result = await response.json();
-      console.log('Upload successful:', result);
-
+      // Create file from blob with GPS metadata for upload
+      const file = new File([capturedPhoto], fileName, { type: 'image/jpeg' });
+      
       if (onPhotoTaken) {
-        const file = new File([capturedPhoto], fileName, { type: 'image/jpeg' });
+        console.log('📸 Calling onPhotoTaken callback with file:', fileName);
+        // Let the parent component handle the upload with all the proper timestamp/project logic
         onPhotoTaken(file);
+      } else {
+        console.log('⚠️ No onPhotoTaken callback provided - cannot upload file');
+        throw new Error('No upload handler provided');
       }
 
       toast({
-        title: "Photo Saved",
-        description: "Your photo has been uploaded successfully",
+        title: "Photo Captured",
+        description: "Photo saved to project files",
       });
 
       handleClose();
     } catch (error) {
-      console.error('Error uploading photo:', error);
+      console.error('Error processing photo:', error);
       toast({
         title: "Upload Failed",
         description: "Failed to save photo. Please try again.",

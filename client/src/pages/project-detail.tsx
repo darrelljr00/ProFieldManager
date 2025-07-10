@@ -1163,10 +1163,29 @@ export default function ProjectDetail() {
           formData.append('file', file);
           formData.append('description', 'Photo taken with mobile camera');
           
-          console.log('📤 About to upload file via uploadFileMutation...');
-          
-          // Upload the photo
-          uploadFileMutation.mutate(formData);
+          // Add GPS data if available (captured by mobile camera)
+          if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+              (position) => {
+                formData.append('gpsLatitude', position.coords.latitude.toString());
+                formData.append('gpsLongitude', position.coords.longitude.toString());
+                formData.append('customText', 'Photo taken with mobile camera');
+                console.log('📍 GPS coordinates added to upload:', position.coords.latitude, position.coords.longitude);
+                
+                console.log('📤 About to upload file via uploadFileMutation with GPS...');
+                uploadFileMutation.mutate(formData);
+              },
+              (error) => {
+                console.warn('📍 Could not get GPS for upload:', error);
+                console.log('📤 About to upload file via uploadFileMutation without GPS...');
+                uploadFileMutation.mutate(formData);
+              },
+              { enableHighAccuracy: true, timeout: 5000, maximumAge: 60000 }
+            );
+          } else {
+            console.log('📤 About to upload file via uploadFileMutation (no GPS available)...');
+            uploadFileMutation.mutate(formData);
+          }
           
           toast({
             title: "Photo Captured",
