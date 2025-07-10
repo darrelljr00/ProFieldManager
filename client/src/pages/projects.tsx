@@ -26,7 +26,8 @@ import JobSignatureCapture from "@/components/JobSignatureCapture";
 
 // Utility function to get project file URL
 function getProjectFileUrl(file: any): string {
-  return `/api/projects/${file.projectId}/files/${file.id}/download`;
+  // Use the static file handler endpoint
+  return `/${file.filePath}`;
 }
 
 // Historical Jobs Component
