@@ -135,17 +135,25 @@ export default function ProjectDetail() {
 
   const uploadFileMutation = useMutation({
     mutationFn: async (formData: FormData) => {
+      console.log('📤 Starting file upload to project:', projectId);
+      console.log('FormData entries:', Array.from(formData.entries()));
+      
       const response = await fetch(`/api/projects/${projectId}/files`, {
         method: "POST",
         body: formData,
       });
       
+      console.log('📡 Upload response status:', response.status);
+      
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: 'Upload failed' }));
+        console.error('❌ Upload failed with error:', errorData);
         throw new Error(errorData.message || 'Upload failed');
       }
       
-      return response.json();
+      const result = await response.json();
+      console.log('✅ Upload successful:', result);
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/files`] });
@@ -1142,12 +1150,20 @@ export default function ProjectDetail() {
         isOpen={showMobileCamera}
         onClose={() => setShowMobileCamera(false)}
         onPhotoTaken={(file) => {
-          console.log('Photo taken for project:', file);
+          console.log('📸 Photo taken for project:', projectId, file);
+          console.log('📋 File details:', {
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            lastModified: file.lastModified
+          });
           
           // Create FormData to upload the photo
           const formData = new FormData();
           formData.append('file', file);
           formData.append('description', 'Photo taken with mobile camera');
+          
+          console.log('📤 About to upload file via uploadFileMutation...');
           
           // Upload the photo
           uploadFileMutation.mutate(formData);

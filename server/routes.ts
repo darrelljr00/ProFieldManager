@@ -3054,8 +3054,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // File uploads (multer for handling multipart/form-data)
   app.post("/api/projects/:id/files", requireAuth, upload.single('file'), async (req, res) => {
+    console.log('🔄 FILE UPLOAD REQUEST RECEIVED');
+    console.log('Project ID:', req.params.id);
+    console.log('Has file?', !!req.file);
+    console.log('File details:', req.file ? { 
+      originalname: req.file.originalname, 
+      mimetype: req.file.mimetype, 
+      size: req.file.size,
+      filename: req.file.filename,
+      path: req.file.path
+    } : 'NO FILE');
+    
     try {
       if (!req.file) {
+        console.log('❌ No file in request');
         return res.status(400).json({ message: "No file uploaded" });
       }
 
