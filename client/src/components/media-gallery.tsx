@@ -243,7 +243,8 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
       : "w-full h-full object-cover transition-transform group-hover:scale-105";
 
     if (file.fileType === 'image') {
-      const imageUrl = `/${file.filePath}`;
+      // Fix URL - filePath already includes leading slash, don't add another
+      const imageUrl = file.filePath.startsWith('/') ? file.filePath : `/${file.filePath}`;
       console.log('🖼️ Rendering image:', file.originalName, 'URL:', imageUrl, 'File:', file);
       return (
         <img 
@@ -264,9 +265,10 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
     }
 
     if (file.fileType === 'video') {
+      const videoUrl = file.filePath.startsWith('/') ? file.filePath : `/${file.filePath}`;
       return isLightbox ? (
         <video 
-          src={`/${file.filePath}`} 
+          src={videoUrl} 
           className={className}
           controls
           autoPlay
@@ -274,7 +276,7 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
       ) : (
         <div className="relative w-full h-full bg-black flex items-center justify-center">
           <video 
-            src={`/${file.filePath}`} 
+            src={videoUrl} 
             className="w-full h-full object-cover"
             muted
           />
@@ -395,7 +397,7 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
                 </Button>
               )}
               <Button variant="ghost" size="sm" asChild>
-                <a href={`/${file.filePath}`} download={file.originalName}>
+                <a href={file.filePath.startsWith('/') ? file.filePath : `/${file.filePath}`} download={file.originalName}>
                   <Download className="h-4 w-4" />
                 </a>
               </Button>
@@ -591,7 +593,7 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
                     size="sm"
                     asChild
                   >
-                    <a href={`/${selectedMedia.filePath}`} download={selectedMedia.originalName}>
+                    <a href={selectedMedia.filePath.startsWith('/') ? selectedMedia.filePath : `/${selectedMedia.filePath}`} download={selectedMedia.originalName}>
                       <Download className="h-4 w-4" />
                     </a>
                   </Button>
@@ -642,7 +644,7 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
                   <TabsContent value="annotate" className="flex-1 m-0 p-0">
                     {selectedMedia.fileType === 'image' && (
                       <ImageAnnotation
-                        imageUrl={`/${selectedMedia.filePath}`}
+                        imageUrl={selectedMedia.filePath.startsWith('/') ? selectedMedia.filePath : `/${selectedMedia.filePath}`}
                         initialAnnotations={selectedMedia.annotations || []}
                         onSave={(annotations, annotatedImageUrl) => {
                           saveAnnotationsMutation.mutate({
