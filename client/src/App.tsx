@@ -42,6 +42,7 @@ import MobileTest from "@/pages/mobile-test";
 import TimeClock from "@/pages/time-clock";
 import Inspections from "@/pages/inspections";
 import Weather from "@/pages/weather";
+import FileSecurity from "@/pages/file-security";
 import Login from "@/pages/login";
 import SimpleLogin from "@/pages/simple-login";
 import Landing from "@/pages/landing";
@@ -152,6 +153,7 @@ function AuthenticatedApp() {
           {isAdmin && <Route path="/users" component={Users} />}
           {isAdmin && <Route path="/admin-settings" component={AdminSettings} />}
           {isAdmin && <Route path="/saas-admin" component={SaasAdmin} />}
+          {isAdmin && <Route path="/file-security" component={FileSecurity} />}
           <Route path="/settings" component={Settings} />
           <Route component={NotFound} />
         </Switch>
