@@ -67,6 +67,12 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  console.log('🖼️ MediaGallery DEBUG - Total files:', files.length);
+  console.log('🖼️ MediaGallery DEBUG - Files:', files);
+  
+  const imageFiles = files.filter(file => file.fileType === 'image');
+  console.log('🖼️ MediaGallery DEBUG - Image files:', imageFiles.length, imageFiles);
+
   const deleteFileMutation = useMutation({
     mutationFn: async (fileId: number) => {
       const response = await fetch(`/api/files/${fileId}`, {
@@ -160,7 +166,6 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
     },
   });
 
-  const imageFiles = files.filter(file => file.fileType === 'image');
   const videoFiles = files.filter(file => file.fileType === 'video');
   const documentFiles = files.filter(file => !['image', 'video'].includes(file.fileType));
 
@@ -238,15 +243,21 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
       : "w-full h-full object-cover transition-transform group-hover:scale-105";
 
     if (file.fileType === 'image') {
+      const imageUrl = `/${file.filePath}`;
+      console.log('🖼️ Rendering image:', file.originalName, 'URL:', imageUrl, 'File:', file);
       return (
         <img 
-          src={`/${file.filePath}`} 
+          src={imageUrl} 
           alt={file.originalName}
           className={className}
           style={isLightbox ? { transform: `rotate(${rotation}deg)` } : undefined}
           loading="lazy"
           onError={(e) => {
+            console.error('🖼️ Image failed to load:', imageUrl, 'File data:', file);
             e.currentTarget.style.display = 'none';
+          }}
+          onLoad={() => {
+            console.log('🖼️ Image loaded successfully:', imageUrl);
           }}
         />
       );
