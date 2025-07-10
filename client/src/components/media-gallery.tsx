@@ -67,6 +67,10 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  // Debug logging to check file data
+  console.log('📸 MediaGallery received files:', files);
+  console.log('📸 Image files:', files.filter(f => f.fileType === 'image'));
+
   const deleteFileMutation = useMutation({
     mutationFn: async (fileId: number) => {
       const response = await fetch(`/api/files/${fileId}`, {
@@ -238,15 +242,21 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
       : "w-full h-full object-cover transition-transform group-hover:scale-105";
 
     if (file.fileType === 'image') {
+      const imageUrl = `/${file.filePath}`;
+      console.log('📸 Rendering image:', file.originalName, 'URL:', imageUrl);
       return (
         <img 
-          src={`/${file.filePath}`} 
+          src={imageUrl} 
           alt={file.originalName}
           className={className}
           style={isLightbox ? { transform: `rotate(${rotation}deg)` } : undefined}
           loading="lazy"
           onError={(e) => {
+            console.error('📸 Image failed to load:', imageUrl, file);
             e.currentTarget.style.display = 'none';
+          }}
+          onLoad={() => {
+            console.log('📸 Image loaded successfully:', imageUrl);
           }}
         />
       );
