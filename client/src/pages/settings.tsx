@@ -791,20 +791,20 @@ export default function Settings() {
       </div>
 
       <Tabs defaultValue="payment" className="space-y-6">
-        <div className="flex flex-wrap gap-1 p-1 bg-muted rounded-lg">
-          <TabsTrigger value="payment" className="data-[state=active]:bg-background data-[state=active]:text-foreground">Payment</TabsTrigger>
-          <TabsTrigger value="company" className="data-[state=active]:bg-background data-[state=active]:text-foreground">Company</TabsTrigger>
-          <TabsTrigger value="email" className="data-[state=active]:bg-background data-[state=active]:text-foreground">Email</TabsTrigger>
-          <TabsTrigger value="sms" className="data-[state=active]:bg-background data-[state=active]:text-foreground">SMS</TabsTrigger>
-          <TabsTrigger value="calendar" className="data-[state=active]:bg-background data-[state=active]:text-foreground">Calendar</TabsTrigger>
-          <TabsTrigger value="ocr" className="data-[state=active]:bg-background data-[state=active]:text-foreground">OCR</TabsTrigger>
-          <TabsTrigger value="reviews" className="data-[state=active]:bg-background data-[state=active]:text-foreground">Reviews</TabsTrigger>
-          <TabsTrigger value="invoices" className="data-[state=active]:bg-background data-[state=active]:text-foreground">Templates</TabsTrigger>
-          <TabsTrigger value="dashboard" className="data-[state=active]:bg-background data-[state=active]:text-foreground">Dashboard</TabsTrigger>
-          <TabsTrigger value="weather" className="data-[state=active]:bg-background data-[state=active]:text-foreground">Weather</TabsTrigger>
-          <TabsTrigger value="backup" className="data-[state=active]:bg-background data-[state=active]:text-foreground">Backup</TabsTrigger>
-          <TabsTrigger value="navigation" className="data-[state=active]:bg-background data-[state=active]:text-foreground">Navigation</TabsTrigger>
-        </div>
+        <TabsList className="flex flex-wrap h-auto w-full justify-start gap-1 bg-muted p-1">
+          <TabsTrigger value="payment" className="flex-shrink-0">Payment</TabsTrigger>
+          <TabsTrigger value="company" className="flex-shrink-0">Company</TabsTrigger>
+          <TabsTrigger value="email" className="flex-shrink-0">Email</TabsTrigger>
+          <TabsTrigger value="sms" className="flex-shrink-0">SMS</TabsTrigger>
+          <TabsTrigger value="calendar" className="flex-shrink-0">Calendar</TabsTrigger>
+          <TabsTrigger value="ocr" className="flex-shrink-0">OCR</TabsTrigger>
+          <TabsTrigger value="reviews" className="flex-shrink-0">Reviews</TabsTrigger>
+          <TabsTrigger value="invoices" className="flex-shrink-0">Templates</TabsTrigger>
+          <TabsTrigger value="dashboard" className="flex-shrink-0">Dashboard</TabsTrigger>
+          <TabsTrigger value="weather" className="flex-shrink-0">Weather</TabsTrigger>
+          <TabsTrigger value="backup" className="flex-shrink-0">Backup</TabsTrigger>
+          <TabsTrigger value="navigation" className="flex-shrink-0">Navigation</TabsTrigger>
+        </TabsList>
 
         <TabsContent value="payment">
           <Card>
