@@ -8778,6 +8778,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       await storage.createDocuSignEnvelope(envelopeData);
 
+      // Update file manager record with DocuSign status
+      await storage.updateFileSignatureStatus(parseInt(id), {
+        envelopeId: envelope.envelopeId,
+        status: envelope.status,
+        signingUrl: envelope.signingUrl,
+        signedDocumentUrl: null
+      });
+
       res.json({
         success: true,
         envelopeId: envelope.envelopeId,

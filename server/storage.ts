@@ -997,6 +997,47 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(projectWaivers.projectId, projectId), eq(projectWaivers.fileId, fileId)));
   }
 
+  // DocuSign integration methods
+  async createDocuSignEnvelope(envelopeData: any): Promise<any> {
+    const [envelope] = await db
+      .insert(docusignEnvelopes)
+      .values(envelopeData)
+      .returning();
+    return envelope;
+  }
+
+  async getDocuSignEnvelope(envelopeId: string): Promise<any> {
+    const [envelope] = await db
+      .select()
+      .from(docusignEnvelopes)
+      .where(eq(docusignEnvelopes.envelopeId, envelopeId));
+    return envelope;
+  }
+
+  async updateDocuSignEnvelope(envelopeId: string, updates: any): Promise<any> {
+    const [envelope] = await db
+      .update(docusignEnvelopes)
+      .set(updates)
+      .where(eq(docusignEnvelopes.envelopeId, envelopeId))
+      .returning();
+    return envelope;
+  }
+
+  async updateFileSignatureStatus(fileId: number, signatureData: any): Promise<any> {
+    const [file] = await db
+      .update(fileManager)
+      .set({
+        docusignEnvelopeId: signatureData.envelopeId,
+        signatureStatus: signatureData.status,
+        signatureUrl: signatureData.signingUrl,
+        signedDocumentUrl: signatureData.signedDocumentUrl,
+        updatedAt: new Date(),
+      })
+      .where(eq(fileManager.id, fileId))
+      .returning();
+    return file;
+  }
+
   // Expense methods
   async getExpenses(organizationId: number, userId?: number): Promise<any[]> {
     // Check if user is admin - admins can see all expenses across organizations
@@ -1477,6 +1518,11 @@ export class DatabaseStorage implements IStorage {
         downloadCount: fileManager.downloadCount,
         shareableToken: fileManager.shareableToken,
         shareExpiresAt: fileManager.shareExpiresAt,
+        // DocuSign fields
+        docusignEnvelopeId: fileManager.docusignEnvelopeId,
+        signatureStatus: fileManager.signatureStatus,
+        signatureUrl: fileManager.signatureUrl,
+        signedDocumentUrl: fileManager.signedDocumentUrl,
         createdAt: fileManager.createdAt,
         updatedAt: fileManager.updatedAt,
         uploadedByUser: {

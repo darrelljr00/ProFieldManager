@@ -53,6 +53,11 @@ interface FileItem {
     id: number;
     name: string;
   };
+  // DocuSign fields
+  docusignEnvelopeId?: string;
+  signatureStatus?: string;
+  signatureUrl?: string;
+  signedDocumentUrl?: string;
 }
 
 interface Folder {
@@ -418,6 +423,27 @@ export default function FileManager() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
+  const getDocuSignStatusBadge = (status: string) => {
+    switch (status) {
+      case 'sent':
+        return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Sent for Signature</Badge>;
+      case 'delivered':
+        return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">Delivered</Badge>;
+      case 'completed':
+        return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Signed</Badge>;
+      case 'declined':
+        return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">Declined</Badge>;
+      case 'voided':
+        return <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">Voided</Badge>;
+      default:
+        return null;
+    }
+  };
+
+  const isDocumentSignable = (mimeType: string) => {
+    return ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'].includes(mimeType);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
@@ -646,7 +672,7 @@ export default function FileManager() {
                             <Share2 className="mr-2 h-4 w-4" />
                             Share
                           </DropdownMenuItem>
-                          {file.mimeType.includes('pdf') && (
+                          {isDocumentSignable(file.mimeType) && (
                             <DropdownMenuItem 
                               onClick={() => {
                                 setSelectedFile(file);
@@ -654,7 +680,7 @@ export default function FileManager() {
                               }}
                             >
                               <FileSignature className="mr-2 h-4 w-4" />
-                              DocuSign
+                              {file.signatureStatus === 'completed' ? 'View Signed Document' : 'Send for Signature'}
                             </DropdownMenuItem>
                           )}
                           <DropdownMenuItem 
@@ -685,6 +711,12 @@ export default function FileManager() {
                               {tag}
                             </Badge>
                           ))}
+                        </div>
+                      )}
+                      
+                      {file.signatureStatus && file.signatureStatus !== 'none' && (
+                        <div className="mt-2">
+                          {getDocuSignStatusBadge(file.signatureStatus)}
                         </div>
                       )}
                       
