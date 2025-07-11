@@ -2,6 +2,14 @@ import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
+    // Handle unauthorized access - store intended destination
+    if (res.status === 401) {
+      const currentPath = window.location.pathname;
+      if (currentPath !== '/login' && currentPath !== '/' && currentPath !== '/signup') {
+        localStorage.setItem('intended_destination', currentPath);
+      }
+    }
+    
     const text = (await res.text()) || res.statusText;
     throw new Error(`${res.status}: ${text}`);
   }

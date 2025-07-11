@@ -171,6 +171,16 @@ function Router() {
 
   console.log('Router state:', { isAuthenticated, isLoading, hasError: !!error });
 
+  // Store intended destination for protected routes when user is not authenticated
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated && error) {
+      const currentPath = window.location.pathname;
+      if (currentPath !== '/login' && currentPath !== '/' && currentPath !== '/signup') {
+        localStorage.setItem('intended_destination', currentPath);
+      }
+    }
+  }, [isAuthenticated, isLoading, error]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">

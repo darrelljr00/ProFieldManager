@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { MapPin } from "lucide-react";
@@ -22,6 +23,24 @@ export default function SimpleLogin() {
   const [locationRequested, setLocationRequested] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
+  
+  // Get intended destination from URL params or localStorage
+  const getIntendedDestination = () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const redirectTo = urlParams.get('redirect');
+    if (redirectTo) {
+      return decodeURIComponent(redirectTo);
+    }
+    
+    const storedDestination = localStorage.getItem('intended_destination');
+    if (storedDestination) {
+      localStorage.removeItem('intended_destination'); // Clear it after use
+      return storedDestination;
+    }
+    
+    return '/'; // Default to dashboard
+  };
 
   // Check if device is mobile and request GPS on component mount
   useEffect(() => {
@@ -78,7 +97,10 @@ export default function SimpleLogin() {
         title: "Welcome back!",
         description: "You have been successfully logged in",
       });
-      window.location.href = "/";
+      
+      // Redirect to intended destination or dashboard
+      const destination = getIntendedDestination();
+      setLocation(destination);
     },
     onError: (error: any) => {
       toast({

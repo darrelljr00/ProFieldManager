@@ -28,6 +28,11 @@ export function useAuth() {
       try {
         const response = await apiRequest('GET', '/api/auth/me');
         if (!response.ok) {
+          // Store current path as intended destination for unauthorized access
+          const currentPath = window.location.pathname;
+          if (currentPath !== '/login' && currentPath !== '/' && currentPath !== '/signup') {
+            localStorage.setItem('intended_destination', currentPath);
+          }
           throw new Error(`Auth failed: ${response.status}`);
         }
         return response.json();
