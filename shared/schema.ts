@@ -917,10 +917,12 @@ export const fileManager = pgTable("file_manager", {
   downloadCount: integer("download_count").default(0),
   shareableToken: text("shareable_token").unique(),
   shareExpiresAt: timestamp("share_expires_at"),
-  // DocuSign integration fields
-  docusignEnvelopeId: text("docusign_envelope_id"),
-  signatureStatus: text("signature_status").default("none"), // none, sent, delivered, completed, declined, voided
-  signatureUrl: text("signature_url"),
+  // Digital signature fields
+  signatureStatus: text("signature_status").default("none"), // none, pending, signed, declined
+  signatureData: text("signature_data"), // Base64 encoded signature image
+  signedBy: text("signed_by"),
+  signedByUserId: integer("signed_by_user_id").references(() => users.id),
+  signedAt: timestamp("signed_at"),
   signedDocumentUrl: text("signed_document_url"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),

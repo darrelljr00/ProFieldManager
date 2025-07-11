@@ -4723,6 +4723,47 @@ export class DatabaseStorage implements IStorage {
       throw error;
     }
   }
+
+  // Digital signature methods
+  async signDocument(fileId: number, signatureData: string, signerName: string, userId: number): Promise<any> {
+    try {
+      const [updatedFile] = await db
+        .update(fileManager)
+        .set({
+          signatureStatus: 'signed',
+          signatureData,
+          signedBy: signerName,
+          signedByUserId: userId,
+          signedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(fileManager.id, fileId))
+        .returning();
+
+      return updatedFile;
+    } catch (error) {
+      console.error('Error signing document:', error);
+      throw error;
+    }
+  }
+
+  async getSignedDocument(fileId: number): Promise<any> {
+    try {
+      const [file] = await db
+        .select()
+        .from(fileManager)
+        .where(eq(fileManager.id, fileId));
+
+      if (!file || file.signatureStatus !== 'signed') {
+        throw new Error('Signed document not found');
+      }
+
+      return file;
+    } catch (error) {
+      console.error('Error getting signed document:', error);
+      throw error;
+    }
+  }
 }
 
 export const storage = new DatabaseStorage();

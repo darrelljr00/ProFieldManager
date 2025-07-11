@@ -8732,69 +8732,118 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // DocuSign integration for file manager
-  app.post("/api/files/:id/docusign", requireAuth, async (req, res) => {
+  // Digital signature routes for file manager
+  app.post("/api/files/:id/sign", requireAuth, async (req, res) => {
     try {
       const user = getAuthenticatedUser(req);
       const { id } = req.params;
-      const { recipientEmail, recipientName, subject } = req.body;
+      const { signatureData, signerName } = req.body;
 
-      const file = await storage.getFile(parseInt(id), user.organizationId);
+      if (!signatureData || !signerName) {
+        return res.status(400).json({ message: "Signature data and signer name are required" });
+      }
+
+      const fileId = parseInt(id);
+      const file = await storage.getFileManagerById(fileId);
+      
       if (!file) {
         return res.status(404).json({ message: "File not found" });
       }
 
       // Check if file is suitable for signing
       if (!['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'].includes(file.mimeType)) {
-        return res.status(400).json({ message: "File type not supported for e-signature" });
+        return res.status(400).json({ message: "File type not supported for digital signature" });
       }
 
-      const docuSignConfig = getDocuSignConfig();
-      if (!docuSignConfig) {
-        return res.status(500).json({ message: "DocuSign not configured" });
+      // Sign the document
+      const signedFile = await storage.signDocument(fileId, signatureData, signerName, user.id);
+
+      // Broadcast signature event to WebSocket clients
+      if (wss) {
+        wss.clients.forEach((client) => {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify({
+              type: 'document_signed',
+              data: { fileId, signerName, signedAt: signedFile.signedAt }
+            }));
+          }
+        });
       }
-
-      const docuSignService = new DocuSignService(docuSignConfig);
-      const envelopeSubject = subject || `Document signature request: ${file.originalName}`;
-
-      // Create DocuSign envelope
-      const envelope = await docuSignService.createEnvelope(
-        file.filePath,
-        recipientEmail,
-        recipientName,
-        envelopeSubject
-      );
-
-      // Save envelope to database
-      const envelopeData = {
-        envelopeId: envelope.envelopeId,
-        fileId: parseInt(id),
-        userId: user.id,
-        recipientEmail,
-        recipientName,
-        subject: envelopeSubject,
-        status: envelope.status
-      };
-
-      await storage.createDocuSignEnvelope(envelopeData);
-
-      // Update file manager record with DocuSign status
-      await storage.updateFileSignatureStatus(parseInt(id), {
-        envelopeId: envelope.envelopeId,
-        status: envelope.status,
-        signingUrl: envelope.signingUrl,
-        signedDocumentUrl: null
-      });
 
       res.json({
         success: true,
-        envelopeId: envelope.envelopeId,
-        status: envelope.status,
-        message: "Document sent for signature successfully"
+        message: "Document signed successfully",
+        file: signedFile
       });
     } catch (error: any) {
-      console.error("Error sending file for DocuSign:", error);
-      res.status(500).json({ message: "Failed to send document for signature" });
+      console.error("Error signing document:", error);
+      res.status(500).json({ message: "Failed to sign document" });
+    }
+  });
+
+  app.get("/api/files/:id/download-signed", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { id } = req.params;
+      const fileId = parseInt(id);
+
+      const file = await storage.getSignedDocument(fileId);
+      
+      if (!file) {
+        return res.status(404).json({ message: "Signed document not found" });
+      }
+
+      // For now, return the original file with signature metadata
+      // In a production system, you might generate a PDF with embedded signature
+      const filePath = path.join(process.cwd(), file.filePath);
+      
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ message: "File not found on disk" });
+      }
+
+      const stat = fs.statSync(filePath);
+      
+      res.setHeader('Content-Type', file.mimeType);
+      res.setHeader('Content-Length', stat.size);
+      res.setHeader('Content-Disposition', `attachment; filename="signed_${file.originalName}"`);
+      
+      const fileStream = fs.createReadStream(filePath);
+      fileStream.pipe(res);
+    } catch (error: any) {
+      console.error("Error downloading signed document:", error);
+      res.status(500).json({ message: "Failed to download signed document" });
+    }
+  });
+
+  app.get("/api/files/:id/preview", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { id } = req.params;
+      const fileId = parseInt(id);
+
+      const file = await storage.getFileManagerById(fileId);
+      
+      if (!file) {
+        return res.status(404).json({ message: "File not found" });
+      }
+
+      const filePath = path.join(process.cwd(), file.filePath);
+      
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ message: "File not found on disk" });
+      }
+
+      const stat = fs.statSync(filePath);
+      
+      res.setHeader('Content-Type', file.mimeType);
+      res.setHeader('Content-Length', stat.size);
+      res.setHeader('Content-Disposition', `inline; filename="${file.originalName}"`);
+      
+      const fileStream = fs.createReadStream(filePath);
+      fileStream.pipe(res);
+    } catch (error: any) {
+      console.error("Error previewing file:", error);
+      res.status(500).json({ message: "Failed to preview file" });
     }
   });
 

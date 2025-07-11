@@ -31,6 +31,7 @@ import {
   User
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import SignatureDialog from "@/components/signature-dialog";
 
 interface FileItem {
   id: number;
@@ -53,10 +54,12 @@ interface FileItem {
     id: number;
     name: string;
   };
-  // DocuSign fields
-  docusignEnvelopeId?: string;
+  // Digital signature fields
   signatureStatus?: string;
-  signatureUrl?: string;
+  signatureData?: string;
+  signedBy?: string;
+  signedByUserId?: number;
+  signedAt?: string;
   signedDocumentUrl?: string;
 }
 
@@ -73,7 +76,7 @@ export default function FileManager() {
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [folderDialogOpen, setFolderDialogOpen] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
-  const [docusignDialogOpen, setDocusignDialogOpen] = useState(false);
+  const [signatureDialogOpen, setSignatureDialogOpen] = useState(false);
   const [createFileDialogOpen, setCreateFileDialogOpen] = useState(false);
   const [editFileDialogOpen, setEditFileDialogOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
@@ -85,9 +88,6 @@ export default function FileManager() {
   const [shareEmail, setShareEmail] = useState("");
   const [sharePermissions, setSharePermissions] = useState("view");
   const [shareExpiry, setShareExpiry] = useState("");
-  const [docusignEmail, setDocusignEmail] = useState("");
-  const [docusignName, setDocusignName] = useState("");
-  const [docusignSubject, setDocusignSubject] = useState("");
   const [newFileName, setNewFileName] = useState("");
   const [newFileContent, setNewFileContent] = useState("");
   const [editingFileContent, setEditingFileContent] = useState("");
@@ -181,29 +181,7 @@ export default function FileManager() {
     },
   });
 
-  // DocuSign mutation
-  const docusignMutation = useMutation({
-    mutationFn: async (data: { fileId: number; recipientEmail: string; recipientName: string; subject?: string }) => {
-      return await apiRequest("POST", `/api/files/${data.fileId}/docusign`, data);
-    },
-    onSuccess: () => {
-      toast({
-        title: "Document sent for signature",
-        description: "The recipient will receive an email with signing instructions.",
-      });
-      setDocusignDialogOpen(false);
-      setDocusignEmail("");
-      setDocusignName("");
-      setDocusignSubject("");
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Failed to send for signature",
-        description: error.message || "An error occurred",
-        variant: "destructive",
-      });
-    },
-  });
+
 
   // Delete file mutation
   const deleteFileMutation = useMutation({
@@ -423,18 +401,14 @@ export default function FileManager() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
-  const getDocuSignStatusBadge = (status: string) => {
+  const getSignatureStatusBadge = (status: string) => {
     switch (status) {
-      case 'sent':
-        return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Sent for Signature</Badge>;
-      case 'delivered':
-        return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">Delivered</Badge>;
-      case 'completed':
+      case 'pending':
+        return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">Pending Signature</Badge>;
+      case 'signed':
         return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Signed</Badge>;
       case 'declined':
         return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">Declined</Badge>;
-      case 'voided':
-        return <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">Voided</Badge>;
       default:
         return null;
     }
@@ -676,11 +650,11 @@ export default function FileManager() {
                             <DropdownMenuItem 
                               onClick={() => {
                                 setSelectedFile(file);
-                                setDocusignDialogOpen(true);
+                                setSignatureDialogOpen(true);
                               }}
                             >
                               <FileSignature className="mr-2 h-4 w-4" />
-                              {file.signatureStatus === 'completed' ? 'View Signed Document' : 'Send for Signature'}
+                              {file.signatureStatus === 'signed' ? 'View Signature' : 'Digital Signature'}
                             </DropdownMenuItem>
                           )}
                           <DropdownMenuItem 
@@ -716,7 +690,7 @@ export default function FileManager() {
                       
                       {file.signatureStatus && file.signatureStatus !== 'none' && (
                         <div className="mt-2">
-                          {getDocuSignStatusBadge(file.signatureStatus)}
+                          {getSignatureStatusBadge(file.signatureStatus)}
                         </div>
                       )}
                       
@@ -788,53 +762,14 @@ export default function FileManager() {
           </DialogContent>
         </Dialog>
 
-        {/* DocuSign Dialog */}
-        <Dialog open={docusignDialogOpen} onOpenChange={setDocusignDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Send for Digital Signature</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="docusign-email">Recipient Email</Label>
-                <Input
-                  id="docusign-email"
-                  type="email"
-                  value={docusignEmail}
-                  onChange={(e) => setDocusignEmail(e.target.value)}
-                  placeholder="Enter recipient email"
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="docusign-name">Recipient Name</Label>
-                <Input
-                  id="docusign-name"
-                  value={docusignName}
-                  onChange={(e) => setDocusignName(e.target.value)}
-                  placeholder="Enter recipient name"
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="docusign-subject">Email Subject (Optional)</Label>
-                <Input
-                  id="docusign-subject"
-                  value={docusignSubject}
-                  onChange={(e) => setDocusignSubject(e.target.value)}
-                  placeholder="Enter email subject"
-                />
-              </div>
-              <Button 
-                onClick={handleDocuSign} 
-                disabled={!docusignEmail || !docusignName || docusignMutation.isPending}
-                className="w-full"
-              >
-                {docusignMutation.isPending ? "Sending..." : "Send for Signature"}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        {/* Signature Dialog */}
+        {selectedFile && (
+          <SignatureDialog
+            file={selectedFile}
+            open={signatureDialogOpen}
+            onOpenChange={setSignatureDialogOpen}
+          />
+        )}
 
         {/* Edit File Dialog */}
         <Dialog open={editFileDialogOpen} onOpenChange={setEditFileDialogOpen}>
