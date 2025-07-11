@@ -228,7 +228,7 @@ export default function MyTasks() {
     });
   };
 
-  const TaskCard = ({ task }: { task: TaskWithDetails }) => (
+  const TaskCard = ({ task, onUpdate, onDelete }: { task: TaskWithDetails; onUpdate?: (taskData: { id: number; data: any }) => void; onDelete?: (taskId: number) => void }) => (
     <Card 
       className="hover:shadow-md transition-shadow cursor-pointer"
       onClick={() => {
