@@ -8847,6 +8847,104 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Document signature field management routes
+  app.post("/api/files/:id/signature-fields", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { id } = req.params;
+      const fieldData = {
+        ...req.body,
+        fileId: parseInt(id),
+        organizationId: user.organizationId,
+        createdBy: user.id,
+      };
+
+      const field = await storage.createSignatureField(fieldData);
+      res.json(field);
+    } catch (error: any) {
+      console.error("Error creating signature field:", error);
+      res.status(500).json({ message: "Failed to create signature field" });
+    }
+  });
+
+  app.get("/api/files/:id/signature-fields", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { id } = req.params;
+      const fileId = parseInt(id);
+
+      const fields = await storage.getSignatureFields(fileId);
+      res.json(fields);
+    } catch (error: any) {
+      console.error("Error getting signature fields:", error);
+      res.status(500).json({ message: "Failed to get signature fields" });
+    }
+  });
+
+  app.put("/api/signature-fields/:id", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { id } = req.params;
+      const fieldId = parseInt(id);
+
+      const field = await storage.updateSignatureField(fieldId, req.body);
+      res.json(field);
+    } catch (error: any) {
+      console.error("Error updating signature field:", error);
+      res.status(500).json({ message: "Failed to update signature field" });
+    }
+  });
+
+  app.delete("/api/signature-fields/:id", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { id } = req.params;
+      const fieldId = parseInt(id);
+
+      await storage.deleteSignatureField(fieldId);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting signature field:", error);
+      res.status(500).json({ message: "Failed to delete signature field" });
+    }
+  });
+
+  app.post("/api/signature-fields/:id/sign", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { id } = req.params;
+      const { signatureData, signerName } = req.body;
+      const fieldId = parseInt(id);
+
+      if (!signatureData || !signerName) {
+        return res.status(400).json({ message: "Signature data and signer name are required" });
+      }
+
+      const field = await storage.signDocumentField(fieldId, signatureData, signerName, user.id);
+
+      // Broadcast signature event to WebSocket clients
+      if (wss) {
+        wss.clients.forEach((client) => {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify({
+              type: 'document_field_signed',
+              data: { fieldId, signerName, signedAt: field.signedAt }
+            }));
+          }
+        });
+      }
+
+      res.json({
+        success: true,
+        message: "Document field signed successfully",
+        field: field
+      });
+    } catch (error: any) {
+      console.error("Error signing document field:", error);
+      res.status(500).json({ message: "Failed to sign document field" });
+    }
+  });
+
   // File creation and editing routes
   app.post("/api/files/create-text", requireAuth, async (req, res) => {
     try {

@@ -1917,6 +1917,37 @@ export const digitalSignatures = pgTable("digital_signatures", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Document Signature Fields
+export const documentSignatureFields = pgTable("document_signature_fields", {
+  id: serial("id").primaryKey(),
+  fileId: integer("file_id").notNull().references(() => fileManager.id, { onDelete: "cascade" }),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  createdBy: integer("created_by").notNull().references(() => users.id),
+  
+  // Field positioning (as percentages of document dimensions)
+  x: decimal("x", { precision: 5, scale: 2 }).notNull(), // X position as percentage (0-100)
+  y: decimal("y", { precision: 5, scale: 2 }).notNull(), // Y position as percentage (0-100)
+  width: decimal("width", { precision: 5, scale: 2 }).notNull(), // Width as percentage
+  height: decimal("height", { precision: 5, scale: 2 }).notNull(), // Height as percentage
+  page: integer("page").notNull().default(1), // Page number for multi-page documents
+  
+  // Field properties
+  fieldType: text("field_type").notNull().default("signature"), // signature, initial, date, text
+  fieldLabel: text("field_label").notNull(),
+  required: boolean("required").notNull().default(true),
+  signerRole: text("signer_role").notNull(), // who should sign this field
+  
+  // Signature data (when signed)
+  signatureData: text("signature_data"), // Base64 encoded signature image
+  signedBy: text("signed_by"),
+  signedByUserId: integer("signed_by_user_id").references(() => users.id),
+  signedAt: timestamp("signed_at"),
+  
+  status: text("status").notNull().default("pending"), // pending, signed, declined
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // File Manager Zod schemas
 export const insertFileManagerSchema = z.object({
   organizationId: z.number(),

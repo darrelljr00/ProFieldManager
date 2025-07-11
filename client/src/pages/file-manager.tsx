@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import SignatureDialog from "@/components/signature-dialog";
+import { DocumentFieldEditor } from "@/components/document-field-editor";
 
 interface FileItem {
   id: number;
@@ -77,6 +78,7 @@ export default function FileManager() {
   const [folderDialogOpen, setFolderDialogOpen] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [signatureDialogOpen, setSignatureDialogOpen] = useState(false);
+  const [documentFieldEditorOpen, setDocumentFieldEditorOpen] = useState(false);
   const [createFileDialogOpen, setCreateFileDialogOpen] = useState(false);
   const [editFileDialogOpen, setEditFileDialogOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
@@ -657,6 +659,17 @@ export default function FileManager() {
                               {file.signatureStatus === 'signed' ? 'View Signature' : 'Digital Signature'}
                             </DropdownMenuItem>
                           )}
+                          {isDocumentSignable(file.mimeType) && (
+                            <DropdownMenuItem 
+                              onClick={() => {
+                                setSelectedFile(file);
+                                setDocumentFieldEditorOpen(true);
+                              }}
+                            >
+                              <MapPin className="mr-2 h-4 w-4" />
+                              Place Signature Fields
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuItem 
                             onClick={() => deleteFileMutation.mutate(file.id)}
                             className="text-red-600"
@@ -768,6 +781,15 @@ export default function FileManager() {
             file={selectedFile}
             open={signatureDialogOpen}
             onOpenChange={setSignatureDialogOpen}
+          />
+        )}
+
+        {/* Document Field Editor */}
+        {selectedFile && (
+          <DocumentFieldEditor
+            file={selectedFile}
+            open={documentFieldEditorOpen}
+            onOpenChange={setDocumentFieldEditorOpen}
           />
         )}
 

@@ -9,7 +9,7 @@ import {
   internalMessages, internalMessageRecipients, messageGroups, messageGroupMembers,
   inspectionTemplates, inspectionItems, inspectionRecords, inspectionResponses, inspectionNotifications,
   smsMessages, smsTemplates, sharedPhotoLinks, fileSecuritySettings, fileSecurityScans, fileAccessLogs,
-  digitalSignatures, departments, employees, employeeDocuments, timeOffRequests, performanceReviews, disciplinaryActions,
+  digitalSignatures, documentSignatureFields, departments, employees, employeeDocuments, timeOffRequests, performanceReviews, disciplinaryActions,
   navigationOrder, backupSettings, backupJobs
 } from "@shared/schema";
 import type { GasCard, InsertGasCard, GasCardAssignment, InsertGasCardAssignment, GasCardUsage, InsertGasCardUsage, GasCardProvider, InsertGasCardProvider } from "@shared/schema";
@@ -4761,6 +4761,87 @@ export class DatabaseStorage implements IStorage {
       return file;
     } catch (error) {
       console.error('Error getting signed document:', error);
+      throw error;
+    }
+  }
+
+  // Document signature field methods
+  async createSignatureField(fieldData: any): Promise<any> {
+    try {
+      const [field] = await db
+        .insert(documentSignatureFields)
+        .values(fieldData)
+        .returning();
+
+      return field;
+    } catch (error) {
+      console.error('Error creating signature field:', error);
+      throw error;
+    }
+  }
+
+  async getSignatureFields(fileId: number): Promise<any[]> {
+    try {
+      const fields = await db
+        .select()
+        .from(documentSignatureFields)
+        .where(eq(documentSignatureFields.fileId, fileId))
+        .orderBy(asc(documentSignatureFields.createdAt));
+
+      return fields;
+    } catch (error) {
+      console.error('Error getting signature fields:', error);
+      throw error;
+    }
+  }
+
+  async updateSignatureField(fieldId: number, updates: any): Promise<any> {
+    try {
+      const [field] = await db
+        .update(documentSignatureFields)
+        .set({
+          ...updates,
+          updatedAt: new Date(),
+        })
+        .where(eq(documentSignatureFields.id, fieldId))
+        .returning();
+
+      return field;
+    } catch (error) {
+      console.error('Error updating signature field:', error);
+      throw error;
+    }
+  }
+
+  async deleteSignatureField(fieldId: number): Promise<void> {
+    try {
+      await db
+        .delete(documentSignatureFields)
+        .where(eq(documentSignatureFields.id, fieldId));
+    } catch (error) {
+      console.error('Error deleting signature field:', error);
+      throw error;
+    }
+  }
+
+  async signDocumentField(fieldId: number, signatureData: string, signerName: string, userId: number): Promise<any> {
+    try {
+      const [field] = await db
+        .update(documentSignatureFields)
+        .set({
+          signatureData,
+          signedBy: signerName,
+          signedByUserId: userId,
+          signedAt: new Date(),
+          status: 'signed',
+          updatedAt: new Date(),
+        })
+        .where(eq(documentSignatureFields.id, fieldId))
+        .returning();
+
+      return field;
+    } catch (error) {
+      console.error('Error signing document field:', error);
       throw error;
     }
   }
