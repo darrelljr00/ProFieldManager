@@ -5,7 +5,7 @@ import {
   expenses, expenseCategories, vendors, expenseReports, gasCards, 
   gasCardAssignments, gasCardUsage, gasCardProviders, leads, calendarJobs, messages,
   images, settings, organizations, userSessions, subscriptionPlans,
-  projectFiles, projectWaivers, fileManager, projectUsers, timeClock, timeClockSettings,
+  projectFiles, projectWaivers, fileManager, fileFolders, projectUsers, timeClock, timeClockSettings,
   internalMessages, internalMessageRecipients, messageGroups, messageGroupMembers,
   inspectionTemplates, inspectionItems, inspectionRecords, inspectionResponses, inspectionNotifications,
   smsMessages, smsTemplates, sharedPhotoLinks, fileSecuritySettings, fileSecurityScans, fileAccessLogs,
