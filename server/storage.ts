@@ -5,7 +5,7 @@ import {
   expenses, expenseCategories, vendors, expenseReports, gasCards, 
   gasCardAssignments, gasCardUsage, gasCardProviders, leads, calendarJobs, messages,
   images, settings, organizations, userSessions, subscriptionPlans,
-  projectFiles, fileManager, projectUsers, timeClock, timeClockSettings,
+  projectFiles, projectWaivers, fileManager, projectUsers, timeClock, timeClockSettings,
   internalMessages, internalMessageRecipients, messageGroups, messageGroupMembers,
   inspectionTemplates, inspectionItems, inspectionRecords, inspectionResponses, inspectionNotifications,
   smsMessages, smsTemplates, sharedPhotoLinks, fileSecuritySettings, fileSecurityScans, fileAccessLogs,
@@ -75,6 +75,11 @@ export interface IStorage {
   deleteProject(id: number): Promise<void>;
   assignUserToProject(userId: number, projectId: number, role?: string): Promise<any>;
   removeUserFromProject(userId: number, projectId: number): Promise<void>;
+  
+  // Project waiver methods
+  attachWaiversToProject(projectId: number, waiverIds: number[], attachedBy: number): Promise<void>;
+  getProjectWaivers(projectId: number): Promise<any[]>;
+  removeWaiverFromProject(projectId: number, fileId: number): Promise<void>;
   
   // Expense methods
   getExpenses(organizationId: number, userId?: number): Promise<any[]>;
@@ -948,6 +953,48 @@ export class DatabaseStorage implements IStorage {
     await db
       .delete(projectUsers)
       .where(and(eq(projectUsers.userId, userId), eq(projectUsers.projectId, projectId)));
+  }
+
+  // Project waiver methods
+  async attachWaiversToProject(projectId: number, waiverIds: number[], attachedBy: number): Promise<void> {
+    if (waiverIds.length === 0) return;
+    
+    const waiverData = waiverIds.map(fileId => ({
+      projectId,
+      fileId,
+      attachedBy,
+    }));
+
+    await db
+      .insert(projectWaivers)
+      .values(waiverData)
+      .onConflictDoNothing(); // Avoid duplicates
+  }
+
+  async getProjectWaivers(projectId: number): Promise<any[]> {
+    return await db
+      .select({
+        id: projectWaivers.id,
+        fileId: projectWaivers.fileId,
+        attachedBy: projectWaivers.attachedBy,
+        attachedAt: projectWaivers.attachedAt,
+        fileName: fileManager.originalName,
+        filePath: fileManager.filePath,
+        fileType: fileManager.fileType,
+        description: fileManager.description,
+        attachedByName: users.firstName,
+      })
+      .from(projectWaivers)
+      .innerJoin(fileManager, eq(projectWaivers.fileId, fileManager.id))
+      .leftJoin(users, eq(projectWaivers.attachedBy, users.id))
+      .where(eq(projectWaivers.projectId, projectId))
+      .orderBy(desc(projectWaivers.attachedAt));
+  }
+
+  async removeWaiverFromProject(projectId: number, fileId: number): Promise<void> {
+    await db
+      .delete(projectWaivers)
+      .where(and(eq(projectWaivers.projectId, projectId), eq(projectWaivers.fileId, fileId)));
   }
 
   // Expense methods

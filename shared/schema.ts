@@ -362,6 +362,14 @@ export const projectFiles = pgTable("project_files", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+export const projectWaivers = pgTable("project_waivers", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  fileId: integer("file_id").notNull().references(() => fileManager.id, { onDelete: "cascade" }),
+  attachedBy: integer("attached_by").notNull().references(() => users.id),
+  attachedAt: timestamp("attached_at").defaultNow().notNull(),
+});
+
 export const docusignEnvelopes = pgTable("docusign_envelopes", {
   id: serial("id").primaryKey(),
   envelopeId: text("envelope_id").notNull().unique(),
@@ -1626,6 +1634,9 @@ export type InsertTaskComment = z.infer<typeof insertTaskCommentSchema>;
 
 export type ProjectFile = typeof projectFiles.$inferSelect;
 export type InsertProjectFile = z.infer<typeof insertProjectFileSchema>;
+
+export type ProjectWaiver = typeof projectWaivers.$inferSelect;
+export type InsertProjectWaiver = typeof projectWaivers.$inferInsert;
 
 export type TimeEntry = typeof timeEntries.$inferSelect;
 export type InsertTimeEntry = z.infer<typeof insertTimeEntrySchema>;

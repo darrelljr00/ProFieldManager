@@ -448,6 +448,8 @@ export default function Jobs() {
   const [showUserAssignment, setShowUserAssignment] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
   const [bulkAssignmentRole, setBulkAssignmentRole] = useState<string>("member");
+  const [includeWaivers, setIncludeWaivers] = useState(false);
+  const [selectedWaivers, setSelectedWaivers] = useState<number[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -489,6 +491,23 @@ export default function Jobs() {
     queryKey: ["/api/projects", selectedProject?.id, "tasks"],
     queryFn: () => selectedProject ? apiRequest("GET", `/api/projects/${selectedProject.id}/tasks`).then(res => res.json()) : [],
     enabled: !!selectedProject,
+  });
+
+  // Fetch waiver documents from file manager
+  const { data: waiverDocuments = [] } = useQuery({
+    queryKey: ["/api/files", "waivers"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/files");
+      const files = await response.json();
+      // Filter for document files that could be waivers (PDF, DOC, DOCX, TXT)
+      return files.filter((file: any) => 
+        file.fileType === 'document' || 
+        file.mimeType.includes('pdf') || 
+        file.mimeType.includes('doc') || 
+        file.mimeType.includes('text') ||
+        file.originalName.toLowerCase().includes('waiver')
+      );
+    },
   });
 
 
@@ -555,6 +574,9 @@ export default function Jobs() {
       timestampFormat: formData.get("timestampFormat") || "MM/dd/yyyy hh:mm a",
       includeGpsCoords: formData.get("includeGpsCoords") === "true",
       timestampPosition: formData.get("timestampPosition") || "bottom-right",
+      // Waiver settings
+      includeWaivers,
+      selectedWaivers: includeWaivers ? selectedWaivers : [],
     };
   createJobMutation.mutate(data);
   };
@@ -697,6 +719,23 @@ export default function Jobs() {
       setSelectedUsers(availableUsers.map(user => user.id));
     } else {
       setSelectedUsers([]);
+    }
+  };
+
+  // Waiver selection handlers
+  const handleWaiverSelection = (waiverId: number, checked: boolean) => {
+    if (checked) {
+      setSelectedWaivers(prev => [...prev, waiverId]);
+    } else {
+      setSelectedWaivers(prev => prev.filter(id => id !== waiverId));
+    }
+  };
+
+  const handleSelectAllWaivers = (checked: boolean) => {
+    if (checked) {
+      setSelectedWaivers(waiverDocuments.map((waiver: any) => waiver.id));
+    } else {
+      setSelectedWaivers([]);
     }
   };
 
@@ -1148,6 +1187,98 @@ export default function Jobs() {
                     </div>
                   </div>
                 </div>
+              </div>
+
+              {/* Waiver Documents Section */}
+              <div className="space-y-4 p-4 border rounded-lg bg-gray-50 dark:bg-gray-800">
+                <h4 className="font-semibold text-sm">Waiver Documents</h4>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Attach waiver documents to this job</Label>
+                  <div className="flex items-center space-x-6">
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        id="waiverEnabled"
+                        name="includeWaivers"
+                        checked={includeWaivers}
+                        onChange={() => setIncludeWaivers(true)}
+                        className="w-4 h-4"
+                      />
+                      <Label htmlFor="waiverEnabled" className="text-sm">
+                        Yes, attach waivers
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        id="waiverDisabled"
+                        name="includeWaivers"
+                        checked={!includeWaivers}
+                        onChange={() => setIncludeWaivers(false)}
+                        className="w-4 h-4"
+                      />
+                      <Label htmlFor="waiverDisabled" className="text-sm">
+                        No waivers
+                      </Label>
+                    </div>
+                  </div>
+                </div>
+                
+                {includeWaivers && (
+                  <div className="space-y-3">
+                    <Label className="text-sm font-medium">Select Waiver Documents</Label>
+                    {waiverDocuments.length === 0 ? (
+                      <div className="text-sm text-gray-500 p-3 border border-dashed rounded-lg text-center">
+                        No waiver documents found in file manager. 
+                        <Link href="/file-manager" className="text-blue-600 hover:underline ml-1">
+                          Upload waiver documents first
+                        </Link>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <input
+                            type="checkbox"
+                            id="selectAllWaivers"
+                            checked={selectedWaivers.length === waiverDocuments.length}
+                            onChange={(e) => handleSelectAllWaivers(e.target.checked)}
+                            className="w-4 h-4"
+                          />
+                          <Label htmlFor="selectAllWaivers" className="text-sm font-medium">
+                            Select All ({waiverDocuments.length} documents)
+                          </Label>
+                        </div>
+                        <div className="max-h-32 overflow-y-auto space-y-2 border rounded-lg p-2">
+                          {waiverDocuments.map((waiver: any) => (
+                            <div key={waiver.id} className="flex items-center space-x-2">
+                              <input
+                                type="checkbox"
+                                id={`waiver-${waiver.id}`}
+                                checked={selectedWaivers.includes(waiver.id)}
+                                onChange={(e) => handleWaiverSelection(waiver.id, e.target.checked)}
+                                className="w-4 h-4"
+                              />
+                              <Label htmlFor={`waiver-${waiver.id}`} className="text-sm flex-1">
+                                <span className="font-medium">{waiver.originalName}</span>
+                                {waiver.description && (
+                                  <span className="text-gray-500 ml-2">- {waiver.description}</span>
+                                )}
+                              </Label>
+                              <span className="text-xs text-gray-400">
+                                {waiver.fileType}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                        {selectedWaivers.length > 0 && (
+                          <div className="text-sm text-green-600 mt-2">
+                            {selectedWaivers.length} waiver document(s) selected
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div>

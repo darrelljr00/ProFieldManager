@@ -2644,6 +2644,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const project = await storage.createProject(projectData);
       
+      // Handle waiver attachments if any were selected
+      const { includeWaivers, selectedWaivers } = req.body;
+      if (includeWaivers && selectedWaivers && Array.isArray(selectedWaivers) && selectedWaivers.length > 0) {
+        try {
+          await storage.attachWaiversToProject(project.id, selectedWaivers, userId);
+        } catch (waiversError) {
+          console.error("Error attaching waivers to project:", waiversError);
+          // Continue with project creation even if waiver attachment fails
+        }
+      }
+      
       // Broadcast to all web users except the creator
       (app as any).broadcastToWebUsers('project_created', {
         project,
@@ -3175,6 +3186,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error downloading file:", error);
       res.status(500).json({ message: "Failed to download file" });
+    }
+  });
+
+  // Project waivers API
+  app.get("/api/projects/:id/waivers", requireAuth, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const waivers = await storage.getProjectWaivers(projectId);
+      res.json(waivers);
+    } catch (error: any) {
+      console.error("Error fetching project waivers:", error);
+      res.status(500).json({ message: "Failed to fetch project waivers" });
+    }
+  });
+
+  app.delete("/api/projects/:id/waivers/:fileId", requireAuth, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const fileId = parseInt(req.params.fileId);
+      await storage.removeWaiverFromProject(projectId, fileId);
+      res.json({ message: "Waiver removed from project successfully" });
+    } catch (error: any) {
+      console.error("Error removing waiver from project:", error);
+      res.status(500).json({ message: "Failed to remove waiver from project" });
     }
   });
 
