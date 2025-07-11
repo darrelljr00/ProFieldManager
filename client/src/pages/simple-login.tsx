@@ -98,9 +98,12 @@ export default function SimpleLogin() {
         description: "You have been successfully logged in",
       });
       
-      // Redirect to intended destination or dashboard
-      const destination = getIntendedDestination();
-      setLocation(destination);
+      // Add a small delay to allow authentication state to propagate
+      setTimeout(() => {
+        // Redirect to intended destination or dashboard
+        const destination = getIntendedDestination();
+        setLocation(destination);
+      }, 100);
     },
     onError: (error: any) => {
       toast({

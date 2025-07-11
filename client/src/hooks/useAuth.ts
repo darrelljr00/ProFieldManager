@@ -42,8 +42,8 @@ export function useAuth() {
       }
     },
     retry: false,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnWindowFocus: false,
+    staleTime: 1 * 60 * 1000, // 1 minute (reduced from 5 minutes)
+    refetchOnWindowFocus: true, // Allow refetch on window focus
     refetchOnMount: true,
   });
 
