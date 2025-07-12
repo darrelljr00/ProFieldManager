@@ -336,10 +336,7 @@ export default function HumanResources() {
 
   // Mutations for employee management
   const createEmployeeMutation = useMutation({
-    mutationFn: (data: any) => apiRequest("/api/employees", {
-      method: "POST",
-      body: JSON.stringify(data),
-    }),
+    mutationFn: (data: any) => apiRequest("POST", "/api/employees", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/employees"] });
       setEmployeeDialogOpen(false);
@@ -360,10 +357,7 @@ export default function HumanResources() {
   });
 
   const createTimeOffMutation = useMutation({
-    mutationFn: (data: any) => apiRequest("/api/time-off-requests", {
-      method: "POST",
-      body: JSON.stringify(data),
-    }),
+    mutationFn: (data: any) => apiRequest("POST", "/api/time-off-requests", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/time-off-requests"] });
       setTimeOffDialogOpen(false);
@@ -382,10 +376,7 @@ export default function HumanResources() {
   });
 
   const createPerformanceReviewMutation = useMutation({
-    mutationFn: (data: any) => apiRequest("/api/performance-reviews", {
-      method: "POST",
-      body: JSON.stringify(data),
-    }),
+    mutationFn: (data: any) => apiRequest("POST", "/api/performance-reviews", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/performance-reviews"] });
       setReviewDialogOpen(false);
@@ -404,10 +395,7 @@ export default function HumanResources() {
   });
 
   const createDisciplinaryMutation = useMutation({
-    mutationFn: (data: any) => apiRequest("/api/disciplinary-actions", {
-      method: "POST",
-      body: JSON.stringify(data),
-    }),
+    mutationFn: (data: any) => apiRequest("POST", "/api/disciplinary-actions", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/disciplinary-actions"] });
       setDisciplinaryDialogOpen(false);
@@ -426,10 +414,7 @@ export default function HumanResources() {
   });
 
   const createDepartmentMutation = useMutation({
-    mutationFn: (data: any) => apiRequest("/api/departments", {
-      method: "POST",
-      body: JSON.stringify(data),
-    }),
+    mutationFn: (data: any) => apiRequest("POST", "/api/departments", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/departments"] });
       setDepartmentDialogOpen(false);
@@ -448,9 +433,7 @@ export default function HumanResources() {
   });
 
   const deleteDepartmentMutation = useMutation({
-    mutationFn: (id: number) => apiRequest(`/api/departments/${id}`, {
-      method: "DELETE",
-    }),
+    mutationFn: (id: number) => apiRequest("DELETE", `/api/departments/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/departments"] });
       toast({
