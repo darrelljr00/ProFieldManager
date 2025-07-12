@@ -288,6 +288,7 @@ export default function HumanResources() {
   const [showUserSync, setShowUserSync] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string>("");
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // Real API queries
   const { data: employees = [], isLoading: employeesLoading } = useQuery({
