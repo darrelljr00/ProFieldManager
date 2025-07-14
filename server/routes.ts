@@ -118,6 +118,7 @@ async function compressImage(inputPath: string, outputPath: string, organization
     // Check if compression is enabled
     const compressionEnabled = enabledSetting === 'true' || enabledSetting === null; // Default to enabled
     if (!compressionEnabled) {
+      console.log('🚫 Compression disabled, skipping');
       return false; // Skip compression
     }
     
@@ -127,21 +128,53 @@ async function compressImage(inputPath: string, outputPath: string, organization
     const maxHeight = maxHeightSetting ? parseInt(maxHeightSetting) : 1080;
     const preserveOriginal = preserveOriginalSetting === 'true';
     const retainFilename = retainFilenameSetting === 'true';
+    
+    console.log('🔧 Compression settings:', {
+      enabled: compressionEnabled,
+      quality,
+      preserveOriginal,
+      retainFilename,
+      inputPath,
+      outputPath
+    });
 
     // If retaining filename, compress in place; otherwise use separate output path
     const finalOutputPath = retainFilename ? inputPath : outputPath;
 
-    await sharp(inputPath)
-      .resize(maxWidth, maxHeight, {
-        fit: 'inside',
-        withoutEnlargement: true
-      })
-      .jpeg({ quality: quality })
-      .toFile(finalOutputPath);
+    console.log('📸 About to compress:', { inputPath, finalOutputPath, retainFilename });
+
+    // When retaining filename, we need to compress to a temp file first, then replace
+    if (retainFilename) {
+      const tempPath = inputPath + '.tmp';
+      
+      await sharp(inputPath)
+        .resize(maxWidth, maxHeight, {
+          fit: 'inside',
+          withoutEnlargement: true
+        })
+        .jpeg({ quality: quality })
+        .toFile(tempPath);
+      
+      // Replace original with compressed version while keeping the filename
+      await fs.rename(tempPath, inputPath);
+      console.log('✅ Compressed in place:', inputPath);
+    } else {
+      await sharp(inputPath)
+        .resize(maxWidth, maxHeight, {
+          fit: 'inside',
+          withoutEnlargement: true
+        })
+        .jpeg({ quality: quality })
+        .toFile(finalOutputPath);
+      console.log('✅ Compressed to new file:', finalOutputPath);
+    }
 
     // Only remove the original file if not preserving it and not compressing in place
     if (!preserveOriginal && !retainFilename) {
-      await fs.unlink(inputPath);
+      console.log('🗑️ Would delete original file:', inputPath, 'but BLOCKED by safety settings');
+      // await fs.unlink(inputPath); // BLOCKED - DO NOT DELETE
+    } else {
+      console.log('✅ Original file preserved:', inputPath, { preserveOriginal, retainFilename });
     }
     
     return true; // Compression applied
