@@ -14,6 +14,8 @@ interface CompressionSettings {
   maxWidth: number;
   maxHeight: number;
   enabled: boolean;
+  preserveOriginal: boolean;
+  retainFilename: boolean;
 }
 
 export function ImageCompressionSettings() {
@@ -21,7 +23,9 @@ export function ImageCompressionSettings() {
     quality: 80,
     maxWidth: 1920,
     maxHeight: 1080,
-    enabled: true
+    enabled: true,
+    preserveOriginal: false,
+    retainFilename: false
   });
   
   const { toast } = useToast();
@@ -166,6 +170,36 @@ export function ImageCompressionSettings() {
               </p>
             </div>
 
+            {/* Preserve Original Images */}
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="preserve-original">Preserve Original Images</Label>
+                <p className="text-sm text-muted-foreground">
+                  Keep original files alongside compressed versions
+                </p>
+              </div>
+              <Switch
+                id="preserve-original"
+                checked={settings.preserveOriginal}
+                onCheckedChange={(checked) => handleInputChange('preserveOriginal', checked)}
+              />
+            </div>
+
+            {/* Retain Original Filename */}
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="retain-filename">Retain Original Filename</Label>
+                <p className="text-sm text-muted-foreground">
+                  Compress images in place, keeping the original filename
+                </p>
+              </div>
+              <Switch
+                id="retain-filename"
+                checked={settings.retainFilename}
+                onCheckedChange={(checked) => handleInputChange('retainFilename', checked)}
+              />
+            </div>
+
             {/* Preview Information */}
             <div className="bg-muted p-4 rounded-lg">
               <h4 className="text-sm font-medium mb-2">Current Settings Summary:</h4>
@@ -173,7 +207,15 @@ export function ImageCompressionSettings() {
                 <li>• Quality: {settings.quality}% compression</li>
                 <li>• Maximum size: {settings.maxWidth} x {settings.maxHeight} pixels</li>
                 <li>• Format: JPEG (converted from any input format)</li>
-                <li>• Original files are replaced with compressed versions</li>
+                <li>• Original preservation: {settings.preserveOriginal ? 'Enabled' : 'Disabled'}</li>
+                <li>• Filename retention: {settings.retainFilename ? 'Enabled' : 'Disabled'}</li>
+                <li>• File handling: {
+                  settings.retainFilename 
+                    ? 'Compress in place with original filename' 
+                    : settings.preserveOriginal 
+                      ? 'Create compressed copy, keep original'
+                      : 'Replace original with compressed version'
+                }</li>
               </ul>
             </div>
           </>

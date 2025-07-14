@@ -112,6 +112,8 @@ async function compressImage(inputPath: string, outputPath: string, organization
     const qualitySetting = await storage.getSetting('system', 'image_quality');
     const maxWidthSetting = await storage.getSetting('system', 'max_width');
     const maxHeightSetting = await storage.getSetting('system', 'max_height');
+    const preserveOriginalSetting = await storage.getSetting('system', 'preserve_original_images');
+    const retainFilenameSetting = await storage.getSetting('system', 'retain_original_filename');
     
     // Check if compression is enabled
     const compressionEnabled = enabledSetting === 'true' || enabledSetting === null; // Default to enabled
@@ -123,6 +125,11 @@ async function compressImage(inputPath: string, outputPath: string, organization
     const quality = qualitySetting ? parseInt(qualitySetting) : 80;
     const maxWidth = maxWidthSetting ? parseInt(maxWidthSetting) : 1920;
     const maxHeight = maxHeightSetting ? parseInt(maxHeightSetting) : 1080;
+    const preserveOriginal = preserveOriginalSetting === 'true';
+    const retainFilename = retainFilenameSetting === 'true';
+
+    // If retaining filename, compress in place; otherwise use separate output path
+    const finalOutputPath = retainFilename ? inputPath : outputPath;
 
     await sharp(inputPath)
       .resize(maxWidth, maxHeight, {
@@ -130,10 +137,13 @@ async function compressImage(inputPath: string, outputPath: string, organization
         withoutEnlargement: true
       })
       .jpeg({ quality: quality })
-      .toFile(outputPath);
+      .toFile(finalOutputPath);
 
-    // Remove the original file
-    await fs.unlink(inputPath);
+    // Only remove the original file if not preserving it and not compressing in place
+    if (!preserveOriginal && !retainFilename) {
+      await fs.unlink(inputPath);
+    }
+    
     return true; // Compression applied
   } catch (error) {
     console.error('Image compression error:', error);
@@ -5500,7 +5510,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         quality: 80,
         maxWidth: 1920,
         maxHeight: 1080,
-        enabled: true
+        enabled: true,
+        preserveOriginal: false,
+        retainFilename: false
       };
       
       const compressionSettings = { ...defaultSettings };
@@ -5513,6 +5525,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           compressionSettings.maxHeight = parseInt(setting.value) || 1080;
         } else if (setting.key === 'compression_enabled') {
           compressionSettings.enabled = setting.value === 'true';
+        } else if (setting.key === 'preserve_original_images') {
+          compressionSettings.preserveOriginal = setting.value === 'true';
+        } else if (setting.key === 'retain_original_filename') {
+          compressionSettings.retainFilename = setting.value === 'true';
         }
       });
       
@@ -5525,7 +5541,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   settingsRouter.put('/image-compression', requireAuth, async (req, res) => {
     try {
-      const { quality, maxWidth, maxHeight, enabled } = req.body;
+      const { quality, maxWidth, maxHeight, enabled, preserveOriginal, retainFilename } = req.body;
       
       // Validate settings
       if (quality && (quality < 10 || quality > 100)) {
@@ -5550,6 +5566,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       if (enabled !== undefined) {
         await storage.updateSetting('system', 'compression_enabled', enabled.toString());
+      }
+      if (preserveOriginal !== undefined) {
+        await storage.updateSetting('system', 'preserve_original_images', preserveOriginal.toString());
+      }
+      if (retainFilename !== undefined) {
+        await storage.updateSetting('system', 'retain_original_filename', retainFilename.toString());
       }
 
       res.json({ message: "Compression settings updated successfully" });
