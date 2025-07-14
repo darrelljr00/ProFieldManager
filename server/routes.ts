@@ -108,10 +108,10 @@ function getAuthenticatedUser(req: Request) {
 async function compressImage(inputPath: string, outputPath: string, organizationId: number): Promise<boolean> {
   try {
     // Get compression settings from database (using 'system' category for global settings)
-    const enabledSetting = await storage.getSetting('system', 'compression_enabled');
-    const qualitySetting = await storage.getSetting('system', 'image_quality');
-    const maxWidthSetting = await storage.getSetting('system', 'max_width');
-    const maxHeightSetting = await storage.getSetting('system', 'max_height');
+    const enabledSetting = await storage.getSetting('system', 'system_enableImageCompression');
+    const qualitySetting = await storage.getSetting('system', 'system_imageQuality');
+    const maxWidthSetting = await storage.getSetting('system', 'system_maxWidth');
+    const maxHeightSetting = await storage.getSetting('system', 'system_maxHeight');
     const preserveOriginalSetting = await storage.getSetting('system', 'preserve_original_images');
     const retainFilenameSetting = await storage.getSetting('system', 'retain_original_filename');
     
@@ -5517,14 +5517,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const compressionSettings = { ...defaultSettings };
       settings.forEach((setting: any) => {
-        if (setting.key === 'image_quality') {
+        if (setting.key === 'system_imageQuality') {
           compressionSettings.quality = parseInt(setting.value) || 80;
-        } else if (setting.key === 'max_width') {
-          compressionSettings.maxWidth = parseInt(setting.value) || 1920;
-        } else if (setting.key === 'max_height') {
-          compressionSettings.maxHeight = parseInt(setting.value) || 1080;
-        } else if (setting.key === 'compression_enabled') {
+        } else if (setting.key === 'system_enableImageCompression') {
           compressionSettings.enabled = setting.value === 'true';
+        } else if (setting.key === 'system_maxWidth') {
+          compressionSettings.maxWidth = parseInt(setting.value) || 1920;
+        } else if (setting.key === 'system_maxHeight') {
+          compressionSettings.maxHeight = parseInt(setting.value) || 1080;
         } else if (setting.key === 'preserve_original_images') {
           compressionSettings.preserveOriginal = setting.value === 'true';
         } else if (setting.key === 'retain_original_filename') {
@@ -5556,16 +5556,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Update settings in 'system' category for global image compression
       if (quality !== undefined) {
-        await storage.updateSetting('system', 'image_quality', quality.toString());
+        await storage.updateSetting('system', 'system_imageQuality', quality.toString());
       }
       if (maxWidth !== undefined) {
-        await storage.updateSetting('system', 'max_width', maxWidth.toString());
+        await storage.updateSetting('system', 'system_maxWidth', maxWidth.toString());
       }
       if (maxHeight !== undefined) {
-        await storage.updateSetting('system', 'max_height', maxHeight.toString());
+        await storage.updateSetting('system', 'system_maxHeight', maxHeight.toString());
       }
       if (enabled !== undefined) {
-        await storage.updateSetting('system', 'compression_enabled', enabled.toString());
+        await storage.updateSetting('system', 'system_enableImageCompression', enabled.toString());
       }
       if (preserveOriginal !== undefined) {
         await storage.updateSetting('system', 'preserve_original_images', preserveOriginal.toString());
