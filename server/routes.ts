@@ -2474,6 +2474,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = parseInt(req.params.id);
       const { password, ...updateData } = req.body;
 
+      console.log("User update request:", { userId, updateData, hasPassword: !!password });
+
       // If password is being updated, hash it
       if (password) {
         const hashedPassword = await AuthService.hashPassword(password);

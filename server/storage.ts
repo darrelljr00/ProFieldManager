@@ -443,6 +443,16 @@ export class DatabaseStorage implements IStorage {
     if (updates.canAccessMobileTest !== undefined) updateData.canAccessMobileTest = updates.canAccessMobileTest;
     if (updates.canAccessJobs !== undefined) updateData.canAccessJobs = updates.canAccessJobs;
 
+    // Check if there are any fields to update
+    if (Object.keys(updateData).length === 0) {
+      // If no fields to update, just return the current user
+      const [user] = await db.select().from(users).where(eq(users.id, id));
+      return user;
+    }
+
+    // Add updatedAt timestamp
+    updateData.updatedAt = new Date();
+
     const [user] = await db
       .update(users)
       .set(updateData)
