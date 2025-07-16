@@ -823,7 +823,7 @@ export class DatabaseStorage implements IStorage {
         address: projects.address,
         city: projects.city,
         state: projects.state,
-        zipCode: projects.zip_code,
+        zipCode: projects.zipCode,
         country: projects.country,
         createdAt: projects.createdAt,
         updatedAt: projects.updatedAt,
