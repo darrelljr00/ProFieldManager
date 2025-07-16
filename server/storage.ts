@@ -529,7 +529,7 @@ export class DatabaseStorage implements IStorage {
         address: customers.address,
         city: customers.city,
         state: customers.state,
-        zipCode: customers.zipCode,
+        zipCode: customers.zip_code,
         country: customers.country,
         createdAt: customers.createdAt
       })
@@ -823,7 +823,7 @@ export class DatabaseStorage implements IStorage {
         address: projects.address,
         city: projects.city,
         state: projects.state,
-        zipCode: projects.zipCode,
+        zipCode: projects.zip_code,
         country: projects.country,
         createdAt: projects.createdAt,
         updatedAt: projects.updatedAt,
@@ -1765,7 +1765,7 @@ export class DatabaseStorage implements IStorage {
         address: addressParts.address,
         city: addressParts.city,
         state: addressParts.state,
-        zipCode: addressParts.zipCode,
+        zip_code: addressParts.zipCode,
         country: 'US',
         // Copy image timestamp settings if available
         enableImageTimestamp: job.enableImageTimestamp || false,

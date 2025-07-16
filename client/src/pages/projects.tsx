@@ -397,9 +397,19 @@ function HistoricalJobs() {
                       <UserIcon className="h-4 w-4 mr-1" />
                       {Array.isArray(users) ? users.find((u: any) => u.id === project.userId)?.username || 'Unknown' : 'Unknown'}
                     </div>
-                    <div className="flex items-center text-gray-500">
-                      <Clock className="h-4 w-4 mr-1" />
-                      {project.createdAt ? new Date(project.createdAt).toLocaleDateString() : 'Unknown'}
+                    <div className="flex items-center gap-2">
+                      {(project.address || project.city) && (
+                        <DirectionsButton 
+                          address={project.address}
+                          city={project.city}
+                          state={project.state}
+                          zipCode={project.zipCode}
+                        />
+                      )}
+                      <div className="flex items-center text-gray-500">
+                        <Clock className="h-4 w-4 mr-1" />
+                        {project.createdAt ? new Date(project.createdAt).toLocaleDateString() : 'Unknown'}
+                      </div>
                     </div>
                   </div>
                 </div>
