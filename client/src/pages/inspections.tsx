@@ -123,7 +123,8 @@ export default function Inspections() {
     queryKey: ["/api/inspections/items", activeTab],
     queryFn: async () => {
       console.log('Fetching inspection items for type:', activeTab);
-      const result = await apiRequest(`/api/inspections/items?type=${activeTab}`);
+      const response = await apiRequest('GET', `/api/inspections/items?type=${activeTab}`);
+      const result = await response.json();
       console.log('Fetched inspection items:', result);
       return result;
     },
