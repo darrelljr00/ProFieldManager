@@ -911,7 +911,12 @@ export default function Jobs() {
                         </span>
                       </div>
                       {project.address && (
-                        <DirectionsButton address={`${project.address}, ${project.city}, ${project.state} ${project.zipCode}`} />
+                        <DirectionsButton 
+                          address={project.address}
+                          city={project.city}
+                          state={project.state}
+                          zipCode={project.zipCode}
+                        />
                       )}
                     </div>
                     <WeatherWidget 
@@ -1472,12 +1477,10 @@ export default function Jobs() {
                   <div className="flex items-center justify-between mb-3">
                     <Label className="text-sm font-medium text-gray-500">Job Location</Label>
                     <DirectionsButton
-                      address={[
-                        selectedProject.address,
-                        selectedProject.city,
-                        selectedProject.state,
-                        selectedProject.zipCode
-                      ].filter(Boolean).join(', ')}
+                      address={selectedProject.address}
+                      city={selectedProject.city}
+                      state={selectedProject.state}
+                      zipCode={selectedProject.zipCode}
                       variant="default"
                       size="sm"
                     />
