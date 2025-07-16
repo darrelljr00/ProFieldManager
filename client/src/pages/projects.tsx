@@ -968,6 +968,19 @@ export default function Jobs() {
     );
   }
 
+  // Debug location data
+  if (projects?.length > 0) {
+    console.log('🗺️ Project location debug:', projects.map(p => ({
+      id: p.id,
+      name: p.name,
+      address: p.address,
+      city: p.city,
+      state: p.state,
+      zipCode: p.zipCode,
+      hasLocation: !!(p.address || p.city)
+    })));
+  }
+
   if (isLoading) {
     return (
       <div className="container mx-auto p-4 md:p-6">
