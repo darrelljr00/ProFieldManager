@@ -910,7 +910,7 @@ export default function Jobs() {
                           {project.city} {project.state}
                         </span>
                       </div>
-                      {project.address && (
+                      {(project.address || project.city) && (
                         <DirectionsButton 
                           address={project.address}
                           city={project.city}
