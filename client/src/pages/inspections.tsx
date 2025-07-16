@@ -121,7 +121,12 @@ export default function Inspections() {
   // Fetch inspection items from API
   const { data: inspectionItems, isLoading: itemsLoading, error: itemsError } = useQuery({
     queryKey: ["/api/inspections/items", activeTab],
-    queryFn: () => apiRequest(`/api/inspections/items?type=${activeTab}`),
+    queryFn: async () => {
+      console.log('Fetching inspection items for type:', activeTab);
+      const result = await apiRequest(`/api/inspections/items?type=${activeTab}`);
+      console.log('Fetched inspection items:', result);
+      return result;
+    },
     enabled: !!activeTab,
   });
   
