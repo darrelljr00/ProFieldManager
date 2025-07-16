@@ -818,9 +818,17 @@ export default function CalendarPage() {
                           <strong>End:</strong> {new Date(job.endDate).toLocaleString()}
                         </div>
                         {job.location && (
-                          <div className="flex items-center gap-1">
-                            <MapPin className="h-3 w-3" />
-                            {job.location}
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1">
+                              <MapPin className="h-3 w-3" />
+                              {job.location}
+                            </div>
+                            <DirectionsButton
+                              address={job.location}
+                              variant="outline"
+                              size="sm"
+                              className="h-6 text-xs"
+                            />
                           </div>
                         )}
                         {job.estimatedValue && (
@@ -980,19 +988,22 @@ export default function CalendarPage() {
                 </div>
               )}
 
-              {/* Location & Weather */}
+              {/* Job Location & Directions */}
               {selectedJob.location && (
-                <div>
-                  <Label className="text-sm font-medium text-gray-500">Location</Label>
-                  <div className="flex items-center justify-between mt-1">
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-gray-400" />
-                      <span className="text-sm">{selectedJob.location}</span>
-                    </div>
-                    <DirectionsButton 
+                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border">
+                  <div className="flex items-center justify-between mb-3">
+                    <Label className="text-sm font-medium text-gray-500">Job Location</Label>
+                    <DirectionsButton
                       address={selectedJob.location}
-                      className="ml-2"
+                      variant="default"
+                      size="sm"
                     />
+                  </div>
+                  <div className="flex items-start gap-2 mb-3">
+                    <MapPin className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm leading-relaxed">
+                      <div className="font-medium">{selectedJob.location}</div>
+                    </div>
                   </div>
                   <div className="mt-3">
                     <WeatherWidget 
