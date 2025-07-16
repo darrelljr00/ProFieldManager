@@ -34,7 +34,9 @@ import {
   MessageCircle,
   Cloud,
   GripVertical,
-  Search
+  Search,
+  FileTemplate,
+  Mail
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -211,6 +213,7 @@ const DEFAULT_NAVIGATION_ORDER = [
   "Expenses",
   "Quotes",
   "Invoices",
+  "Invoice Templates",
   "Customers",
   "Payments",
   "File Manager",
@@ -219,7 +222,9 @@ const DEFAULT_NAVIGATION_ORDER = [
   "Team Messages",
   "Image Gallery",
   "SMS",
+  "Messages",
   "GPS Tracking",
+  "Weather",
   "Reviews",
   "Human Resources",
   "User Management",
@@ -330,6 +335,7 @@ export function Sidebar() {
     },
     { name: "Quotes", href: "/quotes", icon: Quote, requiresAuth: true },
     { name: "Invoices", href: "/invoices", icon: FileText, requiresAuth: true },
+    { name: "Invoice Templates", href: "/invoice-templates", icon: FileTemplate, requiresAuth: true },
     { name: "Customers", href: "/customers", icon: Users, requiresAuth: true },
     { name: "Payments", href: "/payments", icon: CreditCard, requiresAuth: true },
     { name: "File Manager", href: "/file-manager", icon: FolderOpen, requiresAuth: true },
@@ -344,7 +350,9 @@ export function Sidebar() {
     },
     { name: "Image Gallery", href: "/image-gallery", icon: ImageIcon, requiresAuth: true },
     { name: "SMS", href: "/sms", icon: Smartphone, requiresAuth: true },
+    { name: "Messages", href: "/messages", icon: Mail, requiresAuth: true },
     { name: "GPS Tracking", href: "/gps-tracking", icon: MapPin, requiresAuth: true },
+    { name: "Weather", href: "/weather", icon: Cloud, requiresAuth: true },
     { name: "Reviews", href: "/reviews", icon: Star, requiresAuth: true },
     { name: "Human Resources", href: "/human-resources", icon: User, requiresAuth: true, permission: "canAccessHR" },
     { name: "User Management", href: "/users", icon: UserCog, requiresAuth: true, permission: "canAccessUserManagement" },

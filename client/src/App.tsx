@@ -23,6 +23,8 @@ import GasCardProviders from "@/pages/gas-card-providers";
 import GasCards from "@/pages/gas-cards";
 import Quotes from "@/pages/quotes";
 import Invoices from "@/pages/invoices";
+import InvoiceTemplates from "@/pages/invoice-templates";
+import Messages from "@/pages/messages";
 import Customers from "@/pages/customers";
 import Payments from "@/pages/payments";
 import InternalMessages from "@/pages/internal-messages";
@@ -135,6 +137,8 @@ function AuthenticatedApp() {
           <Route path="/gas-cards" component={GasCards} />
           <Route path="/quotes" component={Quotes} />
           <Route path="/invoices" component={Invoices} />
+          <Route path="/invoice-templates" component={InvoiceTemplates} />
+          <Route path="/messages" component={Messages} />
           <Route path="/customers" component={Customers} />
           <Route path="/payments" component={Payments} />
           <Route path="/internal-messages" component={InternalMessages} />
