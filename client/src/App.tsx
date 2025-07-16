@@ -154,7 +154,7 @@ function AuthenticatedApp() {
           <Route path="/form-builder" component={FormBuilder} />
           <Route path="/inspections" component={Inspections} />
           <Route path="/mobile-test" component={MobileTest} />
-          {isAdmin && <Route path="/users" component={Users} />}
+          <Route path="/users" component={Users} />
           {isAdmin && <Route path="/admin-settings" component={AdminSettings} />}
           {isAdmin && <Route path="/saas-admin" component={SaasAdmin} />}
           {isAdmin && <Route path="/file-security" component={FileSecurity} />}

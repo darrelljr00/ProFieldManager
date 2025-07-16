@@ -35,7 +35,7 @@ import {
   Cloud,
   GripVertical,
   Search,
-  FileTemplate,
+  FileType,
   Mail
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -335,7 +335,7 @@ export function Sidebar() {
     },
     { name: "Quotes", href: "/quotes", icon: Quote, requiresAuth: true },
     { name: "Invoices", href: "/invoices", icon: FileText, requiresAuth: true },
-    { name: "Invoice Templates", href: "/invoice-templates", icon: FileTemplate, requiresAuth: true },
+    { name: "Invoice Templates", href: "/invoice-templates", icon: FileType, requiresAuth: true },
     { name: "Customers", href: "/customers", icon: Users, requiresAuth: true },
     { name: "Payments", href: "/payments", icon: CreditCard, requiresAuth: true },
     { name: "File Manager", href: "/file-manager", icon: FolderOpen, requiresAuth: true },
