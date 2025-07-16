@@ -1798,24 +1798,20 @@ export class DatabaseStorage implements IStorage {
 
   // Inspection Methods
   async getInspectionTemplates(organizationId: number, type?: string): Promise<any[]> {
-    let query = db
-      .select()
-      .from(inspectionTemplates)
-      .where(and(
-        eq(inspectionTemplates.organizationId, organizationId),
-        eq(inspectionTemplates.isActive, true)
-      ))
-      .orderBy(inspectionTemplates.sortOrder, inspectionTemplates.name);
+    const whereConditions = [
+      eq(inspectionTemplates.organizationId, organizationId),
+      eq(inspectionTemplates.isActive, true)
+    ];
 
     if (type) {
-      query = query.where(and(
-        eq(inspectionTemplates.organizationId, organizationId),
-        eq(inspectionTemplates.type, type),
-        eq(inspectionTemplates.isActive, true)
-      ));
+      whereConditions.push(eq(inspectionTemplates.type, type));
     }
 
-    return await query;
+    return await db
+      .select()
+      .from(inspectionTemplates)
+      .where(and(...whereConditions))
+      .orderBy(inspectionTemplates.name);
   }
 
   async createInspectionTemplate(templateData: any): Promise<any> {

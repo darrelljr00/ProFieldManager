@@ -119,7 +119,7 @@ export default function Inspections() {
   ];
 
   // Fetch inspection items from API
-  const { data: inspectionItems } = useQuery({
+  const { data: inspectionItems, isLoading: itemsLoading, error: itemsError } = useQuery({
     queryKey: ["/api/inspections/items", activeTab],
     queryFn: () => apiRequest(`/api/inspections/items?type=${activeTab}`),
     enabled: !!activeTab,
@@ -227,6 +227,35 @@ export default function Inspections() {
 
   // Combine fetched items and custom items
   const allItems = [...(inspectionItems || []), ...customItems];
+  
+  // Show loading state if items are still loading
+  if (itemsLoading) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <Clock className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-500" />
+            <p className="text-gray-600">Loading inspection items...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state if items failed to load
+  if (itemsError) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <AlertTriangle className="h-8 w-8 mx-auto mb-4 text-red-500" />
+            <p className="text-gray-600">Failed to load inspection items</p>
+            <p className="text-sm text-gray-400 mt-2">{itemsError.message}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Image upload handlers
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
