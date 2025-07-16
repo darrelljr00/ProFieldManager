@@ -148,9 +148,11 @@ interface DirectionsButtonProps {
   state?: string | null;
   zipCode?: string | null;
   className?: string;
+  variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
+  size?: "default" | "sm" | "lg" | "icon";
 }
 
-function DirectionsButton({ address, city, state, zipCode, className }: DirectionsButtonProps) {
+function DirectionsButton({ address, city, state, zipCode, className, variant = "outline", size = "sm" }: DirectionsButtonProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   // Don't show button if no address is provided
@@ -161,8 +163,8 @@ function DirectionsButton({ address, city, state, zipCode, className }: Directio
   return (
     <>
       <Button
-        variant="outline"
-        size="sm"
+        variant={variant}
+        size={size}
         onClick={() => setIsDialogOpen(true)}
         className={className}
       >
