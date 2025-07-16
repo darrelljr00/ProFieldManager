@@ -1730,7 +1730,7 @@ export class DatabaseStorage implements IStorage {
           addressParts.address = parts[0];
           addressParts.city = parts[1];
           // Parse state and zip from last part
-          const stateZip = parts[2].split(' ');
+          const stateZip = parts[2].split(' ').filter(p => p.length > 0);
           if (stateZip.length >= 2) {
             addressParts.state = stateZip[0];
             addressParts.zipCode = stateZip.slice(1).join(' ');
@@ -1741,7 +1741,14 @@ export class DatabaseStorage implements IStorage {
           addressParts.address = parts[0];
           addressParts.city = parts[1];
         } else {
-          addressParts.address = job.location;
+          // Single location string - could be address, city, or just a name
+          if (job.location.match(/\d+.*\w+/)) {
+            // Looks like an address (starts with numbers)
+            addressParts.address = job.location;
+          } else {
+            // Treat as city name
+            addressParts.city = job.location;
+          }
         }
       }
 

@@ -968,18 +968,7 @@ export default function Jobs() {
     );
   }
 
-  // Debug location data
-  if (jobs?.length > 0) {
-    console.log('🗺️ Project location debug:', jobs.map(p => ({
-      id: p.id,
-      name: p.name,
-      address: p.address,
-      city: p.city,
-      state: p.state,
-      zipCode: p.zipCode,
-      hasLocation: !!(p.address || p.city)
-    })));
-  }
+
 
   if (isLoading) {
     return (
