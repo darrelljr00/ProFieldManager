@@ -552,6 +552,25 @@ export default function Jobs() {
     },
   });
 
+  const markCompleteMutation = useMutation({
+    mutationFn: (projectId: number) => apiRequest(`/api/projects/${projectId}`, "PUT", { status: "completed" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      setViewDialogOpen(false);
+      toast({
+        title: "Job Completed",
+        description: "Job has been marked as completed successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to mark job as complete",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleCreateJob = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -589,6 +608,12 @@ export default function Jobs() {
     if (project.id) {
       queryClient.invalidateQueries({ queryKey: ['/api/projects', project.id, 'files'] });
       queryClient.invalidateQueries({ queryKey: ['/api/projects', project.id, 'tasks'] });
+    }
+  };
+
+  const handleMarkComplete = (projectId: number) => {
+    if (projectId) {
+      markCompleteMutation.mutate(projectId);
     }
   };
 
@@ -1682,6 +1707,16 @@ export default function Jobs() {
             <Button variant="outline" onClick={() => setViewDialogOpen(false)}>
               Close
             </Button>
+            {selectedProject?.status !== 'completed' && (
+              <Button 
+                onClick={() => handleMarkComplete(selectedProject?.id)}
+                disabled={markCompleteMutation.isPending}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                <CheckCircle className="h-4 w-4 mr-2" />
+                {markCompleteMutation.isPending ? "Marking Complete..." : "Mark Complete"}
+              </Button>
+            )}
             <Button asChild>
               <Link href={`/jobs/${selectedProject?.id}/tasks`}>
                 <CheckSquare className="h-4 w-4 mr-2" />
