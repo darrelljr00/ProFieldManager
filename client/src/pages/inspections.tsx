@@ -118,8 +118,13 @@ export default function Inspections() {
     { id: 2, type: "post-trip", status: "completed", submittedAt: "2025-06-28T17:45:00Z", templateName: "Standard Post-Trip", technicianName: "Mike Johnson", vehicleInfo: { licensePlate: "ABC-123", mileage: "45,180" } }
   ];
 
-  // Use default data for now
-  const inspectionItems = defaultInspectionItems;
+  // Fetch inspection items from API
+  const { data: inspectionItems } = useQuery({
+    queryKey: ["/api/inspections/items", activeTab],
+    queryFn: () => apiRequest(`/api/inspections/items?type=${activeTab}`),
+    enabled: !!activeTab,
+  });
+  
   const allInspectionRecords = [...submittedInspections, ...sampleInspectionRecords];
 
   // Submit inspection handler
@@ -220,8 +225,8 @@ export default function Inspections() {
     }
   };
 
-  // Combine default items and custom items
-  const allItems = [...defaultInspectionItems, ...customItems];
+  // Combine fetched items and custom items
+  const allItems = [...(inspectionItems || []), ...customItems];
 
   // Image upload handlers
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {

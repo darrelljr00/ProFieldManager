@@ -9406,6 +9406,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/inspections/items", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { type } = req.query;
+      
+      if (!type) {
+        return res.status(400).json({ message: "Type parameter is required" });
+      }
+      
+      // Get or create default template
+      const templates = await storage.getInspectionTemplates(user.organizationId, type as string);
+      let templateId = templates.find(t => t.isDefault)?.id;
+      
+      if (!templateId) {
+        // Create default template if none exists
+        const template = await storage.createInspectionTemplate({
+          organizationId: user.organizationId,
+          name: `${type === 'pre-trip' ? 'Pre-Trip' : 'Post-Trip'} Inspection`,
+          type,
+          description: `Standard ${type} vehicle inspection`,
+          isDefault: true,
+          createdBy: user.id
+        });
+        templateId = template.id;
+        
+        // Create default inspection items for the template
+        const defaultItems = type === 'pre-trip' ? [
+          { category: 'Vehicle Safety', name: 'Mirrors', description: 'Check all mirrors for proper adjustment and cleanliness', isRequired: true },
+          { category: 'Vehicle Safety', name: 'Tires', description: 'Inspect tire pressure and tread depth', isRequired: true },
+          { category: 'Vehicle Safety', name: 'Lights', description: 'Test all lights including headlights, brake lights, and turn signals', isRequired: true },
+          { category: 'Vehicle Safety', name: 'Horn', description: 'Test horn functionality', isRequired: true },
+          { category: 'Engine', name: 'Oil Level', description: 'Check engine oil level and condition', isRequired: true },
+          { category: 'Engine', name: 'Coolant Level', description: 'Check coolant level in reservoir', isRequired: true },
+          { category: 'Engine', name: 'Brake Fluid', description: 'Check brake fluid level', isRequired: true },
+          { category: 'Equipment', name: 'Chemicals', description: 'Verify chemical levels and equipment condition', isRequired: false },
+          { category: 'Equipment', name: 'Hoses', description: 'Inspect hoses for damage or leaks', isRequired: false },
+          { category: 'Equipment', name: 'Pump', description: 'Test pump operation', isRequired: false }
+        ] : [
+          { category: 'Equipment', name: 'Chemical Storage', description: 'Secure all chemicals properly', isRequired: true },
+          { category: 'Equipment', name: 'Equipment Cleaning', description: 'Clean and store all equipment', isRequired: true },
+          { category: 'Equipment', name: 'Hose Storage', description: 'Properly coil and store hoses', isRequired: true },
+          { category: 'Vehicle', name: 'Fuel Level', description: 'Record fuel level at end of shift', isRequired: true },
+          { category: 'Vehicle', name: 'Mileage', description: 'Record ending mileage', isRequired: true },
+          { category: 'Vehicle', name: 'Vehicle Cleaning', description: 'Clean vehicle interior and exterior', isRequired: false },
+          { category: 'Safety', name: 'Incident Report', description: 'Report any incidents or issues', isRequired: false },
+          { category: 'Safety', name: 'Equipment Damage', description: 'Report any equipment damage', isRequired: false }
+        ];
+        
+        for (let i = 0; i < defaultItems.length; i++) {
+          await storage.createInspectionItem({
+            templateId,
+            ...defaultItems[i],
+            sortOrder: i
+          });
+        }
+      }
+      
+      // Get inspection items for the template
+      const items = await storage.getInspectionItems(templateId);
+      res.json(items);
+    } catch (error: any) {
+      console.error("Error fetching inspection items:", error);
+      res.status(500).json({ message: "Failed to fetch inspection items" });
+    }
+  });
+
   app.post("/api/inspections/submit", requireAuth, async (req, res) => {
     try {
       const user = getAuthenticatedUser(req);
@@ -9426,6 +9492,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
           createdBy: user.id
         });
         templateId = template.id;
+        
+        // Create default inspection items for the template
+        const defaultItems = type === 'pre-trip' ? [
+          { category: 'Vehicle Safety', name: 'Mirrors', description: 'Check all mirrors for proper adjustment and cleanliness', isRequired: true },
+          { category: 'Vehicle Safety', name: 'Tires', description: 'Inspect tire pressure and tread depth', isRequired: true },
+          { category: 'Vehicle Safety', name: 'Lights', description: 'Test all lights including headlights, brake lights, and turn signals', isRequired: true },
+          { category: 'Vehicle Safety', name: 'Horn', description: 'Test horn functionality', isRequired: true },
+          { category: 'Engine', name: 'Oil Level', description: 'Check engine oil level and condition', isRequired: true },
+          { category: 'Engine', name: 'Coolant Level', description: 'Check coolant level in reservoir', isRequired: true },
+          { category: 'Engine', name: 'Brake Fluid', description: 'Check brake fluid level', isRequired: true },
+          { category: 'Equipment', name: 'Chemicals', description: 'Verify chemical levels and equipment condition', isRequired: false },
+          { category: 'Equipment', name: 'Hoses', description: 'Inspect hoses for damage or leaks', isRequired: false },
+          { category: 'Equipment', name: 'Pump', description: 'Test pump operation', isRequired: false }
+        ] : [
+          { category: 'Equipment', name: 'Chemical Storage', description: 'Secure all chemicals properly', isRequired: true },
+          { category: 'Equipment', name: 'Equipment Cleaning', description: 'Clean and store all equipment', isRequired: true },
+          { category: 'Equipment', name: 'Hose Storage', description: 'Properly coil and store hoses', isRequired: true },
+          { category: 'Vehicle', name: 'Fuel Level', description: 'Record fuel level at end of shift', isRequired: true },
+          { category: 'Vehicle', name: 'Mileage', description: 'Record ending mileage', isRequired: true },
+          { category: 'Vehicle', name: 'Vehicle Cleaning', description: 'Clean vehicle interior and exterior', isRequired: false },
+          { category: 'Safety', name: 'Incident Report', description: 'Report any incidents or issues', isRequired: false },
+          { category: 'Safety', name: 'Equipment Damage', description: 'Report any equipment damage', isRequired: false }
+        ];
+        
+        for (let i = 0; i < defaultItems.length; i++) {
+          await storage.createInspectionItem({
+            templateId,
+            ...defaultItems[i],
+            sortOrder: i
+          });
+        }
       }
       
       // Create inspection record
