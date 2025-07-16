@@ -969,8 +969,8 @@ export default function Jobs() {
   }
 
   // Debug location data
-  if (projects?.length > 0) {
-    console.log('🗺️ Project location debug:', projects.map(p => ({
+  if (jobs?.length > 0) {
+    console.log('🗺️ Project location debug:', jobs.map(p => ({
       id: p.id,
       name: p.name,
       address: p.address,
