@@ -1466,18 +1466,35 @@ export default function Jobs() {
                 </div>
               )}
 
-              {/* Location & Weather */}
+              {/* Job Location & Directions */}
               {(selectedProject.address || selectedProject.city) && (
-                <div>
-                  <Label className="text-sm font-medium text-gray-500">Location</Label>
-                  <div className="flex items-center gap-2 mt-1">
-                    <MapPin className="h-4 w-4 text-gray-400" />
-                    <span className="text-sm">
-                      {selectedProject.address}
-                      {selectedProject.city && `, ${selectedProject.city}`}
-                      {selectedProject.state && `, ${selectedProject.state}`}
-                      {selectedProject.zipCode && ` ${selectedProject.zipCode}`}
-                    </span>
+                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border">
+                  <div className="flex items-center justify-between mb-3">
+                    <Label className="text-sm font-medium text-gray-500">Job Location</Label>
+                    <DirectionsButton
+                      address={[
+                        selectedProject.address,
+                        selectedProject.city,
+                        selectedProject.state,
+                        selectedProject.zipCode
+                      ].filter(Boolean).join(', ')}
+                      variant="default"
+                      size="sm"
+                    />
+                  </div>
+                  <div className="flex items-start gap-2 mb-3">
+                    <MapPin className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm leading-relaxed">
+                      {selectedProject.address && (
+                        <div className="font-medium">{selectedProject.address}</div>
+                      )}
+                      <div className="text-gray-600">
+                        {[selectedProject.city, selectedProject.state, selectedProject.zipCode]
+                          .filter(Boolean)
+                          .join(', ')
+                        }
+                      </div>
+                    </div>
                   </div>
                   {selectedProject.city && (
                     <div className="mt-3">

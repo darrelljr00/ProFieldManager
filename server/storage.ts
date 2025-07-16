@@ -1720,6 +1720,31 @@ export class DatabaseStorage implements IStorage {
 
       const job = calendarJob[0];
 
+      // Parse location into address components if available
+      let addressParts = { address: '', city: '', state: '', zipCode: '' };
+      if (job.location) {
+        // Split location string and try to parse components
+        // Format: "123 Main St, City, State 12345" or variations
+        const parts = job.location.split(',').map(p => p.trim());
+        if (parts.length >= 3) {
+          addressParts.address = parts[0];
+          addressParts.city = parts[1];
+          // Parse state and zip from last part
+          const stateZip = parts[2].split(' ');
+          if (stateZip.length >= 2) {
+            addressParts.state = stateZip[0];
+            addressParts.zipCode = stateZip.slice(1).join(' ');
+          } else {
+            addressParts.state = parts[2];
+          }
+        } else if (parts.length === 2) {
+          addressParts.address = parts[0];
+          addressParts.city = parts[1];
+        } else {
+          addressParts.address = job.location;
+        }
+      }
+
       // Create a new project based on the calendar job data
       const projectPayload = {
         name: projectData.name || job.title,
@@ -1730,6 +1755,16 @@ export class DatabaseStorage implements IStorage {
         startDate: job.startDate,
         endDate: job.endDate,
         estimatedValue: job.estimatedValue,
+        address: addressParts.address,
+        city: addressParts.city,
+        state: addressParts.state,
+        zipCode: addressParts.zipCode,
+        country: 'US',
+        // Copy image timestamp settings if available
+        enableImageTimestamp: job.enableImageTimestamp || false,
+        timestampFormat: job.timestampFormat || "MM/dd/yyyy hh:mm a",
+        includeGpsCoords: job.includeGpsCoords || false,
+        timestampPosition: job.timestampPosition || "bottom-right",
       };
 
       const [newProject] = await db
