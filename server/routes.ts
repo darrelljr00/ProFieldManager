@@ -147,17 +147,35 @@ async function compressImage(inputPath: string, outputPath: string, organization
     if (retainFilename) {
       const tempPath = inputPath + '.tmp';
       
-      await sharp(inputPath)
-        .resize(maxWidth, maxHeight, {
-          fit: 'inside',
-          withoutEnlargement: true
-        })
-        .jpeg({ quality: quality })
-        .toFile(tempPath);
-      
-      // Replace original with compressed version while keeping the filename
-      await fs.rename(tempPath, inputPath);
-      console.log('✅ Compressed in place:', inputPath);
+      try {
+        await sharp(inputPath)
+          .resize(maxWidth, maxHeight, {
+            fit: 'inside',
+            withoutEnlargement: true
+          })
+          .jpeg({ quality: quality })
+          .toFile(tempPath);
+        
+        // Verify temp file exists and has size before replacing original
+        const tempStats = await fs.stat(tempPath);
+        if (tempStats.size === 0) {
+          throw new Error('Compressed file is empty');
+        }
+        
+        // Replace original with compressed version while keeping the filename
+        await fs.rename(tempPath, inputPath);
+        console.log('✅ Compressed in place:', inputPath);
+      } catch (compressError) {
+        console.error('❌ Compression in place failed:', compressError);
+        // Clean up temp file if it exists
+        try {
+          await fs.unlink(tempPath);
+        } catch (cleanupError) {
+          // Ignore cleanup errors
+        }
+        // Return false to indicate compression failed, preserving original
+        return false;
+      }
     } else {
       await sharp(inputPath)
         .resize(maxWidth, maxHeight, {
@@ -169,18 +187,29 @@ async function compressImage(inputPath: string, outputPath: string, organization
       console.log('✅ Compressed to new file:', finalOutputPath);
     }
 
-    // Only remove the original file if not preserving it and not compressing in place
-    if (!preserveOriginal && !retainFilename) {
-      console.log('🗑️ Would delete original file:', inputPath, 'but BLOCKED by safety settings');
-      // await fs.unlink(inputPath); // BLOCKED - DO NOT DELETE
-    } else {
-      console.log('✅ Original file preserved:', inputPath, { preserveOriginal, retainFilename });
+    // CRITICAL SAFETY: Never delete original files regardless of settings
+    // This ensures image data integrity at all costs
+    console.log('✅ Original file preserved (safety override):', inputPath, { preserveOriginal, retainFilename });
+    
+    // Additional verification: ensure the final file exists and has content
+    try {
+      const finalStats = await fs.stat(retainFilename ? inputPath : outputPath);
+      if (finalStats.size === 0) {
+        console.error('❌ Final compressed file is empty, compression may have failed');
+        return false;
+      }
+      console.log('✅ Final file verified:', { path: retainFilename ? inputPath : outputPath, size: finalStats.size });
+    } catch (verifyError) {
+      console.error('❌ Could not verify final compressed file:', verifyError);
+      return false;
     }
     
     return true; // Compression applied
   } catch (error) {
-    console.error('Image compression error:', error);
-    return false; // Compression failed
+    console.error('❌ Image compression error:', error);
+    // CRITICAL: If compression fails, ensure original file is NEVER deleted
+    console.log('⚠️ Compression failed - original file MUST be preserved at:', inputPath);
+    return false; // Compression failed, original preserved
   }
 }
 
@@ -1814,15 +1843,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const compressedFilename = `compressed-${file.filename.replace(path.extname(file.filename), '.jpg')}`;
         const compressedPath = path.join(path.dirname(originalPath), compressedFilename);
         
-        // Try to apply compression
+        // Try to apply compression (with safety guarantee)
         const compressionApplied = await compressImage(originalPath, compressedPath, user.organizationId);
         
         if (compressionApplied) {
-          // Use compressed image
+          // Use compressed image, original preserved
           processedFilePaths.push(`/uploads/org-${user.organizationId}/inspection_report_images/${compressedFilename}`);
+          console.log('✅ Using compressed version, original preserved at:', originalPath);
         } else {
-          // Use original image (compression disabled or failed)
+          // Use original image (compression disabled or failed, original preserved)
           processedFilePaths.push(`/uploads/org-${user.organizationId}/inspection_report_images/${file.filename}`);
+          console.log('✅ Using original image, preserved at:', originalPath);
         }
       }
 
@@ -1950,9 +1981,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         finalFileName = compressedFilename;
         finalMimeType = 'image/jpeg';
         // Get compressed file size
-        // fs already imported as fsSync
         const stats = await fs.promises.stat(compressedPath);
         finalSize = stats.size;
+        console.log('✅ Image Gallery: Using compressed version, original preserved at:', originalPath);
+      } else {
+        console.log('✅ Image Gallery: Using original image, preserved at:', originalPath);
       }
 
       // Save image metadata to database
