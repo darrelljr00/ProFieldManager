@@ -19,6 +19,7 @@ import Leads from "@/pages/leads";
 import Expenses from "@/pages/expenses";
 import ExpenseReports from "@/pages/expense-reports";
 import ExpenseCategories from "@/pages/expense-categories";
+import Reports from "@/pages/reports";
 import GasCardProviders from "@/pages/gas-card-providers";
 import GasCards from "@/pages/gas-cards";
 import Quotes from "@/pages/quotes";
@@ -159,6 +160,7 @@ function AuthenticatedApp() {
           {isAdmin && <Route path="/saas-admin" component={SaasAdmin} />}
           {isAdmin && <Route path="/file-security" component={FileSecurity} />}
           <Route path="/settings" component={Settings} />
+          <Route path="/reports" component={Reports} />
           <Route component={NotFound} />
         </Switch>
         </div>
