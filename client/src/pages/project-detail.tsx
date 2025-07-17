@@ -96,7 +96,7 @@ export default function ProjectDetail() {
   });
 
   const { data: files = [] } = useQuery<ProjectFile[]>({
-    queryKey: [`/api/projects/${projectId}/files`],
+    queryKey: ["/api/projects", projectId, "files"],
     enabled: !!projectId,
   });
 
@@ -156,7 +156,7 @@ export default function ProjectDetail() {
       return result;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/files`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId, "files"] });
       setFileDialogOpen(false);
       toast({
         title: "Success",
