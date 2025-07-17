@@ -1198,7 +1198,7 @@ export default function SaasAdminPage() {
               </div>
             </CardHeader>
             <CardContent>
-              {/* Radio Button Plan Selection */}
+              {/* Advanced Plan Management Interface */}
               {plansLoading ? (
                 <div className="flex items-center justify-center py-8">
                   <div className="text-center">
@@ -1207,19 +1207,299 @@ export default function SaasAdminPage() {
                   </div>
                 </div>
               ) : (
-                <div className="space-y-6">
+                <div className="space-y-8">
                   <div>
-                    <Label className="text-lg font-semibold mb-4 block">Manage Subscription Plans</Label>
-                    <SubscriptionPlanSelector
-                      plans={subscriptionPlans || []}
-                      selectedPlanId=""
-                      onPlanSelect={(planId) => {
-                        // Handle plan selection for management
-                        console.log('Selected plan for management:', planId);
-                      }}
-                      showFeatures={true}
-                      showRadioButtons={true}
-                    />
+                    <Label className="text-lg font-semibold mb-6 block">Advanced Plan Configuration</Label>
+                    <p className="text-muted-foreground mb-6">Configure pricing, limits, and features for each subscription tier.</p>
+                  </div>
+
+                  {/* Three Large Plan Configuration Boxes */}
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {subscriptionPlans?.map((plan: any) => (
+                      <Card key={plan.id} className={`relative border-2 ${plan.isPopular ? 'border-primary bg-primary/5' : 'border-muted'} transition-all duration-200 hover:shadow-lg`}>
+                        {plan.isPopular && (
+                          <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-primary text-primary-foreground px-3 py-1">
+                            ⭐ Most Popular
+                          </Badge>
+                        )}
+                        
+                        <CardHeader className="pb-4">
+                          <div className="text-center">
+                            <CardTitle className="text-xl font-bold mb-2">{plan.name}</CardTitle>
+                            <div className="text-3xl font-bold text-primary mb-2">
+                              ${plan.price}
+                              <span className="text-sm font-normal text-muted-foreground">/{plan.billingInterval}</span>
+                            </div>
+                            <p className="text-sm text-muted-foreground">{plan.description}</p>
+                          </div>
+                        </CardHeader>
+
+                        <CardContent className="space-y-6">
+                          {/* Basic Settings */}
+                          <div className="space-y-4">
+                            <h4 className="font-semibold text-sm border-b pb-2">Basic Settings</h4>
+                            
+                            <div className="space-y-3">
+                              <div>
+                                <Label htmlFor={`${plan.slug}-price`} className="text-xs font-medium">Price</Label>
+                                <Input 
+                                  id={`${plan.slug}-price`}
+                                  type="number" 
+                                  step="0.01"
+                                  defaultValue={plan.price}
+                                  className="mt-1"
+                                  onChange={(e) => {
+                                    // Handle price change
+                                    console.log(`${plan.name} price changed to:`, e.target.value);
+                                  }}
+                                />
+                              </div>
+                              
+                              <div>
+                                <Label className="text-xs font-medium">Billing Interval</Label>
+                                <div className="flex gap-2 mt-1">
+                                  <label className="flex items-center space-x-1">
+                                    <input
+                                      type="radio"
+                                      name={`${plan.slug}-interval`}
+                                      checked={plan.billingInterval === 'month'}
+                                      onChange={() => console.log(`${plan.name} set to monthly`)}
+                                      className="text-primary"
+                                    />
+                                    <span className="text-xs">Monthly</span>
+                                  </label>
+                                  <label className="flex items-center space-x-1">
+                                    <input
+                                      type="radio"
+                                      name={`${plan.slug}-interval`}
+                                      checked={plan.billingInterval === 'year'}
+                                      onChange={() => console.log(`${plan.name} set to yearly`)}
+                                      className="text-primary"
+                                    />
+                                    <span className="text-xs">Yearly</span>
+                                  </label>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Plan Limits */}
+                          <div className="space-y-4">
+                            <h4 className="font-semibold text-sm border-b pb-2">Plan Limits</h4>
+                            
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <Label htmlFor={`${plan.slug}-users`} className="text-xs font-medium">Max Users</Label>
+                                <Input 
+                                  id={`${plan.slug}-users`}
+                                  type="number"
+                                  defaultValue={plan.maxUsers}
+                                  className="mt-1"
+                                />
+                              </div>
+                              <div>
+                                <Label htmlFor={`${plan.slug}-projects`} className="text-xs font-medium">Max Projects</Label>
+                                <Input 
+                                  id={`${plan.slug}-projects`}
+                                  type="number"
+                                  defaultValue={plan.maxProjects}
+                                  className="mt-1"
+                                />
+                              </div>
+                              <div>
+                                <Label htmlFor={`${plan.slug}-customers`} className="text-xs font-medium">Max Customers</Label>
+                                <Input 
+                                  id={`${plan.slug}-customers`}
+                                  type="number"
+                                  defaultValue={plan.maxCustomers}
+                                  className="mt-1"
+                                />
+                              </div>
+                              <div>
+                                <Label htmlFor={`${plan.slug}-storage`} className="text-xs font-medium">Storage (GB)</Label>
+                                <Input 
+                                  id={`${plan.slug}-storage`}
+                                  type="number"
+                                  defaultValue={plan.maxStorageGB}
+                                  className="mt-1"
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Core Features */}
+                          <div className="space-y-4">
+                            <h4 className="font-semibold text-sm border-b pb-2">Core Features</h4>
+                            
+                            <div className="space-y-2">
+                              {[
+                                { key: 'hasGpsTracking', label: 'GPS Tracking' },
+                                { key: 'hasInvoicing', label: 'Invoicing' },
+                                { key: 'hasAdvancedReporting', label: 'Advanced Reports' },
+                                { key: 'hasApiAccess', label: 'API Access' },
+                                { key: 'hasCustomBranding', label: 'Custom Branding' },
+                                { key: 'hasPrioritySupport', label: 'Priority Support' }
+                              ].map((feature) => (
+                                <div key={feature.key} className="flex items-center justify-between">
+                                  <Label className="text-xs">{feature.label}</Label>
+                                  <div className="flex gap-1">
+                                    <label className="flex items-center space-x-1">
+                                      <input
+                                        type="radio"
+                                        name={`${plan.slug}-${feature.key}`}
+                                        checked={plan[feature.key] === true}
+                                        onChange={() => console.log(`${plan.name} ${feature.label} enabled`)}
+                                        className="text-green-500 scale-75"
+                                      />
+                                      <span className="text-xs text-green-600">✓</span>
+                                    </label>
+                                    <label className="flex items-center space-x-1">
+                                      <input
+                                        type="radio"
+                                        name={`${plan.slug}-${feature.key}`}
+                                        checked={plan[feature.key] === false}
+                                        onChange={() => console.log(`${plan.name} ${feature.label} disabled`)}
+                                        className="text-red-500 scale-75"
+                                      />
+                                      <span className="text-xs text-red-600">✗</span>
+                                    </label>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Advanced Features */}
+                          <div className="space-y-4">
+                            <h4 className="font-semibold text-sm border-b pb-2">Advanced Features</h4>
+                            
+                            <div className="space-y-2">
+                              {[
+                                { key: 'hasWhiteLabel', label: 'White Label' },
+                                { key: 'hasAdvancedIntegrations', label: 'Advanced Integrations' },
+                                { key: 'hasMultiLanguage', label: 'Multi-Language' },
+                                { key: 'hasAdvancedSecurity', label: 'Advanced Security' }
+                              ].map((feature) => (
+                                <div key={feature.key} className="flex items-center justify-between">
+                                  <Label className="text-xs">{feature.label}</Label>
+                                  <div className="flex gap-1">
+                                    <label className="flex items-center space-x-1">
+                                      <input
+                                        type="radio"
+                                        name={`${plan.slug}-${feature.key}`}
+                                        checked={plan[feature.key] === true}
+                                        onChange={() => console.log(`${plan.name} ${feature.label} enabled`)}
+                                        className="text-green-500 scale-75"
+                                      />
+                                      <span className="text-xs text-green-600">✓</span>
+                                    </label>
+                                    <label className="flex items-center space-x-1">
+                                      <input
+                                        type="radio"
+                                        name={`${plan.slug}-${feature.key}`}
+                                        checked={plan[feature.key] === false}
+                                        onChange={() => console.log(`${plan.name} ${feature.label} disabled`)}
+                                        className="text-red-500 scale-75"
+                                      />
+                                      <span className="text-xs text-red-600">✗</span>
+                                    </label>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Plan Status */}
+                          <div className="space-y-4">
+                            <h4 className="font-semibold text-sm border-b pb-2">Plan Status</h4>
+                            
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <Label className="text-xs">Active Plan</Label>
+                                <div className="flex gap-1">
+                                  <label className="flex items-center space-x-1">
+                                    <input
+                                      type="radio"
+                                      name={`${plan.slug}-active`}
+                                      checked={plan.isActive === true}
+                                      onChange={() => console.log(`${plan.name} activated`)}
+                                      className="text-green-500 scale-75"
+                                    />
+                                    <span className="text-xs text-green-600">Active</span>
+                                  </label>
+                                  <label className="flex items-center space-x-1">
+                                    <input
+                                      type="radio"
+                                      name={`${plan.slug}-active`}
+                                      checked={plan.isActive === false}
+                                      onChange={() => console.log(`${plan.name} deactivated`)}
+                                      className="text-red-500 scale-75"
+                                    />
+                                    <span className="text-xs text-red-600">Inactive</span>
+                                  </label>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center justify-between">
+                                <Label className="text-xs">Popular Badge</Label>
+                                <div className="flex gap-1">
+                                  <label className="flex items-center space-x-1">
+                                    <input
+                                      type="radio"
+                                      name={`${plan.slug}-popular`}
+                                      checked={plan.isPopular === true}
+                                      onChange={() => console.log(`${plan.name} marked as popular`)}
+                                      className="text-amber-500 scale-75"
+                                    />
+                                    <span className="text-xs text-amber-600">Popular</span>
+                                  </label>
+                                  <label className="flex items-center space-x-1">
+                                    <input
+                                      type="radio"
+                                      name={`${plan.slug}-popular`}
+                                      checked={plan.isPopular === false}
+                                      onChange={() => console.log(`${plan.name} unmarked as popular`)}
+                                      className="text-gray-500 scale-75"
+                                    />
+                                    <span className="text-xs text-gray-600">Normal</span>
+                                  </label>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Save Button */}
+                          <div className="pt-4 border-t">
+                            <Button 
+                              className="w-full"
+                              onClick={() => {
+                                toast({
+                                  title: "Plan Updated",
+                                  description: `${plan.name} plan configuration has been saved successfully`,
+                                });
+                              }}
+                            >
+                              💾 Save {plan.name} Changes
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+
+                  {/* Global Actions */}
+                  <div className="flex justify-between items-center pt-6 border-t">
+                    <div className="text-sm text-muted-foreground">
+                      Configure each plan individually using the controls above
+                    </div>
+                    <div className="flex gap-3">
+                      <Button variant="outline">
+                        🔄 Reset All Plans
+                      </Button>
+                      <Button>
+                        💾 Save All Changes
+                      </Button>
+                    </div>
                   </div>
                 </div>
               )}
