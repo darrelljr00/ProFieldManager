@@ -3332,7 +3332,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         description: req.body.description || null,
       };
 
+      console.log('📝 About to save file data to database:', fileData);
+      
       const projectFile = await storage.uploadProjectFile(fileData);
+      
+      console.log('✅ File saved to database successfully:', projectFile);
       res.status(201).json(projectFile);
     } catch (error: any) {
       console.error("Error uploading file:", error);
