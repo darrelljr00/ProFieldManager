@@ -3135,6 +3135,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Task image upload route
+  app.post("/api/tasks/:id/image", requireAuth, upload.single('image'), async (req, res) => {
+    try {
+      const taskId = parseInt(req.params.id);
+      const userId = req.user!.id;
+      
+      if (!req.file) {
+        return res.status(400).json({ message: "No image file provided" });
+      }
+
+      const user = getAuthenticatedUser(req);
+      let finalFileName = req.file.filename;
+      let finalPath = req.file.path;
+
+      // Apply compression if it's an image file
+      const isImageFile = /\.(jpeg|jpg|png|gif|webp)$/i.test(req.file.originalname);
+      if (isImageFile) {
+        const originalPath = req.file.path;
+        const compressedFilename = `task-${taskId}-${Date.now()}.jpg`;
+        const compressedPath = path.join(path.dirname(originalPath), compressedFilename);
+        
+        // Try to apply compression
+        const compressionApplied = await compressImage(originalPath, compressedPath, user.organizationId);
+        
+        if (compressionApplied) {
+          finalFileName = compressedFilename;
+          finalPath = compressedPath;
+        }
+      }
+
+      // Update task with image path
+      const imagePath = `uploads/org-${user.organizationId}/files/${finalFileName}`;
+      const updatedTask = await storage.updateTask(taskId, userId, { 
+        imagePath,
+        isCompleted: true,
+        completedAt: new Date().toISOString()
+      });
+      
+      if (!updatedTask) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+      
+      res.json({ 
+        message: "Image uploaded successfully",
+        imagePath,
+        task: updatedTask 
+      });
+    } catch (error: any) {
+      console.error("Error uploading task image:", error);
+      res.status(500).json({ message: "Failed to upload task image" });
+    }
+  });
+
+  // Delete task route
+  app.delete("/api/tasks/:id", requireAuth, async (req, res) => {
+    try {
+      const taskId = parseInt(req.params.id);
+      const userId = req.user!.id;
+      
+      // Check if user can delete this task
+      const task = await storage.getTaskById(taskId);
+      if (!task) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+      
+      // Only allow deletion by creator or admin/manager
+      const user = await storage.getUser(userId);
+      const canDelete = task.createdById === userId || user?.role === 'admin' || user?.role === 'manager';
+      
+      if (!canDelete) {
+        return res.status(403).json({ message: "Not authorized to delete this task" });
+      }
+      
+      const deleted = await storage.deleteTask(taskId);
+      if (!deleted) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+      
+      res.json({ message: "Task deleted successfully" });
+    } catch (error: any) {
+      console.error("Error deleting task:", error);
+      res.status(500).json({ message: "Failed to delete task" });
+    }
+  });
+
   // Get project files
   app.get("/api/projects/:id/files", requireAuth, async (req, res) => {
     try {

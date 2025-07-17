@@ -39,6 +39,7 @@ import Settings from "@/pages/settings";
 import HumanResources from "@/pages/human-resources";
 import FileManager from "@/pages/file-manager";
 import MyTasks from "@/pages/my-tasks";
+import JobTasks from "@/pages/job-tasks";
 import GpsTracking from "@/pages/gps-tracking";
 import FormBuilder from "@/pages/form-builder";
 import MobileTest from "@/pages/mobile-test";
@@ -130,6 +131,7 @@ function AuthenticatedApp() {
           <Route path="/calendar" component={CalendarPage} />
           <Route path="/jobs" component={Projects} />
           <Route path="/jobs/:id" component={ProjectDetail} />
+          <Route path="/jobs/:id/tasks" component={JobTasks} />
           <Route path="/leads" component={Leads} />
           <Route path="/expenses" component={Expenses} />
           <Route path="/expense-reports" component={ExpenseReports} />

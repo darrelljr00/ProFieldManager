@@ -406,13 +406,21 @@ export default function ProjectDetail() {
             <TabsTrigger value="time">Time Tracking</TabsTrigger>
           </TabsList>
           
-          <Button 
-            onClick={() => setSignatureDialogOpen(true)}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            <FileSignature className="h-4 w-4 mr-2" />
-            Digital Signature
-          </Button>
+          <div className="flex gap-2">
+            <Button asChild variant="outline">
+              <Link href={`/jobs/${projectId}/tasks`}>
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Manage Tasks
+              </Link>
+            </Button>
+            <Button 
+              onClick={() => setSignatureDialogOpen(true)}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <FileSignature className="h-4 w-4 mr-2" />
+              Digital Signature
+            </Button>
+          </div>
         </div>
 
         <TabsContent value="tasks" className="space-y-4">

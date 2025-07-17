@@ -2136,9 +2136,6 @@ export class DatabaseStorage implements IStorage {
   async createTask(taskData: any): Promise<any> {
     // Ensure required fields are provided
     const processedData = { ...taskData };
-    if (!processedData.projectId) {
-      processedData.projectId = 8; // Use the default tasks project ID
-    }
     
     // Map createdById field properly
     if (processedData.createdById) {
@@ -2147,11 +2144,37 @@ export class DatabaseStorage implements IStorage {
       processedData.createdById = processedData.userId;
     }
     
+    // Set default values for enhanced task fields
+    if (processedData.type === undefined) {
+      processedData.type = 'checkbox';
+    }
+    if (processedData.isRequired === undefined) {
+      processedData.isRequired = false;
+    }
+    if (processedData.isCompleted === undefined) {
+      processedData.isCompleted = false;
+    }
+    
     const [task] = await db
       .insert(tasks)
       .values(processedData)
       .returning();
     return task;
+  }
+
+  async getTaskById(taskId: number): Promise<any> {
+    const [task] = await db
+      .select()
+      .from(tasks)
+      .where(eq(tasks.id, taskId));
+    return task;
+  }
+
+  async deleteTask(taskId: number): Promise<boolean> {
+    const result = await db
+      .delete(tasks)
+      .where(eq(tasks.id, taskId));
+    return result.rowCount > 0;
   }
 
   async createTaskForOrganization(organizationId: number, taskData: any, userId: number): Promise<any> {
@@ -2177,11 +2200,22 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getTasks(projectId: number, userId: number): Promise<any[]> {
+    const assignedUser = users;
+    const completedUser = users;
+    
     const result = await db
       .select({
         id: tasks.id,
         title: tasks.title,
         description: tasks.description,
+        type: tasks.type,
+        isRequired: tasks.isRequired,
+        isCompleted: tasks.isCompleted,
+        completedAt: tasks.completedAt,
+        completedById: tasks.completedById,
+        textValue: tasks.textValue,
+        numberValue: tasks.numberValue,
+        imagePath: tasks.imagePath,
         status: tasks.status,
         priority: tasks.priority,
         dueDate: tasks.dueDate,
@@ -2190,11 +2224,12 @@ export class DatabaseStorage implements IStorage {
         createdById: tasks.createdById,
         createdAt: tasks.createdAt,
         updatedAt: tasks.updatedAt,
-        assignedTo: {
-          id: users.id,
-          firstName: users.firstName,
-          lastName: users.lastName,
-          email: users.email,
+        assignedToUser: {
+          id: assignedUser.id,
+          username: assignedUser.username,
+          firstName: assignedUser.firstName,
+          lastName: assignedUser.lastName,
+          email: assignedUser.email,
         },
         project: {
           id: projects.id,
@@ -2202,7 +2237,7 @@ export class DatabaseStorage implements IStorage {
         },
       })
       .from(tasks)
-      .leftJoin(users, eq(tasks.assignedToId, users.id))
+      .leftJoin(assignedUser, eq(tasks.assignedToId, assignedUser.id))
       .leftJoin(projects, eq(tasks.projectId, projects.id))
       .where(eq(tasks.projectId, projectId));
     
@@ -2245,9 +2280,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateTask(id: number, userId: number, updates: any): Promise<any> {
+    // If completing the task, set completedById
+    const updateData = { ...updates, updatedAt: new Date() };
+    if (updates.isCompleted && !updates.completedById) {
+      updateData.completedById = userId;
+    }
+    if (updates.isCompleted === false) {
+      updateData.completedAt = null;
+      updateData.completedById = null;
+    }
+    
     const [task] = await db
       .update(tasks)
-      .set({ ...updates, updatedAt: new Date() })
+      .set(updateData)
       .where(eq(tasks.id, id))
       .returning();
     return task;

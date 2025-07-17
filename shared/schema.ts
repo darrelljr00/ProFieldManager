@@ -324,12 +324,27 @@ export const tasks = pgTable("tasks", {
   createdById: integer("created_by_id").notNull().references(() => users.id),
   title: text("title").notNull(),
   description: text("description"),
+  
+  // Task type and completion tracking
+  type: text("type").notNull().default("checkbox"), // checkbox, text, number, image
+  isRequired: boolean("is_required").default(false),
+  isCompleted: boolean("is_completed").default(false),
+  completedAt: timestamp("completed_at"),
+  completedById: integer("completed_by_id").references(() => users.id),
+  
+  // Value storage for different task types
+  textValue: text("text_value"),
+  numberValue: decimal("number_value", { precision: 15, scale: 4 }),
+  imagePath: text("image_path"),
+  
+  // Legacy fields (maintaining compatibility)
   status: text("status").notNull().default("todo"), // todo, in-progress, review, completed
   priority: text("priority").notNull().default("medium"), // low, medium, high, urgent
   dueDate: timestamp("due_date"),
   estimatedHours: decimal("estimated_hours", { precision: 5, scale: 2 }),
   actualHours: decimal("actual_hours", { precision: 5, scale: 2 }),
   tags: text("tags").array(),
+  
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
