@@ -220,6 +220,24 @@ export default function ProjectDetail() {
     },
   });
 
+  const completeJobMutation = useMutation({
+    mutationFn: () => apiRequest("PUT", `/api/projects/${projectId}`, { status: 'completed' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId] });
+      toast({
+        title: "Job Completed!",
+        description: "The job has been marked as completed successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to Complete Job",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleCreateTask = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -388,10 +406,30 @@ export default function ProjectDetail() {
               </div>
             </div>
             {project.deadline && (
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-gray-600 mb-3">
                 <Calendar className="h-4 w-4 inline mr-1" />
                 Due: {new Date(project.deadline).toLocaleDateString()}
               </div>
+            )}
+            
+            {/* Job Completion Button */}
+            {project.status !== 'completed' && (
+              <Button 
+                onClick={() => completeJobMutation.mutate()}
+                disabled={completeJobMutation.isPending}
+                className="bg-green-600 hover:bg-green-700 text-white"
+                size="sm"
+              >
+                <CheckCircle className="h-4 w-4 mr-2" />
+                {completeJobMutation.isPending ? "Completing..." : "Mark Job Complete"}
+              </Button>
+            )}
+            
+            {project.status === 'completed' && (
+              <Badge className="bg-green-100 text-green-800 border-green-200">
+                <CheckCircle className="h-3 w-3 mr-1" />
+                Job Completed
+              </Badge>
             )}
           </div>
         </div>
