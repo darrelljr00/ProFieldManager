@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -26,8 +27,60 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Edit, Trash2, Phone, Mail, DollarSign, Calendar, Search, Filter, X, MapPin } from "lucide-react";
+import { Plus, Edit, Trash2, Phone, Mail, DollarSign, Calendar, Search, Filter, X, MapPin, BarChart3, TrendingUp, Users, Target } from "lucide-react";
 import type { Lead, InsertLead } from "@shared/schema";
+
+// Google Maps heatmap functionality
+declare global {
+  interface Window {
+    google: any;
+    initMap?: () => void;
+  }
+}
+
+interface LatLng {
+  lat: number;
+  lng: number;
+}
+
+function loadGoogleMapsScript(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (window.google && window.google.maps && window.google.maps.visualization) {
+      resolve();
+      return;
+    }
+
+    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'AIzaSyCy9lgjvkKV3vS_U1IIcmxJUC8q8yJaASI';
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=visualization`;
+    script.async = true;
+    script.defer = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('Failed to load Google Maps'));
+    document.head.appendChild(script);
+  });
+}
+
+async function geocodeAddress(address: string): Promise<LatLng | null> {
+  if (!window.google || !window.google.maps) {
+    return null;
+  }
+
+  return new Promise((resolve) => {
+    const geocoder = new window.google.maps.Geocoder();
+    geocoder.geocode({ address }, (results: any[], status: string) => {
+      if (status === 'OK' && results && results.length > 0) {
+        const location = results[0].geometry.location;
+        resolve({
+          lat: location.lat(),
+          lng: location.lng()
+        });
+      } else {
+        resolve(null);
+      }
+    });
+  });
+}
 
 export default function Leads() {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
@@ -37,12 +90,127 @@ export default function Leads() {
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
   const [gradeFilter, setGradeFilter] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
+  const [activeTab, setActiveTab] = useState("leads");
+  
+  // Analytics state
+  const [isMapLoaded, setIsMapLoaded] = useState(false);
+  const [mapError, setMapError] = useState<string | null>(null);
+  const [leadLocations, setLeadLocations] = useState<LatLng[]>([]);
+  const mapRef = useRef<HTMLDivElement>(null);
+  const heatmapRef = useRef<any>(null);
+  const mapInstanceRef = useRef<any>(null);
+  
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: leads = [], isLoading } = useQuery<Lead[]>({
     queryKey: ["/api/leads"],
   });
+
+  // Analytics: Load Google Maps and geocode addresses when switching to analytics tab
+  useEffect(() => {
+    if (activeTab === "analytics" && leads.length > 0) {
+      loadGoogleMapsScript()
+        .then(() => {
+          setIsMapLoaded(true);
+          setMapError(null);
+          geocodeLeadAddresses();
+        })
+        .catch((error) => {
+          setMapError(error.message);
+          setIsMapLoaded(false);
+        });
+    }
+  }, [activeTab, leads]);
+
+  // Geocode lead addresses
+  const geocodeLeadAddresses = async () => {
+    const locations: LatLng[] = [];
+    
+    for (const lead of leads) {
+      if (lead.address && lead.address.trim()) {
+        try {
+          const location = await geocodeAddress(lead.address);
+          if (location) {
+            locations.push(location);
+          }
+        } catch (error) {
+          console.warn(`Failed to geocode address: ${lead.address}`, error);
+        }
+      }
+    }
+    
+    setLeadLocations(locations);
+    
+    // Initialize map after geocoding
+    if (mapRef.current && locations.length > 0) {
+      initializeHeatmap(locations);
+    }
+  };
+
+  // Initialize Google Maps heatmap
+  const initializeHeatmap = (locations: LatLng[]) => {
+    if (!window.google || !window.google.maps || !mapRef.current) {
+      return;
+    }
+
+    // Calculate center point
+    const center = locations.length > 0 
+      ? {
+          lat: locations.reduce((sum, loc) => sum + loc.lat, 0) / locations.length,
+          lng: locations.reduce((sum, loc) => sum + loc.lng, 0) / locations.length
+        }
+      : { lat: 39.8283, lng: -98.5795 }; // Center of US
+
+    // Create map
+    const map = new window.google.maps.Map(mapRef.current, {
+      zoom: 10,
+      center: center,
+      mapTypeId: window.google.maps.MapTypeId.ROADMAP,
+    });
+
+    mapInstanceRef.current = map;
+
+    // Create heatmap data
+    const heatmapData = locations.map(location => 
+      new window.google.maps.LatLng(location.lat, location.lng)
+    );
+
+    // Create heatmap layer
+    const heatmap = new window.google.maps.visualization.HeatmapLayer({
+      data: heatmapData,
+      map: map,
+      radius: 50,
+      opacity: 0.8,
+      gradient: [
+        'rgba(0, 255, 255, 0)',
+        'rgba(0, 255, 255, 1)',
+        'rgba(0, 191, 255, 1)',
+        'rgba(0, 127, 255, 1)',
+        'rgba(0, 63, 255, 1)',
+        'rgba(0, 0, 255, 1)',
+        'rgba(0, 0, 223, 1)',
+        'rgba(0, 0, 191, 1)',
+        'rgba(0, 0, 159, 1)',
+        'rgba(0, 0, 127, 1)',
+        'rgba(63, 0, 91, 1)',
+        'rgba(127, 0, 63, 1)',
+        'rgba(191, 0, 31, 1)',
+        'rgba(255, 0, 0, 1)'
+      ]
+    });
+
+    heatmapRef.current = heatmap;
+
+    // Auto-fit bounds to show all points
+    if (locations.length > 1) {
+      const bounds = new window.google.maps.LatLngBounds();
+      locations.forEach(location => {
+        bounds.extend(new window.google.maps.LatLng(location.lat, location.lng));
+      });
+      map.fitBounds(bounds);
+    }
+  };
 
   // Filter leads based on search query and filters
   const filteredLeads = leads.filter((lead) => {
@@ -234,6 +402,32 @@ export default function Leads() {
     );
   }
 
+  // Analytics calculations
+  const totalLeads = leads.length;
+  const leadsWithAddress = leads.filter(lead => lead.address?.trim()).length;
+  const geocodedLeads = leadLocations.length;
+  const geocodeRate = leadsWithAddress > 0 ? (geocodedLeads / leadsWithAddress * 100).toFixed(1) : '0';
+
+  // Lead source analytics
+  const leadSourceStats = leads.reduce((acc, lead) => {
+    const source = lead.leadSource || 'unknown';
+    acc[source] = (acc[source] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  // Status analytics  
+  const statusStats = leads.reduce((acc, lead) => {
+    acc[lead.status] = (acc[lead.status] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  // Grade analytics
+  const gradeStats = leads.reduce((acc, lead) => {
+    const grade = lead.grade || 'cold';
+    acc[grade] = (acc[grade] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
@@ -421,7 +615,22 @@ export default function Leads() {
         </Dialog>
       </div>
 
-      {/* Search and Filter Section */}
+      {/* Tabs Navigation */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="leads" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            Leads Management
+          </TabsTrigger>
+          <TabsTrigger value="analytics" className="flex items-center gap-2">
+            <BarChart3 className="h-4 w-4" />
+            Analytics
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Leads Management Tab */}
+        <TabsContent value="leads" className="space-y-6">
+          {/* Search and Filter Section */}
       <Card>
         <CardContent className="p-4">
           <div className="flex flex-col md:flex-row gap-4">
@@ -662,6 +871,220 @@ export default function Leads() {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+
+        {/* Analytics Tab */}
+        <TabsContent value="analytics" className="space-y-6">
+          {/* Analytics Overview */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Leads</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{totalLeads}</div>
+                <p className="text-xs text-muted-foreground">
+                  Active leads in system
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Leads with Address</CardTitle>
+                <MapPin className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{leadsWithAddress}</div>
+                <p className="text-xs text-muted-foreground">
+                  Can be mapped
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Geocoded Successfully</CardTitle>
+                <Target className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{geocodedLeads}</div>
+                <p className="text-xs text-muted-foreground">
+                  {geocodeRate}% success rate
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Hot Leads</CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{gradeStats.hot || 0}</div>
+                <p className="text-xs text-muted-foreground">
+                  High-priority prospects
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Analytics Charts and Heatmap */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Lead Sources */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Lead Sources</CardTitle>
+                <CardDescription>Distribution of lead origins</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {Object.entries(leadSourceStats).map(([source, count]) => (
+                    <div key={source} className="flex items-center justify-between">
+                      <span className="text-sm font-medium capitalize">
+                        {source.replace('_', ' ')}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <div className="w-20 bg-gray-200 rounded-full h-2">
+                          <div 
+                            className="bg-blue-600 h-2 rounded-full"
+                            style={{ 
+                              width: `${(count / totalLeads) * 100}%` 
+                            }}
+                          />
+                        </div>
+                        <span className="text-sm text-muted-foreground">{count}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Lead Status */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Lead Status</CardTitle>
+                <CardDescription>Current status distribution</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {Object.entries(statusStats).map(([status, count]) => (
+                    <div key={status} className="flex items-center justify-between">
+                      <span className="text-sm font-medium capitalize">
+                        {status.replace('_', ' ')}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <div className="w-20 bg-gray-200 rounded-full h-2">
+                          <div 
+                            className="bg-green-600 h-2 rounded-full"
+                            style={{ 
+                              width: `${(count / totalLeads) * 100}%` 
+                            }}
+                          />
+                        </div>
+                        <span className="text-sm text-muted-foreground">{count}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Lead Grade */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Lead Grade</CardTitle>
+                <CardDescription>Lead temperature distribution</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {Object.entries(gradeStats).map(([grade, count]) => (
+                    <div key={grade} className="flex items-center justify-between">
+                      <span className="text-sm font-medium capitalize">
+                        {grade === "hot" ? "🔥 Hot" : grade === "warm" ? "🟠 Warm" : "🧊 Cold"}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <div className="w-20 bg-gray-200 rounded-full h-2">
+                          <div 
+                            className={`h-2 rounded-full ${
+                              grade === "hot" ? "bg-red-600" : 
+                              grade === "warm" ? "bg-orange-600" : "bg-blue-600"
+                            }`}
+                            style={{ 
+                              width: `${(count / totalLeads) * 100}%` 
+                            }}
+                          />
+                        </div>
+                        <span className="text-sm text-muted-foreground">{count}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Heatmap */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-xl">Lead Concentration Heatmap</CardTitle>
+              <CardDescription>
+                Geographic distribution of leads showing high-concentration areas in warmer colors
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {mapError ? (
+                <div className="h-[500px] flex items-center justify-center bg-muted rounded-lg">
+                  <div className="text-center">
+                    <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-red-600">Map Loading Error</h3>
+                    <p className="text-muted-foreground">{mapError}</p>
+                  </div>
+                </div>
+              ) : !isMapLoaded ? (
+                <div className="h-[500px] flex items-center justify-center bg-muted rounded-lg">
+                  <div className="text-center">
+                    <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4" />
+                    <h3 className="text-lg font-medium">Loading map...</h3>
+                    <p className="text-muted-foreground">Initializing Google Maps and geocoding addresses</p>
+                  </div>
+                </div>
+              ) : leadsWithAddress === 0 ? (
+                <div className="h-[500px] flex items-center justify-center bg-muted rounded-lg">
+                  <div className="text-center">
+                    <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-medium">No Address Data</h3>
+                    <p className="text-muted-foreground">Add addresses to leads to see heatmap visualization</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between text-sm text-muted-foreground">
+                    <span>Showing {geocodedLeads} of {leadsWithAddress} leads with valid addresses</span>
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 bg-blue-500 rounded"></div>
+                        <span>Low concentration</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 bg-red-500 rounded"></div>
+                        <span>High concentration</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div 
+                    ref={mapRef}
+                    className="h-[500px] w-full rounded-lg border"
+                    style={{ minHeight: '500px' }}
+                  />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
