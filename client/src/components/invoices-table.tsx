@@ -93,6 +93,19 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll }: Invoi
     }
   };
 
+  const formatSafeDate = (dateValue: string | Date | null | undefined, fallback: string = 'N/A'): string => {
+    if (!dateValue) return fallback;
+    
+    try {
+      const date = new Date(dateValue);
+      if (isNaN(date.getTime())) return fallback;
+      return format(date, 'MMM dd, yyyy');
+    } catch (error) {
+      console.error('Date formatting error:', error);
+      return fallback;
+    }
+  };
+
   if (isLoading) {
     return (
       <Card className="bg-white rounded-xl shadow-sm border border-gray-200">
@@ -162,12 +175,12 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll }: Invoi
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">{invoice.invoiceNumber}</div>
                         <div className="text-sm text-gray-500">
-                          {format(new Date(invoice.invoiceDate), 'MMM dd, yyyy')}
+                          {formatSafeDate(invoice.invoiceDate)}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{invoice.customer.name}</div>
-                        <div className="text-sm text-gray-500">{invoice.customer.email}</div>
+                        <div className="text-sm font-medium text-gray-900">{invoice.customer?.name || 'N/A'}</div>
+                        <div className="text-sm text-gray-500">{invoice.customer?.email || 'N/A'}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         ${parseFloat(invoice.total).toFixed(2)}
@@ -178,7 +191,7 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll }: Invoi
                         </Badge>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {format(new Date(invoice.dueDate), 'MMM dd, yyyy')}
+                        {formatSafeDate(invoice.dueDate)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
                         <div className="flex items-center justify-end space-x-2">
@@ -304,11 +317,11 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll }: Invoi
                     </div>
                     <div>
                       <Label className="text-sm font-medium text-gray-500">Invoice Date</Label>
-                      <p className="text-sm">{format(new Date(selectedInvoice.invoiceDate), 'MMM dd, yyyy')}</p>
+                      <p className="text-sm">{formatSafeDate(selectedInvoice.invoiceDate)}</p>
                     </div>
                     <div>
                       <Label className="text-sm font-medium text-gray-500">Due Date</Label>
-                      <p className="text-sm">{format(new Date(selectedInvoice.dueDate), 'MMM dd, yyyy')}</p>
+                      <p className="text-sm">{formatSafeDate(selectedInvoice.dueDate)}</p>
                     </div>
                   </div>
                 </div>
@@ -317,19 +330,19 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll }: Invoi
                   <div className="space-y-2">
                     <div>
                       <Label className="text-sm font-medium text-gray-500">Customer Name</Label>
-                      <p className="text-sm">{selectedInvoice.customer.name}</p>
+                      <p className="text-sm">{selectedInvoice.customer?.name || 'N/A'}</p>
                     </div>
                     <div>
                       <Label className="text-sm font-medium text-gray-500">Email</Label>
-                      <p className="text-sm">{selectedInvoice.customer.email}</p>
+                      <p className="text-sm">{selectedInvoice.customer?.email || 'N/A'}</p>
                     </div>
-                    {selectedInvoice.customer.phone && (
+                    {selectedInvoice.customer?.phone && (
                       <div>
                         <Label className="text-sm font-medium text-gray-500">Phone</Label>
                         <p className="text-sm">{selectedInvoice.customer.phone}</p>
                       </div>
                     )}
-                    {selectedInvoice.customer.address && (
+                    {selectedInvoice.customer?.address && (
                       <div>
                         <Label className="text-sm font-medium text-gray-500">Address</Label>
                         <p className="text-sm">{selectedInvoice.customer.address}</p>
