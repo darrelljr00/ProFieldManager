@@ -10116,6 +10116,106 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Subscription Plan Management API Routes
+  
+  // Get all subscription plans
+  app.get("/api/subscription-plans", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      // Only super admins can view subscription plans
+      if (user.role !== 'admin' || user.organizationId !== 1) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const plans = await storage.getAllSubscriptionPlans();
+      res.json(plans);
+    } catch (error: any) {
+      console.error("Error fetching subscription plans:", error);
+      res.status(500).json({ message: "Failed to fetch subscription plans" });
+    }
+  });
+
+  // Get single subscription plan
+  app.get("/api/subscription-plans/:id", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      // Only super admins can view subscription plans
+      if (user.role !== 'admin' || user.organizationId !== 1) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const { id } = req.params;
+      const plan = await storage.getSubscriptionPlan(parseInt(id));
+      
+      if (!plan) {
+        return res.status(404).json({ message: "Subscription plan not found" });
+      }
+
+      res.json(plan);
+    } catch (error: any) {
+      console.error("Error fetching subscription plan:", error);
+      res.status(500).json({ message: "Failed to fetch subscription plan" });
+    }
+  });
+
+  // Create new subscription plan
+  app.post("/api/subscription-plans", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      // Only super admins can create subscription plans
+      if (user.role !== 'admin' || user.organizationId !== 1) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const newPlan = await storage.createSubscriptionPlan(req.body);
+      res.status(201).json(newPlan);
+    } catch (error: any) {
+      console.error("Error creating subscription plan:", error);
+      res.status(500).json({ message: "Failed to create subscription plan" });
+    }
+  });
+
+  // Update subscription plan
+  app.put("/api/subscription-plans/:id", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      // Only super admins can update subscription plans
+      if (user.role !== 'admin' || user.organizationId !== 1) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const { id } = req.params;
+      const updatedPlan = await storage.updateSubscriptionPlan(parseInt(id), req.body);
+      res.json(updatedPlan);
+    } catch (error: any) {
+      console.error("Error updating subscription plan:", error);
+      res.status(500).json({ message: "Failed to update subscription plan" });
+    }
+  });
+
+  // Delete subscription plan
+  app.delete("/api/subscription-plans/:id", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      // Only super admins can delete subscription plans
+      if (user.role !== 'admin' || user.organizationId !== 1) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const { id } = req.params;
+      await storage.deleteSubscriptionPlan(parseInt(id));
+      res.json({ message: "Subscription plan deleted successfully" });
+    } catch (error: any) {
+      console.error("Error deleting subscription plan:", error);
+      res.status(500).json({ message: "Failed to delete subscription plan" });
+    }
+  });
+
   // Add broadcast function to the app for use in routes
   (app as any).broadcastToWebUsers = broadcastToWebUsers;
 

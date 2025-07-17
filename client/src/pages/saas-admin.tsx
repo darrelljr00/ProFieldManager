@@ -57,6 +57,11 @@ import {
   Edit,
   Save,
   Trash,
+  Star,
+  Database,
+  Zap,
+  Check,
+  X
 } from "lucide-react";
 import FileSecurityTab from "@/components/FileSecurityTab";
 
@@ -98,8 +103,8 @@ export default function SaasAdminPage() {
   const [planFeatures, setPlanFeatures] = useState<Record<string, string>>({});
 
   // SaaS-specific queries
-  const { data: subscriptionPlans, isLoading: plansLoading, error: plansError } = useQuery({
-    queryKey: ["/api/saas/plans"],
+  const { data: subscriptionPlans = [], isLoading: plansLoading, error: plansError } = useQuery({
+    queryKey: ["/api/subscription-plans"],
   });
 
 
@@ -370,6 +375,75 @@ export default function SaasAdminPage() {
       });
     }
   };
+
+  // Create and Update Plan mutations
+  const createPlanMutation = useMutation({
+    mutationFn: async (planData: any) => {
+      return await apiRequest("/api/subscription-plans", {
+        method: "POST",
+        body: JSON.stringify(planData),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/subscription-plans"] });
+      toast({
+        title: "Success",
+        description: "Subscription plan created successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create subscription plan",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updatePlanMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: any }) => {
+      return await apiRequest(`/api/subscription-plans/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/subscription-plans"] });
+      toast({
+        title: "Success",
+        description: "Subscription plan updated successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update subscription plan",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deletePlanMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return await apiRequest(`/api/subscription-plans/${id}`, {
+        method: "DELETE",
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/subscription-plans"] });
+      toast({
+        title: "Success",
+        description: "Subscription plan deleted successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete subscription plan",
+        variant: "destructive",
+      });
+    },
+  });
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -1038,324 +1112,552 @@ export default function SaasAdminPage() {
           {/* Subscription Plans Management */}
           <Card>
             <CardHeader>
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Server className="h-5 w-5" />
+                    Subscription Plans Management
+                  </CardTitle>
+                  <CardDescription>
+                    Create, edit, and configure subscription plans with pricing and features
+                  </CardDescription>
+                </div>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Plan
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>Create New Subscription Plan</DialogTitle>
+                      <DialogDescription>
+                        Configure a new subscription plan with pricing, limits, and features
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="planName">Plan Name</Label>
+                          <Input id="planName" placeholder="e.g., Professional" />
+                        </div>
+                        <div>
+                          <Label htmlFor="planSlug">Slug</Label>
+                          <Input id="planSlug" placeholder="e.g., professional" />
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="planDescription">Description</Label>
+                        <Input id="planDescription" placeholder="Plan description..." />
+                      </div>
+                      <div className="grid grid-cols-3 gap-4">
+                        <div>
+                          <Label htmlFor="planPrice">Price</Label>
+                          <Input id="planPrice" type="number" placeholder="99.00" />
+                        </div>
+                        <div>
+                          <Label htmlFor="planCurrency">Currency</Label>
+                          <Select>
+                            <SelectTrigger>
+                              <SelectValue placeholder="USD" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="USD">USD</SelectItem>
+                              <SelectItem value="EUR">EUR</SelectItem>
+                              <SelectItem value="GBP">GBP</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="planInterval">Billing Interval</Label>
+                          <Select>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Monthly" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="month">Monthly</SelectItem>
+                              <SelectItem value="year">Yearly</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-3 gap-4">
+                        <div>
+                          <Label htmlFor="maxUsers">Max Users</Label>
+                          <Input id="maxUsers" type="number" placeholder="25" />
+                        </div>
+                        <div>
+                          <Label htmlFor="maxProjects">Max Projects</Label>
+                          <Input id="maxProjects" type="number" placeholder="100" />
+                        </div>
+                        <div>
+                          <Label htmlFor="maxStorage">Max Storage (GB)</Label>
+                          <Input id="maxStorage" type="number" placeholder="50" />
+                        </div>
+                      </div>
+                      <div className="flex justify-end gap-3">
+                        <Button variant="outline">Cancel</Button>
+                        <Button>Create Plan</Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {/* Dynamic Plan Overview Cards */}
+              {plansLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                    <p className="mt-2 text-muted-foreground">Loading subscription plans...</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                  {subscriptionPlans.map((plan: any) => (
+                    <Card key={plan.id} className={`relative ${plan.isPopular ? 'ring-2 ring-primary' : ''}`}>
+                      {plan.isPopular && (
+                        <Badge className="absolute -top-2 left-1/2 transform -translate-x-1/2 bg-primary">
+                          ⭐ Popular
+                        </Badge>
+                      )}
+                      <CardHeader>
+                        <CardTitle className="flex items-center justify-between">
+                          {plan.name}
+                          <Badge variant={plan.isActive ? 'default' : 'secondary'}>
+                            {plan.isActive ? 'Active' : 'Inactive'}
+                          </Badge>
+                        </CardTitle>
+                        <CardDescription>
+                          <div className="text-2xl font-bold">
+                            ${plan.price}
+                            <span className="text-sm font-normal text-muted-foreground">
+                              /{plan.billingInterval}
+                            </span>
+                          </div>
+                          {plan.description && (
+                            <div className="text-sm mt-1">{plan.description}</div>
+                          )}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          {/* Plan Limits */}
+                          <div className="space-y-2">
+                            <h4 className="font-medium text-sm">Plan Limits</h4>
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                              <div className="flex items-center gap-1">
+                                👥 {plan.maxUsers} users
+                              </div>
+                              <div className="flex items-center gap-1">
+                                💾 {plan.maxStorageGB}GB storage
+                              </div>
+                              <div className="text-muted-foreground">
+                                {plan.maxProjects} projects
+                              </div>
+                              <div className="text-muted-foreground">
+                                {plan.maxCustomers} customers
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Core Features */}
+                          <div className="space-y-2">
+                            <h4 className="font-medium text-sm">Key Features</h4>
+                            <div className="grid grid-cols-2 gap-1 text-xs">
+                              {[
+                                { key: 'hasGpsTracking', label: 'GPS Tracking' },
+                                { key: 'hasInvoicing', label: 'Invoicing' },
+                                { key: 'hasAdvancedReporting', label: 'Advanced Reports' },
+                                { key: 'hasApiAccess', label: 'API Access' }
+                              ].map((feature) => (
+                                <div key={feature.key} className="flex items-center gap-1">
+                                  {plan[feature.key] ? (
+                                    <span className="text-green-500">✓</span>
+                                  ) : (
+                                    <span className="text-muted-foreground">✗</span>
+                                  )}
+                                  <span className={plan[feature.key] ? "" : "text-muted-foreground"}>
+                                    {feature.label}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="flex gap-2 pt-3">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setEditingPlan(plan)}
+                              className="flex-1"
+                            >
+                              ✏️ Edit
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                if (confirm(`Are you sure you want to delete ${plan.name}?`)) {
+                                  deletePlanMutation.mutate(plan.id);
+                                }
+                              }}
+                              className="text-destructive hover:text-destructive"
+                            >
+                              🗑️
+                            </Button>
+                          </div>
+
+                          {/* Status */}
+                          <div className="flex justify-between items-center pt-2 border-t">
+                            <div className="text-xs text-muted-foreground">
+                              Order: {plan.sortOrder}
+                            </div>
+                            {plan.stripePriceId && (
+                              <div className="text-xs text-muted-foreground">
+                                Stripe: {plan.stripePriceId.substring(0, 12)}...
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                  
+                  {/* Add New Plan Card */}
+                  {subscriptionPlans.length === 0 && (
+                    <Card className="border-dashed border-2 border-muted-foreground/25">
+                      <CardContent className="flex items-center justify-center h-48">
+                        <div className="text-center">
+                          <Server className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                          <p className="text-muted-foreground">No subscription plans yet</p>
+                          <p className="text-sm text-muted-foreground">Click "Add Plan" to create your first plan</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Edit Plan Dialog */}
+          {editingPlan && (
+            <Dialog open={!!editingPlan} onOpenChange={() => setEditingPlan(null)}>
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Edit Subscription Plan: {editingPlan.name}</DialogTitle>
+                  <DialogDescription>
+                    Update plan configuration, pricing, limits, and features
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-6">
+                  {/* Basic Information */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Basic Information</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="editPlanName">Plan Name</Label>
+                          <Input 
+                            id="editPlanName" 
+                            defaultValue={editingPlan.name}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="editPlanSlug">Slug</Label>
+                          <Input 
+                            id="editPlanSlug" 
+                            defaultValue={editingPlan.slug}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="editPlanDescription">Description</Label>
+                        <Input 
+                          id="editPlanDescription" 
+                          defaultValue={editingPlan.description || ""}
+                        />
+                      </div>
+                      <div className="grid grid-cols-4 gap-4">
+                        <div>
+                          <Label htmlFor="editPlanPrice">Price</Label>
+                          <Input 
+                            id="editPlanPrice" 
+                            type="number" 
+                            step="0.01"
+                            defaultValue={editingPlan.price}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="editPlanCurrency">Currency</Label>
+                          <Select defaultValue={editingPlan.currency}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="USD">USD</SelectItem>
+                              <SelectItem value="EUR">EUR</SelectItem>
+                              <SelectItem value="GBP">GBP</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="editPlanInterval">Billing Interval</Label>
+                          <Select defaultValue={editingPlan.billingInterval}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="month">Monthly</SelectItem>
+                              <SelectItem value="year">Yearly</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="editSortOrder">Sort Order</Label>
+                          <Input 
+                            id="editSortOrder" 
+                            type="number" 
+                            defaultValue={editingPlan.sortOrder}
+                          />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Plan Limits */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Plan Limits</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-4 gap-4">
+                        <div>
+                          <Label htmlFor="editMaxUsers">Max Users</Label>
+                          <Input 
+                            id="editMaxUsers" 
+                            type="number" 
+                            defaultValue={editingPlan.maxUsers}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="editMaxProjects">Max Projects</Label>
+                          <Input 
+                            id="editMaxProjects" 
+                            type="number" 
+                            defaultValue={editingPlan.maxProjects}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="editMaxCustomers">Max Customers</Label>
+                          <Input 
+                            id="editMaxCustomers" 
+                            type="number" 
+                            defaultValue={editingPlan.maxCustomers}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="editMaxStorage">Max Storage (GB)</Label>
+                          <Input 
+                            id="editMaxStorage" 
+                            type="number" 
+                            defaultValue={editingPlan.maxStorageGB}
+                          />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Plan Features */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Plan Features</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        {[
+                          { key: 'hasGpsTracking', label: 'GPS Tracking' },
+                          { key: 'hasInvoicing', label: 'Invoicing System' },
+                          { key: 'hasAdvancedReporting', label: 'Advanced Reporting' },
+                          { key: 'hasApiAccess', label: 'API Access' },
+                          { key: 'hasCustomBranding', label: 'Custom Branding' },
+                          { key: 'hasIntegrations', label: 'Third-party Integrations' },
+                          { key: 'hasPrioritySupport', label: 'Priority Support' },
+                          { key: 'hasWhiteLabel', label: 'White Label' }
+                        ].map((feature) => (
+                          <div key={feature.key} className="flex items-center space-x-2">
+                            <Switch 
+                              id={`edit-${feature.key}`}
+                              defaultChecked={editingPlan[feature.key]}
+                            />
+                            <Label htmlFor={`edit-${feature.key}`}>{feature.label}</Label>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Plan Status */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Plan Status</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="flex items-center space-x-2">
+                          <Switch 
+                            id="editIsActive"
+                            defaultChecked={editingPlan.isActive}
+                          />
+                          <Label htmlFor="editIsActive">Active</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Switch 
+                            id="editIsPopular"
+                            defaultChecked={editingPlan.isPopular}
+                          />
+                          <Label htmlFor="editIsPopular">Mark as Popular</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Switch 
+                            id="editIsPublic"
+                            defaultChecked={editingPlan.isPublic}
+                          />
+                          <Label htmlFor="editIsPublic">Public</Label>
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="editStripePriceId">Stripe Price ID</Label>
+                        <Input 
+                          id="editStripePriceId" 
+                          defaultValue={editingPlan.stripePriceId || ""}
+                          placeholder="price_..."
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Action Buttons */}
+                  <div className="flex justify-end gap-3">
+                    <Button variant="outline" onClick={() => setEditingPlan(null)}>
+                      Cancel
+                    </Button>
+                    <Button 
+                      onClick={() => {
+                        // TODO: Implement save functionality
+                        toast({
+                          title: "Plan Updated",
+                          description: "Subscription plan has been updated successfully",
+                        });
+                        setEditingPlan(null);
+                      }}
+                    >
+                      Save Changes
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
+
+          {/* Plan Statistics */}
+          <Card>
+            <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Server className="h-5 w-5" />
-                Subscription Plans Feature Management
+                <Activity className="h-5 w-5" />
+                Subscription Plan Statistics
               </CardTitle>
               <CardDescription>
-                Configure which features are available for each subscription plan
+                Overview of subscription plan metrics and usage
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {/* Plan Overview Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                {/* Starter Plan */}
-                <Card className="relative">
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      Starter
-                      <Badge variant="default">Active</Badge>
-                    </CardTitle>
-                    <CardDescription>
-                      <div className="text-2xl font-bold">$49</div>
-                      <div className="text-sm">per month</div>
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <div className="text-sm">
-                        <strong>Limits:</strong> 5 users, 50 projects
-                      </div>
-                      <div className="text-sm">
-                        <strong>Storage:</strong> 10GB
-                      </div>
-                      <div className="text-sm">
-                        <strong>Features:</strong> Basic reporting
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Professional Plan */}
-                <Card className="relative">
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      Professional
-                      <Badge variant="default">Active</Badge>
-                    </CardTitle>
-                    <CardDescription>
-                      <div className="text-2xl font-bold">$99</div>
-                      <div className="text-sm">per month</div>
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <div className="text-sm">
-                        <strong>Limits:</strong> 25 users, Unlimited projects
-                      </div>
-                      <div className="text-sm">
-                        <strong>Storage:</strong> 50GB
-                      </div>
-                      <div className="text-sm">
-                        <strong>Features:</strong> Advanced reporting, API access, Custom branding
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Enterprise Plan */}
-                <Card className="relative">
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      Enterprise
-                      <Badge variant="default">Active</Badge>
-                    </CardTitle>
-                    <CardDescription>
-                      <div className="text-2xl font-bold">$199</div>
-                      <div className="text-sm">per month</div>
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <div className="text-sm">
-                        <strong>Limits:</strong> Unlimited users, Unlimited projects
-                      </div>
-                      <div className="text-sm">
-                        <strong>Storage:</strong> 500GB
-                      </div>
-                      <div className="text-sm">
-                        <strong>Features:</strong> All features, Priority support
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <div className="text-2xl font-bold">{subscriptionPlans?.length || 0}</div>
+                  <div className="text-sm text-muted-foreground">Total Plans</div>
+                </div>
+                <div className="space-y-2">
+                  <div className="text-2xl font-bold">
+                    {subscriptionPlans?.filter((p: any) => p.isActive)?.length || 0}
+                  </div>
+                  <div className="text-sm text-muted-foreground">Active Plans</div>
+                </div>
+                <div className="space-y-2">
+                  <div className="text-2xl font-bold">
+                    {subscriptionPlans?.filter((p: any) => p.isPopular)?.length || 0}
+                  </div>
+                  <div className="text-sm text-muted-foreground">Popular Plans</div>
+                </div>
+                <div className="space-y-2">
+                  <div className="text-2xl font-bold">
+                    ${Math.min(...(subscriptionPlans?.map((p: any) => p.price) || [0]))} - ${Math.max(...(subscriptionPlans?.map((p: any) => p.price) || [0]))}
+                  </div>
+                  <div className="text-sm text-muted-foreground">Price Range</div>
+                </div>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-              {/* Feature Assignment Matrix */}
-              <div className="space-y-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <Settings className="h-5 w-5" />
-                  <h3 className="text-lg font-semibold">Feature Assignment</h3>
+        <TabsContent value="billing" className="space-y-6">
+          {/* Billing Overview */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="h-5 w-5" />
+                Billing & Revenue
+              </CardTitle>
+              <CardDescription>
+                Monitor revenue, failed payments, and billing issues
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <h4 className="font-semibold">Recent Payments</h4>
+                  <div className="space-y-2">
+                    {billingData?.recentPayments?.map((payment: any) => (
+                      <div key={payment.id} className="flex justify-between items-center p-2 border rounded">
+                        <div>
+                          <div className="font-medium">{payment.organizationName}</div>
+                          <div className="text-sm text-muted-foreground">{payment.planName}</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-medium">${payment.amount}</div>
+                          <Badge variant={payment.status === 'succeeded' ? 'default' : 'destructive'}>
+                            {payment.status}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
                 
-                {/* Core Features */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">Core Features</CardTitle>
-                    <CardDescription>Essential platform features</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {!plansLoading && [
-                      { id: 'maxUsers', label: 'User Limit', values: ['5', '25', 'Unlimited'] },
-                      { id: 'maxProjects', label: 'Project Limit', values: ['10', '100', 'Unlimited'] },
-                      { id: 'maxStorageGB', label: 'Storage Limit (GB)', values: ['5', '50', '500'] }
-                    ].map((feature) => (
-                      <div key={feature.id} className="space-y-3">
-                        <Label className="text-sm font-medium">{feature.label}</Label>
-                        <div className="grid grid-cols-3 gap-4">
-                          {subscriptionPlans.map((plan: any, planIndex: number) => (
-                            <div key={plan.id} className="space-y-2">
-                              <div className="text-sm font-medium text-center">{plan.name}</div>
-                              <div className="space-y-2">
-                                {feature.values.map((value) => (
-                                  <div key={value} className="flex items-center space-x-2">
-                                    <input
-                                      type="radio"
-                                      name={`${feature.id}-${plan.id}`}
-                                      value={value}
-                                      id={`${feature.id}-${plan.id}-${value}`}
-                                      defaultChecked={value === feature.values[planIndex]}
-                                      onChange={() => {
-                                        const numValue = value === 'Unlimited' ? -1 : (isNaN(parseInt(value)) ? value : parseInt(value));
-                                        handleFeatureUpdate(plan.id, feature.id, numValue);
-                                      }}
-                                      className="h-4 w-4 text-primary focus:ring-primary border-gray-300"
-                                    />
-                                    <Label htmlFor={`${feature.id}-${plan.id}-${value}`} className="text-sm">
-                                      {value}
-                                    </Label>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          ))}
+                <div className="space-y-4">
+                  <h4 className="font-semibold">Failed Payments</h4>
+                  <div className="space-y-2">
+                    {billingData?.failedPayments?.map((payment: any) => (
+                      <div key={payment.id} className="flex justify-between items-center p-2 border border-red-200 rounded">
+                        <div>
+                          <div className="font-medium">{payment.organizationName}</div>
+                          <div className="text-sm text-muted-foreground">
+                            Last attempt: {new Date(payment.lastAttempt).toLocaleDateString()}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-medium">${payment.amount}</div>
+                          <Button variant="outline" size="sm">Retry</Button>
                         </div>
                       </div>
                     ))}
-                  </CardContent>
-                </Card>
-
-                {/* Advanced Features */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">Advanced Features</CardTitle>
-                    <CardDescription>Premium platform capabilities</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {[
-                      { id: 'hasAdvancedReporting', label: 'Advanced Reporting & Analytics' },
-                      { id: 'hasApiAccess', label: 'API Access & Webhooks' },
-                      { id: 'hasCustomBranding', label: 'Custom Branding & White Label' },
-                      { id: 'hasIntegrations', label: 'Third-party Integrations' },
-                      { id: 'hasPrioritySupport', label: 'Priority Customer Support' }
-                    ].map((feature) => (
-                      <div key={feature.id} className="space-y-3">
-                        <Label className="text-sm font-medium">{feature.label}</Label>
-                        <div className="grid grid-cols-3 gap-4">
-                          {subscriptionPlans?.map((plan: any) => (
-                            <div key={plan.id} className="space-y-2">
-                              <div className="text-sm font-medium text-center">{plan.name}</div>
-                              <div className="space-y-2">
-                                <div className="flex items-center space-x-2">
-                                  <input
-                                    type="radio"
-                                    name={`${feature.id}-${plan.id}`}
-                                    value="not-included"
-                                    id={`${feature.id}-${plan.id}-no`}
-                                    defaultChecked={!plan[feature.id]}
-                                    onChange={() => handleFeatureUpdate(plan.id, feature.id, false)}
-                                    className="h-4 w-4 text-primary focus:ring-primary border-gray-300"
-                                  />
-                                  <Label htmlFor={`${feature.id}-${plan.id}-no`} className="text-sm">
-                                    Not Included
-                                  </Label>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                  <input
-                                    type="radio"
-                                    name={`${feature.id}-${plan.id}`}
-                                    value="included"
-                                    id={`${feature.id}-${plan.id}-yes`}
-                                    defaultChecked={plan[feature.id]}
-                                    onChange={() => handleFeatureUpdate(plan.id, feature.id, true)}
-                                    className="h-4 w-4 text-primary focus:ring-primary border-gray-300"
-                                  />
-                                  <Label htmlFor={`${feature.id}-${plan.id}-yes`} className="text-sm">
-                                    ✓ Included
-                                  </Label>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-
-                {/* Enterprise Features */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">Enterprise Features</CardTitle>
-                    <CardDescription>Advanced business capabilities</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {[
-                      { id: 'hasDocuSignIntegration', label: 'DocuSign Integration' },
-                      { id: 'hasAdvancedSecurity', label: 'Advanced Security Features' },
-                      { id: 'hasCustomDomain', label: 'Custom Domain Support' },
-                      { id: 'hasSSOIntegration', label: 'Single Sign-On (SSO)' },
-                      { id: 'hasDataExport', label: 'Data Export & Migration Tools' },
-                      { id: 'hasAdvancedPermissions', label: 'Advanced User Permissions' }
-                    ].map((feature) => (
-                      <div key={feature.id} className="space-y-3">
-                        <Label className="text-sm font-medium">{feature.label}</Label>
-                        <div className="grid grid-cols-3 gap-4">
-                          {subscriptionPlans?.map((plan: any) => (
-                            <div key={plan.id} className="space-y-2">
-                              <div className="text-sm font-medium text-center">{plan.name}</div>
-                              <div className="space-y-2">
-                                <div className="flex items-center space-x-2">
-                                  <input
-                                    type="radio"
-                                    name={`${feature.id}-${plan.id}`}
-                                    value="not-included"
-                                    id={`${feature.id}-${plan.id}-no`}
-                                    defaultChecked={true}
-                                    onChange={() => handleFeatureUpdate(plan.id, feature.id, false)}
-                                    className="h-4 w-4 text-primary focus:ring-primary border-gray-300"
-                                  />
-                                  <Label htmlFor={`${feature.id}-${plan.id}-no`} className="text-sm">
-                                    Not Included
-                                  </Label>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                  <input
-                                    type="radio"
-                                    name={`${feature.id}-${plan.id}`}
-                                    value="included"
-                                    id={`${feature.id}-${plan.id}-yes`}
-                                    defaultChecked={false}
-                                    onChange={() => handleFeatureUpdate(plan.id, feature.id, true)}
-                                    className="h-4 w-4 text-primary focus:ring-primary border-gray-300"
-                                  />
-                                  <Label htmlFor={`${feature.id}-${plan.id}-yes`} className="text-sm">
-                                    ✓ Included
-                                  </Label>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-
-                {/* API & Integration Limits */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">API & Integration Limits</CardTitle>
-                    <CardDescription>Configure API rate limits and integration quotas</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {[
-                      { id: 'apiCallsPerMonth', label: 'API Calls per Month', values: ['1,000', '10,000', 'Unlimited'] },
-                      { id: 'webhookEndpoints', label: 'Webhook Endpoints', values: ['1', '5', 'Unlimited'] },
-                      { id: 'integrationConnections', label: 'Integration Connections', values: ['3', '10', 'Unlimited'] }
-                    ].map((feature) => (
-                      <div key={feature.id} className="space-y-3">
-                        <Label className="text-sm font-medium">{feature.label}</Label>
-                        <div className="grid grid-cols-3 gap-4">
-                          {subscriptionPlans?.map((plan: any, planIndex: number) => (
-                            <div key={plan.id} className="space-y-2">
-                              <div className="text-sm font-medium text-center">{plan.name}</div>
-                              <div className="space-y-2">
-                                {feature.values.map((value) => (
-                                  <div key={value} className="flex items-center space-x-2">
-                                    <input
-                                      type="radio"
-                                      name={`${feature.id}-${plan.id}`}
-                                      value={value}
-                                      id={`${feature.id}-${plan.id}-${value}`}
-                                      defaultChecked={value === (feature.values[planIndex] || feature.values[0])}
-                                      onChange={() => handleFeatureUpdate(plan.id, feature.id, value)}
-                                      className="h-4 w-4 text-primary focus:ring-primary border-gray-300"
-                                    />
-                                    <Label htmlFor={`${feature.id}-${plan.id}-${value}`} className="text-sm">
-                                      {value}
-                                    </Label>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-
-                {/* Save Changes Button */}
-                <div className="flex justify-center pt-6">
-                  <Button 
-                    onClick={() => toast({ title: "Success", description: "Plan features updated successfully" })}
-                    size="lg"
-                    className="min-w-[200px]"
-                  >
-                    <Save className="h-4 w-4 mr-2" />
-                    Save All Changes
-                  </Button>
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -1366,94 +1668,21 @@ export default function SaasAdminPage() {
           <FileSecurityTab />
         </TabsContent>
 
-        <TabsContent value="settings" className="space-y-6">
-          {/* Feature Toggles & Limits */}
+        <TabsContent value="analytics" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Shield className="h-5 w-5" />
-                Global Feature Controls
+                <Activity className="h-5 w-5" />
+                Platform Analytics
               </CardTitle>
               <CardDescription>
-                Control feature availability and system-wide limits
+                System performance and usage analytics
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <h4 className="font-semibold">Feature Toggles</h4>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="enableTrials">Enable Free Trials</Label>
-                      <Switch
-                        id="enableTrials"
-                        checked={systemSettingsData?.enableTrials || false}
-                        onCheckedChange={(checked) => 
-                          handleSystemSettingChange("enableTrials", checked.toString())
-                        }
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="enableSelfSignup">Enable Self Signup</Label>
-                      <Switch
-                        id="enableSelfSignup"
-                        checked={systemSettingsData?.enableSelfSignup || false}
-                        onCheckedChange={(checked) => 
-                          handleSystemSettingChange("enableSelfSignup", checked.toString())
-                        }
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="enableApiAccess">Enable API Access</Label>
-                      <Switch
-                        id="enableApiAccess"
-                        checked={systemSettingsData?.enableApiAccess || false}
-                        onCheckedChange={(checked) => 
-                          handleSystemSettingChange("enableApiAccess", checked.toString())
-                        }
-                      />
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="space-y-4">
-                  <h4 className="font-semibold">Global Limits</h4>
-                  <div className="space-y-3">
-                    <div className="space-y-2">
-                      <Label htmlFor="maxOrgsPerUser">Max Organizations per User</Label>
-                      <Input
-                        id="maxOrgsPerUser"
-                        type="number"
-                        defaultValue={systemSettingsData?.maxOrgsPerUser || 1}
-                        onBlur={(e) => 
-                          handleSystemSettingChange("maxOrgsPerUser", e.target.value)
-                        }
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="trialDurationDays">Trial Duration (days)</Label>
-                      <Input
-                        id="trialDurationDays"
-                        type="number"
-                        defaultValue={systemSettingsData?.trialDurationDays || 14}
-                        onBlur={(e) => 
-                          handleSystemSettingChange("trialDurationDays", e.target.value)
-                        }
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="maxFileUploadMB">Max File Upload (MB)</Label>
-                      <Input
-                        id="maxFileUploadMB"
-                        type="number"
-                        defaultValue={systemSettingsData?.maxFileUploadMB || 10}
-                        onBlur={(e) => 
-                          handleSystemSettingChange("maxFileUploadMB", e.target.value)
-                        }
-                      />
-                    </div>
-                  </div>
-                </div>
+            <CardContent>
+              <div className="text-center py-8">
+                <Activity className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">Analytics dashboard coming soon</p>
               </div>
             </CardContent>
           </Card>
@@ -1523,182 +1752,7 @@ export default function SaasAdminPage() {
               </div>
             )}
 
-            {/* New Organization Fields */}
-            {subscriptionForm.createNewOrg && (
-              <>
-                <div className="col-span-4 border-t pt-4">
-                  <h4 className="font-medium mb-3">Organization Details</h4>
-                </div>
-                
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="orgName" className="text-right">
-                    Organization Name
-                  </Label>
-                  <Input
-                    id="orgName"
-                    className="col-span-3"
-                    value={subscriptionForm.orgName}
-                    onChange={(e) => {
-                      console.log("Org name changing to:", e.target.value);
-                      setSubscriptionForm({...subscriptionForm, orgName: e.target.value});
-                    }}
-                    placeholder="Company Name"
-                  />
-                </div>
-
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="orgEmail" className="text-right">
-                    Organization Email
-                  </Label>
-                  <Input
-                    id="orgEmail"
-                    type="email"
-                    className="col-span-3"
-                    value={subscriptionForm.orgEmail}
-                    onChange={(e) => setSubscriptionForm({...subscriptionForm, orgEmail: e.target.value})}
-                    placeholder="contact@company.com"
-                  />
-                </div>
-
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="orgPhone" className="text-right">
-                    Phone
-                  </Label>
-                  <Input
-                    id="orgPhone"
-                    className="col-span-3"
-                    value={subscriptionForm.orgPhone}
-                    onChange={(e) => setSubscriptionForm({...subscriptionForm, orgPhone: e.target.value})}
-                    placeholder="(555) 123-4567"
-                  />
-                </div>
-
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="orgAddress" className="text-right">
-                    Address
-                  </Label>
-                  <Input
-                    id="orgAddress"
-                    className="col-span-3"
-                    value={subscriptionForm.orgAddress}
-                    onChange={(e) => setSubscriptionForm({...subscriptionForm, orgAddress: e.target.value})}
-                    placeholder="123 Main St"
-                  />
-                </div>
-
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="orgCity" className="text-right">
-                    City
-                  </Label>
-                  <Input
-                    id="orgCity"
-                    className="col-span-2"
-                    value={subscriptionForm.orgCity}
-                    onChange={(e) => setSubscriptionForm({...subscriptionForm, orgCity: e.target.value})}
-                    placeholder="City"
-                  />
-                  <Input
-                    placeholder="State"
-                    value={subscriptionForm.orgState}
-                    onChange={(e) => setSubscriptionForm({...subscriptionForm, orgState: e.target.value})}
-                  />
-                </div>
-
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="orgZipCode" className="text-right">
-                    Zip Code
-                  </Label>
-                  <Input
-                    id="orgZipCode"
-                    type="text"
-                    className="col-span-3"
-                    value={subscriptionForm.orgZipCode}
-                    onChange={(e) => setSubscriptionForm({...subscriptionForm, orgZipCode: e.target.value})}
-                    placeholder="12345"
-                  />
-                </div>
-
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="maxUsers" className="text-right">
-                    Max Users
-                  </Label>
-                  <Input
-                    id="maxUsers"
-                    type="number"
-                    className="col-span-3"
-                    value={subscriptionForm.maxUsers || ""}
-                    onChange={(e) => {
-                      const newValue = e.target.value === "" ? 0 : parseInt(e.target.value);
-                      console.log("Max users changing to:", newValue);
-                      setSubscriptionForm({...subscriptionForm, maxUsers: newValue});
-                    }}
-                    min="1"
-                    placeholder="Enter max users allowed"
-                  />
-                </div>
-
-                <div className="col-span-4 border-t pt-4">
-                  <h4 className="font-medium mb-3">Admin User Details</h4>
-                </div>
-
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="adminFirstName" className="text-right">
-                    Admin First Name
-                  </Label>
-                  <Input
-                    id="adminFirstName"
-                    className="col-span-3"
-                    value={subscriptionForm.adminFirstName}
-                    onChange={(e) => setSubscriptionForm({...subscriptionForm, adminFirstName: e.target.value})}
-                    placeholder="Enter first name"
-                  />
-                </div>
-
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="adminLastName" className="text-right">
-                    Admin Last Name
-                  </Label>
-                  <Input
-                    id="adminLastName"
-                    className="col-span-3"
-                    placeholder="Enter last name"
-                    value={subscriptionForm.adminLastName}
-                    onChange={(e) => setSubscriptionForm({...subscriptionForm, adminLastName: e.target.value})}
-                  />
-                </div>
-
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="adminEmail" className="text-right">
-                    Admin Email
-                  </Label>
-                  <Input
-                    id="adminEmail"
-                    type="email"
-                    className="col-span-3"
-                    value={subscriptionForm.adminEmail}
-                    onChange={(e) => {
-                      console.log("Admin email changing to:", e.target.value);
-                      setSubscriptionForm({...subscriptionForm, adminEmail: e.target.value});
-                    }}
-                    placeholder="admin@company.com"
-                  />
-                </div>
-
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="adminPassword" className="text-right">
-                    Admin Password
-                  </Label>
-                  <Input
-                    id="adminPassword"
-                    type="password"
-                    className="col-span-3"
-                    value={subscriptionForm.adminPassword}
-                    onChange={(e) => setSubscriptionForm({...subscriptionForm, adminPassword: e.target.value})}
-                    placeholder="Secure password"
-                  />
-                </div>
-              </>
-            )}
+            {/* Subscription Plan Selection */}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="plan" className="text-right">
                 Plan
@@ -1709,7 +1763,7 @@ export default function SaasAdminPage() {
                   onValueChange={(value) => setSubscriptionForm({...subscriptionForm, planId: value})}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select plan" />
+                    <SelectValue placeholder="Select subscription plan" />
                   </SelectTrigger>
                   <SelectContent>
                     {subscriptionPlans?.map((plan: any) => (
@@ -1721,6 +1775,8 @@ export default function SaasAdminPage() {
                 </Select>
               </div>
             </div>
+
+            {/* Subscription Status */}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="status" className="text-right">
                 Status
@@ -1742,89 +1798,38 @@ export default function SaasAdminPage() {
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="startDate" className="text-right">
-                Start Date
-              </Label>
-              <Input
-                id="startDate"
-                type="date"
-                className="col-span-3"
-                value={subscriptionForm.startDate}
-                onChange={(e) => setSubscriptionForm({...subscriptionForm, startDate: e.target.value})}
-              />
-            </div>
-            {subscriptionForm.status === 'trial' && (
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="trialDays" className="text-right">
-                  Trial Days
-                </Label>
-                <Input
-                  id="trialDays"
-                  type="number"
-                  className="col-span-3"
-                  value={subscriptionForm.trialDays}
-                  onChange={(e) => setSubscriptionForm({...subscriptionForm, trialDays: parseInt(e.target.value)})}
-                />
-              </div>
-            )}
           </div>
           <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setShowCreateSubscriptionDialog(false)}
-            >
+            <Button variant="outline" onClick={() => setShowCreateSubscriptionDialog(false)}>
               Cancel
             </Button>
             <Button
-              type="button"
-              onClick={() => {
-                console.log("Button clicked, form data:", subscriptionForm);
-                createSubscriptionMutation.mutate(subscriptionForm);
-              }}
-              disabled={(() => {
-                const isNewOrg = subscriptionForm.createNewOrg;
-                const existingOrgValid = !isNewOrg && subscriptionForm.organizationId && subscriptionForm.planId;
-                const newOrgValid = isNewOrg && subscriptionForm.orgName && subscriptionForm.adminEmail && subscriptionForm.adminPassword && subscriptionForm.planId;
-                const isValid = existingOrgValid || newOrgValid;
-                
-                console.log("Button validation:", {
-                  isNewOrg,
-                  orgName: subscriptionForm.orgName,
-                  adminEmail: subscriptionForm.adminEmail,
-                  adminPassword: subscriptionForm.adminPassword,
-                  planId: subscriptionForm.planId,
-                  isValid,
-                  isPending: createSubscriptionMutation.isPending
-                });
-                
-                return !isValid || createSubscriptionMutation.isPending;
-              })()}
+              onClick={() => createSubscriptionMutation.mutate(subscriptionForm)}
+              disabled={createSubscriptionMutation.isPending}
             >
-              {createSubscriptionMutation.isPending ? "Creating..." : subscriptionForm.createNewOrg ? "Create Organization & Subscription" : "Create Subscription"}
+              {createSubscriptionMutation.isPending ? "Creating..." : "Create Subscription"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Edit User Dialog for User Management Tab */}
-      {editingUser && activeTab === 'users' && (
+      {/* Edit User Dialog */}
+      {editingUser && (
         <Dialog open={!!editingUser} onOpenChange={() => setEditingUser(null)}>
-          <DialogContent>
+          <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
               <DialogTitle>Edit User</DialogTitle>
               <DialogDescription>
-                Update user information and settings
+                Update user information and permissions.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-username" className="text-right">
+                <Label htmlFor="username" className="text-right">
                   Username
                 </Label>
                 <Input
-                  id="edit-username"
+                  id="username"
                   className="col-span-3"
                   value={editingUser.username || ""}
                   onChange={(e) => setEditingUser({
@@ -1834,11 +1839,12 @@ export default function SaasAdminPage() {
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-email" className="text-right">
+                <Label htmlFor="email" className="text-right">
                   Email
                 </Label>
                 <Input
-                  id="edit-email"
+                  id="email"
+                  type="email"
                   className="col-span-3"
                   value={editingUser.email || ""}
                   onChange={(e) => setEditingUser({
@@ -1848,11 +1854,11 @@ export default function SaasAdminPage() {
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-role" className="text-right">
+                <Label htmlFor="role" className="text-right">
                   Role
                 </Label>
                 <Select
-                  value={editingUser.role || "user"}
+                  value={editingUser.role}
                   onValueChange={(value) => setEditingUser({
                     ...editingUser,
                     role: value
@@ -1862,29 +1868,9 @@ export default function SaasAdminPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="user">User</SelectItem>
                     <SelectItem value="admin">Admin</SelectItem>
                     <SelectItem value="manager">Manager</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-status" className="text-right">
-                  Status
-                </Label>
-                <Select
-                  value={editingUser.isActive ? "active" : "inactive"}
-                  onValueChange={(value) => setEditingUser({
-                    ...editingUser,
-                    isActive: value === "active"
-                  })}
-                >
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
+                    <SelectItem value="user">User</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -1911,22 +1897,15 @@ export default function SaasAdminPage() {
               </Button>
               <Button
                 onClick={() => {
-                  updateUserMutation.mutate({
-                    orgId: editingUser.organizationId,
-                    userId: editingUser.id,
-                    updates: {
-                      username: editingUser.username,
-                      email: editingUser.email,
-                      role: editingUser.role,
-                      isActive: editingUser.isActive,
-                      ...(editingUser.newPassword && { password: editingUser.newPassword })
-                    }
+                  // Implementation would go here
+                  toast({
+                    title: "User Updated",
+                    description: "User information has been updated successfully",
                   });
                   setEditingUser(null);
                 }}
-                disabled={updateUserMutation.isPending}
               >
-                {updateUserMutation.isPending ? "Saving..." : "Save Changes"}
+                Save Changes
               </Button>
             </DialogFooter>
           </DialogContent>

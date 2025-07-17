@@ -48,8 +48,8 @@ export const organizations = pgTable("organizations", {
 // Subscription Plans
 export const subscriptionPlans = pgTable("subscription_plans", {
   id: serial("id").primaryKey(),
-  name: text("name").notNull(), // "Starter", "Professional", "Enterprise"
-  slug: text("slug").notNull().unique(), // "starter", "professional", "enterprise"
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
   description: text("description"),
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   currency: text("currency").default("USD"),
@@ -60,16 +60,68 @@ export const subscriptionPlans = pgTable("subscription_plans", {
   maxUsers: integer("max_users").default(5),
   maxProjects: integer("max_projects").default(50),
   maxStorageGB: integer("max_storage_gb").default(10),
+  maxCustomers: integer("max_customers").default(100),
+  maxInvoices: integer("max_invoices").default(100),
+  maxExpenses: integer("max_expenses").default(100),
   
-  // Plan features
+  // Core features
   hasAdvancedReporting: boolean("has_advanced_reporting").default(false),
   hasApiAccess: boolean("has_api_access").default(false),
   hasCustomBranding: boolean("has_custom_branding").default(false),
   hasIntegrations: boolean("has_integrations").default(false),
   hasPrioritySupport: boolean("has_priority_support").default(false),
   
+  // Field service features
+  hasGpsTracking: boolean("has_gps_tracking").default(true),
+  hasMobileApp: boolean("has_mobile_app").default(true),
+  hasTimeTracking: boolean("has_time_tracking").default(true),
+  hasInvoicing: boolean("has_invoicing").default(true),
+  hasQuotes: boolean("has_quotes").default(true),
+  hasExpenseTracking: boolean("has_expense_tracking").default(true),
+  hasTeamMessaging: boolean("has_team_messaging").default(true),
+  hasFileManagement: boolean("has_file_management").default(true),
+  hasFormBuilder: boolean("has_form_builder").default(false),
+  hasDigitalSignatures: boolean("has_digital_signatures").default(false),
+  hasReviewManagement: boolean("has_review_management").default(false),
+  hasSmsNotifications: boolean("has_sms_notifications").default(false),
+  hasEmailNotifications: boolean("has_email_notifications").default(true),
+  hasCalendarIntegration: boolean("has_calendar_integration").default(false),
+  hasBackupAndExport: boolean("has_backup_and_export").default(false),
+  hasAdvancedSecurity: boolean("has_advanced_security").default(false),
+  hasWhitelabeling: boolean("has_whitelabeling").default(false),
+  hasMultiLocation: boolean("has_multi_location").default(false),
+  hasInventoryManagement: boolean("has_inventory_management").default(false),
+  hasPaymentProcessing: boolean("has_payment_processing").default(false),
+  
   isActive: boolean("is_active").default(true),
+  isPopular: boolean("is_popular").default(false),
   sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Plan Features - for dynamic feature management
+export const planFeatures = pgTable("plan_features", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  description: text("description"),
+  category: text("category").notNull(), // "core", "field_service", "integrations", "support", "limits"
+  featureType: text("feature_type").default("boolean"), // "boolean", "numeric", "text"
+  sortOrder: integer("sort_order").default(0),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Plan Feature Values - dynamic values for each plan
+export const planFeatureValues = pgTable("plan_feature_values", {
+  id: serial("id").primaryKey(),
+  planId: integer("plan_id").references(() => subscriptionPlans.id).notNull(),
+  featureId: integer("feature_id").references(() => planFeatures.id).notNull(),
+  booleanValue: boolean("boolean_value"),
+  numericValue: integer("numeric_value"),
+  textValue: text("text_value"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -1724,13 +1776,71 @@ export const insertOrganizationSchema = z.object({
 
 export const insertSubscriptionPlanSchema = z.object({
   name: z.string().min(1),
+  slug: z.string().min(1),
   description: z.string().optional(),
   price: z.number().min(0),
-  billingCycle: z.enum(['monthly', 'yearly']),
-  features: z.array(z.string()),
-  maxUsers: z.number().optional(),
-  maxProjects: z.number().optional(),
+  currency: z.string().default("USD"),
+  billingInterval: z.enum(['month', 'year']).default('month'),
+  stripePriceId: z.string().optional(),
+  
+  // Plan limits
+  maxUsers: z.number().default(5),
+  maxProjects: z.number().default(50),
+  maxStorageGB: z.number().default(10),
+  maxCustomers: z.number().default(100),
+  maxInvoices: z.number().default(100),
+  maxExpenses: z.number().default(100),
+  
+  // Core features
+  hasAdvancedReporting: z.boolean().default(false),
+  hasApiAccess: z.boolean().default(false),
+  hasCustomBranding: z.boolean().default(false),
+  hasIntegrations: z.boolean().default(false),
+  hasPrioritySupport: z.boolean().default(false),
+  
+  // Field service features
+  hasGpsTracking: z.boolean().default(true),
+  hasMobileApp: z.boolean().default(true),
+  hasTimeTracking: z.boolean().default(true),
+  hasInvoicing: z.boolean().default(true),
+  hasQuotes: z.boolean().default(true),
+  hasExpenseTracking: z.boolean().default(true),
+  hasTeamMessaging: z.boolean().default(true),
+  hasFileManagement: z.boolean().default(true),
+  hasFormBuilder: z.boolean().default(false),
+  hasDigitalSignatures: z.boolean().default(false),
+  hasReviewManagement: z.boolean().default(false),
+  hasSmsNotifications: z.boolean().default(false),
+  hasEmailNotifications: z.boolean().default(true),
+  hasCalendarIntegration: z.boolean().default(false),
+  hasBackupAndExport: z.boolean().default(false),
+  hasAdvancedSecurity: z.boolean().default(false),
+  hasWhitelabeling: z.boolean().default(false),
+  hasMultiLocation: z.boolean().default(false),
+  hasInventoryManagement: z.boolean().default(false),
+  hasPaymentProcessing: z.boolean().default(false),
+  
   isActive: z.boolean().default(true),
+  isPopular: z.boolean().default(false),
+  sortOrder: z.number().default(0),
+});
+
+export const insertPlanFeatureSchema = z.object({
+  name: z.string().min(1),
+  slug: z.string().min(1),
+  description: z.string().optional(),
+  category: z.string(),
+  featureType: z.enum(['boolean', 'numeric', 'text']).default('boolean'),
+  sortOrder: z.number().default(0),
+  isActive: z.boolean().default(true),
+});
+
+export const insertPlanFeatureValueSchema = z.object({
+  planId: z.number(),
+  featureId: z.number(),
+  booleanValue: z.boolean().optional(),
+  numericValue: z.number().optional(),
+  textValue: z.string().optional(),
 });
 
 export const organizationSignupSchema = z.object({
@@ -1747,6 +1857,10 @@ export type Organization = typeof organizations.$inferSelect;
 export type InsertOrganization = z.infer<typeof insertOrganizationSchema>;
 export type SubscriptionPlan = typeof subscriptionPlans.$inferSelect;
 export type InsertSubscriptionPlan = z.infer<typeof insertSubscriptionPlanSchema>;
+export type PlanFeature = typeof planFeatures.$inferSelect;
+export type InsertPlanFeature = z.infer<typeof insertPlanFeatureSchema>;
+export type PlanFeatureValue = typeof planFeatureValues.$inferSelect;
+export type InsertPlanFeatureValue = z.infer<typeof insertPlanFeatureValueSchema>;
 export type OrganizationSignupData = z.infer<typeof organizationSignupSchema>;
 
 export type LoginData = z.infer<typeof loginSchema>;

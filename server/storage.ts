@@ -117,6 +117,24 @@ export interface IStorage {
   updateSystemSetting(key: string, value: string): Promise<void>;
   getAllOrganizationsWithDetails(): Promise<any[]>;
   
+  // Subscription plan management methods
+  getAllSubscriptionPlans(): Promise<any[]>;
+  getSubscriptionPlan(id: number): Promise<any>;
+  createSubscriptionPlan(planData: any): Promise<any>;
+  updateSubscriptionPlan(id: number, updates: any): Promise<any>;
+  deleteSubscriptionPlan(id: number): Promise<void>;
+  
+  // Plan feature management methods
+  getPlanFeatures(): Promise<any[]>;
+  createPlanFeature(featureData: any): Promise<any>;
+  updatePlanFeature(id: number, updates: any): Promise<any>;
+  deletePlanFeature(id: number): Promise<void>;
+  
+  // Plan feature value management methods
+  getPlanFeatureValues(planId: number): Promise<any[]>;
+  setPlanFeatureValue(planId: number, featureId: number, value: any): Promise<any>;
+  deletePlanFeatureValue(planId: number, featureId: number): Promise<void>;
+  
   // File methods
   getFiles(organizationId: number, folderId?: number): Promise<any[]>;
   getFile(id: number, organizationId: number): Promise<any>;
@@ -5031,6 +5049,107 @@ export class DatabaseStorage implements IStorage {
       console.error('Error signing document field:', error);
       throw error;
     }
+  }
+
+  // Subscription plan management methods
+  async getAllSubscriptionPlans(): Promise<any[]> {
+    try {
+      const plans = await db
+        .select()
+        .from(subscriptionPlans)
+        .orderBy(asc(subscriptionPlans.sortOrder), asc(subscriptionPlans.id));
+      return plans;
+    } catch (error) {
+      console.error('Error fetching subscription plans:', error);
+      return [];
+    }
+  }
+
+  async getSubscriptionPlan(id: number): Promise<any> {
+    try {
+      const [plan] = await db
+        .select()
+        .from(subscriptionPlans)
+        .where(eq(subscriptionPlans.id, id));
+      return plan || null;
+    } catch (error) {
+      console.error('Error fetching subscription plan:', error);
+      return null;
+    }
+  }
+
+  async createSubscriptionPlan(planData: any): Promise<any> {
+    try {
+      const [plan] = await db
+        .insert(subscriptionPlans)
+        .values({
+          ...planData,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
+      return plan;
+    } catch (error) {
+      console.error('Error creating subscription plan:', error);
+      throw error;
+    }
+  }
+
+  async updateSubscriptionPlan(id: number, updates: any): Promise<any> {
+    try {
+      const [plan] = await db
+        .update(subscriptionPlans)
+        .set({
+          ...updates,
+          updatedAt: new Date(),
+        })
+        .where(eq(subscriptionPlans.id, id))
+        .returning();
+      return plan;
+    } catch (error) {
+      console.error('Error updating subscription plan:', error);
+      throw error;
+    }
+  }
+
+  async deleteSubscriptionPlan(id: number): Promise<void> {
+    try {
+      await db
+        .delete(subscriptionPlans)
+        .where(eq(subscriptionPlans.id, id));
+    } catch (error) {
+      console.error('Error deleting subscription plan:', error);
+      throw error;
+    }
+  }
+
+  // Plan feature management methods (for future expansion)
+  async getPlanFeatures(): Promise<any[]> {
+    return []; // Placeholder for dynamic features
+  }
+
+  async createPlanFeature(featureData: any): Promise<any> {
+    return {}; // Placeholder for dynamic features
+  }
+
+  async updatePlanFeature(id: number, updates: any): Promise<any> {
+    return {}; // Placeholder for dynamic features
+  }
+
+  async deletePlanFeature(id: number): Promise<void> {
+    // Placeholder for dynamic features
+  }
+
+  async getPlanFeatureValues(planId: number): Promise<any[]> {
+    return []; // Placeholder for dynamic features
+  }
+
+  async setPlanFeatureValue(planId: number, featureId: number, value: any): Promise<any> {
+    return {}; // Placeholder for dynamic features
+  }
+
+  async deletePlanFeatureValue(planId: number, featureId: number): Promise<void> {
+    // Placeholder for dynamic features
   }
 }
 
