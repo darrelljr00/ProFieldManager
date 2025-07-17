@@ -435,7 +435,9 @@ const historicalJobImageUpload = multer({
 const fileManagerUpload = multer({
   storage: multer.diskStorage({
     destination: async (req, file, cb) => {
-      const uploadDir = './uploads/files';
+      const user = req.user as any;
+      const organizationId = user?.organizationId || 1;
+      const uploadDir = `./uploads/org-${organizationId}/files`;
       try {
         await fs.mkdir(uploadDir, { recursive: true });
         cb(null, uploadDir);

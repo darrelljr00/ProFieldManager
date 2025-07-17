@@ -1528,6 +1528,20 @@ export class DatabaseStorage implements IStorage {
 
   // File methods
   async getFiles(organizationId: number, folderId?: number): Promise<any[]> {
+    let whereCondition;
+    
+    if (folderId) {
+      whereCondition = and(
+        eq(fileManager.organizationId, organizationId),
+        eq(fileManager.folderId, folderId)
+      );
+    } else {
+      whereCondition = and(
+        eq(fileManager.organizationId, organizationId),
+        sql`${fileManager.folderId} IS NULL`
+      );
+    }
+    
     const results = await db
       .select({
         id: fileManager.id,
@@ -1546,10 +1560,12 @@ export class DatabaseStorage implements IStorage {
         downloadCount: fileManager.downloadCount,
         shareableToken: fileManager.shareableToken,
         shareExpiresAt: fileManager.shareExpiresAt,
-        // DocuSign fields
-        docusignEnvelopeId: fileManager.docusignEnvelopeId,
+        // Digital signature fields
         signatureStatus: fileManager.signatureStatus,
-        signatureUrl: fileManager.signatureUrl,
+        signatureData: fileManager.signatureData,
+        signedBy: fileManager.signedBy,
+        signedByUserId: fileManager.signedByUserId,
+        signedAt: fileManager.signedAt,
         signedDocumentUrl: fileManager.signedDocumentUrl,
         createdAt: fileManager.createdAt,
         updatedAt: fileManager.updatedAt,
@@ -1560,11 +1576,7 @@ export class DatabaseStorage implements IStorage {
       })
       .from(fileManager)
       .leftJoin(users, eq(fileManager.uploadedBy, users.id))
-      .where(
-        folderId 
-          ? and(eq(fileManager.organizationId, organizationId), eq(fileManager.folderId, folderId))
-          : and(eq(fileManager.organizationId, organizationId), isNull(fileManager.folderId))
-      )
+      .where(whereCondition)
       .orderBy(desc(fileManager.createdAt));
     
     return results.map(row => ({
@@ -4759,14 +4771,24 @@ export class DatabaseStorage implements IStorage {
   // Folder methods
   async getFolders(organizationId: number, parentId?: number): Promise<any[]> {
     try {
+      let whereCondition;
+      
+      if (parentId) {
+        whereCondition = and(
+          eq(fileFolders.organizationId, organizationId),
+          eq(fileFolders.parentId, parentId)
+        );
+      } else {
+        whereCondition = and(
+          eq(fileFolders.organizationId, organizationId),
+          sql`${fileFolders.parentId} IS NULL`
+        );
+      }
+      
       const folders = await db
         .select()
         .from(fileFolders)
-        .where(
-          parentId 
-            ? and(eq(fileFolders.organizationId, organizationId), eq(fileFolders.parentId, parentId))
-            : and(eq(fileFolders.organizationId, organizationId), isNull(fileFolders.parentId))
-        )
+        .where(whereCondition)
         .orderBy(asc(fileFolders.name));
       
       return folders;
