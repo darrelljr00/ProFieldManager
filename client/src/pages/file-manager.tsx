@@ -28,7 +28,8 @@ import {
   FileSignature,
   Link,
   Calendar,
-  User
+  User,
+  MapPin
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import SignatureDialog from "@/components/signature-dialog";
@@ -611,6 +612,26 @@ export default function FileManager() {
               {files?.map((file: FileItem) => (
                 <Card key={file.id} className="hover:shadow-md transition-shadow">
                   <CardContent className="p-4">
+                    {/* Image thumbnail preview */}
+                    {file.fileType === 'image' && (
+                      <div className="mb-3">
+                        <img 
+                          src={`/${file.filePath}`}
+                          alt={file.originalName}
+                          className="w-full h-32 object-cover rounded border"
+                          onError={(e) => {
+                            // Fallback to file icon if image fails to load
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            target.nextElementSibling?.classList.remove('hidden');
+                          }}
+                        />
+                        <div className="hidden flex items-center justify-center w-full h-32 bg-gray-100 rounded border">
+                          <Image className="h-8 w-8 text-gray-400" />
+                        </div>
+                      </div>
+                    )}
+                    
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex items-center">
                         {getFileIcon(file.fileType, file.mimeType)}
