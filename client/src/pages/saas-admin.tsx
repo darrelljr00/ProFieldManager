@@ -1257,26 +1257,26 @@ export default function SaasAdminPage() {
                               
                               <div>
                                 <Label className="text-xs font-medium">Billing Interval</Label>
-                                <div className="flex gap-2 mt-1">
-                                  <label className="flex items-center space-x-1">
+                                <div className="flex gap-3 mt-1">
+                                  <label className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-2 rounded-md border">
                                     <input
                                       type="radio"
                                       name={`${plan.slug}-interval`}
                                       checked={plan.billingInterval === 'month'}
                                       onChange={() => console.log(`${plan.name} set to monthly`)}
-                                      className="text-primary"
+                                      className="w-4 h-4 text-primary focus:ring-primary"
                                     />
-                                    <span className="text-xs">Monthly</span>
+                                    <span className="text-sm font-medium">Monthly</span>
                                   </label>
-                                  <label className="flex items-center space-x-1">
+                                  <label className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-2 rounded-md border">
                                     <input
                                       type="radio"
                                       name={`${plan.slug}-interval`}
                                       checked={plan.billingInterval === 'year'}
                                       onChange={() => console.log(`${plan.name} set to yearly`)}
-                                      className="text-primary"
+                                      className="w-4 h-4 text-primary focus:ring-primary"
                                     />
-                                    <span className="text-xs">Yearly</span>
+                                    <span className="text-sm font-medium">Yearly</span>
                                   </label>
                                 </div>
                               </div>
@@ -1290,18 +1290,18 @@ export default function SaasAdminPage() {
                             <div className="space-y-3">
                               {/* User Limits with Radio Buttons */}
                               <div>
-                                <Label className="text-xs font-medium mb-2 block">Max Users</Label>
-                                <div className="grid grid-cols-3 gap-2">
+                                <Label className="text-sm font-medium mb-3 block">Max Users</Label>
+                                <div className="grid grid-cols-2 gap-2">
                                   {[5, 25, 100, 'unlimited'].map((userLimit) => (
-                                    <label key={userLimit} className="flex items-center space-x-1 text-xs">
+                                    <label key={userLimit} className="flex items-center space-x-2 cursor-pointer hover:bg-blue-50 p-3 rounded-md border transition-colors">
                                       <input
                                         type="radio"
                                         name={`${plan.slug}-user-limit`}
                                         checked={plan.maxUsers === userLimit || (userLimit === 'unlimited' && plan.maxUsers === 999999)}
                                         onChange={() => console.log(`${plan.name} user limit set to:`, userLimit)}
-                                        className="scale-75"
+                                        className="w-4 h-4 text-blue-600 focus:ring-blue-500"
                                       />
-                                      <span>{userLimit === 'unlimited' ? '∞' : userLimit}</span>
+                                      <span className="text-sm font-medium">{userLimit === 'unlimited' ? 'Unlimited' : `${userLimit} Users`}</span>
                                     </label>
                                   ))}
                                 </div>
@@ -1309,18 +1309,18 @@ export default function SaasAdminPage() {
 
                               {/* Project Limits with Radio Buttons */}
                               <div>
-                                <Label className="text-xs font-medium mb-2 block">Max Projects</Label>
-                                <div className="grid grid-cols-3 gap-2">
+                                <Label className="text-sm font-medium mb-3 block">Max Projects</Label>
+                                <div className="grid grid-cols-2 gap-2">
                                   {[10, 50, 250, 'unlimited'].map((projectLimit) => (
-                                    <label key={projectLimit} className="flex items-center space-x-1 text-xs">
+                                    <label key={projectLimit} className="flex items-center space-x-2 cursor-pointer hover:bg-green-50 p-3 rounded-md border transition-colors">
                                       <input
                                         type="radio"
                                         name={`${plan.slug}-project-limit`}
                                         checked={plan.maxProjects === projectLimit || (projectLimit === 'unlimited' && plan.maxProjects === 999999)}
                                         onChange={() => console.log(`${plan.name} project limit set to:`, projectLimit)}
-                                        className="scale-75"
+                                        className="w-4 h-4 text-green-600 focus:ring-green-500"
                                       />
-                                      <span>{projectLimit === 'unlimited' ? '∞' : projectLimit}</span>
+                                      <span className="text-sm font-medium">{projectLimit === 'unlimited' ? 'Unlimited' : `${projectLimit} Projects`}</span>
                                     </label>
                                   ))}
                                 </div>
@@ -1369,28 +1369,28 @@ export default function SaasAdminPage() {
                                 { key: 'hasAnalytics', label: 'Analytics' },
                                 { key: 'hasTimeClock', label: 'Time Clock' }
                               ].map((feature) => (
-                                <div key={feature.key} className="flex items-center justify-between">
-                                  <Label className="text-xs">{feature.label}</Label>
-                                  <div className="flex gap-1">
-                                    <label className="flex items-center space-x-1">
+                                <div key={feature.key} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-md">
+                                  <Label className="text-sm font-medium">{feature.label}</Label>
+                                  <div className="flex gap-2">
+                                    <label className="flex items-center space-x-2 cursor-pointer hover:bg-green-50 p-2 rounded-md border border-green-200">
                                       <input
                                         type="radio"
                                         name={`${plan.slug}-${feature.key}`}
                                         checked={plan[feature.key] === true}
                                         onChange={() => console.log(`${plan.name} ${feature.label} enabled`)}
-                                        className="text-green-500 scale-75"
+                                        className="w-4 h-4 text-green-600 focus:ring-green-500"
                                       />
-                                      <span className="text-xs text-green-600">✓</span>
+                                      <span className="text-sm font-medium text-green-700">✓ Enabled</span>
                                     </label>
-                                    <label className="flex items-center space-x-1">
+                                    <label className="flex items-center space-x-2 cursor-pointer hover:bg-red-50 p-2 rounded-md border border-red-200">
                                       <input
                                         type="radio"
                                         name={`${plan.slug}-${feature.key}`}
                                         checked={plan[feature.key] === false}
                                         onChange={() => console.log(`${plan.name} ${feature.label} disabled`)}
-                                        className="text-red-500 scale-75"
+                                        className="w-4 h-4 text-red-600 focus:ring-red-500"
                                       />
-                                      <span className="text-xs text-red-600">✗</span>
+                                      <span className="text-sm font-medium text-red-700">✗ Disabled</span>
                                     </label>
                                   </div>
                                 </div>
@@ -1414,28 +1414,28 @@ export default function SaasAdminPage() {
                                 { key: 'hasMultiLanguage', label: 'Multi-Language' },
                                 { key: 'hasAdvancedSecurity', label: 'Advanced Security' }
                               ].map((feature) => (
-                                <div key={feature.key} className="flex items-center justify-between">
-                                  <Label className="text-xs">{feature.label}</Label>
-                                  <div className="flex gap-1">
-                                    <label className="flex items-center space-x-1">
+                                <div key={feature.key} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-md">
+                                  <Label className="text-sm font-medium">{feature.label}</Label>
+                                  <div className="flex gap-2">
+                                    <label className="flex items-center space-x-2 cursor-pointer hover:bg-green-50 p-2 rounded-md border border-green-200">
                                       <input
                                         type="radio"
                                         name={`${plan.slug}-${feature.key}`}
                                         checked={plan[feature.key] === true}
                                         onChange={() => console.log(`${plan.name} ${feature.label} enabled`)}
-                                        className="text-green-500 scale-75"
+                                        className="w-4 h-4 text-green-600 focus:ring-green-500"
                                       />
-                                      <span className="text-xs text-green-600">✓</span>
+                                      <span className="text-sm font-medium text-green-700">✓ Enabled</span>
                                     </label>
-                                    <label className="flex items-center space-x-1">
+                                    <label className="flex items-center space-x-2 cursor-pointer hover:bg-red-50 p-2 rounded-md border border-red-200">
                                       <input
                                         type="radio"
                                         name={`${plan.slug}-${feature.key}`}
                                         checked={plan[feature.key] === false}
                                         onChange={() => console.log(`${plan.name} ${feature.label} disabled`)}
-                                        className="text-red-500 scale-75"
+                                        className="w-4 h-4 text-red-600 focus:ring-red-500"
                                       />
-                                      <span className="text-xs text-red-600">✗</span>
+                                      <span className="text-sm font-medium text-red-700">✗ Disabled</span>
                                     </label>
                                   </div>
                                 </div>
@@ -1447,55 +1447,55 @@ export default function SaasAdminPage() {
                           <div className="space-y-4">
                             <h4 className="font-semibold text-sm border-b pb-2">Plan Status</h4>
                             
-                            <div className="space-y-2">
-                              <div className="flex items-center justify-between">
-                                <Label className="text-xs">Active Plan</Label>
-                                <div className="flex gap-1">
-                                  <label className="flex items-center space-x-1">
+                            <div className="space-y-3">
+                              <div className="p-2 hover:bg-gray-50 rounded-md">
+                                <Label className="text-sm font-medium mb-2 block">Active Plan</Label>
+                                <div className="flex gap-2">
+                                  <label className="flex items-center space-x-2 cursor-pointer hover:bg-green-50 p-2 rounded-md border border-green-200">
                                     <input
                                       type="radio"
                                       name={`${plan.slug}-active`}
                                       checked={plan.isActive === true}
                                       onChange={() => console.log(`${plan.name} activated`)}
-                                      className="text-green-500 scale-75"
+                                      className="w-4 h-4 text-green-600 focus:ring-green-500"
                                     />
-                                    <span className="text-xs text-green-600">Active</span>
+                                    <span className="text-sm font-medium text-green-700">✓ Active</span>
                                   </label>
-                                  <label className="flex items-center space-x-1">
+                                  <label className="flex items-center space-x-2 cursor-pointer hover:bg-red-50 p-2 rounded-md border border-red-200">
                                     <input
                                       type="radio"
                                       name={`${plan.slug}-active`}
                                       checked={plan.isActive === false}
                                       onChange={() => console.log(`${plan.name} deactivated`)}
-                                      className="text-red-500 scale-75"
+                                      className="w-4 h-4 text-red-600 focus:ring-red-500"
                                     />
-                                    <span className="text-xs text-red-600">Inactive</span>
+                                    <span className="text-sm font-medium text-red-700">✗ Inactive</span>
                                   </label>
                                 </div>
                               </div>
 
-                              <div className="flex items-center justify-between">
-                                <Label className="text-xs">Popular Badge</Label>
-                                <div className="flex gap-1">
-                                  <label className="flex items-center space-x-1">
+                              <div className="p-2 hover:bg-gray-50 rounded-md">
+                                <Label className="text-sm font-medium mb-2 block">Popular Badge</Label>
+                                <div className="flex gap-2">
+                                  <label className="flex items-center space-x-2 cursor-pointer hover:bg-amber-50 p-2 rounded-md border border-amber-200">
                                     <input
                                       type="radio"
                                       name={`${plan.slug}-popular`}
                                       checked={plan.isPopular === true}
                                       onChange={() => console.log(`${plan.name} marked as popular`)}
-                                      className="text-amber-500 scale-75"
+                                      className="w-4 h-4 text-amber-600 focus:ring-amber-500"
                                     />
-                                    <span className="text-xs text-amber-600">Popular</span>
+                                    <span className="text-sm font-medium text-amber-700">⭐ Popular</span>
                                   </label>
-                                  <label className="flex items-center space-x-1">
+                                  <label className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-2 rounded-md border border-gray-200">
                                     <input
                                       type="radio"
                                       name={`${plan.slug}-popular`}
                                       checked={plan.isPopular === false}
                                       onChange={() => console.log(`${plan.name} unmarked as popular`)}
-                                      className="text-gray-500 scale-75"
+                                      className="w-4 h-4 text-gray-600 focus:ring-gray-500"
                                     />
-                                    <span className="text-xs text-gray-600">Normal</span>
+                                    <span className="text-sm font-medium text-gray-700">Normal</span>
                                   </label>
                                 </div>
                               </div>
