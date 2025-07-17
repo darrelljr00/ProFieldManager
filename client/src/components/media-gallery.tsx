@@ -151,7 +151,7 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/files`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId, "files"] });
       toast({
         title: "Success",
         description: "Photo uploaded successfully",
@@ -255,10 +255,7 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
           loading="lazy"
           onError={(e) => {
             console.error('🖼️ Image failed to load:', imageUrl, 'File data:', file);
-            console.error('🖼️ Error details:', e.currentTarget.src, e.currentTarget.naturalWidth, e.currentTarget.naturalHeight);
-            // Don't hide the image so we can see what's wrong
-            e.currentTarget.style.border = '2px solid red';
-            e.currentTarget.style.backgroundColor = '#ffeeee';
+            e.currentTarget.style.display = 'none';
           }}
           onLoad={() => {
             console.log('🖼️ Image loaded successfully:', imageUrl);
