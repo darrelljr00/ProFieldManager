@@ -1287,42 +1287,65 @@ export default function SaasAdminPage() {
                           <div className="space-y-4">
                             <h4 className="font-semibold text-sm border-b pb-2">Plan Limits</h4>
                             
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-3">
+                              {/* User Limits with Radio Buttons */}
                               <div>
-                                <Label htmlFor={`${plan.slug}-users`} className="text-xs font-medium">Max Users</Label>
-                                <Input 
-                                  id={`${plan.slug}-users`}
-                                  type="number"
-                                  defaultValue={plan.maxUsers}
-                                  className="mt-1"
-                                />
+                                <Label className="text-xs font-medium mb-2 block">Max Users</Label>
+                                <div className="grid grid-cols-3 gap-2">
+                                  {[5, 25, 100, 'unlimited'].map((userLimit) => (
+                                    <label key={userLimit} className="flex items-center space-x-1 text-xs">
+                                      <input
+                                        type="radio"
+                                        name={`${plan.slug}-user-limit`}
+                                        checked={plan.maxUsers === userLimit || (userLimit === 'unlimited' && plan.maxUsers === 999999)}
+                                        onChange={() => console.log(`${plan.name} user limit set to:`, userLimit)}
+                                        className="scale-75"
+                                      />
+                                      <span>{userLimit === 'unlimited' ? '∞' : userLimit}</span>
+                                    </label>
+                                  ))}
+                                </div>
                               </div>
+
+                              {/* Project Limits with Radio Buttons */}
                               <div>
-                                <Label htmlFor={`${plan.slug}-projects`} className="text-xs font-medium">Max Projects</Label>
-                                <Input 
-                                  id={`${plan.slug}-projects`}
-                                  type="number"
-                                  defaultValue={plan.maxProjects}
-                                  className="mt-1"
-                                />
+                                <Label className="text-xs font-medium mb-2 block">Max Projects</Label>
+                                <div className="grid grid-cols-3 gap-2">
+                                  {[10, 50, 250, 'unlimited'].map((projectLimit) => (
+                                    <label key={projectLimit} className="flex items-center space-x-1 text-xs">
+                                      <input
+                                        type="radio"
+                                        name={`${plan.slug}-project-limit`}
+                                        checked={plan.maxProjects === projectLimit || (projectLimit === 'unlimited' && plan.maxProjects === 999999)}
+                                        onChange={() => console.log(`${plan.name} project limit set to:`, projectLimit)}
+                                        className="scale-75"
+                                      />
+                                      <span>{projectLimit === 'unlimited' ? '∞' : projectLimit}</span>
+                                    </label>
+                                  ))}
+                                </div>
                               </div>
-                              <div>
-                                <Label htmlFor={`${plan.slug}-customers`} className="text-xs font-medium">Max Customers</Label>
-                                <Input 
-                                  id={`${plan.slug}-customers`}
-                                  type="number"
-                                  defaultValue={plan.maxCustomers}
-                                  className="mt-1"
-                                />
-                              </div>
-                              <div>
-                                <Label htmlFor={`${plan.slug}-storage`} className="text-xs font-medium">Storage (GB)</Label>
-                                <Input 
-                                  id={`${plan.slug}-storage`}
-                                  type="number"
-                                  defaultValue={plan.maxStorageGB}
-                                  className="mt-1"
-                                />
+
+                              {/* Other Limits */}
+                              <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                  <Label htmlFor={`${plan.slug}-customers`} className="text-xs font-medium">Max Customers</Label>
+                                  <Input 
+                                    id={`${plan.slug}-customers`}
+                                    type="number"
+                                    defaultValue={plan.maxCustomers}
+                                    className="mt-1"
+                                  />
+                                </div>
+                                <div>
+                                  <Label htmlFor={`${plan.slug}-storage`} className="text-xs font-medium">Storage (GB)</Label>
+                                  <Input 
+                                    id={`${plan.slug}-storage`}
+                                    type="number"
+                                    defaultValue={plan.maxStorageGB}
+                                    className="mt-1"
+                                  />
+                                </div>
                               </div>
                             </div>
                           </div>
