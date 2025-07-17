@@ -33,30 +33,56 @@ export function useCamera() {
     }
 
     try {
+      // First, try to get permissions (fallback for browsers that don't support permissions API)
+      try {
+        const permissions = await navigator.permissions.query({ name: 'camera' as PermissionName });
+        console.log('Camera permission status:', permissions.state);
+      } catch (permError) {
+        console.log('Permissions API not supported, proceeding with direct camera access');
+      }
+      
       const constraints = {
         video: {
           facingMode: options.facingMode || 'environment',
-          width: options.width || 1920,
-          height: options.height || 1080,
+          width: { ideal: options.width || 1920 },
+          height: { ideal: options.height || 1080 },
         },
         audio: false,
       };
 
+      console.log('Requesting camera with constraints:', constraints);
       const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
       setStream(mediaStream);
       
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
-        videoRef.current.play();
+        await videoRef.current.play();
       }
       
       setIsOpen(true);
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error accessing camera:', error);
+      
+      let errorMessage = "Please allow camera access to take photos";
+      let errorTitle = "Camera Access Denied";
+      
+      if (error.name === 'NotAllowedError') {
+        errorMessage = "Camera access was denied. Please allow camera permissions and try again.";
+      } else if (error.name === 'NotFoundError') {
+        errorMessage = "No camera device found on this device.";
+        errorTitle = "Camera Not Found";
+      } else if (error.name === 'NotReadableError') {
+        errorMessage = "Camera is already in use by another application.";
+        errorTitle = "Camera In Use";
+      } else if (error.name === 'OverconstrainedError') {
+        errorMessage = "Camera doesn't support the requested settings.";
+        errorTitle = "Camera Not Compatible";
+      }
+      
       toast({
-        title: "Camera Access Denied",
-        description: "Please allow camera access to take photos",
+        title: errorTitle,
+        description: errorMessage,
         variant: "destructive",
       });
       return false;

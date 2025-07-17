@@ -27,6 +27,7 @@ export function MobileCamera({
   const [capturedPhoto, setCapturedPhoto] = useState<Blob | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [gpsLocation, setGpsLocation] = useState<{latitude: number, longitude: number} | null>(null);
+  const [cameraFailed, setCameraFailed] = useState(false);
   const {
     isSupported,
     stream,
@@ -48,6 +49,8 @@ export function MobileCamera({
       return;
     }
 
+    console.log('Starting camera access...');
+
     // Get GPS location when opening camera
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -66,9 +69,18 @@ export function MobileCamera({
       );
     }
 
-    const success = await startCamera({ facingMode: 'environment' });
-    if (!success) {
-      onClose();
+    try {
+      const success = await startCamera({ facingMode: 'environment' });
+      if (!success) {
+        console.error('Camera failed to start');
+        setCameraFailed(true);
+      } else {
+        console.log('Camera started successfully');
+        setCameraFailed(false);
+      }
+    } catch (error) {
+      console.error('Error starting camera:', error);
+      setCameraFailed(true);
     }
   };
 
@@ -129,7 +141,13 @@ export function MobileCamera({
   const handleClose = () => {
     stopCamera();
     setCapturedPhoto(null);
+    setCameraFailed(false);
     onClose();
+  };
+
+  const handleRetryCamera = async () => {
+    setCameraFailed(false);
+    await handleOpenCamera();
   };
 
   // Auto-start camera when dialog opens
@@ -157,10 +175,39 @@ export function MobileCamera({
         </DialogHeader>
 
         <div className="flex-1 relative bg-black min-h-0" style={{ height: 'calc(100vh - 80px)' }}>
+          {/* Camera Error Screen */}
+          {cameraFailed && (
+            <div className="w-full h-full flex items-center justify-center bg-gray-900">
+              <div className="text-center p-6 max-w-sm">
+                <Camera className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-white mb-2">Camera Access Required</h3>
+                <p className="text-gray-300 text-sm mb-6">
+                  Please allow camera access to take photos. Check your browser permissions and try again.
+                </p>
+                <div className="space-y-3">
+                  <Button
+                    onClick={handleRetryCamera}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    <Camera className="h-4 w-4 mr-2" />
+                    Try Again
+                  </Button>
+                  <Button
+                    onClick={handleClose}
+                    variant="outline"
+                    className="w-full border-gray-600 text-gray-300 hover:bg-gray-800"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Camera View */}
           <video
             ref={videoRef}
-            className={`w-full h-full object-cover ${capturedPhoto ? 'hidden' : 'block'}`}
+            className={`w-full h-full object-cover ${capturedPhoto || cameraFailed ? 'hidden' : 'block'}`}
             playsInline
             muted
             autoPlay
@@ -189,9 +236,10 @@ export function MobileCamera({
           <canvas ref={canvasRef} className="hidden" />
 
           {/* Camera Controls */}
-          <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 via-black/60 to-transparent z-20 min-h-[120px] flex items-end">
-            <div className="w-full flex items-center justify-center space-x-6">
-              {!capturedPhoto ? (
+          {!cameraFailed && (
+            <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 via-black/60 to-transparent z-20 min-h-[120px] flex items-end">
+              <div className="w-full flex items-center justify-center space-x-6">
+                {!capturedPhoto ? (
                 <>
                   {/* Switch Camera Button */}
                   <Button
@@ -244,6 +292,7 @@ export function MobileCamera({
               )}
             </div>
           </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
