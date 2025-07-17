@@ -303,6 +303,8 @@ export const projects = pgTable("projects", {
   timestampFormat: text("timestamp_format").default("MM/dd/yyyy hh:mm a"), // Date format for overlay
   includeGpsCoords: boolean("include_gps_coords").default(false),
   timestampPosition: text("timestamp_position").default("bottom-right"), // bottom-right, bottom-left, top-right, top-left
+  // Job sharing settings
+  shareWithTeam: boolean("share_with_team").default(true), // true = entire team, false = assigned only (admin and creator always see)
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

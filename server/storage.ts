@@ -808,8 +808,32 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Project/Job methods
-  async getProjects(organizationId: number): Promise<any[]> {
-    // Get all projects for the organization
+  async getProjects(organizationId: number, userId?: number, userRole?: string): Promise<any[]> {
+    // Build the base query
+    let whereConditions = [eq(users.organizationId, organizationId)];
+    
+    // If user-specific filtering is requested and not admin, apply sharing rules
+    if (userId && userRole !== 'admin') {
+      // User can see jobs if:
+      // 1. They created the job (projects.userId = userId)
+      // 2. Job is shared with team (shareWithTeam = true)
+      // 3. They are assigned to the job (exists in projectUsers)
+      whereConditions.push(
+        or(
+          eq(projects.userId, userId), // Job creator
+          eq(projects.shareWithTeam, true), // Shared with team
+          exists( // User is assigned to project
+            db.select().from(projectUsers)
+              .where(and(
+                eq(projectUsers.projectId, projects.id),
+                eq(projectUsers.userId, userId)
+              ))
+          )
+        )
+      );
+    }
+
+    // Get all projects for the organization with sharing rules applied
     const allProjects = await db
       .select({
         id: projects.id,
@@ -833,12 +857,13 @@ export class DatabaseStorage implements IStorage {
         state: projects.state,
         zipCode: projects.zipCode,
         country: projects.country,
+        shareWithTeam: projects.shareWithTeam,
         createdAt: projects.createdAt,
         updatedAt: projects.updatedAt,
       })
       .from(projects)
       .innerJoin(users, eq(projects.userId, users.id))
-      .where(eq(users.organizationId, organizationId))
+      .where(and(...whereConditions))
       .orderBy(desc(projects.createdAt));
 
     // Get task counts and customer info for each project

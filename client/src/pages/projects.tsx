@@ -606,6 +606,8 @@ export default function Jobs() {
       // Waiver settings
       includeWaivers,
       selectedWaivers: includeWaivers ? selectedWaivers : [],
+      // Job sharing settings
+      shareWithTeam: formData.get("shareWithTeam") === "true",
     };
   createJobMutation.mutate(data);
   };
@@ -1321,6 +1323,46 @@ export default function Jobs() {
                     )}
                   </div>
                 )}
+              </div>
+
+              {/* Job Sharing Settings */}
+              <div className="space-y-3 p-4 border rounded-lg bg-blue-50 dark:bg-blue-900/20">
+                <h4 className="font-semibold text-sm text-blue-800 dark:text-blue-200">Job Visibility</h4>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Who can see this job?</Label>
+                  <div className="flex flex-col space-y-3">
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        id="shareWithTeam"
+                        name="shareWithTeam"
+                        value="true"
+                        defaultChecked
+                        className="w-4 h-4"
+                      />
+                      <Label htmlFor="shareWithTeam" className="text-sm">
+                        <span className="font-medium">Share with entire team</span>
+                        <span className="text-gray-600 block text-xs">All team members can see this job</span>
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        id="shareWithAssigned"
+                        name="shareWithTeam"
+                        value="false"
+                        className="w-4 h-4"
+                      />
+                      <Label htmlFor="shareWithAssigned" className="text-sm">
+                        <span className="font-medium">Share with assigned only</span>
+                        <span className="text-gray-600 block text-xs">Only assigned team members and admins can see this job</span>
+                      </Label>
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-500 mt-2">
+                    Note: Admins and job creators can always see all jobs
+                  </div>
+                </div>
               </div>
 
               <div>

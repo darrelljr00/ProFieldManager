@@ -2672,8 +2672,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Projects
   app.get("/api/projects", requireAuth, async (req, res) => {
     try {
-      const organizationId = req.user!.organizationId;
-      const projects = await storage.getProjects(organizationId);
+      const user = getAuthenticatedUser(req);
+      const projects = await storage.getProjects(user.organizationId, user.id, user.role);
       res.json(projects);
     } catch (error: any) {
       console.error("Error fetching projects:", error);
@@ -2693,6 +2693,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timestampFormat,
         includeGpsCoords,
         timestampPosition,
+        shareWithTeam,
         ...otherData 
       } = req.body;
       
@@ -2722,6 +2723,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timestampFormat: timestampFormat || "MM/dd/yyyy hh:mm a",
         includeGpsCoords: includeGpsCoords || false,
         timestampPosition: timestampPosition || "bottom-right",
+        // Job sharing settings
+        shareWithTeam: shareWithTeam !== undefined ? shareWithTeam : true, // Default to sharing with team
       };
       
       const project = await storage.createProject(projectData);
