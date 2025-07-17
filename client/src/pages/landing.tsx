@@ -13,6 +13,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SubscriptionPlanSelector } from "@/components/subscription-plan-selector";
 
 const subscriptionPlans = [
   {
@@ -201,45 +202,33 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 mb-12">
-            {subscriptionPlans.map((plan) => (
-              <Card 
-                key={plan.slug} 
-                className={`relative cursor-pointer transition-all ${
-                  selectedPlan === plan.slug 
-                    ? 'ring-2 ring-blue-500 dark:ring-blue-400' 
-                    : 'hover:shadow-lg'
-                } ${plan.popular ? 'scale-105' : ''}`}
-                onClick={() => setSelectedPlan(plan.slug)}
-              >
-                {plan.popular && (
-                  <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-blue-500">
-                    Most Popular
-                  </Badge>
-                )}
-                <CardHeader className="text-center">
-                  <CardTitle className="text-2xl">{plan.name}</CardTitle>
-                  <CardDescription>{plan.description}</CardDescription>
-                  <div className="mt-4">
-                    <span className="text-4xl font-bold text-slate-900 dark:text-white">
-                      ${plan.price}
-                    </span>
-                    <span className="text-slate-600 dark:text-slate-400">/month</span>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-3">
-                    {plan.features.map((feature, index) => (
-                      <li key={index} className="flex items-center gap-3">
-                        <Check className="h-5 w-5 text-green-500 flex-shrink-0" />
-                        <span className="text-slate-700 dark:text-slate-300">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card>
-            ))}
+          <div className="mb-12">
+            <SubscriptionPlanSelector
+              plans={subscriptionPlans.map((plan, index) => ({
+                id: index + 1,
+                name: plan.name,
+                slug: plan.slug,
+                price: plan.price,
+                billingInterval: "month",
+                description: plan.description,
+                isPopular: plan.popular,
+                features: plan.features,
+                maxUsers: plan.name === "Starter" ? 5 : plan.name === "Professional" ? 25 : -1,
+                maxProjects: plan.name === "Starter" ? 50 : -1,
+                maxCustomers: plan.name === "Starter" ? 100 : plan.name === "Professional" ? 500 : -1,
+                maxStorageGB: plan.name === "Starter" ? 10 : plan.name === "Professional" ? 50 : 500
+              }))}
+              selectedPlanId={subscriptionPlans.findIndex(p => p.slug === selectedPlan) + 1 + ""}
+              onPlanSelect={(planId) => {
+                const plan = subscriptionPlans[parseInt(planId) - 1];
+                if (plan) setSelectedPlan(plan.slug);
+              }}
+              showFeatures={true}
+              showRadioButtons={true}
+            />
           </div>
+
+
         </div>
       </div>
 

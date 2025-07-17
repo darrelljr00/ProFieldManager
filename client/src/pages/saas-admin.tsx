@@ -65,6 +65,7 @@ import {
 } from "lucide-react";
 import FileSecurityTab from "@/components/FileSecurityTab";
 import { ApiIntegrationManager } from "@/components/api-integration-manager";
+import { SubscriptionPlanSelector } from "@/components/subscription-plan-selector";
 
 
 export default function SaasAdminPage() {
@@ -747,28 +748,18 @@ export default function SaasAdminPage() {
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="edit-plan" className="text-right">
-                          Subscription Plan
-                        </Label>
-                        <Select
-                          value={editingOrganization.subscriptionPlanId?.toString() || ""}
-                          onValueChange={(value) => setEditingOrganization({
+                      <div className="space-y-4">
+                        <Label className="text-lg font-semibold">Change Subscription Plan</Label>
+                        <SubscriptionPlanSelector
+                          plans={subscriptionPlans || []}
+                          selectedPlanId={editingOrganization.subscriptionPlanId?.toString() || ""}
+                          onPlanSelect={(planId) => setEditingOrganization({
                             ...editingOrganization,
-                            subscriptionPlanId: parseInt(value)
+                            subscriptionPlanId: parseInt(planId)
                           })}
-                        >
-                          <SelectTrigger className="col-span-3">
-                            <SelectValue placeholder="Select plan" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {subscriptionPlans?.map((plan: any) => (
-                              <SelectItem key={plan.id} value={plan.id.toString()}>
-                                {plan.name} (${plan.price}/{plan.billingInterval})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          showFeatures={true}
+                          showRadioButtons={true}
+                        />
                       </div>
                     </div>
                   </div>
@@ -1758,27 +1749,15 @@ export default function SaasAdminPage() {
             )}
 
             {/* Subscription Plan Selection */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="plan" className="text-right">
-                Plan
-              </Label>
-              <div className="col-span-3">
-                <Select
-                  value={subscriptionForm.planId}
-                  onValueChange={(value) => setSubscriptionForm({...subscriptionForm, planId: value})}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select subscription plan" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {subscriptionPlans?.map((plan: any) => (
-                      <SelectItem key={plan.id} value={plan.id.toString()}>
-                        {plan.name} - ${plan.price}/{plan.billingInterval}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="space-y-4">
+              <Label className="text-lg font-semibold">Choose Subscription Plan</Label>
+              <SubscriptionPlanSelector
+                plans={subscriptionPlans || []}
+                selectedPlanId={subscriptionForm.planId}
+                onPlanSelect={(planId) => setSubscriptionForm({...subscriptionForm, planId})}
+                showFeatures={true}
+                showRadioButtons={true}
+              />
             </div>
 
             {/* Subscription Status */}
