@@ -255,7 +255,10 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
           loading="lazy"
           onError={(e) => {
             console.error('🖼️ Image failed to load:', imageUrl, 'File data:', file);
-            e.currentTarget.style.display = 'none';
+            console.error('🖼️ Error details:', e.currentTarget.src, e.currentTarget.naturalWidth, e.currentTarget.naturalHeight);
+            // Don't hide the image so we can see what's wrong
+            e.currentTarget.style.border = '2px solid red';
+            e.currentTarget.style.backgroundColor = '#ffeeee';
           }}
           onLoad={() => {
             console.log('🖼️ Image loaded successfully:', imageUrl);
