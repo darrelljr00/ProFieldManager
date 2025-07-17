@@ -138,32 +138,40 @@ export default function ProjectDetail() {
       console.log('📤 Starting file upload to project:', projectId);
       console.log('FormData entries:', Array.from(formData.entries()));
       
-      const response = await fetch(`/api/projects/${projectId}/files`, {
-        method: "POST",
-        body: formData,
-      });
-      
-      console.log('📡 Upload response status:', response.status);
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Upload failed' }));
-        console.error('❌ Upload failed with error:', errorData);
-        throw new Error(errorData.message || 'Upload failed');
+      try {
+        const response = await fetch(`/api/projects/${projectId}/files`, {
+          method: "POST",
+          body: formData,
+        });
+        
+        console.log('📡 Upload response status:', response.status);
+        console.log('📡 Upload response headers:', response.headers);
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ message: 'Upload failed' }));
+          console.error('❌ Upload failed with error:', errorData);
+          throw new Error(errorData.message || 'Upload failed');
+        }
+        
+        const result = await response.json();
+        console.log('✅ Upload successful:', result);
+        return result;
+      } catch (error) {
+        console.error('❌ Upload request failed:', error);
+        throw error;
       }
-      
-      const result = await response.json();
-      console.log('✅ Upload successful:', result);
-      return result;
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      console.log('✅ Upload mutation onSuccess called:', result);
       queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId, "files"] });
       setFileDialogOpen(false);
       toast({
-        title: "Success",
-        description: "File uploaded successfully",
+        title: "Photo Captured",
+        description: "Photo saved to project files",
       });
     },
     onError: (error: Error) => {
+      console.error('❌ Upload mutation onError called:', error);
       toast({
         title: "Upload Failed",
         description: error.message,
@@ -1207,10 +1215,8 @@ export default function ProjectDetail() {
             uploadFileMutation.mutate(formData);
           }
           
-          toast({
-            title: "Photo Captured",
-            description: "Photo saved to project files",
-          });
+          // Don't show success toast immediately - wait for upload to complete
+          // Toast will be shown by uploadFileMutation.onSuccess
         }}
         title="Take Photo for Project"
       />
