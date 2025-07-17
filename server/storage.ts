@@ -121,6 +121,7 @@ export interface IStorage {
   getFiles(organizationId: number, folderId?: number): Promise<any[]>;
   getFile(id: number, organizationId: number): Promise<any>;
   createFile(fileData: any): Promise<any>;
+  uploadFile(fileData: any): Promise<any>;
   updateFile(id: number, updates: any): Promise<any>;
   deleteFile(id: number): Promise<void>;
   createTextFile(organizationId: number, userId: number, name: string, content: string, folderId?: number): Promise<any>;
@@ -1572,6 +1573,11 @@ export class DatabaseStorage implements IStorage {
       .values(fileData)
       .returning();
     return file;
+  }
+
+  async uploadFile(fileData: any): Promise<any> {
+    // uploadFile is just an alias for createFile for the file manager
+    return this.createFile(fileData);
   }
 
   async updateFile(id: number, updates: any): Promise<any> {
