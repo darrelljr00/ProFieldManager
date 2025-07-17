@@ -2877,7 +2877,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Project not found or access denied" });
       }
 
-      const updatedProject = await storage.updateProject(projectId, userId, req.body);
+      const updatedProject = await storage.updateProject(projectId, req.body);
       
       if (!updatedProject) {
         return res.status(404).json({ message: "Project not found or access denied" });
