@@ -1348,11 +1348,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Invoice routes
-  app.get("/api/invoices", async (req, res) => {
+  app.get("/api/invoices", requireAuth, async (req, res) => {
     try {
-      const invoices = await storage.getInvoices(req.user.id);
+      const user = getAuthenticatedUser(req);
+      const invoices = await storage.getInvoices(user.organizationId);
       res.json(invoices);
     } catch (error: any) {
+      console.error("Error fetching invoices:", error);
       res.status(500).json({ message: error.message });
     }
   });
@@ -4600,11 +4602,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Reports API endpoint
+  app.get("/api/reports/data", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const organizationId = user.organizationId;
+
+      // Fetch all data for reports
+      const [invoices, leads, expenses, customers] = await Promise.all([
+        storage.getInvoices(organizationId),
+        storage.getLeads(organizationId), 
+        storage.getExpenses(organizationId, user.id),
+        storage.getCustomers(organizationId)
+      ]);
+
+      // Calculate key metrics
+      const totalRevenue = invoices
+        .filter((invoice: any) => invoice.status === 'paid')
+        .reduce((sum: number, invoice: any) => sum + parseFloat(invoice.totalAmount || 0), 0);
+
+      const totalLeads = leads.length;
+      const convertedLeads = leads.filter((lead: any) => lead.status === 'converted').length;
+      const closeRate = totalLeads > 0 ? Math.round((convertedLeads / totalLeads) * 100) : 0;
+
+      const totalExpenses = expenses.reduce((sum: number, expense: any) => 
+        sum + parseFloat(expense.amount || 0), 0);
+
+      const totalRefunds = invoices
+        .filter((invoice: any) => invoice.status === 'refunded')
+        .reduce((sum: number, invoice: any) => sum + parseFloat(invoice.totalAmount || 0), 0);
+
+      res.json({
+        metrics: {
+          totalRevenue,
+          totalLeads,
+          closeRate,
+          totalExpenses,
+          totalRefunds,
+          totalCustomers: customers.length
+        },
+        data: {
+          invoices,
+          leads,
+          expenses,
+          customers
+        }
+      });
+    } catch (error: any) {
+      console.error("Error fetching reports data:", error);
+      res.status(500).json({ message: "Failed to fetch reports data" });
+    }
+  });
+
   // Leads API
   app.get("/api/leads", requireAuth, async (req, res) => {
     try {
-      const userId = req.user!.id;
-      const leads = await storage.getLeads(userId);
+      const user = getAuthenticatedUser(req);
+      const leads = await storage.getLeads(user.organizationId);
       res.json(leads);
     } catch (error: any) {
       console.error("Error fetching leads:", error);

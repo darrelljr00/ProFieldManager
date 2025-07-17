@@ -520,26 +520,33 @@ export class DatabaseStorage implements IStorage {
 
   // Customer methods
   async getCustomers(organizationId: number): Promise<Customer[]> {
-    const results = await db
-      .select({
-        id: customers.id,
-        userId: customers.userId,
-        name: customers.name,
-        email: customers.email,
-        phone: customers.phone,
-        address: customers.address,
-        city: customers.city,
-        state: customers.state,
-        zipCode: customers.zip_code,
-        country: customers.country,
-        createdAt: customers.createdAt
-      })
-      .from(customers)
-      .innerJoin(users, eq(customers.userId, users.id))
-      .where(eq(users.organizationId, organizationId));
-    
-    return results;
+    try {
+      const results = await db
+        .select({
+          id: customers.id,
+          name: customers.name,
+          email: customers.email,
+          phone: customers.phone,
+          address: customers.address,
+          city: customers.city,
+          state: customers.state,
+          zipCode: customers.zipCode,
+          organizationId: customers.organizationId,
+          createdAt: customers.createdAt,
+          updatedAt: customers.updatedAt
+        })
+        .from(customers)
+        .where(eq(customers.organizationId, organizationId))
+        .orderBy(desc(customers.createdAt));
+      
+      return results;
+    } catch (error) {
+      console.error('Error fetching customers:', error);
+      return [];
+    }
   }
+
+
 
   async getCustomer(id: number, userId: number): Promise<Customer | undefined> {
     const [customer] = await db
@@ -599,7 +606,7 @@ export class DatabaseStorage implements IStorage {
     return result.rowCount > 0;
   }
 
-  async updateCustomer(id: number, updates: any): Promise<Customer> {
+  async updateCustomerNew(id: number, updates: any): Promise<Customer> {
     const updateData: any = {};
     if (updates.name !== undefined) updateData.name = updates.name;
     if (updates.email !== undefined) updateData.email = updates.email;

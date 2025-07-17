@@ -30,26 +30,20 @@ export default function Reports() {
   const [timeRange, setTimeRange] = useState("12months");
   const [selectedMetric, setSelectedMetric] = useState("revenue");
 
-  // Fetch data for reports
-  const { data: salesData, isLoading: salesLoading } = useQuery({
-    queryKey: ["/api/invoices"],
-    select: (data) => data || []
+  // Fetch consolidated reports data
+  const { data: reportsData, isLoading: reportsLoading } = useQuery({
+    queryKey: ["/api/reports/data"],
+    select: (data) => data || { metrics: {}, data: { invoices: [], leads: [], expenses: [], customers: [] } }
   });
 
-  const { data: leadsData, isLoading: leadsLoading } = useQuery({
-    queryKey: ["/api/leads"],
-    select: (data) => data || []
-  });
-
-  const { data: expensesData, isLoading: expensesLoading } = useQuery({
-    queryKey: ["/api/expenses"],
-    select: (data) => data || []
-  });
-
-  const { data: customersData, isLoading: customersLoading } = useQuery({
-    queryKey: ["/api/customers"],
-    select: (data) => data || []
-  });
+  // Extract data from consolidated response
+  const salesData = reportsData?.data?.invoices || [];
+  const leadsData = reportsData?.data?.leads || [];
+  const expensesData = reportsData?.data?.expenses || [];
+  const customersData = reportsData?.data?.customers || [];
+  
+  // Use loading state from consolidated query
+  const isLoading = reportsLoading;
 
   // Process sales data for charts
   const processSalesData = () => {
@@ -179,27 +173,15 @@ export default function Reports() {
     return Object.entries(sourceCount).map(([name, value]) => ({ name, value }));
   };
 
-  // Key metrics calculation
+  // Key metrics from backend
   const getKeyMetrics = () => {
-    const totalRevenue = salesData?.filter((i: any) => i.status === 'paid')
-      .reduce((sum: number, invoice: any) => sum + parseFloat(invoice.totalAmount || 0), 0) || 0;
-    
-    const totalLeads = leadsData?.length || 0;
-    const convertedLeads = leadsData?.filter((l: any) => l.status === 'converted').length || 0;
-    const closeRate = totalLeads > 0 ? Math.round((convertedLeads / totalLeads) * 100) : 0;
-    
-    const totalExpenses = expensesData?.reduce((sum: number, expense: any) => 
-      sum + parseFloat(expense.amount || 0), 0) || 0;
-    
-    const totalRefunds = salesData?.filter((i: any) => i.status === 'refunded')
-      .reduce((sum: number, invoice: any) => sum + parseFloat(invoice.totalAmount || 0), 0) || 0;
-    
-    return {
-      totalRevenue,
-      totalLeads,
-      closeRate,
-      totalExpenses,
-      totalRefunds
+    return reportsData?.metrics || {
+      totalRevenue: 0,
+      totalLeads: 0,
+      closeRate: 0,
+      totalExpenses: 0,
+      totalRefunds: 0,
+      totalCustomers: 0
     };
   };
 
@@ -209,8 +191,6 @@ export default function Reports() {
   const closeRateData = calculateCloseRate();
   const leadSourceData = getLeadSourceData();
   const metrics = getKeyMetrics();
-
-  const isLoading = salesLoading || leadsLoading || expensesLoading || customersLoading;
 
   if (isLoading) {
     return (
