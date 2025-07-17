@@ -91,19 +91,30 @@ export default function SimpleLogin() {
       const response = await apiRequest("POST", "/api/auth/login", loginDataWithGps);
       return response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+    onSuccess: async (response) => {
+      // Clear all cached auth queries to force fresh fetch
+      queryClient.removeQueries({ queryKey: ["/api/auth/me"] });
+      
+      // Force a refetch of auth data to ensure state is current
+      await queryClient.fetchQuery({ 
+        queryKey: ["/api/auth/me"],
+        queryFn: async () => {
+          const response = await apiRequest('GET', '/api/auth/me');
+          if (!response.ok) {
+            throw new Error(`Auth failed: ${response.status}`);
+          }
+          return response.json();
+        }
+      });
+      
       toast({
         title: "Welcome back!",
         description: "You have been successfully logged in",
       });
       
-      // Add a small delay to allow authentication state to propagate
-      setTimeout(() => {
-        // Redirect to intended destination or dashboard
-        const destination = getIntendedDestination();
-        setLocation(destination);
-      }, 100);
+      // Use immediate redirect since auth state is now properly set
+      const destination = getIntendedDestination();
+      setLocation(destination);
     },
     onError: (error: any) => {
       toast({

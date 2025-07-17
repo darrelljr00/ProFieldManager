@@ -41,10 +41,19 @@ export function useAuth() {
         throw error;
       }
     },
-    retry: false,
-    staleTime: 1 * 60 * 1000, // 1 minute (reduced from 5 minutes)
-    refetchOnWindowFocus: true, // Allow refetch on window focus
+    retry: (failureCount, error) => {
+      // Don't retry 401 errors (authentication failures)
+      if (error.message?.includes('401')) {
+        return false;
+      }
+      // Retry network errors up to 2 times
+      return failureCount < 2;
+    },
+    staleTime: 30 * 1000, // 30 seconds (reduced for better responsiveness)
+    gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
+    refetchOnWindowFocus: true,
     refetchOnMount: true,
+    refetchOnReconnect: true,
   });
 
   const user = authData?.user;
