@@ -5,13 +5,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Label } from "@/components/ui/label";
+import { format } from "date-fns";
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   LineChart, Line, PieChart, Pie, Cell, AreaChart, Area
 } from "recharts";
 import { 
   TrendingUp, TrendingDown, DollarSign, Users, Target, Calculator,
-  BarChart3, Download, Calendar, Filter
+  BarChart3, Download, CalendarIcon, Filter
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -29,10 +33,31 @@ interface ReportData {
 export default function Reports() {
   const [timeRange, setTimeRange] = useState("12months");
   const [selectedMetric, setSelectedMetric] = useState("revenue");
+  const [startDate, setStartDate] = useState<Date>();
+  const [endDate, setEndDate] = useState<Date>();
+  const [useCustomRange, setUseCustomRange] = useState(false);
+
+  // Build query parameters for date filtering
+  const getQueryParams = () => {
+    const params = new URLSearchParams();
+    if (useCustomRange && startDate && endDate) {
+      params.append('startDate', startDate.toISOString());
+      params.append('endDate', endDate.toISOString());
+    } else {
+      params.append('timeRange', timeRange);
+    }
+    return params.toString();
+  };
 
   // Fetch consolidated reports data
-  const { data: reportsData, isLoading: reportsLoading } = useQuery({
-    queryKey: ["/api/reports/data"],
+  const { data: reportsData, isLoading: reportsLoading, refetch } = useQuery({
+    queryKey: ["/api/reports/data", getQueryParams()],
+    queryFn: async () => {
+      const params = getQueryParams();
+      const response = await fetch(`/api/reports/data?${params}`);
+      if (!response.ok) throw new Error('Failed to fetch reports data');
+      return response.json();
+    },
     select: (data) => data || { metrics: {}, data: { invoices: [], leads: [], expenses: [], customers: [] } }
   });
 
@@ -215,20 +240,93 @@ export default function Reports() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Reports & Analytics</h1>
-          <p className="text-gray-600">Comprehensive business insights and performance metrics</p>
+          <p className="text-gray-600">
+            Comprehensive business insights and performance metrics
+            {reportsData?.dateRange && (
+              <span className="ml-2 text-sm text-blue-600">
+                ({format(new Date(reportsData.dateRange.startDate), "MMM d, yyyy")} - {format(new Date(reportsData.dateRange.endDate), "MMM d, yyyy")})
+              </span>
+            )}
+          </p>
         </div>
         <div className="flex items-center space-x-4">
-          <Select value={timeRange} onValueChange={setTimeRange}>
-            <SelectTrigger className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="3months">Last 3 Months</SelectItem>
-              <SelectItem value="6months">Last 6 Months</SelectItem>
-              <SelectItem value="12months">Last 12 Months</SelectItem>
-              <SelectItem value="year">This Year</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="custom-range"
+              checked={useCustomRange}
+              onChange={(e) => setUseCustomRange(e.target.checked)}
+              className="rounded"
+            />
+            <Label htmlFor="custom-range" className="text-sm">Custom Range</Label>
+          </div>
+          
+          {!useCustomRange ? (
+            <Select value={timeRange} onValueChange={setTimeRange}>
+              <SelectTrigger className="w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="3months">Last 3 Months</SelectItem>
+                <SelectItem value="6months">Last 6 Months</SelectItem>
+                <SelectItem value="12months">Last 12 Months</SelectItem>
+                <SelectItem value="year">This Year</SelectItem>
+              </SelectContent>
+            </Select>
+          ) : (
+            <div className="flex items-center space-x-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-36 justify-start text-left font-normal">
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {startDate ? format(startDate, "MMM d, yyyy") : "Start Date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={startDate}
+                    onSelect={setStartDate}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+              
+              <span className="text-sm text-gray-500">to</span>
+              
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-36 justify-start text-left font-normal">
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {endDate ? format(endDate, "MMM d, yyyy") : "End Date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={endDate}
+                    onSelect={setEndDate}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+              
+              {useCustomRange && startDate && endDate && (
+                <Button 
+                  onClick={() => {
+                    // Force refetch with new date range
+                    const queryKey = ["/api/reports/data", getQueryParams()];
+                    reportsLoading || refetch();
+                  }}
+                  variant="default"
+                  size="sm"
+                >
+                  Apply
+                </Button>
+              )}
+            </div>
+          )}
+          
           <Button variant="outline">
             <Download className="w-4 h-4 mr-2" />
             Export

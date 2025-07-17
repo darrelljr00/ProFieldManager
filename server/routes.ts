@@ -4608,6 +4608,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = getAuthenticatedUser(req);
       const organizationId = user.organizationId;
 
+      // Parse date filtering parameters
+      let startDate: Date | undefined;
+      let endDate: Date | undefined;
+      
+      if (req.query.startDate && req.query.endDate) {
+        startDate = new Date(req.query.startDate as string);
+        endDate = new Date(req.query.endDate as string);
+      } else if (req.query.timeRange) {
+        const now = new Date();
+        const timeRange = req.query.timeRange as string;
+        
+        switch (timeRange) {
+          case '3months':
+            startDate = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
+            break;
+          case '6months':
+            startDate = new Date(now.getFullYear(), now.getMonth() - 6, now.getDate());
+            break;
+          case '12months':
+            startDate = new Date(now.getFullYear(), now.getMonth() - 12, now.getDate());
+            break;
+          case 'year':
+            startDate = new Date(now.getFullYear(), 0, 1);
+            break;
+          default:
+            startDate = new Date(now.getFullYear(), now.getMonth() - 12, now.getDate());
+        }
+        endDate = now;
+      }
+
       // Fetch all data for reports
       const [invoices, leads, expenses, customers] = await Promise.all([
         storage.getInvoices(organizationId),
@@ -4616,19 +4646,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         storage.getCustomers(organizationId)
       ]);
 
-      // Calculate key metrics
-      const totalRevenue = invoices
+      // Filter data by date range if specified
+      const filterByDate = (items: any[], dateField: string = 'createdAt') => {
+        if (!startDate || !endDate) return items;
+        return items.filter((item: any) => {
+          const itemDate = new Date(item[dateField]);
+          return itemDate >= startDate! && itemDate <= endDate!;
+        });
+      };
+
+      const filteredInvoices = filterByDate(invoices);
+      const filteredLeads = filterByDate(leads);
+      const filteredExpenses = filterByDate(expenses);
+
+      // Calculate key metrics from filtered data
+      const totalRevenue = filteredInvoices
         .filter((invoice: any) => invoice.status === 'paid')
         .reduce((sum: number, invoice: any) => sum + parseFloat(invoice.totalAmount || 0), 0);
 
-      const totalLeads = leads.length;
-      const convertedLeads = leads.filter((lead: any) => lead.status === 'converted').length;
+      const totalLeads = filteredLeads.length;
+      const convertedLeads = filteredLeads.filter((lead: any) => lead.status === 'converted').length;
       const closeRate = totalLeads > 0 ? Math.round((convertedLeads / totalLeads) * 100) : 0;
 
-      const totalExpenses = expenses.reduce((sum: number, expense: any) => 
+      const totalExpenses = filteredExpenses.reduce((sum: number, expense: any) => 
         sum + parseFloat(expense.amount || 0), 0);
 
-      const totalRefunds = invoices
+      const totalRefunds = filteredInvoices
         .filter((invoice: any) => invoice.status === 'refunded')
         .reduce((sum: number, invoice: any) => sum + parseFloat(invoice.totalAmount || 0), 0);
 
@@ -4642,10 +4685,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           totalCustomers: customers.length
         },
         data: {
-          invoices,
-          leads,
-          expenses,
+          invoices: filteredInvoices,
+          leads: filteredLeads,
+          expenses: filteredExpenses,
           customers
+        },
+        dateRange: {
+          startDate: startDate?.toISOString(),
+          endDate: endDate?.toISOString()
         }
       });
     } catch (error: any) {
