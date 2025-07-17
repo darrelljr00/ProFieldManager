@@ -8152,6 +8152,226 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Advanced API Integration Management Routes
+  
+  // Get organization's API keys
+  app.get("/api/integrations/api-keys", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const keys = await db.execute(
+        "SELECT id, key_name, permissions, rate_limit_per_hour, rate_limit_per_day, rate_limit_per_month, is_active, expires_at, last_used_at, created_at FROM api_keys WHERE organization_id = ? ORDER BY created_at DESC",
+        [user.organizationId]
+      );
+      res.json(keys.rows);
+    } catch (error: any) {
+      console.error("Error fetching API keys:", error);
+      res.status(500).json({ message: "Failed to fetch API keys" });
+    }
+  });
+
+  // Create new API key
+  app.post("/api/integrations/api-keys", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { keyName, permissions, rateLimits, expiresAt } = req.body;
+      
+      // Generate secure API key
+      const apiKey = `pf_${user.organizationId}_${crypto.randomBytes(32).toString('hex')}`;
+      
+      const result = await db.execute(
+        `INSERT INTO api_keys (organization_id, key_name, api_key, permissions, rate_limit_per_hour, rate_limit_per_day, rate_limit_per_month, expires_at) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`,
+        [
+          user.organizationId,
+          keyName,
+          apiKey,
+          JSON.stringify(permissions || {}),
+          rateLimits?.perHour || 1000,
+          rateLimits?.perDay || 10000,
+          rateLimits?.perMonth || 100000,
+          expiresAt ? new Date(expiresAt) : null
+        ]
+      );
+      
+      res.status(201).json({ ...result.rows[0], api_key: apiKey });
+    } catch (error: any) {
+      console.error("Error creating API key:", error);
+      res.status(500).json({ message: "Failed to create API key" });
+    }
+  });
+
+  // Update API key
+  app.put("/api/integrations/api-keys/:id", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const keyId = parseInt(req.params.id);
+      const { keyName, permissions, rateLimits, isActive } = req.body;
+      
+      await db.execute(
+        `UPDATE api_keys SET key_name = ?, permissions = ?, rate_limit_per_hour = ?, rate_limit_per_day = ?, rate_limit_per_month = ?, is_active = ?, updated_at = NOW() 
+         WHERE id = ? AND organization_id = ?`,
+        [
+          keyName,
+          JSON.stringify(permissions),
+          rateLimits?.perHour,
+          rateLimits?.perDay,
+          rateLimits?.perMonth,
+          isActive,
+          keyId,
+          user.organizationId
+        ]
+      );
+      
+      res.json({ message: "API key updated successfully" });
+    } catch (error: any) {
+      console.error("Error updating API key:", error);
+      res.status(500).json({ message: "Failed to update API key" });
+    }
+  });
+
+  // Delete API key
+  app.delete("/api/integrations/api-keys/:id", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const keyId = parseInt(req.params.id);
+      
+      await db.execute(
+        "DELETE FROM api_keys WHERE id = ? AND organization_id = ?",
+        [keyId, user.organizationId]
+      );
+      
+      res.json({ message: "API key deleted successfully" });
+    } catch (error: any) {
+      console.error("Error deleting API key:", error);
+      res.status(500).json({ message: "Failed to delete API key" });
+    }
+  });
+
+  // Get API usage statistics
+  app.get("/api/integrations/api-usage", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { startDate, endDate } = req.query;
+      
+      const usageStats = await db.execute(
+        `SELECT 
+           ak.key_name,
+           COUNT(aul.id) as total_requests,
+           AVG(aul.response_time_ms) as avg_response_time,
+           COUNT(CASE WHEN aul.status_code >= 400 THEN 1 END) as error_count,
+           DATE(aul.created_at) as usage_date
+         FROM api_usage_logs aul
+         JOIN api_keys ak ON aul.api_key_id = ak.id
+         WHERE aul.organization_id = ? 
+           AND aul.created_at >= ? 
+           AND aul.created_at <= ?
+         GROUP BY ak.id, ak.key_name, DATE(aul.created_at)
+         ORDER BY usage_date DESC`,
+        [
+          user.organizationId,
+          startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
+          endDate || new Date()
+        ]
+      );
+      
+      res.json(usageStats.rows);
+    } catch (error: any) {
+      console.error("Error fetching API usage:", error);
+      res.status(500).json({ message: "Failed to fetch API usage statistics" });
+    }
+  });
+
+  // Webhook Management Routes
+  
+  // Get webhooks
+  app.get("/api/integrations/webhooks", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const webhooks = await db.execute(
+        "SELECT * FROM webhook_endpoints WHERE organization_id = ? ORDER BY created_at DESC",
+        [user.organizationId]
+      );
+      res.json(webhooks.rows);
+    } catch (error: any) {
+      console.error("Error fetching webhooks:", error);
+      res.status(500).json({ message: "Failed to fetch webhooks" });
+    }
+  });
+
+  // Create webhook
+  app.post("/api/integrations/webhooks", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { name, url, events, retryCount, timeoutSeconds } = req.body;
+      
+      const secretKey = crypto.randomBytes(32).toString('hex');
+      
+      const result = await db.execute(
+        `INSERT INTO webhook_endpoints (organization_id, name, url, events, secret_key, retry_count, timeout_seconds) 
+         VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING *`,
+        [
+          user.organizationId,
+          name,
+          url,
+          events || [],
+          secretKey,
+          retryCount || 3,
+          timeoutSeconds || 30
+        ]
+      );
+      
+      res.status(201).json(result.rows[0]);
+    } catch (error: any) {
+      console.error("Error creating webhook:", error);
+      res.status(500).json({ message: "Failed to create webhook" });
+    }
+  });
+
+  // Integration Configuration Routes
+  
+  // Get integration configs
+  app.get("/api/integrations/configs", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const configs = await db.execute(
+        "SELECT id, integration_type, is_enabled, created_at, updated_at FROM integration_configs WHERE organization_id = ?",
+        [user.organizationId]
+      );
+      res.json(configs.rows);
+    } catch (error: any) {
+      console.error("Error fetching integration configs:", error);
+      res.status(500).json({ message: "Failed to fetch integration configurations" });
+    }
+  });
+
+  // Save integration config
+  app.post("/api/integrations/configs", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { integrationType, configData, isEnabled } = req.body;
+      
+      await db.execute(
+        `INSERT INTO integration_configs (organization_id, integration_type, config_data, is_enabled) 
+         VALUES (?, ?, ?, ?) 
+         ON CONFLICT (organization_id, integration_type) 
+         DO UPDATE SET config_data = ?, is_enabled = ?, updated_at = NOW()`,
+        [
+          user.organizationId,
+          integrationType,
+          JSON.stringify(configData),
+          isEnabled,
+          JSON.stringify(configData),
+          isEnabled
+        ]
+      );
+      
+      res.json({ message: "Integration configuration saved successfully" });
+    } catch (error: any) {
+      console.error("Error saving integration config:", error);
+      res.status(500).json({ message: "Failed to save integration configuration" });
+    }
+  });
+
   // Create new subscription plan
   app.post("/api/admin/saas/plans", requireAdmin, async (req, res) => {
     try {

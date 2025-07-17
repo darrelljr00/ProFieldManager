@@ -64,6 +64,7 @@ import {
   X
 } from "lucide-react";
 import FileSecurityTab from "@/components/FileSecurityTab";
+import { ApiIntegrationManager } from "@/components/api-integration-manager";
 
 
 export default function SaasAdminPage() {
@@ -463,9 +464,9 @@ export default function SaasAdminPage() {
           <TabsTrigger value="organizations">Organizations</TabsTrigger>
           <TabsTrigger value="users">User Management</TabsTrigger>
           <TabsTrigger value="plans">Subscription Plans</TabsTrigger>
+          <TabsTrigger value="integrations">API & Integrations</TabsTrigger>
           <TabsTrigger value="billing">Billing</TabsTrigger>
           <TabsTrigger value="security">File Security</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -1604,6 +1605,10 @@ export default function SaasAdminPage() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="integrations" className="space-y-6">
+          <ApiIntegrationManager />
         </TabsContent>
 
         <TabsContent value="billing" className="space-y-6">
