@@ -139,19 +139,9 @@ export default function ProjectDetail() {
       console.log('FormData entries:', Array.from(formData.entries()));
       
       try {
-        const response = await fetch(`/api/projects/${projectId}/files`, {
-          method: "POST",
-          body: formData,
-        });
+        const response = await apiRequest('POST', `/api/projects/${projectId}/files`, formData);
         
         console.log('📡 Upload response status:', response.status);
-        console.log('📡 Upload response headers:', response.headers);
-        
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ message: 'Upload failed' }));
-          console.error('❌ Upload failed with error:', errorData);
-          throw new Error(errorData.message || 'Upload failed');
-        }
         
         const result = await response.json();
         console.log('✅ Upload successful:', result);
@@ -177,6 +167,9 @@ export default function ProjectDetail() {
         description: error.message,
         variant: "destructive",
       });
+    },
+    onMutate: (formData) => {
+      console.log('🔄 Upload mutation onMutate called - starting upload...');
     },
   });
 
@@ -1191,32 +1184,23 @@ export default function ProjectDetail() {
           formData.append('file', file);
           formData.append('description', 'Photo taken with mobile camera');
           
-          // Add GPS data if available (captured by mobile camera)
+          console.log('📤 Uploading photo immediately (GPS optional)...');
+          
+          // First, try to upload immediately without waiting for GPS
+          uploadFileMutation.mutate(formData);
+          
+          // Optionally try to get GPS in the background for future uploads
           if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
               (position) => {
-                formData.append('gpsLatitude', position.coords.latitude.toString());
-                formData.append('gpsLongitude', position.coords.longitude.toString());
-                formData.append('customText', 'Photo taken with mobile camera');
-                console.log('📍 GPS coordinates added to upload:', position.coords.latitude, position.coords.longitude);
-                
-                console.log('📤 About to upload file via uploadFileMutation with GPS...');
-                uploadFileMutation.mutate(formData);
+                console.log('📍 GPS coordinates obtained for future use:', position.coords.latitude, position.coords.longitude);
               },
               (error) => {
-                console.warn('📍 Could not get GPS for upload:', error);
-                console.log('📤 About to upload file via uploadFileMutation without GPS...');
-                uploadFileMutation.mutate(formData);
+                console.warn('📍 GPS not available:', error);
               },
-              { enableHighAccuracy: true, timeout: 5000, maximumAge: 60000 }
+              { enableHighAccuracy: true, timeout: 2000, maximumAge: 60000 }
             );
-          } else {
-            console.log('📤 About to upload file via uploadFileMutation (no GPS available)...');
-            uploadFileMutation.mutate(formData);
           }
-          
-          // Don't show success toast immediately - wait for upload to complete
-          // Toast will be shown by uploadFileMutation.onSuccess
         }}
         title="Take Photo for Project"
       />
