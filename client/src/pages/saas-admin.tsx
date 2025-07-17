@@ -1333,12 +1333,18 @@ export default function SaasAdminPage() {
                             
                             <div className="space-y-2">
                               {[
+                                { key: 'hasHumanResources', label: 'Human Resources' },
                                 { key: 'hasGpsTracking', label: 'GPS Tracking' },
-                                { key: 'hasInvoicing', label: 'Invoicing' },
-                                { key: 'hasAdvancedReporting', label: 'Advanced Reports' },
-                                { key: 'hasApiAccess', label: 'API Access' },
-                                { key: 'hasCustomBranding', label: 'Custom Branding' },
-                                { key: 'hasPrioritySupport', label: 'Priority Support' }
+                                { key: 'hasWeather', label: 'Weather' },
+                                { key: 'hasSms', label: 'SMS' },
+                                { key: 'hasImageGallery', label: 'Image Gallery' },
+                                { key: 'hasVehicleInspections', label: 'Vehicle Inspections' },
+                                { key: 'hasFormBuilder', label: 'Form Builder' },
+                                { key: 'hasExpenses', label: 'Expenses' },
+                                { key: 'hasQuotes', label: 'Quotes' },
+                                { key: 'hasLeads', label: 'Leads' },
+                                { key: 'hasAnalytics', label: 'Analytics' },
+                                { key: 'hasTimeClock', label: 'Time Clock' }
                               ].map((feature) => (
                                 <div key={feature.key} className="flex items-center justify-between">
                                   <Label className="text-xs">{feature.label}</Label>
@@ -1375,6 +1381,11 @@ export default function SaasAdminPage() {
                             
                             <div className="space-y-2">
                               {[
+                                { key: 'hasInvoicing', label: 'Invoicing' },
+                                { key: 'hasAdvancedReporting', label: 'Advanced Reporting' },
+                                { key: 'hasApiAccess', label: 'API Access' },
+                                { key: 'hasCustomBranding', label: 'Custom Branding' },
+                                { key: 'hasPrioritySupport', label: 'Priority Support' },
                                 { key: 'hasWhiteLabel', label: 'White Label' },
                                 { key: 'hasAdvancedIntegrations', label: 'Advanced Integrations' },
                                 { key: 'hasMultiLanguage', label: 'Multi-Language' },

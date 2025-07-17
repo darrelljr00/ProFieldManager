@@ -64,30 +64,46 @@ export const subscriptionPlans = pgTable("subscription_plans", {
   maxInvoices: integer("max_invoices").default(100),
   maxExpenses: integer("max_expenses").default(100),
   
-  // Core features
+  // Core features (legacy fields - moved to Advanced Features section)
+  hasIntegrations: boolean("has_integrations").default(false),
+  
+  // Core Platform Features
+  hasHumanResources: boolean("has_human_resources").default(false),
+  hasGpsTracking: boolean("has_gps_tracking").default(true),
+  hasWeather: boolean("has_weather").default(false),
+  hasSms: boolean("has_sms").default(false),
+  hasImageGallery: boolean("has_image_gallery").default(true),
+  hasVehicleInspections: boolean("has_vehicle_inspections").default(false),
+  hasFormBuilder: boolean("has_form_builder").default(false),
+  hasExpenses: boolean("has_expenses").default(true),
+  hasQuotes: boolean("has_quotes").default(true),
+  hasLeads: boolean("has_leads").default(true),
+  hasAnalytics: boolean("has_analytics").default(false),
+  hasTimeClock: boolean("has_time_clock").default(true),
+  
+  // Advanced Features
+  hasInvoicing: boolean("has_invoicing").default(true),
   hasAdvancedReporting: boolean("has_advanced_reporting").default(false),
   hasApiAccess: boolean("has_api_access").default(false),
   hasCustomBranding: boolean("has_custom_branding").default(false),
-  hasIntegrations: boolean("has_integrations").default(false),
   hasPrioritySupport: boolean("has_priority_support").default(false),
+  hasWhiteLabel: boolean("has_white_label").default(false),
+  hasAdvancedIntegrations: boolean("has_advanced_integrations").default(false),
+  hasMultiLanguage: boolean("has_multi_language").default(false),
+  hasAdvancedSecurity: boolean("has_advanced_security").default(false),
   
-  // Field service features
-  hasGpsTracking: boolean("has_gps_tracking").default(true),
+  // Legacy Features (maintained for compatibility)
   hasMobileApp: boolean("has_mobile_app").default(true),
   hasTimeTracking: boolean("has_time_tracking").default(true),
-  hasInvoicing: boolean("has_invoicing").default(true),
-  hasQuotes: boolean("has_quotes").default(true),
   hasExpenseTracking: boolean("has_expense_tracking").default(true),
   hasTeamMessaging: boolean("has_team_messaging").default(true),
   hasFileManagement: boolean("has_file_management").default(true),
-  hasFormBuilder: boolean("has_form_builder").default(false),
   hasDigitalSignatures: boolean("has_digital_signatures").default(false),
   hasReviewManagement: boolean("has_review_management").default(false),
   hasSmsNotifications: boolean("has_sms_notifications").default(false),
   hasEmailNotifications: boolean("has_email_notifications").default(true),
   hasCalendarIntegration: boolean("has_calendar_integration").default(false),
   hasBackupAndExport: boolean("has_backup_and_export").default(false),
-  hasAdvancedSecurity: boolean("has_advanced_security").default(false),
   hasWhitelabeling: boolean("has_whitelabeling").default(false),
   hasMultiLocation: boolean("has_multi_location").default(false),
   hasInventoryManagement: boolean("has_inventory_management").default(false),
@@ -1791,30 +1807,46 @@ export const insertSubscriptionPlanSchema = z.object({
   maxInvoices: z.number().default(100),
   maxExpenses: z.number().default(100),
   
-  // Core features
+  // Legacy core features
+  hasIntegrations: z.boolean().default(false),
+  
+  // Core Platform Features
+  hasHumanResources: z.boolean().default(false),
+  hasGpsTracking: z.boolean().default(true),
+  hasWeather: z.boolean().default(false),
+  hasSms: z.boolean().default(false),
+  hasImageGallery: z.boolean().default(true),
+  hasVehicleInspections: z.boolean().default(false),
+  hasFormBuilder: z.boolean().default(false),
+  hasExpenses: z.boolean().default(true),
+  hasQuotes: z.boolean().default(true),
+  hasLeads: z.boolean().default(true),
+  hasAnalytics: z.boolean().default(false),
+  hasTimeClock: z.boolean().default(true),
+  
+  // Advanced Features
+  hasInvoicing: z.boolean().default(true),
   hasAdvancedReporting: z.boolean().default(false),
   hasApiAccess: z.boolean().default(false),
   hasCustomBranding: z.boolean().default(false),
-  hasIntegrations: z.boolean().default(false),
   hasPrioritySupport: z.boolean().default(false),
+  hasWhiteLabel: z.boolean().default(false),
+  hasAdvancedIntegrations: z.boolean().default(false),
+  hasMultiLanguage: z.boolean().default(false),
+  hasAdvancedSecurity: z.boolean().default(false),
   
-  // Field service features
-  hasGpsTracking: z.boolean().default(true),
+  // Legacy Features (maintained for compatibility)
   hasMobileApp: z.boolean().default(true),
   hasTimeTracking: z.boolean().default(true),
-  hasInvoicing: z.boolean().default(true),
-  hasQuotes: z.boolean().default(true),
   hasExpenseTracking: z.boolean().default(true),
   hasTeamMessaging: z.boolean().default(true),
   hasFileManagement: z.boolean().default(true),
-  hasFormBuilder: z.boolean().default(false),
   hasDigitalSignatures: z.boolean().default(false),
   hasReviewManagement: z.boolean().default(false),
   hasSmsNotifications: z.boolean().default(false),
   hasEmailNotifications: z.boolean().default(true),
   hasCalendarIntegration: z.boolean().default(false),
   hasBackupAndExport: z.boolean().default(false),
-  hasAdvancedSecurity: z.boolean().default(false),
   hasWhitelabeling: z.boolean().default(false),
   hasMultiLocation: z.boolean().default(false),
   hasInventoryManagement: z.boolean().default(false),
