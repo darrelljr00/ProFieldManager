@@ -8664,7 +8664,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { id } = req.params;
       const updates = req.body;
       
-      const file = await storage.updateFile(parseInt(id), user.organizationId, updates);
+      const file = await storage.updateFile(parseInt(id), updates);
       if (!file) {
         return res.status(404).json({ message: "File not found" });
       }
@@ -8716,7 +8716,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Update download count
-      await storage.updateFile(parseInt(id), user.organizationId, {
+      await storage.updateFile(parseInt(id), {
         downloadCount: file.downloadCount + 1
       });
 

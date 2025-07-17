@@ -1546,11 +1546,10 @@ export class DatabaseStorage implements IStorage {
         signedDocumentUrl: fileManager.signedDocumentUrl,
         createdAt: fileManager.createdAt,
         updatedAt: fileManager.updatedAt,
-        uploadedByUser: {
-          username: users.username,
-          firstName: users.firstName,
-          lastName: users.lastName
-        }
+        // User fields
+        userUsername: users.username,
+        userFirstName: users.firstName,
+        userLastName: users.lastName
       })
       .from(fileManager)
       .leftJoin(users, eq(fileManager.uploadedBy, users.id))
@@ -1562,8 +1561,33 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(fileManager.createdAt));
     
     return results.map(row => ({
-      ...row,
-      uploadedByUser: row.uploadedByUser.username ? row.uploadedByUser : null
+      id: row.id,
+      organizationId: row.organizationId,
+      uploadedBy: row.uploadedBy,
+      fileName: row.fileName,
+      originalName: row.originalName,
+      filePath: row.filePath,
+      fileSize: row.fileSize,
+      mimeType: row.mimeType,
+      fileType: row.fileType,
+      description: row.description,
+      tags: row.tags,
+      folderId: row.folderId,
+      isPublic: row.isPublic,
+      downloadCount: row.downloadCount,
+      shareableToken: row.shareableToken,
+      shareExpiresAt: row.shareExpiresAt,
+      docusignEnvelopeId: row.docusignEnvelopeId,
+      signatureStatus: row.signatureStatus,
+      signatureUrl: row.signatureUrl,
+      signedDocumentUrl: row.signedDocumentUrl,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+      uploadedByUser: row.userUsername ? {
+        username: row.userUsername,
+        firstName: row.userFirstName,
+        lastName: row.userLastName
+      } : null
     }));
   }
 
