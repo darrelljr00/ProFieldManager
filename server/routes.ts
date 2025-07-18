@@ -143,18 +143,29 @@ async function compressImage(inputPath: string, outputPath: string, organization
 
     console.log('📸 About to compress:', { inputPath, finalOutputPath, retainFilename });
 
+    // Determine if we should use lossless compression (PNG) or lossy (JPEG)
+    const isLossless = quality === 100;
+    
     // When retaining filename, we need to compress to a temp file first, then replace
     if (retainFilename) {
       const tempPath = inputPath + '.tmp';
       
       try {
-        await sharp(inputPath)
+        const sharpInstance = sharp(inputPath)
           .resize(maxWidth, maxHeight, {
             fit: 'inside',
             withoutEnlargement: true
-          })
-          .jpeg({ quality: quality })
-          .toFile(tempPath);
+          });
+        
+        if (isLossless) {
+          // Use PNG for lossless compression
+          await sharpInstance.png({ compressionLevel: 9 }).toFile(tempPath);
+          console.log('🎯 Applying lossless PNG compression (quality 100%)');
+        } else {
+          // Use JPEG for lossy compression
+          await sharpInstance.jpeg({ quality: quality }).toFile(tempPath);
+          console.log('🎯 Applying JPEG compression (quality:', quality + '%)');
+        }
         
         // Verify temp file exists and has size before replacing original
         const tempStats = await fs.stat(tempPath);
@@ -177,13 +188,21 @@ async function compressImage(inputPath: string, outputPath: string, organization
         return false;
       }
     } else {
-      await sharp(inputPath)
+      const sharpInstance = sharp(inputPath)
         .resize(maxWidth, maxHeight, {
           fit: 'inside',
           withoutEnlargement: true
-        })
-        .jpeg({ quality: quality })
-        .toFile(finalOutputPath);
+        });
+      
+      if (isLossless) {
+        // Use PNG for lossless compression
+        await sharpInstance.png({ compressionLevel: 9 }).toFile(finalOutputPath);
+        console.log('🎯 Applying lossless PNG compression (quality 100%)');
+      } else {
+        // Use JPEG for lossy compression
+        await sharpInstance.jpeg({ quality: quality }).toFile(finalOutputPath);
+        console.log('🎯 Applying JPEG compression (quality:', quality + '%)');
+      }
       console.log('✅ Compressed to new file:', finalOutputPath);
     }
 

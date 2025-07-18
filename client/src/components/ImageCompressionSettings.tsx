@@ -121,7 +121,9 @@ export function ImageCompressionSettings() {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <Label>Image Quality</Label>
-                <span className="text-sm font-medium">{settings.quality}%</span>
+                <span className="text-sm font-medium">
+                  {settings.quality}% {settings.quality === 100 ? '(Lossless PNG)' : '(JPEG)'}
+                </span>
               </div>
               <Slider
                 value={[settings.quality]}
@@ -132,8 +134,18 @@ export function ImageCompressionSettings() {
                 className="w-full"
               />
               <p className="text-xs text-muted-foreground">
-                Higher quality preserves more detail but increases file size
+                {settings.quality === 100 
+                  ? 'Lossless PNG compression preserves original quality without any data loss'
+                  : 'Higher quality preserves more detail but increases file size'}
               </p>
+              {settings.quality === 100 && (
+                <div className="mt-2 p-3 bg-blue-50 rounded-lg">
+                  <p className="text-xs text-blue-700">
+                    <strong>💡 Lossless Mode:</strong> Quality set to 100% enables PNG compression 
+                    with no quality loss. Perfect for high-quality uploads with many images!
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Max Width */}
@@ -204,9 +216,9 @@ export function ImageCompressionSettings() {
             <div className="bg-muted p-4 rounded-lg">
               <h4 className="text-sm font-medium mb-2">Current Settings Summary:</h4>
               <ul className="text-sm text-muted-foreground space-y-1">
-                <li>• Quality: {settings.quality}% compression</li>
+                <li>• Quality: {settings.quality}% compression {settings.quality === 100 ? '(Lossless)' : ''}</li>
                 <li>• Maximum size: {settings.maxWidth} x {settings.maxHeight} pixels</li>
-                <li>• Format: JPEG (converted from any input format)</li>
+                <li>• Format: {settings.quality === 100 ? 'PNG (Lossless)' : 'JPEG'} (converted from any input format)</li>
                 <li>• Original preservation: {settings.preserveOriginal ? 'Enabled' : 'Disabled'}</li>
                 <li>• Filename retention: {settings.retainFilename ? 'Enabled' : 'Disabled'}</li>
                 <li>• File handling: {
