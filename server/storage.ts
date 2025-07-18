@@ -68,7 +68,7 @@ export interface IStorage {
   deleteQuote(id: number): Promise<void>;
   
   // Project/Job methods
-  getProjects(organizationId: number): Promise<any[]>;
+  getProjects(organizationId: number, userId?: number, userRole?: string, status?: string): Promise<any[]>;
   getProject(id: number, userId: number): Promise<any>;
   getProjectById(id: number): Promise<any>;
   createProject(projectData: any): Promise<any>;
@@ -826,9 +826,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Project/Job methods
-  async getProjects(organizationId: number, userId?: number, userRole?: string): Promise<any[]> {
+  async getProjects(organizationId: number, userId?: number, userRole?: string, status?: string): Promise<any[]> {
     // Build the base query
     let whereConditions = [eq(users.organizationId, organizationId)];
+    
+    // Add status filtering if specified
+    if (status) {
+      whereConditions.push(eq(projects.status, status));
+    }
     
     // If user-specific filtering is requested and not admin, apply sharing rules
     if (userId && userRole !== 'admin') {

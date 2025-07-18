@@ -2692,7 +2692,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/projects", requireAuth, async (req, res) => {
     try {
       const user = getAuthenticatedUser(req);
-      const projects = await storage.getProjects(user.organizationId, user.id, user.role);
+      const status = req.query.status as string;
+      const projects = await storage.getProjects(user.organizationId, user.id, user.role, status);
       res.json(projects);
     } catch (error: any) {
       console.error("Error fetching projects:", error);
