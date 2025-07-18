@@ -41,9 +41,13 @@ export default function CalendarPage() {
     queryKey: ["/api/customers"],
   });
 
-  const { data: leads = [] } = useQuery<Lead[]>({
+  const { data: leadsResponse = [] } = useQuery<any>({
     queryKey: ["/api/leads"],
   });
+
+  // Handle different response structures from leads API
+  const leads = Array.isArray(leadsResponse) ? leadsResponse : 
+    (leadsResponse?.leads ? Object.values(leadsResponse.leads) : []);
 
   const createMutation = useMutation({
     mutationFn: (data: Partial<InsertCalendarJob>) => 
@@ -512,7 +516,7 @@ export default function CalendarPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">No lead</SelectItem>
-                      {leads.map(lead => (
+                      {leads.filter(lead => lead?.id).map(lead => (
                         <SelectItem key={lead.id} value={lead.id.toString()}>
                           {lead.name}
                         </SelectItem>
