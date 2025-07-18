@@ -110,7 +110,7 @@ export default function MyTasks() {
 
   const updateTaskMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: any }) => 
-      apiRequest(`/api/tasks/${id}`, "PATCH", data),
+      apiRequest("PATCH", `/api/tasks/${id}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
       toast({
@@ -121,7 +121,7 @@ export default function MyTasks() {
   });
 
   const deleteTaskMutation = useMutation({
-    mutationFn: (id: number) => apiRequest(`/api/tasks/${id}`, "DELETE"),
+    mutationFn: (id: number) => apiRequest("DELETE", `/api/tasks/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
       setShowTaskDetail(false);

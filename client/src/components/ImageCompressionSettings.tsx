@@ -46,7 +46,7 @@ export function ImageCompressionSettings() {
   // Mutation to update settings
   const updateSettingsMutation = useMutation({
     mutationFn: async (newSettings: Partial<CompressionSettings>) => {
-      return await apiRequest('/api/settings/image-compression', 'PUT', newSettings);
+      return await apiRequest('PUT', '/api/settings/image-compression', newSettings);
     },
     onSuccess: () => {
       toast({

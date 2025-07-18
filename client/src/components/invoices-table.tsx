@@ -43,7 +43,7 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll }: Invoi
   });
 
   const sendInvoiceMutation = useMutation({
-    mutationFn: (invoiceId: number) => apiRequest(`/api/invoices/${invoiceId}/send`, "POST"),
+    mutationFn: (invoiceId: number) => apiRequest("POST", `/api/invoices/${invoiceId}/send`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
       toast({
@@ -61,7 +61,7 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll }: Invoi
   });
 
   const markPaidMutation = useMutation({
-    mutationFn: (invoiceId: number) => apiRequest(`/api/invoices/${invoiceId}/mark-paid`, "POST", {
+    mutationFn: (invoiceId: number) => apiRequest("POST", `/api/invoices/${invoiceId}/mark-paid`, {
       method: "manual",
       notes: "Marked as paid manually"
     }),

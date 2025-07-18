@@ -120,7 +120,7 @@ export default function FormBuilder() {
         }
       }
 
-      return apiRequest('/api/custom-forms', 'POST', {
+      return apiRequest('POST', '/api/custom-forms', {
         name: data.name,
         description: data.description,
         formData,
@@ -150,7 +150,7 @@ export default function FormBuilder() {
   // Delete form mutation
   const deleteFormMutation = useMutation({
     mutationFn: async (formId: number) => {
-      return apiRequest(`/api/custom-forms/${formId}`, 'DELETE');
+      return apiRequest('DELETE', `/api/custom-forms/${formId}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/custom-forms'] });
@@ -171,7 +171,7 @@ export default function FormBuilder() {
   // Duplicate form mutation
   const duplicateFormMutation = useMutation({
     mutationFn: async (form: CustomForm) => {
-      return apiRequest('/api/custom-forms', 'POST', {
+      return apiRequest('POST', '/api/custom-forms', {
         name: `${form.name} (Copy)`,
         description: form.description,
         formData: form.formData,

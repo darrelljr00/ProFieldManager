@@ -129,7 +129,7 @@ export function FormBuilderEditor({ form, open, onOpenChange, onSave }: FormBuil
 
   const saveFormMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest(`/api/custom-forms/${form.id}`, 'PUT', {
+      return apiRequest('PUT', `/api/custom-forms/${form.id}`, {
         formData,
       });
     },
