@@ -544,7 +544,7 @@ export default function Jobs() {
   });
 
   const convertJobToProjectMutation = useMutation({
-    mutationFn: (jobId: number) => apiRequest(`/api/calendar-jobs/${jobId}/convert-to-job`, "POST", {}),
+    mutationFn: (jobId: number) => apiRequest("POST", `/api/calendar-jobs/${jobId}/convert-to-job`, {}),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
       queryClient.invalidateQueries({ queryKey: ["/api/calendar-jobs"] });
@@ -563,7 +563,7 @@ export default function Jobs() {
   });
 
   const markCompleteMutation = useMutation({
-    mutationFn: (projectId: number) => apiRequest(`/api/projects/${projectId}`, "PUT", { status: "completed" }),
+    mutationFn: (projectId: number) => apiRequest("PUT", `/api/projects/${projectId}`, { status: "completed" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
       setViewDialogOpen(false);

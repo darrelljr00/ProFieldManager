@@ -58,13 +58,10 @@ export function SharePhotosDialog({
   const createShareLinkMutation = useMutation({
     mutationFn: async (data: ShareFormData) => {
       const imageIds = selectedImages.map(img => img.id);
-      return apiRequest('/api/shared-photo-links', {
-        method: 'POST',
-        body: JSON.stringify({
-          projectId,
-          imageIds,
-          ...data,
-        }),
+      return apiRequest('POST', '/api/shared-photo-links', {
+        projectId,
+        imageIds,
+        ...data,
       });
     },
     onSuccess: (data) => {

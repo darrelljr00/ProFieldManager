@@ -62,7 +62,7 @@ export function QuotesTable({ quotes, isLoading }: QuotesTableProps) {
 
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status }: { id: number; status: string }) =>
-      apiRequest(`/api/quotes/${id}`, "PATCH", { status }),
+      apiRequest("PATCH", `/api/quotes/${id}`, { status }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/quotes"] });
       toast({
@@ -120,7 +120,7 @@ export function QuotesTable({ quotes, isLoading }: QuotesTableProps) {
 
   const sendEmailMutation = useMutation({
     mutationFn: ({ quoteId, subject, message }: { quoteId: number; subject: string; message: string }) =>
-      apiRequest(`/api/quotes/${quoteId}/send-email`, "POST", { subject, message }),
+      apiRequest("POST", `/api/quotes/${quoteId}/send-email`, { subject, message }),
     onSuccess: () => {
       toast({
         title: "Success",
