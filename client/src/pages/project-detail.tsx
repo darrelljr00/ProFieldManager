@@ -224,15 +224,17 @@ export default function ProjectDetail() {
     mutationFn: () => apiRequest("PUT", `/api/projects/${projectId}`, { status: 'completed' }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
       toast({
         title: "Job Completed!",
         description: "The job has been marked as completed successfully",
       });
     },
     onError: (error: Error) => {
+      console.error("Job completion error:", error);
       toast({
-        title: "Failed to Complete Job",
-        description: error.message,
+        title: "Failed to Complete Job", 
+        description: `Error: ${error.message}`,
         variant: "destructive",
       });
     },
