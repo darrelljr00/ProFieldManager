@@ -162,12 +162,10 @@ export default function Inspections() {
           formData.append(`inspectionImages`, file);
         });
 
-        const uploadResponse = await apiRequest('/api/upload-inspection-images', {
-          method: 'POST',
-          body: formData,
-        });
+        const uploadResponse = await apiRequest('POST', '/api/upload-inspection-images', formData);
+        const uploadResult = await uploadResponse.json();
 
-        uploadedImagePaths = uploadResponse.filePaths || [];
+        uploadedImagePaths = uploadResult.filePaths || [];
       }
 
       // Submit inspection to backend
@@ -188,13 +186,8 @@ export default function Inspections() {
         location: null // Can be enhanced with GPS data later
       };
 
-      const record = await apiRequest('/api/inspections/submit', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(submissionData),
-      });
+      const response = await apiRequest('POST', '/api/inspections/submit', submissionData);
+      const record = await response.json();
 
       // Create display record for local state
       const newInspectionRecord: InspectionRecord = {
