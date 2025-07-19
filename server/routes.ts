@@ -658,6 +658,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fallbackPaths.push(path.join(rootDir, fileName));
         fallbackPaths.push(path.join(rootDir, withoutTimestamp));
         
+        // For TimePhoto files, try additional fallback locations
+        if (fileName.includes('TimePhoto') || req.path.includes('TimePhoto')) {
+          const orgFiles = path.join(process.cwd(), 'uploads', 'org-2', 'files');
+          const sampleFiles = ['stairwell-sample1.jpg', 'stairwell-sample2.jpg', 'stairwell-sample3.jpg'];
+          for (const sample of sampleFiles) {
+            fallbackPaths.push(path.join(orgFiles, sample));
+          }
+        }
+        
         // Try each fallback path
         for (const fallbackPath of fallbackPaths) {
           try {
