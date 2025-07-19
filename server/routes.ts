@@ -3420,7 +3420,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
               finalMimeType = 'image/jpeg';
               
               // Get compressed file size
-              const fs = require('fs').promises;
               const stats = await fs.stat(compressedPath);
               finalFileSize = stats.size;
               
@@ -3429,7 +3428,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
               console.log('Size reduction:', Math.round((req.file.size - finalFileSize) / req.file.size * 100) + '%');
             } else {
               // Compression was applied in place, get updated file size
-              const fs = require('fs').promises;
               const stats = await fs.stat(finalFilePath);
               finalFileSize = stats.size;
               finalMimeType = 'image/jpeg'; // Compression converts to JPEG
