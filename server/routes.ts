@@ -107,15 +107,19 @@ function getAuthenticatedUser(req: Request) {
 // Image compression helper function for ALL image uploads
 async function compressImage(inputPath: string, outputPath: string, organizationId: number): Promise<boolean> {
   try {
-    // Get compression settings from database (using 'system' category for global settings)
-    const systemSettings = await storage.getSettings('system');
+    // Get compression settings from database directly
+    const systemSettings = await storage.getSettingsByCategory('system');
+    const settingsMap = systemSettings.reduce((acc: any, setting: any) => {
+      acc[setting.key] = setting.value;
+      return acc;
+    }, {});
     
-    const enabledSetting = systemSettings['system_enableImageCompression'];
-    const qualitySetting = systemSettings['system_imageQuality'];
-    const maxWidthSetting = systemSettings['system_maxWidth'];
-    const maxHeightSetting = systemSettings['system_maxHeight'];
-    const preserveOriginalSetting = systemSettings['preserve_original_images'];
-    const retainFilenameSetting = systemSettings['retain_original_filename'];
+    const enabledSetting = settingsMap['system_enableImageCompression'];
+    const qualitySetting = settingsMap['system_imageQuality'];  
+    const maxWidthSetting = settingsMap['system_maxWidth'];
+    const maxHeightSetting = settingsMap['system_maxHeight'];
+    const preserveOriginalSetting = settingsMap['preserve_original_images'];
+    const retainFilenameSetting = settingsMap['retain_original_filename'];
     
     // Check if compression is enabled
     const compressionEnabled = enabledSetting === 'true' || enabledSetting === null; // Default to enabled
@@ -3402,8 +3406,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           if (compressionApplied) {
             // Check if compression created a separate file or compressed in place
-            const systemSettings = await storage.getSettings('system');
-            const retainFilename = systemSettings['retain_original_filename'] === 'true';
+            const systemSettings = await storage.getSettingsByCategory('system');
+            const settingsMap = systemSettings.reduce((acc: any, setting: any) => {
+              acc[setting.key] = setting.value;
+              return acc;
+            }, {});
+            const retainFilename = settingsMap['retain_original_filename'] === 'true';
             
             if (!retainFilename) {
               // Compression created a separate file, use it
