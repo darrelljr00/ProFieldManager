@@ -3384,9 +3384,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Apply compression to images AFTER timestamp processing
+      let finalFileSize = req.file.size;
+      let finalMimeType = req.file.mimetype;
+      
       if (req.file.mimetype.startsWith('image/')) {
         const user = getAuthenticatedUser(req);
         console.log('🔧 About to apply compression to project file:', finalFilePath);
+        console.log('Original file size:', Math.round(req.file.size / 1024) + ' KB');
         
         const compressedFilename = `compressed-${finalFilename.replace(path.extname(finalFilename), '.jpg')}`;
         const compressedPath = path.join(path.dirname(finalFilePath), compressedFilename);
@@ -3403,11 +3407,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
               // Compression created a separate file, use it
               finalFilePath = compressedPath;
               finalFilename = compressedFilename;
+              finalMimeType = 'image/jpeg';
+              
+              // Get compressed file size
+              const fs = require('fs').promises;
+              const stats = await fs.stat(compressedPath);
+              finalFileSize = stats.size;
+              
               console.log('✅ Using compressed file:', finalFilename);
+              console.log('Compressed file size:', Math.round(finalFileSize / 1024) + ' KB');
+              console.log('Size reduction:', Math.round((req.file.size - finalFileSize) / req.file.size * 100) + '%');
             } else {
-              // Compression was applied in place, keep original filename
+              // Compression was applied in place, get updated file size
+              const fs = require('fs').promises;
+              const stats = await fs.stat(finalFilePath);
+              finalFileSize = stats.size;
+              finalMimeType = 'image/jpeg'; // Compression converts to JPEG
+              
               console.log('✅ Compression applied in place to:', finalFilename);
+              console.log('Compressed file size:', Math.round(finalFileSize / 1024) + ' KB');
+              console.log('Size reduction:', Math.round((req.file.size - finalFileSize) / req.file.size * 100) + '%');
             }
+          } else {
+            console.log('⚠️ Compression was not applied, using original file');
           }
         } catch (compressionError) {
           console.error('⚠️ Compression failed, using original file:', compressionError);
@@ -3432,8 +3454,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fileName: finalFilename,
         originalName: req.file.originalname,
         filePath: finalFilePath.replace('./uploads/', 'uploads/'),
-        fileSize: req.file.size,
-        mimeType: req.file.mimetype,
+        fileSize: finalFileSize,
+        mimeType: finalMimeType,
         fileType,
         description: req.body.description || null,
       };
