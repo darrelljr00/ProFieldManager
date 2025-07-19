@@ -623,42 +623,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Custom static file handler for uploads - must be first to override Vite middleware
   app.get('/uploads/*', async (req, res) => {
     try {
-      const filePath = path.join(process.cwd(), req.path);
-      const stat = await fs.stat(filePath);
+      const requestedPath = path.join(process.cwd(), req.path);
       
-      if (stat.isFile()) {
-        // Set appropriate content type based on file extension
-        const ext = path.extname(filePath).toLowerCase();
-        const mimeTypes = {
-          '.png': 'image/png',
-          '.jpg': 'image/jpeg',
-          '.jpeg': 'image/jpeg',
-          '.gif': 'image/gif',
-          '.svg': 'image/svg+xml',
-          '.pdf': 'application/pdf',
-          '.txt': 'text/plain',
-          '.json': 'application/json'
-        };
-        
-        if (mimeTypes[ext]) {
-          res.setHeader('Content-Type', mimeTypes[ext]);
+      // Try to serve the requested file first
+      try {
+        const stat = await fs.stat(requestedPath);
+        if (stat.isFile()) {
+          return serveFile(requestedPath, res);
         }
+      } catch (initialError) {
+        // File doesn't exist, try fallback options for images
+      }
+      
+      // If original file not found, try fallback options for images
+      const fileName = path.basename(req.path);
+      const fileDir = path.dirname(requestedPath);
+      
+      // For timestamped files that might have original versions
+      if (fileName.startsWith('timestamped-file-')) {
+        // Extract the original filename pattern and try variants
+        const fallbackPaths = [];
         
-        res.sendFile(filePath);
-      } else {
-        res.status(404).json({ error: 'File not found' });
+        // Try without timestamp prefix
+        const withoutTimestamp = fileName.replace('timestamped-file-', 'file-');
+        fallbackPaths.push(path.join(fileDir, withoutTimestamp));
+        
+        // Try looking in image_gallery folder
+        const imageGalleryDir = fileDir.replace('/files/', '/image_gallery/');
+        fallbackPaths.push(path.join(imageGalleryDir, fileName));
+        fallbackPaths.push(path.join(imageGalleryDir, withoutTimestamp));
+        
+        // Try the uploads root directory
+        const rootDir = path.join(process.cwd(), 'uploads');
+        fallbackPaths.push(path.join(rootDir, fileName));
+        fallbackPaths.push(path.join(rootDir, withoutTimestamp));
+        
+        // Try each fallback path
+        for (const fallbackPath of fallbackPaths) {
+          try {
+            const stat = await fs.stat(fallbackPath);
+            if (stat.isFile()) {
+              return serveFile(fallbackPath, res);
+            }
+          } catch (error) {
+            // Continue to next fallback
+          }
+        }
       }
-    } catch (error) {
-      // For missing receipt files, try to serve a placeholder or return 404 gracefully
+      
+      // If still not found, return 404
       if (req.path.includes('receipt-') || req.path.includes('logo-')) {
-        // Return 404 without error logging for missing receipts to avoid console spam
-        res.status(404).json({ error: 'Receipt file not found' });
-      } else {
-        console.error('Static file serving error:', error);
-        res.status(404).json({ error: 'File not found' });
+        return res.status(404).json({ error: 'Receipt file not found' });
       }
+      
+      res.status(404).json({ error: 'File not found' });
+      
+    } catch (error) {
+      console.error('Static file serving error:', error);
+      res.status(404).json({ error: 'File not found' });
     }
   });
+  
+  // Helper function to serve files with proper content type
+  function serveFile(filePath: string, res: any) {
+    const ext = path.extname(filePath).toLowerCase();
+    const mimeTypes = {
+      '.png': 'image/png',
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.gif': 'image/gif',
+      '.svg': 'image/svg+xml',
+      '.pdf': 'application/pdf',
+      '.txt': 'text/plain',
+      '.json': 'application/json'
+    };
+    
+    if (mimeTypes[ext]) {
+      res.setHeader('Content-Type', mimeTypes[ext]);
+    }
+    
+    res.sendFile(filePath);
+  }
   
   // Create HTTP server first
   const httpServer = createServer(app);
