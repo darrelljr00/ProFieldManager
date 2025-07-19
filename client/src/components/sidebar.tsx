@@ -314,17 +314,18 @@ export function Sidebar() {
   }, [isCollapsed]);
 
   const navigationItems: NavigationItem[] = [
-    { name: "Dashboard", href: "/", icon: BarChart3, requiresAuth: true },
-    { name: "Calendar", href: "/calendar", icon: Calendar, requiresAuth: true },
-    { name: "Time Clock", href: "/time-clock", icon: Clock, requiresAuth: true },
-    { name: "Jobs", href: "/jobs", icon: Briefcase, requiresAuth: true },
-    { name: "My Tasks", href: "/my-tasks", icon: CheckSquare, requiresAuth: true },
-    { name: "Leads", href: "/leads", icon: UserPlus, requiresAuth: true },
+    { name: "Dashboard", href: "/", icon: BarChart3, requiresAuth: true, permission: "canAccessDashboard" },
+    { name: "Calendar", href: "/calendar", icon: Calendar, requiresAuth: true, permission: "canAccessCalendar" },
+    { name: "Time Clock", href: "/time-clock", icon: Clock, requiresAuth: true, permission: "canAccessTimeClock" },
+    { name: "Jobs", href: "/jobs", icon: Briefcase, requiresAuth: true, permission: "canAccessJobs" },
+    { name: "My Tasks", href: "/my-tasks", icon: CheckSquare, requiresAuth: true, permission: "canAccessMyTasks" },
+    { name: "Leads", href: "/leads", icon: UserPlus, requiresAuth: true, permission: "canAccessLeads" },
     { 
       name: "Expenses", 
       href: "/expenses", 
       icon: Receipt, 
       requiresAuth: true,
+      permission: "canAccessExpenses",
       subItems: [
         { name: "All Expenses", href: "/expenses", icon: Receipt },
         { name: "Expense Reports", href: "/expense-reports", icon: FileBarChart },
@@ -333,29 +334,30 @@ export function Sidebar() {
         { name: "Gas Cards", href: "/gas-cards", icon: CreditCard }
       ]
     },
-    { name: "Quotes", href: "/quotes", icon: Quote, requiresAuth: true },
-    { name: "Invoices", href: "/invoices", icon: FileText, requiresAuth: true },
-    { name: "Invoice Templates", href: "/invoice-templates", icon: FileType, requiresAuth: true },
-    { name: "Customers", href: "/customers", icon: Users, requiresAuth: true },
-    { name: "Payments", href: "/payments", icon: CreditCard, requiresAuth: true },
-    { name: "File Manager", href: "/file-manager", icon: FolderOpen, requiresAuth: true },
-    { name: "Form Builder", href: "/form-builder", icon: ClipboardList, requiresAuth: true },
-    { name: "Inspections", href: "/inspections", icon: CheckSquare, requiresAuth: true },
+    { name: "Quotes", href: "/quotes", icon: Quote, requiresAuth: true, permission: "canAccessQuotes" },
+    { name: "Invoices", href: "/invoices", icon: FileText, requiresAuth: true, permission: "canAccessInvoices" },
+    { name: "Invoice Templates", href: "/invoice-templates", icon: FileType, requiresAuth: true, permission: "canAccessInvoices" },
+    { name: "Customers", href: "/customers", icon: Users, requiresAuth: true, permission: "canAccessCustomers" },
+    { name: "Payments", href: "/payments", icon: CreditCard, requiresAuth: true, permission: "canAccessPayments" },
+    { name: "File Manager", href: "/file-manager", icon: FolderOpen, requiresAuth: true, permission: "canAccessFileManager" },
+    { name: "Form Builder", href: "/form-builder", icon: ClipboardList, requiresAuth: true, permission: "canAccessFormBuilder" },
+    { name: "Inspections", href: "/inspections", icon: CheckSquare, requiresAuth: true, permission: "canAccessInspections" },
     { 
       name: "Team Messages", 
       href: "/internal-messages", 
       icon: MessageSquare, 
       requiresAuth: true,
+      permission: "canAccessInternalMessages",
       unreadCount: unreadCount
     },
-    { name: "Image Gallery", href: "/image-gallery", icon: ImageIcon, requiresAuth: true },
-    { name: "SMS", href: "/sms", icon: Smartphone, requiresAuth: true },
-    { name: "Messages", href: "/messages", icon: Mail, requiresAuth: true },
-    { name: "GPS Tracking", href: "/gps-tracking", icon: MapPin, requiresAuth: true },
-    { name: "Weather", href: "/weather", icon: Cloud, requiresAuth: true },
-    { name: "Reviews", href: "/reviews", icon: Star, requiresAuth: true },
+    { name: "Image Gallery", href: "/image-gallery", icon: ImageIcon, requiresAuth: true, permission: "canAccessImageGallery" },
+    { name: "SMS", href: "/sms", icon: Smartphone, requiresAuth: true, permission: "canAccessSMS" },
+    { name: "Messages", href: "/messages", icon: Mail, requiresAuth: true, permission: "canAccessMessages" },
+    { name: "GPS Tracking", href: "/gps-tracking", icon: MapPin, requiresAuth: true, permission: "canAccessGpsTracking" },
+    { name: "Weather", href: "/weather", icon: Cloud, requiresAuth: true, permission: "canAccessWeather" },
+    { name: "Reviews", href: "/reviews", icon: Star, requiresAuth: true, permission: "canAccessReviews" },
     { name: "Human Resources", href: "/human-resources", icon: User, requiresAuth: true, permission: "canAccessHR" },
-    { name: "User Management", href: "/users", icon: UserCog, requiresAuth: true, permission: "canAccessUserManagement" },
+    { name: "User Management", href: "/users", icon: UserCog, requiresAuth: true, permission: "canAccessUsers" },
     { name: "SaaS Admin", href: "/saas-admin", icon: Server, requiresAuth: true, permission: "canAccessSaasAdmin" },
     {
       name: "Admin Settings",
@@ -385,7 +387,7 @@ export function Sidebar() {
     }
   ];
 
-  // Get ordered navigation items with search filtering
+  // Get ordered navigation items with permission and search filtering
   const getOrderedNavigationItems = () => {
     const orderedItems: NavigationItem[] = [];
     
@@ -404,9 +406,21 @@ export function Sidebar() {
       }
     });
     
+    // Filter by permissions first - this is the key change for hiding disabled tabs
+    const permissionFilteredItems = orderedItems.filter(item => {
+      // Always show items without permission requirements
+      if (!item.permission) return true;
+      
+      // Admin override - show all tabs for admin users
+      if (user?.role === 'admin') return true;
+      
+      // Check user permissions for non-admin users
+      return hasPermission(item);
+    });
+    
     // Filter by search query if present
     if (searchQuery.trim()) {
-      return orderedItems.filter(item => 
+      return permissionFilteredItems.filter(item => 
         item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (item.subItems && item.subItems.some(subItem => 
           subItem.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -414,7 +428,7 @@ export function Sidebar() {
       );
     }
     
-    return orderedItems;
+    return permissionFilteredItems;
   };
 
   const orderedItems = getOrderedNavigationItems();
@@ -446,7 +460,10 @@ export function Sidebar() {
     if (!item.permission) return true;
     if (!user) return false;
     
-    // Debug: log permission checks
+    // Admin users have access to everything
+    if (user.role === 'admin') return true;
+    
+    // Debug: log permission checks for non-admin users
     console.log(`Checking permission for ${item.name}: ${item.permission} = ${(user as any)[item.permission]}`);
     
     return (user as any)[item.permission] === true;
