@@ -108,12 +108,14 @@ function getAuthenticatedUser(req: Request) {
 async function compressImage(inputPath: string, outputPath: string, organizationId: number): Promise<boolean> {
   try {
     // Get compression settings from database (using 'system' category for global settings)
-    const enabledSetting = await storage.getSetting('system', 'system_enableImageCompression');
-    const qualitySetting = await storage.getSetting('system', 'system_imageQuality');
-    const maxWidthSetting = await storage.getSetting('system', 'system_maxWidth');
-    const maxHeightSetting = await storage.getSetting('system', 'system_maxHeight');
-    const preserveOriginalSetting = await storage.getSetting('system', 'preserve_original_images');
-    const retainFilenameSetting = await storage.getSetting('system', 'retain_original_filename');
+    const systemSettings = await storage.getSettings('system');
+    
+    const enabledSetting = systemSettings['system_enableImageCompression'];
+    const qualitySetting = systemSettings['system_imageQuality'];
+    const maxWidthSetting = systemSettings['system_maxWidth'];
+    const maxHeightSetting = systemSettings['system_maxHeight'];
+    const preserveOriginalSetting = systemSettings['preserve_original_images'];
+    const retainFilenameSetting = systemSettings['retain_original_filename'];
     
     // Check if compression is enabled
     const compressionEnabled = enabledSetting === 'true' || enabledSetting === null; // Default to enabled
@@ -3400,8 +3402,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           if (compressionApplied) {
             // Check if compression created a separate file or compressed in place
-            const compressionSettings = await storage.getSetting('system', 'retain_original_filename');
-            const retainFilename = compressionSettings === 'true';
+            const systemSettings = await storage.getSettings('system');
+            const retainFilename = systemSettings['retain_original_filename'] === 'true';
             
             if (!retainFilename) {
               // Compression created a separate file, use it
