@@ -3383,6 +3383,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Apply compression to images AFTER timestamp processing
+      if (req.file.mimetype.startsWith('image/')) {
+        const user = getAuthenticatedUser(req);
+        console.log('🔧 About to apply compression to project file:', finalFilePath);
+        
+        const compressedFilename = `compressed-${finalFilename.replace(path.extname(finalFilename), '.jpg')}`;
+        const compressedPath = path.join(path.dirname(finalFilePath), compressedFilename);
+        
+        try {
+          const compressionApplied = await compressImage(finalFilePath, compressedPath, user.organizationId);
+          
+          if (compressionApplied) {
+            // Check if compression created a separate file or compressed in place
+            const compressionSettings = await storage.getSetting('system', 'retain_original_filename');
+            const retainFilename = compressionSettings === 'true';
+            
+            if (!retainFilename) {
+              // Compression created a separate file, use it
+              finalFilePath = compressedPath;
+              finalFilename = compressedFilename;
+              console.log('✅ Using compressed file:', finalFilename);
+            } else {
+              // Compression was applied in place, keep original filename
+              console.log('✅ Compression applied in place to:', finalFilename);
+            }
+          }
+        } catch (compressionError) {
+          console.error('⚠️ Compression failed, using original file:', compressionError);
+          // Continue with original file if compression fails
+        }
+      }
+
       // Determine file type based on MIME type
       let fileType = 'other';
       if (req.file.mimetype.startsWith('image/')) {
