@@ -36,7 +36,8 @@ import {
   GripVertical,
   Search,
   FileType,
-  Mail
+  Mail,
+  Box
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -217,6 +218,7 @@ const DEFAULT_NAVIGATION_ORDER = [
   "Customers",
   "Payments",
   "File Manager",
+  "Parts & Supplies",
   "Form Builder",
   "Inspections",
   "Team Messages",
@@ -340,6 +342,7 @@ export function Sidebar() {
     { name: "Customers", href: "/customers", icon: Users, requiresAuth: true, permission: "canAccessCustomers" },
     { name: "Payments", href: "/payments", icon: CreditCard, requiresAuth: true, permission: "canAccessPayments" },
     { name: "File Manager", href: "/file-manager", icon: FolderOpen, requiresAuth: true, permission: "canAccessFileManager" },
+    { name: "Parts & Supplies", href: "/parts-supplies", icon: Box, requiresAuth: true, permission: "canAccessParts" },
     { name: "Form Builder", href: "/form-builder", icon: ClipboardList, requiresAuth: true, permission: "canAccessFormBuilder" },
     { name: "Inspections", href: "/inspections", icon: CheckSquare, requiresAuth: true, permission: "canAccessInspections" },
     { 

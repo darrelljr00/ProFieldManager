@@ -10720,6 +10720,163 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ===============================
+  // Parts and Supplies API
+  // ===============================
+  
+  // Get all parts and supplies for organization
+  app.get("/api/parts-supplies", requireAuth, async (req, res) => {
+    try {
+      const parts = await storage.getPartsSupplies(req.user!.organizationId);
+      res.json(parts);
+    } catch (error) {
+      console.error('Error fetching parts and supplies:', error);
+      res.status(500).json({ error: 'Failed to fetch parts and supplies' });
+    }
+  });
+
+  // Get specific part
+  app.get("/api/parts-supplies/:id", requireAuth, async (req, res) => {
+    try {
+      const partId = parseInt(req.params.id);
+      const part = await storage.getPartSupply(partId, req.user!.organizationId);
+      
+      if (!part) {
+        return res.status(404).json({ error: 'Part not found' });
+      }
+      
+      res.json(part);
+    } catch (error) {
+      console.error('Error fetching part:', error);
+      res.status(500).json({ error: 'Failed to fetch part' });
+    }
+  });
+
+  // Create new part
+  app.post("/api/parts-supplies", requireAuth, async (req, res) => {
+    try {
+      const partData = {
+        ...req.body,
+        organizationId: req.user!.organizationId,
+        createdBy: req.user!.id
+      };
+      
+      const newPart = await storage.createPartSupply(partData);
+      res.status(201).json(newPart);
+    } catch (error) {
+      console.error('Error creating part:', error);
+      res.status(500).json({ error: 'Failed to create part' });
+    }
+  });
+
+  // Update part
+  app.put("/api/parts-supplies/:id", requireAuth, async (req, res) => {
+    try {
+      const partId = parseInt(req.params.id);
+      const updates = req.body;
+      
+      const updatedPart = await storage.updatePartSupply(partId, updates);
+      res.json(updatedPart);
+    } catch (error) {
+      console.error('Error updating part:', error);
+      res.status(500).json({ error: 'Failed to update part' });
+    }
+  });
+
+  // Update part stock
+  app.put("/api/parts-supplies/:id/stock", requireAuth, async (req, res) => {
+    try {
+      const partId = parseInt(req.params.id);
+      const { newStock, reason } = req.body;
+      
+      const updatedPart = await storage.updatePartStock(partId, newStock, req.user!.id, reason);
+      res.json(updatedPart);
+    } catch (error) {
+      console.error('Error updating part stock:', error);
+      res.status(500).json({ error: 'Failed to update stock' });
+    }
+  });
+
+  // Delete part (soft delete)
+  app.delete("/api/parts-supplies/:id", requireAuth, async (req, res) => {
+    try {
+      const partId = parseInt(req.params.id);
+      const success = await storage.deletePartSupply(partId);
+      
+      if (success) {
+        res.json({ message: 'Part deleted successfully' });
+      } else {
+        res.status(404).json({ error: 'Part not found' });
+      }
+    } catch (error) {
+      console.error('Error deleting part:', error);
+      res.status(500).json({ error: 'Failed to delete part' });
+    }
+  });
+
+  // Get parts categories
+  app.get("/api/parts-categories", requireAuth, async (req, res) => {
+    try {
+      const categories = await storage.getPartsCategories(req.user!.organizationId);
+      res.json(categories);
+    } catch (error) {
+      console.error('Error fetching parts categories:', error);
+      res.status(500).json({ error: 'Failed to fetch categories' });
+    }
+  });
+
+  // Create parts category
+  app.post("/api/parts-categories", requireAuth, async (req, res) => {
+    try {
+      const categoryData = {
+        ...req.body,
+        organizationId: req.user!.organizationId
+      };
+      
+      const newCategory = await storage.createPartsCategory(categoryData);
+      res.status(201).json(newCategory);
+    } catch (error) {
+      console.error('Error creating parts category:', error);
+      res.status(500).json({ error: 'Failed to create category' });
+    }
+  });
+
+  // Get stock alerts
+  app.get("/api/stock-alerts", requireAuth, async (req, res) => {
+    try {
+      const activeOnly = req.query.active !== 'false';
+      const alerts = await storage.getStockAlerts(req.user!.organizationId, activeOnly);
+      res.json(alerts);
+    } catch (error) {
+      console.error('Error fetching stock alerts:', error);
+      res.status(500).json({ error: 'Failed to fetch stock alerts' });
+    }
+  });
+
+  // Acknowledge stock alert
+  app.put("/api/stock-alerts/:id/acknowledge", requireAuth, async (req, res) => {
+    try {
+      const alertId = parseInt(req.params.id);
+      const acknowledgedAlert = await storage.acknowledgeStockAlert(alertId, req.user!.id);
+      res.json(acknowledgedAlert);
+    } catch (error) {
+      console.error('Error acknowledging stock alert:', error);
+      res.status(500).json({ error: 'Failed to acknowledge alert' });
+    }
+  });
+
+  // Get inventory transactions
+  app.get("/api/inventory-transactions", requireAuth, async (req, res) => {
+    try {
+      const partId = req.query.partId ? parseInt(req.query.partId as string) : undefined;
+      const transactions = await storage.getInventoryTransactions(req.user!.organizationId, partId);
+      res.json(transactions);
+    } catch (error) {
+      console.error('Error fetching inventory transactions:', error);
+      res.status(500).json({ error: 'Failed to fetch transactions' });
+    }
+  });
+
   // Add broadcast function to the app for use in routes
   (app as any).broadcastToWebUsers = broadcastToWebUsers;
 

@@ -10,7 +10,7 @@ import {
   inspectionTemplates, inspectionItems, inspectionRecords, inspectionResponses, inspectionNotifications,
   smsMessages, smsTemplates, sharedPhotoLinks, fileSecuritySettings, fileSecurityScans, fileAccessLogs,
   digitalSignatures, documentSignatureFields, departments, employees, employeeDocuments, timeOffRequests, performanceReviews, disciplinaryActions,
-  navigationOrder, backupSettings, backupJobs
+  navigationOrder, backupSettings, backupJobs, partsSupplies, partsCategories, inventoryTransactions, stockAlerts
 } from "@shared/schema";
 import type { GasCard, InsertGasCard, GasCardAssignment, InsertGasCardAssignment, GasCardUsage, InsertGasCardUsage, GasCardProvider, InsertGasCardProvider } from "@shared/schema";
 import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull, isNull, exists, ne, not, notInArray, lt, ilike, count, sum, avg, max, min } from "drizzle-orm";
@@ -352,6 +352,30 @@ export interface IStorage {
   getNavigationOrder(userId: number, organizationId: number): Promise<NavigationOrder | undefined>;
   saveNavigationOrder(userId: number, organizationId: number, navigationItems: string[]): Promise<NavigationOrder>;
   resetNavigationOrder(userId: number, organizationId: number): Promise<boolean>;
+
+  // Parts and Supplies Inventory methods
+  getPartsSupplies(organizationId: number): Promise<any[]>;
+  getPartSupply(id: number, organizationId: number): Promise<any>;
+  createPartSupply(partData: any): Promise<any>;
+  updatePartSupply(id: number, updates: any): Promise<any>;
+  deletePartSupply(id: number): Promise<boolean>;
+  updatePartStock(partId: number, newStock: number, userId: number, reason?: string): Promise<any>;
+
+  // Parts Categories methods
+  getPartsCategories(organizationId: number): Promise<any[]>;
+  createPartsCategory(categoryData: any): Promise<any>;
+  updatePartsCategory(id: number, updates: any): Promise<any>;
+  deletePartsCategory(id: number): Promise<boolean>;
+
+  // Inventory Transaction methods
+  getInventoryTransactions(organizationId: number, partId?: number): Promise<any[]>;
+  createInventoryTransaction(transactionData: any): Promise<any>;
+
+  // Stock Alert methods
+  getStockAlerts(organizationId: number, activeOnly?: boolean): Promise<any[]>;
+  createStockAlert(alertData: any): Promise<any>;
+  acknowledgeStockAlert(alertId: number, userId: number): Promise<any>;
+  checkAndCreateLowStockAlerts(organizationId: number): Promise<any[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -5193,6 +5217,378 @@ export class DatabaseStorage implements IStorage {
 
   async deletePlanFeatureValue(planId: number, featureId: number): Promise<void> {
     // Placeholder for dynamic features
+  }
+
+  // Parts and Supplies Inventory methods
+  async getPartsSupplies(organizationId: number): Promise<any[]> {
+    try {
+      const parts = await db
+        .select()
+        .from(partsSupplies)
+        .where(and(
+          eq(partsSupplies.organizationId, organizationId),
+          eq(partsSupplies.isActive, true)
+        ))
+        .orderBy(asc(partsSupplies.name));
+      return parts;
+    } catch (error) {
+      console.error('Error fetching parts and supplies:', error);
+      return [];
+    }
+  }
+
+  async getPartSupply(id: number, organizationId: number): Promise<any> {
+    try {
+      const [part] = await db
+        .select()
+        .from(partsSupplies)
+        .where(and(
+          eq(partsSupplies.id, id),
+          eq(partsSupplies.organizationId, organizationId)
+        ));
+      return part;
+    } catch (error) {
+      console.error('Error fetching part supply:', error);
+      return null;
+    }
+  }
+
+  async createPartSupply(partData: any): Promise<any> {
+    try {
+      const [newPart] = await db
+        .insert(partsSupplies)
+        .values({
+          ...partData,
+          isLowStock: partData.currentStock <= partData.minStockLevel,
+          isOutOfStock: partData.currentStock === 0
+        })
+        .returning();
+
+      // Check if we need to create a low stock alert
+      if (newPart.isLowStock) {
+        await this.createStockAlert({
+          organizationId: newPart.organizationId,
+          partId: newPart.id,
+          alertType: newPart.isOutOfStock ? 'OUT_OF_STOCK' : 'LOW_STOCK',
+          currentStock: newPart.currentStock,
+          minStockLevel: newPart.minStockLevel
+        });
+      }
+
+      return newPart;
+    } catch (error) {
+      console.error('Error creating part supply:', error);
+      throw error;
+    }
+  }
+
+  async updatePartSupply(id: number, updates: any): Promise<any> {
+    try {
+      const [updatedPart] = await db
+        .update(partsSupplies)
+        .set({
+          ...updates,
+          updatedAt: new Date(),
+          isLowStock: updates.currentStock !== undefined ? 
+            updates.currentStock <= (updates.minStockLevel ?? 0) : undefined,
+          isOutOfStock: updates.currentStock !== undefined ? 
+            updates.currentStock === 0 : undefined
+        })
+        .where(eq(partsSupplies.id, id))
+        .returning();
+
+      // Check if we need to create or update stock alerts
+      if (updatedPart && updates.currentStock !== undefined) {
+        await this.checkAndCreateLowStockAlerts(updatedPart.organizationId);
+      }
+
+      return updatedPart;
+    } catch (error) {
+      console.error('Error updating part supply:', error);
+      throw error;
+    }
+  }
+
+  async deletePartSupply(id: number): Promise<boolean> {
+    try {
+      await db.update(partsSupplies)
+        .set({ isActive: false, updatedAt: new Date() })
+        .where(eq(partsSupplies.id, id));
+      return true;
+    } catch (error) {
+      console.error('Error deleting part supply:', error);
+      return false;
+    }
+  }
+
+  async updatePartStock(partId: number, newStock: number, userId: number, reason?: string): Promise<any> {
+    try {
+      // Get current part
+      const [currentPart] = await db
+        .select()
+        .from(partsSupplies)
+        .where(eq(partsSupplies.id, partId));
+
+      if (!currentPart) {
+        throw new Error('Part not found');
+      }
+
+      const previousStock = currentPart.currentStock;
+      const quantity = newStock - previousStock;
+
+      // Update part stock
+      const [updatedPart] = await db
+        .update(partsSupplies)
+        .set({
+          currentStock: newStock,
+          isLowStock: newStock <= currentPart.minStockLevel,
+          isOutOfStock: newStock === 0,
+          updatedAt: new Date()
+        })
+        .where(eq(partsSupplies.id, partId))
+        .returning();
+
+      // Create inventory transaction
+      await this.createInventoryTransaction({
+        organizationId: currentPart.organizationId,
+        partId: partId,
+        transactionType: quantity > 0 ? 'IN' : 'OUT',
+        quantity: Math.abs(quantity),
+        previousStock,
+        newStock,
+        reason: reason || 'Manual adjustment',
+        createdBy: userId
+      });
+
+      // Check for low stock alerts
+      await this.checkAndCreateLowStockAlerts(currentPart.organizationId);
+
+      return updatedPart;
+    } catch (error) {
+      console.error('Error updating part stock:', error);
+      throw error;
+    }
+  }
+
+  // Parts Categories methods
+  async getPartsCategories(organizationId: number): Promise<any[]> {
+    try {
+      return await db
+        .select()
+        .from(partsCategories)
+        .where(and(
+          eq(partsCategories.organizationId, organizationId),
+          eq(partsCategories.isActive, true)
+        ))
+        .orderBy(asc(partsCategories.name));
+    } catch (error) {
+      console.error('Error fetching parts categories:', error);
+      return [];
+    }
+  }
+
+  async createPartsCategory(categoryData: any): Promise<any> {
+    try {
+      const [category] = await db
+        .insert(partsCategories)
+        .values(categoryData)
+        .returning();
+      return category;
+    } catch (error) {
+      console.error('Error creating parts category:', error);
+      throw error;
+    }
+  }
+
+  async updatePartsCategory(id: number, updates: any): Promise<any> {
+    try {
+      const [category] = await db
+        .update(partsCategories)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(eq(partsCategories.id, id))
+        .returning();
+      return category;
+    } catch (error) {
+      console.error('Error updating parts category:', error);
+      throw error;
+    }
+  }
+
+  async deletePartsCategory(id: number): Promise<boolean> {
+    try {
+      await db.update(partsCategories)
+        .set({ isActive: false, updatedAt: new Date() })
+        .where(eq(partsCategories.id, id));
+      return true;
+    } catch (error) {
+      console.error('Error deleting parts category:', error);
+      return false;
+    }
+  }
+
+  // Inventory Transaction methods
+  async getInventoryTransactions(organizationId: number, partId?: number): Promise<any[]> {
+    try {
+      let query = db
+        .select({
+          id: inventoryTransactions.id,
+          partId: inventoryTransactions.partId,
+          transactionType: inventoryTransactions.transactionType,
+          quantity: inventoryTransactions.quantity,
+          previousStock: inventoryTransactions.previousStock,
+          newStock: inventoryTransactions.newStock,
+          reason: inventoryTransactions.reason,
+          reference: inventoryTransactions.reference,
+          notes: inventoryTransactions.notes,
+          unitCost: inventoryTransactions.unitCost,
+          totalCost: inventoryTransactions.totalCost,
+          fromLocation: inventoryTransactions.fromLocation,
+          toLocation: inventoryTransactions.toLocation,
+          transactionDate: inventoryTransactions.transactionDate,
+          createdAt: inventoryTransactions.createdAt,
+          createdBy: inventoryTransactions.createdBy,
+          partName: partsSupplies.name,
+          partSku: partsSupplies.sku
+        })
+        .from(inventoryTransactions)
+        .leftJoin(partsSupplies, eq(inventoryTransactions.partId, partsSupplies.id))
+        .where(eq(inventoryTransactions.organizationId, organizationId));
+
+      if (partId) {
+        query = query.where(eq(inventoryTransactions.partId, partId));
+      }
+
+      return await query.orderBy(desc(inventoryTransactions.createdAt));
+    } catch (error) {
+      console.error('Error fetching inventory transactions:', error);
+      return [];
+    }
+  }
+
+  async createInventoryTransaction(transactionData: any): Promise<any> {
+    try {
+      const [transaction] = await db
+        .insert(inventoryTransactions)
+        .values(transactionData)
+        .returning();
+      return transaction;
+    } catch (error) {
+      console.error('Error creating inventory transaction:', error);
+      throw error;
+    }
+  }
+
+  // Stock Alert methods
+  async getStockAlerts(organizationId: number, activeOnly: boolean = true): Promise<any[]> {
+    try {
+      let query = db
+        .select({
+          id: stockAlerts.id,
+          partId: stockAlerts.partId,
+          alertType: stockAlerts.alertType,
+          currentStock: stockAlerts.currentStock,
+          minStockLevel: stockAlerts.minStockLevel,
+          isActive: stockAlerts.isActive,
+          isRead: stockAlerts.isRead,
+          acknowledgedBy: stockAlerts.acknowledgedBy,
+          acknowledgedAt: stockAlerts.acknowledgedAt,
+          createdAt: stockAlerts.createdAt,
+          partName: partsSupplies.name,
+          partSku: partsSupplies.sku,
+          partCategory: partsSupplies.category
+        })
+        .from(stockAlerts)
+        .leftJoin(partsSupplies, eq(stockAlerts.partId, partsSupplies.id))
+        .where(eq(stockAlerts.organizationId, organizationId));
+
+      if (activeOnly) {
+        query = query.where(eq(stockAlerts.isActive, true));
+      }
+
+      return await query.orderBy(desc(stockAlerts.createdAt));
+    } catch (error) {
+      console.error('Error fetching stock alerts:', error);
+      return [];
+    }
+  }
+
+  async createStockAlert(alertData: any): Promise<any> {
+    try {
+      const [alert] = await db
+        .insert(stockAlerts)
+        .values(alertData)
+        .returning();
+      return alert;
+    } catch (error) {
+      console.error('Error creating stock alert:', error);
+      throw error;
+    }
+  }
+
+  async acknowledgeStockAlert(alertId: number, userId: number): Promise<any> {
+    try {
+      const [alert] = await db
+        .update(stockAlerts)
+        .set({
+          isRead: true,
+          acknowledgedBy: userId,
+          acknowledgedAt: new Date(),
+          updatedAt: new Date()
+        })
+        .where(eq(stockAlerts.id, alertId))
+        .returning();
+      return alert;
+    } catch (error) {
+      console.error('Error acknowledging stock alert:', error);
+      throw error;
+    }
+  }
+
+  async checkAndCreateLowStockAlerts(organizationId: number): Promise<any[]> {
+    try {
+      // Get parts that are low on stock but don't have active alerts
+      const lowStockParts = await db
+        .select()
+        .from(partsSupplies)
+        .where(and(
+          eq(partsSupplies.organizationId, organizationId),
+          eq(partsSupplies.isActive, true),
+          or(
+            eq(partsSupplies.isLowStock, true),
+            eq(partsSupplies.isOutOfStock, true)
+          )
+        ));
+
+      const newAlerts = [];
+
+      for (const part of lowStockParts) {
+        // Check if there's already an active alert for this part
+        const [existingAlert] = await db
+          .select()
+          .from(stockAlerts)
+          .where(and(
+            eq(stockAlerts.partId, part.id),
+            eq(stockAlerts.isActive, true)
+          ));
+
+        if (!existingAlert) {
+          const alertType = part.isOutOfStock ? 'OUT_OF_STOCK' : 'LOW_STOCK';
+          const alert = await this.createStockAlert({
+            organizationId: part.organizationId,
+            partId: part.id,
+            alertType,
+            currentStock: part.currentStock,
+            minStockLevel: part.minStockLevel
+          });
+          newAlerts.push(alert);
+        }
+      }
+
+      return newAlerts;
+    } catch (error) {
+      console.error('Error checking and creating low stock alerts:', error);
+      return [];
+    }
   }
 }
 

@@ -47,6 +47,7 @@ import TimeClock from "@/pages/time-clock";
 import Inspections from "@/pages/inspections";
 import Weather from "@/pages/weather";
 import FileSecurity from "@/pages/file-security";
+import PartsSupplies from "@/pages/parts-supplies";
 import Login from "@/pages/login";
 import SimpleLogin from "@/pages/simple-login";
 import Landing from "@/pages/landing";
@@ -158,6 +159,7 @@ function AuthenticatedApp() {
           <Route path="/inspections" component={Inspections} />
           <Route path="/mobile-test" component={MobileTest} />
           <Route path="/users" component={Users} />
+          <Route path="/parts-supplies" component={PartsSupplies} />
           {isAdmin && <Route path="/admin-settings" component={AdminSettings} />}
           {isAdmin && <Route path="/saas-admin" component={SaasAdmin} />}
           {isAdmin && <Route path="/file-security" component={FileSecurity} />}
