@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import React, { useState, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -8,16 +8,18 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
-import { format } from "date-fns";
+import { Switch } from "@/components/ui/switch";
+import { format, subDays, subMonths, subYears } from "date-fns";
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   LineChart, Line, PieChart, Pie, Cell, AreaChart, Area
 } from "recharts";
 import { 
   TrendingUp, TrendingDown, DollarSign, Users, Target, Calculator,
-  BarChart3, Download, CalendarIcon, Filter
+  BarChart3, Download, CalendarIcon, Filter, Clock, Briefcase
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { useWebSocket } from "@/hooks/useWebSocket";
 
 // Color palette for charts
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
@@ -36,6 +38,40 @@ export default function Reports() {
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
   const [useCustomRange, setUseCustomRange] = useState(false);
+  const [realTimeUpdates, setRealTimeUpdates] = useState(true);
+  const [employeeDateRange, setEmployeeDateRange] = useState("30days");
+  const queryClient = useQueryClient();
+
+  // Helper function to get date range based on selection
+  const getDateRangeFromSelection = (range: string) => {
+    const now = new Date();
+    let start: Date, end: Date = now;
+    
+    switch (range) {
+      case '7days':
+        start = subDays(now, 7);
+        break;
+      case '30days':
+        start = subDays(now, 30);
+        break;
+      case '90days':
+        start = subDays(now, 90);
+        break;
+      case '6months':
+        start = subMonths(now, 6);
+        break;
+      case '12months':
+        start = subMonths(now, 12);
+        break;
+      case '2years':
+        start = subYears(now, 2);
+        break;
+      default:
+        start = subMonths(now, 12);
+    }
+    
+    return { start, end };
+  };
 
   // Build query parameters for date filtering
   const getQueryParams = () => {
@@ -46,6 +82,15 @@ export default function Reports() {
     } else {
       params.append('timeRange', timeRange);
     }
+    return params.toString();
+  };
+
+  // Build query parameters for employee metrics with different date range
+  const getEmployeeQueryParams = () => {
+    const params = new URLSearchParams();
+    const { start, end } = getDateRangeFromSelection(employeeDateRange);
+    params.append('startDate', start.toISOString());
+    params.append('endDate', end.toISOString());
     return params.toString();
   };
 
@@ -61,15 +106,71 @@ export default function Reports() {
     select: (data) => data || { metrics: {}, data: { invoices: [], leads: [], expenses: [], customers: [], employees: [] } }
   });
 
+  // Fetch employee metrics with separate date range
+  const { data: employeeData, isLoading: employeeLoading, refetch: refetchEmployees } = useQuery({
+    queryKey: ["/api/reports/employee-data", getEmployeeQueryParams()],
+    queryFn: async () => {
+      const params = getEmployeeQueryParams();
+      const response = await fetch(`/api/reports/data?${params}`);
+      if (!response.ok) throw new Error('Failed to fetch employee data');
+      return response.json();
+    },
+    select: (data) => data?.data?.employees || []
+  });
+
   // Extract data from consolidated response
   const salesData = reportsData?.data?.invoices || [];
   const leadsData = reportsData?.data?.leads || [];
   const expensesData = reportsData?.data?.expenses || [];
   const customersData = reportsData?.data?.customers || [];
-  const employeesData = reportsData?.data?.employees || [];
+  const employeesData = employeeData?.length ? employeeData : (reportsData?.data?.employees || []);
   
   // Use loading state from consolidated query
   const isLoading = reportsLoading;
+
+  // WebSocket connection for real-time updates
+  const { socket } = useWebSocket();
+
+  // Set up WebSocket listeners for real-time employee metrics updates
+  useEffect(() => {
+    if (!socket || !realTimeUpdates) return;
+
+    const handleTaskCompletion = (data: any) => {
+      // Invalidate employee metrics queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ["/api/reports/employee-data"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/reports/data"] });
+    };
+
+    const handleProjectAssignment = (data: any) => {
+      // Invalidate employee metrics queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ["/api/reports/employee-data"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/reports/data"] });
+    };
+
+    const handleEmployeeMetricsUpdate = (data: any) => {
+      // Update specific employee data without full refresh
+      queryClient.setQueryData(["/api/reports/employee-data", getEmployeeQueryParams()], data.employees);
+    };
+
+    // Listen for various real-time events
+    socket.on('task_completion_updated', handleTaskCompletion);
+    socket.on('task_assigned', handleTaskCompletion);
+    socket.on('project_user_assigned', handleProjectAssignment);
+    socket.on('project_users_assigned', handleProjectAssignment);
+    socket.on('employee_project_assignment_updated', handleProjectAssignment);
+    socket.on('employee_project_assignments_updated', handleProjectAssignment);
+    socket.on('employee_metrics_updated', handleEmployeeMetricsUpdate);
+
+    return () => {
+      socket.off('task_completion_updated', handleTaskCompletion);
+      socket.off('task_assigned', handleTaskCompletion);
+      socket.off('project_user_assigned', handleProjectAssignment);
+      socket.off('project_users_assigned', handleProjectAssignment);
+      socket.off('employee_project_assignment_updated', handleProjectAssignment);
+      socket.off('employee_project_assignments_updated', handleProjectAssignment);
+      socket.off('employee_metrics_updated', handleEmployeeMetricsUpdate);
+    };
+  }, [socket, realTimeUpdates, queryClient]);
 
   // Process sales data for charts
   const processSalesData = () => {
@@ -622,13 +723,105 @@ export default function Reports() {
 
         {/* Employee Performance Tab */}
         <TabsContent value="employees" className="space-y-6">
-          <div className="grid grid-cols-1 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Employee Performance Metrics</CardTitle>
-                <CardDescription>Task completion, job assignments, and performance tracking</CardDescription>
-              </CardHeader>
-              <CardContent>
+          <div className="space-y-6">
+            {/* Employee Date Range and Real-time Controls */}
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    Employee Performance Analytics
+                    {realTimeUpdates && (
+                      <div className="flex items-center gap-1 text-sm text-green-600">
+                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                        Live
+                      </div>
+                    )}
+                  </CardTitle>
+                  <CardDescription>
+                    Comprehensive employee performance metrics with real-time updates
+                  </CardDescription>
+                </div>
+                
+                <div className="flex flex-wrap items-center gap-3">
+                  {/* Real-time Updates Toggle */}
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="real-time-updates"
+                      checked={realTimeUpdates}
+                      onCheckedChange={setRealTimeUpdates}
+                    />
+                    <Label htmlFor="real-time-updates" className="text-sm">
+                      Real-time updates
+                    </Label>
+                  </div>
+                  
+                  {/* Employee Date Range Selector */}
+                  <Select value={employeeDateRange} onValueChange={setEmployeeDateRange}>
+                    <SelectTrigger className="w-40">
+                      <CalendarIcon className="h-4 w-4 mr-2" />
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="7days">Last 7 Days</SelectItem>
+                      <SelectItem value="30days">Last 30 Days</SelectItem>
+                      <SelectItem value="90days">Last 90 Days</SelectItem>
+                      <SelectItem value="6months">Last 6 Months</SelectItem>
+                      <SelectItem value="12months">Last 12 Months</SelectItem>
+                      <SelectItem value="2years">Last 2 Years</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  
+                  {/* Refresh Button */}
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => {
+                      refetchEmployees();
+                      refetch();
+                    }}
+                    disabled={employeeLoading}
+                  >
+                    <Clock className="h-4 w-4 mr-2" />
+                    {employeeLoading ? 'Refreshing...' : 'Refresh'}
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+          </Card>
+          
+          {/* Employee Metrics Table */}
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle>Employee Performance Overview</CardTitle>
+                  <CardDescription>
+                    Detailed metrics for each team member
+                    {employeeDateRange && (
+                      <span className="ml-2 text-blue-600 font-medium">
+                        ({employeeDateRange === '7days' ? 'Last 7 Days' :
+                          employeeDateRange === '30days' ? 'Last 30 Days' :
+                          employeeDateRange === '90days' ? 'Last 90 Days' :
+                          employeeDateRange === '6months' ? 'Last 6 Months' :
+                          employeeDateRange === '12months' ? 'Last 12 Months' :
+                          employeeDateRange === '2years' ? 'Last 2 Years' : 
+                          'Custom Period'})
+                      </span>
+                    )}
+                  </CardDescription>
+                </div>
+                
+                {employeeLoading && (
+                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                    Loading employee data...
+                  </div>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
                 <div className="overflow-x-auto">
                   <table className="w-full border-collapse">
                     <thead>
@@ -646,7 +839,7 @@ export default function Reports() {
                       </tr>
                     </thead>
                     <tbody>
-                      {isLoading ? (
+                      {employeeLoading ? (
                         <tr>
                           <td colSpan={10} className="text-center p-8 text-gray-500">
                             Loading employee data...
@@ -686,15 +879,15 @@ export default function Reports() {
                               </div>
                             </td>
                             <td className="text-center p-3">
-                              <div className="flex items-center justify-center">
-                                <div className={`text-sm font-medium px-2 py-1 rounded ${
-                                  employee.taskCompletionRate >= 80 
-                                    ? 'bg-green-100 text-green-700' 
-                                    : employee.taskCompletionRate >= 60 
-                                    ? 'bg-yellow-100 text-yellow-700' 
-                                    : 'bg-red-100 text-red-700'
-                                }`}>
+                              <div className="flex flex-col items-center gap-1">
+                                <div className="text-sm font-medium">
                                   {employee.taskCompletionRate}%
+                                </div>
+                                <div className="w-16 bg-gray-200 rounded-full h-2">
+                                  <div 
+                                    className="bg-blue-500 h-2 rounded-full transition-all" 
+                                    style={{ width: `${employee.taskCompletionRate}%` }}
+                                  ></div>
                                 </div>
                               </div>
                             </td>

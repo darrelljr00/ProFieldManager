@@ -3030,12 +3030,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get updated project data for WebSocket broadcast
       const updatedProject = await storage.getProject(projectId, req.user!.id);
       
-      // Broadcast project assignment update to all web users
-      broadcastToWebUsers('project_user_assigned', {
+      // Get authenticated user for organization filtering  
+      const user = getAuthenticatedUser(req);
+      
+      // Broadcast project assignment update to organization users
+      broadcastToWebUsers(user.organizationId, 'project_user_assigned', {
         projectId,
         userId: projectUserData.userId,
         role: projectUserData.role,
         project: updatedProject
+      });
+      
+      // Broadcast employee metrics update for real-time performance tracking
+      broadcastToWebUsers(user.organizationId, 'employee_project_assignment_updated', {
+        projectId,
+        userId: projectUserData.userId,
+        action: 'assigned'
       });
       
       res.status(201).json(projectUser);
@@ -3099,13 +3109,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get updated project data for WebSocket broadcast
       const updatedProject = await storage.getProject(projectId, req.user!.id);
       
-      // Broadcast project assignment update to all web users
-      broadcastToWebUsers('project_users_assigned', {
+      // Get authenticated user for organization filtering
+      const user = getAuthenticatedUser(req);
+      
+      // Broadcast project assignment update to organization users
+      broadcastToWebUsers(user.organizationId, 'project_users_assigned', {
         projectId,
         userIds,
         role,
         project: updatedProject,
         assignmentsCount: assignments.length
+      });
+      
+      // Broadcast employee metrics update for real-time performance tracking
+      broadcastToWebUsers(user.organizationId, 'employee_project_assignments_updated', {
+        projectId,
+        userIds,
+        action: 'assigned'
       });
       
       res.status(201).json({
@@ -4981,7 +5001,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       });
 
-      res.json({
+      const responseData = {
         metrics: {
           totalRevenue,
           totalLeads,
@@ -5003,7 +5023,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           startDate: startDate?.toISOString(),
           endDate: endDate?.toISOString()
         }
-      });
+      };
+
+      // Broadcast employee metrics update via WebSocket
+      try {
+        broadcastToWebUsers('employee_metrics_updated', {
+          employees: employeeMetrics,
+          metrics: responseData.metrics,
+          dateRange: responseData.dateRange,
+          organizationId: user.organizationId
+        });
+      } catch (error) {
+        console.log('WebSocket broadcast error (non-critical):', error);
+      }
+
+      res.json(responseData);
     } catch (error: any) {
       console.error("Error fetching reports data:", error);
       res.status(500).json({ message: "Failed to fetch reports data" });
@@ -7561,6 +7595,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         { ...taskData, assignedToId }, 
         req.user!.id
       );
+
+      // Broadcast new task assignment via WebSocket for real-time employee metrics
+      if (assignedToId) {
+        try {
+          broadcastToWebUsers('task_assigned', {
+            taskId: task.id,
+            assignedToId: assignedToId,
+            createdById: req.user!.id,
+            projectId: task.projectId,
+            organizationId: req.user!.organizationId
+          });
+        } catch (error) {
+          console.log('WebSocket broadcast error (non-critical):', error);
+        }
+      }
       
       res.status(201).json(task);
     } catch (error) {
@@ -7572,10 +7621,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/tasks/:id", requireAuth, async (req, res) => {
     try {
       const taskId = parseInt(req.params.id);
-      const task = await storage.updateTaskById(taskId, req.body);
+      const user = getAuthenticatedUser(req);
+      const task = await storage.updateTask(taskId, user.id, req.body);
       if (!task) {
         return res.status(404).json({ message: "Task not found" });
       }
+
+      // Broadcast task completion update via WebSocket for real-time employee metrics
+      if (req.body.isCompleted !== undefined) {
+        try {
+          broadcastToWebUsers('task_completion_updated', {
+            taskId: task.id,
+            isCompleted: task.isCompleted,
+            assignedToId: task.assignedToId,
+            completedAt: task.completedAt,
+            completedById: task.completedById,
+            organizationId: user.organizationId
+          });
+        } catch (error) {
+          console.log('WebSocket broadcast error (non-critical):', error);
+        }
+      }
+
       res.json(task);
     } catch (error) {
       console.error("Error updating task:", error);
