@@ -189,6 +189,7 @@ export interface IStorage {
   getTasksAssignedToUser(userId: number): Promise<any[]>;
   getTasks(projectId: number, userId: number): Promise<any[]>;
   getAllTasksForOrganization(organizationId: number): Promise<any[]>;
+  getAllTasks(organizationId: number): Promise<any[]>;
   createTask(taskData: any): Promise<any>;
   createTaskForOrganization(organizationId: number, taskData: any, userId: number): Promise<any>;
   canUserDelegateTask(userId: number, assignedToId: number): Promise<boolean>;
@@ -2298,6 +2299,43 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(userProjects, eq(projects.id, userProjects.projectId))
       .innerJoin(orgUsers, eq(userProjects.userId, orgUsers.id))
       .where(eq(orgUsers.organizationId, organizationId));
+    
+    return result;
+  }
+
+  async getAllTasks(organizationId: number): Promise<any[]> {
+    const result = await db
+      .select({
+        id: tasks.id,
+        title: tasks.title,
+        description: tasks.description,
+        status: tasks.status,
+        priority: tasks.priority,
+        dueDate: tasks.dueDate,
+        projectId: tasks.projectId,
+        assignedToId: tasks.assignedToId,
+        createdById: tasks.createdById,
+        createdAt: tasks.createdAt,
+        updatedAt: tasks.updatedAt,
+        isCompleted: tasks.isCompleted,
+        completedAt: tasks.completedAt,
+        isRequired: tasks.isRequired,
+        type: tasks.type,
+        assignedTo: {
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          email: users.email,
+        },
+        project: {
+          id: projects.id,
+          name: projects.name,
+        },
+      })
+      .from(tasks)
+      .leftJoin(users, eq(tasks.assignedToId, users.id))
+      .leftJoin(projects, eq(tasks.projectId, projects.id))
+      .where(eq(projects.organizationId, organizationId));
     
     return result;
   }

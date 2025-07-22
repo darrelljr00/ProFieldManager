@@ -66,6 +66,7 @@ export default function Reports() {
   const leadsData = reportsData?.data?.leads || [];
   const expensesData = reportsData?.data?.expenses || [];
   const customersData = reportsData?.data?.customers || [];
+  const employeesData = reportsData?.data?.employees || [];
   
   // Use loading state from consolidated query
   const isLoading = reportsLoading;
@@ -405,12 +406,13 @@ export default function Reports() {
 
       {/* Chart Tabs */}
       <Tabs defaultValue="sales" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="sales">Sales</TabsTrigger>
           <TabsTrigger value="leads">Leads</TabsTrigger>
           <TabsTrigger value="refunds">Refunds</TabsTrigger>
           <TabsTrigger value="close-rate">Close Rate</TabsTrigger>
           <TabsTrigger value="expenses">Expenses</TabsTrigger>
+          <TabsTrigger value="employees">Employees</TabsTrigger>
         </TabsList>
 
         {/* Sales Charts */}
@@ -615,6 +617,218 @@ export default function Reports() {
                 </ResponsiveContainer>
               </CardContent>
             </Card>
+          </div>
+        </TabsContent>
+
+        {/* Employee Performance Tab */}
+        <TabsContent value="employees" className="space-y-6">
+          <div className="grid grid-cols-1 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Employee Performance Metrics</CardTitle>
+                <CardDescription>Task completion, job assignments, and performance tracking</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="border-b bg-gray-50">
+                        <th className="text-left p-3 font-medium">Employee</th>
+                        <th className="text-center p-3 font-medium">Jobs Assigned</th>
+                        <th className="text-center p-3 font-medium">Active Projects</th>
+                        <th className="text-center p-3 font-medium">Completed Projects</th>
+                        <th className="text-center p-3 font-medium">Tasks</th>
+                        <th className="text-center p-3 font-medium">Completion Rate</th>
+                        <th className="text-center p-3 font-medium">Overdue Tasks</th>
+                        <th className="text-center p-3 font-medium">Days Late</th>
+                        <th className="text-center p-3 font-medium">Days Called Off</th>
+                        <th className="text-center p-3 font-medium">Role</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {isLoading ? (
+                        <tr>
+                          <td colSpan={10} className="text-center p-8 text-gray-500">
+                            Loading employee data...
+                          </td>
+                        </tr>
+                      ) : employeesData.length === 0 ? (
+                        <tr>
+                          <td colSpan={10} className="text-center p-8 text-gray-500">
+                            No employee data available
+                          </td>
+                        </tr>
+                      ) : (
+                        employeesData.map((employee: any) => (
+                          <tr key={employee.id} className="border-b hover:bg-gray-50">
+                            <td className="p-3">
+                              <div>
+                                <div className="font-medium">{employee.name}</div>
+                                <div className="text-sm text-gray-500">{employee.email}</div>
+                              </div>
+                            </td>
+                            <td className="text-center p-3">
+                              <Badge variant="outline">{employee.jobsAssigned}</Badge>
+                            </td>
+                            <td className="text-center p-3">
+                              <Badge variant="default" className="bg-blue-100 text-blue-700">
+                                {employee.activeProjects}
+                              </Badge>
+                            </td>
+                            <td className="text-center p-3">
+                              <Badge variant="default" className="bg-green-100 text-green-700">
+                                {employee.completedProjects}
+                              </Badge>
+                            </td>
+                            <td className="text-center p-3">
+                              <div className="text-sm">
+                                <div>{employee.tasksCompleted}/{employee.tasksTotal}</div>
+                              </div>
+                            </td>
+                            <td className="text-center p-3">
+                              <div className="flex items-center justify-center">
+                                <div className={`text-sm font-medium px-2 py-1 rounded ${
+                                  employee.taskCompletionRate >= 80 
+                                    ? 'bg-green-100 text-green-700' 
+                                    : employee.taskCompletionRate >= 60 
+                                    ? 'bg-yellow-100 text-yellow-700' 
+                                    : 'bg-red-100 text-red-700'
+                                }`}>
+                                  {employee.taskCompletionRate}%
+                                </div>
+                              </div>
+                            </td>
+                            <td className="text-center p-3">
+                              {employee.overdueTasks > 0 ? (
+                                <Badge variant="destructive">{employee.overdueTasks}</Badge>
+                              ) : (
+                                <Badge variant="outline">0</Badge>
+                              )}
+                            </td>
+                            <td className="text-center p-3">
+                              {employee.daysLate > 0 ? (
+                                <Badge variant="destructive">{employee.daysLate}</Badge>
+                              ) : (
+                                <Badge variant="outline">0</Badge>
+                              )}
+                            </td>
+                            <td className="text-center p-3">
+                              <Badge variant="outline">{employee.daysCalledOff}</Badge>
+                            </td>
+                            <td className="text-center p-3">
+                              <Badge variant="secondary">{employee.role}</Badge>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Employee Performance Charts */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Task Completion Rates</CardTitle>
+                  <CardDescription>Employee task completion performance</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={employeesData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis 
+                        dataKey="name" 
+                        angle={-45}
+                        textAnchor="end"
+                        height={100}
+                        interval={0}
+                      />
+                      <YAxis />
+                      <Tooltip />
+                      <Bar dataKey="taskCompletionRate" fill="#0088FE" name="Completion Rate %" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Project Assignments</CardTitle>
+                  <CardDescription>Active vs completed projects per employee</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={employeesData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis 
+                        dataKey="name" 
+                        angle={-45}
+                        textAnchor="end"
+                        height={100}
+                        interval={0}
+                      />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="activeProjects" fill="#00C49F" name="Active Projects" />
+                      <Bar dataKey="completedProjects" fill="#0088FE" name="Completed Projects" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Performance Issues</CardTitle>
+                  <CardDescription>Overdue tasks and days late tracking</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={employeesData.filter((emp: any) => emp.overdueTasks > 0 || emp.daysLate > 0)}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis 
+                        dataKey="name" 
+                        angle={-45}
+                        textAnchor="end"
+                        height={100}
+                        interval={0}
+                      />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="overdueTasks" fill="#FF8042" name="Overdue Tasks" />
+                      <Bar dataKey="daysLate" fill="#FF0000" name="Days Late" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Time Off Summary</CardTitle>
+                  <CardDescription>Days called off during reporting period</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={employeesData.filter((emp: any) => emp.daysCalledOff > 0)}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis 
+                        dataKey="name" 
+                        angle={-45}
+                        textAnchor="end"
+                        height={100}
+                        interval={0}
+                      />
+                      <YAxis />
+                      <Tooltip />
+                      <Bar dataKey="daysCalledOff" fill="#FFBB28" name="Days Called Off" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </TabsContent>
       </Tabs>
