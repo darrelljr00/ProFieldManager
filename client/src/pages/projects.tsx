@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Calendar, Users, CheckCircle, Clock, AlertCircle, Folder, Settings, MapPin, Route, Star, Smartphone, Eye, Image, FileText, CheckSquare, Upload, Camera, DollarSign, Download, Trash2, Archive, User as UserIcon } from "lucide-react";
+import { Plus, Calendar, Users, CheckCircle, Clock, AlertCircle, Folder, Settings, MapPin, Route, Star, Smartphone, Eye, Image, FileText, CheckSquare, Upload, Camera, DollarSign, Download, Trash2, Archive, User as UserIcon, Search, Filter, X } from "lucide-react";
 import { Link } from "wouter";
 import { format } from "date-fns";
 import type { Project, Customer, User } from "@shared/schema";
@@ -461,6 +461,14 @@ export default function Jobs() {
   const [includeWaivers, setIncludeWaivers] = useState(false);
   const [selectedWaivers, setSelectedWaivers] = useState<number[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Search and filter states for completed jobs
+  const [searchQuery, setSearchQuery] = useState("");
+  const [dateFilter, setDateFilter] = useState("");
+  const [cityFilter, setCityFilter] = useState("");
+  const [stateFilter, setStateFilter] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -811,6 +819,26 @@ export default function Jobs() {
     }
   };
 
+  // Filter completed jobs based on search criteria
+  const filterCompletedJobs = (jobs: ProjectWithDetails[]) => {
+    return jobs.filter(job => {
+      const matchesSearch = !searchQuery || 
+        job.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (job.description && job.description.toLowerCase().includes(searchQuery.toLowerCase()));
+      
+      const matchesDate = !dateFilter || 
+        (job.endDate && new Date(job.endDate).toISOString().split('T')[0] === dateFilter);
+      
+      const matchesCity = !cityFilter || 
+        (job.city && job.city.toLowerCase().includes(cityFilter.toLowerCase()));
+      
+      const matchesState = !stateFilter || 
+        (job.state && job.state.toLowerCase().includes(stateFilter.toLowerCase()));
+
+      return matchesSearch && matchesDate && matchesCity && matchesState;
+    });
+  };
+
   const categorizeJobs = () => {
     const upcoming = jobs.filter(job => 
       job.status === 'planning' || 
@@ -823,16 +851,19 @@ export default function Jobs() {
       job.progress < 100
     );
     
-    const completed = jobs.filter(job => 
+    const allCompleted = jobs.filter(job => 
       job.status === 'completed' || 
       job.status === 'delivered' || 
       job.progress === 100
     );
 
-    return { upcoming, inProgress, completed };
+    // Apply search filters to completed jobs
+    const completed = filterCompletedJobs(allCompleted);
+
+    return { upcoming, inProgress, completed, allCompleted };
   };
 
-  const { upcoming, inProgress, completed } = categorizeJobs();
+  const { upcoming, inProgress, completed, allCompleted } = categorizeJobs();
 
   const renderJobGrid = (jobList: ProjectWithDetails[], emptyMessage: string) => {
     if (jobList.length === 0) {
@@ -1442,6 +1473,11 @@ export default function Jobs() {
             <TabsTrigger value="completed" className="flex items-center gap-2">
               <CheckCircle className="h-4 w-4" />
               Completed ({completed.length})
+              {(searchQuery || dateFilter || cityFilter || stateFilter) && completed.length !== allCompleted.length && (
+                <Badge variant="secondary" className="text-xs ml-1">
+                  filtered
+                </Badge>
+              )}
             </TabsTrigger>
             <TabsTrigger value="historical" className="flex items-center gap-2">
               <Archive className="h-4 w-4" />
@@ -1461,8 +1497,115 @@ export default function Jobs() {
             {renderJobGrid(inProgress, "No jobs in progress")}
           </TabsContent>
 
-          <TabsContent value="completed">
-            {renderJobGrid(completed, "No completed jobs")}
+          <TabsContent value="completed" className="space-y-4">
+            {/* Search and Filter Controls for Completed Jobs */}
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+                <div className="relative flex-1 max-w-md">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Input
+                    placeholder="Search completed jobs by name..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
+                  {searchQuery && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+                      onClick={() => setSearchQuery("")}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-sm">
+                    {completed.length} of {allCompleted.length} jobs
+                  </Badge>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowFilters(!showFilters)}
+                    className="flex items-center gap-2"
+                  >
+                    <Filter className="h-4 w-4" />
+                    Filters
+                    {(dateFilter || cityFilter || stateFilter) && (
+                      <Badge variant="destructive" className="h-5 w-5 p-0 text-xs rounded-full">
+                        {[dateFilter, cityFilter, stateFilter].filter(Boolean).length}
+                      </Badge>
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Filter Inputs */}
+              {showFilters && (
+                <Card className="p-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <Label htmlFor="date-filter" className="text-sm font-medium">
+                        Completion Date
+                      </Label>
+                      <Input
+                        id="date-filter"
+                        type="date"
+                        value={dateFilter}
+                        onChange={(e) => setDateFilter(e.target.value)}
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="city-filter" className="text-sm font-medium">
+                        City
+                      </Label>
+                      <Input
+                        id="city-filter"
+                        placeholder="Filter by city..."
+                        value={cityFilter}
+                        onChange={(e) => setCityFilter(e.target.value)}
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="state-filter" className="text-sm font-medium">
+                        State
+                      </Label>
+                      <Input
+                        id="state-filter"
+                        placeholder="Filter by state..."
+                        value={stateFilter}
+                        onChange={(e) => setStateFilter(e.target.value)}
+                        className="mt-1"
+                      />
+                    </div>
+                  </div>
+                  {(dateFilter || cityFilter || stateFilter) && (
+                    <div className="mt-3 pt-3 border-t flex justify-end">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setDateFilter("");
+                          setCityFilter("");
+                          setStateFilter("");
+                        }}
+                      >
+                        Clear Filters
+                      </Button>
+                    </div>
+                  )}
+                </Card>
+              )}
+            </div>
+
+            {/* Completed Jobs Grid */}
+            {renderJobGrid(completed, searchQuery || dateFilter || cityFilter || stateFilter 
+              ? "No completed jobs match your search criteria" 
+              : "No completed jobs"
+            )}
           </TabsContent>
 
           <TabsContent value="historical">
