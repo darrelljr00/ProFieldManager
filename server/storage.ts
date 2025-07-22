@@ -2320,11 +2320,15 @@ export class DatabaseStorage implements IStorage {
           updatedAt: tasks.updatedAt,
           isCompleted: tasks.isCompleted,
           completedAt: tasks.completedAt,
+          completedById: tasks.completedById,
           isRequired: tasks.isRequired,
           type: tasks.type,
+          textValue: tasks.textValue,
+          numberValue: tasks.numberValue,
+          imagePath: tasks.imagePath,
         })
         .from(tasks)
-        .leftJoin(projects, eq(tasks.projectId, projects.id))
+        .innerJoin(projects, eq(tasks.projectId, projects.id))
         .where(eq(projects.organizationId, organizationId));
       
       return result;
