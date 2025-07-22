@@ -13,7 +13,7 @@ import {
   navigationOrder, backupSettings, backupJobs
 } from "@shared/schema";
 import type { GasCard, InsertGasCard, GasCardAssignment, InsertGasCardAssignment, GasCardUsage, InsertGasCardUsage, GasCardProvider, InsertGasCardProvider } from "@shared/schema";
-import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull, isNull, exists } from "drizzle-orm";
+import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull, isNull, exists, ne, not, notInArray, lt, ilike, count, sum, avg, max, min } from "drizzle-orm";
 import type { 
   User, Customer, Invoice, Quote, Project, Task, 
   Expense, ExpenseCategory, ExpenseReport, GasCard,
@@ -2304,40 +2304,34 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllTasks(organizationId: number): Promise<any[]> {
-    const result = await db
-      .select({
-        id: tasks.id,
-        title: tasks.title,
-        description: tasks.description,
-        status: tasks.status,
-        priority: tasks.priority,
-        dueDate: tasks.dueDate,
-        projectId: tasks.projectId,
-        assignedToId: tasks.assignedToId,
-        createdById: tasks.createdById,
-        createdAt: tasks.createdAt,
-        updatedAt: tasks.updatedAt,
-        isCompleted: tasks.isCompleted,
-        completedAt: tasks.completedAt,
-        isRequired: tasks.isRequired,
-        type: tasks.type,
-        assignedTo: {
-          id: users.id,
-          firstName: users.firstName,
-          lastName: users.lastName,
-          email: users.email,
-        },
-        project: {
-          id: projects.id,
-          name: projects.name,
-        },
-      })
-      .from(tasks)
-      .leftJoin(users, eq(tasks.assignedToId, users.id))
-      .leftJoin(projects, eq(tasks.projectId, projects.id))
-      .where(eq(projects.organizationId, organizationId));
-    
-    return result;
+    try {
+      const result = await db
+        .select({
+          id: tasks.id,
+          title: tasks.title,
+          description: tasks.description,
+          status: tasks.status,
+          priority: tasks.priority,
+          dueDate: tasks.dueDate,
+          projectId: tasks.projectId,
+          assignedToId: tasks.assignedToId,
+          createdById: tasks.createdById,
+          createdAt: tasks.createdAt,
+          updatedAt: tasks.updatedAt,
+          isCompleted: tasks.isCompleted,
+          completedAt: tasks.completedAt,
+          isRequired: tasks.isRequired,
+          type: tasks.type,
+        })
+        .from(tasks)
+        .leftJoin(projects, eq(tasks.projectId, projects.id))
+        .where(eq(projects.organizationId, organizationId));
+      
+      return result;
+    } catch (error) {
+      console.error('Error in getAllTasks:', error);
+      return [];
+    }
   }
 
   async updateTask(id: number, userId: number, updates: any): Promise<any> {
@@ -4150,20 +4144,22 @@ export class DatabaseStorage implements IStorage {
   // Time off request methods
   async getTimeOffRequests(organizationId: number, employeeId?: number): Promise<TimeOffRequest[]> {
     try {
-      let query = db
-        .select()
-        .from(timeOffRequests)
-        .where(eq(timeOffRequests.organizationId, organizationId));
+      const whereConditions = [eq(timeOffRequests.organizationId, organizationId)];
       
       if (employeeId) {
-        query = query.where(eq(timeOffRequests.employeeId, employeeId));
+        whereConditions.push(eq(timeOffRequests.employeeId, employeeId));
       }
       
-      const requests = await query.orderBy(desc(timeOffRequests.requestedAt));
+      const requests = await db
+        .select()
+        .from(timeOffRequests)
+        .where(and(...whereConditions))
+        .orderBy(desc(timeOffRequests.requestedAt));
+        
       return requests;
     } catch (error) {
       console.error('Error getting time off requests:', error);
-      throw error;
+      return [];
     }
   }
 

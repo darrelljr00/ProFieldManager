@@ -58,7 +58,7 @@ export default function Reports() {
       if (!response.ok) throw new Error('Failed to fetch reports data');
       return response.json();
     },
-    select: (data) => data || { metrics: {}, data: { invoices: [], leads: [], expenses: [], customers: [] } }
+    select: (data) => data || { metrics: {}, data: { invoices: [], leads: [], expenses: [], customers: [], employees: [] } }
   });
 
   // Extract data from consolidated response

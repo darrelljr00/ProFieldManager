@@ -4906,7 +4906,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .reduce((sum: number, invoice: any) => sum + parseFloat(invoice.totalAmount || 0), 0);
 
       // Get employee performance metrics
-      const users = await storage.getUsers(organizationId);
+      const users = await storage.getUsersByOrganization(organizationId);
       const projects = await storage.getProjects(organizationId);
       const tasks = await storage.getAllTasks(organizationId);
       const timeOffRequests = await storage.getTimeOffRequests(organizationId);
@@ -4953,11 +4953,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ? Math.round((completedTasks.length / userTasks.length) * 100) 
           : 0;
 
+        // Get display name with fallback
+        const displayName = user.firstName && user.lastName 
+          ? `${user.firstName} ${user.lastName}`
+          : user.firstName || user.lastName || user.username;
+
+        // Get role title with proper formatting
+        const roleTitle = user.role === 'admin' ? 'Administrator' 
+          : user.role === 'manager' ? 'Manager'
+          : user.role === 'user' ? 'Employee'
+          : user.role || 'User';
+
         return {
           id: user.id,
-          name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username,
+          name: displayName,
           email: user.email,
-          role: user.role,
+          role: roleTitle,
           jobsAssigned: assignedProjects.length,
           tasksTotal: userTasks.length,
           tasksCompleted: completedTasks.length,
