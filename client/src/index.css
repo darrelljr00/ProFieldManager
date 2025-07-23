@@ -121,4 +121,16 @@
   .mobile-button-group {
     @apply flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2;
   }
+
+  /* Photo button green styling with high specificity */
+  .photo-button-green {
+    background-color: #16a34a !important;
+    color: white !important;
+    border-color: #16a34a !important;
+  }
+  
+  .photo-button-green:hover {
+    background-color: #15803d !important;
+    border-color: #15803d !important;
+  }
 }

@@ -648,14 +648,14 @@ export default function ProjectDetail() {
             <div className="flex gap-2">
               <Button 
                 onClick={() => setShowMobileCamera(true)}
-                className="bg-green-600 hover:bg-green-700 text-white border-green-600 hover:border-green-700"
+                className="photo-button-green"
               >
                 <Smartphone className="h-4 w-4 mr-2" />
                 Take Photo
               </Button>
               <Dialog open={fileDialogOpen} onOpenChange={setFileDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button className="bg-green-600 hover:bg-green-700 text-white border-green-600 hover:border-green-700">
+                  <Button className="photo-button-green">
                     <Upload className="h-4 w-4 mr-2" />
                     Upload File
                   </Button>

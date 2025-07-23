@@ -488,7 +488,7 @@ export default function ImageGallery() {
           </Button>
           <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-green-600 hover:bg-green-700 text-white border-green-600 hover:border-green-700">
+              <Button className="photo-button-green">
                 <Upload className="h-4 w-4 mr-2" />
                 Upload Image
               </Button>
@@ -893,7 +893,7 @@ export default function ImageGallery() {
               <Button variant="outline" onClick={() => setIsCollageOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleCreateCollageFile} className="bg-green-600 hover:bg-green-700 text-white border-green-600 hover:border-green-700">
+              <Button onClick={handleCreateCollageFile} className="photo-button-green">
                 <ImageIcon className="h-4 w-4 mr-2" />
                 Create Collage
               </Button>
