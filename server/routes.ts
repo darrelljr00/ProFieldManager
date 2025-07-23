@@ -7682,6 +7682,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update project-specific task
+  app.put("/api/projects/:projectId/tasks/:taskId", requireAuth, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      const taskId = parseInt(req.params.taskId);
+      const user = getAuthenticatedUser(req);
+      
+      // Check if task exists and belongs to this project
+      const task = await storage.getTaskById(taskId);
+      if (!task) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+      
+      if (task.projectId !== projectId) {
+        return res.status(403).json({ message: "Task does not belong to this project" });
+      }
+      
+      const updatedTask = await storage.updateTask(taskId, req.body);
+      if (!updatedTask) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+      
+      res.json(updatedTask);
+    } catch (error: any) {
+      console.error("Error updating project task:", error);
+      res.status(500).json({ message: "Failed to update project task" });
+    }
+  });
+
+  // Delete project-specific task
+  app.delete("/api/projects/:projectId/tasks/:taskId", requireAuth, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      const taskId = parseInt(req.params.taskId);
+      const user = getAuthenticatedUser(req);
+      
+      // Check if task exists and belongs to this project
+      const task = await storage.getTaskById(taskId);
+      if (!task) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+      
+      if (task.projectId !== projectId) {
+        return res.status(403).json({ message: "Task does not belong to this project" });
+      }
+      
+      // Only allow deletion by creator or admin/manager
+      const canDelete = task.createdById === user.id || user.role === 'admin' || user.role === 'manager';
+      
+      if (!canDelete) {
+        return res.status(403).json({ message: "Not authorized to delete this task" });
+      }
+      
+      const deleted = await storage.deleteTask(taskId);
+      if (!deleted) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+      
+      res.json({ message: "Task deleted successfully" });
+    } catch (error: any) {
+      console.error("Error deleting project task:", error);
+      res.status(500).json({ message: "Failed to delete project task" });
+    }
+  });
+
 
 
 

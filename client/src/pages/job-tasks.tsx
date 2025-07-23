@@ -117,7 +117,7 @@ export default function JobTasks() {
   // Update task mutation
   const updateTaskMutation = useMutation({
     mutationFn: ({ taskId, updates }: { taskId: number; updates: any }) => 
-      apiRequest('PUT', `/api/tasks/${taskId}`, updates),
+      apiRequest('PUT', `/api/projects/${projectId}/tasks/${taskId}`, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'tasks'] });
       setEditingTask(null);
@@ -137,7 +137,7 @@ export default function JobTasks() {
 
   // Delete task mutation
   const deleteTaskMutation = useMutation({
-    mutationFn: (taskId: number) => apiRequest('DELETE', `/api/tasks/${taskId}`),
+    mutationFn: (taskId: number) => apiRequest('DELETE', `/api/projects/${projectId}/tasks/${taskId}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'tasks'] });
       toast({
