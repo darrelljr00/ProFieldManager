@@ -114,7 +114,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
         return res.status(401).json({ message: "Invalid or expired session" });
       }
 
-      // Attach user to request
+      // Attach user to request - include all permission fields from database
       req.user = {
         id: sessionData.user.id,
         username: sessionData.user.username,
@@ -123,6 +123,35 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
         firstName: sessionData.user.firstName || undefined,
         lastName: sessionData.user.lastName || undefined,
         organizationId: sessionData.user.organizationId,
+        // Include all permission fields exactly as they are in the database (snake_case)
+        can_access_dashboard: sessionData.user.canAccessDashboard,
+        can_access_calendar: sessionData.user.canAccessCalendar,
+        can_access_time_clock: sessionData.user.canAccessTimeClock,
+        can_access_jobs: sessionData.user.canAccessJobs,
+        can_access_my_tasks: sessionData.user.canAccessMyTasks,
+        can_access_leads: sessionData.user.canAccessLeads,
+        can_access_expenses: sessionData.user.canAccessExpenses,
+        can_access_quotes: sessionData.user.canAccessQuotes,
+        can_access_invoices: sessionData.user.canAccessInvoices,
+        can_access_customers: sessionData.user.canAccessCustomers,
+        can_access_payments: sessionData.user.canAccessPayments,
+        can_access_file_manager: sessionData.user.canAccessFileManager,
+        can_access_parts: sessionData.user.canAccessParts,
+        can_access_form_builder: sessionData.user.canAccessFormBuilder,
+        can_access_inspections: sessionData.user.canAccessInspections,
+        can_access_internal_messages: sessionData.user.canAccessInternalMessages,
+        can_access_team_messages: sessionData.user.canAccessTeamMessages,
+        can_access_image_gallery: sessionData.user.canAccessImageGallery,
+        can_access_sms: sessionData.user.canAccessSms,
+        can_access_messages: sessionData.user.canAccessMessages,
+        can_access_gps_tracking: sessionData.user.canAccessGpsTracking,
+        can_access_weather: sessionData.user.canAccessWeather,
+        can_access_reviews: sessionData.user.canAccessReviews,
+        can_access_hr: sessionData.user.canAccessHr,
+        can_access_users: sessionData.user.canAccessUsers,
+        can_access_saas_admin: sessionData.user.canAccessSaasAdmin,
+        can_access_admin_settings: sessionData.user.canAccessAdminSettings,
+        can_access_reports: sessionData.user.canAccessReports,
       };
 
       next();

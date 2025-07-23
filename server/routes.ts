@@ -1140,7 +1140,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get("/api/auth/me", requireAuth, async (req, res) => {
-    res.json({ user: req.user });
+    // Transform snake_case database fields to camelCase for frontend consistency
+    const user = req.user;
+    const transformedUser = {
+      ...user,
+      // Transform all permission fields from snake_case to camelCase
+      canAccessDashboard: user.can_access_dashboard,
+      canAccessCalendar: user.can_access_calendar,
+      canAccessTimeClock: user.can_access_time_clock,
+      canAccessJobs: user.can_access_jobs,
+      canAccessMyTasks: user.can_access_my_tasks,
+      canAccessLeads: user.can_access_leads,
+      canAccessExpenses: user.can_access_expenses,
+      canAccessQuotes: user.can_access_quotes,
+      canAccessInvoices: user.can_access_invoices,
+      canAccessCustomers: user.can_access_customers,
+      canAccessPayments: user.can_access_payments,
+      canAccessFileManager: user.can_access_file_manager,
+      canAccessParts: user.can_access_parts,
+      canAccessFormBuilder: user.can_access_form_builder,
+      canAccessInspections: user.can_access_inspections,
+      canAccessInternalMessages: user.can_access_internal_messages,
+      canAccessTeamMessages: user.can_access_team_messages,
+      canAccessImageGallery: user.can_access_image_gallery,
+      canAccessSMS: user.can_access_sms,
+      canAccessMessages: user.can_access_messages,
+      canAccessGpsTracking: user.can_access_gps_tracking,
+      canAccessWeather: user.can_access_weather,
+      canAccessReviews: user.can_access_reviews,
+      canAccessHR: user.can_access_hr,
+      canAccessUsers: user.can_access_users,
+      canAccessSaasAdmin: user.can_access_saas_admin,
+      canAccessAdminSettings: user.can_access_admin_settings,
+      canAccessReports: user.can_access_reports,
+      // Keep original snake_case fields for backward compatibility if needed
+    };
+    
+    res.json({ user: transformedUser });
   });
 
   // Seed database with sample data (development only) - BEFORE auth middleware
