@@ -2058,6 +2058,80 @@ export class DatabaseStorage implements IStorage {
     return results.length > 0 ? results[0] : null;
   }
 
+  // Get all inspection records for organization (Manager/Admin only)
+  async getAllOrganizationInspectionRecords(organizationId: number, type?: string): Promise<any[]> {
+    let query = db
+      .select({
+        id: inspectionRecords.id,
+        userId: inspectionRecords.userId,
+        templateId: inspectionRecords.templateId,
+        type: inspectionRecords.type,
+        vehicleInfo: inspectionRecords.vehicleInfo,
+        status: inspectionRecords.status,
+        submittedAt: inspectionRecords.submittedAt,
+        reviewedBy: inspectionRecords.reviewedBy,
+        reviewedAt: inspectionRecords.reviewedAt,
+        reviewNotes: inspectionRecords.reviewNotes,
+        location: inspectionRecords.location,
+        photos: inspectionRecords.photos,
+        signature: inspectionRecords.signature,
+        createdAt: inspectionRecords.createdAt,
+        templateName: inspectionTemplates.name,
+        reviewerName: users.firstName,
+        technicianName: sql<string>`COALESCE(CONCAT(${users.firstName}, ' ', ${users.lastName}), ${users.username})`.as('technicianName'),
+        technicianEmail: users.email
+      })
+      .from(inspectionRecords)
+      .innerJoin(inspectionTemplates, eq(inspectionRecords.templateId, inspectionTemplates.id))
+      .leftJoin(users, eq(inspectionRecords.reviewedBy, users.id))
+      .innerJoin(sql`${users} AS technician_user`, sql`${inspectionRecords.userId} = technician_user.id`)
+      .where(eq(inspectionRecords.organizationId, organizationId))
+      .orderBy(desc(inspectionRecords.createdAt));
+
+    if (type) {
+      query = query.where(and(
+        eq(inspectionRecords.organizationId, organizationId),
+        eq(inspectionRecords.type, type)
+      ));
+    }
+
+    return await query;
+  }
+
+  // Get specific inspection record for organization (Manager/Admin only)
+  async getOrganizationInspectionRecord(recordId: number, organizationId: number): Promise<any> {
+    const results = await db
+      .select({
+        id: inspectionRecords.id,
+        userId: inspectionRecords.userId,
+        templateId: inspectionRecords.templateId,
+        type: inspectionRecords.type,
+        vehicleInfo: inspectionRecords.vehicleInfo,
+        status: inspectionRecords.status,
+        submittedAt: inspectionRecords.submittedAt,
+        reviewedBy: inspectionRecords.reviewedBy,
+        reviewedAt: inspectionRecords.reviewedAt,
+        reviewNotes: inspectionRecords.reviewNotes,
+        location: inspectionRecords.location,
+        photos: inspectionRecords.photos,
+        signature: inspectionRecords.signature,
+        createdAt: inspectionRecords.createdAt,
+        templateName: inspectionTemplates.name,
+        technicianName: sql<string>`COALESCE(CONCAT(${users.firstName}, ' ', ${users.lastName}), ${users.username})`.as('technicianName'),
+        technicianEmail: users.email
+      })
+      .from(inspectionRecords)
+      .innerJoin(inspectionTemplates, eq(inspectionRecords.templateId, inspectionTemplates.id))
+      .innerJoin(users, eq(inspectionRecords.userId, users.id))
+      .where(and(
+        eq(inspectionRecords.id, recordId),
+        eq(inspectionRecords.organizationId, organizationId)
+      ))
+      .limit(1);
+
+    return results.length > 0 ? results[0] : null;
+  }
+
   async getInspectionResponses(recordId: number): Promise<any[]> {
     return await db
       .select({
