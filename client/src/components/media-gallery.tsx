@@ -531,9 +531,8 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
         <div className="flex items-center gap-2">
           <Button
             onClick={() => setShowMobileCamera(true)}
-            variant="outline"
             size="sm"
-            className="bg-green-600 hover:bg-green-700 text-white border-green-600"
+            className="bg-green-600 hover:bg-green-700 text-white border-green-600 hover:border-green-700"
           >
             <Smartphone className="h-4 w-4 mr-2" />
             Take Photo
