@@ -113,10 +113,24 @@ export default function ProjectDetail() {
     staleTime: 0, // Always fetch fresh data
     gcTime: 0, // Don't cache to prevent stale data issues (v5 syntax)
     refetchOnMount: true,
-    onSuccess: (data) => {
-      console.log(`Project detail tasks fetched for project ${projectId}:`, data);
-    },
   });
+
+  // Debug: Log task data and detect if project data is being displayed as tasks
+  useEffect(() => {
+    console.log(`TASK DEBUG - Project ${projectId} tasks:`, tasks);
+    console.log(`TASK DEBUG - Tasks length: ${tasks.length}`);
+    console.log(`TASK DEBUG - Task data type check:`, tasks.map(t => ({
+      id: t.id, 
+      title: t.title, 
+      hasProjectId: 'projectId' in t,
+      hasTaskFields: 'type' in t && 'isRequired' in t
+    })));
+    
+    // Alert if project data is being returned instead of task data
+    if (tasks.length > 0 && !tasks[0].hasOwnProperty('type')) {
+      console.error('ERROR: Project data being displayed as tasks!', tasks);
+    }
+  }, [tasks, projectId]);
 
   const { data: files = [] } = useQuery<ProjectFile[]>({
     queryKey: ["/api/projects", projectId, "files"],

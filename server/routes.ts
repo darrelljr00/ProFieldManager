@@ -3190,6 +3190,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const projectId = parseInt(req.params.id);
       const userId = req.user!.id;
       const tasks = await storage.getTasks(projectId, userId);
+      console.log(`TASKS DEBUG - Project ${projectId} tasks fetched:`, tasks.length, 'tasks');
+      console.log(`TASKS DEBUG - Sample task data:`, tasks[0] || 'No tasks');
       res.json(tasks);
     } catch (error: any) {
       console.error("Error fetching tasks:", error);
