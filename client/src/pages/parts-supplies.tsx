@@ -113,6 +113,7 @@ export default function PartsSuppliesPage() {
 
   // Calculate inventory stats
   const partsArray = Array.isArray(partsSupplies) ? partsSupplies : [];
+  const alertsArray = Array.isArray(stockAlerts) ? stockAlerts : [];
   const totalParts = partsArray.length;
   const lowStockParts = partsArray.filter((part: any) => part.isLowStock).length;
   const outOfStockParts = partsArray.filter((part: any) => part.isOutOfStock).length;
@@ -504,12 +505,12 @@ export default function PartsSuppliesPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {stockAlerts.length === 0 ? (
+                {alertsArray.length === 0 ? (
                   <p className="text-center text-muted-foreground py-8">
                     No stock alerts. All inventory levels are adequate.
                   </p>
                 ) : (
-                  stockAlerts.map((alert: any) => (
+                  alertsArray.map((alert: any) => (
                     <div key={alert.id} className="flex items-center justify-between p-4 border rounded-lg">
                       <div className="flex items-center space-x-3">
                         <AlertTriangle className={`h-5 w-5 ${
