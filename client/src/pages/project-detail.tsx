@@ -73,17 +73,20 @@ export default function ProjectDetail() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  // Clear ALL task-related cache on component mount to ensure fresh data
+  // Clear ALL cache completely on component mount to ensure fresh data
   useEffect(() => {
     if (projectId) {
-      // Clear all possible task cache variations
+      // Clear ALL possible cache variations aggressively
+      queryClient.clear(); // Nuclear option - clear all cache
       queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'tasks'] });
       queryClient.removeQueries({ queryKey: ['/api/projects', projectId, 'tasks'] });
       queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
       queryClient.removeQueries({ queryKey: ['/api/tasks'] });
       queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
-      // Force refetch
-      queryClient.refetchQueries({ queryKey: ['/api/projects', projectId, 'tasks'] });
+      // Force immediate refetch
+      setTimeout(() => {
+        queryClient.refetchQueries({ queryKey: ['/api/projects', projectId, 'tasks'] });
+      }, 100);
     }
   }, [projectId, queryClient]);
 
