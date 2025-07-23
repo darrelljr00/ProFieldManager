@@ -1044,7 +1044,26 @@ export default function Jobs() {
         <div className="flex gap-2">
           {isMobile && (
             <Button 
-              onClick={() => setShowMobileCamera(true)}
+              onClick={() => {
+                if (jobs?.length === 0) {
+                  toast({
+                    title: "No Jobs Available",
+                    description: "Create a job first before taking photos",
+                    variant: "destructive"
+                  });
+                  return;
+                }
+                // Show project selection first, then camera
+                if (jobs?.length === 1) {
+                  setSelectedProject(jobs[0]);
+                  setShowMobileCamera(true);
+                } else {
+                  toast({
+                    title: "Select a Job",
+                    description: "Open a job first to add photos to it",
+                  });
+                }
+              }}
               className="photo-button-green"
               size="sm"
             >
@@ -1622,13 +1641,43 @@ export default function Jobs() {
       <MobileCamera
         isOpen={showMobileCamera}
         onClose={() => setShowMobileCamera(false)}
-        onPhotoTaken={(file) => {
-          console.log('Photo taken for job:', file);
-          toast({
-            title: "Photo Captured",
-            description: "Photo saved for job documentation",
-          });
-          queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+        projectId={selectedProject?.id}
+        onPhotoTaken={async (file) => {
+          console.log('Photo taken for project:', selectedProject?.id, file);
+          
+          if (!selectedProject) {
+            toast({
+              title: "Error",
+              description: "No project selected for photo upload",
+              variant: "destructive"
+            });
+            return;
+          }
+
+          try {
+            const formData = new FormData();
+            formData.append('files', file);
+            formData.append('description', `Camera photo taken on ${new Date().toLocaleDateString()}`);
+
+            const response = await apiRequest('POST', `/api/projects/${selectedProject.id}/files`, formData);
+            
+            toast({
+              title: "Photo Uploaded",
+              description: "Photo saved to project files successfully",
+            });
+            
+            // Refresh project data
+            queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+            queryClient.invalidateQueries({ queryKey: ["/api/projects", selectedProject.id, "files"] });
+            
+          } catch (error) {
+            console.error('Error uploading photo:', error);
+            toast({
+              title: "Upload Failed", 
+              description: "Failed to save photo. Please try again.",
+              variant: "destructive"
+            });
+          }
         }}
         title="Take Photo for Job"
       />

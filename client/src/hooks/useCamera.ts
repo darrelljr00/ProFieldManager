@@ -63,6 +63,7 @@ export function useCamera() {
       return true;
     } catch (error: any) {
       console.error('Error accessing camera:', error);
+      console.log('Camera failed to start');
       
       let errorMessage = "Please allow camera access to take photos";
       let errorTitle = "Camera Access Denied";
