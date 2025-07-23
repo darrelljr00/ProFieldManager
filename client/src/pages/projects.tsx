@@ -1656,7 +1656,7 @@ export default function Jobs() {
 
           try {
             const formData = new FormData();
-            formData.append('files', file);
+            formData.append('file', file);
             formData.append('description', `Camera photo taken on ${new Date().toLocaleDateString()}`);
 
             const response = await apiRequest('POST', `/api/projects/${selectedProject.id}/files`, formData);
