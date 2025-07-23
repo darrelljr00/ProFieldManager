@@ -10221,6 +10221,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get individual inspection record with full details
+  app.get("/api/inspections/records/:id", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const recordId = parseInt(req.params.id);
+      
+      // Get the inspection record
+      const record = await storage.getInspectionRecord(recordId, user.id);
+      if (!record) {
+        return res.status(404).json({ message: "Inspection record not found" });
+      }
+      
+      // Get all responses for this inspection
+      const responses = await storage.getInspectionResponses(recordId);
+      
+      // Get user details for technician name
+      const technician = await storage.getUser(record.userId);
+      const technicianName = technician 
+        ? `${technician.firstName || ''} ${technician.lastName || ''}`.trim() || technician.username
+        : 'Unknown';
+      
+      // Combine the data
+      const detailedRecord = {
+        ...record,
+        technicianName,
+        responses: responses || []
+      };
+      
+      res.json(detailedRecord);
+    } catch (error: any) {
+      console.error("Error fetching inspection record details:", error);
+      res.status(500).json({ message: "Failed to fetch inspection record details" });
+    }
+  });
+
   app.get("/api/inspections/items", requireAuth, async (req, res) => {
     try {
       const user = getAuthenticatedUser(req);

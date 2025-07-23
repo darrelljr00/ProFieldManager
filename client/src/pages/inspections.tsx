@@ -9,9 +9,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
   CheckCircle, XCircle, Clock, AlertTriangle, 
-  Camera, Send, Plus, Trash2, Edit3, Upload, X 
+  Camera, Send, Plus, Trash2, Edit3, Upload, X, Eye 
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -35,6 +36,29 @@ interface InspectionRecord {
   technicianName: string;
   vehicleInfo?: any;
   images?: string[];
+}
+
+interface InspectionResponse {
+  id: number;
+  recordId: number;
+  itemId: number;
+  response: string;
+  notes?: string;
+  photos?: string[];
+  createdAt: string;
+  itemName: string;
+  itemCategory: string;
+  itemDescription?: string;
+  isRequired: boolean;
+}
+
+interface DetailedInspectionRecord extends InspectionRecord {
+  responses: InspectionResponse[];
+  photos?: string[];
+  signature?: string;
+  reviewNotes?: string;
+  reviewedBy?: number;
+  reviewedAt?: string;
 }
 
 interface InspectionResponse {
@@ -90,6 +114,8 @@ export default function Inspections() {
   const [inspectionImages, setInspectionImages] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
+  const [selectedInspectionId, setSelectedInspectionId] = useState<number | null>(null);
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   
   // Auto-populate technician name when user is logged in
   useEffect(() => {
@@ -132,6 +158,12 @@ export default function Inspections() {
   });
   
   const allInspectionRecords = [...submittedInspections, ...sampleInspectionRecords];
+
+  // Fetch detailed inspection record when selected
+  const { data: detailedInspection, isLoading: detailLoading } = useQuery({
+    queryKey: ["/api/inspections/records", selectedInspectionId],
+    enabled: !!selectedInspectionId && isDetailDialogOpen,
+  });
 
   // Submit inspection handler
   const handleSubmitInspection = async () => {
@@ -317,6 +349,42 @@ export default function Inspections() {
 
   const removeImage = (index: number) => {
     setInspectionImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Handle viewing inspection details
+  const handleViewInspection = (inspectionId: number) => {
+    setSelectedInspectionId(inspectionId);
+    setIsDetailDialogOpen(true);
+  };
+
+  // Get status badge for inspection
+  const getStatusBadge = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'completed':
+        return <Badge variant="default" className="bg-green-500">Completed</Badge>;
+      case 'pending':
+        return <Badge variant="secondary" className="bg-yellow-500 text-white">Pending</Badge>;
+      case 'requires_attention':
+        return <Badge variant="destructive">Needs Attention</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
+  // Get response badge for individual inspection items
+  const getResponseBadge = (response: string) => {
+    switch (response?.toLowerCase()) {
+      case 'pass':
+        return <Badge variant="default" className="bg-green-500">Pass</Badge>;
+      case 'fail':
+        return <Badge variant="destructive">Fail</Badge>;
+      case 'na':
+        return <Badge variant="secondary">N/A</Badge>;
+      case 'needs_attention':
+        return <Badge variant="default" className="bg-yellow-500">Attention</Badge>;
+      default:
+        return <Badge variant="outline">{response}</Badge>;
+    }
   };
 
   const updateInspectionResponse = (itemId: number, response: InspectionResponse['response'], notes?: string) => {
@@ -844,9 +912,13 @@ export default function Inspections() {
                 {allInspectionRecords?.length > 0 ? (
                   <div className="space-y-4">
                     {allInspectionRecords.map((record: InspectionRecord) => (
-                      <div key={record.id} className="border rounded-lg p-4">
+                      <div 
+                        key={record.id} 
+                        className="border rounded-lg p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                        onClick={() => handleViewInspection(record.id)}
+                      >
                         <div className="flex justify-between items-start">
-                          <div>
+                          <div className="flex-1">
                             <h4 className="font-medium">{record.templateName}</h4>
                             <p className="text-sm text-gray-600">
                               {record.submittedAt ? new Date(record.submittedAt).toLocaleDateString() : 'Not submitted'}
@@ -858,12 +930,13 @@ export default function Inspections() {
                               </p>
                             )}
                           </div>
-                          <Badge 
-                            variant={record.status === 'completed' ? 'default' : 'secondary'}
-                            className="capitalize"
-                          >
-                            {record.status}
-                          </Badge>
+                          <div className="flex items-center gap-2">
+                            {getStatusBadge(record.status)}
+                            <Button variant="outline" size="sm">
+                              <Eye className="w-4 h-4 mr-1" />
+                              View
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -875,6 +948,143 @@ export default function Inspections() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Detailed Inspection View Dialog */}
+        <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Inspection Details</DialogTitle>
+            </DialogHeader>
+            
+            {detailLoading ? (
+              <div className="flex items-center justify-center p-8">
+                <Clock className="h-8 w-8 animate-spin mr-2" />
+                <span>Loading inspection details...</span>
+              </div>
+            ) : detailedInspection ? (
+              <div className="space-y-6">
+                {/* Header Information */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+                  <div>
+                    <h3 className="font-semibold text-lg">{detailedInspection.templateName}</h3>
+                    <p className="text-sm text-gray-600">Type: {detailedInspection.type}</p>
+                    <p className="text-sm text-gray-600">
+                      Submitted: {detailedInspection.submittedAt 
+                        ? new Date(detailedInspection.submittedAt).toLocaleString() 
+                        : 'Not submitted'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Technician: {detailedInspection.technicianName}</p>
+                    {getStatusBadge(detailedInspection.status)}
+                    {detailedInspection.vehicleInfo && (
+                      <div className="mt-2">
+                        <p className="text-sm text-gray-600">
+                          Vehicle: {detailedInspection.vehicleInfo.vehicleNumber || 'N/A'}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          License: {detailedInspection.vehicleInfo.licensePlate || 'N/A'}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          Mileage: {detailedInspection.vehicleInfo.mileage || 'N/A'}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Inspection Responses */}
+                {detailedInspection.responses && detailedInspection.responses.length > 0 && (
+                  <div>
+                    <h4 className="font-semibold mb-4">Inspection Items</h4>
+                    <div className="space-y-3">
+                      {detailedInspection.responses.map((response: any) => (
+                        <div key={response.id} className="border rounded-lg p-3">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <h5 className="font-medium">{response.itemName}</h5>
+                              <p className="text-sm text-gray-600">{response.itemDescription}</p>
+                              <Badge variant="outline" className="text-xs mt-1">
+                                {response.itemCategory}
+                              </Badge>
+                            </div>
+                            <div className="text-right">
+                              {getResponseBadge(response.response)}
+                              {response.isRequired && (
+                                <Badge variant="destructive" className="text-xs ml-2">Required</Badge>
+                              )}
+                            </div>
+                          </div>
+                          {response.notes && (
+                            <div className="mt-2">
+                              <p className="text-sm font-medium">Notes:</p>
+                              <p className="text-sm text-gray-700">{response.notes}</p>
+                            </div>
+                          )}
+                          {response.photos && response.photos.length > 0 && (
+                            <div className="mt-2">
+                              <p className="text-sm font-medium mb-2">Photos:</p>
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                {response.photos.map((photo: string, index: number) => (
+                                  <img
+                                    key={index}
+                                    src={`/${photo}`}
+                                    alt={`Inspection photo ${index + 1}`}
+                                    className="w-full h-20 object-cover rounded border"
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* General Photos */}
+                {detailedInspection.photos && detailedInspection.photos.length > 0 && (
+                  <div>
+                    <h4 className="font-semibold mb-4">General Photos</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {detailedInspection.photos.map((photo: string, index: number) => (
+                        <img
+                          key={index}
+                          src={`/${photo}`}
+                          alt={`General inspection photo ${index + 1}`}
+                          className="w-full h-24 object-cover rounded border"
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Review Information */}
+                {detailedInspection.reviewedBy && (
+                  <div className="p-4 bg-blue-50 rounded-lg">
+                    <h4 className="font-semibold mb-2">Review Information</h4>
+                    <p className="text-sm text-gray-600">
+                      Reviewed: {detailedInspection.reviewedAt 
+                        ? new Date(detailedInspection.reviewedAt).toLocaleString() 
+                        : 'Not reviewed'}
+                    </p>
+                    {detailedInspection.reviewNotes && (
+                      <div className="mt-2">
+                        <p className="text-sm font-medium">Review Notes:</p>
+                        <p className="text-sm text-gray-700">{detailedInspection.reviewNotes}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center p-8">
+                <AlertTriangle className="h-8 w-8 mx-auto mb-4 text-red-500" />
+                <p className="text-gray-600">Failed to load inspection details</p>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
