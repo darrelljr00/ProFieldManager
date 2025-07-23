@@ -114,6 +114,11 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
         return res.status(401).json({ message: "Invalid or expired session" });
       }
 
+      // Debug: Log the actual user object structure from Drizzle
+      console.log('🔍 sessionData.user keys:', Object.keys(sessionData.user));
+      console.log('🔍 canAccessDashboard value:', sessionData.user.canAccessDashboard);
+      console.log('🔍 can_access_dashboard value:', (sessionData.user as any).can_access_dashboard);
+      
       // Attach user to request - include all permission fields from database
       req.user = {
         id: sessionData.user.id,
