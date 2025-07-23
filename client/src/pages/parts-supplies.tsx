@@ -112,10 +112,11 @@ export default function PartsSuppliesPage() {
   };
 
   // Calculate inventory stats
-  const totalParts = partsSupplies.length;
-  const lowStockParts = partsSupplies.filter((part: any) => part.isLowStock).length;
-  const outOfStockParts = partsSupplies.filter((part: any) => part.isOutOfStock).length;
-  const totalValue = partsSupplies.reduce((sum: number, part: any) => 
+  const partsArray = Array.isArray(partsSupplies) ? partsSupplies : [];
+  const totalParts = partsArray.length;
+  const lowStockParts = partsArray.filter((part: any) => part.isLowStock).length;
+  const outOfStockParts = partsArray.filter((part: any) => part.isOutOfStock).length;
+  const totalValue = partsArray.reduce((sum: number, part: any) => 
     sum + (part.currentStock * (parseFloat(part.unitCost) || 0)), 0
   );
 
@@ -437,14 +438,14 @@ export default function PartsSuppliesPage() {
                       <TableRow>
                         <TableCell colSpan={9} className="text-center">Loading...</TableCell>
                       </TableRow>
-                    ) : partsSupplies.length === 0 ? (
+                    ) : partsArray.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={9} className="text-center">
                           No parts found. Click "Add Part" to get started.
                         </TableCell>
                       </TableRow>
                     ) : (
-                      partsSupplies.map((part: any) => (
+                      partsArray.map((part: any) => (
                         <TableRow key={part.id}>
                           <TableCell className="font-medium">{part.name}</TableCell>
                           <TableCell>{part.sku || "-"}</TableCell>
