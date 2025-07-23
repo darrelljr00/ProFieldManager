@@ -7652,6 +7652,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Project-specific task routes
+  app.get("/api/projects/:projectId/tasks", requireAuth, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      const user = getAuthenticatedUser(req);
+      const tasks = await storage.getTasks(projectId, user.id);
+      res.json(tasks);
+    } catch (error) {
+      console.error("Error fetching project tasks:", error);
+      res.status(500).json({ message: "Failed to fetch project tasks" });
+    }
+  });
+
+  app.post("/api/projects/:projectId/tasks", requireAuth, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      const user = getAuthenticatedUser(req);
+      const taskData = {
+        ...req.body,
+        projectId: projectId,
+        createdById: user.id
+      };
+      const task = await storage.createTask(taskData);
+      res.json(task);
+    } catch (error) {
+      console.error("Error creating project task:", error);
+      res.status(500).json({ message: "Failed to create project task" });
+    }
+  });
+
 
 
 
