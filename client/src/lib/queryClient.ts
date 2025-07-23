@@ -48,7 +48,17 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const res = await fetch(queryKey[0] as string, {
+    // Construct URL from query key array
+    let url: string;
+    if (Array.isArray(queryKey) && queryKey.length > 1) {
+      // For arrays like ['/api/projects', projectId, 'tasks'], join them
+      url = queryKey.filter(Boolean).join('/');
+    } else {
+      // For simple string queries, use as-is
+      url = queryKey[0] as string;
+    }
+    
+    const res = await fetch(url, {
       credentials: "include",
     });
 
