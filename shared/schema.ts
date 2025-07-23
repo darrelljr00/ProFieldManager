@@ -148,6 +148,7 @@ export const users = pgTable("users", {
   username: text("username").notNull(),
   password: text("password").notNull(),
   email: text("email").notNull(),
+  phone: text("phone"), // Phone number for contact purposes
   firstName: text("first_name"),
   lastName: text("last_name"),
   role: text("role").notNull().default("user"), // admin, manager, user

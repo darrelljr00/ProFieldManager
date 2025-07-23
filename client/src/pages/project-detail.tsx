@@ -720,7 +720,8 @@ export default function ProjectDetail() {
               annotatedImageUrl: file.annotatedImageUrl,
               signatureStatus: file.signatureStatus,
               docusignEnvelopeId: file.docusignEnvelopeId,
-              signatureUrl: file.signatureUrl
+              signatureUrl: file.signatureUrl,
+              uploadedBy: file.uploadedBy
             }))} 
             projectId={Number(projectId)} 
           />

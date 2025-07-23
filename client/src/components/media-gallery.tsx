@@ -47,6 +47,13 @@ interface MediaFile {
   signatureStatus?: string;
   docusignEnvelopeId?: string;
   signatureUrl?: string;
+  uploadedBy?: {
+    id: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone?: string;
+  };
 }
 
 interface MediaGalleryProps {
@@ -347,6 +354,15 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
                   {file.description && (
                     <p className="text-xs text-gray-600 mt-1 line-clamp-2">{file.description}</p>
                   )}
+                  {file.uploadedBy && (
+                    <div className="text-xs text-blue-600 mt-1 flex items-center gap-1">
+                      <span className="font-medium">📸 By:</span>
+                      <span>{file.uploadedBy.firstName} {file.uploadedBy.lastName}</span>
+                      {file.uploadedBy.phone && (
+                        <span className="text-gray-500">• {file.uploadedBy.phone}</span>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <Button 
                   variant="ghost" 
@@ -384,6 +400,16 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
               </p>
               {file.description && (
                 <p className="text-xs text-gray-600 mt-2">{file.description}</p>
+              )}
+              {file.uploadedBy && (
+                <div className="text-xs text-blue-600 mt-2 flex items-center gap-1">
+                  <span className="font-medium">📸 Uploaded by:</span>
+                  <span>{file.uploadedBy.firstName} {file.uploadedBy.lastName}</span>
+                  {file.uploadedBy.phone && (
+                    <span className="text-gray-500">• {file.uploadedBy.phone}</span>
+                  )}
+                  <span className="text-gray-500">• {file.uploadedBy.email}</span>
+                </div>
               )}
             </div>
             <div className="flex flex-col gap-1">
