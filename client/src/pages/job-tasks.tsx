@@ -102,15 +102,8 @@ export default function JobTasks() {
     queryKey: ['/api/projects', projectId, 'tasks'],
     enabled: !!projectId,
     staleTime: 0, // Always fetch fresh data
-    cacheTime: 0, // Don't cache to prevent stale data issues
+    gcTime: 0, // Don't cache to prevent stale data issues (v5 syntax)
     refetchOnMount: true,
-    refetchOnWindowFocus: true,
-    onSuccess: (data) => {
-      console.log(`Tasks fetched for project ${projectId}:`, data);
-    },
-    onError: (error) => {
-      console.error(`Error fetching tasks for project ${projectId}:`, error);
-    }
   });
 
   // Fetch users for assignment
