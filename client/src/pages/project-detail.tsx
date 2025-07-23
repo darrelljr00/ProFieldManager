@@ -73,6 +73,20 @@ export default function ProjectDetail() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
+  // Clear ALL task-related cache on component mount to ensure fresh data
+  useEffect(() => {
+    if (projectId) {
+      // Clear all possible task cache variations
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'tasks'] });
+      queryClient.removeQueries({ queryKey: ['/api/projects', projectId, 'tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
+      queryClient.removeQueries({ queryKey: ['/api/tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+      // Force refetch
+      queryClient.refetchQueries({ queryKey: ['/api/projects', projectId, 'tasks'] });
+    }
+  }, [projectId, queryClient]);
+
   // Check if device is mobile
   useEffect(() => {
     const checkIsMobile = () => {
@@ -93,6 +107,12 @@ export default function ProjectDetail() {
   const { data: tasks = [], isLoading: tasksLoading } = useQuery<Task[]>({
     queryKey: ["/api/projects", projectId, "tasks"],
     enabled: !!projectId,
+    staleTime: 0, // Always fetch fresh data
+    cacheTime: 0, // Don't cache to prevent stale data issues
+    refetchOnMount: true,
+    onSuccess: (data) => {
+      console.log(`Project detail tasks fetched for project ${projectId}:`, data);
+    },
   });
 
   const { data: files = [] } = useQuery<ProjectFile[]>({
@@ -564,40 +584,59 @@ export default function ProjectDetail() {
           </div>
 
           <div className="grid gap-4">
-            {tasks.map((task) => (
-              <Card key={task.id}>
-                <CardHeader className="pb-3">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle className="text-base">{task.title}</CardTitle>
-                      <div className="flex items-center space-x-2 mt-1">
-                        <Badge variant={getStatusColor(task.status)}>{task.status}</Badge>
-                        <Badge variant={getPriorityColor(task.priority)}>{task.priority}</Badge>
+            {tasksLoading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+                <p className="text-gray-500">Loading tasks...</p>
+              </div>
+            ) : tasks.length > 0 ? (
+              tasks.map((task) => (
+                <Card key={task.id}>
+                  <CardHeader className="pb-3">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle className="text-base">{task.title}</CardTitle>
+                        <div className="flex items-center space-x-2 mt-1">
+                          <Badge variant={getStatusColor(task.status)}>{task.status}</Badge>
+                          <Badge variant={getPriorityColor(task.priority)}>{task.priority}</Badge>
+                        </div>
+                      </div>
+                      <div className="flex space-x-1">
+                        <Button variant="ghost" size="sm">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm">
+                          <MessageSquare className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex space-x-1">
-                      <Button variant="ghost" size="sm">
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm">
-                        <MessageSquare className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                {task.description && (
-                  <CardContent>
-                    <p className="text-gray-600 text-sm">{task.description}</p>
-                    {task.dueDate && (
-                      <div className="flex items-center text-sm text-gray-500 mt-2">
-                        <Calendar className="h-4 w-4 mr-1" />
-                        Due: {new Date(task.dueDate).toLocaleDateString()}
-                      </div>
-                    )}
-                  </CardContent>
-                )}
+                  </CardHeader>
+                  {task.description && (
+                    <CardContent>
+                      <p className="text-gray-600 text-sm">{task.description}</p>
+                      {task.dueDate && (
+                        <div className="flex items-center text-sm text-gray-500 mt-2">
+                          <Calendar className="h-4 w-4 mr-1" />
+                          Due: {new Date(task.dueDate).toLocaleDateString()}
+                        </div>
+                      )}
+                    </CardContent>
+                  )}
+                </Card>
+              ))
+            ) : (
+              <Card className="border-2 border-dashed border-gray-300">
+                <CardContent className="flex flex-col items-center justify-center py-8 text-center">
+                  <CheckCircle className="h-12 w-12 text-gray-400 mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No tasks yet</h3>
+                  <p className="text-gray-500 mb-4">Get started by creating your first task for this project.</p>
+                  <Button onClick={() => setTaskDialogOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create First Task
+                  </Button>
+                </CardContent>
               </Card>
-            ))}
+            )}
           </div>
         </TabsContent>
 
