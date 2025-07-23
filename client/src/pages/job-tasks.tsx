@@ -73,11 +73,17 @@ export default function JobTasks() {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Clear cache on component mount to ensure fresh data
+  // Clear ALL task-related cache on component mount to ensure fresh data
   useEffect(() => {
     if (projectId) {
+      // Clear all possible task cache variations
       queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'tasks'] });
       queryClient.removeQueries({ queryKey: ['/api/projects', projectId, 'tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
+      queryClient.removeQueries({ queryKey: ['/api/tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+      // Force refetch
+      queryClient.refetchQueries({ queryKey: ['/api/projects', projectId, 'tasks'] });
     }
   }, [projectId, queryClient]);
   
@@ -97,6 +103,14 @@ export default function JobTasks() {
     enabled: !!projectId,
     staleTime: 0, // Always fetch fresh data
     cacheTime: 0, // Don't cache to prevent stale data issues
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    onSuccess: (data) => {
+      console.log(`Tasks fetched for project ${projectId}:`, data);
+    },
+    onError: (error) => {
+      console.error(`Error fetching tasks for project ${projectId}:`, error);
+    }
   });
 
   // Fetch users for assignment
