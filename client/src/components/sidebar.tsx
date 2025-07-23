@@ -390,6 +390,20 @@ export function Sidebar() {
     }
   ];
 
+  // Define permission checking function first to avoid hoisting issues
+  const hasPermission = (item: NavigationItem): boolean => {
+    if (!item.permission) return true;
+    if (!user) return false;
+    
+    // Admin users have access to everything
+    if (user.role === 'admin') return true;
+    
+    // Debug: log permission checks for non-admin users
+    console.log(`Checking permission for ${item.name}: ${item.permission} = ${(user as any)[item.permission]}`);
+    
+    return (user as any)[item.permission] === true;
+  };
+
   // Get ordered navigation items with permission and search filtering
   const getOrderedNavigationItems = () => {
     const orderedItems: NavigationItem[] = [];
@@ -457,19 +471,6 @@ export function Sidebar() {
       ...prev,
       [itemName]: !prev[itemName]
     }));
-  };
-
-  const hasPermission = (item: NavigationItem): boolean => {
-    if (!item.permission) return true;
-    if (!user) return false;
-    
-    // Admin users have access to everything
-    if (user.role === 'admin') return true;
-    
-    // Debug: log permission checks for non-admin users
-    console.log(`Checking permission for ${item.name}: ${item.permission} = ${(user as any)[item.permission]}`);
-    
-    return (user as any)[item.permission] === true;
   };
 
   const isCurrentPath = (href: string) => {

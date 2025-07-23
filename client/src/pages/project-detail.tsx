@@ -111,7 +111,7 @@ export default function ProjectDetail() {
     queryKey: ["/api/projects", projectId, "tasks"],
     enabled: !!projectId,
     staleTime: 0, // Always fetch fresh data
-    cacheTime: 0, // Don't cache to prevent stale data issues
+    gcTime: 0, // Don't cache to prevent stale data issues (v5 syntax)
     refetchOnMount: true,
     onSuccess: (data) => {
       console.log(`Project detail tasks fetched for project ${projectId}:`, data);
