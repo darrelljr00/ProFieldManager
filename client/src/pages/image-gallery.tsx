@@ -893,7 +893,7 @@ export default function ImageGallery() {
               <Button variant="outline" onClick={() => setIsCollageOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleCreateCollageFile}>
+              <Button onClick={handleCreateCollageFile} className="bg-green-600 hover:bg-green-700 text-white border-green-600 hover:border-green-700">
                 <ImageIcon className="h-4 w-4 mr-2" />
                 Create Collage
               </Button>
