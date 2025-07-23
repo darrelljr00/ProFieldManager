@@ -87,6 +87,8 @@ export default function JobTasks() {
   const { data: tasks = [], isLoading: tasksLoading } = useQuery({
     queryKey: ['/api/projects', projectId, 'tasks'],
     enabled: !!projectId,
+    staleTime: 0, // Always fetch fresh data
+    cacheTime: 0, // Don't cache to prevent stale data issues
   });
 
   // Fetch users for assignment
@@ -140,17 +142,22 @@ export default function JobTasks() {
     mutationFn: (taskId: number) => apiRequest('DELETE', `/api/projects/${projectId}/tasks/${taskId}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'tasks'] });
+      // Also clear the general project cache to ensure fresh data
+      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
       toast({
         title: "Task Deleted",
         description: "Task has been removed from the job",
       });
     },
-    onError: () => {
+    onError: (error: any) => {
+      const errorMessage = error?.message || "Task not found or already deleted";
       toast({
-        title: "Error",
-        description: "Failed to delete task",
+        title: "Cannot Delete Task",
+        description: errorMessage,
         variant: "destructive",
       });
+      // Refresh task list to show current state
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'tasks'] });
     },
   });
 
