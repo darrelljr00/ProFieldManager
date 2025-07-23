@@ -109,6 +109,13 @@ export default function ProjectDetail() {
 
   const { data: tasks = [], isLoading: tasksLoading } = useQuery<Task[]>({
     queryKey: ["/api/projects", projectId, "tasks"],
+    queryFn: () => {
+      console.log(`FRONTEND DEBUG - Fetching tasks for project ${projectId} from: /api/projects/${projectId}/tasks`);
+      return fetch(`/api/projects/${projectId}/tasks`).then(res => {
+        console.log(`FRONTEND DEBUG - Response status: ${res.status}`);
+        return res.json();
+      });
+    },
     enabled: !!projectId,
     staleTime: 0, // Always fetch fresh data
     gcTime: 0, // Don't cache to prevent stale data issues (v5 syntax)
