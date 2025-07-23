@@ -84,7 +84,49 @@ export function MobileCamera({
     }
   };
 
+  const playShutterSound = () => {
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      
+      // Create a more realistic camera shutter sound with two clicks
+      const createClick = (frequency: number, startTime: number, duration: number) => {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.setValueAtTime(frequency, startTime);
+        gainNode.gain.setValueAtTime(0.2, startTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+        
+        oscillator.start(startTime);
+        oscillator.stop(startTime + duration);
+      };
+      
+      // First click (higher pitch)
+      createClick(1200, audioContext.currentTime, 0.05);
+      // Second click (lower pitch) - shutter closing
+      createClick(800, audioContext.currentTime + 0.08, 0.05);
+      
+    } catch (error) {
+      console.log('Could not play shutter sound:', error);
+    }
+  };
+
   const handleTakePhoto = async () => {
+    // Play shutter sound
+    playShutterSound();
+    
+    // Add visual feedback - brief flash effect
+    if (videoRef.current) {
+      const video = videoRef.current;
+      video.style.filter = 'brightness(1.5)';
+      setTimeout(() => {
+        video.style.filter = 'none';
+      }, 100);
+    }
+
     const photo = await capturePhoto();
     if (photo) {
       setCapturedPhoto(photo);
