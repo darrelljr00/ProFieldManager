@@ -61,7 +61,7 @@ interface DetailedInspectionRecord extends InspectionRecord {
   reviewedAt?: string;
 }
 
-interface InspectionResponse {
+interface InspectionFormResponse {
   itemId: number;
   response: 'pass' | 'fail' | 'na' | 'needs_attention';
   notes?: string;
@@ -98,7 +98,7 @@ export default function Inspections() {
   const preTripFileInputRef = useRef<HTMLInputElement>(null);
   const postTripFileInputRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState('pre-trip');
-  const [currentInspection, setCurrentInspection] = useState<InspectionResponse[]>([]);
+  const [currentInspection, setCurrentInspection] = useState<InspectionFormResponse[]>([]);
   const [vehicleInfo, setVehicleInfo] = useState({
     vehicleNumber: '',
     licensePlate: '',
@@ -160,7 +160,7 @@ export default function Inspections() {
   const allInspectionRecords = [...submittedInspections, ...sampleInspectionRecords];
 
   // Fetch detailed inspection record when selected
-  const { data: detailedInspection, isLoading: detailLoading } = useQuery({
+  const { data: detailedInspection, isLoading: detailLoading } = useQuery<DetailedInspectionRecord>({
     queryKey: ["/api/inspections/records", selectedInspectionId],
     enabled: !!selectedInspectionId && isDetailDialogOpen,
   });
@@ -387,13 +387,13 @@ export default function Inspections() {
     }
   };
 
-  const updateInspectionResponse = (itemId: number, response: InspectionResponse['response'], notes?: string) => {
+  const updateInspectionResponse = (itemId: number, response: InspectionFormResponse['response'], notes?: string) => {
     setCurrentInspection(prev => {
       const existing = prev.find(r => r.itemId === itemId);
       if (existing) {
-        return prev.map(r => r.itemId === itemId ? { ...r, response, notes } : r);
+        return prev.map(r => r.itemId === itemId ? { ...r, response, notes: notes || '' } : r);
       }
-      return [...prev, { itemId, response, notes }];
+      return [...prev, { itemId, response, notes: notes || '' }];
     });
   };
 
@@ -998,7 +998,7 @@ export default function Inspections() {
                   <div>
                     <h4 className="font-semibold mb-4">Inspection Items</h4>
                     <div className="space-y-3">
-                      {detailedInspection.responses.map((response: any) => (
+                      {detailedInspection.responses.map((response: InspectionResponse) => (
                         <div key={response.id} className="border rounded-lg p-3">
                           <div className="flex justify-between items-start">
                             <div className="flex-1">
