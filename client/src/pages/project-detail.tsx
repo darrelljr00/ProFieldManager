@@ -656,7 +656,7 @@ export default function ProjectDetail() {
               </Button>
               <Dialog open={fileDialogOpen} onOpenChange={setFileDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button>
+                  <Button className="bg-green-600 hover:bg-green-700 text-white">
                     <Upload className="h-4 w-4 mr-2" />
                     Upload File
                   </Button>

@@ -488,7 +488,7 @@ export default function ImageGallery() {
           </Button>
           <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <Button className="bg-green-600 hover:bg-green-700 text-white">
                 <Upload className="h-4 w-4 mr-2" />
                 Upload Image
               </Button>
