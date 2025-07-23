@@ -1045,7 +1045,7 @@ export default function Jobs() {
           {isMobile && (
             <Button 
               onClick={() => setShowMobileCamera(true)}
-              className="bg-green-600 hover:bg-green-700"
+              className="photo-button-green"
               size="sm"
             >
               <Smartphone className="mr-2 h-4 w-4" />
@@ -1861,7 +1861,7 @@ export default function Jobs() {
                         </Button>
                         <Button 
                           size="sm" 
-                          variant="outline"
+                          className="photo-button-green"
                           onClick={() => setShowMobileCamera(true)}
                         >
                           <Camera className="h-3 w-3 mr-1" />
