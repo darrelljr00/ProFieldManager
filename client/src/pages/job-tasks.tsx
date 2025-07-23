@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRoute, useLocation } from "wouter";
 import { Link } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -72,6 +72,14 @@ export default function JobTasks() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Clear cache on component mount to ensure fresh data
+  useEffect(() => {
+    if (projectId) {
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'tasks'] });
+      queryClient.removeQueries({ queryKey: ['/api/projects', projectId, 'tasks'] });
+    }
+  }, [projectId, queryClient]);
   
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
