@@ -2532,14 +2532,54 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateTask(id: number, userId: number, updates: any): Promise<any> {
-    // If completing the task, set completedById
+    // Get current task to access existing description
+    const [currentTask] = await db
+      .select()
+      .from(tasks)
+      .where(eq(tasks.id, id));
+
+    if (!currentTask) {
+      throw new Error('Task not found');
+    }
+
     const updateData = { ...updates, updatedAt: new Date() };
+    
+    // If completing the task, set completedById and add completion timestamp to description
     if (updates.isCompleted && !updates.completedById) {
       updateData.completedById = userId;
+      updateData.completedAt = new Date();
+      
+      // Get user info for completion timestamp
+      const [user] = await db
+        .select({ firstName: users.firstName, lastName: users.lastName })
+        .from(users)
+        .where(eq(users.id, userId));
+      
+      const userName = user ? `${user.firstName} ${user.lastName}` : 'Unknown User';
+      const completionTimestamp = new Date().toLocaleString('en-US', {
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZoneName: 'short'
+      });
+      
+      // Append completion info to description
+      const completionNote = `\n\n✅ Completed by ${userName} on ${completionTimestamp}`;
+      updateData.description = (currentTask.description || '') + completionNote;
     }
+    
+    // If uncompleting the task, remove completion info
     if (updates.isCompleted === false) {
       updateData.completedAt = null;
       updateData.completedById = null;
+      
+      // Remove completion timestamp from description if it exists
+      if (currentTask.description) {
+        updateData.description = currentTask.description.replace(/\n\n✅ Completed by .+ on .+/g, '');
+      }
     }
     
     const [task] = await db

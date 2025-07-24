@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Save, Eye, EyeOff, Upload, X, Download, Database, Clock, AlertTriangle } from "lucide-react";
 import { InvoicePreview } from "@/components/InvoicePreview";
 import SoundSettings from "@/components/SoundSettings";
+import { FileStorageManager } from "@/components/file-storage-manager";
 
 type PaymentSettings = {
   stripeEnabled: boolean;
@@ -805,6 +806,7 @@ export default function Settings() {
           <TabsTrigger value="weather" className="flex-shrink-0">Weather</TabsTrigger>
           <TabsTrigger value="backup" className="flex-shrink-0">Backup</TabsTrigger>
           <TabsTrigger value="sounds" className="flex-shrink-0">Sounds</TabsTrigger>
+          <TabsTrigger value="storage" className="flex-shrink-0">File Storage</TabsTrigger>
           <TabsTrigger value="navigation" className="flex-shrink-0">Navigation</TabsTrigger>
         </TabsList>
 
@@ -3226,6 +3228,10 @@ export default function Settings() {
 
         <TabsContent value="sounds">
           <SoundSettings />
+        </TabsContent>
+
+        <TabsContent value="storage">
+          <FileStorageManager />
         </TabsContent>
       </Tabs>
     </div>
