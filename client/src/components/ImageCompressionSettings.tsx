@@ -20,12 +20,12 @@ interface CompressionSettings {
 
 export function ImageCompressionSettings() {
   const [settings, setSettings] = useState<CompressionSettings>({
-    quality: 80,
-    maxWidth: 1920,
-    maxHeight: 1080,
+    quality: 75,
+    maxWidth: 1600,
+    maxHeight: 900,
     enabled: true,
-    preserveOriginal: false,
-    retainFilename: false
+    preserveOriginal: true,
+    retainFilename: true
   });
   
   const { toast } = useToast();
@@ -94,9 +94,9 @@ export function ImageCompressionSettings() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Image Compression Settings</CardTitle>
+        <CardTitle>Enhanced Image Compression Settings</CardTitle>
         <CardDescription>
-          Configure how inspection images are compressed when uploaded. Lower quality reduces file size but may affect image clarity.
+          Advanced compression system that automatically targets under 1MB file sizes while preserving originals in separate "uncompressed" folders. Maintains original filenames and provides real-time sync with the frontend.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -105,7 +105,7 @@ export function ImageCompressionSettings() {
           <div>
             <Label htmlFor="compression-enabled">Enable Image Compression</Label>
             <p className="text-sm text-muted-foreground">
-              Automatically compress uploaded inspection images
+              Enhanced compression targets under 1MB with original backup storage
             </p>
           </div>
           <Switch
@@ -212,22 +212,29 @@ export function ImageCompressionSettings() {
               />
             </div>
 
+            {/* Enhanced Features Information */}
+            <div className="bg-green-50 border border-green-200 p-4 rounded-lg">
+              <h4 className="text-sm font-medium text-green-800 mb-2">✅ Enhanced Compression Features Active:</h4>
+              <ul className="text-sm text-green-700 space-y-1">
+                <li>• Automatic under 1MB targeting with multi-pass compression</li>
+                <li>• Original files automatically saved in "uncompressed" folders</li>
+                <li>• Original filenames always preserved</li>
+                <li>• Real-time frontend sync and live updates</li>
+                <li>• Comprehensive failure messaging and error handling</li>
+                <li>• Progressive quality reduction until size target is met</li>
+              </ul>
+            </div>
+
             {/* Preview Information */}
             <div className="bg-muted p-4 rounded-lg">
               <h4 className="text-sm font-medium mb-2">Current Settings Summary:</h4>
               <ul className="text-sm text-muted-foreground space-y-1">
-                <li>• Quality: {settings.quality}% compression {settings.quality === 100 ? '(Lossless)' : ''}</li>
+                <li>• Quality: {settings.quality}% starting compression (auto-adjusted for 1MB target)</li>
                 <li>• Maximum size: {settings.maxWidth} x {settings.maxHeight} pixels</li>
-                <li>• Format: {settings.quality === 100 ? 'PNG (Lossless)' : 'JPEG'} (converted from any input format)</li>
-                <li>• Original preservation: {settings.preserveOriginal ? 'Enabled' : 'Disabled'}</li>
-                <li>• Filename retention: {settings.retainFilename ? 'Enabled' : 'Disabled'}</li>
-                <li>• File handling: {
-                  settings.retainFilename 
-                    ? 'Compress in place with original filename' 
-                    : settings.preserveOriginal 
-                      ? 'Create compressed copy, keep original'
-                      : 'Replace original with compressed version'
-                }</li>
+                <li>• Format: Always JPEG for optimal compression efficiency</li>
+                <li>• Backup storage: Originals saved in separate "uncompressed" folder</li>
+                <li>• Filename handling: Original names always retained</li>
+                <li>• Compression method: Multi-pass progressive JPEG with mozjpeg optimization</li>
               </ul>
             </div>
           </>

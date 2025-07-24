@@ -106,8 +106,8 @@ function getAuthenticatedUser(req: Request) {
   return req.user;
 }
 
-// Image compression helper function for ALL image uploads
-async function compressImage(inputPath: string, outputPath: string, organizationId: number): Promise<boolean> {
+// Enhanced image compression helper function with uncompressed folder backup and under 1MB target
+async function compressImage(inputPath: string, outputPath: string, organizationId: number): Promise<{ success: boolean; compressedSize?: number; error?: string }> {
   try {
     // Get compression settings from database directly
     const systemSettings = await storage.getSettingsByCategory('system');
@@ -120,123 +120,137 @@ async function compressImage(inputPath: string, outputPath: string, organization
     const qualitySetting = settingsMap['system_imageQuality'];  
     const maxWidthSetting = settingsMap['system_maxWidth'];
     const maxHeightSetting = settingsMap['system_maxHeight'];
-    const preserveOriginalSetting = settingsMap['preserve_original_images'];
-    const retainFilenameSetting = settingsMap['retain_original_filename'];
     
     // Check if compression is enabled
     const compressionEnabled = enabledSetting === 'true' || enabledSetting === null; // Default to enabled
     if (!compressionEnabled) {
       console.log('🚫 Compression disabled, skipping');
-      return false; // Skip compression
+      return { success: false, error: 'Compression disabled' };
     }
     
-    // Default compression settings
-    const quality = qualitySetting ? parseInt(qualitySetting) : 80;
-    const maxWidth = maxWidthSetting ? parseInt(maxWidthSetting) : 1920;
-    const maxHeight = maxHeightSetting ? parseInt(maxHeightSetting) : 1080;
-    const preserveOriginal = preserveOriginalSetting === 'true';
-    const retainFilename = retainFilenameSetting === 'true';
+    // Optimized settings for under 1MB target
+    const quality = qualitySetting ? parseInt(qualitySetting) : 75; // Lower default for smaller files
+    const maxWidth = maxWidthSetting ? parseInt(maxWidthSetting) : 1600; // Smaller default
+    const maxHeight = maxHeightSetting ? parseInt(maxHeightSetting) : 900; // Smaller default
     
-    console.log('🔧 Compression settings:', {
+    console.log('🔧 Enhanced compression settings:', {
       enabled: compressionEnabled,
       quality,
-      preserveOriginal,
-      retainFilename,
+      maxWidth,
+      maxHeight,
       inputPath,
-      outputPath
+      outputPath,
+      organizationId
     });
 
-    // If retaining filename, compress in place; otherwise use separate output path
-    const finalOutputPath = retainFilename ? inputPath : outputPath;
-
-    console.log('📸 About to compress:', { inputPath, finalOutputPath, retainFilename });
-
-    // Determine if we should use lossless compression (PNG) or lossy (JPEG)
-    const isLossless = quality === 100;
+    // Create uncompressed backup directory
+    const inputDir = path.dirname(inputPath);
+    const uncompressedDir = path.join(inputDir, 'uncompressed');
     
-    // When retaining filename, we need to compress to a temp file first, then replace
-    if (retainFilename) {
-      const tempPath = inputPath + '.tmp';
+    try {
+      await fs.mkdir(uncompressedDir, { recursive: true });
+      console.log('📁 Created uncompressed directory:', uncompressedDir);
+    } catch (dirError) {
+      console.error('❌ Failed to create uncompressed directory:', dirError);
+      return { success: false, error: 'Failed to create backup directory' };
+    }
+
+    // Get original filename to preserve it
+    const originalFilename = path.basename(inputPath);
+    const fileExtension = path.extname(originalFilename);
+    const baseName = path.basename(originalFilename, fileExtension);
+    
+    // Backup original to uncompressed folder with same filename
+    const uncompressedBackupPath = path.join(uncompressedDir, originalFilename);
+    
+    try {
+      await fs.copyFile(inputPath, uncompressedBackupPath);
+      console.log('💾 Original backed up to:', uncompressedBackupPath);
+    } catch (backupError) {
+      console.error('❌ Failed to backup original:', backupError);
+      return { success: false, error: 'Failed to backup original file' };
+    }
+
+    // Start with initial compression quality
+    let currentQuality = quality;
+    let compressedPath = inputPath; // Compress in place to keep original filename
+    let attempts = 0;
+    const maxAttempts = 5;
+    const targetSizeBytes = 1024 * 1024; // 1MB target
+    
+    while (attempts < maxAttempts) {
+      attempts++;
+      const tempPath = inputPath + `.tmp${attempts}`;
       
       try {
+        console.log(`🎯 Compression attempt ${attempts} with quality ${currentQuality}%`);
+        
         const sharpInstance = sharp(inputPath)
           .resize(maxWidth, maxHeight, {
             fit: 'inside',
             withoutEnlargement: true
           });
         
-        if (isLossless) {
-          // Use PNG for lossless compression
-          await sharpInstance.png({ compressionLevel: 9 }).toFile(tempPath);
-          console.log('🎯 Applying lossless PNG compression (quality 100%)');
-        } else {
-          // Use JPEG for lossy compression
-          await sharpInstance.jpeg({ quality: quality }).toFile(tempPath);
-          console.log('🎯 Applying JPEG compression (quality:', quality + '%)');
-        }
+        // Always use JPEG for better compression to reach under 1MB target
+        await sharpInstance
+          .jpeg({ 
+            quality: currentQuality,
+            progressive: true, // Better compression
+            mozjpeg: true // Even better compression
+          })
+          .toFile(tempPath);
         
-        // Verify temp file exists and has size before replacing original
+        // Check compressed file size
         const tempStats = await fs.stat(tempPath);
-        if (tempStats.size === 0) {
-          throw new Error('Compressed file is empty');
+        const compressedSize = tempStats.size;
+        
+        console.log(`📊 Compressed size: ${(compressedSize / 1024 / 1024).toFixed(2)}MB (${compressedSize} bytes)`);
+        
+        // If under 1MB or we've tried enough, use this version
+        if (compressedSize <= targetSizeBytes || attempts >= maxAttempts) {
+          // Replace original with compressed version (keeping original filename)
+          await fs.rename(tempPath, compressedPath);
+          
+          const finalSizeMB = (compressedSize / 1024 / 1024).toFixed(2);
+          console.log(`✅ Final compressed image: ${finalSizeMB}MB (${compressedSize} bytes)`);
+          
+          if (compressedSize <= targetSizeBytes) {
+            console.log('🎯 SUCCESS: Image compressed to under 1MB target');
+          } else {
+            console.log('⚠️ WARNING: Could not reach 1MB target after maximum attempts');
+          }
+          
+          return { success: true, compressedSize };
         }
         
-        // Replace original with compressed version while keeping the filename
-        await fs.rename(tempPath, inputPath);
-        console.log('✅ Compressed in place:', inputPath);
+        // Clean up temp file and try with lower quality
+        await fs.unlink(tempPath);
+        currentQuality = Math.max(10, currentQuality - 15); // Reduce quality more aggressively
+        
       } catch (compressError) {
-        console.error('❌ Compression in place failed:', compressError);
+        console.error(`❌ Compression attempt ${attempts} failed:`, compressError);
+        
         // Clean up temp file if it exists
         try {
           await fs.unlink(tempPath);
         } catch (cleanupError) {
           // Ignore cleanup errors
         }
-        // Return false to indicate compression failed, preserving original
-        return false;
+        
+        if (attempts >= maxAttempts) {
+          return { success: false, error: `Compression failed after ${maxAttempts} attempts: ${compressError.message}` };
+        }
+        
+        // Try with even lower quality
+        currentQuality = Math.max(10, currentQuality - 20);
       }
-    } else {
-      const sharpInstance = sharp(inputPath)
-        .resize(maxWidth, maxHeight, {
-          fit: 'inside',
-          withoutEnlargement: true
-        });
-      
-      if (isLossless) {
-        // Use PNG for lossless compression
-        await sharpInstance.png({ compressionLevel: 9 }).toFile(finalOutputPath);
-        console.log('🎯 Applying lossless PNG compression (quality 100%)');
-      } else {
-        // Use JPEG for lossy compression
-        await sharpInstance.jpeg({ quality: quality }).toFile(finalOutputPath);
-        console.log('🎯 Applying JPEG compression (quality:', quality + '%)');
-      }
-      console.log('✅ Compressed to new file:', finalOutputPath);
-    }
-
-    // CRITICAL SAFETY: Never delete original files regardless of settings
-    // This ensures image data integrity at all costs
-    console.log('✅ Original file preserved (safety override):', inputPath, { preserveOriginal, retainFilename });
-    
-    // Additional verification: ensure the final file exists and has content
-    try {
-      const finalStats = await fs.stat(retainFilename ? inputPath : outputPath);
-      if (finalStats.size === 0) {
-        console.error('❌ Final compressed file is empty, compression may have failed');
-        return false;
-      }
-      console.log('✅ Final file verified:', { path: retainFilename ? inputPath : outputPath, size: finalStats.size });
-    } catch (verifyError) {
-      console.error('❌ Could not verify final compressed file:', verifyError);
-      return false;
     }
     
-    return true; // Compression applied
+    return { success: false, error: 'Failed to compress image to target size' };
+    
   } catch (error) {
-    console.error('❌ Image compression error:', error);
-    // CRITICAL: If compression fails, ensure original file is NEVER deleted
-    console.log('⚠️ Compression failed - original file MUST be preserved at:', inputPath);
-    return false; // Compression failed, original preserved
+    console.error('❌ Compression system error:', error);
+    return { success: false, error: `System error: ${error.message}` };
   }
 }
 
@@ -1927,11 +1941,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const compressedFilename = `compressed-${req.file.filename.replace(path.extname(req.file.filename), '.jpg')}`;
         const compressedPath = path.join(path.dirname(originalPath), compressedFilename);
         
-        const compressionApplied = await compressImage(originalPath, compressedPath, user.organizationId);
+        const compressionResult = await compressImage(originalPath, compressedPath, user.organizationId);
         
-        if (compressionApplied) {
+        if (compressionResult.success) {
           finalPath = compressedPath;
           fileName = compressedFilename;
+          console.log(`✅ Logo compression successful: ${(compressionResult.compressedSize! / 1024 / 1024).toFixed(2)}MB`);
+        } else {
+          console.log(`❌ Logo compression failed: ${compressionResult.error}`);
         }
       }
       
@@ -1966,16 +1983,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const compressedPath = path.join(path.dirname(originalPath), compressedFilename);
         
         // Try to apply compression (with safety guarantee)
-        const compressionApplied = await compressImage(originalPath, compressedPath, user.organizationId);
+        const compressionResult = await compressImage(originalPath, compressedPath, user.organizationId);
         
-        if (compressionApplied) {
+        if (compressionResult.success) {
           // Use compressed image, original preserved
           processedFilePaths.push(`/uploads/org-${user.organizationId}/inspection_report_images/${compressedFilename}`);
-          console.log('✅ Using compressed version, original preserved at:', originalPath);
+          console.log(`✅ Inspection image compressed: ${(compressionResult.compressedSize! / 1024 / 1024).toFixed(2)}MB, original preserved at:`, originalPath);
         } else {
           // Use original image (compression disabled or failed, original preserved)
           processedFilePaths.push(`/uploads/org-${user.organizationId}/inspection_report_images/${file.filename}`);
-          console.log('✅ Using original image, preserved at:', originalPath);
+          console.log(`❌ Inspection compression failed: ${compressionResult.error}, using original:`, originalPath);
         }
       }
 
@@ -2021,13 +2038,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const compressedFilename = `compressed-${req.file.filename.replace(path.extname(req.file.filename), '.jpg')}`;
         const compressedPath = path.join(path.dirname(originalPath), compressedFilename);
         
-        const compressionApplied = await compressImage(originalPath, compressedPath, user.organizationId);
+        const compressionResult = await compressImage(originalPath, compressedPath, user.organizationId);
         
-        if (compressionApplied) {
+        if (compressionResult.success) {
           finalFileName = compressedFilename;
-          // Get compressed file size
-          const stats = await fs.stat(compressedPath);
-          finalSize = stats.size;
+          finalSize = compressionResult.compressedSize!;
+          console.log(`✅ File compression successful: ${(finalSize / 1024 / 1024).toFixed(2)}MB`);
+        } else {
+          console.log(`❌ File compression failed: ${compressionResult.error}`);
         }
         
         // Save image metadata to database
@@ -2035,7 +2053,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const imageData = {
           filename: finalFileName,
           originalName: req.file.originalname,
-          mimeType: compressionApplied ? 'image/jpeg' : req.file.mimetype,
+          mimeType: compressionResult.success ? 'image/jpeg' : req.file.mimetype,
           size: finalSize,
           userId: req.user!.id,
           organizationId: userInfo?.organizationId || 1,
@@ -2093,21 +2111,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const compressedFilename = `compressed-${req.file.filename.replace(path.extname(req.file.filename), '.jpg')}`;
       const compressedPath = path.join(path.dirname(originalPath), compressedFilename);
       
-      const compressionApplied = await compressImage(originalPath, compressedPath, user.organizationId);
+      const compressionResult = await compressImage(originalPath, compressedPath, user.organizationId);
       
       let finalFileName = req.file.filename;
       let finalSize = req.file.size;
       let finalMimeType = req.file.mimetype;
       
-      if (compressionApplied) {
+      if (compressionResult.success) {
         finalFileName = compressedFilename;
         finalMimeType = 'image/jpeg';
-        // Get compressed file size
-        const stats = await fs.promises.stat(compressedPath);
-        finalSize = stats.size;
-        console.log('✅ Image Gallery: Using compressed version, original preserved at:', originalPath);
+        finalSize = compressionResult.compressedSize!;
+        console.log(`✅ Image Gallery: Compressed to ${(finalSize / 1024 / 1024).toFixed(2)}MB, original preserved at:`, originalPath);
       } else {
-        console.log('✅ Image Gallery: Using original image, preserved at:', originalPath);
+        console.log(`❌ Image Gallery compression failed: ${compressionResult.error}, using original:`, originalPath);
       }
 
       // Save image metadata to database
@@ -2932,7 +2948,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const enableCompression = compressionSettings.find(s => s.key === 'enable_image_compression')?.value === 'true';
         
         if (enableCompression) {
-          await compressImage(file.path, file.path, organizationId);
+          const compressionResult = await compressImage(file.path, file.path, organizationId);
+          if (compressionResult.success) {
+            console.log(`✅ Historical job image compression successful: ${(compressionResult.compressedSize! / 1024 / 1024).toFixed(2)}MB`);
+          } else {
+            console.log(`❌ Historical job image compression failed: ${compressionResult.error}`);
+          }
         }
 
         const imagePath = `/api/uploads/org-${organizationId}/historical_job_images/${file.filename}`;
@@ -3297,11 +3318,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const compressedPath = path.join(path.dirname(originalPath), compressedFilename);
         
         // Try to apply compression
-        const compressionApplied = await compressImage(originalPath, compressedPath, user.organizationId);
+        const compressionResult = await compressImage(originalPath, compressedPath, user.organizationId);
         
-        if (compressionApplied) {
+        if (compressionResult.success) {
           finalFileName = compressedFilename;
           finalPath = compressedPath;
+          console.log(`✅ Task image compression successful: ${(compressionResult.compressedSize! / 1024 / 1024).toFixed(2)}MB`);
+        } else {
+          console.log(`❌ Task image compression failed: ${compressionResult.error}`);
         }
       }
 
@@ -3462,9 +3486,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const compressedPath = path.join(path.dirname(finalFilePath), compressedFilename);
         
         try {
-          const compressionApplied = await compressImage(finalFilePath, compressedPath, user.organizationId);
+          const compressionResult = await compressImage(finalFilePath, compressedPath, user.organizationId);
           
-          if (compressionApplied) {
+          if (compressionResult.success) {
             // Check if compression created a separate file or compressed in place
             const systemSettings = await storage.getSettingsByCategory('system');
             const settingsMap = systemSettings.reduce((acc: any, setting: any) => {
@@ -3713,11 +3737,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const compressedPath = path.join(path.dirname(originalPath), compressedFilename);
           
           // Try to apply compression
-          const compressionApplied = await compressImage(originalPath, compressedPath, user.organizationId);
+          const compressionResult = await compressImage(originalPath, compressedPath, user.organizationId);
           
-          if (compressionApplied) {
+          if (compressionResult.success) {
             // Use compressed image
             finalFileName = compressedFilename;
+            console.log(`✅ Expense receipt compression successful: ${(compressionResult.compressedSize! / 1024 / 1024).toFixed(2)}MB`);
+          } else {
+            console.log(`❌ Expense receipt compression failed: ${compressionResult.error}`);
           }
         }
 
@@ -3778,11 +3805,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const compressedPath = path.join(path.dirname(originalPath), compressedFilename);
           
           // Try to apply compression
-          const compressionApplied = await compressImage(originalPath, compressedPath, user.organizationId);
+          const compressionResult = await compressImage(originalPath, compressedPath, user.organizationId);
           
-          if (compressionApplied) {
+          if (compressionResult.success) {
             // Use compressed image
             finalFileName = compressedFilename;
+            console.log(`✅ Expense receipt update compression successful: ${(compressionResult.compressedSize! / 1024 / 1024).toFixed(2)}MB`);
+          } else {
+            console.log(`❌ Expense receipt update compression failed: ${compressionResult.error}`);
           }
         }
 
@@ -4381,12 +4411,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const compressedPath = path.join(path.dirname(originalPath), compressedFilename);
         
         // Try to apply compression
-        const compressionApplied = await compressImage(originalPath, compressedPath, user.organizationId);
+        const compressionResult = await compressImage(originalPath, compressedPath, user.organizationId);
         
-        if (compressionApplied) {
+        if (compressionResult.success) {
           // Use compressed image
           finalFileName = compressedFilename;
           finalPath = compressedPath;
+          console.log(`✅ OCR receipt compression successful: ${(compressionResult.compressedSize! / 1024 / 1024).toFixed(2)}MB`);
+        } else {
+          console.log(`❌ OCR receipt compression failed: ${compressionResult.error}`);
         }
       }
 
@@ -5710,9 +5743,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Apply compression if enabled
       let finalFilePath = originalPath;
-      const compressionApplied = await compressImage(originalPath, compressedPath, user.organizationId);
-      if (compressionApplied) {
+      const compressionResult = await compressImage(originalPath, compressedPath, user.organizationId);
+      if (compressionResult.success) {
         finalFilePath = compressedPath;
+        console.log(`✅ Profile picture compression successful: ${(compressionResult.compressedSize! / 1024 / 1024).toFixed(2)}MB`);
+      } else {
+        console.log(`❌ Profile picture compression failed: ${compressionResult.error}`);
       }
       
       // Update user's profile picture path in database
