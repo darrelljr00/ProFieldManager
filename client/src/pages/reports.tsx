@@ -16,7 +16,7 @@ import {
 } from "recharts";
 import { 
   TrendingUp, TrendingDown, DollarSign, Users, Target, Calculator,
-  BarChart3, Download, CalendarIcon, Filter, Clock, Briefcase
+  BarChart3, Download, CalendarIcon, Filter, Clock, Briefcase, CheckSquare
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useWebSocket } from "@/hooks/useWebSocket";
@@ -507,14 +507,13 @@ export default function Reports() {
 
       {/* Chart Tabs */}
       <Tabs defaultValue="sales" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-7">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="sales">Sales</TabsTrigger>
           <TabsTrigger value="leads">Leads</TabsTrigger>
           <TabsTrigger value="refunds">Refunds</TabsTrigger>
           <TabsTrigger value="close-rate">Close Rate</TabsTrigger>
           <TabsTrigger value="expenses">Expenses</TabsTrigger>
           <TabsTrigger value="employees">Employees</TabsTrigger>
-          <TabsTrigger value="tasks">Tasks</TabsTrigger>
         </TabsList>
 
         {/* Sales Charts */}
@@ -1026,200 +1025,8 @@ export default function Reports() {
           </div>
         </TabsContent>
 
-        {/* Task Analytics Tab */}
-        <TabsContent value="tasks" className="space-y-6">
-          <TaskAnalyticsTab timeRange={timeRange} />
-        </TabsContent>
+
       </Tabs>
-    </div>
-  );
-}
-
-// Task Analytics Component
-function TaskAnalyticsTab({ timeRange }: { timeRange: string }) {
-  const { data: taskAnalytics, isLoading } = useQuery({
-    queryKey: ["/api/analytics/tasks", { timeRange }],
-  });
-
-  if (isLoading) {
-    return <div className="text-center py-8">Loading task analytics...</div>;
-  }
-
-  if (!taskAnalytics?.summary) {
-    return (
-      <div className="text-center py-8">
-        <CheckSquare className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-        <h3 className="text-lg font-medium text-gray-900 mb-2">No Task Data Available</h3>
-        <p className="text-gray-500">Start creating and completing tasks to see analytics.</p>
-      </div>
-    );
-  }
-
-  const { summary } = taskAnalytics;
-
-  return (
-    <div className="space-y-6">
-      {/* Key Metrics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Tasks</p>
-                <p className="text-2xl font-bold text-blue-600">{summary.totalTasks}</p>
-              </div>
-              <CheckSquare className="h-8 w-8 text-blue-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Completed</p>
-                <p className="text-2xl font-bold text-green-600">{summary.completedTasks}</p>
-              </div>
-              <CheckSquare className="h-8 w-8 text-green-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Completion Rate</p>
-                <p className="text-2xl font-bold text-purple-600">{summary.completionRate}%</p>
-              </div>
-              <TrendingUp className="h-8 w-8 text-purple-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Avg Time</p>
-                <p className="text-2xl font-bold text-orange-600">
-                  {summary.averageCompletionTime > 0 ? `${summary.averageCompletionTime}h` : 'N/A'}
-                </p>
-              </div>
-              <Clock className="h-8 w-8 text-orange-600" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Completion Progress Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Task Completion Progress</CardTitle>
-            <CardDescription>Overall task completion statistics</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={[
-                    { name: 'Completed', value: summary.completedTasks, fill: '#10B981' },
-                    { name: 'Pending', value: summary.totalTasks - summary.completedTasks, fill: '#EF4444' }
-                  ]}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={120}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {[
-                    { name: 'Completed', value: summary.completedTasks, fill: '#10B981' },
-                    { name: 'Pending', value: summary.totalTasks - summary.completedTasks, fill: '#EF4444' }
-                  ].map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.fill} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Recent Activity Summary */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-            <CardDescription>Task completion over time</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                  <span className="font-medium">Completed Today</span>
-                </div>
-                <span className="text-lg font-bold text-green-600">{summary.completedToday}</span>
-              </div>
-              
-              <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                  <span className="font-medium">Completed This Week</span>
-                </div>
-                <span className="text-lg font-bold text-blue-600">{summary.completedThisWeek}</span>
-              </div>
-
-              <div className="mt-6">
-                <h4 className="font-medium text-gray-900 mb-3">Completion Rate Breakdown</h4>
-                <div className="w-full bg-gray-200 rounded-full h-4">
-                  <div 
-                    className="bg-gradient-to-r from-green-400 to-green-600 h-4 rounded-full transition-all duration-300"
-                    style={{ width: `${summary.completionRate}%` }}
-                  ></div>
-                </div>
-                <p className="text-sm text-gray-600 mt-2">{summary.completionRate}% of all tasks completed</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Top Performers */}
-      {summary.topPerformers && summary.topPerformers.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Top Performers</CardTitle>
-            <CardDescription>Team members with highest task completion rates</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {summary.topPerformers.map((performer, index) => (
-                <div key={performer.userId} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold ${
-                      index === 0 ? 'bg-yellow-500' : index === 1 ? 'bg-gray-400' : index === 2 ? 'bg-amber-600' : 'bg-blue-500'
-                    }`}>
-                      {index + 1}
-                    </div>
-                    <div>
-                      <p className="font-medium">{performer.name}</p>
-                      <p className="text-sm text-gray-600">{performer.completedTasks} completed tasks</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-lg font-bold text-green-600">{performer.completionRate}%</span>
-                    <p className="text-xs text-gray-500">completion rate</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }
