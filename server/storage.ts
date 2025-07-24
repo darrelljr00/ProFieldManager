@@ -2545,7 +2545,7 @@ export class DatabaseStorage implements IStorage {
     const updateData = { ...updates, updatedAt: new Date() };
     
     // If completing the task, set completedById and add completion timestamp to description
-    if (updates.isCompleted && !updates.completedById) {
+    if (updates.isCompleted === true && !currentTask.isCompleted) {
       updateData.completedById = userId;
       updateData.completedAt = new Date();
       

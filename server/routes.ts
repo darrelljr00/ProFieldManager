@@ -7865,7 +7865,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Task does not belong to this project" });
       }
       
-      const updatedTask = await storage.updateTask(taskId, req.body);
+      const updatedTask = await storage.updateTask(taskId, user.id, req.body);
       if (!updatedTask) {
         return res.status(404).json({ message: "Task not found" });
       }
