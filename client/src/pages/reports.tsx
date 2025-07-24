@@ -724,7 +724,7 @@ export default function Reports() {
         {/* Employee Performance Tab */}
         <TabsContent value="employees" className="space-y-6">
           <div className="space-y-6">
-            {/* Employee Date Range and Real-time Controls */}
+            {/* Combined Employee Performance Analytics */}
           <Card>
             <CardHeader>
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -740,7 +740,18 @@ export default function Reports() {
                     )}
                   </CardTitle>
                   <CardDescription>
-                    Comprehensive employee performance metrics with real-time updates
+                    Complete performance overview with metrics, charts, and detailed data for each team member
+                    {employeeDateRange && (
+                      <span className="ml-2 text-blue-600 font-medium">
+                        ({employeeDateRange === '7days' ? 'Last 7 Days' :
+                          employeeDateRange === '30days' ? 'Last 30 Days' :
+                          employeeDateRange === '90days' ? 'Last 90 Days' :
+                          employeeDateRange === '6months' ? 'Last 6 Months' :
+                          employeeDateRange === '12months' ? 'Last 12 Months' :
+                          employeeDateRange === '2years' ? 'Last 2 Years' : 
+                          'Custom Period'})
+                      </span>
+                    )}
                   </CardDescription>
                 </div>
                 
@@ -786,39 +797,14 @@ export default function Reports() {
                     <Clock className="h-4 w-4 mr-2" />
                     {employeeLoading ? 'Refreshing...' : 'Refresh'}
                   </Button>
+                  
+                  {employeeLoading && (
+                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                      <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                      Loading...
+                    </div>
+                  )}
                 </div>
-              </div>
-            </CardHeader>
-          </Card>
-          
-          {/* Employee Metrics Table */}
-          <Card>
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <div>
-                  <CardTitle>Employee Performance Overview</CardTitle>
-                  <CardDescription>
-                    Detailed metrics for each team member
-                    {employeeDateRange && (
-                      <span className="ml-2 text-blue-600 font-medium">
-                        ({employeeDateRange === '7days' ? 'Last 7 Days' :
-                          employeeDateRange === '30days' ? 'Last 30 Days' :
-                          employeeDateRange === '90days' ? 'Last 90 Days' :
-                          employeeDateRange === '6months' ? 'Last 6 Months' :
-                          employeeDateRange === '12months' ? 'Last 12 Months' :
-                          employeeDateRange === '2years' ? 'Last 2 Years' : 
-                          'Custom Period'})
-                      </span>
-                    )}
-                  </CardDescription>
-                </div>
-                
-                {employeeLoading && (
-                  <div className="flex items-center gap-2 text-sm text-gray-500">
-                    <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                    Loading employee data...
-                  </div>
-                )}
               </div>
             </CardHeader>
             <CardContent>
