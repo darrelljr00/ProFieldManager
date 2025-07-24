@@ -42,6 +42,7 @@ import {
 import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull } from "drizzle-orm";
 import { DocuSignService, getDocuSignConfig } from "./docusign";
 import { ensureOrganizationFolders, createOrganizationFolders } from "./folderCreation";
+import { Client } from '@googlemaps/google-maps-services-js';
 
 // Extend Express Request type to include user
 declare global {
@@ -10114,7 +10115,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Perform reverse geocoding to get address from coordinates
       let address = null;
       try {
-        const { Client } = require('@googlemaps/google-maps-services-js');
         const client = new Client({});
         
         const geocodeResponse = await client.reverseGeocode({
