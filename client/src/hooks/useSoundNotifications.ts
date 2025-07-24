@@ -79,6 +79,7 @@ export function useSoundNotifications() {
         oscillator.frequency.exponentialRampToValueAtTime(400, context.currentTime + 0.3);
         gainNode.gain.setValueAtTime(volume * 0.3, context.currentTime);
         gainNode.gain.exponentialRampToValueAtTime(0.01, context.currentTime + 0.5);
+        oscillator.start(context.currentTime);
         oscillator.stop(context.currentTime + 0.5);
         break;
         
@@ -89,6 +90,7 @@ export function useSoundNotifications() {
         oscillator.frequency.exponentialRampToValueAtTime(500, context.currentTime + 0.2);
         gainNode.gain.setValueAtTime(volume * 0.4, context.currentTime);
         gainNode.gain.exponentialRampToValueAtTime(0.01, context.currentTime + 0.4);
+        oscillator.start(context.currentTime);
         oscillator.stop(context.currentTime + 0.4);
         break;
         
@@ -100,6 +102,7 @@ export function useSoundNotifications() {
         oscillator.frequency.setValueAtTime(600, context.currentTime + 0.2);
         gainNode.gain.setValueAtTime(volume * 0.2, context.currentTime);
         gainNode.gain.exponentialRampToValueAtTime(0.01, context.currentTime + 0.3);
+        oscillator.start(context.currentTime);
         oscillator.stop(context.currentTime + 0.3);
         break;
         
@@ -111,6 +114,7 @@ export function useSoundNotifications() {
         oscillator.frequency.exponentialRampToValueAtTime(200, context.currentTime + 0.1);
         gainNode.gain.setValueAtTime(volume * 0.3, context.currentTime);
         gainNode.gain.exponentialRampToValueAtTime(0.01, context.currentTime + 0.15);
+        oscillator.start(context.currentTime);
         oscillator.stop(context.currentTime + 0.15);
         break;
         
@@ -121,6 +125,7 @@ export function useSoundNotifications() {
         oscillator.frequency.exponentialRampToValueAtTime(800, context.currentTime + 0.1);
         gainNode.gain.setValueAtTime(volume * 0.4, context.currentTime);
         gainNode.gain.exponentialRampToValueAtTime(0.01, context.currentTime + 0.25);
+        oscillator.start(context.currentTime);
         oscillator.stop(context.currentTime + 0.25);
         break;
         
@@ -133,6 +138,7 @@ export function useSoundNotifications() {
         gainNode.gain.setValueAtTime(volume * 0.2, context.currentTime);
         gainNode.gain.linearRampToValueAtTime(volume * 0.3, context.currentTime + 0.1);
         gainNode.gain.exponentialRampToValueAtTime(0.01, context.currentTime + 0.6);
+        oscillator.start(context.currentTime);
         oscillator.stop(context.currentTime + 0.6);
         break;
         
@@ -145,6 +151,7 @@ export function useSoundNotifications() {
         oscillator.frequency.setValueAtTime(750, context.currentTime + 0.15);
         gainNode.gain.setValueAtTime(volume * 0.25, context.currentTime);
         gainNode.gain.exponentialRampToValueAtTime(0.01, context.currentTime + 0.2);
+        oscillator.start(context.currentTime);
         oscillator.stop(context.currentTime + 0.2);
         break;
         
@@ -154,6 +161,7 @@ export function useSoundNotifications() {
         oscillator.frequency.setValueAtTime(650, context.currentTime);
         gainNode.gain.setValueAtTime(volume * 0.15, context.currentTime);
         gainNode.gain.exponentialRampToValueAtTime(0.01, context.currentTime + 0.3);
+        oscillator.start(context.currentTime);
         oscillator.stop(context.currentTime + 0.3);
         break;
         
@@ -164,10 +172,9 @@ export function useSoundNotifications() {
         oscillator.frequency.exponentialRampToValueAtTime(400, context.currentTime + 0.3);
         gainNode.gain.setValueAtTime(volume * 0.3, context.currentTime);
         gainNode.gain.exponentialRampToValueAtTime(0.01, context.currentTime + 0.5);
+        oscillator.start(context.currentTime);
         oscillator.stop(context.currentTime + 0.5);
     }
-
-    oscillator.start(context.currentTime);
   };
 
   const playTeamMessageSound = () => {
