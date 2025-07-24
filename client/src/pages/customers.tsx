@@ -7,12 +7,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Plus, Users, Mail, Phone, MapPin, Edit, Trash2, Search, SortAsc, X, FileSpreadsheet, Upload } from "lucide-react";
+import { Plus, Users, Mail, Phone, MapPin, Edit, Trash2, Search, SortAsc, X, FileSpreadsheet, Upload, BarChart3, TrendingUp, PieChart } from "lucide-react";
 import type { Customer, InsertCustomer } from "@shared/schema";
 
 export default function Customers() {
+  const [activeTab, setActiveTab] = useState("customers");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -77,6 +80,64 @@ export default function Customers() {
       }
     });
   }, [customers, searchTerm, sortBy]);
+
+  // Analytics calculations
+  const analyticsData = useMemo(() => {
+    if (!customers || customers.length === 0) return null;
+
+    // City distribution
+    const cityDistribution: Record<string, number> = {};
+    const stateDistribution: Record<string, number> = {};
+    const zipCodeDistribution: Record<string, number> = {};
+    
+    customers.forEach((customer) => {
+      if (customer.city) {
+        cityDistribution[customer.city] = (cityDistribution[customer.city] || 0) + 1;
+      }
+      if (customer.state) {
+        stateDistribution[customer.state] = (stateDistribution[customer.state] || 0) + 1;
+      }
+      if (customer.zipCode) {
+        zipCodeDistribution[customer.zipCode] = (zipCodeDistribution[customer.zipCode] || 0) + 1;
+      }
+    });
+
+    // Sort by count (descending)
+    const topCities = Object.entries(cityDistribution)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 10);
+    
+    const topStates = Object.entries(stateDistribution)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 10);
+
+    const topZipCodes = Object.entries(zipCodeDistribution)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 10);
+
+    // Calculate coverage metrics
+    const totalCustomers = customers.length;
+    const customersWithCity = customers.filter(c => c.city).length;
+    const customersWithState = customers.filter(c => c.state).length;
+    const customersWithZip = customers.filter(c => c.zipCode).length;
+    const customersWithFullAddress = customers.filter(c => c.address && c.city && c.state).length;
+
+    return {
+      totalCustomers,
+      cityDistribution,
+      stateDistribution,
+      zipCodeDistribution,
+      topCities,
+      topStates,
+      topZipCodes,
+      coverage: {
+        city: (customersWithCity / totalCustomers) * 100,
+        state: (customersWithState / totalCustomers) * 100,
+        zipCode: (customersWithZip / totalCustomers) * 100,
+        fullAddress: (customersWithFullAddress / totalCustomers) * 100,
+      }
+    };
+  }, [customers]);
 
   const createMutation = useMutation({
     mutationFn: (data: InsertCustomer) => apiRequest("POST", "/api/customers", data),
@@ -275,7 +336,7 @@ export default function Customers() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">Customers</h2>
-            <p className="text-gray-600">Manage your customer database.</p>
+            <p className="text-gray-600">Manage your customer database and analytics.</p>
           </div>
           
           {/* Search and Sort Controls */}
@@ -515,17 +576,30 @@ export default function Customers() {
 
       {/* Main Content */}
       <main className="p-6">
-        {/* Results Summary */}
-        {!isLoading && customers && (
-          <div className="mb-4 text-sm text-gray-600">
-            Showing {filteredAndSortedCustomers.length} of {customers.length} customers
-            {searchTerm && (
-              <span className="ml-2">
-                for "{searchTerm}"
-              </span>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="customers" className="flex items-center gap-2">
+              <Users className="w-4 h-4" />
+              Customers
+            </TabsTrigger>
+            <TabsTrigger value="analytics" className="flex items-center gap-2">
+              <BarChart3 className="w-4 h-4" />
+              Analytics
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="customers" className="mt-6">
+            {/* Results Summary */}
+            {!isLoading && customers && (
+              <div className="mb-4 text-sm text-gray-600">
+                Showing {filteredAndSortedCustomers.length} of {customers.length} customers
+                {searchTerm && (
+                  <span className="ml-2">
+                    for "{searchTerm}"
+                  </span>
+                )}
+              </div>
             )}
-          </div>
-        )}
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[...Array(6)].map((_, i) => (
@@ -621,6 +695,254 @@ export default function Customers() {
             ))}
           </div>
         )}
+          </TabsContent>
+
+          <TabsContent value="analytics" className="mt-6">
+            {isLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[...Array(6)].map((_, i) => (
+                  <Card key={i} className="animate-pulse">
+                    <CardHeader>
+                      <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-20 bg-gray-200 rounded"></div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : !analyticsData ? (
+              <div className="text-center py-12">
+                <BarChart3 className="mx-auto h-12 w-12 text-gray-400" />
+                <h3 className="mt-2 text-sm font-medium text-gray-900">No Analytics Available</h3>
+                <p className="mt-1 text-sm text-gray-500">Create some customers to view analytics data.</p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {/* Overview Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
+                        <Users className="w-4 h-4 mr-2" />
+                        Total Customers
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold text-gray-900">{analyticsData.totalCustomers}</div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
+                        <MapPin className="w-4 h-4 mr-2" />
+                        Address Coverage
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold text-blue-600">
+                        {analyticsData.coverage.fullAddress.toFixed(1)}%
+                      </div>
+                      <p className="text-xs text-gray-500">Complete addresses</p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
+                        <TrendingUp className="w-4 h-4 mr-2" />
+                        Top City
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-lg font-bold text-green-600">
+                        {analyticsData.topCities[0]?.[0] || "N/A"}
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        {analyticsData.topCities[0]?.[1] || 0} customers
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
+                        <PieChart className="w-4 h-4 mr-2" />
+                        Top State
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-lg font-bold text-purple-600">
+                        {analyticsData.topStates[0]?.[0] || "N/A"}
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        {analyticsData.topStates[0]?.[1] || 0} customers
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Location Distribution Charts */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Top Cities Heat Map */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center">
+                        <MapPin className="w-5 h-5 mr-2" />
+                        Customer Distribution by City
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {analyticsData.topCities.length === 0 ? (
+                          <p className="text-gray-500 text-sm">No city data available</p>
+                        ) : (
+                          analyticsData.topCities.map(([city, count], index) => {
+                            const percentage = (count / analyticsData.totalCustomers) * 100;
+                            const intensity = Math.min(100, (count / analyticsData.topCities[0][1]) * 100);
+                            
+                            return (
+                              <div key={city} className="flex items-center justify-between">
+                                <div className="flex items-center flex-1">
+                                  <div className="w-16 text-sm text-gray-600 mr-3">#{index + 1}</div>
+                                  <div className="flex-1">
+                                    <div className="font-medium text-gray-900">{city}</div>
+                                    <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
+                                      <div 
+                                        className="h-2 rounded-full transition-all duration-300"
+                                        style={{
+                                          width: `${intensity}%`,
+                                          backgroundColor: `hsl(${200 + (intensity / 100 * 60)}, 70%, ${60 - (intensity / 100 * 20)}%)`
+                                        }}
+                                      ></div>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="ml-4 text-right">
+                                  <div className="font-semibold text-gray-900">{count}</div>
+                                  <div className="text-xs text-gray-500">{percentage.toFixed(1)}%</div>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Top States Heat Map */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center">
+                        <TrendingUp className="w-5 h-5 mr-2" />
+                        Customer Distribution by State
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {analyticsData.topStates.length === 0 ? (
+                          <p className="text-gray-500 text-sm">No state data available</p>
+                        ) : (
+                          analyticsData.topStates.map(([state, count], index) => {
+                            const percentage = (count / analyticsData.totalCustomers) * 100;
+                            const intensity = Math.min(100, (count / analyticsData.topStates[0][1]) * 100);
+                            
+                            return (
+                              <div key={state} className="flex items-center justify-between">
+                                <div className="flex items-center flex-1">
+                                  <div className="w-16 text-sm text-gray-600 mr-3">#{index + 1}</div>
+                                  <div className="flex-1">
+                                    <div className="font-medium text-gray-900">{state}</div>
+                                    <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
+                                      <div 
+                                        className="h-2 rounded-full transition-all duration-300"
+                                        style={{
+                                          width: `${intensity}%`,
+                                          backgroundColor: `hsl(${120 + (intensity / 100 * 60)}, 70%, ${60 - (intensity / 100 * 20)}%)`
+                                        }}
+                                      ></div>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="ml-4 text-right">
+                                  <div className="font-semibold text-gray-900">{count}</div>
+                                  <div className="text-xs text-gray-500">{percentage.toFixed(1)}%</div>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Data Coverage Metrics */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <BarChart3 className="w-5 h-5 mr-2" />
+                      Location Data Coverage
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-blue-600">
+                          {analyticsData.coverage.city.toFixed(1)}%
+                        </div>
+                        <div className="text-sm text-gray-600">Have City</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-green-600">
+                          {analyticsData.coverage.state.toFixed(1)}%
+                        </div>
+                        <div className="text-sm text-gray-600">Have State</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-purple-600">
+                          {analyticsData.coverage.zipCode.toFixed(1)}%
+                        </div>
+                        <div className="text-sm text-gray-600">Have Zip Code</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-orange-600">
+                          {analyticsData.coverage.fullAddress.toFixed(1)}%
+                        </div>
+                        <div className="text-sm text-gray-600">Complete Address</div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Top Zip Codes */}
+                {analyticsData.topZipCodes.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center">
+                        <MapPin className="w-5 h-5 mr-2" />
+                        Top Zip Codes
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                        {analyticsData.topZipCodes.slice(0, 10).map(([zipCode, count]) => (
+                          <div key={zipCode} className="text-center p-3 bg-gray-50 rounded-lg">
+                            <div className="font-bold text-lg text-gray-900">{zipCode}</div>
+                            <Badge variant="secondary" className="mt-1">
+                              {count} customer{count !== 1 ? 's' : ''}
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );
