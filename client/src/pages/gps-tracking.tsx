@@ -24,6 +24,7 @@ interface GPSSession {
   locationTimestamp: string;
   userAgent: string;
   ipAddress: string;
+  address?: string; // Human-readable address
 }
 
 interface GPSStats {
@@ -301,10 +302,19 @@ export default function GPSTracking() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="text-xs font-mono">
-                          <div>Lat: {parseFloat(session.latitude).toFixed(6)}</div>
-                          <div>Lng: {parseFloat(session.longitude).toFixed(6)}</div>
-                        </div>
+                        {session.address ? (
+                          <div className="text-sm">
+                            <div className="font-medium">{session.address}</div>
+                            <div className="text-xs text-muted-foreground font-mono">
+                              {parseFloat(session.latitude).toFixed(6)}, {parseFloat(session.longitude).toFixed(6)}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-xs font-mono">
+                            <div>Lat: {parseFloat(session.latitude).toFixed(6)}</div>
+                            <div>Lng: {parseFloat(session.longitude).toFixed(6)}</div>
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">

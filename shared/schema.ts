@@ -337,6 +337,7 @@ export const userSessions = pgTable("user_sessions", {
   locationAccuracy: text("location_accuracy"),
   deviceType: text("device_type"),
   locationTimestamp: timestamp("location_timestamp"),
+  address: text("address"), // Human-readable address from reverse geocoding
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

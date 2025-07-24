@@ -2433,6 +2433,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         locationTimestamp: userSessions.locationTimestamp,
         userAgent: userSessions.userAgent,
         ipAddress: userSessions.ipAddress,
+        address: userSessions.address, // Include the human-readable address
       })
       .from(userSessions)
       .innerJoin(users, eq(userSessions.userId, users.id))
@@ -10110,6 +10111,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Latitude and longitude are required" });
       }
 
+      // Perform reverse geocoding to get address from coordinates
+      let address = null;
+      try {
+        const { Client } = require('@googlemaps/google-maps-services-js');
+        const client = new Client({});
+        
+        const geocodeResponse = await client.reverseGeocode({
+          params: {
+            latlng: { lat: parseFloat(latitude), lng: parseFloat(longitude) },
+            key: process.env.GOOGLE_MAPS_API_KEY || 'your-api-key-here',
+          },
+        });
+
+        if (geocodeResponse.data.results && geocodeResponse.data.results.length > 0) {
+          address = geocodeResponse.data.results[0].formatted_address;
+        }
+      } catch (geocodeError) {
+        console.log('Reverse geocoding failed, saving coordinates only:', geocodeError.message);
+      }
+
       // Update the user's most recent session with new location data
       const [existingSession] = await db
         .select()
@@ -10128,6 +10149,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             locationAccuracy: accuracy?.toString(),
             deviceType: deviceType || 'unknown',
             locationTimestamp: locationTimestamp ? new Date(locationTimestamp) : new Date(),
+            address: address || null, // Store the resolved address
           })
           .where(eq(userSessions.id, existingSession.id));
       } else {
@@ -10144,11 +10166,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             deviceType: deviceType || 'mobile',
             locationTimestamp: locationTimestamp ? new Date(locationTimestamp) : new Date(),
             userAgent: req.get('User-Agent') || 'Unknown',
-            ipAddress: req.ip || 'Unknown'
+            ipAddress: req.ip || 'Unknown',
+            address: address || null, // Store the resolved address
           });
       }
 
-      res.json({ message: "Location updated successfully" });
+      res.json({ 
+        message: "Location updated successfully",
+        address: address // Return the address in response
+      });
     } catch (error: any) {
       console.error("Error updating GPS location:", error);
       res.status(500).json({ message: "Error updating location: " + error.message });
