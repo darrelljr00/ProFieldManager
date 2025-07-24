@@ -381,10 +381,7 @@ export default function SaasAdminPage() {
   // Create and Update Plan mutations
   const createPlanMutation = useMutation({
     mutationFn: async (planData: any) => {
-      return await apiRequest("/api/subscription-plans", {
-        method: "POST",
-        body: JSON.stringify(planData),
-      });
+      return await apiRequest("POST", "/api/subscription-plans", planData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/subscription-plans"] });
@@ -404,10 +401,7 @@ export default function SaasAdminPage() {
 
   const updatePlanMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: any }) => {
-      return await apiRequest(`/api/subscription-plans/${id}`, {
-        method: "PUT",
-        body: JSON.stringify(data),
-      });
+      return await apiRequest("PUT", `/api/subscription-plans/${id}`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/subscription-plans"] });
@@ -427,9 +421,7 @@ export default function SaasAdminPage() {
 
   const deletePlanMutation = useMutation({
     mutationFn: async (id: number) => {
-      return await apiRequest(`/api/subscription-plans/${id}`, {
-        method: "DELETE",
-      });
+      return await apiRequest("DELETE", `/api/subscription-plans/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/subscription-plans"] });
@@ -1249,8 +1241,7 @@ export default function SaasAdminPage() {
                                   defaultValue={plan.price}
                                   className="mt-1"
                                   onChange={(e) => {
-                                    // Handle price change
-                                    console.log(`${plan.name} price changed to:`, e.target.value);
+                                    handleFeatureUpdate(plan.id, 'price', parseFloat(e.target.value) || 0);
                                   }}
                                 />
                               </div>
@@ -1263,7 +1254,7 @@ export default function SaasAdminPage() {
                                       type="radio"
                                       name={`${plan.slug}-interval`}
                                       checked={plan.billingInterval === 'month'}
-                                      onChange={() => console.log(`${plan.name} set to monthly`)}
+                                      onChange={() => handleFeatureUpdate(plan.id, 'billingInterval', 'month')}
                                       className="w-4 h-4 text-primary focus:ring-primary"
                                     />
                                     <span className="text-sm font-medium">Monthly</span>
@@ -1273,7 +1264,7 @@ export default function SaasAdminPage() {
                                       type="radio"
                                       name={`${plan.slug}-interval`}
                                       checked={plan.billingInterval === 'year'}
-                                      onChange={() => console.log(`${plan.name} set to yearly`)}
+                                      onChange={() => handleFeatureUpdate(plan.id, 'billingInterval', 'year')}
                                       className="w-4 h-4 text-primary focus:ring-primary"
                                     />
                                     <span className="text-sm font-medium">Yearly</span>
@@ -1298,7 +1289,7 @@ export default function SaasAdminPage() {
                                         type="radio"
                                         name={`${plan.slug}-user-limit`}
                                         checked={plan.maxUsers === userLimit || (userLimit === 'unlimited' && plan.maxUsers === 999999)}
-                                        onChange={() => console.log(`${plan.name} user limit set to:`, userLimit)}
+                                        onChange={() => handleFeatureUpdate(plan.id, 'maxUsers', userLimit === 'unlimited' ? 999999 : userLimit)}
                                         className="w-4 h-4 text-blue-600 focus:ring-blue-500"
                                       />
                                       <span className="text-sm font-medium">{userLimit === 'unlimited' ? 'Unlimited' : `${userLimit} Users`}</span>
@@ -1317,7 +1308,7 @@ export default function SaasAdminPage() {
                                         type="radio"
                                         name={`${plan.slug}-project-limit`}
                                         checked={plan.maxProjects === projectLimit || (projectLimit === 'unlimited' && plan.maxProjects === 999999)}
-                                        onChange={() => console.log(`${plan.name} project limit set to:`, projectLimit)}
+                                        onChange={() => handleFeatureUpdate(plan.id, 'maxProjects', projectLimit === 'unlimited' ? 999999 : projectLimit)}
                                         className="w-4 h-4 text-green-600 focus:ring-green-500"
                                       />
                                       <span className="text-sm font-medium">{projectLimit === 'unlimited' ? 'Unlimited' : `${projectLimit} Projects`}</span>
@@ -1377,7 +1368,7 @@ export default function SaasAdminPage() {
                                         type="radio"
                                         name={`${plan.slug}-${feature.key}`}
                                         checked={plan[feature.key] === true}
-                                        onChange={() => console.log(`${plan.name} ${feature.label} enabled`)}
+                                        onChange={() => handleFeatureUpdate(plan.id, feature.key, true)}
                                         className="w-4 h-4 text-green-600 focus:ring-green-500"
                                       />
                                       <span className="text-sm font-medium text-green-700">✓ Enabled</span>
@@ -1387,7 +1378,7 @@ export default function SaasAdminPage() {
                                         type="radio"
                                         name={`${plan.slug}-${feature.key}`}
                                         checked={plan[feature.key] === false}
-                                        onChange={() => console.log(`${plan.name} ${feature.label} disabled`)}
+                                        onChange={() => handleFeatureUpdate(plan.id, feature.key, false)}
                                         className="w-4 h-4 text-red-600 focus:ring-red-500"
                                       />
                                       <span className="text-sm font-medium text-red-700">✗ Disabled</span>
@@ -1422,7 +1413,7 @@ export default function SaasAdminPage() {
                                         type="radio"
                                         name={`${plan.slug}-${feature.key}`}
                                         checked={plan[feature.key] === true}
-                                        onChange={() => console.log(`${plan.name} ${feature.label} enabled`)}
+                                        onChange={() => handleFeatureUpdate(plan.id, feature.key, true)}
                                         className="w-4 h-4 text-green-600 focus:ring-green-500"
                                       />
                                       <span className="text-sm font-medium text-green-700">✓ Enabled</span>
@@ -1432,7 +1423,7 @@ export default function SaasAdminPage() {
                                         type="radio"
                                         name={`${plan.slug}-${feature.key}`}
                                         checked={plan[feature.key] === false}
-                                        onChange={() => console.log(`${plan.name} ${feature.label} disabled`)}
+                                        onChange={() => handleFeatureUpdate(plan.id, feature.key, false)}
                                         className="w-4 h-4 text-red-600 focus:ring-red-500"
                                       />
                                       <span className="text-sm font-medium text-red-700">✗ Disabled</span>
@@ -1456,7 +1447,7 @@ export default function SaasAdminPage() {
                                       type="radio"
                                       name={`${plan.slug}-active`}
                                       checked={plan.isActive === true}
-                                      onChange={() => console.log(`${plan.name} activated`)}
+                                      onChange={() => handleFeatureUpdate(plan.id, "isActive", true)}
                                       className="w-4 h-4 text-green-600 focus:ring-green-500"
                                     />
                                     <span className="text-sm font-medium text-green-700">✓ Active</span>
@@ -1466,7 +1457,7 @@ export default function SaasAdminPage() {
                                       type="radio"
                                       name={`${plan.slug}-active`}
                                       checked={plan.isActive === false}
-                                      onChange={() => console.log(`${plan.name} deactivated`)}
+                                      onChange={() => handleFeatureUpdate(plan.id, "isActive", false)}
                                       className="w-4 h-4 text-red-600 focus:ring-red-500"
                                     />
                                     <span className="text-sm font-medium text-red-700">✗ Inactive</span>
@@ -1482,7 +1473,7 @@ export default function SaasAdminPage() {
                                       type="radio"
                                       name={`${plan.slug}-popular`}
                                       checked={plan.isPopular === true}
-                                      onChange={() => console.log(`${plan.name} marked as popular`)}
+                                      onChange={() => handleFeatureUpdate(plan.id, "isPopular", true)}
                                       className="w-4 h-4 text-amber-600 focus:ring-amber-500"
                                     />
                                     <span className="text-sm font-medium text-amber-700">⭐ Popular</span>
@@ -1492,7 +1483,7 @@ export default function SaasAdminPage() {
                                       type="radio"
                                       name={`${plan.slug}-popular`}
                                       checked={plan.isPopular === false}
-                                      onChange={() => console.log(`${plan.name} unmarked as popular`)}
+                                      onChange={() => handleFeatureUpdate(plan.id, "isPopular", false)}
                                       className="w-4 h-4 text-gray-600 focus:ring-gray-500"
                                     />
                                     <span className="text-sm font-medium text-gray-700">Normal</span>
