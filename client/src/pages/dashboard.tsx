@@ -48,6 +48,10 @@ export default function Dashboard() {
     queryKey: ["/api/dashboard/stats"],
   });
 
+  const { data: taskAnalytics, isLoading: taskAnalyticsLoading } = useQuery({
+    queryKey: ["/api/analytics/tasks"],
+  });
+
   const { data: invoices, isLoading: invoicesLoading } = useQuery({
     queryKey: ["/api/invoices"],
   });
@@ -220,24 +224,53 @@ export default function Dashboard() {
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <CheckSquare className="h-5 w-5 text-green-600" />
-                    My Tasks
+                    Task Analytics
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                      <span className="text-sm">Complete project report</span>
+                  {taskAnalyticsLoading ? (
+                    <div className="text-sm text-muted-foreground">Loading analytics...</div>
+                  ) : taskAnalytics?.summary ? (
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600">Total Tasks</span>
+                        <span className="font-bold text-lg">{taskAnalytics.summary.totalTasks}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600">Completed</span>
+                        <span className="font-semibold text-green-600">
+                          {taskAnalytics.summary.completedTasks} ({taskAnalytics.summary.completionRate}%)
+                        </span>
+                      </div>
+                      <div className="bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-green-600 h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${taskAnalytics.summary.completionRate}%` }}
+                        ></div>
+                      </div>
+                      <div className="pt-2 space-y-1">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-gray-500">Today</span>
+                          <span className="text-green-600 font-medium">{taskAnalytics.summary.completedToday}</span>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                          <span className="text-gray-500">This Week</span>
+                          <span className="text-blue-600 font-medium">{taskAnalytics.summary.completedThisWeek}</span>
+                        </div>
+                        {taskAnalytics.summary.averageCompletionTime > 0 && (
+                          <div className="flex justify-between text-xs">
+                            <span className="text-gray-500">Avg Time</span>
+                            <span className="text-purple-600 font-medium">{taskAnalytics.summary.averageCompletionTime}h</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                      <span className="text-sm">Review invoices</span>
+                  ) : (
+                    <div className="text-center text-gray-500">
+                      <CheckSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                      <div className="text-sm">No task data available</div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span className="text-sm">Team meeting at 3 PM</span>
-                    </div>
-                  </div>
+                  )}
                 </CardContent>
               </Card>
             )}

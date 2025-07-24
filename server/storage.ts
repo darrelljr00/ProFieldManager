@@ -2496,6 +2496,155 @@ export class DatabaseStorage implements IStorage {
     return result;
   }
 
+  async getTaskCompletionAnalytics(organizationId: number): Promise<{
+    totalTasks: number;
+    completedTasks: number;
+    completionRate: number;
+    completedToday: number;
+    completedThisWeek: number;
+    averageCompletionTime: number;
+    topPerformers: Array<{
+      userId: number;
+      name: string;
+      completedTasks: number;
+      completionRate: number;
+    }>;
+  }> {
+    try {
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+      // Get project IDs for this organization first
+      const orgProjects = await db
+        .select({ id: projects.id })
+        .from(projects)
+        .where(eq(projects.organizationId, organizationId));
+      
+      const projectIds = orgProjects.map(p => p.id);
+      
+      if (projectIds.length === 0) {
+        return {
+          totalTasks: 0,
+          completedTasks: 0,
+          completionRate: 0,
+          completedToday: 0,
+          completedThisWeek: 0,
+          averageCompletionTime: 0,
+          topPerformers: []
+        };
+      }
+
+      // Get all tasks for the organization projects using inArray
+      const allTasks = await db
+        .select()
+        .from(tasks)
+        .where(inArray(tasks.projectId, projectIds));
+
+      const totalTasks = allTasks.length;
+      const completedTasks = allTasks.filter(task => task.isCompleted).length;
+      const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+      // Tasks completed today
+      const completedToday = allTasks.filter(task => 
+        task.isCompleted && 
+        task.completedAt && 
+        new Date(task.completedAt) >= today
+      ).length;
+
+      // Tasks completed this week
+      const completedThisWeek = allTasks.filter(task => 
+        task.isCompleted && 
+        task.completedAt && 
+        new Date(task.completedAt) >= weekAgo
+      ).length;
+
+      // Calculate average completion time in hours
+      const completedTasksWithTime = allTasks.filter(task => 
+        task.isCompleted && task.completedAt && task.createdAt
+      );
+      
+      let averageCompletionTime = 0;
+      if (completedTasksWithTime.length > 0) {
+        const totalCompletionTime = completedTasksWithTime.reduce((sum, task) => {
+          const created = new Date(task.createdAt);
+          const completed = new Date(task.completedAt!);
+          return sum + (completed.getTime() - created.getTime());
+        }, 0);
+        averageCompletionTime = Math.round(totalCompletionTime / completedTasksWithTime.length / (1000 * 60 * 60)); // Convert to hours
+      }
+
+      // Get user information for top performers
+      const userIds = [...new Set(allTasks.filter(t => t.completedById).map(t => t.completedById!))];
+      const usersData = userIds.length > 0 ? await db
+        .select({
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          username: users.username
+        })
+        .from(users)
+        .where(inArray(users.id, userIds))
+        : [];
+
+      // Create user lookup map
+      const userMap = new Map(usersData.map(u => [u.id, u]));
+
+      // Calculate user performance stats
+      const userStats = new Map();
+      allTasks.forEach(task => {
+        if (task.completedById) {
+          const userId = task.completedById;
+          const user = userMap.get(userId);
+          if (user) {
+            if (!userStats.has(userId)) {
+              userStats.set(userId, {
+                userId,
+                name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'Unknown',
+                totalTasks: 0,
+                completedTasks: 0
+              });
+            }
+            const stats = userStats.get(userId);
+            stats.totalTasks++;
+            if (task.isCompleted) {
+              stats.completedTasks++;
+            }
+          }
+        }
+      });
+
+      const topPerformers = Array.from(userStats.values())
+        .map(stats => ({
+          ...stats,
+          completionRate: stats.totalTasks > 0 ? Math.round((stats.completedTasks / stats.totalTasks) * 100) : 0
+        }))
+        .sort((a, b) => b.completedTasks - a.completedTasks)
+        .slice(0, 5);
+
+      return {
+        totalTasks,
+        completedTasks,
+        completionRate,
+        completedToday,
+        completedThisWeek,
+        averageCompletionTime,
+        topPerformers
+      };
+    } catch (error) {
+      console.error('Error in getTaskCompletionAnalytics:', error);
+      return {
+        totalTasks: 0,
+        completedTasks: 0,
+        completionRate: 0,
+        completedToday: 0,
+        completedThisWeek: 0,
+        averageCompletionTime: 0,
+        topPerformers: []
+      };
+    }
+  }
+
   async getAllTasks(organizationId: number): Promise<any[]> {
     try {
       const result = await db

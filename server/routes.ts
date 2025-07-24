@@ -1275,9 +1275,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Dashboard stats
   app.get("/api/dashboard/stats", async (req, res) => {
     try {
-      const stats = await storage.getInvoiceStats(req.user!.id);
+      const user = getAuthenticatedUser(req);
+      const stats = await storage.getInvoiceStats(user.id);
       
-      // Add missing fields required by the frontend
+      // Get task completion analytics for the organization
+      const taskAnalytics = await storage.getTaskCompletionAnalytics(user.organizationId);
+      
+      // Add missing fields required by the frontend plus task analytics
       const dashboardStats = {
         totalRevenue: 0,
         totalInvoices: stats.totalInvoices || "0",
@@ -1286,7 +1290,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         overdueInvoices: 0,
         pendingValue: 0,
         paidValue: 0,
-        overdueValue: 0
+        overdueValue: 0,
+        // Task completion analytics
+        totalTasks: taskAnalytics.totalTasks,
+        completedTasks: taskAnalytics.completedTasks,
+        taskCompletionRate: taskAnalytics.completionRate,
+        tasksCompletedToday: taskAnalytics.completedToday,
+        tasksCompletedThisWeek: taskAnalytics.completedThisWeek,
+        averageCompletionTime: taskAnalytics.averageCompletionTime,
+        topPerformers: taskAnalytics.topPerformers
       };
       
       res.json(dashboardStats);
@@ -5088,11 +5100,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .filter((invoice: any) => invoice.status === 'refunded')
         .reduce((sum: number, invoice: any) => sum + parseFloat(invoice.totalAmount || 0), 0);
 
+      // Get task completion analytics for reports
+      const taskAnalytics = await storage.getTaskCompletionAnalytics(organizationId);
+      
       // Get employee performance metrics
       const users = await storage.getUsersByOrganization(organizationId);
       const projects = await storage.getProjects(organizationId);
-      // Temporarily disable getAllTasks due to SQL syntax error
-      const tasks = [];
+      const tasks = await storage.getAllTasks(organizationId);
       const timeOffRequests = await storage.getTimeOffRequests(organizationId);
 
       // Calculate employee metrics
@@ -5181,7 +5195,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           leads: filteredLeads,
           expenses: filteredExpenses,
           customers,
-          employees: employeeMetrics
+          employees: employeeMetrics,
+          taskAnalytics: {
+            totalTasks: taskAnalytics.totalTasks,
+            completedTasks: taskAnalytics.completedTasks,
+            completionRate: taskAnalytics.completionRate,
+            completedToday: taskAnalytics.completedToday,
+            completedThisWeek: taskAnalytics.completedThisWeek,
+            averageCompletionTime: taskAnalytics.averageCompletionTime,
+            topPerformers: taskAnalytics.topPerformers
+          }
         },
         dateRange: {
           startDate: startDate?.toISOString(),
@@ -5205,6 +5228,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error fetching reports data:", error);
       res.status(500).json({ message: "Failed to fetch reports data" });
+    }
+  });
+
+  // Dedicated Task Analytics API endpoint
+  app.get("/api/analytics/tasks", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const organizationId = user.organizationId;
+      
+      // Parse time range filter
+      const timeRange = (req.query.timeRange as string) || '30days';
+      let startDate: Date;
+      const endDate = new Date();
+      
+      switch (timeRange) {
+        case '7days':
+          startDate = new Date(endDate.getTime() - 7 * 24 * 60 * 60 * 1000);
+          break;
+        case '30days':
+          startDate = new Date(endDate.getTime() - 30 * 24 * 60 * 60 * 1000);
+          break;
+        case '90days':
+          startDate = new Date(endDate.getTime() - 90 * 24 * 60 * 60 * 1000);
+          break;
+        case '1year':
+          startDate = new Date(endDate.getTime() - 365 * 24 * 60 * 60 * 1000);
+          break;
+        default:
+          startDate = new Date(endDate.getTime() - 30 * 24 * 60 * 60 * 1000);
+      }
+
+      // Get comprehensive task analytics
+      const taskAnalytics = await storage.getTaskCompletionAnalytics(organizationId);
+      
+      // For the analytics endpoint, return summary data with simpler calculations
+      const tasksSummary = {
+        dailyCompletions: [],
+        projectBreakdown: []
+      };
+
+      res.json({
+        summary: taskAnalytics,
+        completionData: tasksSummary.dailyCompletions,
+        projectBreakdown: tasksSummary.projectBreakdown,
+        timeRange: {
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString(),
+          range: timeRange
+        }
+      });
+    } catch (error: any) {
+      console.error("Error fetching task analytics:", error);
+      res.status(500).json({ message: "Failed to fetch task analytics" });
     }
   });
 
