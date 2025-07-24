@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "./useAuth";
 import { useToast } from "./use-toast";
+import { useSoundNotifications } from "./useSoundNotifications";
 
 interface WebSocketMessage {
   type: string;
@@ -12,6 +13,7 @@ interface WebSocketMessage {
 export function useWebSocket() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { playTeamMessageSound, playTextMessageSound } = useSoundNotifications();
   const wsRef = useRef<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [lastMessage, setLastMessage] = useState<WebSocketMessage | null>(null);
@@ -49,6 +51,13 @@ export function useWebSocket() {
         }
 
         if (message.type === 'update' && message.eventType && message.data) {
+          // Play sound notifications for messages
+          if (message.eventType === 'new_message' || message.eventType === 'message_sent') {
+            playTeamMessageSound();
+          } else if (message.eventType === 'sms_sent' || message.eventType === 'sms_received') {
+            playTextMessageSound();
+          }
+          
           handleRealtimeUpdate(message.eventType, message.data);
         }
       } catch (error) {

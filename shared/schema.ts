@@ -1274,6 +1274,19 @@ export const backupJobs = pgTable("backup_jobs", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Sound settings table
+export const soundSettings = pgTable("sound_settings", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  teamMessageSound: text("team_message_sound").default("chime"),
+  textMessageSound: text("text_message_sound").default("bell"),
+  volume: decimal("volume", { precision: 3, scale: 2 }).default("0.70"),
+  enabled: boolean("enabled").default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Navigation Order insert schema
 export const insertNavigationOrderSchema = z.object({
   userId: z.number(),
@@ -1306,12 +1319,23 @@ export const insertBackupSettingsSchema = z.object({
   notificationEmails: z.array(z.string().email()).default([]),
 });
 
+export const insertSoundSettingsSchema = z.object({
+  userId: z.number(),
+  organizationId: z.number(),
+  teamMessageSound: z.string().default("chime"),
+  textMessageSound: z.string().default("bell"),
+  volume: z.number().min(0).max(1).default(0.7),
+  enabled: z.boolean().default(true),
+});
+
 // Types
 export type NavigationOrder = typeof navigationOrder.$inferSelect;
 export type InsertNavigationOrder = z.infer<typeof insertNavigationOrderSchema>;
 export type BackupSettings = typeof backupSettings.$inferSelect;
 export type InsertBackupSettings = z.infer<typeof insertBackupSettingsSchema>;
 export type BackupJob = typeof backupJobs.$inferSelect;
+export type SoundSettings = typeof soundSettings.$inferSelect;
+export type InsertSoundSettings = z.infer<typeof insertSoundSettingsSchema>;
 
 // Insert schemas
 export const insertUserSchema = z.object({

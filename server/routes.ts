@@ -37,7 +37,8 @@ import {
   users, customers, invoices, quotes, projects, tasks, 
   expenses, expenseCategories, expenseReports, gasCards, 
   gasCardAssignments, leads, calendarJobs, messages,
-  images, settings, organizations, userSessions, vendors
+  images, settings, organizations, userSessions, vendors,
+  soundSettings
 } from "@shared/schema";
 import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull } from "drizzle-orm";
 import { DocuSignService, getDocuSignConfig } from "./docusign";
@@ -4819,6 +4820,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error resetting navigation order:", error);
       res.status(500).json({ message: "Failed to reset navigation order" });
+    }
+  });
+
+  // Sound Settings API
+  app.get("/api/settings/sounds", requireAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const organizationId = req.user!.organizationId;
+      
+      const soundSettings = await db.select()
+        .from(soundSettings)
+        .where(
+          and(
+            eq(soundSettings.userId, userId),
+            eq(soundSettings.organizationId, organizationId)
+          )
+        )
+        .limit(1);
+        
+      if (soundSettings.length === 0) {
+        // Return default settings if none exist
+        const defaultSettings = {
+          teamMessageSound: "chime",
+          textMessageSound: "bell",
+          volume: 0.7,
+          enabled: true
+        };
+        res.json(defaultSettings);
+      } else {
+        const settings = soundSettings[0];
+        res.json({
+          teamMessageSound: settings.teamMessageSound,
+          textMessageSound: settings.textMessageSound,
+          volume: parseFloat(settings.volume) || 0.7,
+          enabled: settings.enabled
+        });
+      }
+    } catch (error: any) {
+      console.error("Error fetching sound settings:", error);
+      res.status(500).json({ message: "Failed to fetch sound settings" });
+    }
+  });
+
+  app.put("/api/settings/sounds", requireAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const organizationId = req.user!.organizationId;
+      const { teamMessageSound, textMessageSound, volume, enabled } = req.body;
+      
+      // Check if settings exist
+      const existingSettings = await db.select()
+        .from(soundSettings)
+        .where(
+          and(
+            eq(soundSettings.userId, userId),
+            eq(soundSettings.organizationId, organizationId)
+          )
+        )
+        .limit(1);
+        
+      const settingsData = {
+        teamMessageSound: teamMessageSound || "chime",
+        textMessageSound: textMessageSound || "bell",
+        volume: volume !== undefined ? volume.toString() : "0.7",
+        enabled: enabled !== undefined ? enabled : true,
+        updatedAt: new Date()
+      };
+      
+      if (existingSettings.length === 0) {
+        // Insert new settings
+        await db.insert(soundSettings).values({
+          userId,
+          organizationId,
+          ...settingsData
+        });
+      } else {
+        // Update existing settings
+        await db.update(soundSettings)
+          .set(settingsData)
+          .where(
+            and(
+              eq(soundSettings.userId, userId),
+              eq(soundSettings.organizationId, organizationId)
+            )
+          );
+      }
+      
+      res.json({ message: "Sound settings updated successfully" });
+    } catch (error: any) {
+      console.error("Error updating sound settings:", error);
+      res.status(500).json({ message: "Failed to update sound settings" });
     }
   });
 

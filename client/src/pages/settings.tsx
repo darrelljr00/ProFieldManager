@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Save, Eye, EyeOff, Upload, X, Download, Database, Clock, AlertTriangle } from "lucide-react";
 import { InvoicePreview } from "@/components/InvoicePreview";
+import SoundSettings from "@/components/SoundSettings";
 
 type PaymentSettings = {
   stripeEnabled: boolean;
@@ -803,6 +804,7 @@ export default function Settings() {
           <TabsTrigger value="dashboard" className="flex-shrink-0">Dashboard</TabsTrigger>
           <TabsTrigger value="weather" className="flex-shrink-0">Weather</TabsTrigger>
           <TabsTrigger value="backup" className="flex-shrink-0">Backup</TabsTrigger>
+          <TabsTrigger value="sounds" className="flex-shrink-0">Sounds</TabsTrigger>
           <TabsTrigger value="navigation" className="flex-shrink-0">Navigation</TabsTrigger>
         </TabsList>
 
@@ -3220,6 +3222,10 @@ export default function Settings() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="sounds">
+          <SoundSettings />
         </TabsContent>
       </Tabs>
     </div>
