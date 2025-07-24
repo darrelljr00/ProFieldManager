@@ -3498,28 +3498,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }, {});
             const retainFilename = settingsMap['retain_original_filename'] === 'true';
             
-            if (!retainFilename) {
-              // Compression created a separate file, use it
-              finalFilePath = compressedPath;
-              finalFilename = compressedFilename;
-              finalMimeType = 'image/jpeg';
-              
-              // Get compressed file size
-              const stats = await fs.stat(compressedPath);
-              finalFileSize = stats.size;
-              
-              console.log('✅ Using compressed file:', finalFilename);
-              console.log('Compressed file size:', Math.round(finalFileSize / 1024) + ' KB');
-              console.log('Size reduction:', Math.round((req.file.size - finalFileSize) / req.file.size * 100) + '%');
-            } else {
-              // Compression was applied in place, get updated file size
-              const stats = await fs.stat(finalFilePath);
-              finalFileSize = stats.size;
-              finalMimeType = 'image/jpeg'; // Compression converts to JPEG
-              
-              console.log('✅ Compression applied in place to:', finalFilename);
-              console.log('Compressed file size:', Math.round(finalFileSize / 1024) + ' KB');
-              console.log('Size reduction:', Math.round((req.file.size - finalFileSize) / req.file.size * 100) + '%');
+            // Compression is always applied in place with preserved filename
+            const stats = await fs.stat(finalFilePath);
+            finalFileSize = stats.size;
+            finalMimeType = 'image/jpeg'; // Compression converts to JPEG
+            
+            console.log('✅ Compression applied successfully to:', finalFilename);
+            console.log('Compressed file size:', Math.round(finalFileSize / 1024) + ' KB');
+            console.log('Size reduction:', Math.round((req.file.size - finalFileSize) / req.file.size * 100) + '%');
+            
+            if (finalFileSize <= 1024 * 1024) {
+              console.log('🎯 SUCCESS: Image compressed to under 1MB target');
             }
           } else {
             console.log('⚠️ Compression was not applied, using original file');
