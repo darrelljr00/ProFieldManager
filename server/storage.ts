@@ -961,7 +961,7 @@ export class DatabaseStorage implements IStorage {
         const taskCounts = await db
           .select({
             total: sql<number>`count(*)`,
-            completed: sql<number>`count(*) filter (where ${tasks.status} = 'completed')`,
+            completed: sql<number>`count(*) filter (where ${tasks.isCompleted} = true)`,
           })
           .from(tasks)
           .where(eq(tasks.projectId, project.id));
@@ -1020,7 +1020,7 @@ export class DatabaseStorage implements IStorage {
     const taskCounts = await db
       .select({
         total: sql<number>`count(*)`,
-        completed: sql<number>`count(*) filter (where ${tasks.status} = 'completed')`,
+        completed: sql<number>`count(*) filter (where ${tasks.isCompleted} = true)`,
       })
       .from(tasks)
       .where(eq(tasks.projectId, project.id));
