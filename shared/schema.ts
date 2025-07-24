@@ -466,6 +466,34 @@ export const taskComments = pgTable("task_comments", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Task Groups - Bundled tasks that can be reused across projects
+export const taskGroups = pgTable("task_groups", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  name: text("name").notNull(),
+  description: text("description"),
+  color: text("color").default("#3B82F6"), // For visual identification
+  isActive: boolean("is_active").default(true),
+  createdById: integer("created_by_id").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Task Templates - Individual tasks within a group
+export const taskTemplates = pgTable("task_templates", {
+  id: serial("id").primaryKey(),
+  taskGroupId: integer("task_group_id").notNull().references(() => taskGroups.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  description: text("description"),
+  type: text("type").notNull().default("checkbox"), // checkbox, text, number, image
+  isRequired: boolean("is_required").default(false),
+  priority: text("priority").notNull().default("medium"), // low, medium, high, urgent
+  estimatedHours: decimal("estimated_hours", { precision: 5, scale: 2 }),
+  order: integer("order").default(0), // For ordering tasks within a group
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const projectFiles = pgTable("project_files", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
@@ -1429,6 +1457,25 @@ export const insertTaskCommentSchema = z.object({
   content: z.string().min(1),
 });
 
+export const insertTaskGroupSchema = z.object({
+  organizationId: z.number(),
+  name: z.string().min(1),
+  description: z.string().optional(),
+  color: z.string().default("#3B82F6"),
+  createdById: z.number(),
+});
+
+export const insertTaskTemplateSchema = z.object({
+  taskGroupId: z.number(),
+  title: z.string().min(1),
+  description: z.string().optional(),
+  type: z.enum(['checkbox', 'text', 'number', 'image']).default('checkbox'),
+  isRequired: z.boolean().default(false),
+  priority: z.enum(['low', 'medium', 'high', 'urgent']).default('medium'),
+  estimatedHours: z.number().optional(),
+  order: z.number().default(0),
+});
+
 export const insertProjectFileSchema = z.object({
   projectId: z.number(),
   fileName: z.string().min(1),
@@ -1764,6 +1811,12 @@ export type InsertTask = z.infer<typeof insertTaskSchema>;
 
 export type TaskComment = typeof taskComments.$inferSelect;
 export type InsertTaskComment = z.infer<typeof insertTaskCommentSchema>;
+
+export type TaskGroup = typeof taskGroups.$inferSelect;
+export type InsertTaskGroup = z.infer<typeof insertTaskGroupSchema>;
+
+export type TaskTemplate = typeof taskTemplates.$inferSelect;
+export type InsertTaskTemplate = z.infer<typeof insertTaskTemplateSchema>;
 
 export type ProjectFile = typeof projectFiles.$inferSelect;
 export type InsertProjectFile = z.infer<typeof insertProjectFileSchema>;

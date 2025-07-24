@@ -46,6 +46,7 @@ import { MediaGallery } from "@/components/media-gallery";
 import { DocuSignSignatureDialog } from "@/components/docusign-signature-dialog";
 import { MobileCamera } from "@/components/mobile-camera";
 import DigitalSignature from "@/components/DigitalSignature";
+import TaskGroupSelector from "@/components/TaskGroupSelector";
 import { useAuth } from "@/hooks/useAuth";
 
 interface ProjectWithDetails extends Project {
@@ -62,6 +63,7 @@ export default function ProjectDetail() {
   
   const projectId = Number(params.id);
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+  const [taskGroupSelectorOpen, setTaskGroupSelectorOpen] = useState(false);
   const [fileDialogOpen, setFileDialogOpen] = useState(false);
   const [timeDialogOpen, setTimeDialogOpen] = useState(false);
   const [teamDialogOpen, setTeamDialogOpen] = useState(false);
@@ -489,14 +491,15 @@ export default function ProjectDetail() {
         <TabsContent value="tasks" className="space-y-4">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold">Tasks</h2>
-            <Dialog open={taskDialogOpen} onOpenChange={setTaskDialogOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  New Task
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
+            <div className="flex gap-2">
+              <Dialog open={taskDialogOpen} onOpenChange={setTaskDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="h-4 w-4 mr-2" />
+                    New Task
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Create New Task</DialogTitle>
                   <DialogDescription>
@@ -582,7 +585,15 @@ export default function ProjectDetail() {
                   </div>
                 </form>
               </DialogContent>
-            </Dialog>
+              </Dialog>
+              <Button 
+                variant="outline"
+                onClick={() => setTaskGroupSelectorOpen(true)}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Grouped Tasks
+              </Button>
+            </div>
           </div>
 
           <div className="grid gap-4">
@@ -1291,6 +1302,16 @@ export default function ProjectDetail() {
         projectId={projectId}
         open={signatureDialogOpen}
         onOpenChange={setSignatureDialogOpen}
+      />
+      
+      {/* Task Group Selector Dialog */}
+      <TaskGroupSelector
+        open={taskGroupSelectorOpen}
+        onOpenChange={setTaskGroupSelectorOpen}
+        projectId={projectId}
+        onTasksAdded={() => {
+          queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'tasks'] });
+        }}
       />
     </div>
   );

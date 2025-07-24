@@ -1,7 +1,7 @@
 import { db } from "./db";
 import { ensureOrganizationFolders } from "./folderCreation";
 import { 
-  users, customers, invoices, quotes, projects, tasks, 
+  users, customers, invoices, quotes, projects, tasks, taskGroups, taskTemplates,
   expenses, expenseCategories, vendors, expenseReports, gasCards, 
   gasCardAssignments, gasCardUsage, gasCardProviders, leads, calendarJobs, messages,
   images, settings, organizations, userSessions, subscriptionPlans,
@@ -197,6 +197,21 @@ export interface IStorage {
   updateTask(id: number, userId: number, updates: any): Promise<any>;
   deleteTask(id: number): Promise<void>;
   
+  // Task Group methods
+  getTaskGroups(organizationId: number): Promise<any[]>;
+  getTaskGroup(id: number, organizationId: number): Promise<any>;
+  createTaskGroup(groupData: any): Promise<any>;
+  updateTaskGroup(id: number, organizationId: number, updates: any): Promise<any>;
+  deleteTaskGroup(id: number, organizationId: number): Promise<boolean>;
+  
+  // Task Template methods
+  getTaskTemplates(taskGroupId: number): Promise<any[]>;
+  getTaskTemplate(id: number): Promise<any>;
+  createTaskTemplate(templateData: any): Promise<any>;
+  updateTaskTemplate(id: number, updates: any): Promise<any>;
+  deleteTaskTemplate(id: number): Promise<boolean>;
+  createTasksFromGroup(projectId: number, taskGroupId: number, userId: number): Promise<any[]>;
+  
   // GPS tracking methods
   createGPSSession(sessionData: any): Promise<any>;
   getGPSSessions(organizationId: number): Promise<any[]>;
@@ -384,6 +399,21 @@ export interface IStorage {
   createMarketResearchCompetitor(competitorData: any): Promise<any>;
   updateMarketResearchCompetitor(id: number, updates: any): Promise<any>;
   deleteMarketResearchCompetitor(id: number): Promise<void>;
+  
+  // Task Group methods
+  getTaskGroups(organizationId: number): Promise<any[]>;
+  getTaskGroup(id: number, organizationId: number): Promise<any>;
+  createTaskGroup(groupData: any): Promise<any>;
+  updateTaskGroup(id: number, organizationId: number, updates: any): Promise<any>;
+  deleteTaskGroup(id: number, organizationId: number): Promise<boolean>;
+  
+  // Task Template methods
+  getTaskTemplates(taskGroupId: number): Promise<any[]>;
+  getTaskTemplate(id: number): Promise<any>;
+  createTaskTemplate(templateData: any): Promise<any>;
+  updateTaskTemplate(id: number, updates: any): Promise<any>;
+  deleteTaskTemplate(id: number): Promise<boolean>;
+  createTasksFromGroup(projectId: number, taskGroupId: number, userId: number): Promise<any[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -5800,6 +5830,274 @@ export class DatabaseStorage implements IStorage {
         .where(eq(marketResearchCompetitors.id, id));
     } catch (error) {
       console.error('Error deleting market research competitor:', error);
+      throw error;
+    }
+  }
+
+  // Task Group methods
+  async getTaskGroups(organizationId: number): Promise<any[]> {
+    try {
+      const groups = await db
+        .select({
+          id: taskGroups.id,
+          name: taskGroups.name,
+          description: taskGroups.description,
+          color: taskGroups.color,
+          isActive: taskGroups.isActive,
+          createdById: taskGroups.createdById,
+          createdAt: taskGroups.createdAt,
+          updatedAt: taskGroups.updatedAt,
+          createdBy: {
+            id: users.id,
+            firstName: users.firstName,
+            lastName: users.lastName,
+          },
+          taskCount: sql<number>`(
+            SELECT COUNT(*)::int 
+            FROM ${taskTemplates} 
+            WHERE ${taskTemplates.taskGroupId} = ${taskGroups.id}
+          )`
+        })
+        .from(taskGroups)
+        .leftJoin(users, eq(taskGroups.createdById, users.id))
+        .where(and(
+          eq(taskGroups.organizationId, organizationId),
+          eq(taskGroups.isActive, true)
+        ))
+        .orderBy(desc(taskGroups.createdAt));
+
+      return groups;
+    } catch (error) {
+      console.error('Error getting task groups:', error);
+      throw error;
+    }
+  }
+
+  async getTaskGroup(id: number, organizationId: number): Promise<any> {
+    try {
+      const [group] = await db
+        .select({
+          id: taskGroups.id,
+          name: taskGroups.name,
+          description: taskGroups.description,
+          color: taskGroups.color,
+          isActive: taskGroups.isActive,
+          createdById: taskGroups.createdById,
+          createdAt: taskGroups.createdAt,
+          updatedAt: taskGroups.updatedAt,
+          createdBy: {
+            id: users.id,
+            firstName: users.firstName,
+            lastName: users.lastName,
+          }
+        })
+        .from(taskGroups)
+        .leftJoin(users, eq(taskGroups.createdById, users.id))
+        .where(and(
+          eq(taskGroups.id, id),
+          eq(taskGroups.organizationId, organizationId),
+          eq(taskGroups.isActive, true)
+        ))
+        .limit(1);
+
+      if (!group) return null;
+
+      // Get templates for this group
+      const templates = await this.getTaskTemplates(id);
+      
+      return {
+        ...group,
+        templates
+      };
+    } catch (error) {
+      console.error('Error getting task group:', error);
+      throw error;
+    }
+  }
+
+  async createTaskGroup(groupData: any): Promise<any> {
+    try {
+      const [group] = await db
+        .insert(taskGroups)
+        .values({
+          organizationId: groupData.organizationId,
+          name: groupData.name,
+          description: groupData.description,
+          color: groupData.color || '#3B82F6',
+          createdById: groupData.createdById,
+        })
+        .returning();
+
+      return group;
+    } catch (error) {
+      console.error('Error creating task group:', error);
+      throw error;
+    }
+  }
+
+  async updateTaskGroup(id: number, organizationId: number, updates: any): Promise<any> {
+    try {
+      const updateData: any = { updatedAt: new Date() };
+      
+      if (updates.name !== undefined) updateData.name = updates.name;
+      if (updates.description !== undefined) updateData.description = updates.description;
+      if (updates.color !== undefined) updateData.color = updates.color;
+      if (updates.isActive !== undefined) updateData.isActive = updates.isActive;
+
+      const [group] = await db
+        .update(taskGroups)
+        .set(updateData)
+        .where(and(
+          eq(taskGroups.id, id),
+          eq(taskGroups.organizationId, organizationId)
+        ))
+        .returning();
+
+      return group;
+    } catch (error) {
+      console.error('Error updating task group:', error);
+      throw error;
+    }
+  }
+
+  async deleteTaskGroup(id: number, organizationId: number): Promise<boolean> {
+    try {
+      const result = await db
+        .update(taskGroups)
+        .set({ isActive: false, updatedAt: new Date() })
+        .where(and(
+          eq(taskGroups.id, id),
+          eq(taskGroups.organizationId, organizationId)
+        ));
+
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error('Error deleting task group:', error);
+      throw error;
+    }
+  }
+
+  // Task Template methods
+  async getTaskTemplates(taskGroupId: number): Promise<any[]> {
+    try {
+      const templates = await db
+        .select()
+        .from(taskTemplates)
+        .where(eq(taskTemplates.taskGroupId, taskGroupId))
+        .orderBy(asc(taskTemplates.order), asc(taskTemplates.createdAt));
+
+      return templates;
+    } catch (error) {
+      console.error('Error getting task templates:', error);
+      throw error;
+    }
+  }
+
+  async getTaskTemplate(id: number): Promise<any> {
+    try {
+      const [template] = await db
+        .select()
+        .from(taskTemplates)
+        .where(eq(taskTemplates.id, id))
+        .limit(1);
+
+      return template;
+    } catch (error) {
+      console.error('Error getting task template:', error);
+      throw error;
+    }
+  }
+
+  async createTaskTemplate(templateData: any): Promise<any> {
+    try {
+      const [template] = await db
+        .insert(taskTemplates)
+        .values({
+          taskGroupId: templateData.taskGroupId,
+          title: templateData.title,
+          description: templateData.description,
+          type: templateData.type || 'checkbox',
+          isRequired: templateData.isRequired || false,
+          priority: templateData.priority || 'medium',
+          estimatedHours: templateData.estimatedHours,
+          order: templateData.order || 0,
+        })
+        .returning();
+
+      return template;
+    } catch (error) {
+      console.error('Error creating task template:', error);
+      throw error;
+    }
+  }
+
+  async updateTaskTemplate(id: number, updates: any): Promise<any> {
+    try {
+      const updateData: any = { updatedAt: new Date() };
+      
+      if (updates.title !== undefined) updateData.title = updates.title;
+      if (updates.description !== undefined) updateData.description = updates.description;
+      if (updates.type !== undefined) updateData.type = updates.type;
+      if (updates.isRequired !== undefined) updateData.isRequired = updates.isRequired;
+      if (updates.priority !== undefined) updateData.priority = updates.priority;
+      if (updates.estimatedHours !== undefined) updateData.estimatedHours = updates.estimatedHours;
+      if (updates.order !== undefined) updateData.order = updates.order;
+
+      const [template] = await db
+        .update(taskTemplates)
+        .set(updateData)
+        .where(eq(taskTemplates.id, id))
+        .returning();
+
+      return template;
+    } catch (error) {
+      console.error('Error updating task template:', error);
+      throw error;
+    }
+  }
+
+  async deleteTaskTemplate(id: number): Promise<boolean> {
+    try {
+      const result = await db
+        .delete(taskTemplates)
+        .where(eq(taskTemplates.id, id));
+
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error('Error deleting task template:', error);
+      throw error;
+    }
+  }
+
+  async createTasksFromGroup(projectId: number, taskGroupId: number, userId: number): Promise<any[]> {
+    try {
+      // Get all templates from the group
+      const templates = await this.getTaskTemplates(taskGroupId);
+      
+      const createdTasks = [];
+      
+      for (const template of templates) {
+        const [task] = await db
+          .insert(tasks)
+          .values({
+            projectId,
+            createdById: userId,
+            title: template.title,
+            description: template.description,
+            type: template.type,
+            isRequired: template.isRequired,
+            priority: template.priority,
+            estimatedHours: template.estimatedHours,
+            status: 'todo',
+          })
+          .returning();
+          
+        createdTasks.push(task);
+      }
+      
+      return createdTasks;
+    } catch (error) {
+      console.error('Error creating tasks from group:', error);
       throw error;
     }
   }

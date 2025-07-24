@@ -11189,8 +11189,105 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Task Group API Routes
+  
+  // Get all task groups for the organization
+  app.get("/api/task-groups", requireAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const organizationId = req.user!.organizationId;
+      const taskGroups = await storage.getTaskGroups(organizationId);
+      res.json(taskGroups);
+    } catch (error: any) {
+      console.error("Error fetching task groups:", error);
+      res.status(500).json({ message: "Failed to fetch task groups" });
+    }
+  });
+
+  // Create a new task group
+  app.post("/api/task-groups", requireAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const organizationId = req.user!.organizationId;
+      const { name, description, color } = req.body;
+
+      if (!name?.trim()) {
+        return res.status(400).json({ message: "Task group name is required" });
+      }
+
+      const taskGroup = await storage.createTaskGroup({
+        name: name.trim(),
+        description: description?.trim() || '',
+        color: color || '#3B82F6',
+        organizationId,
+        createdById: userId,
+        isActive: true
+      });
+
+      res.json(taskGroup);
+    } catch (error: any) {
+      console.error("Error creating task group:", error);
+      res.status(500).json({ message: "Failed to create task group" });
+    }
+  });
+
+  // Add task group to project (creates individual tasks from the group)
+  app.post("/api/projects/:id/add-task-group", requireAuth, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const { taskGroupId } = req.body;
+      const userId = req.user!.id;
+
+      if (!taskGroupId) {
+        return res.status(400).json({ message: "Task group ID is required" });
+      }
+
+      // Verify the task group exists and belongs to the user's organization
+      const taskGroup = await storage.getTaskGroupById(taskGroupId);
+      if (!taskGroup) {
+        return res.status(404).json({ message: "Task group not found" });
+      }
+
+      if (taskGroup.organizationId !== req.user!.organizationId) {
+        return res.status(403).json({ message: "Access denied to task group" });
+      }
+
+      // Get tasks from the group
+      const groupTasks = await storage.getTaskGroupTasks(taskGroupId);
+      
+      if (groupTasks.length === 0) {
+        return res.status(400).json({ message: "Task group has no tasks" });
+      }
+
+      // Create individual tasks for the project based on the group tasks
+      const createdTasks = [];
+      for (const groupTask of groupTasks) {
+        const newTask = await storage.createTask({
+          title: groupTask.title,
+          description: groupTask.description || '',
+          priority: groupTask.priority,
+          status: 'todo',
+          projectId,
+          createdById: userId,
+          assignedToId: null // Can be assigned later
+        });
+        createdTasks.push(newTask);
+      }
+
+      res.json({ 
+        message: `Successfully added ${createdTasks.length} tasks from group "${taskGroup.name}"`,
+        tasksAdded: createdTasks.length,
+        tasks: createdTasks
+      });
+    } catch (error: any) {
+      console.error("Error adding task group to project:", error);
+      res.status(500).json({ message: "Failed to add task group to project" });
+    }
+  });
+
   // Add broadcast function to the app for use in routes
   (app as any).broadcastToWebUsers = broadcastToWebUsers;
 
   return httpServer;
 }
+

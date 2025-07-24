@@ -1,0 +1,120 @@
+  // Task Group Management API Routes
+  
+  // Get all task groups for organization
+  app.get("/api/task-groups", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const taskGroups = await storage.getTaskGroups(user.organizationId);
+      res.json(taskGroups);
+    } catch (error: any) {
+      console.error("Error fetching task groups:", error);
+      res.status(500).json({ message: "Failed to fetch task groups" });
+    }
+  });
+
+  // Get single task group
+  app.get("/api/task-groups/:id", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const id = parseInt(req.params.id);
+      const taskGroup = await storage.getTaskGroup(id, user.organizationId);
+      
+      if (!taskGroup) {
+        return res.status(404).json({ message: "Task group not found" });
+      }
+      
+      res.json(taskGroup);
+    } catch (error: any) {
+      console.error("Error fetching task group:", error);
+      res.status(500).json({ message: "Failed to fetch task group" });
+    }
+  });
+
+  // Create new task group
+  app.post("/api/task-groups", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const taskGroupData = {
+        ...req.body,
+        organizationId: user.organizationId,
+        createdById: user.id
+      };
+
+      const taskGroup = await storage.createTaskGroup(taskGroupData);
+      res.status(201).json(taskGroup);
+    } catch (error: any) {
+      console.error("Error creating task group:", error);
+      res.status(500).json({ message: "Failed to create task group" });
+    }
+  });
+
+  // Update task group
+  app.put("/api/task-groups/:id", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const id = parseInt(req.params.id);
+      
+      const updatedTaskGroup = await storage.updateTaskGroup(id, user.organizationId, req.body);
+      if (!updatedTaskGroup) {
+        return res.status(404).json({ message: "Task group not found" });
+      }
+      
+      res.json(updatedTaskGroup);
+    } catch (error: any) {
+      console.error("Error updating task group:", error);
+      res.status(500).json({ message: "Failed to update task group" });
+    }
+  });
+
+  // Delete task group
+  app.delete("/api/task-groups/:id", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const id = parseInt(req.params.id);
+      
+      const deleted = await storage.deleteTaskGroup(id, user.organizationId);
+      if (!deleted) {
+        return res.status(404).json({ message: "Task group not found" });
+      }
+      
+      res.json({ message: "Task group deleted successfully" });
+    } catch (error: any) {
+      console.error("Error deleting task group:", error);
+      res.status(500).json({ message: "Failed to delete task group" });
+    }
+  });
+
+  // Create tasks from task group
+  app.post("/api/projects/:projectId/add-task-group", requireAuth, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      const { taskGroupId } = req.body;
+      const user = getAuthenticatedUser(req);
+      
+      if (!taskGroupId) {
+        return res.status(400).json({ message: "Task group ID is required" });
+      }
+      
+      const createdTasks = await storage.createTasksFromGroup(projectId, taskGroupId, user.id);
+      
+      // Broadcast via WebSocket that tasks were added
+      try {
+        broadcastToWebUsers('project_tasks_added', {
+          projectId,
+          taskGroupId,
+          tasksCount: createdTasks.length,
+          createdBy: user.id
+        });
+      } catch (error) {
+        console.log('WebSocket broadcast error (non-critical):', error);
+      }
+      
+      res.status(201).json({
+        message: `Successfully added ${createdTasks.length} tasks from group`,
+        tasks: createdTasks
+      });
+    } catch (error: any) {
+      console.error("Error adding task group to project:", error);
+      res.status(500).json({ message: "Failed to add task group to project" });
+    }
+  });
