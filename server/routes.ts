@@ -5168,8 +5168,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           totalExpenses,
           totalRefunds,
           totalCustomers: customers.length,
-          totalEmployees: users.length,
-          activeEmployees: users.filter((u: any) => u.isActive).length
+          totalEmployees: employeeMetrics.length,
+          activeEmployees: employeeMetrics.length
         },
         data: {
           invoices: filteredInvoices,
