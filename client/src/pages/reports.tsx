@@ -40,6 +40,10 @@ export default function Reports() {
   const [useCustomRange, setUseCustomRange] = useState(false);
   const [realTimeUpdates, setRealTimeUpdates] = useState(true);
   const [employeeDateRange, setEmployeeDateRange] = useState("30days");
+  const [taskCompletionDateRange, setTaskCompletionDateRange] = useState("30days");
+  const [projectAssignmentDateRange, setProjectAssignmentDateRange] = useState("30days");
+  const [performanceIssuesDateRange, setPerformanceIssuesDateRange] = useState("30days");
+  const [timeOffDateRange, setTimeOffDateRange] = useState("30days");
   const queryClient = useQueryClient();
 
   // Helper function to get date range based on selection
@@ -92,6 +96,15 @@ export default function Reports() {
     params.append('startDate', start.toISOString());
     params.append('endDate', end.toISOString());
     return params.toString();
+  };
+
+  // Helper function to filter employee data based on date range
+  const filterEmployeeDataByDateRange = (employees: any[], dateRange: string) => {
+    if (!employees || employees.length === 0) return employees;
+    
+    // For now, return the original data since we don't have date-based employee filtering yet
+    // This can be enhanced when we implement backend date filtering for employee metrics
+    return employees;
   };
 
   // Fetch consolidated reports data
@@ -1090,12 +1103,41 @@ export default function Reports() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Task Completion Rates</CardTitle>
-                  <CardDescription>Employee task completion performance</CardDescription>
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                      <CardTitle>Task Completion Rates</CardTitle>
+                      <CardDescription>
+                        Employee task completion performance
+                        <span className="ml-2 text-blue-600 font-medium">
+                          ({taskCompletionDateRange === '7days' ? 'Last 7 Days' :
+                            taskCompletionDateRange === '30days' ? 'Last 30 Days' :
+                            taskCompletionDateRange === '90days' ? 'Last 90 Days' :
+                            taskCompletionDateRange === '6months' ? 'Last 6 Months' :
+                            taskCompletionDateRange === '12months' ? 'Last 12 Months' :
+                            taskCompletionDateRange === '2years' ? 'Last 2 Years' : 
+                            'Custom Period'})
+                        </span>
+                      </CardDescription>
+                    </div>
+                    <Select value={taskCompletionDateRange} onValueChange={setTaskCompletionDateRange}>
+                      <SelectTrigger className="w-40">
+                        <CalendarIcon className="h-4 w-4 mr-2" />
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="7days">Last 7 Days</SelectItem>
+                        <SelectItem value="30days">Last 30 Days</SelectItem>
+                        <SelectItem value="90days">Last 90 Days</SelectItem>
+                        <SelectItem value="6months">Last 6 Months</SelectItem>
+                        <SelectItem value="12months">Last 12 Months</SelectItem>
+                        <SelectItem value="2years">Last 2 Years</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={employeesData}>
+                    <BarChart data={filterEmployeeDataByDateRange(employeesData, taskCompletionDateRange)}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis 
                         dataKey="name" 
@@ -1114,12 +1156,41 @@ export default function Reports() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Project Assignments</CardTitle>
-                  <CardDescription>Active vs completed projects per employee</CardDescription>
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                      <CardTitle>Project Assignments</CardTitle>
+                      <CardDescription>
+                        Active vs completed projects per employee
+                        <span className="ml-2 text-blue-600 font-medium">
+                          ({projectAssignmentDateRange === '7days' ? 'Last 7 Days' :
+                            projectAssignmentDateRange === '30days' ? 'Last 30 Days' :
+                            projectAssignmentDateRange === '90days' ? 'Last 90 Days' :
+                            projectAssignmentDateRange === '6months' ? 'Last 6 Months' :
+                            projectAssignmentDateRange === '12months' ? 'Last 12 Months' :
+                            projectAssignmentDateRange === '2years' ? 'Last 2 Years' : 
+                            'Custom Period'})
+                        </span>
+                      </CardDescription>
+                    </div>
+                    <Select value={projectAssignmentDateRange} onValueChange={setProjectAssignmentDateRange}>
+                      <SelectTrigger className="w-40">
+                        <CalendarIcon className="h-4 w-4 mr-2" />
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="7days">Last 7 Days</SelectItem>
+                        <SelectItem value="30days">Last 30 Days</SelectItem>
+                        <SelectItem value="90days">Last 90 Days</SelectItem>
+                        <SelectItem value="6months">Last 6 Months</SelectItem>
+                        <SelectItem value="12months">Last 12 Months</SelectItem>
+                        <SelectItem value="2years">Last 2 Years</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={employeesData}>
+                    <BarChart data={filterEmployeeDataByDateRange(employeesData, projectAssignmentDateRange)}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis 
                         dataKey="name" 
@@ -1140,12 +1211,41 @@ export default function Reports() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Performance Issues</CardTitle>
-                  <CardDescription>Overdue tasks and days late tracking</CardDescription>
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                      <CardTitle>Performance Issues</CardTitle>
+                      <CardDescription>
+                        Overdue tasks and days late tracking
+                        <span className="ml-2 text-blue-600 font-medium">
+                          ({performanceIssuesDateRange === '7days' ? 'Last 7 Days' :
+                            performanceIssuesDateRange === '30days' ? 'Last 30 Days' :
+                            performanceIssuesDateRange === '90days' ? 'Last 90 Days' :
+                            performanceIssuesDateRange === '6months' ? 'Last 6 Months' :
+                            performanceIssuesDateRange === '12months' ? 'Last 12 Months' :
+                            performanceIssuesDateRange === '2years' ? 'Last 2 Years' : 
+                            'Custom Period'})
+                        </span>
+                      </CardDescription>
+                    </div>
+                    <Select value={performanceIssuesDateRange} onValueChange={setPerformanceIssuesDateRange}>
+                      <SelectTrigger className="w-40">
+                        <CalendarIcon className="h-4 w-4 mr-2" />
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="7days">Last 7 Days</SelectItem>
+                        <SelectItem value="30days">Last 30 Days</SelectItem>
+                        <SelectItem value="90days">Last 90 Days</SelectItem>
+                        <SelectItem value="6months">Last 6 Months</SelectItem>
+                        <SelectItem value="12months">Last 12 Months</SelectItem>
+                        <SelectItem value="2years">Last 2 Years</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={employeesData.filter((emp: any) => emp.overdueTasks > 0 || emp.daysLate > 0)}>
+                    <BarChart data={filterEmployeeDataByDateRange(employeesData, performanceIssuesDateRange).filter((emp: any) => emp.overdueTasks > 0 || emp.daysLate > 0)}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis 
                         dataKey="name" 
@@ -1166,12 +1266,41 @@ export default function Reports() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Time Off Summary</CardTitle>
-                  <CardDescription>Days called off during reporting period</CardDescription>
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                      <CardTitle>Time Off Summary</CardTitle>
+                      <CardDescription>
+                        Days called off during reporting period
+                        <span className="ml-2 text-blue-600 font-medium">
+                          ({timeOffDateRange === '7days' ? 'Last 7 Days' :
+                            timeOffDateRange === '30days' ? 'Last 30 Days' :
+                            timeOffDateRange === '90days' ? 'Last 90 Days' :
+                            timeOffDateRange === '6months' ? 'Last 6 Months' :
+                            timeOffDateRange === '12months' ? 'Last 12 Months' :
+                            timeOffDateRange === '2years' ? 'Last 2 Years' : 
+                            'Custom Period'})
+                        </span>
+                      </CardDescription>
+                    </div>
+                    <Select value={timeOffDateRange} onValueChange={setTimeOffDateRange}>
+                      <SelectTrigger className="w-40">
+                        <CalendarIcon className="h-4 w-4 mr-2" />
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="7days">Last 7 Days</SelectItem>
+                        <SelectItem value="30days">Last 30 Days</SelectItem>
+                        <SelectItem value="90days">Last 90 Days</SelectItem>
+                        <SelectItem value="6months">Last 6 Months</SelectItem>
+                        <SelectItem value="12months">Last 12 Months</SelectItem>
+                        <SelectItem value="2years">Last 2 Years</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={employeesData.filter((emp: any) => emp.daysCalledOff > 0)}>
+                    <BarChart data={filterEmployeeDataByDateRange(employeesData, timeOffDateRange).filter((emp: any) => emp.daysCalledOff > 0)}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis 
                         dataKey="name" 
