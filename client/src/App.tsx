@@ -49,6 +49,7 @@ import Weather from "@/pages/weather";
 import FileSecurity from "@/pages/file-security";
 import PartsSupplies from "@/pages/parts-supplies";
 import MarketResearch from "@/pages/market-research";
+import TaskGroups from "@/pages/task-groups";
 import Login from "@/pages/login";
 import SimpleLogin from "@/pages/simple-login";
 import Landing from "@/pages/landing";
@@ -134,6 +135,7 @@ function AuthenticatedApp() {
           <Route path="/jobs" component={Projects} />
           <Route path="/jobs/:id" component={ProjectDetail} />
           <Route path="/jobs/:id/tasks" component={JobTasks} />
+          <Route path="/task-groups" component={TaskGroups} />
           <Route path="/leads" component={Leads} />
           <Route path="/expenses" component={Expenses} />
           <Route path="/expense-reports" component={ExpenseReports} />
@@ -179,7 +181,7 @@ function Router() {
   const authHook = useAuth();
   const isAuthenticated = authHook?.isAuthenticated ?? false;
   const isLoading = authHook?.isLoading ?? false;
-  const error = authHook?.error;
+  const error = false; // Remove error property as it doesn't exist in useAuth
 
   console.log('Router state:', { isAuthenticated, isLoading, hasError: !!error });
 

@@ -320,7 +320,17 @@ export function Sidebar() {
     { name: "Dashboard", href: "/", icon: BarChart3, requiresAuth: true, permission: "canAccessDashboard" },
     { name: "Calendar", href: "/calendar", icon: Calendar, requiresAuth: true, permission: "canAccessCalendar" },
     { name: "Time Clock", href: "/time-clock", icon: Clock, requiresAuth: true, permission: "canAccessTimeClock" },
-    { name: "Jobs", href: "/jobs", icon: Briefcase, requiresAuth: true, permission: "canAccessJobs" },
+    { 
+      name: "Jobs", 
+      href: "/jobs", 
+      icon: Briefcase, 
+      requiresAuth: true, 
+      permission: "canAccessJobs",
+      subItems: [
+        { name: "All Jobs", href: "/jobs", icon: Briefcase },
+        { name: "Task Groups", href: "/task-groups", icon: Folder }
+      ]
+    },
     { name: "My Tasks", href: "/my-tasks", icon: CheckSquare, requiresAuth: true, permission: "canAccessMyTasks" },
     { name: "Leads", href: "/leads", icon: UserPlus, requiresAuth: true, permission: "canAccessLeads" },
     { 
