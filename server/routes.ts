@@ -43,6 +43,7 @@ import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull } f
 import { DocuSignService, getDocuSignConfig } from "./docusign";
 import { ensureOrganizationFolders, createOrganizationFolders } from "./folderCreation";
 import { Client } from '@googlemaps/google-maps-services-js';
+import marketResearchRouter from "./marketResearch";
 
 // Extend Express Request type to include user
 declare global {
@@ -11057,6 +11058,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: 'Failed to fetch transactions' });
     }
   });
+
+  // Add market research routes
+  app.use(marketResearchRouter);
 
   // Add broadcast function to the app for use in routes
   (app as any).broadcastToWebUsers = broadcastToWebUsers;
