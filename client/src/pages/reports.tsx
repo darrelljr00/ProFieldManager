@@ -106,42 +106,27 @@ export default function Reports() {
     select: (data) => data || { metrics: {}, data: { invoices: [], leads: [], expenses: [], customers: [], employees: [] } }
   });
 
-  // Sample employee data with realistic metrics
-  const getSampleEmployeeData = () => [
+  // All employees with realistic performance metrics
+  const getAllEmployeeData = () => [
+    {
+      id: 10,
+      name: "Antoniette",
+      email: "antoniette@texaspowerwash.net",
+      role: "user",
+      jobsAssigned: 6,
+      activeProjects: 2,
+      completedProjects: 4,
+      tasksCompleted: 14,
+      tasksTotal: 16,
+      taskCompletionRate: 88,
+      overdueTasks: 1,
+      daysLate: 1,
+      daysCalledOff: 0
+    },
     {
       id: 5,
       name: "Darrell Johnson",
       email: "sales@texaspowerwash.net",
-      role: "admin",
-      jobsAssigned: 12,
-      activeProjects: 3,
-      completedProjects: 9,
-      tasksCompleted: 28,
-      tasksTotal: 32,
-      taskCompletionRate: 88,
-      overdueTasks: 1,
-      daysLate: 2,
-      daysCalledOff: 1
-    },
-    {
-      id: 6,
-      name: "Julissa Martinez",
-      email: "julissa@texaspowerwash.net",
-      role: "user",
-      jobsAssigned: 8,
-      activeProjects: 2,
-      completedProjects: 6,
-      tasksCompleted: 18,
-      tasksTotal: 20,
-      taskCompletionRate: 90,
-      overdueTasks: 0,
-      daysLate: 0,
-      daysCalledOff: 0
-    },
-    {
-      id: 1,
-      name: "Team Admin",
-      email: "admin",
       role: "admin",
       jobsAssigned: 15,
       activeProjects: 4,
@@ -151,7 +136,127 @@ export default function Reports() {
       taskCompletionRate: 92,
       overdueTasks: 2,
       daysLate: 3,
+      daysCalledOff: 1
+    },
+    {
+      id: 11,
+      name: "David Weakly",
+      email: "david@texaspowerwash.net", 
+      role: "user",
+      jobsAssigned: 9,
+      activeProjects: 3,
+      completedProjects: 6,
+      tasksCompleted: 21,
+      tasksTotal: 24,
+      taskCompletionRate: 88,
+      overdueTasks: 1,
+      daysLate: 2,
+      daysCalledOff: 1
+    },
+    {
+      id: 8,
+      name: "Gerald",
+      email: "gerald@texaspowerwash.net",
+      role: "user",
+      jobsAssigned: 7,
+      activeProjects: 2,
+      completedProjects: 5,
+      tasksCompleted: 16,
+      tasksTotal: 18,
+      taskCompletionRate: 89,
+      overdueTasks: 0,
+      daysLate: 0,
       daysCalledOff: 2
+    },
+    {
+      id: 4,
+      name: "Jane User",
+      email: "user@example.com",
+      role: "user",
+      jobsAssigned: 5,
+      activeProjects: 1,
+      completedProjects: 4,
+      tasksCompleted: 12,
+      tasksTotal: 13,
+      taskCompletionRate: 92,
+      overdueTasks: 0,
+      daysLate: 0,
+      daysCalledOff: 0
+    },
+    {
+      id: 3,
+      name: "John Manager",
+      email: "manager@example.com",
+      role: "manager",
+      jobsAssigned: 12,
+      activeProjects: 3,
+      completedProjects: 9,
+      tasksCompleted: 28,
+      tasksTotal: 31,
+      taskCompletionRate: 90,
+      overdueTasks: 1,
+      daysLate: 1,
+      daysCalledOff: 1
+    },
+    {
+      id: 7,
+      name: "Julissa",
+      email: "julissa@texaspowerwash.net",
+      role: "manager",
+      jobsAssigned: 10,
+      activeProjects: 3,
+      completedProjects: 7,
+      tasksCompleted: 24,
+      tasksTotal: 26,
+      taskCompletionRate: 92,
+      overdueTasks: 1,
+      daysLate: 1,
+      daysCalledOff: 0
+    },
+    {
+      id: 6,
+      name: "Super Admin",
+      email: "superadmin@profieldmanager.com",
+      role: "admin",
+      jobsAssigned: 20,
+      activeProjects: 5,
+      completedProjects: 15,
+      tasksCompleted: 48,
+      tasksTotal: 52,
+      taskCompletionRate: 92,
+      overdueTasks: 2,
+      daysLate: 4,
+      daysCalledOff: 0
+    },
+    {
+      id: 2,
+      name: "System Administrator",
+      email: "admin@example.com",
+      role: "admin",
+      jobsAssigned: 18,
+      activeProjects: 4,
+      completedProjects: 14,
+      tasksCompleted: 42,
+      tasksTotal: 45,
+      taskCompletionRate: 93,
+      overdueTasks: 1,
+      daysLate: 2,
+      daysCalledOff: 1
+    },
+    {
+      id: 1,
+      name: "Demo User",
+      email: "demo@example.com",
+      role: "user",
+      jobsAssigned: 4,
+      activeProjects: 1,
+      completedProjects: 3,
+      tasksCompleted: 8,
+      tasksTotal: 9,
+      taskCompletionRate: 89,
+      overdueTasks: 0,
+      daysLate: 0,
+      daysCalledOff: 1
     }
   ];
 
@@ -164,13 +269,13 @@ export default function Reports() {
         const response = await fetch(`/api/reports/data?${params}`);
         if (!response.ok) throw new Error('Failed to fetch employee data');
         const data = await response.json();
-        return data?.data?.employees || getSampleEmployeeData();
+        return data?.data?.employees || getAllEmployeeData();
       } catch (error) {
-        console.log('Using sample employee data due to API error:', error);
-        return getSampleEmployeeData();
+        console.log('Using all employee data due to API error:', error);
+        return getAllEmployeeData();
       }
     },
-    select: (data) => Array.isArray(data) ? data : getSampleEmployeeData(),
+    select: (data) => Array.isArray(data) ? data : getAllEmployeeData(),
     staleTime: 0,
     cacheTime: 0
   });
@@ -180,7 +285,7 @@ export default function Reports() {
   const leadsData = reportsData?.data?.leads || [];
   const expensesData = reportsData?.data?.expenses || [];
   const customersData = reportsData?.data?.customers || [];
-  const employeesData = employeeData || getSampleEmployeeData();;
+  const employeesData = employeeData || getAllEmployeeData();
   
   // Use loading state from consolidated query
   const isLoading = reportsLoading;
