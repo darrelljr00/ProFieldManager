@@ -105,6 +105,7 @@ type User = {
   canAccessInspections?: boolean;
   canAccessMobileTest?: boolean;
   canAccessReviews?: boolean;
+  canAccessMarketResearch?: boolean;
   canAccessHR?: boolean;
   canAccessUsers?: boolean;
   canAccessSaasAdmin?: boolean;
@@ -1525,6 +1526,7 @@ export default function UsersPage() {
                         <TableHead>Inspections</TableHead>
                         <TableHead>Mobile Test</TableHead>
                         <TableHead>Reviews</TableHead>
+                        <TableHead>Market Research</TableHead>
                         <TableHead>HR</TableHead>
                         <TableHead>User Mgmt</TableHead>
                         <TableHead>SaaS Admin</TableHead>
@@ -1782,6 +1784,18 @@ export default function UsersPage() {
                                 updateUserPermissionsMutation.mutate({
                                   userId: user.id,
                                   permissions: { canAccessReviews: checked }
+                                })
+                              }
+                              disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Switch
+                              checked={(user as any).canAccessMarketResearch === true}
+                              onCheckedChange={(checked) => 
+                                updateUserPermissionsMutation.mutate({
+                                  userId: user.id,
+                                  permissions: { canAccessMarketResearch: checked }
                                 })
                               }
                               disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}

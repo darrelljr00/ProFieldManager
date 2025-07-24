@@ -147,6 +147,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
         can_access_gps_tracking: sessionData.user.canAccessGpsTracking,
         can_access_weather: sessionData.user.canAccessWeather,
         can_access_reviews: sessionData.user.canAccessReviews,
+        can_access_market_research: sessionData.user.canAccessMarketResearch,
         can_access_hr: sessionData.user.canAccessHR,
         can_access_users: sessionData.user.canAccessUsers,
         can_access_saas_admin: sessionData.user.canAccessSaasAdmin,

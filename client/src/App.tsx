@@ -48,6 +48,7 @@ import Inspections from "@/pages/inspections";
 import Weather from "@/pages/weather";
 import FileSecurity from "@/pages/file-security";
 import PartsSupplies from "@/pages/parts-supplies";
+import MarketResearch from "@/pages/market-research";
 import Login from "@/pages/login";
 import SimpleLogin from "@/pages/simple-login";
 import Landing from "@/pages/landing";
@@ -149,6 +150,7 @@ function AuthenticatedApp() {
           <Route path="/image-gallery" component={ImageGallery} />
           <Route path="/sms" component={SmsPage} />
           <Route path="/reviews" component={Reviews} />
+          <Route path="/market-research" component={MarketResearch} />
           <Route path="/human-resources" component={HumanResources} />
           <Route path="/file-manager" component={FileManager} />
           <Route path="/my-tasks" component={MyTasks} />

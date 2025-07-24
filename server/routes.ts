@@ -1169,6 +1169,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       canAccessGpsTracking: user.can_access_gps_tracking,
       canAccessWeather: user.can_access_weather,
       canAccessReviews: user.can_access_reviews,
+      canAccessMarketResearch: user.can_access_market_research,
       canAccessHR: user.can_access_hr,
       canAccessUsers: user.can_access_users,
       canAccessSaasAdmin: user.can_access_saas_admin,

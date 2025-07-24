@@ -469,6 +469,7 @@ export class DatabaseStorage implements IStorage {
     if (updates.canAccessCalendar !== undefined) updateData.canAccessCalendar = updates.canAccessCalendar;
     if (updates.canAccessImageGallery !== undefined) updateData.canAccessImageGallery = updates.canAccessImageGallery;
     if (updates.canAccessReviews !== undefined) updateData.canAccessReviews = updates.canAccessReviews;
+    if (updates.canAccessMarketResearch !== undefined) updateData.canAccessMarketResearch = updates.canAccessMarketResearch;
     if (updates.canAccessLeads !== undefined) updateData.canAccessLeads = updates.canAccessLeads;
     if (updates.canAccessGasCards !== undefined) updateData.canAccessGasCards = updates.canAccessGasCards;
     if (updates.canAccessSettings !== undefined) updateData.canAccessSettings = updates.canAccessSettings;

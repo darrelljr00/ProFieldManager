@@ -194,6 +194,7 @@ export const users = pgTable("users", {
   canAccessUsers: boolean("can_access_users").default(false),
   canAccessAdminSettings: boolean("can_access_admin_settings").default(false),
   canAccessHR: boolean("can_access_hr").default(false),
+  canAccessMarketResearch: boolean("can_access_market_research").default(true),
   lastLoginAt: timestamp("last_login_at"),
   passwordResetToken: text("password_reset_token"),
   passwordResetExpires: timestamp("password_reset_expires"),
