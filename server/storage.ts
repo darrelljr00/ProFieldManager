@@ -138,10 +138,12 @@ export interface IStorage {
   
   // File methods
   getFiles(organizationId: number, folderId?: number): Promise<any[]>;
+  getAllFiles(): Promise<any[]>;
   getFile(id: number, organizationId: number): Promise<any>;
   createFile(fileData: any): Promise<any>;
   uploadFile(fileData: any): Promise<any>;
   updateFile(id: number, updates: any): Promise<any>;
+  updateFileLocation(id: number, filePath: string, fileUrl: string, useS3: boolean): Promise<any>;
   deleteFile(id: number): Promise<void>;
   createTextFile(organizationId: number, userId: number, name: string, content: string, folderId?: number): Promise<any>;
   updateTextFile(id: number, content: string): Promise<any>;
@@ -1639,6 +1641,59 @@ export class DatabaseStorage implements IStorage {
   }
 
   // File methods
+  async getAllFiles(): Promise<any[]> {
+    // Get all files from both fileManager and projectFiles tables
+    const fileManagerFiles = await db
+      .select({
+        id: fileManager.id,
+        fileName: fileManager.fileName,
+        originalName: fileManager.originalName,
+        filePath: fileManager.filePath,
+        organizationId: fileManager.organizationId,
+        projectId: sql<number>`null`,
+        useS3: sql<boolean>`false`,
+      })
+      .from(fileManager);
+
+    const projectFilesData = await db
+      .select({
+        id: projectFiles.id,
+        fileName: projectFiles.fileName,
+        originalName: projectFiles.originalName,
+        filePath: projectFiles.filePath,
+        organizationId: sql<number>`null`,
+        projectId: projectFiles.projectId,
+        useS3: sql<boolean>`false`,
+      })
+      .from(projectFiles);
+
+    return [...fileManagerFiles, ...projectFilesData];
+  }
+
+  async updateFileLocation(id: number, filePath: string, fileUrl: string, useS3: boolean): Promise<any> {
+    // Try updating in fileManager table first
+    try {
+      const [file] = await db
+        .update(fileManager)
+        .set({ filePath, fileUrl: fileUrl, useS3 })
+        .where(eq(fileManager.id, id))
+        .returning();
+      
+      if (file) return file;
+    } catch (error) {
+      // File might be in projectFiles table
+    }
+
+    // Try updating in projectFiles table
+    const [projectFile] = await db
+      .update(projectFiles)
+      .set({ filePath })
+      .where(eq(projectFiles.id, id))
+      .returning();
+    
+    return projectFile;
+  }
+
   async getFiles(organizationId: number, folderId?: number): Promise<any[]> {
     let whereCondition;
     

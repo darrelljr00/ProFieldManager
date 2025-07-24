@@ -45,6 +45,8 @@ import { DocuSignService, getDocuSignConfig } from "./docusign";
 import { ensureOrganizationFolders, createOrganizationFolders } from "./folderCreation";
 import { Client } from '@googlemaps/google-maps-services-js';
 import marketResearchRouter from "./marketResearch";
+import { s3Service } from "./s3Service";
+import { fileManager } from "./fileManager";
 
 // Extend Express Request type to include user
 declare global {
@@ -3284,16 +3286,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const taskId = parseInt(req.params.id);
       const userId = req.user!.id;
+      
+      console.log(`Updating task ${taskId} for user ${userId}:`, req.body);
+      
       const updatedTask = await storage.updateTask(taskId, userId, req.body);
       
       if (!updatedTask) {
+        console.log(`Task ${taskId} not found`);
         return res.status(404).json({ message: "Task not found" });
       }
       
+      console.log(`Task ${taskId} updated successfully:`, updatedTask);
       res.json(updatedTask);
     } catch (error: any) {
       console.error("Error updating task:", error);
-      res.status(500).json({ message: "Failed to update task" });
+      console.error("Error details:", error.message);
+      console.error("Error stack:", error.stack);
+      res.status(500).json({ message: `Failed to update task: ${error.message}` });
     }
   });
 
@@ -11178,6 +11187,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Add market research routes
   app.use(marketResearchRouter);
+
+  // File migration and S3 routes
+  app.get('/api/files/s3-status', requireAuth, async (req, res) => {
+    try {
+      const isConfigured = s3Service.isConfigured();
+      
+      res.json({
+        configured: isConfigured,
+        message: isConfigured 
+          ? 'AWS S3 is configured and ready for file storage'
+          : 'AWS S3 not configured. Files will use local storage.',
+      });
+
+    } catch (error) {
+      console.error('S3 status check error:', error);
+      res.status(500).json({ message: 'Failed to check S3 status' });
+    }
+  });
+
+  app.post('/api/files/migrate-to-s3', requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      
+      // Only allow admins to run migration
+      if (user.role !== 'admin') {
+        return res.status(403).json({ message: 'Only administrators can run file migration' });
+      }
+
+      if (!s3Service.isConfigured()) {
+        return res.status(400).json({ 
+          message: 'AWS S3 not configured. Please set AWS credentials in environment variables.' 
+        });
+      }
+
+      const result = await fileManager.migrateToS3();
+      
+      res.json({
+        message: 'File migration completed',
+        migrated: result.migrated,
+        failed: result.failed,
+        results: result.results,
+      });
+
+    } catch (error) {
+      console.error('Migration error:', error);
+      res.status(500).json({ 
+        message: 'Migration failed',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
 
   // Market Research Competitors Routes
   app.get("/api/market-research-competitors", requireAuth, async (req, res) => {
