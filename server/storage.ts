@@ -376,6 +376,13 @@ export interface IStorage {
   createStockAlert(alertData: any): Promise<any>;
   acknowledgeStockAlert(alertId: number, userId: number): Promise<any>;
   checkAndCreateLowStockAlerts(organizationId: number): Promise<any[]>;
+  
+  // Market Research Competitors methods
+  getMarketResearchCompetitors(organizationId: number, businessNiche?: string): Promise<any[]>;
+  getMarketResearchCompetitor(id: number, organizationId: number): Promise<any>;
+  createMarketResearchCompetitor(competitorData: any): Promise<any>;
+  updateMarketResearchCompetitor(id: number, updates: any): Promise<any>;
+  deleteMarketResearchCompetitor(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -5664,6 +5671,135 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error checking and creating low stock alerts:', error);
       return [];
+    }
+  }
+
+  // Market Research Competitors methods
+  async getMarketResearchCompetitors(organizationId: number, businessNiche?: string): Promise<any[]> {
+    try {
+      let query = db
+        .select()
+        .from(marketResearchCompetitors)
+        .where(
+          and(
+            eq(marketResearchCompetitors.organizationId, organizationId),
+            eq(marketResearchCompetitors.isActive, true)
+          )
+        );
+
+      if (businessNiche) {
+        query = query.where(eq(marketResearchCompetitors.businessNiche, businessNiche));
+      }
+
+      return await query.orderBy(marketResearchCompetitors.name);
+    } catch (error) {
+      console.error('Error fetching market research competitors:', error);
+      throw error;
+    }
+  }
+
+  async getMarketResearchCompetitor(id: number, organizationId: number): Promise<any> {
+    try {
+      const [competitor] = await db
+        .select()
+        .from(marketResearchCompetitors)
+        .where(
+          and(
+            eq(marketResearchCompetitors.id, id),
+            eq(marketResearchCompetitors.organizationId, organizationId)
+          )
+        );
+
+      return competitor;
+    } catch (error) {
+      console.error('Error fetching market research competitor:', error);
+      throw error;
+    }
+  }
+
+  async createMarketResearchCompetitor(competitorData: any): Promise<any> {
+    try {
+      const [competitor] = await db
+        .insert(marketResearchCompetitors)
+        .values({
+          organizationId: competitorData.organizationId,
+          name: competitorData.name,
+          location: competitorData.location,
+          services: competitorData.services || [],
+          pricing: competitorData.pricing,
+          rating: competitorData.rating ? parseFloat(competitorData.rating) : null,
+          website: competitorData.website,
+          facebookUrl: competitorData.facebookUrl,
+          instagramUrl: competitorData.instagramUrl,
+          twitterUrl: competitorData.twitterUrl,
+          linkedinUrl: competitorData.linkedinUrl,
+          youtubeUrl: competitorData.youtubeUrl,
+          googleBusinessUrl: competitorData.googleBusinessUrl,
+          businessNiche: competitorData.businessNiche,
+          marketShare: competitorData.marketShare,
+          estimatedRevenue: competitorData.estimatedRevenue,
+          strengths: competitorData.strengths || [],
+          weaknesses: competitorData.weaknesses || [],
+          notes: competitorData.notes,
+          isActive: true
+        })
+        .returning();
+
+      return competitor;
+    } catch (error) {
+      console.error('Error creating market research competitor:', error);
+      throw error;
+    }
+  }
+
+  async updateMarketResearchCompetitor(id: number, updates: any): Promise<any> {
+    try {
+      const updateData: any = {};
+      
+      if (updates.name !== undefined) updateData.name = updates.name;
+      if (updates.location !== undefined) updateData.location = updates.location;
+      if (updates.services !== undefined) updateData.services = updates.services;
+      if (updates.pricing !== undefined) updateData.pricing = updates.pricing;
+      if (updates.rating !== undefined) updateData.rating = updates.rating ? parseFloat(updates.rating) : null;
+      if (updates.website !== undefined) updateData.website = updates.website;
+      if (updates.facebookUrl !== undefined) updateData.facebookUrl = updates.facebookUrl;
+      if (updates.instagramUrl !== undefined) updateData.instagramUrl = updates.instagramUrl;
+      if (updates.twitterUrl !== undefined) updateData.twitterUrl = updates.twitterUrl;
+      if (updates.linkedinUrl !== undefined) updateData.linkedinUrl = updates.linkedinUrl;
+      if (updates.youtubeUrl !== undefined) updateData.youtubeUrl = updates.youtubeUrl;
+      if (updates.googleBusinessUrl !== undefined) updateData.googleBusinessUrl = updates.googleBusinessUrl;
+      if (updates.businessNiche !== undefined) updateData.businessNiche = updates.businessNiche;
+      if (updates.marketShare !== undefined) updateData.marketShare = updates.marketShare;
+      if (updates.estimatedRevenue !== undefined) updateData.estimatedRevenue = updates.estimatedRevenue;
+      if (updates.strengths !== undefined) updateData.strengths = updates.strengths;
+      if (updates.weaknesses !== undefined) updateData.weaknesses = updates.weaknesses;
+      if (updates.notes !== undefined) updateData.notes = updates.notes;
+      if (updates.isActive !== undefined) updateData.isActive = updates.isActive;
+
+      updateData.updatedAt = new Date();
+
+      const [competitor] = await db
+        .update(marketResearchCompetitors)
+        .set(updateData)
+        .where(eq(marketResearchCompetitors.id, id))
+        .returning();
+
+      return competitor;
+    } catch (error) {
+      console.error('Error updating market research competitor:', error);
+      throw error;
+    }
+  }
+
+  async deleteMarketResearchCompetitor(id: number): Promise<void> {
+    try {
+      await db
+        .update(marketResearchCompetitors)
+        .set({ isActive: false, updatedAt: new Date() })
+        .where(eq(marketResearchCompetitors.id, id));
+    } catch (error) {
+      console.error('Error deleting market research competitor:', error);
+      throw error;
     }
   }
 }

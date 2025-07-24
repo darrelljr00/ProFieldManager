@@ -142,6 +142,41 @@ export const planFeatureValues = pgTable("plan_feature_values", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Market Research Competitors
+export const marketResearchCompetitors = pgTable("market_research_competitors", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").references(() => organizations.id).notNull(),
+  name: text("name").notNull(),
+  location: text("location"),
+  services: text("services").array(), // Array of services offered
+  pricing: text("pricing"), // Price range like "$200-$400"
+  rating: decimal("rating", { precision: 3, scale: 1 }), // e.g., 4.5
+  website: text("website"),
+  facebookUrl: text("facebook_url"),
+  instagramUrl: text("instagram_url"),
+  twitterUrl: text("twitter_url"),
+  linkedinUrl: text("linkedin_url"),
+  youtubeUrl: text("youtube_url"),
+  googleBusinessUrl: text("google_business_url"),
+  businessNiche: text("business_niche").notNull(), // e.g., "pressure washing"
+  marketShare: text("market_share"), // e.g., "15%"
+  estimatedRevenue: text("estimated_revenue"), // e.g., "$500K-$1M"
+  strengths: text("strengths").array(), // Array of competitive strengths
+  weaknesses: text("weaknesses").array(), // Array of competitive weaknesses
+  notes: text("notes"), // Additional notes
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type MarketResearchCompetitor = typeof marketResearchCompetitors.$inferSelect;
+export const insertMarketResearchCompetitorSchema = createInsertSchema(marketResearchCompetitors).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertMarketResearchCompetitor = z.infer<typeof insertMarketResearchCompetitorSchema>;
+
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   organizationId: integer("organization_id").notNull().references(() => organizations.id),

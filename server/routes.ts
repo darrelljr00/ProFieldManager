@@ -11062,6 +11062,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Add market research routes
   app.use(marketResearchRouter);
 
+  // Market Research Competitors Routes
+  app.get("/api/market-research-competitors", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { businessNiche } = req.query;
+      
+      const competitors = await storage.getMarketResearchCompetitors(
+        user.organizationId, 
+        businessNiche as string
+      );
+      
+      res.json(competitors);
+    } catch (error: any) {
+      console.error("Error fetching competitors:", error);
+      res.status(500).json({ message: "Failed to fetch competitors" });
+    }
+  });
+
+  app.get("/api/market-research-competitors/:id", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const competitorId = parseInt(req.params.id);
+      
+      const competitor = await storage.getMarketResearchCompetitor(competitorId, user.organizationId);
+      
+      if (!competitor) {
+        return res.status(404).json({ message: "Competitor not found" });
+      }
+      
+      res.json(competitor);
+    } catch (error: any) {
+      console.error("Error fetching competitor:", error);
+      res.status(500).json({ message: "Failed to fetch competitor" });
+    }
+  });
+
+  app.post("/api/market-research-competitors", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      const competitorData = {
+        ...req.body,
+        organizationId: user.organizationId
+      };
+      
+      const competitor = await storage.createMarketResearchCompetitor(competitorData);
+      res.status(201).json(competitor);
+    } catch (error: any) {
+      console.error("Error creating competitor:", error);
+      res.status(500).json({ message: "Failed to create competitor" });
+    }
+  });
+
+  app.put("/api/market-research-competitors/:id", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const competitorId = parseInt(req.params.id);
+      
+      // Verify competitor belongs to user's organization
+      const existingCompetitor = await storage.getMarketResearchCompetitor(competitorId, user.organizationId);
+      if (!existingCompetitor) {
+        return res.status(404).json({ message: "Competitor not found" });
+      }
+      
+      const competitor = await storage.updateMarketResearchCompetitor(competitorId, req.body);
+      res.json(competitor);
+    } catch (error: any) {
+      console.error("Error updating competitor:", error);
+      res.status(500).json({ message: "Failed to update competitor" });
+    }
+  });
+
+  app.delete("/api/market-research-competitors/:id", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const competitorId = parseInt(req.params.id);
+      
+      // Verify competitor belongs to user's organization
+      const existingCompetitor = await storage.getMarketResearchCompetitor(competitorId, user.organizationId);
+      if (!existingCompetitor) {
+        return res.status(404).json({ message: "Competitor not found" });
+      }
+      
+      await storage.deleteMarketResearchCompetitor(competitorId);
+      res.json({ message: "Competitor deleted successfully" });
+    } catch (error: any) {
+      console.error("Error deleting competitor:", error);
+      res.status(500).json({ message: "Failed to delete competitor" });
+    }
+  });
+
   // Add broadcast function to the app for use in routes
   (app as any).broadcastToWebUsers = broadcastToWebUsers;
 
