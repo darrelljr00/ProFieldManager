@@ -84,13 +84,18 @@ function AuthenticatedApp() {
         'calendar_job_created': ['/api/calendar'],
         'gas_card_created': ['/api/gas-cards'],
         'review_request_sent': ['/api/reviews'],
-        'user_created': ['/api/users'],
+        'user_created': ['/api/users', '/api/reports/employee-data', '/api/reports/data'],
         'payment_processed': ['/api/payments', '/api/invoices', '/api/dashboard'],
         'disciplinary_action_created': ['/api/disciplinary-actions'],
         'project_user_assigned': ['/api/projects'],
         'project_user_removed': ['/api/projects'],
         'project_users_assigned': ['/api/projects'], 
-        'project_users_removed': ['/api/projects']
+        'project_users_removed': ['/api/projects'],
+        'employee_updated': ['/api/users', '/api/reports/employee-data', '/api/reports/data'],
+        'employee_deleted': ['/api/users', '/api/reports/employee-data', '/api/reports/data'],
+        'employee_permissions_updated': ['/api/users', '/api/reports/employee-data', '/api/reports/data'],
+        'employee_activated': ['/api/users', '/api/reports/employee-data', '/api/reports/data'],
+        'employee_deactivated': ['/api/users', '/api/reports/employee-data', '/api/reports/data']
       };
       
       const queriesToInvalidate = queryInvalidationMap[eventType];

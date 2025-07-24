@@ -297,25 +297,66 @@ export default function Reports() {
   useEffect(() => {
     if (!isConnected || !realTimeUpdates || !lastMessage) return;
 
-    // Handle different types of WebSocket messages
-    if (lastMessage.type === 'task_completion_updated' || 
-        lastMessage.type === 'task_assigned' ||
-        lastMessage.type === 'project_user_assigned' ||
-        lastMessage.type === 'project_users_assigned' ||
-        lastMessage.type === 'employee_project_assignment_updated' ||
-        lastMessage.type === 'employee_project_assignments_updated') {
+    // Handle different types of WebSocket messages for employee analytics
+    const employeeUpdateEvents = [
+      'task_completion_updated',
+      'task_assigned', 
+      'task_deleted',
+      'task_updated',
+      'project_user_assigned',
+      'project_user_removed',
+      'project_users_assigned',
+      'project_users_removed',
+      'employee_project_assignment_updated',
+      'employee_project_assignments_updated',
+      'user_created',
+      'user_updated',
+      'user_deleted',
+      'employee_added',
+      'employee_removed',
+      'employee_role_updated',
+      'employee_updated',
+      'employee_deleted',
+      'employee_permissions_updated',
+      'employee_activated',
+      'employee_deactivated',
+      'project_created',
+      'project_updated', 
+      'project_completed',
+      'project_deleted'
+    ];
+
+    if (employeeUpdateEvents.includes(lastMessage.type)) {
+      console.log(`Employee analytics update triggered by: ${lastMessage.type}`);
+      
       // Invalidate employee metrics queries to refresh data
       queryClient.invalidateQueries({ queryKey: ["/api/reports/employee-data"] });
       queryClient.invalidateQueries({ queryKey: ["/api/reports/data"] });
+      
+      // Force refetch employee data
+      refetchEmployees();
     }
 
+    // Handle direct employee metrics updates
     if (lastMessage.type === 'employee_metrics_updated') {
-      // Update specific employee data without full refresh
+      console.log('Direct employee metrics update received');
       if (lastMessage.data?.employees) {
         queryClient.setQueryData(["/api/reports/employee-data", getEmployeeQueryParams()], lastMessage.data.employees);
       }
     }
-  }, [lastMessage, isConnected, realTimeUpdates, queryClient]);
+
+    // Handle employee list updates (additions/removals)
+    if (lastMessage.type === 'employee_list_updated') {
+      console.log('Employee list update received');
+      if (lastMessage.data?.employees) {
+        // Update the employee data directly
+        queryClient.setQueryData(["/api/reports/employee-data", getEmployeeQueryParams()], lastMessage.data.employees);
+      } else {
+        // Fallback to refetch
+        refetchEmployees();
+      }
+    }
+  }, [lastMessage, isConnected, realTimeUpdates, queryClient, refetchEmployees]);
 
   // Process sales data for charts
   const processSalesData = () => {

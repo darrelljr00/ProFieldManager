@@ -2636,11 +2636,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await ensureOrganizationFolders(user.organizationId);
       }
       
-      // Broadcast to all web users except the creator
-      broadcastToWebUsers('user_created', {
+      // Broadcast employee creation for real-time analytics
+      broadcastToWebUsers(adminUser.organizationId, 'user_created', {
         user: { ...user, password: undefined },
-        createdBy: req.user!.username
-      }, req.user!.id);
+        createdBy: req.user!.username,
+        action: 'created'
+      });
       
       res.status(201).json({
         ...user,
@@ -2663,6 +2664,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log("User update request:", { userId, updateData, hasPassword: !!password });
 
+      // Get current admin user for organization filtering
+      const adminUser = getAuthenticatedUser(req);
+
       // If password is being updated, hash it
       if (password) {
         const hashedPassword = await AuthService.hashPassword(password);
@@ -2675,6 +2679,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!updatedUser) {
         return res.status(404).json({ message: "User not found" });
       }
+
+      // Broadcast employee update for real-time analytics
+      broadcastToWebUsers(adminUser.organizationId, 'employee_updated', {
+        user: { ...updatedUser, password: undefined },
+        updatedBy: req.user!.username,
+        action: 'updated'
+      });
 
       res.json({
         ...updatedUser,
@@ -2703,9 +2714,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Cannot modify admin user permissions" });
       }
 
+      // Get current admin user for organization filtering
+      const adminUser = getAuthenticatedUser(req);
+
       // Update user permissions
       const updatedUser = await storage.updateUser(userId, permissions);
       
+      // Broadcast permissions update for real-time analytics
+      broadcastToWebUsers(adminUser.organizationId, 'employee_permissions_updated', {
+        user: { ...updatedUser, password: undefined },
+        updatedBy: req.user!.username,
+        action: 'permissions_updated'
+      });
+
       res.json({
         ...updatedUser,
         password: undefined, // Don't return password
@@ -2720,8 +2741,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/admin/users/:id/deactivate", requireAdmin, async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
+      
+      // Get user data before deactivation for broadcasting
+      const userToDeactivate = await storage.getUser(userId);
+      if (!userToDeactivate) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Get current admin user for organization filtering
+      const adminUser = getAuthenticatedUser(req);
+
       await storage.deactivateUser(userId);
       await AuthService.invalidateAllUserSessions(userId);
+
+      // Broadcast user deactivation for real-time analytics
+      broadcastToWebUsers(adminUser.organizationId, 'employee_deactivated', {
+        user: { ...userToDeactivate, password: undefined },
+        deactivatedBy: req.user!.username,
+        action: 'deactivated'
+      });
+
       res.json({ message: "User deactivated successfully" });
     } catch (error: any) {
       res.status(500).json({ message: "Error deactivating user: " + error.message });
@@ -2732,7 +2771,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/admin/users/:id/activate", requireAdmin, async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
+      
+      // Get user data before activation for broadcasting
+      const userToActivate = await storage.getUser(userId);
+      if (!userToActivate) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Get current admin user for organization filtering
+      const adminUser = getAuthenticatedUser(req);
+
       await storage.activateUser(userId);
+
+      // Get updated user data after activation
+      const updatedUser = await storage.getUser(userId);
+
+      // Broadcast user activation for real-time analytics
+      broadcastToWebUsers(adminUser.organizationId, 'employee_activated', {
+        user: { ...updatedUser, password: undefined },
+        activatedBy: req.user!.username,
+        action: 'activated'
+      });
+
       res.json({ message: "User activated successfully" });
     } catch (error: any) {
       res.status(500).json({ message: "Error activating user: " + error.message });
@@ -2749,12 +2809,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Cannot delete your own account" });
       }
 
+      // Get user data before deletion for broadcasting
+      const userToDelete = await storage.getUser(userId);
+      if (!userToDelete) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Get current admin user for organization filtering
+      const adminUser = getAuthenticatedUser(req);
+
       await AuthService.invalidateAllUserSessions(userId);
       const deleted = await storage.deleteUser(userId);
       
       if (!deleted) {
         return res.status(404).json({ message: "User not found" });
       }
+
+      // Broadcast employee deletion for real-time analytics
+      broadcastToWebUsers(adminUser.organizationId, 'employee_deleted', {
+        user: { ...userToDelete, password: undefined },
+        deletedBy: req.user!.username,
+        action: 'deleted'
+      });
 
       res.json({ message: "User deleted successfully" });
     } catch (error: any) {
