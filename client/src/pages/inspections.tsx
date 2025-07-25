@@ -18,6 +18,7 @@ import { toast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
+import { VehicleManagement } from "@/components/vehicle-management";
 
 interface InspectionItem {
   id: number;
@@ -459,9 +460,10 @@ export default function Inspections() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="pre-trip">Pre-Trip Inspection</TabsTrigger>
             <TabsTrigger value="post-trip">Post-Trip Inspection</TabsTrigger>
+            <TabsTrigger value="vehicle-maintenance">Vehicle Maintenance</TabsTrigger>
             <TabsTrigger value="history">Inspection History</TabsTrigger>
           </TabsList>
 
@@ -899,6 +901,20 @@ export default function Inspections() {
                 >
                   {uploading ? 'Submitting...' : 'Submit Post-Trip Inspection'}
                 </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="vehicle-maintenance" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CheckCircle className="w-5 h-5" />
+                  Vehicle Maintenance
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <VehicleManagement />
               </CardContent>
             </Card>
           </TabsContent>
