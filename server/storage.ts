@@ -1267,7 +1267,7 @@ export class DatabaseStorage implements IStorage {
       // Get users assigned to each project
       const projectsWithUsers = await Promise.all(
         projectsData.map(async (project) => {
-          const projectUsers = await db
+          const projectTeam = await db
             .select({
               user: {
                 id: users.id,
@@ -1284,7 +1284,7 @@ export class DatabaseStorage implements IStorage {
 
           return {
             ...project,
-            users: projectUsers || [],
+            users: projectTeam || [],
           };
         })
       );

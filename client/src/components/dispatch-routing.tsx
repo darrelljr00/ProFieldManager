@@ -71,6 +71,14 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Handle date change
+  const handleDateChange = (newDate: string) => {
+    setSelectedDateState(newDate);
+    setOptimization(null); // Clear any existing optimization when date changes
+    // Update schedule form date as well
+    setScheduleForm(prev => ({ ...prev, scheduledDate: newDate }));
+  };
+
   // Fetch scheduled jobs for the selected date
   const { data: scheduledJobsData, isLoading, refetch } = useQuery({
     queryKey: ['/api/dispatch/scheduled-jobs', selectedDateState],
@@ -306,8 +314,23 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
           <h2 className="text-2xl font-bold text-gray-900">Dispatch Routing</h2>
           <p className="text-gray-600">Optimize routes for scheduled jobs using Google Maps</p>
         </div>
-        <div className="flex gap-2">
-          <Dialog open={isScheduleDialogOpen} onOpenChange={setIsScheduleDialogOpen}>
+        <div className="flex items-center gap-4">
+          {/* Date Picker for Scheduled Jobs */}
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-gray-500" />
+            <Label htmlFor="dispatch-date" className="text-sm font-medium text-gray-700">
+              Date:
+            </Label>
+            <Input
+              id="dispatch-date"
+              type="date"
+              value={selectedDateState}
+              onChange={(e) => handleDateChange(e.target.value)}
+              className="w-40"
+            />
+          </div>
+          <div className="flex gap-2">
+            <Dialog open={isScheduleDialogOpen} onOpenChange={setIsScheduleDialogOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" size="sm">
                 <Plus className="h-4 w-4 mr-2" />
@@ -382,11 +405,12 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
                 </div>
               </div>
             </DialogContent>
-          </Dialog>
-          <Button onClick={() => refetch()} variant="outline" size="sm">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
-          </Button>
+            </Dialog>
+            <Button onClick={() => refetch()} variant="outline" size="sm">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -398,29 +422,18 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
             Route Configuration
           </CardTitle>
           <CardDescription>
-            Select date and starting location for route optimization
+            Set starting location for route optimization (date selected above)
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="date">Date</Label>
-              <Input
-                id="date"
-                type="date"
-                value={selectedDateState}
-                onChange={(e) => setSelectedDateState(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="startLocation">Starting Location</Label>
-              <Input
-                id="startLocation"
-                placeholder="Enter starting address (e.g., office, warehouse)"
-                value={startLocation}
-                onChange={(e) => setStartLocation(e.target.value)}
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="startLocation">Starting Location</Label>
+            <Input
+              id="startLocation"
+              placeholder="Enter starting address (e.g., office, warehouse)"
+              value={startLocation}
+              onChange={(e) => setStartLocation(e.target.value)}
+            />
           </div>
           <Button 
             onClick={handleOptimizeRoute}
