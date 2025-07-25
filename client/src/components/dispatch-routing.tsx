@@ -80,10 +80,21 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
   const { data: scheduledJobsData, isLoading, refetch } = useQuery({
     queryKey: ['/api/dispatch/scheduled-jobs', selectedDateState],
     queryFn: async () => {
-      const response = await apiRequest('GET', `/api/dispatch/scheduled-jobs?date=${selectedDateState}`);
-      const data = await response.json();
-      console.log('API Response for date', selectedDateState, ':', data);
-      return data as JobLocation[];
+      try {
+        const response = await apiRequest('GET', `/api/dispatch/scheduled-jobs?date=${selectedDateState}`);
+        // Check if response is already parsed JSON or needs parsing
+        let data;
+        if (response && typeof response === 'object' && 'json' in response) {
+          data = await response.json();
+        } else {
+          data = response;
+        }
+        console.log('API Response for date', selectedDateState, ':', data);
+        return Array.isArray(data) ? data as JobLocation[] : [];
+      } catch (error) {
+        console.error('Error fetching scheduled jobs:', error);
+        return [];
+      }
     },
   });
 
@@ -137,8 +148,9 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
   const optimizeRouteMutation = useMutation({
     mutationFn: async (data: { jobs: JobLocation[]; startLocation: string }) => {
       setIsOptimizing(true);
-      const result = await apiRequest('POST', '/api/dispatch/optimize-route', data);
-      return result as unknown as RouteOptimization;
+      const response = await apiRequest('POST', '/api/dispatch/optimize-route', data);
+      const result = await response.json();
+      return result as RouteOptimization;
     },
     onSuccess: (data: RouteOptimization) => {
       setOptimization(data);
@@ -186,7 +198,8 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
   // Job status update mutation
   const updateJobStatusMutation = useMutation({
     mutationFn: async (data: { jobId: number; status: string; location?: string; notes?: string }) => {
-      const result = await apiRequest('PATCH', `/api/dispatch/jobs/${data.jobId}/status`, data);
+      const response = await apiRequest('PATCH', `/api/dispatch/jobs/${data.jobId}/status`, data);
+      const result = await response.json();
       return result;
     },
     onSuccess: (data: any) => {
