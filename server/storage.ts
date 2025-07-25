@@ -73,6 +73,7 @@ export interface IStorage {
   getProjects(organizationId: number, userId?: number, userRole?: string, status?: string): Promise<any[]>;
   getProject(id: number, userId: number): Promise<any>;
   getProjectById(id: number): Promise<any>;
+  getProjectsWithLocation(userId: number): Promise<any[]>;
   createProject(projectData: any): Promise<any>;
   updateProject(id: number, updates: any): Promise<any>;
   deleteProject(id: number): Promise<void>;
@@ -1093,6 +1094,70 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
+  async getProjectsWithLocation(userId: number): Promise<any[]> {
+    // Get the user's organization
+    const user = await this.getUser(userId);
+    if (!user) return [];
+
+    // Get projects with location information
+    const projectsWithLocation = await db
+      .select({
+        id: projects.id,
+        userId: projects.userId,
+        name: projects.name,
+        description: projects.description,
+        status: projects.status,
+        priority: projects.priority,
+        startDate: projects.startDate,
+        endDate: projects.endDate,
+        address: projects.address,
+        city: projects.city,
+        state: projects.state,
+        zipCode: projects.zipCode,
+        country: projects.country,
+        shareWithTeam: projects.shareWithTeam,
+        createdAt: projects.createdAt,
+        updatedAt: projects.updatedAt,
+      })
+      .from(projects)
+      .innerJoin(users, eq(projects.userId, users.id))
+      .where(and(
+        eq(users.organizationId, user.organizationId),
+        isNotNull(projects.address),
+        isNotNull(projects.city),
+        ne(projects.status, 'completed'),
+        ne(projects.status, 'cancelled')
+      ))
+      .orderBy(desc(projects.createdAt));
+
+    // Get assigned users for each project
+    const projectsWithUsers = await Promise.all(
+      projectsWithLocation.map(async (project) => {
+        const projectTeam = await db
+          .select({
+            user: {
+              id: users.id,
+              firstName: users.firstName,
+              lastName: users.lastName,
+              email: users.email,
+              username: users.username,
+              role: projectUsers.role,
+            }
+          })
+          .from(projectUsers)
+          .innerJoin(users, eq(projectUsers.userId, users.id))
+          .where(eq(projectUsers.projectId, project.id));
+
+        return {
+          ...project,
+          users: projectTeam || [],
+        };
+      })
+    );
+
+    return projectsWithUsers;
+  }
+
   async createProject(projectData: any): Promise<any> {
     const insertData = {
       ...projectData,
@@ -1107,9 +1172,29 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateProject(id: number, updates: any): Promise<any> {
+    // Support for dispatch routing fields and ensure proper date handling
+    const updateData = { ...updates, updatedAt: new Date() };
+    
+    // Handle dispatch routing fields specifically
+    if (updates.scheduledDate !== undefined) {
+      updateData.scheduledDate = updates.scheduledDate;
+    }
+    if (updates.scheduledTime !== undefined) {
+      updateData.scheduledTime = updates.scheduledTime;
+    }
+    if (updates.estimatedDuration !== undefined) {
+      updateData.estimatedDuration = updates.estimatedDuration;
+    }
+    if (updates.currentLocation !== undefined) {
+      updateData.currentLocation = updates.currentLocation;
+    }
+    if (updates.dispatchNotes !== undefined) {
+      updateData.dispatchNotes = updates.dispatchNotes;
+    }
+    
     const [project] = await db
       .update(projects)
-      .set(updates)
+      .set(updateData)
       .where(eq(projects.id, id))
       .returning();
     return project;
@@ -1126,6 +1211,89 @@ export class DatabaseStorage implements IStorage {
       .onConflictDoNothing()
       .returning();
     return assignment;
+  }
+
+  async assignProjectToUser(projectId: number, userId: number, role: string = "member"): Promise<any> {
+    // Alias for assignUserToProject with parameters reversed for convenience
+    return this.assignUserToProject(userId, projectId, role);
+  }
+
+  async getProjectsWithLocation(filters: any = {}): Promise<any[]> {
+    try {
+      // Build where conditions based on filters
+      const whereConditions = [];
+      
+      if (filters.organizationId) {
+        whereConditions.push(eq(projects.organizationId, filters.organizationId));
+      }
+      
+      if (filters.userId) {
+        // Get user to check if they're admin
+        const user = await this.getUser(filters.userId);
+        if (user?.role !== 'admin') {
+          whereConditions.push(eq(projects.userId, filters.userId));
+        } else if (user.organizationId) {
+          whereConditions.push(eq(projects.organizationId, user.organizationId));
+        }
+      }
+
+      // Filter projects that have location data
+      whereConditions.push(isNotNull(projects.address));
+      whereConditions.push(ne(projects.address, ''));
+
+      const projectsData = await db
+        .select({
+          id: projects.id,
+          name: projects.name,
+          description: projects.description,
+          status: projects.status,
+          priority: projects.priority,
+          address: projects.address,
+          city: projects.city,
+          state: projects.state,
+          zipCode: projects.zipCode,
+          scheduledDate: projects.scheduledDate,
+          scheduledTime: projects.scheduledTime,
+          estimatedDuration: projects.estimatedDuration,
+          currentLocation: projects.currentLocation,
+          dispatchNotes: projects.dispatchNotes,
+          createdAt: projects.createdAt,
+          updatedAt: projects.updatedAt,
+        })
+        .from(projects)
+        .where(and(...whereConditions))
+        .orderBy(projects.scheduledDate, projects.scheduledTime);
+
+      // Get users assigned to each project
+      const projectsWithUsers = await Promise.all(
+        projectsData.map(async (project) => {
+          const projectUsers = await db
+            .select({
+              user: {
+                id: users.id,
+                username: users.username,
+                firstName: users.firstName,
+                lastName: users.lastName,
+                email: users.email,
+              },
+              role: projectUsers.role,
+            })
+            .from(projectUsers)
+            .innerJoin(users, eq(projectUsers.userId, users.id))
+            .where(eq(projectUsers.projectId, project.id));
+
+          return {
+            ...project,
+            users: projectUsers || [],
+          };
+        })
+      );
+
+      return projectsWithUsers;
+    } catch (error) {
+      console.error('Error in getProjectsWithLocation:', error);
+      return [];
+    }
   }
 
   async removeUserFromProject(userId: number, projectId: number): Promise<void> {

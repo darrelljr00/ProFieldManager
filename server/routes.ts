@@ -7718,6 +7718,170 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update job status with WebSocket broadcast
+  app.patch('/api/dispatch/jobs/:id/status', requireAuth, async (req, res) => {
+    try {
+      const jobId = parseInt(req.params.id);
+      const { status, location, notes } = req.body;
+      const userId = req.user!.id;
+      const user = await storage.getUser(userId);
+
+      if (!user) {
+        return res.status(401).json({ message: 'User not found' });
+      }
+
+      // Update project status
+      const updates: any = { status };
+      if (location) {
+        updates.currentLocation = location;
+      }
+      if (notes) {
+        updates.dispatchNotes = notes;
+      }
+      updates.updatedAt = new Date();
+
+      const updatedProject = await storage.updateProject(jobId, updates);
+      
+      if (!updatedProject) {
+        return res.status(404).json({ message: 'Job not found' });
+      }
+
+      // Broadcast job status update to all connected users in organization
+      const updateData = {
+        id: jobId,
+        status,
+        location,
+        notes,
+        updatedBy: `${user.firstName} ${user.lastName}`,
+        updatedAt: new Date().toISOString()
+      };
+
+      // Broadcast to organization users
+      broadcastToWebUsers(user.organizationId, 'job_status_updated', updateData);
+
+      res.json({
+        success: true,
+        message: 'Job status updated successfully',
+        data: updateData
+      });
+    } catch (error: any) {
+      console.error('Error updating job status:', error);
+      res.status(500).json({ message: 'Failed to update job status' });
+    }
+  });
+
+  // Schedule a job for specific date/time
+  app.post('/api/dispatch/schedule-job', requireAuth, async (req, res) => {
+    try {
+      const { projectId, scheduledDate, scheduledTime, assignedUserId, estimatedDuration, notes } = req.body;
+      const userId = req.user!.id;
+      const user = await storage.getUser(userId);
+
+      if (!user) {
+        return res.status(401).json({ message: 'User not found' });
+      }
+
+      // Update project with scheduling information
+      const updates = {
+        scheduledDate: scheduledDate ? new Date(scheduledDate) : null,
+        scheduledTime,
+        estimatedDuration: estimatedDuration || 120, // Default 2 hours
+        dispatchNotes: notes,
+        status: 'scheduled',
+        updatedAt: new Date()
+      };
+
+      const updatedProject = await storage.updateProject(projectId, updates);
+      
+      if (!updatedProject) {
+        return res.status(404).json({ message: 'Project not found' });
+      }
+
+      // Assign user to project if specified
+      if (assignedUserId) {
+        await storage.assignUserToProject(assignedUserId, projectId, 'assignee');
+      }
+
+      // Broadcast job scheduling to organization
+      const scheduleData = {
+        projectId,
+        scheduledDate,
+        scheduledTime,
+        assignedUserId,
+        estimatedDuration,
+        scheduledBy: `${user.firstName} ${user.lastName}`,
+        scheduledAt: new Date().toISOString()
+      };
+
+      broadcastToWebUsers(user.organizationId, 'job_scheduled', scheduleData);
+
+      res.json({
+        success: true,
+        message: 'Job scheduled successfully',
+        data: scheduleData
+      });
+    } catch (error: any) {
+      console.error('Error scheduling job:', error);
+      res.status(500).json({ message: 'Failed to schedule job' });
+    }
+  });
+
+  // Get jobs for a specific date with real-time status
+  app.get('/api/dispatch/scheduled-jobs', requireAuth, async (req, res) => {
+    try {
+      const { date, assignedUserId } = req.query;
+      const userId = req.user!.id;
+      
+      // Get projects with location information for dispatch
+      const projects = await storage.getProjectsWithLocation(userId);
+      
+      // Filter by date if provided
+      let filteredProjects = projects;
+      if (date) {
+        const targetDate = new Date(date as string);
+        filteredProjects = projects.filter(project => {
+          if (!project.scheduledDate) return false;
+          const projectDate = new Date(project.scheduledDate);
+          return projectDate.toDateString() === targetDate.toDateString();
+        });
+      }
+
+      // Filter by assigned user if provided
+      if (assignedUserId) {
+        const assignedId = parseInt(assignedUserId as string);
+        filteredProjects = filteredProjects.filter(project => 
+          project.users.some((userAssignment: any) => userAssignment.user.id === assignedId)
+        );
+      }
+
+      // Transform to dispatch job format
+      const dispatchJobs = filteredProjects.map(project => ({
+        id: project.id,
+        projectId: project.id,
+        projectName: project.name,
+        description: project.description,
+        address: `${project.address}, ${project.city}, ${project.state} ${project.zipCode}`,
+        lat: 0, // Will be geocoded on frontend
+        lng: 0, // Will be geocoded on frontend
+        scheduledDate: project.scheduledDate,
+        scheduledTime: project.scheduledTime || '09:00',
+        estimatedDuration: project.estimatedDuration || 120,
+        assignedTo: project.users?.[0]?.user?.username || 'Unassigned',
+        assignedUserId: project.users?.[0]?.user?.id,
+        priority: project.priority as 'low' | 'medium' | 'high' | 'urgent',
+        status: project.status as 'scheduled' | 'in-progress' | 'completed',
+        currentLocation: project.currentLocation,
+        dispatchNotes: project.dispatchNotes,
+        updatedAt: project.updatedAt
+      }));
+
+      res.json(dispatchJobs);
+    } catch (error: any) {
+      console.error('Error fetching scheduled jobs:', error);
+      res.status(500).json({ message: 'Failed to fetch scheduled jobs' });
+    }
+  });
+
   // Helper function for simple route optimization (nearest neighbor)
   function optimizeRoute(jobs: any[], startLocation: string): number[] {
     if (jobs.length <= 1) return jobs.map((_, index) => index);

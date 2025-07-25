@@ -421,6 +421,12 @@ export const projects = pgTable("projects", {
   timestampPosition: text("timestamp_position").default("bottom-right"), // bottom-right, bottom-left, top-right, top-left
   // Job sharing settings
   shareWithTeam: boolean("share_with_team").default(true), // true = entire team, false = assigned only (admin and creator always see)
+  // Dispatch routing fields
+  scheduledDate: timestamp("scheduled_date"),
+  scheduledTime: text("scheduled_time"), // e.g., "09:00", "14:30"
+  estimatedDuration: integer("estimated_duration"), // in minutes
+  currentLocation: text("current_location"), // Current GPS or text location
+  dispatchNotes: text("dispatch_notes"), // Notes for dispatch routing
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -500,6 +506,8 @@ export const taskTemplates = pgTable("task_templates", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
+
+
 
 export const projectFiles = pgTable("project_files", {
   id: serial("id").primaryKey(),

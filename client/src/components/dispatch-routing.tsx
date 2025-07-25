@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { DispatchMap } from "@/components/dispatch-map";
@@ -19,7 +21,11 @@ import {
   RefreshCw,
   Calendar,
   User,
-  Building
+  Building,
+  Play,
+  Square,
+  CheckCircle,
+  Plus
 } from "lucide-react";
 
 interface JobLocation {
@@ -63,18 +69,61 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
   const [optimization, setOptimization] = useState<RouteOptimization | null>(null);
   const [isOptimizing, setIsOptimizing] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // Fetch scheduled jobs for the selected date
   const { data: scheduledJobsData, isLoading, refetch } = useQuery({
-    queryKey: ['/api/dispatch/jobs', selectedDateState],
+    queryKey: ['/api/dispatch/scheduled-jobs', selectedDateState],
     queryFn: async () => {
-      const response = await apiRequest('GET', `/api/dispatch/jobs?date=${selectedDateState}`);
+      const response = await apiRequest('GET', `/api/dispatch/scheduled-jobs?date=${selectedDateState}`);
       return response as unknown as JobLocation[];
     },
   });
 
   // Ensure scheduledJobs is always an array
   const scheduledJobs = Array.isArray(scheduledJobsData) ? scheduledJobsData : [];
+
+  // WebSocket listeners for real-time job updates
+  useEffect(() => {
+    const handleJobStatusUpdate = (data: any) => {
+      toast({
+        title: "Job Status Updated",
+        description: `${data.updatedBy} updated job status to ${data.status}`,
+      });
+      // Invalidate and refetch jobs
+      queryClient.invalidateQueries({ queryKey: ['/api/dispatch/scheduled-jobs'] });
+    };
+
+    const handleJobScheduled = (data: any) => {
+      toast({
+        title: "Job Scheduled",
+        description: `${data.scheduledBy} scheduled a new job`,
+      });
+      // Invalidate and refetch jobs
+      queryClient.invalidateQueries({ queryKey: ['/api/dispatch/scheduled-jobs'] });
+    };
+
+    // Add WebSocket event listeners
+    if (typeof window !== 'undefined' && (window as any).ws) {
+      const ws = (window as any).ws;
+      ws.addEventListener('message', (event: MessageEvent) => {
+        try {
+          const message = JSON.parse(event.data);
+          if (message.type === 'job_status_updated') {
+            handleJobStatusUpdate(message.data);
+          } else if (message.type === 'job_scheduled') {
+            handleJobScheduled(message.data);
+          }
+        } catch (error) {
+          console.error('Error parsing WebSocket message:', error);
+        }
+      });
+    }
+
+    return () => {
+      // Cleanup event listeners if needed
+    };
+  }, [queryClient, toast]);
 
   const optimizeRouteMutation = useMutation({
     mutationFn: async (data: { jobs: JobLocation[]; startLocation: string }) => {
@@ -125,6 +174,101 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
     });
   };
 
+  // Job status update mutation
+  const updateJobStatusMutation = useMutation({
+    mutationFn: async (data: { jobId: number; status: string; location?: string; notes?: string }) => {
+      const result = await apiRequest('PATCH', `/api/dispatch/jobs/${data.jobId}/status`, data);
+      return result;
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: "Job Status Updated",
+        description: data.message || "Job status updated successfully",
+      });
+      // Refresh jobs list
+      queryClient.invalidateQueries({ queryKey: ['/api/dispatch/scheduled-jobs'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Update Failed",
+        description: error.message || "Failed to update job status",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleStatusUpdate = (jobId: number, newStatus: string) => {
+    updateJobStatusMutation.mutate({
+      jobId,
+      status: newStatus,
+    });
+  };
+
+  // Get available projects for scheduling
+  const { data: availableProjects } = useQuery({
+    queryKey: ['/api/projects'],
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/projects?status=active');
+      return response as any[];
+    },
+  });
+
+  // Job scheduling state
+  const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
+  const [scheduleForm, setScheduleForm] = useState({
+    projectId: '',
+    scheduledDate: selectedDateState,
+    scheduledTime: '09:00',
+    assignedUserId: '',
+    estimatedDuration: 120,
+    notes: ''
+  });
+
+  // Schedule job mutation
+  const scheduleJobMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const result = await apiRequest('POST', '/api/dispatch/schedule-job', data);
+      return result;
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: "Job Scheduled",
+        description: data.message || "Job scheduled successfully",
+      });
+      setIsScheduleDialogOpen(false);
+      setScheduleForm({
+        projectId: '',
+        scheduledDate: selectedDateState,
+        scheduledTime: '09:00',
+        assignedUserId: '',
+        estimatedDuration: 120,
+        notes: ''
+      });
+      // Refresh jobs list
+      queryClient.invalidateQueries({ queryKey: ['/api/dispatch/scheduled-jobs'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Scheduling Failed",
+        description: error.message || "Failed to schedule job",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleScheduleJob = () => {
+    if (!scheduleForm.projectId) {
+      toast({
+        title: "Project Required",
+        description: "Please select a project to schedule",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    scheduleJobMutation.mutate(scheduleForm);
+  };
+
   const formatDuration = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
@@ -162,10 +306,88 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
           <h2 className="text-2xl font-bold text-gray-900">Dispatch Routing</h2>
           <p className="text-gray-600">Optimize routes for scheduled jobs using Google Maps</p>
         </div>
-        <Button onClick={() => refetch()} variant="outline" size="sm">
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
-        </Button>
+        <div className="flex gap-2">
+          <Dialog open={isScheduleDialogOpen} onOpenChange={setIsScheduleDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                Schedule Job
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Schedule New Job</DialogTitle>
+                <DialogDescription>
+                  Schedule a job for {new Date(selectedDateState).toLocaleDateString()}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="project">Project</Label>
+                  <Select
+                    value={scheduleForm.projectId}
+                    onValueChange={(value) => setScheduleForm(prev => ({ ...prev, projectId: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a project" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableProjects?.map((project) => (
+                        <SelectItem key={project.id} value={project.id.toString()}>
+                          {project.name} - {project.address && `${project.address}, ${project.city}`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="time">Time</Label>
+                    <Input
+                      id="time"
+                      type="time"
+                      value={scheduleForm.scheduledTime}
+                      onChange={(e) => setScheduleForm(prev => ({ ...prev, scheduledTime: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="duration">Duration (minutes)</Label>
+                    <Input
+                      id="duration"
+                      type="number"
+                      value={scheduleForm.estimatedDuration}
+                      onChange={(e) => setScheduleForm(prev => ({ ...prev, estimatedDuration: parseInt(e.target.value) || 120 }))}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="notes">Notes</Label>
+                  <Textarea
+                    id="notes"
+                    placeholder="Additional notes for the job..."
+                    value={scheduleForm.notes}
+                    onChange={(e) => setScheduleForm(prev => ({ ...prev, notes: e.target.value }))}
+                  />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setIsScheduleDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleScheduleJob}
+                    disabled={scheduleJobMutation.isPending}
+                  >
+                    {scheduleJobMutation.isPending ? 'Scheduling...' : 'Schedule Job'}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+          <Button onClick={() => refetch()} variant="outline" size="sm">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {/* Date Selection and Start Location */}
@@ -257,14 +479,56 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
                 <div key={job.id} className="border rounded-lg p-4 hover:bg-gray-50">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <span className="font-medium text-lg">{job.projectName}</span>
-                        <Badge className={getPriorityColor(job.priority)}>
-                          {job.priority}
-                        </Badge>
-                        <Badge className={getStatusColor(job.status)}>
-                          {job.status}
-                        </Badge>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-3">
+                          <span className="font-medium text-lg">{job.projectName}</span>
+                          <Badge className={getPriorityColor(job.priority)}>
+                            {job.priority}
+                          </Badge>
+                          <Badge className={getStatusColor(job.status)}>
+                            {job.status}
+                          </Badge>
+                        </div>
+                        
+                        {/* Status Update Buttons */}
+                        <div className="flex gap-1">
+                          {job.status === 'scheduled' && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleStatusUpdate(job.id, 'in-progress')}
+                              disabled={updateJobStatusMutation.isPending}
+                              className="h-7 px-2"
+                            >
+                              <Play className="h-3 w-3 mr-1" />
+                              Start
+                            </Button>
+                          )}
+                          {job.status === 'in-progress' && (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleStatusUpdate(job.id, 'scheduled')}
+                                disabled={updateJobStatusMutation.isPending}
+                                className="h-7 px-2"
+                              >
+                                <Square className="h-3 w-3 mr-1" />
+                                Pause
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleStatusUpdate(job.id, 'completed')}
+                                disabled={updateJobStatusMutation.isPending}
+                                className="h-7 px-2"
+                              >
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                                Complete
+                              </Button>
+                            </>
+                          )}
+                        </div>
                       </div>
                       <div className="space-y-1 text-sm text-gray-600">
                         <div className="flex items-center gap-2">
@@ -274,7 +538,7 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
                         <div className="flex items-center gap-4">
                           <div className="flex items-center gap-2">
                             <Clock className="h-4 w-4" />
-                            <span>{new Date(job.scheduledTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                            <span>{job.scheduledTime}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <User className="h-4 w-4" />
