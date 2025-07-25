@@ -268,7 +268,9 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
               naturalHeight: e.currentTarget.naturalHeight,
               complete: e.currentTarget.complete
             });
-            e.currentTarget.style.display = 'none';
+            // Don't hide the image, just show error state
+            e.currentTarget.style.border = '2px solid red';
+            e.currentTarget.alt = `Failed to load: ${file.originalName}`;
           }}
           onLoad={() => {
             console.log('🖼️ Image loaded successfully:', imageUrl);
