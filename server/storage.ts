@@ -7799,8 +7799,9 @@ export class DatabaseStorage implements IStorage {
         })
         .from(projects)
         .leftJoin(projectUsers, eq(projects.id, projectUsers.projectId))
+        .leftJoin(users, eq(projectUsers.userId, users.id))
         .where(and(
-          eq(projects.organizationId, organizationId),
+          eq(users.organizationId, organizationId),
           sql`DATE(${projects.scheduledDate}) = ${date}`,
           isNotNull(projectUsers.userId)
         ));

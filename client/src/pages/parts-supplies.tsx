@@ -41,6 +41,12 @@ export default function PartsSuppliesPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Fetch parts and supplies
+  const { data: partsSupplies = [], isLoading: partsLoading } = useQuery({
+    queryKey: ['/api/parts-supplies'],
+    queryFn: () => apiRequest('GET', '/api/parts-supplies')
+  });
+
   // Filter and search logic
   const filteredPartsSupplies = partsSupplies.filter((part: any) => {
     const matchesSearch = searchTerm === "" || 
@@ -79,12 +85,6 @@ export default function PartsSuppliesPage() {
     stockStatusFilter !== "all",
     supplierFilter !== "all"
   ].filter(Boolean).length;
-
-  // Fetch parts and supplies
-  const { data: partsSupplies = [], isLoading: partsLoading } = useQuery({
-    queryKey: ['/api/parts-supplies'],
-    queryFn: () => apiRequest('GET', '/api/parts-supplies')
-  });
 
   // Fetch categories
   const { data: categories = [] } = useQuery({
