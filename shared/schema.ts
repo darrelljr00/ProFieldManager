@@ -2771,3 +2771,55 @@ export type FolderPermission = typeof folderPermissions.$inferSelect;
 export type InsertFolderPermission = z.infer<typeof insertFolderPermissionSchema>;
 export type DefaultPermission = typeof defaultPermissions.$inferSelect;
 export type InsertDefaultPermission = z.infer<typeof insertDefaultPermissionSchema>;
+
+// Vehicle Management System for Inspections
+export const vehicles = pgTable("vehicles", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  
+  // Vehicle identification
+  vehicleNumber: text("vehicle_number").notNull(), // Custom number/name (e.g., "Truck 1", "Unit A", "Fleet 001")
+  licensePlate: text("license_plate").notNull(), // License plate number
+  
+  // Vehicle details
+  year: integer("year"),
+  make: text("make"), // Ford, Chevrolet, etc.
+  model: text("model"), // F-150, Silverado, etc.
+  color: text("color"),
+  vin: text("vin"), // Vehicle Identification Number
+  
+  // Vehicle type and capacity
+  vehicleType: text("vehicle_type").notNull().default("truck"), // truck, van, trailer, equipment
+  capacity: text("capacity"), // Payload capacity, tank size, etc.
+  
+  // Status and tracking
+  status: text("status").notNull().default("active"), // active, maintenance, out_of_service, retired
+  currentMileage: integer("current_mileage"),
+  fuelType: text("fuel_type"), // gasoline, diesel, electric, hybrid
+  
+  // Insurance and registration
+  insuranceExpiry: timestamp("insurance_expiry"),
+  registrationExpiry: timestamp("registration_expiry"),
+  inspectionDue: timestamp("inspection_due"),
+  
+  // Notes and additional info
+  notes: text("notes"),
+  photoUrl: text("photo_url"), // Vehicle photo
+  
+  // Tracking
+  isActive: boolean("is_active").default(true),
+  createdBy: integer("created_by").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Zod schemas for Vehicles
+export const insertVehicleSchema = createInsertSchema(vehicles).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Types
+export type Vehicle = typeof vehicles.$inferSelect;
+export type InsertVehicle = z.infer<typeof insertVehicleSchema>;

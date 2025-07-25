@@ -11,7 +11,7 @@ import {
   smsMessages, smsTemplates, sharedPhotoLinks, fileSecuritySettings, fileSecurityScans, fileAccessLogs,
   digitalSignatures, documentSignatureFields, departments, employees, employeeDocuments, timeOffRequests, performanceReviews, disciplinaryActions,
   navigationOrder, backupSettings, backupJobs, partsSupplies, partsCategories, inventoryTransactions, stockAlerts,
-  filePermissions, folderPermissions, defaultPermissions, userDashboardSettings, dashboardProfiles
+  filePermissions, folderPermissions, defaultPermissions, userDashboardSettings, dashboardProfiles, vehicles
 } from "@shared/schema";
 import { marketResearchCompetitors } from "@shared/schema";
 import type { GasCard, InsertGasCard, GasCardAssignment, InsertGasCardAssignment, GasCardUsage, InsertGasCardUsage, GasCardProvider, InsertGasCardProvider } from "@shared/schema";
@@ -446,6 +446,15 @@ export interface IStorage {
   updateTaskTemplate(id: number, updates: any): Promise<any>;
   deleteTaskTemplate(id: number): Promise<boolean>;
   createTasksFromGroup(projectId: number, taskGroupId: number, userId: number): Promise<any[]>;
+  
+  // Vehicle Management methods
+  getVehicles(organizationId: number): Promise<any[]>;
+  getVehicle(id: number, organizationId: number): Promise<any>;
+  createVehicle(vehicleData: any): Promise<any>;
+  updateVehicle(id: number, organizationId: number, updates: any): Promise<any>;
+  deleteVehicle(id: number, organizationId: number): Promise<boolean>;
+  getVehicleByNumber(vehicleNumber: string, organizationId: number): Promise<any>;
+  getVehicleByLicensePlate(licensePlate: string, organizationId: number): Promise<any>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -7120,6 +7129,120 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error checking folder access:', error);
       return false;
+    }
+  }
+
+  // Vehicle Management methods
+  async getVehicles(organizationId: number): Promise<any[]> {
+    try {
+      return await db
+        .select()
+        .from(vehicles)
+        .where(and(eq(vehicles.organizationId, organizationId), eq(vehicles.isActive, true)))
+        .orderBy(asc(vehicles.vehicleNumber));
+    } catch (error) {
+      console.error('Error getting vehicles:', error);
+      throw error;
+    }
+  }
+
+  async getVehicle(id: number, organizationId: number): Promise<any> {
+    try {
+      const [vehicle] = await db
+        .select()
+        .from(vehicles)
+        .where(and(eq(vehicles.id, id), eq(vehicles.organizationId, organizationId), eq(vehicles.isActive, true)))
+        .limit(1);
+      return vehicle;
+    } catch (error) {
+      console.error('Error getting vehicle:', error);
+      throw error;
+    }
+  }
+
+  async createVehicle(vehicleData: any): Promise<any> {
+    try {
+      const [vehicle] = await db
+        .insert(vehicles)
+        .values({
+          ...vehicleData,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+        .returning();
+      return vehicle;
+    } catch (error) {
+      console.error('Error creating vehicle:', error);
+      throw error;
+    }
+  }
+
+  async updateVehicle(id: number, organizationId: number, updates: any): Promise<any> {
+    try {
+      const [vehicle] = await db
+        .update(vehicles)
+        .set({
+          ...updates,
+          updatedAt: new Date()
+        })
+        .where(and(eq(vehicles.id, id), eq(vehicles.organizationId, organizationId)))
+        .returning();
+      return vehicle;
+    } catch (error) {
+      console.error('Error updating vehicle:', error);
+      throw error;
+    }
+  }
+
+  async deleteVehicle(id: number, organizationId: number): Promise<boolean> {
+    try {
+      const result = await db
+        .update(vehicles)
+        .set({ 
+          isActive: false, 
+          updatedAt: new Date() 
+        })
+        .where(and(eq(vehicles.id, id), eq(vehicles.organizationId, organizationId)));
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error('Error deleting vehicle:', error);
+      throw error;
+    }
+  }
+
+  async getVehicleByNumber(vehicleNumber: string, organizationId: number): Promise<any> {
+    try {
+      const [vehicle] = await db
+        .select()
+        .from(vehicles)
+        .where(and(
+          eq(vehicles.vehicleNumber, vehicleNumber), 
+          eq(vehicles.organizationId, organizationId),
+          eq(vehicles.isActive, true)
+        ))
+        .limit(1);
+      return vehicle;
+    } catch (error) {
+      console.error('Error getting vehicle by number:', error);
+      throw error;
+    }
+  }
+
+  async getVehicleByLicensePlate(licensePlate: string, organizationId: number): Promise<any> {
+    try {
+      const [vehicle] = await db
+        .select()
+        .from(vehicles)
+        .where(and(
+          eq(vehicles.licensePlate, licensePlate), 
+          eq(vehicles.organizationId, organizationId),
+          eq(vehicles.isActive, true)
+        ))
+        .limit(1);
+      return vehicle;
+    } catch (error) {
+      console.error('Error getting vehicle by license plate:', error);
+      throw error;
     }
   }
 }

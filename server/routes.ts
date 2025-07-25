@@ -12347,6 +12347,178 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Vehicle Management API Routes
+  
+  // Get all vehicles for organization
+  app.get("/api/vehicles", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const vehicles = await storage.getVehicles(user.organizationId);
+      res.json(vehicles);
+    } catch (error: any) {
+      console.error("Error fetching vehicles:", error);
+      res.status(500).json({ message: "Failed to fetch vehicles" });
+    }
+  });
+
+  // Get single vehicle
+  app.get("/api/vehicles/:id", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const vehicleId = parseInt(req.params.id);
+      
+      const vehicle = await storage.getVehicle(vehicleId, user.organizationId);
+      if (!vehicle) {
+        return res.status(404).json({ message: "Vehicle not found" });
+      }
+      
+      res.json(vehicle);
+    } catch (error: any) {
+      console.error("Error fetching vehicle:", error);
+      res.status(500).json({ message: "Failed to fetch vehicle" });
+    }
+  });
+
+  // Create new vehicle
+  app.post("/api/vehicles", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      // Validate required fields
+      if (!req.body.vehicleNumber || !req.body.licensePlate) {
+        return res.status(400).json({ 
+          message: "Vehicle number and license plate are required" 
+        });
+      }
+
+      // Check for duplicate vehicle number
+      const existingByNumber = await storage.getVehicleByNumber(
+        req.body.vehicleNumber, 
+        user.organizationId
+      );
+      if (existingByNumber) {
+        return res.status(400).json({ 
+          message: "Vehicle number already exists" 
+        });
+      }
+
+      // Check for duplicate license plate
+      const existingByPlate = await storage.getVehicleByLicensePlate(
+        req.body.licensePlate, 
+        user.organizationId
+      );
+      if (existingByPlate) {
+        return res.status(400).json({ 
+          message: "License plate already exists" 
+        });
+      }
+      
+      const vehicleData = {
+        ...req.body,
+        organizationId: user.organizationId,
+        createdBy: user.id
+      };
+      
+      const vehicle = await storage.createVehicle(vehicleData);
+      
+      // Broadcast vehicle creation to WebSocket clients
+      broadcastToWebUsers('vehicle_created', {
+        vehicle,
+        createdBy: user.firstName || user.username
+      });
+      
+      res.status(201).json(vehicle);
+    } catch (error: any) {
+      console.error("Error creating vehicle:", error);
+      res.status(500).json({ message: "Failed to create vehicle" });
+    }
+  });
+
+  // Update vehicle
+  app.put("/api/vehicles/:id", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const vehicleId = parseInt(req.params.id);
+      
+      // Verify vehicle exists and belongs to organization
+      const existingVehicle = await storage.getVehicle(vehicleId, user.organizationId);
+      if (!existingVehicle) {
+        return res.status(404).json({ message: "Vehicle not found" });
+      }
+
+      // If updating vehicle number, check for duplicates
+      if (req.body.vehicleNumber && req.body.vehicleNumber !== existingVehicle.vehicleNumber) {
+        const existingByNumber = await storage.getVehicleByNumber(
+          req.body.vehicleNumber, 
+          user.organizationId
+        );
+        if (existingByNumber && existingByNumber.id !== vehicleId) {
+          return res.status(400).json({ 
+            message: "Vehicle number already exists" 
+          });
+        }
+      }
+
+      // If updating license plate, check for duplicates
+      if (req.body.licensePlate && req.body.licensePlate !== existingVehicle.licensePlate) {
+        const existingByPlate = await storage.getVehicleByLicensePlate(
+          req.body.licensePlate, 
+          user.organizationId
+        );
+        if (existingByPlate && existingByPlate.id !== vehicleId) {
+          return res.status(400).json({ 
+            message: "License plate already exists" 
+          });
+        }
+      }
+      
+      const vehicle = await storage.updateVehicle(vehicleId, user.organizationId, req.body);
+      
+      // Broadcast vehicle update to WebSocket clients
+      broadcastToWebUsers('vehicle_updated', {
+        vehicle,
+        updatedBy: user.firstName || user.username
+      });
+      
+      res.json(vehicle);
+    } catch (error: any) {
+      console.error("Error updating vehicle:", error);
+      res.status(500).json({ message: "Failed to update vehicle" });
+    }
+  });
+
+  // Delete (deactivate) vehicle
+  app.delete("/api/vehicles/:id", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const vehicleId = parseInt(req.params.id);
+      
+      // Verify vehicle exists and belongs to organization
+      const existingVehicle = await storage.getVehicle(vehicleId, user.organizationId);
+      if (!existingVehicle) {
+        return res.status(404).json({ message: "Vehicle not found" });
+      }
+      
+      const success = await storage.deleteVehicle(vehicleId, user.organizationId);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Vehicle not found" });
+      }
+      
+      // Broadcast vehicle deletion to WebSocket clients
+      broadcastToWebUsers('vehicle_deleted', {
+        vehicleId,
+        vehicleNumber: existingVehicle.vehicleNumber,
+        deletedBy: user.firstName || user.username
+      });
+      
+      res.json({ message: "Vehicle deleted successfully" });
+    } catch (error: any) {
+      console.error("Error deleting vehicle:", error);
+      res.status(500).json({ message: "Failed to delete vehicle" });
+    }
+  });
+
   // Add broadcast function to the app for use in routes
   (app as any).broadcastToWebUsers = broadcastToWebUsers;
 
