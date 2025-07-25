@@ -210,7 +210,7 @@ export function VehicleManagement() {
                         {vehicle.currentMileage ? `${vehicle.currentMileage.toLocaleString()} mi` : "Not recorded"}
                       </TableCell>
                       <TableCell className="capitalize">
-                        {vehicle.fuelType || "Not specified"}
+                        {vehicle.fuelType && vehicle.fuelType !== "not_specified" ? vehicle.fuelType : "Not specified"}
                       </TableCell>
                       <TableCell>
                         <span className={vehicle.inspectionDue && new Date(vehicle.inspectionDue) < new Date() ? "text-red-600 font-medium" : ""}>
@@ -283,7 +283,7 @@ function VehicleFormDialog({ mode, vehicle, onSubmit, isLoading }: VehicleFormDi
     capacity: vehicle?.capacity || "",
     status: vehicle?.status || "active",
     currentMileage: vehicle?.currentMileage || "",
-    fuelType: vehicle?.fuelType || "",
+    fuelType: vehicle?.fuelType || "not_specified",
     insuranceExpiry: vehicle?.insuranceExpiry ? vehicle.insuranceExpiry.split('T')[0] : "",
     registrationExpiry: vehicle?.registrationExpiry ? vehicle.registrationExpiry.split('T')[0] : "",
     inspectionDue: vehicle?.inspectionDue ? vehicle.inspectionDue.split('T')[0] : "",
@@ -297,6 +297,7 @@ function VehicleFormDialog({ mode, vehicle, onSubmit, isLoading }: VehicleFormDi
       ...formData,
       year: formData.year ? parseInt(formData.year.toString()) : null,
       currentMileage: formData.currentMileage ? parseInt(formData.currentMileage.toString()) : null,
+      fuelType: formData.fuelType === "not_specified" ? null : formData.fuelType,
       insuranceExpiry: formData.insuranceExpiry || null,
       registrationExpiry: formData.registrationExpiry || null,
       inspectionDue: formData.inspectionDue || null,
@@ -445,10 +446,10 @@ function VehicleFormDialog({ mode, vehicle, onSubmit, isLoading }: VehicleFormDi
             <Label htmlFor="fuelType">Fuel Type</Label>
             <Select value={formData.fuelType} onValueChange={(value) => setFormData({ ...formData, fuelType: value })}>
               <SelectTrigger>
-                <SelectValue />
+                <SelectValue placeholder="Select fuel type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Not specified</SelectItem>
+                <SelectItem value="not_specified">Not specified</SelectItem>
                 <SelectItem value="gasoline">Gasoline</SelectItem>
                 <SelectItem value="diesel">Diesel</SelectItem>
                 <SelectItem value="electric">Electric</SelectItem>
