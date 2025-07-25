@@ -3624,6 +3624,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let uploadBuffer = await fs.readFile(finalFilePath);
       let uploadFilePath = finalFilePath;
       
+      // Debug file size detection
+      console.log(`🔧 File size check: ${req.file.size} bytes (${(req.file.size / 1024 / 1024).toFixed(2)}MB), threshold: ${8 * 1024 * 1024} bytes (8MB)`);
+      console.log(`🔧 MIME type: ${req.file.mimetype}, is image: ${req.file.mimetype.startsWith('image/')}`);
+      
       // Compress if file is over 8MB to ensure Cloudinary compatibility (10MB limit)
       if (req.file.mimetype.startsWith('image/') && req.file.size > 8 * 1024 * 1024) {
         console.log('🔄 Pre-compressing large image before Cloudinary upload...');
