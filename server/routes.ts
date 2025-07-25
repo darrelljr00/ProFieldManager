@@ -3680,13 +3680,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         cloudinaryFolder = 'project-documents';
       }
 
+      // Debug the upload buffer size before Cloudinary upload
+      console.log(`🔧 Uploading to Cloudinary - Buffer size: ${uploadBuffer.length} bytes (${(uploadBuffer.length / 1024 / 1024).toFixed(2)}MB)`);
+      
       const cloudinaryResult = await CloudinaryService.uploadImage(uploadBuffer, {
         folder: cloudinaryFolder,
         filename: req.file.originalname,
         organizationId: user.organizationId,
         quality: 80, // Good compression
         maxWidth: 2000,
-        maxHeight: 2000
+        maxHeight: 2000,
+        bufferSize: uploadBuffer.length
       });
 
       if (!cloudinaryResult.success) {
@@ -3702,12 +3706,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (req.file.mimetype.startsWith('image/') && req.file.size > 1024 * 1024) {
           try {
             console.log('🔄 Applying local compression for fallback...');
-            const compressionResult = await compressImage(finalFilePath, {
-              enableImageCompression: true,
-              imageQuality: 80,
-              preserve_original_images: false,
-              retain_original_filename: true
-            });
+            const fallbackCompressedPath = finalFilePath + '.fallback-compressed.jpg';
+            const compressionResult = await compressImage(finalFilePath, fallbackCompressedPath, user.organizationId);
             
             if (compressionResult.success) {
               console.log(`✅ Local compression successful: ${compressionResult.compressedSize} bytes`);
