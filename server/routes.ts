@@ -178,7 +178,7 @@ async function compressImage(inputPath: string, outputPath: string, organization
 
     // Start with initial compression quality
     let currentQuality = quality;
-    let compressedPath = inputPath; // Compress in place to keep original filename
+    let compressedPath = outputPath; // Use the provided output path
     let attempts = 0;
     const maxAttempts = 5;
     const targetSizeBytes = 1024 * 1024; // 1MB target
@@ -213,7 +213,7 @@ async function compressImage(inputPath: string, outputPath: string, organization
         
         // If under 1MB or we've tried enough, use this version
         if (compressedSize <= targetSizeBytes || attempts >= maxAttempts) {
-          // Replace original with compressed version (keeping original filename)
+          // Move temp file to the specified output path
           await fs.rename(tempPath, compressedPath);
           
           const finalSizeMB = (compressedSize / 1024 / 1024).toFixed(2);
@@ -3633,10 +3633,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           const compressionResult = await compressImage(finalFilePath, compressedPath, user.organizationId);
           
-          if (compressionResult.success) {
-            uploadBuffer = await fs.readFile(compressedPath);
-            uploadFilePath = compressedPath;
-            console.log(`✅ Pre-compression successful: ${req.file.size} → ${compressionResult.compressedSize} bytes`);
+          if (compressionResult.success && compressionResult.compressedSize) {
+            // Check if compressed file actually exists
+            try {
+              const stat = await fs.stat(compressedPath);
+              if (stat.isFile()) {
+                uploadBuffer = await fs.readFile(compressedPath);
+                uploadFilePath = compressedPath;
+                console.log(`✅ Pre-compression successful: ${req.file.size} → ${compressionResult.compressedSize} bytes`);
+              } else {
+                console.warn('⚠️ Compressed file does not exist, using original');
+              }
+            } catch (statError) {
+              console.warn('⚠️ Compressed file not accessible, using original:', statError.message);
+            }
             
             // If still over 10MB after compression, apply more aggressive compression
             if (uploadBuffer.length > 10 * 1024 * 1024) {
