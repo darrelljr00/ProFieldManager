@@ -392,6 +392,10 @@ export default function TimeClock() {
               Team Management
             </TabsTrigger>
           )}
+          <TabsTrigger value="settings">
+            <Settings className="h-4 w-4 mr-2" />
+            Settings
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="clock" className="space-y-4">
@@ -777,6 +781,338 @@ export default function TimeClock() {
             </Card>
           </TabsContent>
         )}
+
+        {/* Settings Tab */}
+        <TabsContent value="settings" className="space-y-4">
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* General Settings */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  General Settings
+                </CardTitle>
+                <CardDescription>
+                  Configure basic time clock preferences
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="timezone">Timezone</Label>
+                  <Select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select timezone" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="EST">Eastern Time (EST)</SelectItem>
+                      <SelectItem value="CST">Central Time (CST)</SelectItem>
+                      <SelectItem value="MST">Mountain Time (MST)</SelectItem>
+                      <SelectItem value="PST">Pacific Time (PST)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="workweek-start">Work Week Starts</Label>
+                  <Select defaultValue="monday">
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="sunday">Sunday</SelectItem>
+                      <SelectItem value="monday">Monday</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="time-format">Time Format</Label>
+                  <Select defaultValue="12hour">
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="12hour">12 Hour (AM/PM)</SelectItem>
+                      <SelectItem value="24hour">24 Hour</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Location Settings */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MapPin className="h-5 w-5" />
+                  Location Settings
+                </CardTitle>
+                <CardDescription>
+                  Configure GPS and location tracking options
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Require GPS Location</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Force employees to enable GPS when clocking in/out
+                    </p>
+                  </div>
+                  <input type="checkbox" className="toggle" defaultChecked />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Location Accuracy</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Minimum GPS accuracy required (meters)
+                    </p>
+                  </div>
+                  <Input 
+                    type="number" 
+                    defaultValue="50" 
+                    className="w-20"
+                    min="10"
+                    max="500"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="work-locations">Allowed Work Locations</Label>
+                  <Textarea
+                    id="work-locations"
+                    placeholder="Enter addresses or GPS coordinates (one per line)"
+                    rows={3}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Leave empty to allow clocking in from any location
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Time Rules */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Timer className="h-5 w-5" />
+                  Time Rules
+                </CardTitle>
+                <CardDescription>
+                  Set automatic time tracking rules and policies
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="auto-break">Automatic Break (hours)</Label>
+                  <Input 
+                    id="auto-break"
+                    type="number" 
+                    defaultValue="4" 
+                    min="0"
+                    max="12"
+                    step="0.5"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Automatically deduct break time after working this many hours
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="break-duration">Default Break Duration (minutes)</Label>
+                  <Input 
+                    id="break-duration"
+                    type="number" 
+                    defaultValue="30" 
+                    min="15"
+                    max="120"
+                    step="15"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="overtime-threshold">Overtime Threshold (hours/day)</Label>
+                  <Input 
+                    id="overtime-threshold"
+                    type="number" 
+                    defaultValue="8" 
+                    min="6"
+                    max="12"
+                    step="0.5"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Round Time Entries</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Round to nearest 15 minutes
+                    </p>
+                  </div>
+                  <input type="checkbox" className="toggle" />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Approval Settings */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  Approval Settings
+                </CardTitle>
+                <CardDescription>
+                  Configure supervisor approval requirements
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Require Supervisor Approval</Label>
+                    <p className="text-sm text-muted-foreground">
+                      All time entries must be approved by supervisor
+                    </p>
+                  </div>
+                  <input type="checkbox" className="toggle" defaultChecked />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Auto-approve after 7 days</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Automatically approve entries older than 7 days
+                    </p>
+                  </div>
+                  <input type="checkbox" className="toggle" defaultChecked />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="approval-reminder">Approval Reminder (days)</Label>
+                  <Select defaultValue="3">
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">1 day</SelectItem>
+                      <SelectItem value="2">2 days</SelectItem>
+                      <SelectItem value="3">3 days</SelectItem>
+                      <SelectItem value="5">5 days</SelectItem>
+                      <SelectItem value="7">7 days</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Send reminder emails to supervisors for pending approvals
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Export Settings */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Download className="h-5 w-5" />
+                  Export Settings
+                </CardTitle>
+                <CardDescription>
+                  Configure time sheet export options
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="export-format">Default Export Format</Label>
+                  <Select defaultValue="csv">
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="csv">CSV</SelectItem>
+                      <SelectItem value="excel">Excel (.xlsx)</SelectItem>
+                      <SelectItem value="pdf">PDF</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Include Location Data</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Add GPS coordinates to exported reports
+                    </p>
+                  </div>
+                  <input type="checkbox" className="toggle" defaultChecked />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Include Break Details</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Show break start/end times in exports
+                    </p>
+                  </div>
+                  <input type="checkbox" className="toggle" defaultChecked />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Notification Settings */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Coffee className="h-5 w-5" />
+                  Notification Settings
+                </CardTitle>
+                <CardDescription>
+                  Configure alerts and notifications
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Overtime Alerts</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Notify when employees approach overtime
+                    </p>
+                  </div>
+                  <input type="checkbox" className="toggle" defaultChecked />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Missed Clock-out Alerts</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Alert when employees forget to clock out
+                    </p>
+                  </div>
+                  <input type="checkbox" className="toggle" defaultChecked />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="notification-time">Daily Report Time</Label>
+                  <Input 
+                    id="notification-time"
+                    type="time" 
+                    defaultValue="17:00"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Time to send daily time tracking summary
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Save Settings Button */}
+          <div className="flex justify-end space-x-2 pt-4">
+            <Button variant="outline">
+              Reset to Defaults
+            </Button>
+            <Button>
+              Save Settings
+            </Button>
+          </div>
+        </TabsContent>
       </Tabs>
 
       {/* Location Map Modal */}
