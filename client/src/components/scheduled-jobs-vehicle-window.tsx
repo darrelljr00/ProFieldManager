@@ -150,14 +150,16 @@ export function ScheduledJobsVehicleWindow({ selectedDate, vehicleNumber = "1" }
     }
   };
 
-  const groupedAssignments = assignments.reduce((groups, assignment) => {
-    const vehicleKey = `${assignment.vehicleNumber} (${assignment.licensePlate})`;
-    if (!groups[vehicleKey]) {
-      groups[vehicleKey] = [];
-    }
-    groups[vehicleKey].push(assignment);
-    return groups;
-  }, {} as Record<string, VehicleJobAssignment[]>);
+  const groupedAssignments = Array.isArray(assignments) && assignments.length > 0 
+    ? assignments.reduce((groups, assignment) => {
+        const vehicleKey = `${assignment.vehicleNumber} (${assignment.licensePlate})`;
+        if (!groups[vehicleKey]) {
+          groups[vehicleKey] = [];
+        }
+        groups[vehicleKey].push(assignment);
+        return groups;
+      }, {} as Record<string, VehicleJobAssignment[]>)
+    : {};
 
   if (isLoading) {
     return (
@@ -188,7 +190,7 @@ export function ScheduledJobsVehicleWindow({ selectedDate, vehicleNumber = "1" }
               Scheduled Jobs Vehicle {vehicleNumber}
             </CardTitle>
             <CardDescription>
-              {selectedDate} • {assignments.length} assignments • {Object.keys(groupedAssignments).length} vehicles
+              {selectedDate} • {Array.isArray(assignments) ? assignments.length : 0} assignments • {Object.keys(groupedAssignments).length} vehicles
             </CardDescription>
           </div>
           <div className="flex gap-2">
@@ -252,7 +254,7 @@ export function ScheduledJobsVehicleWindow({ selectedDate, vehicleNumber = "1" }
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {assignments.length === 0 ? (
+        {!Array.isArray(assignments) || assignments.length === 0 ? (
           <div className="text-center py-8">
             <CarIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
             <h3 className="text-lg font-medium text-muted-foreground">No Vehicle Job Assignments</h3>
