@@ -3589,9 +3589,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Upload to Cloudinary - REQUIRED for all uploads
+      // Pre-compress large images before Cloudinary upload
+      let uploadBuffer = await fs.readFile(finalFilePath);
+      let uploadFilePath = finalFilePath;
+      
+      if (req.file.mimetype.startsWith('image/') && req.file.size > 1024 * 1024) {
+        console.log('🔄 Pre-compressing large image before Cloudinary upload...');
+        try {
+          const compressionResult = await compressImage(finalFilePath, {
+            enableImageCompression: true,
+            imageQuality: 60, // More aggressive compression for Cloudinary upload
+            preserve_original_images: true,
+            retain_original_filename: false
+          });
+          
+          if (compressionResult.success && compressionResult.compressedFilePath) {
+            console.log(`✅ Pre-compression successful: ${req.file.size} → ${compressionResult.compressedSize} bytes`);
+            uploadBuffer = await fs.readFile(compressionResult.compressedFilePath);
+            uploadFilePath = compressionResult.compressedFilePath;
+          }
+        } catch (compressionError) {
+          console.warn('⚠️ Pre-compression failed, using original:', compressionError);
+        }
+      }
+
+      // Upload to Cloudinary
       console.log('☁️ Uploading to Cloudinary...');
-      const fileBuffer = await fs.readFile(finalFilePath);
       
       // Determine folder based on file type
       let cloudinaryFolder = 'project-files';
@@ -3603,7 +3626,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         cloudinaryFolder = 'project-documents';
       }
 
-      const cloudinaryResult = await CloudinaryService.uploadImage(fileBuffer, {
+      const cloudinaryResult = await CloudinaryService.uploadImage(uploadBuffer, {
         folder: cloudinaryFolder,
         filename: req.file.originalname,
         organizationId: user.organizationId,
@@ -3613,17 +3636,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       if (!cloudinaryResult.success) {
-        console.error('❌ Cloudinary upload failed:', cloudinaryResult.error);
-        // Clean up temporary file
-        try {
-          await fs.unlink(req.file.path);
-          if (finalFilePath !== req.file.path) {
-            await fs.unlink(finalFilePath);
+        console.warn('⚠️ Cloudinary upload failed, falling back to local storage:', cloudinaryResult.error);
+        
+        // Fallback to local storage with compression
+        const finalLocalFilePath = finalFilePath.replace('./uploads/', 'uploads/');
+        let localFileSize = req.file.size;
+        
+        // Apply local compression if image is large
+        if (req.file.mimetype.startsWith('image/') && req.file.size > 1024 * 1024) {
+          try {
+            console.log('🔄 Applying local compression for fallback...');
+            const compressionResult = await compressImage(finalFilePath, {
+              enableImageCompression: true,
+              imageQuality: 80,
+              preserve_original_images: false,
+              retain_original_filename: true
+            });
+            
+            if (compressionResult.success) {
+              console.log(`✅ Local compression successful: ${compressionResult.compressedSize} bytes`);
+              localFileSize = compressionResult.compressedSize || req.file.size;
+            }
+          } catch (compressionError) {
+            console.warn('⚠️ Local compression failed:', compressionError);
           }
-        } catch (cleanupError) {
-          console.warn('⚠️ Failed to clean up temporary files:', cleanupError);
         }
-        return res.status(500).json({ message: "Failed to upload to cloud storage: " + cloudinaryResult.error });
+        
+        // Use local storage paths
+        const fileData = {
+          projectId,
+          taskId,
+          uploadedById: userId,
+          fileName: finalFilename,
+          originalName: req.file.originalname,
+          filePath: finalLocalFilePath,
+          fileSize: localFileSize,
+          mimeType: req.file.mimetype,
+          fileType,
+          description: req.body.description || `Camera photo taken on ${new Date().toLocaleDateString()} by ${user.firstName} ${user.lastName}`,
+        };
+
+        console.log('📝 Saving to database with local storage fallback:', fileData);
+        const projectFile = await storage.uploadProjectFile(fileData);
+        
+        return res.status(201).json({
+          ...projectFile,
+          isCloudStored: false,
+          fallbackUsed: true,
+          compressionApplied: localFileSize < req.file.size
+        });
       }
 
       console.log('✅ Cloudinary upload successful:', cloudinaryResult.secureUrl);
@@ -3668,6 +3729,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await fs.unlink(req.file.path);
         if (finalFilePath !== req.file.path) {
           await fs.unlink(finalFilePath);
+        }
+        if (uploadFilePath !== finalFilePath && uploadFilePath !== req.file.path) {
+          await fs.unlink(uploadFilePath);
         }
       } catch (cleanupError) {
         console.warn('⚠️ Failed to clean up temporary files:', cleanupError);

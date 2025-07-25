@@ -80,10 +80,10 @@ export class CloudinaryService {
         formData.append('file', buffer);
         formData.append('upload_preset', 'ml_default');
         formData.append('folder', folderPath);
-        formData.append('public_id', publicId);
-        formData.append('quality', 'auto:good');
-        formData.append('fetch_format', 'auto');
-        formData.append('transformation', `w_${maxWidth},h_${maxHeight},c_limit`);
+        // Remove transformation parameters for unsigned upload
+        // formData.append('quality', 'auto:good');
+        // formData.append('fetch_format', 'auto');
+        // formData.append('transformation', `w_${maxWidth},h_${maxHeight},c_limit`);
 
         console.log('🔧 Using HTTP upload to Cloudinary');
         
