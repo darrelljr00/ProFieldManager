@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Cloudinary Image Test</title>
+    <meta http-equiv="Content-Security-Policy" content="img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com; default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https: wss: ws:;" />
+</head>
+<body>
+    <h1>Cloudinary Image Loading Test</h1>
+    
+    <h2>Latest Upload (Should Work):</h2>
+    <img src="https://res.cloudinary.com/dcx5v8cuk/image/upload/v1753439906/org-2/project-images/1753439905389-test-image66.jpg" 
+         alt="Test Image 66" 
+         style="max-width: 300px; border: 2px solid green;"
+         onload="console.log('✅ Image loaded successfully!')"
+         onerror="console.error('❌ Image failed to load')" />
+    
+    <h2>Previous Upload (Duplicated Path - May Not Work):</h2>
+    <img src="https://res.cloudinary.com/dcx5v8cuk/image/upload/v1753439286/org-2/project-images/org-2/project-images/1753439285941-test-image.jpg" 
+         alt="Test Image" 
+         style="max-width: 300px; border: 2px solid red;"
+         onload="console.log('✅ Old image loaded successfully!')"
+         onerror="console.error('❌ Old image failed to load')" />
+         
+    <script>
+        console.log('🧪 Testing Cloudinary image loading...');
+    </script>
+</body>
+</html>

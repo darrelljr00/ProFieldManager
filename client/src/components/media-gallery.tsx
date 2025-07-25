@@ -261,7 +261,13 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
           style={isLightbox ? { transform: `rotate(${rotation}deg)` } : undefined}
           loading="lazy"
           onError={(e) => {
-            console.error('🖼️ Image failed to load:', imageUrl, 'File data:', file);
+            console.error('🖼️ Image failed to load:', imageUrl, 'Error event:', e, 'File data:', file);
+            console.error('🖼️ Image error details:', {
+              src: e.currentTarget.src,
+              naturalWidth: e.currentTarget.naturalWidth,
+              naturalHeight: e.currentTarget.naturalHeight,
+              complete: e.currentTarget.complete
+            });
             e.currentTarget.style.display = 'none';
           }}
           onLoad={() => {
