@@ -12609,6 +12609,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/vehicles/:vehicleId/maintenance/custom-item", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const vehicleId = parseInt(req.params.vehicleId);
+      const { intervals } = req.body;
+      
+      if (!Array.isArray(intervals) || intervals.length === 0) {
+        return res.status(400).json({ message: "Invalid intervals data provided" });
+      }
+      
+      // Validate vehicle belongs to user's organization
+      const vehicle = await storage.getVehicle(vehicleId, user.organizationId);
+      if (!vehicle) {
+        return res.status(404).json({ message: "Vehicle not found" });
+      }
+      
+      const createdIntervals = await storage.createCustomMaintenanceIntervals(vehicleId, user.organizationId, intervals);
+      
+      // Broadcast maintenance intervals creation
+      broadcastToWebUsers('maintenance_intervals_created', {
+        vehicleId,
+        intervals: createdIntervals,
+        createdBy: user.firstName || user.username
+      });
+      
+      res.json(createdIntervals);
+    } catch (error: any) {
+      console.error("Error creating custom maintenance item:", error);
+      res.status(500).json({ message: "Failed to create custom maintenance item" });
+    }
+  });
+
   app.put("/api/vehicles/:vehicleId/maintenance/:intervalId/status", requireAuth, async (req, res) => {
     try {
       const user = getAuthenticatedUser(req);

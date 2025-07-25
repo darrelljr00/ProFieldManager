@@ -66,6 +66,8 @@ export function VehicleManagement() {
   const [isMaintenanceSetupOpen, setIsMaintenanceSetupOpen] = useState(false);
   const [isInspectionDialogOpen, setIsInspectionDialogOpen] = useState(false);
   const [selectedVehicleForInspection, setSelectedVehicleForInspection] = useState<Vehicle | null>(null);
+  const [isAddMaintenanceItemOpen, setIsAddMaintenanceItemOpen] = useState(false);
+  const [selectedVehicleForMaintenance, setSelectedVehicleForMaintenance] = useState<Vehicle | null>(null);
   const [customIntervals, setCustomIntervals] = useState({
     oilChange: { days: 90, miles: 3000 },
     tirePressure: { days: 30, miles: 0 },
@@ -510,6 +512,18 @@ export function VehicleManagement() {
           maintenanceIntervals={selectedVehicleForInspection ? maintenanceData[selectedVehicleForInspection.id] || [] : []}
         />
       </Dialog>
+
+      <Dialog open={isAddMaintenanceItemOpen} onOpenChange={setIsAddMaintenanceItemOpen}>
+        <AddMaintenanceItemDialog
+          vehicle={selectedVehicleForMaintenance}
+          onItemAdded={() => {
+            if (selectedVehicleForMaintenance) {
+              fetchMaintenanceData();
+            }
+            setIsAddMaintenanceItemOpen(false);
+          }}
+        />
+      </Dialog>
     </div>
   );
 }
@@ -925,8 +939,8 @@ function VehicleInspectionDialog({ vehicle, maintenanceIntervals }: VehicleInspe
     return currentUser;
   });
 
-  // Define all 7 maintenance types
-  const maintenanceTypes = [
+  // Define standard maintenance types
+  const standardMaintenanceTypes = [
     { key: 'oil_change', label: 'Oil Change', icon: Fuel },
     { key: 'tire_pressure', label: 'Tire Pressure Check', icon: Car },
     { key: 'windshield_wash_fluid', label: 'Windshield Wash Fluid', icon: Car },
@@ -935,6 +949,20 @@ function VehicleInspectionDialog({ vehicle, maintenanceIntervals }: VehicleInspe
     { key: 'tire_rotation', label: 'Tire Rotation', icon: Car },
     { key: 'wiper_blades', label: 'Wiper Blades', icon: Car }
   ];
+
+  // Combine standard types with custom maintenance intervals
+  const allMaintenanceTypes = React.useMemo(() => {
+    const customTypes = maintenanceIntervals
+      .filter(interval => !standardMaintenanceTypes.find(std => std.key === interval.maintenanceType))
+      .map(interval => ({
+        key: interval.maintenanceType,
+        label: interval.customLabel || interval.maintenanceType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+        icon: Wrench,
+        isCustom: true
+      }));
+    
+    return [...standardMaintenanceTypes, ...customTypes];
+  }, [maintenanceIntervals]);
 
   const getMaintenanceItem = (maintenanceType: string) => {
     return maintenanceIntervals.find(interval => interval.maintenanceType === maintenanceType);
@@ -1053,10 +1081,24 @@ function VehicleInspectionDialog({ vehicle, maintenanceIntervals }: VehicleInspe
         </div>
 
         <div className="space-y-4">
-          <h3 className="text-lg font-medium">Maintenance Schedule Items</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-medium">Maintenance Schedule Items</h3>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setSelectedVehicleForMaintenance(vehicle);
+                setIsAddMaintenanceItemOpen(true);
+              }}
+              className="flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add Custom Item
+            </Button>
+          </div>
           
           <div className="grid gap-3">
-            {maintenanceTypes.map((type) => {
+            {allMaintenanceTypes.map((type) => {
               const item = getMaintenanceItem(type.key);
               const IconComponent = type.icon;
               
@@ -1069,7 +1111,14 @@ function VehicleInspectionDialog({ vehicle, maintenanceIntervals }: VehicleInspe
                   <div className="flex items-center gap-3">
                     <IconComponent className="h-5 w-5 text-gray-600" />
                     <div>
-                      <h4 className="font-medium">{type.label}</h4>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-medium">{type.label}</h4>
+                        {type.isCustom && (
+                          <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
+                            Custom
+                          </span>
+                        )}
+                      </div>
                       {item && (
                         <p className="text-sm text-muted-foreground">
                           {formatStatusDate(item)}
@@ -1130,6 +1179,178 @@ function VehicleInspectionDialog({ vehicle, maintenanceIntervals }: VehicleInspe
           Close
         </Button>
       </DialogFooter>
+    </DialogContent>
+  );
+}
+
+interface AddMaintenanceItemDialogProps {
+  vehicle: Vehicle | null;
+  onItemAdded: () => void;
+}
+
+function AddMaintenanceItemDialog({ vehicle, onItemAdded }: AddMaintenanceItemDialogProps) {
+  const { toast } = useToast();
+  const [formData, setFormData] = useState({
+    maintenanceType: "",
+    customLabel: "",
+    intervalDays: "",
+    intervalMiles: "",
+    description: ""
+  });
+
+  const addMaintenanceItemMutation = useMutation({
+    mutationFn: async (data: any) => {
+      return apiRequest("POST", `/api/vehicles/${vehicle?.id}/maintenance/custom-item`, data);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Custom maintenance item added successfully.",
+      });
+      onItemAdded();
+      setFormData({
+        maintenanceType: "",
+        customLabel: "",
+        intervalDays: "",
+        intervalMiles: "",
+        description: ""
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to add custom maintenance item.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.customLabel || !formData.intervalDays) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const customMaintenanceType = formData.customLabel.toLowerCase().replace(/\s+/g, '_');
+    
+    addMaintenanceItemMutation.mutate({
+      intervals: [{
+        maintenanceType: customMaintenanceType,
+        customLabel: formData.customLabel,
+        intervalDays: parseInt(formData.intervalDays),
+        intervalMiles: formData.intervalMiles ? parseInt(formData.intervalMiles) : null,
+        description: formData.description
+      }]
+    });
+  };
+
+  if (!vehicle) return null;
+
+  return (
+    <DialogContent className="max-w-md">
+      <DialogHeader>
+        <DialogTitle className="flex items-center gap-2">
+          <Plus className="h-5 w-5" />
+          Add Custom Maintenance Item
+        </DialogTitle>
+        <p className="text-sm text-muted-foreground">
+          Create a custom maintenance schedule item for {vehicle.vehicleNumber}
+        </p>
+      </DialogHeader>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-2">
+          <label className="text-sm font-medium">
+            Maintenance Item Name *
+          </label>
+          <input
+            type="text"
+            value={formData.customLabel}
+            onChange={(e) => setFormData(prev => ({ ...prev, customLabel: e.target.value }))}
+            placeholder="e.g., Brake Fluid Check, Air Filter"
+            className="w-full px-3 py-2 border rounded-md text-sm"
+            required
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">
+              Interval (Days) *
+            </label>
+            <input
+              type="number"
+              value={formData.intervalDays}
+              onChange={(e) => setFormData(prev => ({ ...prev, intervalDays: e.target.value }))}
+              placeholder="30"
+              min="1"
+              className="w-full px-3 py-2 border rounded-md text-sm"
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">
+              Interval (Miles)
+            </label>
+            <input
+              type="number"
+              value={formData.intervalMiles}
+              onChange={(e) => setFormData(prev => ({ ...prev, intervalMiles: e.target.value }))}
+              placeholder="1000"
+              min="1"
+              className="w-full px-3 py-2 border rounded-md text-sm"
+            />
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium">
+            Description
+          </label>
+          <textarea
+            value={formData.description}
+            onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+            placeholder="Detailed description of the maintenance task..."
+            rows={3}
+            className="w-full px-3 py-2 border rounded-md text-sm resize-none"
+          />
+        </div>
+
+        <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="h-4 w-4 text-blue-600 mt-0.5" />
+            <div className="text-xs text-blue-800 dark:text-blue-200">
+              <strong>Note:</strong> Custom maintenance items will appear in the inspection dialog 
+              and can be marked as completed/incomplete like standard maintenance items.
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onItemAdded()}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            disabled={addMaintenanceItemMutation.isPending}
+            className="flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            {addMaintenanceItemMutation.isPending ? "Adding..." : "Add Item"}
+          </Button>
+        </DialogFooter>
+      </form>
     </DialogContent>
   );
 }
