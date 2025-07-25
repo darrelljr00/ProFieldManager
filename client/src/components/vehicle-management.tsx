@@ -184,6 +184,52 @@ export function VehicleManagement() {
     }
   }, [vehicles]);
 
+  // Setup maintenance intervals for all vehicles that don't have them
+  const setupAllMaintenanceIntervals = async () => {
+    if (!vehicles || vehicles.length === 0) {
+      toast({
+        title: "No Vehicles",
+        description: "Please add vehicles before setting up maintenance intervals.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const vehiclesNeedingSetup = vehicles.filter((vehicle: Vehicle) => {
+      const intervals = maintenanceData[vehicle.id];
+      return !intervals || intervals.length === 0;
+    });
+
+    if (vehiclesNeedingSetup.length === 0) {
+      toast({
+        title: "All Set",
+        description: "All vehicles already have maintenance intervals configured.",
+      });
+      return;
+    }
+
+    try {
+      for (const vehicle of vehiclesNeedingSetup) {
+        await createDefaultMaintenanceMutation.mutateAsync(vehicle.id);
+      }
+      
+      toast({
+        title: "Success",
+        description: `Set up maintenance intervals for ${vehiclesNeedingSetup.length} vehicle(s).`,
+      });
+      
+      // Refresh maintenance data for all vehicles
+      await fetchMaintenanceData();
+    } catch (error) {
+      console.error('Error setting up maintenance intervals:', error);
+      toast({
+        title: "Error",
+        description: "Failed to set up some maintenance intervals. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "active":
@@ -229,16 +275,7 @@ export function VehicleManagement() {
     if (!intervals || !Array.isArray(intervals) || intervals.length === 0) {
       return (
         <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-500">No intervals</span>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => createDefaultMaintenanceMutation.mutate(vehicleId)}
-            disabled={createDefaultMaintenanceMutation.isPending}
-          >
-            <Settings className="h-3 w-3 mr-1" />
-            Setup
-          </Button>
+          <span className="text-sm text-gray-500">Not configured</span>
         </div>
       );
     }
@@ -280,19 +317,31 @@ export function VehicleManagement() {
               Manage your fleet vehicles, pair vehicle numbers to license plates, and track vehicle information for inspections.
             </p>
           </div>
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Vehicle
-              </Button>
-            </DialogTrigger>
-            <VehicleFormDialog
-              mode="create"
-              onSubmit={(data) => createVehicleMutation.mutate(data)}
-              isLoading={createVehicleMutation.isPending}
-            />
-          </Dialog>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={setupAllMaintenanceIntervals}
+              disabled={createDefaultMaintenanceMutation.isPending || vehicles.length === 0}
+              className="whitespace-nowrap"
+            >
+              <Settings className="h-4 w-4 mr-2" />
+              {createDefaultMaintenanceMutation.isPending ? "Setting up..." : "Setup All Maintenance"}
+            </Button>
+            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Vehicle
+                </Button>
+              </DialogTrigger>
+              <VehicleFormDialog
+                mode="create"
+                onSubmit={(data) => createVehicleMutation.mutate(data)}
+                isLoading={createVehicleMutation.isPending}
+              />
+            </Dialog>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
