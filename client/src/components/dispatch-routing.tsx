@@ -25,7 +25,6 @@ import {
   Play,
   Square,
   CheckCircle,
-  Plus
 } from "lucide-react";
 
 interface JobLocation {
@@ -75,8 +74,6 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
   const handleDateChange = (newDate: string) => {
     setSelectedDateState(newDate);
     setOptimization(null); // Clear any existing optimization when date changes
-    // Update schedule form date as well
-    setScheduleForm(prev => ({ ...prev, scheduledDate: newDate }));
   };
 
   // Fetch scheduled jobs for the selected date
@@ -212,70 +209,7 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
     });
   };
 
-  // Get available projects for scheduling
-  const { data: availableProjects } = useQuery({
-    queryKey: ['/api/projects'],
-    queryFn: async () => {
-      const response = await apiRequest('GET', '/api/projects?status=active');
-      return response as any[];
-    },
-  });
 
-  // Job scheduling state
-  const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
-  const [scheduleForm, setScheduleForm] = useState({
-    projectId: '',
-    scheduledDate: selectedDateState,
-    scheduledTime: '09:00',
-    assignedUserId: '',
-    estimatedDuration: 120,
-    notes: ''
-  });
-
-  // Schedule job mutation
-  const scheduleJobMutation = useMutation({
-    mutationFn: async (data: any) => {
-      const result = await apiRequest('POST', '/api/dispatch/schedule-job', data);
-      return result;
-    },
-    onSuccess: (data: any) => {
-      toast({
-        title: "Job Scheduled",
-        description: data.message || "Job scheduled successfully",
-      });
-      setIsScheduleDialogOpen(false);
-      setScheduleForm({
-        projectId: '',
-        scheduledDate: selectedDateState,
-        scheduledTime: '09:00',
-        assignedUserId: '',
-        estimatedDuration: 120,
-        notes: ''
-      });
-      // Refresh jobs list
-      queryClient.invalidateQueries({ queryKey: ['/api/dispatch/scheduled-jobs'] });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Scheduling Failed",
-        description: error.message || "Failed to schedule job",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const handleScheduleJob = () => {
-    if (!scheduleForm.projectId) {
-      toast({
-        title: "Project Required",
-        description: "Please select a project to schedule",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    scheduleJobMutation.mutate(scheduleForm);
-  };
 
   const formatDuration = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
@@ -330,82 +264,6 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
             />
           </div>
           <div className="flex gap-2">
-            <Dialog open={isScheduleDialogOpen} onOpenChange={setIsScheduleDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm">
-                <Plus className="h-4 w-4 mr-2" />
-                Schedule Job
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>Schedule New Job</DialogTitle>
-                <DialogDescription>
-                  Schedule a job for {new Date(selectedDateState).toLocaleDateString()}
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="project">Project</Label>
-                  <Select
-                    value={scheduleForm.projectId}
-                    onValueChange={(value) => setScheduleForm(prev => ({ ...prev, projectId: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a project" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableProjects?.map((project) => (
-                        <SelectItem key={project.id} value={project.id.toString()}>
-                          {project.name} - {project.address && `${project.address}, ${project.city}`}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="time">Time</Label>
-                    <Input
-                      id="time"
-                      type="time"
-                      value={scheduleForm.scheduledTime}
-                      onChange={(e) => setScheduleForm(prev => ({ ...prev, scheduledTime: e.target.value }))}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="duration">Duration (minutes)</Label>
-                    <Input
-                      id="duration"
-                      type="number"
-                      value={scheduleForm.estimatedDuration}
-                      onChange={(e) => setScheduleForm(prev => ({ ...prev, estimatedDuration: parseInt(e.target.value) || 120 }))}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <Label htmlFor="notes">Notes</Label>
-                  <Textarea
-                    id="notes"
-                    placeholder="Additional notes for the job..."
-                    value={scheduleForm.notes}
-                    onChange={(e) => setScheduleForm(prev => ({ ...prev, notes: e.target.value }))}
-                  />
-                </div>
-                <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => setIsScheduleDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={handleScheduleJob}
-                    disabled={scheduleJobMutation.isPending}
-                  >
-                    {scheduleJobMutation.isPending ? 'Scheduling...' : 'Schedule Job'}
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-            </Dialog>
             <Button onClick={() => refetch()} variant="outline" size="sm">
               <RefreshCw className="h-4 w-4 mr-2" />
               Refresh
