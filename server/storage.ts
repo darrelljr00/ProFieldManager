@@ -7754,7 +7754,7 @@ export class DatabaseStorage implements IStorage {
       // Find users who completed vehicle inspections on the specified date
       const inspectionUsers = await db
         .select({
-          userId: inspectionRecords.technicianId,
+          userId: inspectionRecords.userId,
           userFirstName: users.firstName,
           userLastName: users.lastName,
           userEmail: users.email,
@@ -7762,10 +7762,10 @@ export class DatabaseStorage implements IStorage {
           vehicleNumber: sql`${inspectionRecords.vehicleInfo}->>'vehicleNumber'`,
           licensePlate: sql`${inspectionRecords.vehicleInfo}->>'licensePlate'`,
           inspectionDate: inspectionRecords.createdAt,
-          inspectionType: inspectionRecords.inspectionType
+          inspectionType: inspectionRecords.type
         })
         .from(inspectionRecords)
-        .leftJoin(users, eq(inspectionRecords.technicianId, users.id))
+        .leftJoin(users, eq(inspectionRecords.userId, users.id))
         .where(and(
           eq(inspectionRecords.organizationId, organizationId),
           sql`DATE(${inspectionRecords.createdAt}) = ${date}`,
