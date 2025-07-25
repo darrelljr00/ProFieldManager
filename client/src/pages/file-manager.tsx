@@ -29,7 +29,10 @@ import {
   Link,
   Calendar,
   User,
-  MapPin
+  MapPin,
+  Search,
+  Filter,
+  X
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import SignatureDialog from "@/components/signature-dialog";
@@ -39,6 +42,7 @@ interface FileItem {
   id: number;
   fileName: string;
   originalName: string;
+  filePath: string;
   fileSize: number;
   mimeType: string;
   fileType: string;
@@ -50,6 +54,7 @@ interface FileItem {
     firstName?: string;
     lastName?: string;
   };
+  uploaderName?: string;
   createdAt: string;
   updatedAt: string;
   folder?: {
@@ -95,6 +100,13 @@ export default function FileManager() {
   const [newFileContent, setNewFileContent] = useState("");
   const [editingFileContent, setEditingFileContent] = useState("");
 
+  // Search and Filter states
+  const [searchTerm, setSearchTerm] = useState("");
+  const [fileTypeFilter, setFileTypeFilter] = useState("all");
+  const [sizeFilter, setSizeFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState("all");
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -109,6 +121,107 @@ export default function FileManager() {
     queryKey: ["/api/folders", selectedFolderId],
     queryFn: () => apiRequest("GET", `/api/folders${selectedFolderId ? `?parentId=${selectedFolderId}` : ""}`).then(res => res.json()),
   });
+
+  // Filter files based on search criteria
+  const filteredFiles = (files || []).filter((file: FileItem) => {
+    const matchesSearch = searchTerm === "" || 
+      file.originalName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      file.fileName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      file.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (file.tags && Array.isArray(file.tags) ? file.tags.join(' ').toLowerCase().includes(searchTerm.toLowerCase()) : false) ||
+      file.uploadedByUser?.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      file.uploadedByUser?.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      file.uploadedByUser?.username?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    // File type filtering
+    let matchesFileType = true;
+    if (fileTypeFilter !== "all") {
+      const fileExtension = file.filename?.split('.').pop()?.toLowerCase();
+      switch (fileTypeFilter) {
+        case "image":
+          matchesFileType = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp'].includes(fileExtension || '');
+          break;
+        case "document":
+          matchesFileType = ['pdf', 'doc', 'docx', 'txt', 'rtf', 'odt'].includes(fileExtension || '');
+          break;
+        case "spreadsheet":
+          matchesFileType = ['xls', 'xlsx', 'csv', 'ods'].includes(fileExtension || '');
+          break;
+        case "video":
+          matchesFileType = ['mp4', 'avi', 'mov', 'wmv', 'flv', 'webm'].includes(fileExtension || '');
+          break;
+        case "audio":
+          matchesFileType = ['mp3', 'wav', 'flac', 'aac', 'ogg'].includes(fileExtension || '');
+          break;
+        default:
+          matchesFileType = true;
+      }
+    }
+
+    // File size filtering
+    let matchesSize = true;
+    if (sizeFilter !== "all" && file.fileSize) {
+      const sizeInMB = file.fileSize / (1024 * 1024);
+      switch (sizeFilter) {
+        case "small":
+          matchesSize = sizeInMB < 1;
+          break;
+        case "medium":
+          matchesSize = sizeInMB >= 1 && sizeInMB < 10;
+          break;
+        case "large":
+          matchesSize = sizeInMB >= 10;
+          break;
+        default:
+          matchesSize = true;
+      }
+    }
+
+    // Date filtering
+    let matchesDate = true;
+    if (dateFilter !== "all" && file.createdAt) {
+      const fileDate = new Date(file.createdAt);
+      const now = new Date();
+      
+      switch (dateFilter) {
+        case "today":
+          matchesDate = fileDate.toDateString() === now.toDateString();
+          break;
+        case "week":
+          const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          matchesDate = fileDate >= weekAgo;
+          break;
+        case "month":
+          const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          matchesDate = fileDate >= monthAgo;
+          break;
+        case "quarter":
+          const quarterAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+          matchesDate = fileDate >= quarterAgo;
+          break;
+        default:
+          matchesDate = true;
+      }
+    }
+
+    return matchesSearch && matchesFileType && matchesSize && matchesDate;
+  });
+
+  // Clear all filters
+  const clearAllFilters = () => {
+    setSearchTerm("");
+    setFileTypeFilter("all");
+    setSizeFilter("all");
+    setDateFilter("all");
+  };
+
+  // Count active filters
+  const activeFiltersCount = [
+    searchTerm !== "",
+    fileTypeFilter !== "all",
+    sizeFilter !== "all",
+    dateFilter !== "all"
+  ].filter(Boolean).length;
 
   // Upload file mutation
   const uploadMutation = useMutation({
@@ -564,6 +677,105 @@ export default function FileManager() {
           </div>
         </div>
 
+        {/* Search and Filter Controls */}
+        <Card className="p-4 mb-6">
+          <div className="space-y-4">
+            {/* Main Search Bar */}
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Search files by name, description, tags, or uploader..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                  className="flex items-center gap-2"
+                >
+                  <Filter className="h-4 w-4" />
+                  Filters
+                  {activeFiltersCount > 0 && (
+                    <Badge variant="secondary" className="ml-1 px-1.5 py-0.5 text-xs">
+                      {activeFiltersCount}
+                    </Badge>
+                  )}
+                </Button>
+                {activeFiltersCount > 0 && (
+                  <Button variant="ghost" size="sm" onClick={clearAllFilters}>
+                    <X className="h-4 w-4 mr-1" />
+                    Clear
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {/* Advanced Filters */}
+            {showAdvancedFilters && (
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-4 border-t">
+                <div>
+                  <label className="text-sm font-medium mb-2 block">File Type</label>
+                  <Select value={fileTypeFilter} onValueChange={setFileTypeFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Types" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Types</SelectItem>
+                      <SelectItem value="image">Images</SelectItem>
+                      <SelectItem value="document">Documents</SelectItem>
+                      <SelectItem value="spreadsheet">Spreadsheets</SelectItem>
+                      <SelectItem value="video">Videos</SelectItem>
+                      <SelectItem value="audio">Audio</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">File Size</label>
+                  <Select value={sizeFilter} onValueChange={setSizeFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Sizes" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Sizes</SelectItem>
+                      <SelectItem value="small">Small (&lt; 1MB)</SelectItem>
+                      <SelectItem value="medium">Medium (1-10MB)</SelectItem>
+                      <SelectItem value="large">Large (&gt; 10MB)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Upload Date</label>
+                  <Select value={dateFilter} onValueChange={setDateFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Dates" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Dates</SelectItem>
+                      <SelectItem value="today">Today</SelectItem>
+                      <SelectItem value="week">Last 7 Days</SelectItem>
+                      <SelectItem value="month">Last 30 Days</SelectItem>
+                      <SelectItem value="quarter">Last 90 Days</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-end">
+                  <div className="text-sm text-muted-foreground">
+                    Showing {filteredFiles.length} of {files?.length || 0} files
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </Card>
+
         {/* Folders Section */}
         {folders && folders.length > 0 && (
           <div className="mb-6">
@@ -607,9 +819,21 @@ export default function FileManager() {
                 </Card>
               ))}
             </div>
+          ) : filteredFiles.length === 0 ? (
+            <div className="text-center py-8">
+              <File className="mx-auto h-12 w-12 text-gray-400" />
+              <h3 className="mt-2 text-sm font-medium text-gray-900">
+                {(files?.length || 0) === 0 ? "No files" : "No files match your search"}
+              </h3>
+              <p className="mt-1 text-sm text-gray-500">
+                {(files?.length || 0) === 0 
+                  ? "Upload files to get started." 
+                  : "Try adjusting your search criteria or clearing filters."}
+              </p>
+            </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {files?.map((file: FileItem) => (
+              {filteredFiles.map((file: FileItem) => (
                 <Card key={file.id} className="hover:shadow-md transition-shadow">
                   <CardContent className="p-4">
                     {/* Image thumbnail preview */}

@@ -15,7 +15,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Plus, Package, AlertTriangle, TrendingDown, MoreHorizontal, Edit, Trash2, Eye } from "lucide-react";
+import { Plus, Package, AlertTriangle, TrendingDown, MoreHorizontal, Edit, Trash2, Eye, Search, Filter, X } from "lucide-react";
 import { insertPartsSuppliesSchema } from "@shared/schema";
 
 const createPartSchema = insertPartsSuppliesSchema.extend({
@@ -31,8 +31,54 @@ export default function PartsSuppliesPage() {
   const [selectedPart, setSelectedPart] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("inventory");
   
+  // Search and Filter states
+  const [searchTerm, setSearchTerm] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [stockStatusFilter, setStockStatusFilter] = useState("all");
+  const [supplierFilter, setSupplierFilter] = useState("all");
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Filter and search logic
+  const filteredPartsSupplies = partsSupplies.filter((part: any) => {
+    const matchesSearch = searchTerm === "" || 
+      part.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      part.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      part.sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      part.supplier?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesCategory = categoryFilter === "all" || part.category === categoryFilter;
+    
+    const matchesStockStatus = stockStatusFilter === "all" || 
+      (stockStatusFilter === "low" && part.isLowStock) ||
+      (stockStatusFilter === "out" && part.isOutOfStock) ||
+      (stockStatusFilter === "normal" && !part.isLowStock && !part.isOutOfStock);
+    
+    const matchesSupplier = supplierFilter === "all" || part.supplier === supplierFilter;
+
+    return matchesSearch && matchesCategory && matchesStockStatus && matchesSupplier;
+  });
+
+  // Get unique suppliers for filter dropdown
+  const uniqueSuppliers = [...new Set(partsSupplies.map((part: any) => part.supplier).filter(Boolean))];
+
+  // Clear all filters
+  const clearAllFilters = () => {
+    setSearchTerm("");
+    setCategoryFilter("all");
+    setStockStatusFilter("all");
+    setSupplierFilter("all");
+  };
+
+  // Count active filters
+  const activeFiltersCount = [
+    searchTerm !== "",
+    categoryFilter !== "all", 
+    stockStatusFilter !== "all",
+    supplierFilter !== "all"
+  ].filter(Boolean).length;
 
   // Fetch parts and supplies
   const { data: partsSupplies = [], isLoading: partsLoading } = useQuery({
@@ -352,6 +398,105 @@ export default function PartsSuppliesPage() {
         </Dialog>
       </div>
 
+      {/* Search and Filter Controls */}
+      <Card className="p-4">
+        <div className="space-y-4">
+          {/* Main Search Bar */}
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                placeholder="Search by name, SKU, description, or supplier..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                className="flex items-center gap-2"
+              >
+                <Filter className="h-4 w-4" />
+                Filters
+                {activeFiltersCount > 0 && (
+                  <Badge variant="secondary" className="ml-1 px-1.5 py-0.5 text-xs">
+                    {activeFiltersCount}
+                  </Badge>
+                )}
+              </Button>
+              {activeFiltersCount > 0 && (
+                <Button variant="ghost" size="sm" onClick={clearAllFilters}>
+                  <X className="h-4 w-4 mr-1" />
+                  Clear
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Advanced Filters */}
+          {showAdvancedFilters && (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-4 border-t">
+              <div>
+                <label className="text-sm font-medium mb-2 block">Category</label>
+                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Categories" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    <SelectItem value="Chemical">Chemical</SelectItem>
+                    <SelectItem value="Tool">Tool</SelectItem>
+                    <SelectItem value="Part">Part</SelectItem>
+                    <SelectItem value="Supply">Supply</SelectItem>
+                    <SelectItem value="Equipment">Equipment</SelectItem>
+                    <SelectItem value="Safety">Safety</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-2 block">Stock Status</label>
+                <Select value={stockStatusFilter} onValueChange={setStockStatusFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="normal">Normal Stock</SelectItem>
+                    <SelectItem value="low">Low Stock</SelectItem>
+                    <SelectItem value="out">Out of Stock</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-2 block">Supplier</label>
+                <Select value={supplierFilter} onValueChange={setSupplierFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Suppliers" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Suppliers</SelectItem>
+                    {uniqueSuppliers.map((supplier) => (
+                      <SelectItem key={supplier} value={supplier}>{supplier}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-end">
+                <div className="text-sm text-muted-foreground">
+                  Showing {filteredPartsSupplies.length} of {partsSupplies.length} parts
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </Card>
+
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
@@ -439,14 +584,14 @@ export default function PartsSuppliesPage() {
                       <TableRow>
                         <TableCell colSpan={9} className="text-center">Loading...</TableCell>
                       </TableRow>
-                    ) : partsArray.length === 0 ? (
+                    ) : filteredPartsSupplies.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={9} className="text-center">
-                          No parts found. Click "Add Part" to get started.
+                          {partsArray.length === 0 ? "No parts found. Click \"Add Part\" to get started." : "No parts match your search criteria."}
                         </TableCell>
                       </TableRow>
                     ) : (
-                      partsArray.map((part: any) => (
+                      filteredPartsSupplies.map((part: any) => (
                         <TableRow key={part.id}>
                           <TableCell className="font-medium">{part.name}</TableCell>
                           <TableCell>{part.sku || "-"}</TableCell>
