@@ -1094,69 +1094,7 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
-  async getProjectsWithLocation(userId: number): Promise<any[]> {
-    // Get the user's organization
-    const user = await this.getUser(userId);
-    if (!user) return [];
 
-    // Get projects with location information
-    const projectsWithLocation = await db
-      .select({
-        id: projects.id,
-        userId: projects.userId,
-        name: projects.name,
-        description: projects.description,
-        status: projects.status,
-        priority: projects.priority,
-        startDate: projects.startDate,
-        endDate: projects.endDate,
-        address: projects.address,
-        city: projects.city,
-        state: projects.state,
-        zipCode: projects.zipCode,
-        country: projects.country,
-        shareWithTeam: projects.shareWithTeam,
-        createdAt: projects.createdAt,
-        updatedAt: projects.updatedAt,
-      })
-      .from(projects)
-      .innerJoin(users, eq(projects.userId, users.id))
-      .where(and(
-        eq(users.organizationId, user.organizationId),
-        isNotNull(projects.address),
-        isNotNull(projects.city),
-        ne(projects.status, 'completed'),
-        ne(projects.status, 'cancelled')
-      ))
-      .orderBy(desc(projects.createdAt));
-
-    // Get assigned users for each project
-    const projectsWithUsers = await Promise.all(
-      projectsWithLocation.map(async (project) => {
-        const projectTeam = await db
-          .select({
-            user: {
-              id: users.id,
-              firstName: users.firstName,
-              lastName: users.lastName,
-              email: users.email,
-              username: users.username,
-              role: projectUsers.role,
-            }
-          })
-          .from(projectUsers)
-          .innerJoin(users, eq(projectUsers.userId, users.id))
-          .where(eq(projectUsers.projectId, project.id));
-
-        return {
-          ...project,
-          users: projectTeam || [],
-        };
-      })
-    );
-
-    return projectsWithUsers;
-  }
 
   async createProject(projectData: any): Promise<any> {
     const insertData = {
@@ -1262,7 +1200,7 @@ export class DatabaseStorage implements IStorage {
         })
         .from(projects)
         .where(and(...whereConditions))
-        .orderBy(projects.scheduledDate, projects.scheduledTime);
+        .orderBy(asc(projects.scheduledDate), asc(projects.scheduledTime));
 
       // Get users assigned to each project
       const projectsWithUsers = await Promise.all(
