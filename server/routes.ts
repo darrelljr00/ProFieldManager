@@ -7848,14 +7848,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Filter by date if provided
       if (date) {
         const targetDate = new Date(date as string);
-        console.log('Target date:', targetDate, 'Date string:', date);
         scheduledProjects = scheduledProjects.filter(project => {
           const projectDate = new Date(project.scheduledDate);
-          console.log('Project date:', projectDate, 'Project scheduled date:', project.scheduledDate);
-          console.log('Date strings comparison:', projectDate.toDateString(), '===', targetDate.toDateString());
           return projectDate.toDateString() === targetDate.toDateString();
         });
-        console.log('Filtered projects:', scheduledProjects.length);
       }
 
       // Filter by assigned user if provided

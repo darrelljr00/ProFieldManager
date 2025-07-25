@@ -81,12 +81,15 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
     queryKey: ['/api/dispatch/scheduled-jobs', selectedDateState],
     queryFn: async () => {
       const response = await apiRequest('GET', `/api/dispatch/scheduled-jobs?date=${selectedDateState}`);
+      console.log('API Response for date', selectedDateState, ':', response);
       return response as unknown as JobLocation[];
     },
   });
 
   // Ensure scheduledJobs is always an array
   const scheduledJobs = Array.isArray(scheduledJobsData) ? scheduledJobsData : [];
+  
+  console.log('Scheduled jobs array:', scheduledJobs, 'Length:', scheduledJobs.length);
 
   // WebSocket listeners for real-time job updates
   useEffect(() => {
