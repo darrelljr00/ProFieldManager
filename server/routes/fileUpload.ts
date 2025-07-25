@@ -1,11 +1,9 @@
 import { Router } from 'express';
-import { fileManager } from '../fileManager';
-import { s3Service } from '../s3Service';
 import { requireAuth } from '../auth';
 import { storage } from '../storage';
+import { CloudinaryService } from '../cloudinary';
 import multer from 'multer';
-import path from 'path';
-import { ensureOrganizationFolders } from '../folderCreation';
+import fs from 'fs/promises';
 
 const router = Router();
 
@@ -17,63 +15,124 @@ const upload = multer({
   },
 });
 
-// Enhanced file upload with S3 integration
+// Cloudinary-based file upload for File Manager (permanent cloud storage)
 router.post('/api/files/upload', requireAuth, upload.single('file'), async (req, res) => {
+  console.log('🔄 CLOUDINARY FILE MANAGER UPLOAD REQUEST RECEIVED');
+  console.log('Has file?', !!req.file);
+  console.log('File details:', req.file ? { 
+    originalname: req.file.originalname, 
+    mimetype: req.file.mimetype, 
+    size: req.file.size,
+    filename: req.file.filename,
+    path: req.file.path
+  } : 'NO FILE');
+  
   try {
     if (!req.file) {
+      console.log('❌ No file in request');
       return res.status(400).json({ message: 'No file provided' });
     }
 
     const user = req.user!;
-    const { projectId, category = 'files' } = req.body;
+    const { projectId, description, tags, folderId } = req.body;
 
-    // Ensure organization folders exist
-    await ensureOrganizationFolders(user.organizationId);
+    // Ensure Cloudinary is properly configured
+    if (!CloudinaryService.isConfigured()) {
+      console.error('❌ Cloudinary not configured - cloud storage required');
+      return res.status(500).json({ message: "Cloud storage configuration required" });
+    }
 
-    // Handle file upload with S3 integration
-    const uploadResult = await fileManager.handleFileUpload(
-      req.file.path,
-      req.file.originalname,
-      user.organizationId,
-      user.id,
-      category,
-      projectId ? parseInt(projectId) : undefined
-    );
+    // Read file for Cloudinary upload
+    const uploadBuffer = await fs.readFile(req.file.path);
+    console.log('📁 File read successfully, size:', uploadBuffer.length);
 
-    // Save file record to database
-    const fileRecord = {
-      fileName: req.file.filename,
+    // Determine file type and Cloudinary folder
+    let fileType = 'other';
+    let cloudinaryFolder = 'file-manager';
+    
+    if (req.file.mimetype.startsWith('image/')) {
+      fileType = 'image';
+      cloudinaryFolder = 'file-manager-images';
+    } else if (req.file.mimetype.startsWith('video/')) {
+      fileType = 'video';
+      cloudinaryFolder = 'file-manager-videos';
+    } else if (req.file.mimetype.includes('pdf') || req.file.mimetype.includes('document')) {
+      fileType = 'document';
+      cloudinaryFolder = 'file-manager-documents';
+    }
+
+    // Upload to Cloudinary
+    console.log('☁️ Uploading to Cloudinary file manager folder...');
+    const cloudinaryResult = await CloudinaryService.uploadImage(uploadBuffer, {
+      folder: cloudinaryFolder,
+      filename: req.file.originalname,
+      organizationId: user.organizationId,
+      resourceType: req.file.mimetype.startsWith('video/') ? 'video' : 'auto'
+    });
+
+    console.log('✅ Cloudinary upload successful:', cloudinaryResult.secureUrl);
+    console.log('📊 File stats:', {
+      originalSize: req.file.size,
+      cloudinarySize: cloudinaryResult.bytes,
+      reduction: req.file.size > 0 ? ((req.file.size - (cloudinaryResult.bytes || 0)) / req.file.size * 100).toFixed(1) + '%' : 'N/A'
+    });
+
+    // Save file data with Cloudinary URL
+    const fileData = {
+      fileName: cloudinaryResult.publicId!.split('/').pop() || req.file.originalname,
       originalName: req.file.originalname,
-      filePath: uploadResult.filePath,
-      fileSize: req.file.size,
-      mimeType: req.file.mimetype,
+      filePath: cloudinaryResult.secureUrl!, // Cloudinary URL for permanent storage
+      fileSize: cloudinaryResult.bytes || req.file.size,
+      mimeType: cloudinaryResult.format ? `${fileType}/${cloudinaryResult.format}` : req.file.mimetype,
       organizationId: user.organizationId,
       uploadedBy: user.id,
-      useS3: uploadResult.useS3,
-      fileUrl: uploadResult.fileUrl,
+      description: description || `File uploaded via File Manager`,
+      tags: tags || '',
+      folderId: folderId ? parseInt(folderId) : null,
+      useS3: false, // Not using S3, using Cloudinary
+      fileUrl: cloudinaryResult.secureUrl,
     };
+
+    console.log('📝 Saving file record to database:', fileData);
 
     // Create file record based on upload type
     let savedFile;
     if (projectId) {
+      // If uploading to a project, use project file table
       savedFile = await storage.uploadProjectFile({
-        ...fileRecord,
+        ...fileData,
         projectId: parseInt(projectId),
+        uploadedById: user.id,
+        taskId: null,
+        fileType,
       });
     } else {
-      savedFile = await storage.uploadFile(fileRecord);
+      // Regular file manager upload
+      savedFile = await storage.uploadFile(fileData);
+    }
+
+    console.log('✅ File saved to database with Cloudinary URL:', savedFile);
+
+    // Clean up temporary file
+    try {
+      await fs.unlink(req.file.path);
+    } catch (cleanupError) {
+      console.warn('⚠️ Failed to clean up temporary file:', cleanupError);
     }
 
     res.json({
       ...savedFile,
-      message: uploadResult.useS3 
-        ? 'File uploaded to secure cloud storage' 
-        : 'File uploaded to local storage',
-      useS3: uploadResult.useS3,
+      message: 'File uploaded to permanent cloud storage',
+      isCloudStored: true,
+      cloudinaryUrl: cloudinaryResult.secureUrl,
+      thumbnailUrl: CloudinaryService.getThumbnailUrl(cloudinaryResult.publicId!),
+      originalSize: req.file.size,
+      compressedSize: cloudinaryResult.bytes,
+      useS3: false, // Using Cloudinary instead
     });
 
   } catch (error) {
-    console.error('File upload error:', error);
+    console.error('❌ Cloudinary file manager upload error:', error);
     res.status(500).json({ 
       message: 'File upload failed',
       error: error instanceof Error ? error.message : 'Unknown error'
