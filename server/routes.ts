@@ -48,6 +48,7 @@ import marketResearchRouter from "./marketResearch";
 import { s3Service } from "./s3Service";
 import { fileManager } from "./fileManager";
 import { CloudinaryService } from "./cloudinary";
+import fileUploadRouter from "./routes/fileUpload";
 
 // Extend Express Request type to include user
 declare global {
@@ -9819,58 +9820,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/files/upload", requireAuth, fileManagerUpload.single('file'), async (req, res) => {
-    try {
-      const user = getAuthenticatedUser(req);
-      const uploadedFile = req.file;
-      
-      console.log("File upload request received:", {
-        hasFile: !!uploadedFile,
-        body: req.body,
-        headers: req.headers['content-type']
-      });
-      
-      if (!uploadedFile) {
-        console.log("No file in request");
-        return res.status(400).json({ message: "No file uploaded" });
-      }
-
-      const { folderId, description, tags } = req.body;
-      
-      // Determine file type based on mime type
-      let fileType = 'other';
-      if (uploadedFile.mimetype.startsWith('image/')) fileType = 'image';
-      else if (uploadedFile.mimetype.startsWith('video/')) fileType = 'video';
-      else if (uploadedFile.mimetype.includes('pdf') || uploadedFile.mimetype.includes('word') || uploadedFile.mimetype.includes('document')) fileType = 'document';
-
-      const fileData = {
-        organizationId: user.organizationId,
-        uploadedBy: user.id,
-        fileName: uploadedFile.filename,
-        originalName: uploadedFile.originalname,
-        filePath: uploadedFile.path,
-        fileSize: uploadedFile.size,
-        mimeType: uploadedFile.mimetype,
-        fileType,
-        description: description || null,
-        tags: tags ? JSON.parse(tags) : null,
-        folderId: folderId ? parseInt(folderId) : null,
-      };
-
-      const file = await storage.uploadFile(fileData);
-      
-      // Broadcast to WebSocket
-      broadcastToWebUsers({
-        type: 'file_uploaded',
-        data: file
-      });
-
-      res.json(file);
-    } catch (error: any) {
-      console.error("Error uploading file:", error);
-      res.status(500).json({ message: "Failed to upload file" });
-    }
-  });
+  // REMOVED: Old local storage file upload route
+  // File uploads now use Cloudinary via server/routes/fileUpload.ts
 
   app.put("/api/files/:id", requireAuth, async (req, res) => {
     try {
@@ -11710,6 +11661,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Add market research routes
   app.use(marketResearchRouter);
+  app.use(fileUploadRouter);
 
   // File migration and S3 routes
   app.get('/api/files/s3-status', requireAuth, async (req, res) => {

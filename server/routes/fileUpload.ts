@@ -140,55 +140,22 @@ router.post('/api/files/upload', requireAuth, upload.single('file'), async (req,
   }
 });
 
-// S3 migration endpoint
-router.post('/api/files/migrate-to-s3', requireAuth, async (req, res) => {
+// Cloudinary configuration status endpoint
+router.get('/api/files/cloudinary-status', requireAuth, async (req, res) => {
   try {
-    const user = req.user!;
-    
-    // Only allow admins to run migration
-    if (user.role !== 'admin') {
-      return res.status(403).json({ message: 'Only administrators can run file migration' });
-    }
-
-    if (!s3Service.isConfigured()) {
-      return res.status(400).json({ 
-        message: 'AWS S3 not configured. Please set AWS credentials in environment variables.' 
-      });
-    }
-
-    const result = await fileManager.migrateToS3();
-    
-    res.json({
-      message: 'File migration completed',
-      migrated: result.migrated,
-      failed: result.failed,
-      results: result.results,
-    });
-
-  } catch (error) {
-    console.error('Migration error:', error);
-    res.status(500).json({ 
-      message: 'Migration failed',
-      error: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
-});
-
-// Get S3 configuration status
-router.get('/api/files/s3-status', requireAuth, async (req, res) => {
-  try {
-    const isConfigured = s3Service.isConfigured();
+    const isConfigured = CloudinaryService.isConfigured();
     
     res.json({
       configured: isConfigured,
+      storageType: 'cloudinary',
       message: isConfigured 
-        ? 'AWS S3 is configured and ready for file storage'
-        : 'AWS S3 not configured. Files will use local storage.',
+        ? 'Cloudinary is configured and ready for permanent cloud storage'
+        : 'Cloudinary not configured. Upload functionality disabled.',
     });
 
   } catch (error) {
-    console.error('S3 status check error:', error);
-    res.status(500).json({ message: 'Failed to check S3 status' });
+    console.error('Cloudinary status check error:', error);
+    res.status(500).json({ message: 'Failed to check Cloudinary status' });
   }
 });
 
