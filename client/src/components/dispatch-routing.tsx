@@ -25,6 +25,9 @@ import {
   Play,
   Square,
   CheckCircle,
+  Map,
+  Grid3X3,
+  ExternalLink
 } from "lucide-react";
 
 interface JobLocation {
@@ -67,6 +70,7 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
   const [startLocation, setStartLocation] = useState('');
   const [optimization, setOptimization] = useState<RouteOptimization | null>(null);
   const [isOptimizing, setIsOptimizing] = useState(false);
+  const [mapCount, setMapCount] = useState<'1' | '2' | '4'>('1');
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -255,6 +259,231 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
     return colors[status as keyof typeof colors] || colors.scheduled;
   };
 
+  // Function to open multiple maps in a new window
+  const openMultipleMapWindow = () => {
+    const count = parseInt(mapCount);
+    const windowFeatures = 'width=1200,height=800,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes,resizable=yes';
+    const newWindow = window.open('about:blank', '_blank', windowFeatures);
+    
+    if (!newWindow) {
+      toast({
+        title: "Failed to open window",
+        description: "Please allow popups for this site",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Create the HTML for the multi-map window
+    const mapHTML = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Dispatch Routing - ${count} Map${count > 1 ? 's' : ''}</title>
+          <script src="https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&libraries=places"></script>
+          <style>
+            body { 
+              margin: 0; 
+              padding: 10px; 
+              font-family: Arial, sans-serif; 
+              background: #f5f5f5; 
+            }
+            .maps-container { 
+              display: ${count === 1 ? 'block' : count === 2 ? 'grid' : 'grid'};
+              ${count === 2 ? 'grid-template-columns: 1fr 1fr;' : ''}
+              ${count === 4 ? 'grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr;' : ''}
+              gap: 10px; 
+              height: ${count === 1 ? '100vh' : count === 2 ? '95vh' : '90vh'};
+            }
+            .map-container { 
+              border: 2px solid #ddd; 
+              border-radius: 8px;
+              overflow: hidden;
+              background: white;
+            }
+            .map-title {
+              background: #2563eb;
+              color: white;
+              padding: 8px 16px;
+              font-weight: bold;
+              font-size: 14px;
+            }
+            .map {
+              height: ${count === 1 ? 'calc(100% - 40px)' : count === 2 ? 'calc(100% - 40px)' : 'calc(100% - 40px)'};
+              width: 100%;
+            }
+            h1 {
+              text-align: center;
+              color: #1e293b;
+              margin-bottom: 20px;
+            }
+          </style>
+        </head>
+        <body>
+          <h1>Dispatch Routing Maps - ${new Date(selectedDateState).toLocaleDateString()}</h1>
+          <div class="maps-container">
+            ${Array.from({ length: count }, (_, i) => `
+              <div class="map-container">
+                <div class="map-title">Map ${i + 1}${count > 1 ? ` - Zone ${String.fromCharCode(65 + i)}` : ''}</div>
+                <div class="map" id="map-${i}"></div>
+              </div>
+            `).join('')}
+          </div>
+          
+          <script>
+            const jobs = ${JSON.stringify(scheduledJobs)};
+            const startLocation = "${startLocation}";
+            const optimization = ${JSON.stringify(optimization)};
+            
+            // Initialize all maps
+            const maps = [];
+            const markers = [];
+            
+            function initMaps() {
+              for (let i = 0; i < ${count}; i++) {
+                const mapElement = document.getElementById('map-' + i);
+                const map = new google.maps.Map(mapElement, {
+                  zoom: 12,
+                  center: { lat: 32.7767, lng: -96.7970 }, // Dallas default
+                  mapTypeId: google.maps.MapTypeId.ROADMAP
+                });
+                maps.push(map);
+                markers.push([]);
+                
+                // Add jobs to each map (for demo - you can customize job distribution)
+                addJobsToMap(map, i);
+              }
+              
+              if (jobs.length > 0) {
+                fitMapToBounds();
+              }
+            }
+            
+            function addJobsToMap(map, mapIndex) {
+              // For multiple maps, distribute jobs evenly
+              const jobsPerMap = Math.ceil(jobs.length / ${count});
+              const startIndex = mapIndex * jobsPerMap;
+              const endIndex = Math.min(startIndex + jobsPerMap, jobs.length);
+              const mapJobs = jobs.slice(startIndex, endIndex);
+              
+              mapJobs.forEach((job, index) => {
+                if (job.address) {
+                  const geocoder = new google.maps.Geocoder();
+                  geocoder.geocode({ address: job.address }, (results, status) => {
+                    if (status === 'OK' && results[0]) {
+                      const position = results[0].geometry.location;
+                      
+                      const marker = new google.maps.Marker({
+                        position: position,
+                        map: map,
+                        title: job.projectName,
+                        label: {
+                          text: (startIndex + index + 1).toString(),
+                          color: 'white',
+                          fontWeight: 'bold'
+                        },
+                        icon: {
+                          url: 'data:image/svg+xml,' + encodeURIComponent(\`
+                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+                              <circle cx="16" cy="16" r="12" fill="\${getPriorityColor(job.priority)}" stroke="white" stroke-width="3"/>
+                            </svg>
+                          \`),
+                          scaledSize: new google.maps.Size(32, 32)
+                        }
+                      });
+                      
+                      const infoWindow = new google.maps.InfoWindow({
+                        content: \`
+                          <div style="padding: 8px; max-width: 200px;">
+                            <h3 style="margin: 0 0 8px 0; color: #1e293b;">\${job.projectName}</h3>
+                            <p style="margin: 4px 0; font-size: 12px; color: #64748b;"><strong>Address:</strong> \${job.address}</p>
+                            <p style="margin: 4px 0; font-size: 12px; color: #64748b;"><strong>Time:</strong> \${job.scheduledTime}</p>
+                            <p style="margin: 4px 0; font-size: 12px; color: #64748b;"><strong>Duration:</strong> \${job.estimatedDuration} min</p>
+                            <p style="margin: 4px 0; font-size: 12px; color: #64748b;"><strong>Priority:</strong> \${job.priority}</p>
+                            <p style="margin: 4px 0; font-size: 12px; color: #64748b;"><strong>Status:</strong> \${job.status}</p>
+                          </div>
+                        \`
+                      });
+                      
+                      marker.addListener('click', () => {
+                        infoWindow.open(map, marker);
+                      });
+                      
+                      markers[mapIndex].push(marker);
+                    }
+                  });
+                }
+              });
+              
+              // Add start location marker if provided
+              if (startLocation && mapIndex === 0) {
+                const geocoder = new google.maps.Geocoder();
+                geocoder.geocode({ address: startLocation }, (results, status) => {
+                  if (status === 'OK' && results[0]) {
+                    const position = results[0].geometry.location;
+                    new google.maps.Marker({
+                      position: position,
+                      map: map,
+                      title: 'Start Location',
+                      icon: {
+                        url: 'data:image/svg+xml,' + encodeURIComponent(\`
+                          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+                            <circle cx="16" cy="16" r="12" fill="#10b981" stroke="white" stroke-width="3"/>
+                            <text x="16" y="20" text-anchor="middle" fill="white" font-weight="bold" font-size="12">S</text>
+                          </svg>
+                        \`),
+                        scaledSize: new google.maps.Size(32, 32)
+                      }
+                    });
+                  }
+                });
+              }
+            }
+            
+            function getPriorityColor(priority) {
+              const colors = {
+                low: '#3b82f6',
+                medium: '#f59e0b',
+                high: '#f97316',
+                urgent: '#ef4444'
+              };
+              return colors[priority] || colors.medium;
+            }
+            
+            function fitMapToBounds() {
+              // Fit first map to show all jobs (others will follow similar pattern)
+              if (maps.length > 0 && jobs.length > 0) {
+                const bounds = new google.maps.LatLngBounds();
+                jobs.forEach(job => {
+                  if (job.address) {
+                    // This is a simplified approach - in practice you'd geocode first
+                    bounds.extend(new google.maps.LatLng(32.7767, -96.7970));
+                  }
+                });
+                maps.forEach(map => map.fitBounds(bounds));
+              }
+            }
+            
+            // Initialize when Google Maps is loaded
+            if (typeof google !== 'undefined') {
+              initMaps();
+            } else {
+              window.onload = initMaps;
+            }
+          </script>
+        </body>
+      </html>
+    `;
+
+    newWindow.document.write(mapHTML);
+    newWindow.document.close();
+    
+    toast({
+      title: "Maps opened",
+      description: `${count} map${count > 1 ? 's' : ''} opened in new window`,
+    });
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -307,23 +536,68 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
               onChange={(e) => setStartLocation(e.target.value)}
             />
           </div>
-          <Button 
-            onClick={handleOptimizeRoute}
-            disabled={isOptimizing || scheduledJobs.length === 0}
-            className="w-full md:w-auto"
-          >
-            {isOptimizing ? (
-              <>
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                Optimizing Route...
-              </>
-            ) : (
-              <>
-                <Optimize className="h-4 w-4 mr-2" />
-                Optimize Route ({scheduledJobs.length} jobs)
-              </>
-            )}
-          </Button>
+          
+          <div className="flex flex-col sm:flex-row gap-4">
+            <Button 
+              onClick={handleOptimizeRoute}
+              disabled={isOptimizing || scheduledJobs.length === 0}
+              className="w-full sm:w-auto"
+            >
+              {isOptimizing ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Optimizing Route...
+                </>
+              ) : (
+                <>
+                  <Optimize className="h-4 w-4 mr-2" />
+                  Optimize Route ({scheduledJobs.length} jobs)
+                </>
+              )}
+            </Button>
+            
+            {/* Multi-Map Controls */}
+            <div className="flex items-center gap-2">
+              <Label htmlFor="mapCount" className="text-sm text-gray-600">
+                Maps:
+              </Label>
+              <Select value={mapCount} onValueChange={(value: '1' | '2' | '4') => setMapCount(value)}>
+                <SelectTrigger className="w-20">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">
+                    <div className="flex items-center gap-2">
+                      <Map className="h-4 w-4" />
+                      1
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="2">
+                    <div className="flex items-center gap-2">
+                      <Grid3X3 className="h-4 w-4" />
+                      2
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="4">
+                    <div className="flex items-center gap-2">
+                      <Grid3X3 className="h-4 w-4" />
+                      4
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <Button 
+                onClick={openMultipleMapWindow}
+                variant="outline"
+                size="sm"
+                disabled={scheduledJobs.length === 0}
+                className="whitespace-nowrap"
+              >
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Open {mapCount} Map{mapCount !== '1' ? 's' : ''}
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
