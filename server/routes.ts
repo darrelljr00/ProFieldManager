@@ -744,18 +744,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/cloudinary-proxy', async (req, res) => {
     try {
       const { url } = req.query;
-      if (!url || typeof url !== 'string' || !url.startsWith('https://res.cloudinary.com')) {
+      console.log('🌤️ Cloudinary proxy request:', { url, type: typeof url });
+      if (!url || typeof url !== 'string' || !url.includes('cloudinary.com')) {
+        console.error('❌ Invalid Cloudinary URL:', url);
         return res.status(400).json({ error: 'Invalid Cloudinary URL' });
       }
       
+      console.log('🌤️ Fetching from Cloudinary:', url);
       const response = await fetch(url);
       if (!response.ok) {
+        console.error('❌ Cloudinary fetch failed:', response.status, response.statusText);
         return res.status(response.status).json({ error: 'Failed to fetch image' });
       }
       
       const contentType = response.headers.get('content-type') || 'image/jpeg';
       const buffer = await response.arrayBuffer();
       
+      console.log('✅ Cloudinary proxy success:', { contentType, size: buffer.byteLength });
       res.set('Content-Type', contentType);
       res.set('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
       res.send(Buffer.from(buffer));
