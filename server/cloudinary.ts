@@ -71,43 +71,93 @@ export class CloudinaryService {
         timestamp
       });
 
-      // Try minimal upload parameters to avoid signature issues
-      const uploadOptions = {
-        resource_type: 'image' as const,
-        quality: 'auto:good' as const,
-        transformation: `w_${maxWidth},h_${maxHeight},c_limit`
-      };
-      
-      console.log('🔧 Simplified upload options:', uploadOptions);
+      // Use direct HTTP upload to bypass signature issues
+      try {
+        const FormData = (await import('form-data')).default;
+        const fetch = (await import('node-fetch')).default;
+        
+        const formData = new FormData();
+        formData.append('file', buffer);
+        formData.append('upload_preset', 'ml_default');
+        formData.append('folder', folderPath);
+        formData.append('public_id', publicId);
+        formData.append('quality', 'auto:good');
+        formData.append('fetch_format', 'auto');
+        formData.append('transformation', `w_${maxWidth},h_${maxHeight},c_limit`);
 
-      const result: UploadApiResponse = await new Promise((resolve, reject) => {
-        cloudinary.uploader.upload_stream(
-          uploadOptions,
-          (error, result) => {
-            if (error) {
-              console.error('Cloudinary upload error:', error);
-              reject(error);
-            } else if (result) {
-              resolve(result);
-            } else {
-              reject(new Error('Unknown upload error'));
-            }
+        console.log('🔧 Using HTTP upload to Cloudinary');
+        
+        const response = await fetch(
+          `https://api.cloudinary.com/v1_1/${process.env.CLOUDINARY_CLOUD_NAME}/image/upload`,
+          {
+            method: 'POST',
+            body: formData
           }
-        ).end(buffer);
-      });
+        );
 
-      console.log(`✅ Cloudinary upload successful: ${result.secure_url} (${result.bytes} bytes)`);
+        const result = await response.json();
+        
+        if (!response.ok) {
+          console.error('❌ HTTP upload failed:', result);
+          return {
+            success: false,
+            error: result.error?.message || 'Upload failed'
+          };
+        }
 
-      return {
-        success: true,
-        publicId: result.public_id,
-        secureUrl: result.secure_url,
-        originalFilename: filename,
-        format: result.format,
-        width: result.width,
-        height: result.height,
-        bytes: result.bytes
-      };
+        console.log('✅ HTTP upload successful:', result.secure_url);
+        return {
+          success: true,
+          publicId: result.public_id,
+          secureUrl: result.secure_url,
+          originalFilename: filename,
+          format: result.format,
+          width: result.width,
+          height: result.height,
+          bytes: result.bytes
+        };
+        
+      } catch (httpError) {
+        console.warn('⚠️ HTTP upload failed, trying stream upload:', httpError);
+        
+        // Fallback to stream upload with minimal options
+        const uploadOptions = {
+          resource_type: 'image' as const,
+          folder: folderPath,
+          quality: 'auto:good' as const
+        };
+        
+        console.log('🔧 Fallback stream upload options:', uploadOptions);
+
+        const result: UploadApiResponse = await new Promise((resolve, reject) => {
+          cloudinary.uploader.upload_stream(
+            uploadOptions,
+            (error, result) => {
+              if (error) {
+                console.error('Cloudinary upload error:', error);
+                reject(error);
+              } else if (result) {
+                resolve(result);
+              } else {
+                reject(new Error('Unknown upload error'));
+              }
+            }
+          ).end(buffer);
+        });
+
+        console.log(`✅ Cloudinary fallback upload successful: ${result.secure_url} (${result.bytes} bytes)`);
+
+        return {
+          success: true,
+          publicId: result.public_id,
+          secureUrl: result.secure_url,
+          originalFilename: filename,
+          format: result.format,
+          width: result.width,
+          height: result.height,
+          bytes: result.bytes
+        };
+      }
 
     } catch (error) {
       console.error('❌ Cloudinary upload failed:', error);
