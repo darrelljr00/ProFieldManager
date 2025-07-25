@@ -223,6 +223,73 @@ export default function FileManager() {
     dateFilter !== "all"
   ].filter(Boolean).length;
 
+  // Handle folder creation
+  const handleCreateFolder = () => {
+    if (folderName.trim()) {
+      createFolderMutation.mutate({
+        name: folderName.trim(),
+        description: folderDescription.trim() || undefined,
+        parentFolderId: selectedFolderId,
+      });
+    }
+  };
+
+  // Handle folder navigation
+  const handleFolderClick = (folderId: number) => {
+    setSelectedFolderId(folderId);
+  };
+
+  // Navigate back to parent folder or root
+  const handleBackNavigation = () => {
+    setSelectedFolderId(undefined);
+  };
+
+  // Delete folder mutation
+  const deleteFolderMutation = useMutation({
+    mutationFn: async (folderId: number) => {
+      return await apiRequest("DELETE", `/api/folders/${folderId}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Folder deleted successfully",
+        description: "The folder has been removed.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/folders"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to delete folder",
+        description: error.message || "An error occurred",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Handle folder deletion
+  const handleDeleteFolder = (folderId: number, folderName: string) => {
+    if (window.confirm(`Are you sure you want to delete the folder "${folderName}"? This action cannot be undone.`)) {
+      deleteFolderMutation.mutate(folderId);
+    }
+  };
+
+  // Handle file upload
+  const handleUpload = () => {
+    if (uploadFile) {
+      const formData = new FormData();
+      formData.append("file", uploadFile);
+      if (fileDescription.trim()) {
+        formData.append("description", fileDescription.trim());
+      }
+      if (fileTags.trim()) {
+        formData.append("tags", fileTags.trim());
+      }
+      if (selectedFolderId) {
+        formData.append("folderId", selectedFolderId.toString());
+      }
+      uploadMutation.mutate(formData);
+    }
+  };
+
   // Upload file mutation
   const uploadMutation = useMutation({
     mutationFn: async (data: FormData) => {
@@ -401,25 +468,9 @@ export default function FileManager() {
     enabled: !!selectedFile && editFileDialogOpen,
   });
 
-  const handleUpload = () => {
-    if (!uploadFile) return;
 
-    const formData = new FormData();
-    formData.append("file", uploadFile);
-    if (fileDescription) formData.append("description", fileDescription);
-    if (fileTags) formData.append("tags", JSON.stringify(fileTags.split(",").map(t => t.trim())));
-    if (selectedFolderId) formData.append("folderId", selectedFolderId.toString());
 
-    uploadMutation.mutate(formData);
-  };
 
-  const handleCreateFolder = () => {
-    createFolderMutation.mutate({
-      name: folderName,
-      description: folderDescription || undefined,
-      parentFolderId: selectedFolderId,
-    });
-  };
 
   const handleShareFile = () => {
     if (!selectedFile) return;
@@ -553,6 +604,11 @@ export default function FileManager() {
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Create New Folder</DialogTitle>
+                  {selectedFolderId && (
+                    <p className="text-sm text-gray-600 mt-2">
+                      New folder will be created in the current folder
+                    </p>
+                  )}
                 </DialogHeader>
                 <div className="space-y-4">
                   <div>
@@ -636,6 +692,11 @@ export default function FileManager() {
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Upload File</DialogTitle>
+                  {selectedFolderId && (
+                    <p className="text-sm text-gray-600 mt-2">
+                      Files will be uploaded to the current folder
+                    </p>
+                  )}
                 </DialogHeader>
                 <div className="space-y-4">
                   <div>
@@ -776,26 +837,82 @@ export default function FileManager() {
           </div>
         </Card>
 
+        {/* Breadcrumb Navigation */}
+        {selectedFolderId && (
+          <div className="mb-4">
+            <nav className="flex items-center space-x-2 text-sm text-gray-600">
+              <button 
+                onClick={handleBackNavigation}
+                className="hover:text-blue-600 underline"
+              >
+                All Files
+              </button>
+              <span>/</span>
+              <span className="text-gray-900 font-medium">Current Folder</span>
+            </nav>
+          </div>
+        )}
+
         {/* Folders Section */}
         {folders && folders.length > 0 && (
           <div className="mb-6">
-            <h2 className="text-xl font-semibold mb-3">Folders</h2>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-xl font-semibold">Folders</h2>
+              {selectedFolderId && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={handleBackNavigation}
+                  className="text-blue-600 hover:text-blue-700"
+                >
+                  ← Back to All Files
+                </Button>
+              )}
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {folders.map((folder: Folder) => (
                 <Card 
                   key={folder.id} 
-                  className="cursor-pointer hover:shadow-md transition-shadow"
-                  onClick={() => setSelectedFolderId(folder.id)}
+                  className="cursor-pointer hover:shadow-md transition-shadow hover:bg-blue-50"
+                  onClick={() => handleFolderClick(folder.id)}
                 >
                   <CardContent className="p-4">
-                    <div className="flex items-center">
-                      <FolderPlus className="h-8 w-8 text-blue-500 mr-3" />
-                      <div>
-                        <h3 className="font-medium">{folder.name}</h3>
-                        {folder.description && (
-                          <p className="text-sm text-gray-600">{folder.description}</p>
-                        )}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <FolderPlus className="h-8 w-8 text-blue-500 mr-3" />
+                        <div>
+                          <h3 className="font-medium">{folder.name}</h3>
+                          {folder.description && (
+                            <p className="text-sm text-gray-600">{folder.description}</p>
+                          )}
+                        </div>
                       </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                          <Button variant="ghost" size="sm">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation();
+                            // TODO: Add rename functionality
+                          }}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Rename
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteFolder(folder.id, folder.name);
+                            }}
+                            className="text-red-600"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </CardContent>
                 </Card>
