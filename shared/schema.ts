@@ -2904,3 +2904,29 @@ export type InsertVehicleMaintenanceInterval = z.infer<typeof insertVehicleMaint
 
 export type VehicleMaintenanceRecord = typeof vehicleMaintenanceRecords.$inferSelect;
 export type InsertVehicleMaintenanceRecord = z.infer<typeof insertVehicleMaintenanceRecordSchema>;
+
+// Vehicle Job Assignments - tracks which users are assigned to jobs based on vehicle inspections they completed
+export const vehicleJobAssignments = pgTable("vehicle_job_assignments", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  userId: integer("user_id").notNull().references(() => users.id),
+  vehicleId: integer("vehicle_id").notNull().references(() => vehicles.id),
+  projectId: integer("project_id").notNull().references(() => projects.id),
+  inspectionDate: timestamp("inspection_date").notNull(), // Date the inspection was completed
+  assignmentDate: timestamp("assignment_date").defaultNow().notNull(),
+  isActive: boolean("is_active").default(true), // Can be used to disable assignments
+  notes: text("notes"), // Optional assignment notes
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Zod schema for Vehicle Job Assignments
+export const insertVehicleJobAssignmentSchema = createInsertSchema(vehicleJobAssignments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Types
+export type VehicleJobAssignment = typeof vehicleJobAssignments.$inferSelect;
+export type InsertVehicleJobAssignment = z.infer<typeof insertVehicleJobAssignmentSchema>;

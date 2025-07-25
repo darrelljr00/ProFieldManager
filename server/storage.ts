@@ -12,7 +12,7 @@ import {
   digitalSignatures, documentSignatureFields, departments, employees, employeeDocuments, timeOffRequests, performanceReviews, disciplinaryActions,
   navigationOrder, backupSettings, backupJobs, partsSupplies, partsCategories, inventoryTransactions, stockAlerts,
   filePermissions, folderPermissions, defaultPermissions, userDashboardSettings, dashboardProfiles, vehicles,
-  vehicleMaintenanceIntervals, vehicleMaintenanceRecords
+  vehicleMaintenanceIntervals, vehicleMaintenanceRecords, vehicleJobAssignments
 } from "@shared/schema";
 import { marketResearchCompetitors } from "@shared/schema";
 import type { GasCard, InsertGasCard, GasCardAssignment, InsertGasCardAssignment, GasCardUsage, InsertGasCardUsage, GasCardProvider, InsertGasCardProvider } from "@shared/schema";
@@ -470,6 +470,16 @@ export interface IStorage {
   createVehicleMaintenanceRecord(recordData: any): Promise<any>;
   updateMaintenanceStatus(intervalId: number, organizationId: number, status: string): Promise<any>;
   getMaintenanceStatusForVehicle(vehicleId: number, organizationId: number): Promise<any[]>;
+  
+  // Vehicle Job Assignment methods
+  getVehicleJobAssignments(organizationId: number, date?: string): Promise<any[]>;
+  getVehicleJobAssignmentsByUser(userId: number, organizationId: number, date?: string): Promise<any[]>;
+  getVehicleJobAssignmentsByVehicle(vehicleId: number, organizationId: number, date?: string): Promise<any[]>;
+  createVehicleJobAssignment(assignmentData: any): Promise<any>;
+  updateVehicleJobAssignment(id: number, organizationId: number, updates: any): Promise<any>;
+  deleteVehicleJobAssignment(id: number, organizationId: number): Promise<boolean>;
+  getUsersWithVehicleInspections(organizationId: number, date: string): Promise<any[]>;
+  connectUsersToVehicleJobs(organizationId: number, date: string): Promise<any[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -7536,6 +7546,314 @@ export class DatabaseStorage implements IStorage {
       return statusResults;
     } catch (error) {
       console.error('Error getting maintenance status for vehicle:', error);
+      throw error;
+    }
+  }
+
+  // Vehicle Job Assignment Methods
+  async getVehicleJobAssignments(organizationId: number, date?: string): Promise<any[]> {
+    try {
+      let query = db
+        .select({
+          id: vehicleJobAssignments.id,
+          userId: vehicleJobAssignments.userId,
+          vehicleId: vehicleJobAssignments.vehicleId,
+          projectId: vehicleJobAssignments.projectId,
+          inspectionDate: vehicleJobAssignments.inspectionDate,
+          assignmentDate: vehicleJobAssignments.assignmentDate,
+          isActive: vehicleJobAssignments.isActive,
+          notes: vehicleJobAssignments.notes,
+          // User details
+          userFirstName: users.firstName,
+          userLastName: users.lastName,
+          userEmail: users.email,
+          // Vehicle details
+          vehicleNumber: vehicles.vehicleNumber,
+          licensePlate: vehicles.licensePlate,
+          vehicleMake: vehicles.make,
+          vehicleModel: vehicles.model,
+          // Project details
+          projectName: projects.name,
+          projectDescription: projects.description,
+          projectAddress: projects.address,
+          projectStatus: projects.status
+        })
+        .from(vehicleJobAssignments)
+        .leftJoin(users, eq(vehicleJobAssignments.userId, users.id))
+        .leftJoin(vehicles, eq(vehicleJobAssignments.vehicleId, vehicles.id))
+        .leftJoin(projects, eq(vehicleJobAssignments.projectId, projects.id))
+        .where(and(
+          eq(vehicleJobAssignments.organizationId, organizationId),
+          eq(vehicleJobAssignments.isActive, true)
+        ));
+
+      if (date) {
+        query = query.where(and(
+          eq(vehicleJobAssignments.organizationId, organizationId),
+          eq(vehicleJobAssignments.isActive, true),
+          sql`DATE(${vehicleJobAssignments.inspectionDate}) = ${date}`
+        ));
+      }
+
+      return await query.orderBy(desc(vehicleJobAssignments.assignmentDate));
+    } catch (error) {
+      console.error('Error getting vehicle job assignments:', error);
+      throw error;
+    }
+  }
+
+  async getVehicleJobAssignmentsByUser(userId: number, organizationId: number, date?: string): Promise<any[]> {
+    try {
+      let query = db
+        .select({
+          id: vehicleJobAssignments.id,
+          vehicleId: vehicleJobAssignments.vehicleId,
+          projectId: vehicleJobAssignments.projectId,
+          inspectionDate: vehicleJobAssignments.inspectionDate,
+          assignmentDate: vehicleJobAssignments.assignmentDate,
+          notes: vehicleJobAssignments.notes,
+          // Vehicle details
+          vehicleNumber: vehicles.vehicleNumber,
+          licensePlate: vehicles.licensePlate,
+          vehicleMake: vehicles.make,
+          vehicleModel: vehicles.model,
+          // Project details
+          projectName: projects.name,
+          projectDescription: projects.description,
+          projectAddress: projects.address,
+          projectStatus: projects.status
+        })
+        .from(vehicleJobAssignments)
+        .leftJoin(vehicles, eq(vehicleJobAssignments.vehicleId, vehicles.id))
+        .leftJoin(projects, eq(vehicleJobAssignments.projectId, projects.id))
+        .where(and(
+          eq(vehicleJobAssignments.userId, userId),
+          eq(vehicleJobAssignments.organizationId, organizationId),
+          eq(vehicleJobAssignments.isActive, true)
+        ));
+
+      if (date) {
+        query = query.where(and(
+          eq(vehicleJobAssignments.userId, userId),
+          eq(vehicleJobAssignments.organizationId, organizationId),
+          eq(vehicleJobAssignments.isActive, true),
+          sql`DATE(${vehicleJobAssignments.inspectionDate}) = ${date}`
+        ));
+      }
+
+      return await query.orderBy(desc(vehicleJobAssignments.assignmentDate));
+    } catch (error) {
+      console.error('Error getting vehicle job assignments by user:', error);
+      throw error;
+    }
+  }
+
+  async getVehicleJobAssignmentsByVehicle(vehicleId: number, organizationId: number, date?: string): Promise<any[]> {
+    try {
+      let query = db
+        .select({
+          id: vehicleJobAssignments.id,
+          userId: vehicleJobAssignments.userId,
+          projectId: vehicleJobAssignments.projectId,
+          inspectionDate: vehicleJobAssignments.inspectionDate,
+          assignmentDate: vehicleJobAssignments.assignmentDate,
+          notes: vehicleJobAssignments.notes,
+          // User details
+          userFirstName: users.firstName,
+          userLastName: users.lastName,
+          userEmail: users.email,
+          // Project details
+          projectName: projects.name,
+          projectDescription: projects.description,
+          projectAddress: projects.address,
+          projectStatus: projects.status
+        })
+        .from(vehicleJobAssignments)
+        .leftJoin(users, eq(vehicleJobAssignments.userId, users.id))
+        .leftJoin(projects, eq(vehicleJobAssignments.projectId, projects.id))
+        .where(and(
+          eq(vehicleJobAssignments.vehicleId, vehicleId),
+          eq(vehicleJobAssignments.organizationId, organizationId),
+          eq(vehicleJobAssignments.isActive, true)
+        ));
+
+      if (date) {
+        query = query.where(and(
+          eq(vehicleJobAssignments.vehicleId, vehicleId),
+          eq(vehicleJobAssignments.organizationId, organizationId),
+          eq(vehicleJobAssignments.isActive, true),
+          sql`DATE(${vehicleJobAssignments.inspectionDate}) = ${date}`
+        ));
+      }
+
+      return await query.orderBy(desc(vehicleJobAssignments.assignmentDate));
+    } catch (error) {
+      console.error('Error getting vehicle job assignments by vehicle:', error);
+      throw error;
+    }
+  }
+
+  async createVehicleJobAssignment(assignmentData: any): Promise<any> {
+    try {
+      const [assignment] = await db
+        .insert(vehicleJobAssignments)
+        .values({
+          ...assignmentData,
+          assignmentDate: new Date(),
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+        .returning();
+      
+      return assignment;
+    } catch (error) {
+      console.error('Error creating vehicle job assignment:', error);
+      throw error;
+    }
+  }
+
+  async updateVehicleJobAssignment(id: number, organizationId: number, updates: any): Promise<any> {
+    try {
+      const [assignment] = await db
+        .update(vehicleJobAssignments)
+        .set({
+          ...updates,
+          updatedAt: new Date()
+        })
+        .where(and(
+          eq(vehicleJobAssignments.id, id),
+          eq(vehicleJobAssignments.organizationId, organizationId)
+        ))
+        .returning();
+      
+      return assignment;
+    } catch (error) {
+      console.error('Error updating vehicle job assignment:', error);
+      throw error;
+    }
+  }
+
+  async deleteVehicleJobAssignment(id: number, organizationId: number): Promise<boolean> {
+    try {
+      const result = await db
+        .delete(vehicleJobAssignments)
+        .where(and(
+          eq(vehicleJobAssignments.id, id),
+          eq(vehicleJobAssignments.organizationId, organizationId)
+        ));
+
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error('Error deleting vehicle job assignment:', error);
+      throw error;
+    }
+  }
+
+  async getUsersWithVehicleInspections(organizationId: number, date: string): Promise<any[]> {
+    try {
+      // Find users who completed vehicle inspections on the specified date
+      const inspectionUsers = await db
+        .select({
+          userId: inspectionRecords.technicianId,
+          userFirstName: users.firstName,
+          userLastName: users.lastName,
+          userEmail: users.email,
+          vehicleId: sql`CAST(${inspectionRecords.vehicleInfo}->>'vehicleId' AS INTEGER)`,
+          vehicleNumber: sql`${inspectionRecords.vehicleInfo}->>'vehicleNumber'`,
+          licensePlate: sql`${inspectionRecords.vehicleInfo}->>'licensePlate'`,
+          inspectionDate: inspectionRecords.createdAt,
+          inspectionType: inspectionRecords.inspectionType
+        })
+        .from(inspectionRecords)
+        .leftJoin(users, eq(inspectionRecords.technicianId, users.id))
+        .where(and(
+          eq(inspectionRecords.organizationId, organizationId),
+          sql`DATE(${inspectionRecords.createdAt}) = ${date}`,
+          sql`${inspectionRecords.vehicleInfo}->>'vehicleId' IS NOT NULL`
+        ))
+        .orderBy(desc(inspectionRecords.createdAt));
+
+      return inspectionUsers;
+    } catch (error) {
+      console.error('Error getting users with vehicle inspections:', error);
+      throw error;
+    }
+  }
+
+  async connectUsersToVehicleJobs(organizationId: number, date: string): Promise<any[]> {
+    try {
+      // Get users who completed vehicle inspections on the specified date
+      const inspectionUsers = await this.getUsersWithVehicleInspections(organizationId, date);
+      
+      // Get all jobs assigned to users on the specified date
+      const jobsForDate = await db
+        .select({
+          projectId: projects.id,
+          projectName: projects.name,
+          projectDescription: projects.description,
+          projectAddress: projects.address,
+          projectStatus: projects.status,
+          userId: projectUsers.userId,
+          userRole: projectUsers.role,
+          scheduledDate: projects.scheduledDate
+        })
+        .from(projects)
+        .leftJoin(projectUsers, eq(projects.id, projectUsers.projectId))
+        .where(and(
+          eq(projects.organizationId, organizationId),
+          sql`DATE(${projects.scheduledDate}) = ${date}`,
+          isNotNull(projectUsers.userId)
+        ));
+
+      // Create vehicle job assignments for users who both completed inspections and are assigned to jobs
+      const assignments = [];
+      
+      for (const inspectionUser of inspectionUsers) {
+        // Find jobs assigned to this user on this date
+        const userJobs = jobsForDate.filter(job => job.userId === inspectionUser.userId);
+        
+        for (const job of userJobs) {
+          // Check if assignment already exists
+          const existingAssignment = await db
+            .select()
+            .from(vehicleJobAssignments)
+            .where(and(
+              eq(vehicleJobAssignments.userId, inspectionUser.userId),
+              eq(vehicleJobAssignments.vehicleId, inspectionUser.vehicleId),
+              eq(vehicleJobAssignments.projectId, job.projectId),
+              eq(vehicleJobAssignments.organizationId, organizationId),
+              sql`DATE(${vehicleJobAssignments.inspectionDate}) = ${date}`
+            ))
+            .limit(1);
+
+          if (existingAssignment.length === 0) {
+            // Create new assignment
+            const newAssignment = await this.createVehicleJobAssignment({
+              organizationId,
+              userId: inspectionUser.userId,
+              vehicleId: inspectionUser.vehicleId,
+              projectId: job.projectId,
+              inspectionDate: new Date(date),
+              notes: `Auto-assigned based on vehicle inspection: ${inspectionUser.vehicleNumber} (${inspectionUser.licensePlate})`
+            });
+            
+            assignments.push({
+              ...newAssignment,
+              userFirstName: inspectionUser.userFirstName,
+              userLastName: inspectionUser.userLastName,
+              userEmail: inspectionUser.userEmail,
+              vehicleNumber: inspectionUser.vehicleNumber,
+              licensePlate: inspectionUser.licensePlate,
+              projectName: job.projectName,
+              projectAddress: job.projectAddress
+            });
+          }
+        }
+      }
+      
+      return assignments;
+    } catch (error) {
+      console.error('Error connecting users to vehicle jobs:', error);
       throw error;
     }
   }

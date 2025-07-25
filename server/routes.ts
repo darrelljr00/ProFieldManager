@@ -12707,6 +12707,166 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Vehicle Job Assignment Routes
+  app.get("/api/vehicle-job-assignments", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { date } = req.query;
+      
+      const assignments = await storage.getVehicleJobAssignments(user.organizationId, date as string);
+      res.json(assignments);
+    } catch (error: any) {
+      console.error("Error fetching vehicle job assignments:", error);
+      res.status(500).json({ message: "Failed to fetch vehicle job assignments" });
+    }
+  });
+
+  app.get("/api/vehicle-job-assignments/user/:userId", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const userId = parseInt(req.params.userId);
+      const { date } = req.query;
+      
+      const assignments = await storage.getVehicleJobAssignmentsByUser(userId, user.organizationId, date as string);
+      res.json(assignments);
+    } catch (error: any) {
+      console.error("Error fetching user vehicle job assignments:", error);
+      res.status(500).json({ message: "Failed to fetch user vehicle job assignments" });
+    }
+  });
+
+  app.get("/api/vehicle-job-assignments/vehicle/:vehicleId", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const vehicleId = parseInt(req.params.vehicleId);
+      const { date } = req.query;
+      
+      const assignments = await storage.getVehicleJobAssignmentsByVehicle(vehicleId, user.organizationId, date as string);
+      res.json(assignments);
+    } catch (error: any) {
+      console.error("Error fetching vehicle job assignments:", error);
+      res.status(500).json({ message: "Failed to fetch vehicle job assignments" });
+    }
+  });
+
+  app.post("/api/vehicle-job-assignments", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const assignmentData = {
+        ...req.body,
+        organizationId: user.organizationId
+      };
+      
+      const assignment = await storage.createVehicleJobAssignment(assignmentData);
+      
+      // Broadcast vehicle job assignment created event
+      const broadcastData = {
+        type: 'vehicle_job_assignment_created',
+        assignment,
+        createdBy: user.firstName || user.username
+      };
+      broadcastToWebUsers(user.organizationId, broadcastData);
+      
+      res.json(assignment);
+    } catch (error: any) {
+      console.error("Error creating vehicle job assignment:", error);
+      res.status(500).json({ message: "Failed to create vehicle job assignment" });
+    }
+  });
+
+  app.put("/api/vehicle-job-assignments/:id", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const assignmentId = parseInt(req.params.id);
+      
+      const assignment = await storage.updateVehicleJobAssignment(assignmentId, user.organizationId, req.body);
+      
+      // Broadcast vehicle job assignment updated event
+      const broadcastData = {
+        type: 'vehicle_job_assignment_updated',
+        assignment,
+        updatedBy: user.firstName || user.username
+      };
+      broadcastToWebUsers(user.organizationId, broadcastData);
+      
+      res.json(assignment);
+    } catch (error: any) {
+      console.error("Error updating vehicle job assignment:", error);
+      res.status(500).json({ message: "Failed to update vehicle job assignment" });
+    }
+  });
+
+  app.delete("/api/vehicle-job-assignments/:id", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const assignmentId = parseInt(req.params.id);
+      
+      const success = await storage.deleteVehicleJobAssignment(assignmentId, user.organizationId);
+      
+      if (success) {
+        // Broadcast vehicle job assignment deleted event
+        const broadcastData = {
+          type: 'vehicle_job_assignment_deleted',
+          assignmentId,
+          deletedBy: user.firstName || user.username
+        };
+        broadcastToWebUsers(user.organizationId, broadcastData);
+        
+        res.json({ success: true });
+      } else {
+        res.status(404).json({ message: "Vehicle job assignment not found" });
+      }
+    } catch (error: any) {
+      console.error("Error deleting vehicle job assignment:", error);
+      res.status(500).json({ message: "Failed to delete vehicle job assignment" });
+    }
+  });
+
+  // Auto-connect users to vehicle jobs based on vehicle inspections
+  app.post("/api/vehicle-job-assignments/auto-connect", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { date } = req.body;
+      
+      const assignments = await storage.connectUsersToVehicleJobs(user.organizationId, date);
+      
+      // Broadcast auto-connect completion event
+      const broadcastData = {
+        type: 'vehicle_job_auto_connect_completed',
+        assignments,
+        date,
+        triggeredBy: user.firstName || user.username
+      };
+      broadcastToWebUsers(user.organizationId, broadcastData);
+      
+      res.json({ 
+        message: `Created ${assignments.length} vehicle job assignments`,
+        assignments 
+      });
+    } catch (error: any) {
+      console.error("Error auto-connecting vehicle job assignments:", error);
+      res.status(500).json({ message: "Failed to auto-connect vehicle job assignments" });
+    }
+  });
+
+  // Get users with vehicle inspections for a specific date
+  app.get("/api/users-with-inspections", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { date } = req.query;
+      
+      if (!date) {
+        return res.status(400).json({ message: "Date parameter is required" });
+      }
+      
+      const users = await storage.getUsersWithVehicleInspections(user.organizationId, date as string);
+      res.json(users);
+    } catch (error: any) {
+      console.error("Error fetching users with inspections:", error);
+      res.status(500).json({ message: "Failed to fetch users with inspections" });
+    }
+  });
+
   // Add broadcast function to the app for use in routes
   (app as any).broadcastToWebUsers = broadcastToWebUsers;
 

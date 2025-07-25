@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { DispatchMap } from "@/components/dispatch-map";
+import { ScheduledJobsVehicleWindow } from "@/components/scheduled-jobs-vehicle-window";
 import { 
   Route, 
   Navigation, 
@@ -724,6 +725,62 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
             </div>
           )}
         </CardContent>
+        </Card>
+      </div>
+
+      {/* Grid Layout with Vehicle Jobs Window */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Scheduled Jobs Vehicle Window */}
+        <ScheduledJobsVehicleWindow 
+          selectedDate={selectedDateState}
+          vehicleNumber="1"
+        />
+        
+        {/* Optional: Additional Vehicle Windows */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ExternalLink className="h-5 w-5" />
+              Multi-Map View
+            </CardTitle>
+            <CardDescription>Open multiple map views in new window</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="text-sm text-gray-600">
+                Open 1, 2, or 4 map views in a new window for better route planning.
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => openMultipleMapWindow(1)}
+                  className="flex-1"
+                >
+                  <Map className="h-4 w-4 mr-1" />
+                  1 Map
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => openMultipleMapWindow(2)}
+                  className="flex-1"
+                >
+                  <Grid3X3 className="h-4 w-4 mr-1" />
+                  2 Maps
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => openMultipleMapWindow(4)}
+                  className="flex-1"
+                >
+                  <Grid3X3 className="h-4 w-4 mr-1" />
+                  4 Maps
+                </Button>
+              </div>
+            </div>
+          </CardContent>
         </Card>
       </div>
 
