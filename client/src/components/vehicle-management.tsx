@@ -149,11 +149,15 @@ export function VehicleManagement() {
 
   // Fetch maintenance data for all vehicles
   const fetchMaintenanceData = async () => {
-    if (vehicles && vehicles.length > 0) {
+    if (!vehicles || !Array.isArray(vehicles) || vehicles.length === 0) {
+      return;
+    }
+
+    try {
       const maintenancePromises = vehicles.map(async (vehicle: Vehicle) => {
         try {
           const data = await apiRequest("GET", `/api/vehicles/${vehicle.id}/maintenance`);
-          return { vehicleId: vehicle.id, data: data.status || [] };
+          return { vehicleId: vehicle.id, data: Array.isArray(data.status) ? data.status : [] };
         } catch (error) {
           console.error(`Failed to fetch maintenance for vehicle ${vehicle.id}:`, error);
           return { vehicleId: vehicle.id, data: [] };
@@ -164,16 +168,18 @@ export function VehicleManagement() {
       const newMaintenanceData: {[vehicleId: number]: MaintenanceInterval[]} = {};
       
       results.forEach(({ vehicleId, data }) => {
-        newMaintenanceData[vehicleId] = data;
+        newMaintenanceData[vehicleId] = Array.isArray(data) ? data : [];
       });
       
       setMaintenanceData(newMaintenanceData);
+    } catch (error) {
+      console.error('Error fetching maintenance data:', error);
     }
   };
 
   // Fetch maintenance data when vehicles load
   React.useEffect(() => {
-    if (vehicles && vehicles.length > 0) {
+    if (vehicles && Array.isArray(vehicles) && vehicles.length > 0) {
       fetchMaintenanceData();
     }
   }, [vehicles]);
@@ -199,12 +205,13 @@ export function VehicleManagement() {
   };
 
   const getMaintenanceStatusSummary = (vehicleId: number) => {
-    const intervals = maintenanceData[vehicleId] || [];
-    if (intervals.length === 0) {
+    const intervals = maintenanceData[vehicleId];
+    if (!intervals || !Array.isArray(intervals) || intervals.length === 0) {
       return { completed: 0, due: 0, overdue: 0, total: 0 };
     }
 
     const summary = intervals.reduce((acc, interval) => {
+      if (!interval) return acc;
       const status = interval.calculatedStatus || interval.status;
       if (status === 'completed') acc.completed++;
       else if (status === 'overdue') acc.overdue++;
@@ -217,9 +224,9 @@ export function VehicleManagement() {
 
   const renderMaintenanceStatus = (vehicleId: number) => {
     const summary = getMaintenanceStatusSummary(vehicleId);
-    const intervals = maintenanceData[vehicleId] || [];
+    const intervals = maintenanceData[vehicleId];
     
-    if (intervals.length === 0) {
+    if (!intervals || !Array.isArray(intervals) || intervals.length === 0) {
       return (
         <div className="flex items-center gap-2">
           <span className="text-sm text-gray-500">No intervals</span>
