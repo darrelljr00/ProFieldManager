@@ -11,7 +11,8 @@ import {
   smsMessages, smsTemplates, sharedPhotoLinks, fileSecuritySettings, fileSecurityScans, fileAccessLogs,
   digitalSignatures, documentSignatureFields, departments, employees, employeeDocuments, timeOffRequests, performanceReviews, disciplinaryActions,
   navigationOrder, backupSettings, backupJobs, partsSupplies, partsCategories, inventoryTransactions, stockAlerts,
-  filePermissions, folderPermissions, defaultPermissions, userDashboardSettings, dashboardProfiles, vehicles
+  filePermissions, folderPermissions, defaultPermissions, userDashboardSettings, dashboardProfiles, vehicles,
+  vehicleMaintenanceIntervals, vehicleMaintenanceRecords
 } from "@shared/schema";
 import { marketResearchCompetitors } from "@shared/schema";
 import type { GasCard, InsertGasCard, GasCardAssignment, InsertGasCardAssignment, GasCardUsage, InsertGasCardUsage, GasCardProvider, InsertGasCardProvider } from "@shared/schema";
@@ -455,6 +456,19 @@ export interface IStorage {
   deleteVehicle(id: number, organizationId: number): Promise<boolean>;
   getVehicleByNumber(vehicleNumber: string, organizationId: number): Promise<any>;
   getVehicleByLicensePlate(licensePlate: string, organizationId: number): Promise<any>;
+  
+  // Vehicle Maintenance Interval methods
+  getVehicleMaintenanceIntervals(vehicleId: number, organizationId: number): Promise<any[]>;
+  createVehicleMaintenanceInterval(intervalData: any): Promise<any>;
+  updateVehicleMaintenanceInterval(id: number, organizationId: number, updates: any): Promise<any>;
+  deleteVehicleMaintenanceInterval(id: number, organizationId: number): Promise<boolean>;
+  createDefaultMaintenanceIntervals(vehicleId: number, organizationId: number): Promise<any[]>;
+  
+  // Vehicle Maintenance Record methods
+  getVehicleMaintenanceRecords(vehicleId: number, organizationId: number): Promise<any[]>;
+  createVehicleMaintenanceRecord(recordData: any): Promise<any>;
+  updateMaintenanceStatus(intervalId: number, organizationId: number, status: string): Promise<any>;
+  getMaintenanceStatusForVehicle(vehicleId: number, organizationId: number): Promise<any[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -7242,6 +7256,253 @@ export class DatabaseStorage implements IStorage {
       return vehicle;
     } catch (error) {
       console.error('Error getting vehicle by license plate:', error);
+      throw error;
+    }
+  }
+
+  // Vehicle Maintenance Interval methods
+  async getVehicleMaintenanceIntervals(vehicleId: number, organizationId: number): Promise<any[]> {
+    try {
+      return await db
+        .select()
+        .from(vehicleMaintenanceIntervals)
+        .where(and(
+          eq(vehicleMaintenanceIntervals.vehicleId, vehicleId),
+          eq(vehicleMaintenanceIntervals.organizationId, organizationId),
+          eq(vehicleMaintenanceIntervals.isActive, true)
+        ))
+        .orderBy(asc(vehicleMaintenanceIntervals.maintenanceType));
+    } catch (error) {
+      console.error('Error getting vehicle maintenance intervals:', error);
+      throw error;
+    }
+  }
+
+  async createVehicleMaintenanceInterval(intervalData: any): Promise<any> {
+    try {
+      const [interval] = await db
+        .insert(vehicleMaintenanceIntervals)
+        .values({
+          ...intervalData,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+        .returning();
+      return interval;
+    } catch (error) {
+      console.error('Error creating vehicle maintenance interval:', error);
+      throw error;
+    }
+  }
+
+  async updateVehicleMaintenanceInterval(id: number, organizationId: number, updates: any): Promise<any> {
+    try {
+      const [interval] = await db
+        .update(vehicleMaintenanceIntervals)
+        .set({
+          ...updates,
+          updatedAt: new Date()
+        })
+        .where(and(
+          eq(vehicleMaintenanceIntervals.id, id),
+          eq(vehicleMaintenanceIntervals.organizationId, organizationId)
+        ))
+        .returning();
+      return interval;
+    } catch (error) {
+      console.error('Error updating vehicle maintenance interval:', error);
+      throw error;
+    }
+  }
+
+  async deleteVehicleMaintenanceInterval(id: number, organizationId: number): Promise<boolean> {
+    try {
+      const result = await db
+        .update(vehicleMaintenanceIntervals)
+        .set({ 
+          isActive: false, 
+          updatedAt: new Date() 
+        })
+        .where(and(
+          eq(vehicleMaintenanceIntervals.id, id),
+          eq(vehicleMaintenanceIntervals.organizationId, organizationId)
+        ));
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error('Error deleting vehicle maintenance interval:', error);
+      throw error;
+    }
+  }
+
+  async createDefaultMaintenanceIntervals(vehicleId: number, organizationId: number): Promise<any[]> {
+    try {
+      const defaultIntervals = [
+        {
+          vehicleId,
+          organizationId,
+          maintenanceType: 'oil_change',
+          intervalMiles: 3000,
+          intervalDays: 90,
+          status: 'due'
+        },
+        {
+          vehicleId,
+          organizationId,
+          maintenanceType: 'tire_pressure',
+          intervalDays: 30,
+          status: 'due'
+        },
+        {
+          vehicleId,
+          organizationId,
+          maintenanceType: 'windshield_wash_fluid',
+          intervalDays: 60,
+          status: 'due'
+        },
+        {
+          vehicleId,
+          organizationId,
+          maintenanceType: 'oil_level',
+          intervalDays: 14,
+          status: 'due'
+        },
+        {
+          vehicleId,
+          organizationId,
+          maintenanceType: 'coolant_level',
+          intervalDays: 30,
+          status: 'due'
+        },
+        {
+          vehicleId,
+          organizationId,
+          maintenanceType: 'tire_rotation',
+          intervalMiles: 6000,
+          intervalDays: 180,
+          status: 'due'
+        },
+        {
+          vehicleId,
+          organizationId,
+          maintenanceType: 'wipers',
+          intervalDays: 365,
+          status: 'due'
+        }
+      ];
+
+      const intervals = [];
+      for (const intervalData of defaultIntervals) {
+        const [interval] = await db
+          .insert(vehicleMaintenanceIntervals)
+          .values({
+            ...intervalData,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          })
+          .returning();
+        intervals.push(interval);
+      }
+      
+      return intervals;
+    } catch (error) {
+      console.error('Error creating default maintenance intervals:', error);
+      throw error;
+    }
+  }
+
+  // Vehicle Maintenance Record methods
+  async getVehicleMaintenanceRecords(vehicleId: number, organizationId: number): Promise<any[]> {
+    try {
+      return await db
+        .select()
+        .from(vehicleMaintenanceRecords)
+        .where(and(
+          eq(vehicleMaintenanceRecords.vehicleId, vehicleId),
+          eq(vehicleMaintenanceRecords.organizationId, organizationId)
+        ))
+        .orderBy(desc(vehicleMaintenanceRecords.performedDate));
+    } catch (error) {
+      console.error('Error getting vehicle maintenance records:', error);
+      throw error;
+    }
+  }
+
+  async createVehicleMaintenanceRecord(recordData: any): Promise<any> {
+    try {
+      const [record] = await db
+        .insert(vehicleMaintenanceRecords)
+        .values({
+          ...recordData,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+        .returning();
+      return record;
+    } catch (error) {
+      console.error('Error creating vehicle maintenance record:', error);
+      throw error;
+    }
+  }
+
+  async updateMaintenanceStatus(intervalId: number, organizationId: number, status: string): Promise<any> {
+    try {
+      const [interval] = await db
+        .update(vehicleMaintenanceIntervals)
+        .set({
+          status,
+          lastMaintenanceDate: status === 'completed' ? new Date() : undefined,
+          updatedAt: new Date()
+        })
+        .where(and(
+          eq(vehicleMaintenanceIntervals.id, intervalId),
+          eq(vehicleMaintenanceIntervals.organizationId, organizationId)
+        ))
+        .returning();
+      return interval;
+    } catch (error) {
+      console.error('Error updating maintenance status:', error);
+      throw error;
+    }
+  }
+
+  async getMaintenanceStatusForVehicle(vehicleId: number, organizationId: number): Promise<any[]> {
+    try {
+      const intervals = await db
+        .select()
+        .from(vehicleMaintenanceIntervals)
+        .where(and(
+          eq(vehicleMaintenanceIntervals.vehicleId, vehicleId),
+          eq(vehicleMaintenanceIntervals.organizationId, organizationId),
+          eq(vehicleMaintenanceIntervals.isActive, true)
+        ));
+
+      // Calculate status for each interval based on current date and mileage
+      const now = new Date();
+      const statusResults = intervals.map(interval => {
+        let status = 'due';
+        
+        if (interval.lastMaintenanceDate) {
+          const daysSinceLastMaintenance = Math.floor(
+            (now.getTime() - new Date(interval.lastMaintenanceDate).getTime()) / (1000 * 60 * 60 * 24)
+          );
+          
+          if (interval.intervalDays && daysSinceLastMaintenance > interval.intervalDays) {
+            status = 'overdue';
+          } else if (interval.intervalDays && daysSinceLastMaintenance <= interval.intervalDays) {
+            status = 'completed';
+          }
+        }
+
+        return {
+          ...interval,
+          calculatedStatus: status,
+          maintenanceTypeDisplay: interval.maintenanceType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+        };
+      });
+
+      return statusResults;
+    } catch (error) {
+      console.error('Error getting maintenance status for vehicle:', error);
       throw error;
     }
   }

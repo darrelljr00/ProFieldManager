@@ -2820,6 +2820,87 @@ export const insertVehicleSchema = createInsertSchema(vehicles).omit({
   updatedAt: true,
 });
 
+// Vehicle Maintenance Intervals
+export const vehicleMaintenanceIntervals = pgTable("vehicle_maintenance_intervals", {
+  id: serial("id").primaryKey(),
+  vehicleId: integer("vehicle_id").notNull().references(() => vehicles.id),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  
+  // Maintenance type
+  maintenanceType: text("maintenance_type").notNull(), // oil_change, tire_pressure, windshield_wash_fluid, oil_level, coolant_level, tire_rotation, wipers
+  
+  // Interval configuration
+  intervalMiles: integer("interval_miles"), // Miles between maintenance (e.g., 3000 for oil change)
+  intervalDays: integer("interval_days"), // Days between maintenance (e.g., 90 for quarterly checks)
+  
+  // Last maintenance
+  lastMaintenanceDate: timestamp("last_maintenance_date"),
+  lastMaintenanceMileage: integer("last_maintenance_mileage"),
+  
+  // Next due dates (calculated)
+  nextDueDate: timestamp("next_due_date"),
+  nextDueMileage: integer("next_due_mileage"),
+  
+  // Status tracking
+  status: text("status").notNull().default("due"), // completed, due, overdue
+  isActive: boolean("is_active").default(true),
+  
+  // Notes and tracking
+  notes: text("notes"),
+  performedBy: integer("performed_by").references(() => users.id),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Vehicle Maintenance Records
+export const vehicleMaintenanceRecords = pgTable("vehicle_maintenance_records", {
+  id: serial("id").primaryKey(),
+  intervalId: integer("interval_id").notNull().references(() => vehicleMaintenanceIntervals.id),
+  vehicleId: integer("vehicle_id").notNull().references(() => vehicles.id),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  
+  // Maintenance details
+  maintenanceType: text("maintenance_type").notNull(),
+  performedDate: timestamp("performed_date").notNull(),
+  performedMileage: integer("performed_mileage"),
+  
+  // Performed by
+  performedBy: integer("performed_by").notNull().references(() => users.id),
+  
+  // Details
+  notes: text("notes"),
+  cost: decimal("cost", { precision: 10, scale: 2 }),
+  vendorName: text("vendor_name"),
+  receiptPhoto: text("receipt_photo"),
+  
+  // Next maintenance scheduling
+  nextDueDate: timestamp("next_due_date"),
+  nextDueMileage: integer("next_due_mileage"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Zod schemas for Vehicle Maintenance
+export const insertVehicleMaintenanceIntervalSchema = createInsertSchema(vehicleMaintenanceIntervals).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertVehicleMaintenanceRecordSchema = createInsertSchema(vehicleMaintenanceRecords).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type Vehicle = typeof vehicles.$inferSelect;
 export type InsertVehicle = z.infer<typeof insertVehicleSchema>;
+
+export type VehicleMaintenanceInterval = typeof vehicleMaintenanceIntervals.$inferSelect;
+export type InsertVehicleMaintenanceInterval = z.infer<typeof insertVehicleMaintenanceIntervalSchema>;
+
+export type VehicleMaintenanceRecord = typeof vehicleMaintenanceRecords.$inferSelect;
+export type InsertVehicleMaintenanceRecord = z.infer<typeof insertVehicleMaintenanceRecordSchema>;

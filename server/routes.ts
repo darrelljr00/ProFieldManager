@@ -12519,6 +12519,136 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Vehicle Maintenance Intervals API routes
+  app.get("/api/vehicles/:vehicleId/maintenance", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const vehicleId = parseInt(req.params.vehicleId);
+      
+      const intervals = await storage.getVehicleMaintenanceIntervals(vehicleId, user.organizationId);
+      const status = await storage.getMaintenanceStatusForVehicle(vehicleId, user.organizationId);
+      
+      res.json({ intervals, status });
+    } catch (error: any) {
+      console.error("Error fetching vehicle maintenance:", error);
+      res.status(500).json({ message: "Failed to fetch vehicle maintenance" });
+    }
+  });
+
+  app.post("/api/vehicles/:vehicleId/maintenance/intervals", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const vehicleId = parseInt(req.params.vehicleId);
+      
+      const intervalData = {
+        ...req.body,
+        vehicleId,
+        organizationId: user.organizationId
+      };
+
+      const interval = await storage.createVehicleMaintenanceInterval(intervalData);
+      
+      // Broadcast maintenance interval creation
+      broadcastToWebUsers('maintenance_interval_created', {
+        vehicleId,
+        interval,
+        createdBy: user.firstName || user.username
+      });
+      
+      res.json(interval);
+    } catch (error: any) {
+      console.error("Error creating maintenance interval:", error);
+      res.status(500).json({ message: "Failed to create maintenance interval" });
+    }
+  });
+
+  app.post("/api/vehicles/:vehicleId/maintenance/default", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const vehicleId = parseInt(req.params.vehicleId);
+      
+      const intervals = await storage.createDefaultMaintenanceIntervals(vehicleId, user.organizationId);
+      
+      // Broadcast maintenance intervals creation
+      broadcastToWebUsers('maintenance_intervals_created', {
+        vehicleId,
+        intervals,
+        createdBy: user.firstName || user.username
+      });
+      
+      res.json(intervals);
+    } catch (error: any) {
+      console.error("Error creating default maintenance intervals:", error);
+      res.status(500).json({ message: "Failed to create default maintenance intervals" });
+    }
+  });
+
+  app.put("/api/vehicles/:vehicleId/maintenance/:intervalId/status", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const vehicleId = parseInt(req.params.vehicleId);
+      const intervalId = parseInt(req.params.intervalId);
+      const { status } = req.body;
+      
+      const updatedInterval = await storage.updateMaintenanceStatus(intervalId, user.organizationId, status);
+      
+      // Broadcast maintenance status update
+      broadcastToWebUsers('maintenance_status_updated', {
+        vehicleId,
+        intervalId,
+        status,
+        updatedBy: user.firstName || user.username
+      });
+      
+      res.json(updatedInterval);
+    } catch (error: any) {
+      console.error("Error updating maintenance status:", error);
+      res.status(500).json({ message: "Failed to update maintenance status" });
+    }
+  });
+
+  app.post("/api/vehicles/:vehicleId/maintenance/records", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const vehicleId = parseInt(req.params.vehicleId);
+      
+      const recordData = {
+        ...req.body,
+        vehicleId,
+        organizationId: user.organizationId,
+        performedBy: user.id
+      };
+
+      const record = await storage.createVehicleMaintenanceRecord(recordData);
+      
+      // Broadcast maintenance record creation
+      broadcastToWebUsers('maintenance_record_created', {
+        vehicleId,
+        record,
+        createdBy: user.firstName || user.username
+      });
+      
+      res.json(record);
+    } catch (error: any) {
+      console.error("Error creating maintenance record:", error);
+      res.status(500).json({ message: "Failed to create maintenance record" });
+    }
+  });
+
+  app.get("/api/vehicles/:vehicleId/maintenance/records", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const vehicleId = parseInt(req.params.vehicleId);
+      
+      const records = await storage.getVehicleMaintenanceRecords(vehicleId, user.organizationId);
+      
+      res.json(records);
+    } catch (error: any) {
+      console.error("Error fetching maintenance records:", error);
+      res.status(500).json({ message: "Failed to fetch maintenance records" });
+    }
+  });
+
   // Add broadcast function to the app for use in routes
   (app as any).broadcastToWebUsers = broadcastToWebUsers;
 

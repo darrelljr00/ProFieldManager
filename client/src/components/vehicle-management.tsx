@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Car, Edit, Trash2, Calendar, Fuel, MapPin } from "lucide-react";
+import { Plus, Car, Edit, Trash2, Calendar, Fuel, MapPin, Settings, CheckCircle, Clock, AlertTriangle } from "lucide-react";
 
 interface Vehicle {
   id: number;
@@ -37,10 +37,31 @@ interface Vehicle {
   updatedAt: string;
 }
 
+interface MaintenanceInterval {
+  id: number;
+  vehicleId: number;
+  maintenanceType: string;
+  intervalMiles?: number;
+  intervalDays?: number;
+  lastMaintenanceDate?: string;
+  lastMaintenanceMileage?: number;
+  nextDueDate?: string;
+  nextDueMileage?: number;
+  status: string;
+  calculatedStatus?: string;
+  maintenanceTypeDisplay?: string;
+}
+
+interface MaintenanceStatus {
+  intervals: MaintenanceInterval[];
+  status: MaintenanceInterval[];
+}
+
 export function VehicleManagement() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
+  const [maintenanceData, setMaintenanceData] = useState<{[vehicleId: number]: MaintenanceInterval[]}>({});
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -106,6 +127,57 @@ export function VehicleManagement() {
     },
   });
 
+  const createDefaultMaintenanceMutation = useMutation({
+    mutationFn: (vehicleId: number) => 
+      apiRequest("POST", `/api/vehicles/${vehicleId}/maintenance/default`),
+    onSuccess: (data, vehicleId) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/vehicles", vehicleId, "maintenance"] });
+      fetchMaintenanceData();
+      toast({
+        title: "Success",
+        description: "Default maintenance intervals created successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create maintenance intervals",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Fetch maintenance data for all vehicles
+  const fetchMaintenanceData = async () => {
+    if (vehicles && vehicles.length > 0) {
+      const maintenancePromises = vehicles.map(async (vehicle: Vehicle) => {
+        try {
+          const data = await apiRequest("GET", `/api/vehicles/${vehicle.id}/maintenance`);
+          return { vehicleId: vehicle.id, data: data.status || [] };
+        } catch (error) {
+          console.error(`Failed to fetch maintenance for vehicle ${vehicle.id}:`, error);
+          return { vehicleId: vehicle.id, data: [] };
+        }
+      });
+
+      const results = await Promise.all(maintenancePromises);
+      const newMaintenanceData: {[vehicleId: number]: MaintenanceInterval[]} = {};
+      
+      results.forEach(({ vehicleId, data }) => {
+        newMaintenanceData[vehicleId] = data;
+      });
+      
+      setMaintenanceData(newMaintenanceData);
+    }
+  };
+
+  // Fetch maintenance data when vehicles load
+  React.useEffect(() => {
+    if (vehicles && vehicles.length > 0) {
+      fetchMaintenanceData();
+    }
+  }, [vehicles]);
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "active":
@@ -124,6 +196,68 @@ export function VehicleManagement() {
   const formatDate = (dateString?: string) => {
     if (!dateString) return "Not set";
     return new Date(dateString).toLocaleDateString();
+  };
+
+  const getMaintenanceStatusSummary = (vehicleId: number) => {
+    const intervals = maintenanceData[vehicleId] || [];
+    if (intervals.length === 0) {
+      return { completed: 0, due: 0, overdue: 0, total: 0 };
+    }
+
+    const summary = intervals.reduce((acc, interval) => {
+      const status = interval.calculatedStatus || interval.status;
+      if (status === 'completed') acc.completed++;
+      else if (status === 'overdue') acc.overdue++;
+      else acc.due++;
+      return acc;
+    }, { completed: 0, due: 0, overdue: 0, total: intervals.length });
+
+    return summary;
+  };
+
+  const renderMaintenanceStatus = (vehicleId: number) => {
+    const summary = getMaintenanceStatusSummary(vehicleId);
+    const intervals = maintenanceData[vehicleId] || [];
+    
+    if (intervals.length === 0) {
+      return (
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-500">No intervals</span>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => createDefaultMaintenanceMutation.mutate(vehicleId)}
+            disabled={createDefaultMaintenanceMutation.isPending}
+          >
+            <Settings className="h-3 w-3 mr-1" />
+            Setup
+          </Button>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex items-center gap-2">
+        {summary.completed > 0 && (
+          <div className="flex items-center gap-1">
+            <CheckCircle className="h-4 w-4 text-green-600" />
+            <span className="text-sm text-green-600">{summary.completed}</span>
+          </div>
+        )}
+        {summary.due > 0 && (
+          <div className="flex items-center gap-1">
+            <Clock className="h-4 w-4 text-blue-600" />
+            <span className="text-sm text-blue-600">{summary.due}</span>
+          </div>
+        )}
+        {summary.overdue > 0 && (
+          <div className="flex items-center gap-1">
+            <AlertTriangle className="h-4 w-4 text-red-600" />
+            <span className="text-sm text-red-600 font-medium">{summary.overdue}</span>
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -180,6 +314,7 @@ export function VehicleManagement() {
                     <TableHead>Type</TableHead>
                     <TableHead>Make/Model</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Maintenance</TableHead>
                     <TableHead>Mileage</TableHead>
                     <TableHead>Fuel Type</TableHead>
                     <TableHead>Inspection Due</TableHead>
@@ -205,6 +340,9 @@ export function VehicleManagement() {
                         <Badge className={getStatusColor(vehicle.status)}>
                           {vehicle.status.replace('_', ' ')}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {renderMaintenanceStatus(vehicle.id)}
                       </TableCell>
                       <TableCell>
                         {vehicle.currentMileage ? `${vehicle.currentMileage.toLocaleString()} mi` : "Not recorded"}
