@@ -78,7 +78,10 @@ export class CloudinaryService {
         public_id: publicId,
         quality: 'auto:good' as const,
         fetch_format: 'auto' as const,
-        transformation: `w_${maxWidth},h_${maxHeight},c_limit`
+        // Remove transformation for initial upload - apply on delivery instead
+        eager: [
+          { width: maxWidth, height: maxHeight, crop: 'limit', quality: 'auto:good' }
+        ]
       };
       
       console.log('🔧 Using signed SDK upload to Cloudinary');
