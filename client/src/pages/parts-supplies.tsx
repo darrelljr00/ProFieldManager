@@ -48,27 +48,31 @@ export default function PartsSuppliesPage() {
   });
 
   // Filter and search logic
-  const filteredPartsSupplies = partsSupplies.filter((part: any) => {
-    const matchesSearch = searchTerm === "" || 
-      part.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      part.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      part.sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      part.supplier?.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredPartsSupplies = Array.isArray(partsSupplies) && partsSupplies.length > 0 
+    ? partsSupplies.filter((part: any) => {
+        const matchesSearch = searchTerm === "" || 
+          part.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          part.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          part.sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          part.supplier?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesCategory = categoryFilter === "all" || part.category === categoryFilter;
-    
-    const matchesStockStatus = stockStatusFilter === "all" || 
-      (stockStatusFilter === "low" && part.isLowStock) ||
-      (stockStatusFilter === "out" && part.isOutOfStock) ||
-      (stockStatusFilter === "normal" && !part.isLowStock && !part.isOutOfStock);
-    
-    const matchesSupplier = supplierFilter === "all" || part.supplier === supplierFilter;
+        const matchesCategory = categoryFilter === "all" || part.category === categoryFilter;
+        
+        const matchesStockStatus = stockStatusFilter === "all" || 
+          (stockStatusFilter === "low" && part.isLowStock) ||
+          (stockStatusFilter === "out" && part.isOutOfStock) ||
+          (stockStatusFilter === "normal" && !part.isLowStock && !part.isOutOfStock);
+        
+        const matchesSupplier = supplierFilter === "all" || part.supplier === supplierFilter;
 
-    return matchesSearch && matchesCategory && matchesStockStatus && matchesSupplier;
-  });
+        return matchesSearch && matchesCategory && matchesStockStatus && matchesSupplier;
+      })
+    : [];
 
   // Get unique suppliers for filter dropdown
-  const uniqueSuppliers = [...new Set(partsSupplies.map((part: any) => part.supplier).filter(Boolean))];
+  const uniqueSuppliers = Array.isArray(partsSupplies) 
+    ? [...new Set(partsSupplies.map((part: any) => part.supplier).filter(Boolean))]
+    : [];
 
   // Clear all filters
   const clearAllFilters = () => {
