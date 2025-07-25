@@ -89,7 +89,6 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
         } else {
           data = response;
         }
-        console.log('API Response for date', selectedDateState, ':', data);
         return Array.isArray(data) ? data as JobLocation[] : [];
       } catch (error) {
         console.error('Error fetching scheduled jobs:', error);
@@ -100,8 +99,6 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
 
   // Ensure scheduledJobs is always an array
   const scheduledJobs = Array.isArray(scheduledJobsData) ? scheduledJobsData : [];
-  
-  console.log('Scheduled jobs array:', scheduledJobs, 'Length:', scheduledJobs.length);
 
   // WebSocket listeners for real-time job updates
   useEffect(() => {

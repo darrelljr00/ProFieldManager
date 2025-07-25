@@ -7837,33 +7837,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: 'User not found' });
       }
 
-      // Get projects with location information and scheduled dates
+      // Get projects with location information
       const projects = await storage.getProjectsWithLocation({ 
         userId: userId
       });
       
-      // Filter to only include projects with scheduled dates
-      let scheduledProjects = projects.filter(project => project.scheduledDate);
+      // Filter projects based on date and status
+      let dispatchProjects = projects;
       
-      // Filter by date if provided
       if (date) {
         const targetDate = new Date(date as string);
-        scheduledProjects = scheduledProjects.filter(project => {
-          const projectDate = new Date(project.scheduledDate);
-          return projectDate.toDateString() === targetDate.toDateString();
+        const today = new Date();
+        const isToday = targetDate.toDateString() === today.toDateString();
+        
+        dispatchProjects = projects.filter(project => {
+          // Include jobs scheduled for the specific date
+          if (project.scheduledDate) {
+            const projectDate = new Date(project.scheduledDate);
+            if (projectDate.toDateString() === targetDate.toDateString()) {
+              return true;
+            }
+          }
+          
+          // If selecting today's date, also include active/in-progress jobs without scheduled dates
+          if (isToday && !project.scheduledDate && 
+              (project.status === 'active' || project.status === 'in-progress')) {
+            return true;
+          }
+          
+          return false;
         });
+      } else {
+        // If no date specified, show all jobs with scheduled dates or active status
+        dispatchProjects = projects.filter(project => 
+          project.scheduledDate || project.status === 'active' || project.status === 'in-progress'
+        );
       }
 
       // Filter by assigned user if provided
       if (assignedUserId) {
         const assignedId = parseInt(assignedUserId as string);
-        scheduledProjects = scheduledProjects.filter(project => 
+        dispatchProjects = dispatchProjects.filter(project => 
           project.users.some((userAssignment: any) => userAssignment.user.id === assignedId)
         );
       }
 
       // Transform to dispatch job format
-      const dispatchJobs = scheduledProjects.map(project => ({
+      const dispatchJobs = dispatchProjects.map(project => ({
         id: project.id,
         projectId: project.id,
         projectName: project.name,
