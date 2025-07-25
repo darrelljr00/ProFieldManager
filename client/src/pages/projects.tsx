@@ -18,7 +18,7 @@ import { Link } from "wouter";
 import { format } from "date-fns";
 import type { Project, Customer, User } from "@shared/schema";
 import { DirectionsButton } from "@/components/google-maps";
-import { DispatchRouting } from "@/components/dispatch-routing";
+
 import { WeatherWidget } from "@/components/weather-widget";
 import { MobileCamera } from "@/components/mobile-camera";
 import { MediaGallery } from "@/components/media-gallery";
@@ -1502,10 +1502,7 @@ export default function Jobs() {
               <Archive className="h-4 w-4" />
               Historical Jobs
             </TabsTrigger>
-            <TabsTrigger value="dispatch" className="flex items-center gap-2">
-              <Route className="h-4 w-4" />
-              Dispatch Routing
-            </TabsTrigger>
+
           </TabsList>
 
           <TabsContent value="upcoming">
@@ -1631,9 +1628,7 @@ export default function Jobs() {
             <HistoricalJobs />
           </TabsContent>
 
-          <TabsContent value="dispatch">
-            <DispatchRouting />
-          </TabsContent>
+
         </Tabs>
       )}
 
