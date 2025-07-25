@@ -159,6 +159,10 @@ export interface IStorage {
   updateFolder(id: number, updates: any): Promise<any>;
   deleteFolder(id: number): Promise<void>;
   
+  // Drag and drop methods
+  moveFileToFolder(fileId: number, folderId: number | null, userId: number): Promise<{ file: any; previousFolderId: number | null }>;
+  undoFileMove(fileId: number, previousFolderId: number | null, userId: number): Promise<any>;
+  
   // Image methods
   createImage(imageData: any): Promise<any>;
   getImages(userId: number): Promise<any[]>;
@@ -5289,12 +5293,12 @@ export class DatabaseStorage implements IStorage {
       if (parentId) {
         whereCondition = and(
           eq(fileFolders.organizationId, organizationId),
-          eq(fileFolders.parentId, parentId)
+          eq(fileFolders.parentFolderId, parentId)
         );
       } else {
         whereCondition = and(
           eq(fileFolders.organizationId, organizationId),
-          sql`${fileFolders.parentId} IS NULL`
+          isNull(fileFolders.parentFolderId)
         );
       }
       
@@ -5350,6 +5354,57 @@ export class DatabaseStorage implements IStorage {
         .where(eq(fileFolders.id, id));
     } catch (error) {
       console.error('Error deleting folder:', error);
+      throw error;
+    }
+  }
+
+  // Drag and drop methods
+  async moveFileToFolder(fileId: number, folderId: number | null, userId: number): Promise<{ file: any; previousFolderId: number | null }> {
+    try {
+      // Get the current folder ID before moving
+      const currentFile = await db
+        .select({ folderId: fileManager.folderId })
+        .from(fileManager)
+        .where(eq(fileManager.id, fileId))
+        .limit(1);
+      
+      if (currentFile.length === 0) {
+        throw new Error('File not found');
+      }
+      
+      const previousFolderId = currentFile[0].folderId;
+      
+      // Update the file's folder
+      const [updatedFile] = await db
+        .update(fileManager)
+        .set({
+          folderId: folderId,
+          updatedAt: new Date(),
+        })
+        .where(eq(fileManager.id, fileId))
+        .returning();
+      
+      return { file: updatedFile, previousFolderId };
+    } catch (error) {
+      console.error('Error moving file to folder:', error);
+      throw error;
+    }
+  }
+
+  async undoFileMove(fileId: number, previousFolderId: number | null, userId: number): Promise<any> {
+    try {
+      const [restoredFile] = await db
+        .update(fileManager)
+        .set({
+          folderId: previousFolderId,
+          updatedAt: new Date(),
+        })
+        .where(eq(fileManager.id, fileId))
+        .returning();
+      
+      return restoredFile;
+    } catch (error) {
+      console.error('Error undoing file move:', error);
       throw error;
     }
   }

@@ -32,7 +32,8 @@ import {
   MapPin,
   Search,
   Filter,
-  X
+  X,
+  Undo
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import SignatureDialog from "@/components/signature-dialog";
@@ -106,6 +107,12 @@ export default function FileManager() {
   const [sizeFilter, setSizeFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("all");
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+
+  // Drag and drop states
+  const [draggedFile, setDraggedFile] = useState<FileItem | null>(null);
+  const [draggedOverFolder, setDraggedOverFolder] = useState<number | null>(null);
+  const [lastMove, setLastMove] = useState<{ fileId: number; previousFolderId: number | null } | null>(null);
+  const [showUndoButton, setShowUndoButton] = useState(false);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -387,6 +394,57 @@ export default function FileManager() {
     },
   });
 
+  // Move file to folder mutation
+  const moveFileMutation = useMutation({
+    mutationFn: async (data: { fileId: number; folderId: number | null }) => {
+      const response = await apiRequest("POST", `/api/files/${data.fileId}/move`, { folderId: data.folderId });
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "File moved successfully",
+        description: "File has been moved to the folder.",
+      });
+      setLastMove({ fileId: data.file.id, previousFolderId: data.previousFolderId });
+      setShowUndoButton(true);
+      queryClient.invalidateQueries({ queryKey: ["/api/files"] });
+      // Hide undo button after 10 seconds
+      setTimeout(() => setShowUndoButton(false), 10000);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to move file",
+        description: error.message || "An error occurred",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Undo file move mutation
+  const undoMoveMutation = useMutation({
+    mutationFn: async () => {
+      if (!lastMove) throw new Error("No move to undo");
+      const response = await apiRequest("POST", `/api/files/${lastMove.fileId}/undo-move`, { previousFolderId: lastMove.previousFolderId });
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Move undone",
+        description: "File has been restored to its previous location.",
+      });
+      setLastMove(null);
+      setShowUndoButton(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/files"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to undo move",
+        description: error.message || "An error occurred",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Create text file mutation
   const createTextFileMutation = useMutation({
     mutationFn: async (data: { name: string; content: string; folderId?: number }) => {
@@ -585,6 +643,44 @@ export default function FileManager() {
     return ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'].includes(mimeType);
   };
 
+  // Drag and drop handlers
+  const handleDragStart = (e: React.DragEvent, file: FileItem) => {
+    setDraggedFile(file);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDragEnter = (e: React.DragEvent, folderId: number) => {
+    e.preventDefault();
+    setDraggedOverFolder(folderId);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDraggedOverFolder(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, folderId: number | null) => {
+    e.preventDefault();
+    setDraggedOverFolder(null);
+    
+    if (draggedFile) {
+      moveFileMutation.mutate({
+        fileId: draggedFile.id,
+        folderId: folderId
+      });
+      setDraggedFile(null);
+    }
+  };
+
+  const handleUndoMove = () => {
+    undoMoveMutation.mutate();
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
@@ -738,6 +834,24 @@ export default function FileManager() {
           </div>
         </div>
 
+        {/* Undo Button */}
+        {showUndoButton && lastMove && (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
+            <div className="flex items-center text-blue-700">
+              <span className="text-sm">File moved successfully</span>
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleUndoMove}
+              disabled={undoMoveMutation.isPending}
+              className="text-blue-700 border-blue-300 hover:bg-blue-100"
+            >
+              {undoMoveMutation.isPending ? "Undoing..." : "Undo"}
+            </Button>
+          </div>
+        )}
+
         {/* Search and Filter Controls */}
         <Card className="p-4 mb-6">
           <div className="space-y-4">
@@ -873,8 +987,14 @@ export default function FileManager() {
               {folders.map((folder: Folder) => (
                 <Card 
                   key={folder.id} 
-                  className="cursor-pointer hover:shadow-md transition-shadow hover:bg-blue-50"
+                  className={`cursor-pointer hover:shadow-md transition-shadow hover:bg-blue-50 ${
+                    draggedOverFolder === folder.id ? 'ring-2 ring-blue-500 bg-blue-100' : ''
+                  }`}
                   onClick={() => handleFolderClick(folder.id)}
+                  onDragOver={handleDragOver}
+                  onDragEnter={(e) => handleDragEnter(e, folder.id)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, folder.id)}
                 >
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
@@ -923,8 +1043,21 @@ export default function FileManager() {
         )}
 
         {/* Files Section */}
-        <div>
-          <h2 className="text-xl font-semibold mb-3">Files</h2>
+        <div 
+          className={`${
+            draggedFile && !selectedFolderId ? 'bg-blue-50 border-2 border-dashed border-blue-300 rounded-lg p-2' : ''
+          }`}
+          onDragOver={handleDragOver}
+          onDragEnter={(e) => !selectedFolderId && handleDragEnter(e, 0)}
+          onDragLeave={handleDragLeave}
+          onDrop={(e) => !selectedFolderId && handleDrop(e, null)}
+        >
+          <h2 className="text-xl font-semibold mb-3">
+            Files
+            {draggedFile && !selectedFolderId && (
+              <span className="text-blue-600 text-sm ml-2">(Drop here to move to root)</span>
+            )}
+          </h2>
           {filesLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {[...Array(6)].map((_, i) => (
@@ -951,7 +1084,14 @@ export default function FileManager() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredFiles.map((file: FileItem) => (
-                <Card key={file.id} className="hover:shadow-md transition-shadow">
+                <Card 
+                  key={file.id} 
+                  className={`hover:shadow-md transition-shadow cursor-move ${
+                    draggedFile?.id === file.id ? 'opacity-50' : ''
+                  }`}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, file)}
+                >
                   <CardContent className="p-4">
                     {/* Image thumbnail preview */}
                     {file.fileType === 'image' && (

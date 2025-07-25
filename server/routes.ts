@@ -10363,6 +10363,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Drag and drop endpoints
+  app.post("/api/files/:id/move", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const fileId = parseInt(req.params.id);
+      const { folderId } = req.body;
+      
+      const result = await storage.moveFileToFolder(fileId, folderId, user.id);
+      
+      // Broadcast to WebSocket clients
+      if (wss) {
+        wss.clients.forEach((client) => {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify({
+              type: 'file_moved',
+              data: { fileId, folderId, previousFolderId: result.previousFolderId }
+            }));
+          }
+        });
+      }
+      
+      res.json({ 
+        success: true, 
+        file: result.file,
+        previousFolderId: result.previousFolderId
+      });
+    } catch (error: any) {
+      console.error("Error moving file:", error);
+      res.status(500).json({ message: "Failed to move file" });
+    }
+  });
+
+  app.post("/api/files/:id/undo-move", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const fileId = parseInt(req.params.id);
+      const { previousFolderId } = req.body;
+      
+      const restoredFile = await storage.undoFileMove(fileId, previousFolderId, user.id);
+      
+      // Broadcast to WebSocket clients
+      if (wss) {
+        wss.clients.forEach((client) => {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify({
+              type: 'file_move_undone',
+              data: { fileId, restoredFolderId: previousFolderId }
+            }));
+          }
+        });
+      }
+      
+      res.json({ success: true, file: restoredFile });
+    } catch (error: any) {
+      console.error("Error undoing file move:", error);
+      res.status(500).json({ message: "Failed to undo file move" });
+    }
+  });
+
   // GPS Location Update endpoint
   app.post("/api/gps-tracking/update", requireAuth, async (req, res) => {
     try {
