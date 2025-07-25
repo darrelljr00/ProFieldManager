@@ -3676,6 +3676,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       if (!cloudinaryResult.success) {
+        console.error('❌ CLOUDINARY UPLOAD FAILED - DETAILED ERROR:', cloudinaryResult.error);
+        console.error('❌ Cloudinary error details:', JSON.stringify(cloudinaryResult, null, 2));
         console.warn('⚠️ Cloudinary upload failed, falling back to local storage:', cloudinaryResult.error);
         
         // Fallback to local storage with compression
