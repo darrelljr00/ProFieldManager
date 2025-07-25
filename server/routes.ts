@@ -739,6 +739,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     res.sendFile(filePath);
   }
+
+  // Cloudinary image proxy for mixed content issues
+  app.get('/api/cloudinary-proxy', async (req, res) => {
+    try {
+      const { url } = req.query;
+      if (!url || typeof url !== 'string' || !url.startsWith('https://res.cloudinary.com')) {
+        return res.status(400).json({ error: 'Invalid Cloudinary URL' });
+      }
+      
+      const response = await fetch(url);
+      if (!response.ok) {
+        return res.status(response.status).json({ error: 'Failed to fetch image' });
+      }
+      
+      const contentType = response.headers.get('content-type') || 'image/jpeg';
+      const buffer = await response.arrayBuffer();
+      
+      res.set('Content-Type', contentType);
+      res.set('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
+      res.send(Buffer.from(buffer));
+    } catch (error) {
+      console.error('Cloudinary proxy error:', error);
+      res.status(500).json({ error: 'Proxy error' });
+    }
+  });
   
   // Create HTTP server first
   const httpServer = createServer(app);

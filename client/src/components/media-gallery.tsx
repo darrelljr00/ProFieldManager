@@ -251,7 +251,13 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
 
     if (file.fileType === 'image') {
       // Handle both Cloudinary URLs (https://...) and local paths (/uploads/...)
-      const imageUrl = file.filePath.startsWith('http') ? file.filePath : (file.filePath.startsWith('/') ? file.filePath : `/${file.filePath}`);
+      let imageUrl;
+      if (file.filePath.startsWith('https://res.cloudinary.com')) {
+        // Use proxy for Cloudinary images to avoid mixed content issues
+        imageUrl = `/api/cloudinary-proxy?url=${encodeURIComponent(file.filePath)}`;
+      } else {
+        imageUrl = file.filePath.startsWith('/') ? file.filePath : `/${file.filePath}`;
+      }
       console.log('🖼️ Rendering image:', file.originalName, 'URL:', imageUrl, 'File:', file);
       return (
         <img 
@@ -266,11 +272,18 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
               src: e.currentTarget.src,
               naturalWidth: e.currentTarget.naturalWidth,
               naturalHeight: e.currentTarget.naturalHeight,
-              complete: e.currentTarget.complete
+              complete: e.currentTarget.complete,
+              error: e.type
             });
-            // Don't hide the image, just show error state
-            e.currentTarget.style.border = '2px solid red';
-            e.currentTarget.alt = `Failed to load: ${file.originalName}`;
+            // Try loading without crossorigin attribute for external URLs
+            if (imageUrl.startsWith('https://res.cloudinary.com')) {
+              console.log('🔄 Retrying Cloudinary image without crossorigin...');
+              e.currentTarget.crossOrigin = '';
+              e.currentTarget.src = imageUrl + '?retry=1';
+            } else {
+              e.currentTarget.style.border = '2px solid red';
+              e.currentTarget.alt = `Failed to load: ${file.originalName}`;
+            }
           }}
           onLoad={() => {
             console.log('🖼️ Image loaded successfully:', imageUrl);
