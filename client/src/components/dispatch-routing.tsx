@@ -366,6 +366,9 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-3">
+                          <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm font-medium">
+                            Job {index + 1}
+                          </span>
                           <span className="font-medium text-lg">{job.projectName}</span>
                           <Badge className={getPriorityColor(job.priority)}>
                             {job.priority}
