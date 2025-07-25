@@ -47,6 +47,7 @@ import { Client } from '@googlemaps/google-maps-services-js';
 import marketResearchRouter from "./marketResearch";
 import { s3Service } from "./s3Service";
 import { fileManager } from "./fileManager";
+import { CloudinaryService } from "./cloudinary";
 
 // Extend Express Request type to include user
 declare global {
@@ -2095,10 +2096,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Image upload specifically for image gallery
+  // Image upload specifically for image gallery (Cloudinary-based)
   app.post("/api/upload/image", requireAuth, imageUpload.single('file'), async (req, res) => {
     try {
-      console.log('Image upload request received:', {
+      console.log('☁️ Cloudinary Image Gallery upload request received:', {
         file: req.file ? 'Present' : 'Missing',
         body: req.body,
         user: req.user?.username
@@ -2111,8 +2112,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const user = getAuthenticatedUser(req);
 
-      // Ensure organization folder structure exists for this organization
-      await ensureOrganizationFolders(user.organizationId);
+      // Check if Cloudinary is configured
+      if (!CloudinaryService.isConfigured()) {
+        console.log('⚠️ Cloudinary not configured for image gallery');
+        return res.status(500).json({ message: "Cloud storage not configured" });
+      }
 
       console.log('Image file details:', {
         filename: req.file.filename,
@@ -2121,49 +2125,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
         size: req.file.size
       });
 
-      // Apply compression to image
-      const originalPath = req.file.path;
-      const compressedFilename = `compressed-${req.file.filename.replace(path.extname(req.file.filename), '.jpg')}`;
-      const compressedPath = path.join(path.dirname(originalPath), compressedFilename);
+      // Upload to Cloudinary with automatic optimization
+      console.log('☁️ Uploading image to Cloudinary...');
+      const fileBuffer = await fs.readFile(req.file.path);
       
-      const compressionResult = await compressImage(originalPath, compressedPath, user.organizationId);
-      
-      let finalFileName = req.file.filename;
-      let finalSize = req.file.size;
-      let finalMimeType = req.file.mimetype;
-      
-      if (compressionResult.success) {
-        finalFileName = compressedFilename;
-        finalMimeType = 'image/jpeg';
-        finalSize = compressionResult.compressedSize!;
-        console.log(`✅ Image Gallery: Compressed to ${(finalSize / 1024 / 1024).toFixed(2)}MB, original preserved at:`, originalPath);
-      } else {
-        console.log(`❌ Image Gallery compression failed: ${compressionResult.error}, using original:`, originalPath);
+      const cloudinaryResult = await CloudinaryService.uploadImage(fileBuffer, {
+        folder: 'image-gallery',
+        filename: req.file.originalname,
+        organizationId: user.organizationId,
+        quality: 85, // High quality for gallery images
+        maxWidth: 2400,
+        maxHeight: 2400
+      });
+
+      if (!cloudinaryResult.success) {
+        console.error('❌ Cloudinary image gallery upload failed:', cloudinaryResult.error);
+        return res.status(500).json({ message: "Failed to upload image to cloud storage: " + cloudinaryResult.error });
       }
 
-      // Save image metadata to database
+      console.log('✅ Cloudinary image gallery upload successful:', cloudinaryResult.secureUrl);
+
+      // Save image metadata to database with Cloudinary URL
       const imageData = {
-        filename: finalFileName,
+        filename: cloudinaryResult.publicId!.split('/').pop() || req.file.originalname,
         originalName: req.file.originalname,
-        mimeType: finalMimeType,
-        size: finalSize,
+        mimeType: cloudinaryResult.format ? `image/${cloudinaryResult.format}` : req.file.mimetype,
+        size: cloudinaryResult.bytes || req.file.size,
         userId: req.user!.id,
         organizationId: user.organizationId,
         projectId: req.body.projectId ? parseInt(req.body.projectId) : null,
         customerId: req.body.customerId ? parseInt(req.body.customerId) : null,
       };
 
-      console.log('Creating image record:', imageData);
+      console.log('Creating Cloudinary image record:', imageData);
       await storage.createImage(imageData);
-      console.log('Image record created successfully');
+      console.log('Image record with Cloudinary URL created successfully');
 
-      // Image uploaded successfully
+      // Clean up temporary file
+      try {
+        await fs.unlink(req.file.path);
+      } catch (cleanupError) {
+        console.warn('⚠️ Failed to clean up temporary file:', cleanupError);
+      }
+
+      // Return Cloudinary URLs
       res.json({
-        message: "Image uploaded successfully",
-        url: `/uploads/org-${user.organizationId}/image_gallery/${finalFileName}`,
+        message: "Image uploaded successfully to cloud storage",
+        url: cloudinaryResult.secureUrl,
+        thumbnailUrl: CloudinaryService.getThumbnailUrl(cloudinaryResult.publicId!),
         filename: req.file.originalname,
-        size: finalSize,
-        mimetype: finalMimeType
+        size: cloudinaryResult.bytes || req.file.size,
+        mimetype: cloudinaryResult.format ? `image/${cloudinaryResult.format}` : req.file.mimetype,
+        cloudinaryPublicId: cloudinaryResult.publicId
       });
     } catch (error: any) {
       console.error('Image upload error:', error);
@@ -3495,9 +3508,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // File uploads (multer for handling multipart/form-data)
+  // File uploads (Cloudinary-based for permanent storage)
   app.post("/api/projects/:id/files", requireAuth, upload.single('file'), async (req, res) => {
-    console.log('🔄 FILE UPLOAD REQUEST RECEIVED');
+    console.log('🔄 CLOUDINARY FILE UPLOAD REQUEST RECEIVED');
     console.log('Project ID:', req.params.id);
     console.log('Has file?', !!req.file);
     console.log('File details:', req.file ? { 
@@ -3517,10 +3530,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const projectId = parseInt(req.params.id);
       const userId = req.user!.id;
       const taskId = req.body.taskId ? parseInt(req.body.taskId) : null;
+      const user = getAuthenticatedUser(req);
+
+      // Check if Cloudinary is configured
+      if (!CloudinaryService.isConfigured()) {
+        console.log('⚠️ Cloudinary not configured, falling back to local storage');
+        return res.status(500).json({ message: "Cloud storage not configured" });
+      }
 
       // Get project settings to check if timestamp overlay is enabled
       const project = await storage.getProjectById(projectId);
-      console.log('=== TIMESTAMP DEBUG ===');
+      console.log('=== TIMESTAMP & CLOUDINARY DEBUG ===');
       console.log('Project ID:', projectId);
       console.log('Project settings:', {
         enableImageTimestamp: project?.enableImageTimestamp,
@@ -3536,7 +3556,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Apply timestamp overlay if it's an image and project has timestamp enabled
       if (req.file.mimetype.startsWith('image/') && project?.enableImageTimestamp) {
-        console.log('Applying timestamp overlay...');
+        console.log('Applying timestamp overlay before Cloudinary upload...');
         try {
           const timestampOptions: TimestampOptions = {
             enableTimestamp: true,
@@ -3559,10 +3579,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             finalFilePath = timestampedPath;
             finalFilename = timestampedFilename;
             console.log('✅ Timestamp overlay applied successfully to:', finalFilename);
-            console.log('Final file path:', finalFilePath);
           } else {
             console.warn('❌ Failed to apply timestamp overlay:', result.error);
-            console.log('Using original file instead');
             // Continue with original file
           }
         } catch (timestampError) {
@@ -3571,50 +3589,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Apply compression to images AFTER timestamp processing
-      let finalFileSize = req.file.size;
-      let finalMimeType = req.file.mimetype;
+      // Upload to Cloudinary with automatic optimization
+      console.log('☁️ Uploading to Cloudinary...');
+      const fileBuffer = await fs.readFile(finalFilePath);
       
+      // Determine folder based on file type
+      let cloudinaryFolder = 'project-files';
       if (req.file.mimetype.startsWith('image/')) {
-        const user = getAuthenticatedUser(req);
-        console.log('🔧 About to apply compression to project file:', finalFilePath);
-        console.log('Original file size:', Math.round(req.file.size / 1024) + ' KB');
-        
-        const compressedFilename = `compressed-${finalFilename.replace(path.extname(finalFilename), '.jpg')}`;
-        const compressedPath = path.join(path.dirname(finalFilePath), compressedFilename);
-        
-        try {
-          const compressionResult = await compressImage(finalFilePath, compressedPath, user.organizationId);
-          
-          if (compressionResult.success) {
-            // Check if compression created a separate file or compressed in place
-            const systemSettings = await storage.getSettingsByCategory('system');
-            const settingsMap = systemSettings.reduce((acc: any, setting: any) => {
-              acc[setting.key] = setting.value;
-              return acc;
-            }, {});
-            const retainFilename = settingsMap['retain_original_filename'] === 'true';
-            
-            // Compression is always applied in place with preserved filename
-            const stats = await fs.stat(finalFilePath);
-            finalFileSize = stats.size;
-            finalMimeType = 'image/jpeg'; // Compression converts to JPEG
-            
-            console.log('✅ Compression applied successfully to:', finalFilename);
-            console.log('Compressed file size:', Math.round(finalFileSize / 1024) + ' KB');
-            console.log('Size reduction:', Math.round((req.file.size - finalFileSize) / req.file.size * 100) + '%');
-            
-            if (finalFileSize <= 1024 * 1024) {
-              console.log('🎯 SUCCESS: Image compressed to under 1MB target');
-            }
-          } else {
-            console.log('⚠️ Compression was not applied, using original file');
-          }
-        } catch (compressionError) {
-          console.error('⚠️ Compression failed, using original file:', compressionError);
-          // Continue with original file if compression fails
-        }
+        cloudinaryFolder = 'project-images';
+      } else if (req.file.mimetype.startsWith('video/')) {
+        cloudinaryFolder = 'project-videos';
+      } else if (req.file.mimetype.includes('pdf') || req.file.mimetype.includes('document')) {
+        cloudinaryFolder = 'project-documents';
       }
+
+      const cloudinaryResult = await CloudinaryService.uploadImage(fileBuffer, {
+        folder: cloudinaryFolder,
+        filename: req.file.originalname,
+        organizationId: user.organizationId,
+        quality: 80, // Good quality with compression
+        maxWidth: 2000,
+        maxHeight: 2000
+      });
+
+      if (!cloudinaryResult.success) {
+        console.error('❌ Cloudinary upload failed:', cloudinaryResult.error);
+        return res.status(500).json({ message: "Failed to upload to cloud storage: " + cloudinaryResult.error });
+      }
+
+      console.log('✅ Cloudinary upload successful:', cloudinaryResult.secureUrl);
 
       // Determine file type based on MIME type
       let fileType = 'other';
@@ -3626,28 +3629,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fileType = 'document';
       }
 
+      // Save file data with Cloudinary URL
       const fileData = {
         projectId,
         taskId,
         uploadedById: userId,
-        fileName: finalFilename,
+        fileName: cloudinaryResult.publicId!.split('/').pop() || req.file.originalname,
         originalName: req.file.originalname,
-        filePath: finalFilePath.replace('./uploads/', 'uploads/'),
-        fileSize: finalFileSize,
-        mimeType: finalMimeType,
+        filePath: cloudinaryResult.secureUrl!, // Use Cloudinary URL instead of local path
+        fileSize: cloudinaryResult.bytes || req.file.size,
+        mimeType: cloudinaryResult.format ? `image/${cloudinaryResult.format}` : req.file.mimetype,
         fileType,
-        description: req.body.description || null,
+        description: req.body.description || `Camera photo taken on ${new Date().toLocaleDateString()} by ${user.firstName} ${user.lastName}`,
       };
 
-      console.log('📝 About to save file data to database:', fileData);
+      console.log('📝 About to save Cloudinary file data to database:', fileData);
       
       const projectFile = await storage.uploadProjectFile(fileData);
       
-      console.log('✅ File saved to database successfully:', projectFile);
-      res.status(201).json(projectFile);
+      console.log('✅ File saved to database with Cloudinary URL successfully:', projectFile);
+      
+      // Clean up temporary files
+      try {
+        await fs.unlink(req.file.path);
+        if (finalFilePath !== req.file.path) {
+          await fs.unlink(finalFilePath);
+        }
+      } catch (cleanupError) {
+        console.warn('⚠️ Failed to clean up temporary files:', cleanupError);
+      }
+
+      res.status(201).json({
+        ...projectFile,
+        cloudinaryUrl: cloudinaryResult.secureUrl,
+        thumbnailUrl: CloudinaryService.getThumbnailUrl(cloudinaryResult.publicId!)
+      });
     } catch (error: any) {
-      console.error("Error uploading file:", error);
-      res.status(500).json({ message: "Failed to upload file" });
+      console.error("Error uploading file to Cloudinary:", error);
+      res.status(500).json({ message: "Failed to upload file: " + error.message });
     }
   });
 
