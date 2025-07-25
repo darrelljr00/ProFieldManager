@@ -250,8 +250,8 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
       : "w-full h-full object-cover transition-transform group-hover:scale-105";
 
     if (file.fileType === 'image') {
-      // Fix URL - filePath already includes leading slash, don't add another
-      const imageUrl = file.filePath.startsWith('/') ? file.filePath : `/${file.filePath}`;
+      // Handle both Cloudinary URLs (https://...) and local paths (/uploads/...)
+      const imageUrl = file.filePath.startsWith('http') ? file.filePath : (file.filePath.startsWith('/') ? file.filePath : `/${file.filePath}`);
       console.log('🖼️ Rendering image:', file.originalName, 'URL:', imageUrl, 'File:', file);
       return (
         <img 
@@ -618,7 +618,7 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
                     size="sm"
                     asChild
                   >
-                    <a href={selectedMedia.filePath.startsWith('/') ? selectedMedia.filePath : `/${selectedMedia.filePath}`} download={selectedMedia.originalName}>
+                    <a href={selectedMedia.filePath.startsWith('http') ? selectedMedia.filePath : (selectedMedia.filePath.startsWith('/') ? selectedMedia.filePath : `/${selectedMedia.filePath}`)} download={selectedMedia.originalName}>
                       <Download className="h-4 w-4" />
                     </a>
                   </Button>
