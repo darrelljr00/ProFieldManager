@@ -463,6 +463,7 @@ export interface IStorage {
   updateVehicleMaintenanceInterval(id: number, organizationId: number, updates: any): Promise<any>;
   deleteVehicleMaintenanceInterval(id: number, organizationId: number): Promise<boolean>;
   createDefaultMaintenanceIntervals(vehicleId: number, organizationId: number): Promise<any[]>;
+  createCustomMaintenanceIntervals(vehicleId: number, organizationId: number, customIntervals: any[]): Promise<any[]>;
   
   // Vehicle Maintenance Record methods
   getVehicleMaintenanceRecords(vehicleId: number, organizationId: number): Promise<any[]>;
@@ -7406,6 +7407,38 @@ export class DatabaseStorage implements IStorage {
       return intervals;
     } catch (error) {
       console.error('Error creating default maintenance intervals:', error);
+      throw error;
+    }
+  }
+
+  async createCustomMaintenanceIntervals(vehicleId: number, organizationId: number, customIntervals: any[]): Promise<any[]> {
+    try {
+      const intervals = [];
+      
+      for (const customInterval of customIntervals) {
+        const intervalData = {
+          vehicleId,
+          organizationId,
+          maintenanceType: customInterval.maintenanceType,
+          intervalDays: customInterval.intervalDays || null,
+          intervalMiles: customInterval.intervalMiles || null,
+          status: 'due'
+        };
+
+        const [interval] = await db
+          .insert(vehicleMaintenanceIntervals)
+          .values({
+            ...intervalData,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          })
+          .returning();
+        intervals.push(interval);
+      }
+      
+      return intervals;
+    } catch (error) {
+      console.error('Error creating custom maintenance intervals:', error);
       throw error;
     }
   }

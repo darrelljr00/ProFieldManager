@@ -12583,6 +12583,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/vehicles/:vehicleId/maintenance/custom", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const vehicleId = parseInt(req.params.vehicleId);
+      const { intervals } = req.body;
+      
+      if (!Array.isArray(intervals) || intervals.length === 0) {
+        return res.status(400).json({ message: "Invalid intervals data provided" });
+      }
+      
+      const createdIntervals = await storage.createCustomMaintenanceIntervals(vehicleId, user.organizationId, intervals);
+      
+      // Broadcast maintenance intervals creation
+      broadcastToWebUsers(user.organizationId, 'maintenance_intervals_created', {
+        vehicleId,
+        intervals: createdIntervals,
+        createdBy: user.firstName || user.username
+      });
+      
+      res.json(createdIntervals);
+    } catch (error: any) {
+      console.error("Error creating custom maintenance intervals:", error);
+      res.status(500).json({ message: "Failed to create custom maintenance intervals" });
+    }
+  });
+
   app.put("/api/vehicles/:vehicleId/maintenance/:intervalId/status", requireAuth, async (req, res) => {
     try {
       const user = getAuthenticatedUser(req);

@@ -10,8 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Car, Edit, Trash2, Calendar, Fuel, MapPin, Settings, CheckCircle, Clock, AlertTriangle } from "lucide-react";
+import { Plus, Car, Edit, Trash2, Calendar, Fuel, MapPin, Settings, CheckCircle, Clock, AlertTriangle, Save } from "lucide-react";
 
 interface Vehicle {
   id: number;
@@ -62,6 +63,16 @@ export function VehicleManagement() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
   const [maintenanceData, setMaintenanceData] = useState<{[vehicleId: number]: MaintenanceInterval[]}>({});
+  const [isMaintenanceSetupOpen, setIsMaintenanceSetupOpen] = useState(false);
+  const [customIntervals, setCustomIntervals] = useState({
+    oilChange: { days: 90, miles: 3000 },
+    tirePressure: { days: 30, miles: 0 },
+    windshieldWashFluid: { days: 60, miles: 0 },
+    oilLevel: { days: 14, miles: 0 },
+    coolantLevel: { days: 30, miles: 0 },
+    tireRotation: { days: 180, miles: 6000 },
+    wiperBlades: { days: 365, miles: 0 }
+  });
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -184,8 +195,8 @@ export function VehicleManagement() {
     }
   }, [vehicles]);
 
-  // Setup maintenance intervals for all vehicles that don't have them
-  const setupAllMaintenanceIntervals = async () => {
+  // Handle custom maintenance setup with user-defined intervals
+  const handleCustomMaintenanceSetup = async () => {
     if (!vehicles || vehicles.length === 0) {
       toast({
         title: "No Vehicles",
@@ -205,21 +216,35 @@ export function VehicleManagement() {
         title: "All Set",
         description: "All vehicles already have maintenance intervals configured.",
       });
+      setIsMaintenanceSetupOpen(false);
       return;
     }
 
     try {
+      // Create custom intervals for each vehicle that needs setup
       for (const vehicle of vehiclesNeedingSetup) {
-        await createDefaultMaintenanceMutation.mutateAsync(vehicle.id);
+        const customIntervalsData = [
+          { maintenanceType: 'oil_change', intervalDays: customIntervals.oilChange.days, intervalMiles: customIntervals.oilChange.miles },
+          { maintenanceType: 'tire_pressure', intervalDays: customIntervals.tirePressure.days, intervalMiles: customIntervals.tirePressure.miles },
+          { maintenanceType: 'windshield_wash_fluid', intervalDays: customIntervals.windshieldWashFluid.days, intervalMiles: customIntervals.windshieldWashFluid.miles },
+          { maintenanceType: 'oil_level', intervalDays: customIntervals.oilLevel.days, intervalMiles: customIntervals.oilLevel.miles },
+          { maintenanceType: 'coolant_level', intervalDays: customIntervals.coolantLevel.days, intervalMiles: customIntervals.coolantLevel.miles },
+          { maintenanceType: 'tire_rotation', intervalDays: customIntervals.tireRotation.days, intervalMiles: customIntervals.tireRotation.miles },
+          { maintenanceType: 'wiper_blades', intervalDays: customIntervals.wiperBlades.days, intervalMiles: customIntervals.wiperBlades.miles }
+        ];
+
+        // Send custom intervals to API
+        await apiRequest("POST", `/api/vehicles/${vehicle.id}/maintenance/custom`, { intervals: customIntervalsData });
       }
       
       toast({
         title: "Success",
-        description: `Set up maintenance intervals for ${vehiclesNeedingSetup.length} vehicle(s).`,
+        description: `Set up custom maintenance intervals for ${vehiclesNeedingSetup.length} vehicle(s).`,
       });
       
       // Refresh maintenance data for all vehicles
       await fetchMaintenanceData();
+      setIsMaintenanceSetupOpen(false);
     } catch (error) {
       console.error('Error setting up maintenance intervals:', error);
       toast({
@@ -318,16 +343,26 @@ export function VehicleManagement() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={setupAllMaintenanceIntervals}
-              disabled={createDefaultMaintenanceMutation.isPending || vehicles.length === 0}
-              className="whitespace-nowrap"
-            >
-              <Settings className="h-4 w-4 mr-2" />
-              {createDefaultMaintenanceMutation.isPending ? "Setting up..." : "Setup All Maintenance"}
-            </Button>
+            <Dialog open={isMaintenanceSetupOpen} onOpenChange={setIsMaintenanceSetupOpen}>
+              <DialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={vehicles.length === 0}
+                  className="whitespace-nowrap"
+                >
+                  <Settings className="h-4 w-4 mr-2" />
+                  Setup All Maintenance
+                </Button>
+              </DialogTrigger>
+              <MaintenanceSetupDialog
+                customIntervals={customIntervals}
+                setCustomIntervals={setCustomIntervals}
+                onSetup={handleCustomMaintenanceSetup}
+                isLoading={createDefaultMaintenanceMutation.isPending}
+                vehicleCount={vehicles.length}
+              />
+            </Dialog>
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
               <DialogTrigger asChild>
                 <Button>
@@ -702,6 +737,155 @@ function VehicleFormDialog({ mode, vehicle, onSubmit, isLoading }: VehicleFormDi
           </Button>
         </DialogFooter>
       </form>
+    </DialogContent>
+  );
+}
+
+interface MaintenanceSetupDialogProps {
+  customIntervals: any;
+  setCustomIntervals: any;
+  onSetup: () => void;
+  isLoading: boolean;
+  vehicleCount: number;
+}
+
+function MaintenanceSetupDialog({ customIntervals, setCustomIntervals, onSetup, isLoading, vehicleCount }: MaintenanceSetupDialogProps) {
+  const maintenanceTypes = [
+    { key: 'oilChange', label: 'Oil Change', defaultDays: 90, defaultMiles: 3000 },
+    { key: 'tirePressure', label: 'Tire Pressure Check', defaultDays: 30, defaultMiles: 0 },
+    { key: 'windshieldWashFluid', label: 'Windshield Wash Fluid', defaultDays: 60, defaultMiles: 0 },
+    { key: 'oilLevel', label: 'Oil Level Check', defaultDays: 14, defaultMiles: 0 },
+    { key: 'coolantLevel', label: 'Coolant Level Check', defaultDays: 30, defaultMiles: 0 },
+    { key: 'tireRotation', label: 'Tire Rotation', defaultDays: 180, defaultMiles: 6000 },
+    { key: 'wiperBlades', label: 'Wiper Blades', defaultDays: 365, defaultMiles: 0 }
+  ];
+
+  const updateInterval = (type: string, field: 'days' | 'miles', value: number) => {
+    setCustomIntervals((prev: any) => ({
+      ...prev,
+      [type]: {
+        ...prev[type],
+        [field]: value
+      }
+    }));
+  };
+
+  const resetToDefaults = () => {
+    const defaultIntervals: any = {};
+    maintenanceTypes.forEach(type => {
+      defaultIntervals[type.key] = {
+        days: type.defaultDays,
+        miles: type.defaultMiles
+      };
+    });
+    setCustomIntervals(defaultIntervals);
+  };
+
+  return (
+    <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+      <DialogHeader>
+        <DialogTitle className="flex items-center gap-2">
+          <Settings className="h-5 w-5" />
+          Setup Maintenance Intervals for All Vehicles
+        </DialogTitle>
+        <p className="text-sm text-muted-foreground">
+          Configure maintenance intervals that will be applied to {vehicleCount} vehicle(s) that don't have intervals set up yet.
+        </p>
+      </DialogHeader>
+
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-medium">Maintenance Schedule</h3>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={resetToDefaults}
+            disabled={isLoading}
+          >
+            Reset to Defaults
+          </Button>
+        </div>
+
+        <div className="grid gap-4">
+          {maintenanceTypes.map((type) => (
+            <div key={type.key} className="border rounded-lg p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-base font-medium">{type.label}</Label>
+                <div className="text-xs text-muted-foreground">
+                  Default: {type.defaultDays} days{type.defaultMiles > 0 ? ` / ${type.defaultMiles.toLocaleString()} miles` : ''}
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor={`${type.key}-days`} className="text-sm">
+                    Interval (Days)
+                  </Label>
+                  <Input
+                    id={`${type.key}-days`}
+                    type="number"
+                    min="1"
+                    max="365"
+                    value={customIntervals[type.key]?.days || type.defaultDays}
+                    onChange={(e) => updateInterval(type.key, 'days', parseInt(e.target.value) || type.defaultDays)}
+                    disabled={isLoading}
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor={`${type.key}-miles`} className="text-sm">
+                    Interval (Miles) - Optional
+                  </Label>
+                  <Input
+                    id={`${type.key}-miles`}
+                    type="number"
+                    min="0"
+                    step="100"
+                    value={customIntervals[type.key]?.miles || type.defaultMiles}
+                    onChange={(e) => updateInterval(type.key, 'miles', parseInt(e.target.value) || 0)}
+                    placeholder="0 = Time-based only"
+                    disabled={isLoading}
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <Separator />
+
+        <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+          <div className="flex items-start gap-3">
+            <Settings className="h-5 w-5 text-blue-600 mt-0.5" />
+            <div className="space-y-1">
+              <h4 className="font-medium text-blue-900 dark:text-blue-100">
+                Maintenance Interval Setup
+              </h4>
+              <p className="text-sm text-blue-800 dark:text-blue-200">
+                These intervals will be applied to all vehicles that don't have maintenance schedules configured yet. 
+                You can set both time-based (days) and mileage-based intervals. The system will track which comes first.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <DialogFooter>
+        <Button
+          variant="outline"
+          onClick={() => setCustomIntervals(customIntervals)}
+          disabled={isLoading}
+        >
+          Cancel
+        </Button>
+        <Button
+          onClick={onSetup}
+          disabled={isLoading}
+        >
+          <Save className="h-4 w-4 mr-2" />
+          {isLoading ? "Setting up..." : "Setup Maintenance Intervals"}
+        </Button>
+      </DialogFooter>
     </DialogContent>
   );
 }
