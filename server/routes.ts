@@ -3613,6 +3613,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Determine file type based on MIME type
+      let fileType = 'other';
+      if (req.file.mimetype.startsWith('image/')) {
+        fileType = 'image';
+      } else if (req.file.mimetype.startsWith('video/')) {
+        fileType = 'video';
+      } else if (req.file.mimetype.includes('pdf') || req.file.mimetype.includes('document')) {
+        fileType = 'document';
+      }
+
       // Upload to Cloudinary
       console.log('☁️ Uploading to Cloudinary...');
       
@@ -3693,16 +3703,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         compressedSize: cloudinaryResult.bytes,
         reduction: req.file.size > 0 ? ((req.file.size - (cloudinaryResult.bytes || 0)) / req.file.size * 100).toFixed(1) + '%' : 'N/A'
       });
-
-      // Determine file type based on MIME type
-      let fileType = 'other';
-      if (req.file.mimetype.startsWith('image/')) {
-        fileType = 'image';
-      } else if (req.file.mimetype.startsWith('video/')) {
-        fileType = 'video';
-      } else if (req.file.mimetype.includes('pdf') || req.file.mimetype.includes('document')) {
-        fileType = 'document';
-      }
 
       // Save file data with Cloudinary URL and compressed size
       const fileData = {
