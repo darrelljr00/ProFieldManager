@@ -258,7 +258,7 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
       } else {
         imageUrl = file.filePath.startsWith('/') ? file.filePath : `/${file.filePath}`;
       }
-      console.log('🖼️ Rendering image:', file.originalName, 'URL:', imageUrl, 'File:', file);
+      console.log('🖼️ Rendering image:', file.originalName, 'URL:', imageUrl, 'Original filePath:', file.filePath, 'File:', file);
       return (
         <img 
           src={imageUrl} 
@@ -266,6 +266,9 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
           className={className}
           style={isLightbox ? { transform: `rotate(${rotation}deg)` } : undefined}
           loading="lazy"
+          onLoad={() => {
+            console.log('✅ Image loaded successfully:', imageUrl);
+          }}
           onError={(e) => {
             console.error('🖼️ Image failed to load:', imageUrl, 'Error event:', e, 'File data:', file);
             console.error('🖼️ Image error details:', {
@@ -275,15 +278,10 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
               complete: e.currentTarget.complete,
               error: e.type
             });
-            // Try loading without crossorigin attribute for external URLs
-            if (imageUrl.startsWith('https://res.cloudinary.com')) {
-              console.log('🔄 Retrying Cloudinary image without crossorigin...');
-              e.currentTarget.crossOrigin = '';
-              e.currentTarget.src = imageUrl + '?retry=1';
-            } else {
-              e.currentTarget.style.border = '2px solid red';
-              e.currentTarget.alt = `Failed to load: ${file.originalName}`;
-            }
+            // Show error state
+            e.currentTarget.style.border = '2px solid red';
+            e.currentTarget.alt = `Failed to load: ${file.originalName}`;
+            console.error('🚨 Final image load failure - check network tab in browser dev tools');
           }}
           onLoad={() => {
             console.log('🖼️ Image loaded successfully:', imageUrl);
