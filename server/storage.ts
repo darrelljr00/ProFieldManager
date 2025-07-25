@@ -11,7 +11,7 @@ import {
   smsMessages, smsTemplates, sharedPhotoLinks, fileSecuritySettings, fileSecurityScans, fileAccessLogs,
   digitalSignatures, documentSignatureFields, departments, employees, employeeDocuments, timeOffRequests, performanceReviews, disciplinaryActions,
   navigationOrder, backupSettings, backupJobs, partsSupplies, partsCategories, inventoryTransactions, stockAlerts,
-  filePermissions, folderPermissions, defaultPermissions
+  filePermissions, folderPermissions, defaultPermissions, userDashboardSettings, dashboardProfiles
 } from "@shared/schema";
 import { marketResearchCompetitors } from "@shared/schema";
 import type { GasCard, InsertGasCard, GasCardAssignment, InsertGasCardAssignment, GasCardUsage, InsertGasCardUsage, GasCardProvider, InsertGasCardProvider } from "@shared/schema";
@@ -179,6 +179,14 @@ export interface IStorage {
   setDefaultPermissions(organizationId: number, userRole: string, resourceType: string, permissions: any): Promise<any>;
   checkFileAccess(userId: number, fileId: number, organizationId: number, action: string): Promise<boolean>;
   checkFolderAccess(userId: number, folderId: number, organizationId: number, action: string): Promise<boolean>;
+  
+  // Dashboard Profile methods
+  getDashboardProfiles(): Promise<any[]>;
+  getDashboardProfile(profileType: string): Promise<any>;
+  createDashboardProfile(profileData: any): Promise<any>;
+  updateDashboardProfile(id: number, updates: any): Promise<any>;
+  updateUserDashboardSettings(userId: number, organizationId: number, settings: any): Promise<any>;
+  applyDashboardProfile(userId: number, organizationId: number, profileType: string): Promise<any>;
   
   // Image methods
   createImage(imageData: any): Promise<any>;
@@ -4820,6 +4828,147 @@ export class DatabaseStorage implements IStorage {
       }
     } catch (error) {
       console.error("Error saving user dashboard settings:", error);
+      throw error;
+    }
+  }
+
+  // Dashboard Profile methods
+  async getDashboardProfiles(): Promise<any[]> {
+    try {
+      return await db.select().from(dashboardProfiles).orderBy(asc(dashboardProfiles.name));
+    } catch (error) {
+      console.error("Error getting dashboard profiles:", error);
+      throw error;
+    }
+  }
+
+  async getDashboardProfile(profileType: string): Promise<any> {
+    try {
+      const [profile] = await db
+        .select()
+        .from(dashboardProfiles)
+        .where(eq(dashboardProfiles.profileType, profileType));
+      return profile;
+    } catch (error) {
+      console.error("Error getting dashboard profile:", error);
+      throw error;
+    }
+  }
+
+  async createDashboardProfile(profileData: any): Promise<any> {
+    try {
+      const [profile] = await db
+        .insert(dashboardProfiles)
+        .values(profileData)
+        .returning();
+      return profile;
+    } catch (error) {
+      console.error("Error creating dashboard profile:", error);
+      throw error;
+    }
+  }
+
+  async updateDashboardProfile(id: number, updates: any): Promise<any> {
+    try {
+      const [profile] = await db
+        .update(dashboardProfiles)
+        .set({
+          ...updates,
+          updatedAt: new Date(),
+        })
+        .where(eq(dashboardProfiles.id, id))
+        .returning();
+      return profile;
+    } catch (error) {
+      console.error("Error updating dashboard profile:", error);
+      throw error;
+    }
+  }
+
+  async updateUserDashboardSettings(userId: number, organizationId: number, settings: any): Promise<any> {
+    try {
+      // Check if settings already exist for this user
+      const [existing] = await db.select()
+        .from(userDashboardSettings)
+        .where(and(
+          eq(userDashboardSettings.userId, userId),
+          eq(userDashboardSettings.organizationId, organizationId)
+        ));
+
+      const settingsData = {
+        userId,
+        organizationId,
+        profileType: settings.profileType || 'user',
+        settings: JSON.stringify(settings),
+        updatedAt: new Date()
+      };
+
+      if (existing) {
+        // Update existing settings
+        const [updated] = await db.update(userDashboardSettings)
+          .set(settingsData)
+          .where(and(
+            eq(userDashboardSettings.userId, userId),
+            eq(userDashboardSettings.organizationId, organizationId)
+          ))
+          .returning();
+        return updated;
+      } else {
+        // Insert new settings
+        const [created] = await db.insert(userDashboardSettings)
+          .values({
+            ...settingsData,
+            createdAt: new Date()
+          })
+          .returning();
+        return created;
+      }
+    } catch (error) {
+      console.error("Error updating user dashboard settings:", error);
+      throw error;
+    }
+  }
+
+  async applyDashboardProfile(userId: number, organizationId: number, profileType: string): Promise<any> {
+    try {
+      // Get the profile template
+      const profile = await this.getDashboardProfile(profileType);
+      if (!profile) {
+        throw new Error(`Dashboard profile not found: ${profileType}`);
+      }
+
+      // Create settings based on profile
+      const profileSettings = {
+        profileType,
+        showStatsCards: profile.showStatsCards,
+        showRevenueChart: profile.showRevenueChart,
+        showRecentActivity: profile.showRecentActivity,
+        showRecentInvoices: profile.showRecentInvoices,
+        showNotifications: profile.showNotifications,
+        showQuickActions: profile.showQuickActions,
+        showProjectsOverview: profile.showProjectsOverview,
+        showWeatherWidget: profile.showWeatherWidget,
+        showTasksWidget: profile.showTasksWidget,
+        showCalendarWidget: profile.showCalendarWidget,
+        showMessagesWidget: profile.showMessagesWidget,
+        showTeamOverview: profile.showTeamOverview,
+        layoutType: profile.layoutType,
+        gridColumns: profile.gridColumns,
+        widgetSize: profile.widgetSize,
+        colorTheme: profile.colorTheme,
+        animationsEnabled: true,
+        statsCardsCount: 4,
+        recentItemsCount: 5,
+        refreshInterval: 30,
+        showWelcomeMessage: true,
+        compactMode: false,
+        widgetOrder: ['stats', 'revenue', 'activity', 'invoices']
+      };
+
+      // Apply the profile settings
+      return await this.updateUserDashboardSettings(userId, organizationId, profileSettings);
+    } catch (error) {
+      console.error("Error applying dashboard profile:", error);
       throw error;
     }
   }

@@ -594,9 +594,47 @@ export const timeClockSettings = pgTable("time_clock_settings", {
 export const userDashboardSettings = pgTable("user_dashboard_settings", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  
+  // Dashboard Profile System
+  profileType: text("profile_type").default("user"), // user, manager, admin, hr
+  
   settings: jsonb("settings").notNull(), // JSON blob of dashboard settings
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Dashboard Profile Templates
+export const dashboardProfiles = pgTable("dashboard_profiles", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(), // "User Dashboard", "Manager Dashboard", etc.
+  profileType: text("profile_type").notNull(), // user, manager, admin, hr
+  description: text("description"),
+  isDefault: boolean("is_default").default(false),
+  isSystem: boolean("is_system").default(true), // System-defined profiles
+  
+  // Default widget visibility for this profile
+  showStatsCards: boolean("show_stats_cards").default(true),
+  showRevenueChart: boolean("show_revenue_chart").default(true),
+  showRecentActivity: boolean("show_recent_activity").default(true),
+  showRecentInvoices: boolean("show_recent_invoices").default(true),
+  showNotifications: boolean("show_notifications").default(true),
+  showQuickActions: boolean("show_quick_actions").default(true),
+  showProjectsOverview: boolean("show_projects_overview").default(false),
+  showWeatherWidget: boolean("show_weather_widget").default(false),
+  showTasksWidget: boolean("show_tasks_widget").default(false),
+  showCalendarWidget: boolean("show_calendar_widget").default(false),
+  showMessagesWidget: boolean("show_messages_widget").default(false),
+  showTeamOverview: boolean("show_team_overview").default(false),
+  
+  // Default layout settings
+  layoutType: text("layout_type").default("grid"),
+  gridColumns: integer("grid_columns").default(3),
+  widgetSize: text("widget_size").default("medium"),
+  colorTheme: text("color_theme").default("default"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // Expense tracking tables

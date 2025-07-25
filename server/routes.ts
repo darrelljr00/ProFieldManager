@@ -38,7 +38,7 @@ import {
   expenses, expenseCategories, expenseReports, gasCards, 
   gasCardAssignments, leads, calendarJobs, messages,
   images, settings, organizations, userSessions, vendors,
-  soundSettings
+  soundSettings, userDashboardSettings, dashboardProfiles
 } from "@shared/schema";
 import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull } from "drizzle-orm";
 import { DocuSignService, getDocuSignConfig } from "./docusign";
@@ -5022,6 +5022,153 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error updating user dashboard settings:", error);
       res.status(500).json({ message: "Failed to update user dashboard settings" });
+    }
+  });
+
+  // Dashboard Profile API endpoints
+  app.get("/api/dashboard/profiles", requireAuth, async (req, res) => {
+    try {
+      const profiles = await storage.getDashboardProfiles();
+      res.json(profiles);
+    } catch (error: any) {
+      console.error("Error fetching dashboard profiles:", error);
+      res.status(500).json({ message: "Failed to fetch dashboard profiles" });
+    }
+  });
+
+  app.get("/api/dashboard/profiles/:profileType", requireAuth, async (req, res) => {
+    try {
+      const profileType = req.params.profileType;
+      const profile = await storage.getDashboardProfile(profileType);
+      
+      if (!profile) {
+        return res.status(404).json({ message: "Dashboard profile not found" });
+      }
+      
+      res.json(profile);
+    } catch (error: any) {
+      console.error("Error fetching dashboard profile:", error);
+      res.status(500).json({ message: "Failed to fetch dashboard profile" });
+    }
+  });
+
+  app.post("/api/dashboard/apply-profile", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const { profileType } = req.body;
+      
+      if (!profileType) {
+        return res.status(400).json({ message: "Profile type is required" });
+      }
+
+      const settings = await storage.applyDashboardProfile(user.id, user.organizationId, profileType);
+      res.json({ 
+        message: "Dashboard profile applied successfully",
+        settings 
+      });
+    } catch (error: any) {
+      console.error("Error applying dashboard profile:", error);
+      res.status(500).json({ message: "Failed to apply dashboard profile" });
+    }
+  });
+
+  app.put("/api/dashboard/user-settings", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const settings = req.body;
+      
+      const updatedSettings = await storage.updateUserDashboardSettings(user.id, user.organizationId, settings);
+      res.json({ 
+        message: "Dashboard settings updated successfully",
+        settings: updatedSettings 
+      });
+    } catch (error: any) {
+      console.error("Error updating dashboard settings:", error);
+      res.status(500).json({ message: "Failed to update dashboard settings" });
+    }
+  });
+
+  app.get("/api/dashboard/user-settings", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      
+      // Check if user has custom settings
+      const [userSettings] = await db.select()
+        .from(userDashboardSettings)
+        .where(and(
+          eq(userDashboardSettings.userId, user.id),
+          eq(userDashboardSettings.organizationId, user.organizationId)
+        ));
+      
+      if (userSettings) {
+        const parsedSettings = JSON.parse(userSettings.settings);
+        res.json({
+          ...parsedSettings,
+          profileType: userSettings.profileType || 'user'
+        });
+      } else {
+        // Return default user profile settings
+        const defaultProfile = await storage.getDashboardProfile('user');
+        if (defaultProfile) {
+          res.json({
+            profileType: 'user',
+            showStatsCards: defaultProfile.showStatsCards,
+            showRevenueChart: defaultProfile.showRevenueChart,
+            showRecentActivity: defaultProfile.showRecentActivity,
+            showRecentInvoices: defaultProfile.showRecentInvoices,
+            showNotifications: defaultProfile.showNotifications,
+            showQuickActions: defaultProfile.showQuickActions,
+            showProjectsOverview: defaultProfile.showProjectsOverview,
+            showWeatherWidget: defaultProfile.showWeatherWidget,
+            showTasksWidget: defaultProfile.showTasksWidget,
+            showCalendarWidget: defaultProfile.showCalendarWidget,
+            showMessagesWidget: defaultProfile.showMessagesWidget,
+            showTeamOverview: defaultProfile.showTeamOverview,
+            layoutType: defaultProfile.layoutType,
+            gridColumns: defaultProfile.gridColumns,
+            widgetSize: defaultProfile.widgetSize,
+            colorTheme: defaultProfile.colorTheme,
+            animationsEnabled: true,
+            statsCardsCount: 4,
+            recentItemsCount: 5,
+            refreshInterval: 30,
+            showWelcomeMessage: true,
+            compactMode: false,
+            widgetOrder: ['stats', 'revenue', 'activity', 'invoices']
+          });
+        } else {
+          // Fallback to basic defaults
+          res.json({
+            profileType: 'user',
+            showStatsCards: true,
+            showRevenueChart: false,
+            showRecentActivity: true,
+            showRecentInvoices: false,
+            showNotifications: true,
+            showQuickActions: true,
+            showProjectsOverview: false,
+            showWeatherWidget: true,
+            showTasksWidget: false,
+            showCalendarWidget: true,
+            showMessagesWidget: true,
+            showTeamOverview: false,
+            layoutType: 'grid',
+            gridColumns: 3,
+            widgetSize: 'medium',
+            colorTheme: 'default',
+            animationsEnabled: true,
+            statsCardsCount: 4,
+            recentItemsCount: 5,
+            refreshInterval: 30,
+            showWelcomeMessage: true,
+            compactMode: false,
+            widgetOrder: ['stats', 'revenue', 'activity', 'invoices']
+          });
+        }
+      }
+    } catch (error: any) {
+      console.error("Error fetching dashboard settings:", error);
+      res.status(500).json({ message: "Failed to fetch dashboard settings" });
     }
   });
 

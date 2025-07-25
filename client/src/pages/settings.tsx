@@ -222,7 +222,7 @@ export default function Settings() {
   });
 
   const { data: dashboardSettings, isLoading: dashboardLoading } = useQuery<DashboardSettings>({
-    queryKey: ["/api/settings/dashboard"],
+    queryKey: ["/api/dashboard/user-settings"],
   });
 
   const { data: weatherSettings, isLoading: weatherLoading } = useQuery<WeatherSettings>({
@@ -414,6 +414,29 @@ export default function Settings() {
       toast({
         title: "Error",
         description: error.message || "Failed to save dashboard settings",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Dashboard Profile mutation
+  const applyProfileMutation = useMutation({
+    mutationFn: (data: { profileType: string }) =>
+      apiRequest("POST", "/api/dashboard/apply-profile", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/user-settings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/dashboard"] });
+      toast({
+        title: "Success",
+        description: "Dashboard profile applied successfully",
+      });
+      // Reload the page to show updated dashboard
+      window.location.reload();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to apply dashboard profile",
         variant: "destructive",
       });
     },
@@ -2236,6 +2259,103 @@ export default function Settings() {
                         </div>
                       </div>
                     )}
+
+                    {/* Dashboard Profile Section */}
+                    <div className="space-y-6">
+                      <div>
+                        <h3 className="text-lg font-medium">Dashboard Profile</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Choose a pre-configured dashboard layout for your role.
+                        </p>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="flex items-center space-x-2 p-3 border rounded-lg">
+                            <input
+                              type="radio"
+                              id="profile-user"
+                              name="dashboardProfile"
+                              value="user"
+                              className="text-blue-600"
+                              defaultChecked={(dashboardSettings as any)?.profileType === 'user' || !(dashboardSettings as any)?.profileType}
+                            />
+                            <label htmlFor="profile-user" className="cursor-pointer flex-1">
+                              <div className="font-medium">User Dashboard</div>
+                              <div className="text-xs text-muted-foreground">Basic widgets for field workers</div>
+                            </label>
+                          </div>
+                          
+                          <div className="flex items-center space-x-2 p-3 border rounded-lg">
+                            <input
+                              type="radio"
+                              id="profile-manager"
+                              name="dashboardProfile"
+                              value="manager"
+                              className="text-blue-600"
+                              defaultChecked={(dashboardSettings as any)?.profileType === 'manager'}
+                            />
+                            <label htmlFor="profile-manager" className="cursor-pointer flex-1">
+                              <div className="font-medium">Manager Dashboard</div>
+                              <div className="text-xs text-muted-foreground">Enhanced view for supervisors</div>
+                            </label>
+                          </div>
+                          
+                          <div className="flex items-center space-x-2 p-3 border rounded-lg">
+                            <input
+                              type="radio"
+                              id="profile-admin"
+                              name="dashboardProfile"
+                              value="admin"
+                              className="text-blue-600"
+                              defaultChecked={(dashboardSettings as any)?.profileType === 'admin'}
+                            />
+                            <label htmlFor="profile-admin" className="cursor-pointer flex-1">
+                              <div className="font-medium">Admin Dashboard</div>
+                              <div className="text-xs text-muted-foreground">Complete overview for administrators</div>
+                            </label>
+                          </div>
+                          
+                          <div className="flex items-center space-x-2 p-3 border rounded-lg">
+                            <input
+                              type="radio"
+                              id="profile-hr"
+                              name="dashboardProfile"
+                              value="hr"
+                              className="text-blue-600"
+                              defaultChecked={(dashboardSettings as any)?.profileType === 'hr'}
+                            />
+                            <label htmlFor="profile-hr" className="cursor-pointer flex-1">
+                              <div className="font-medium">HR Dashboard</div>
+                              <div className="text-xs text-muted-foreground">People-focused HR tools</div>
+                            </label>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const selectedProfile = document.querySelector('input[name="dashboardProfile"]:checked') as HTMLInputElement;
+                              if (selectedProfile) {
+                                const profileType = selectedProfile.value;
+                                applyProfileMutation.mutate({ profileType });
+                              }
+                            }}
+                            disabled={applyProfileMutation.isPending}
+                          >
+                            {applyProfileMutation.isPending ? 'Applying...' : 'Apply Profile'}
+                          </Button>
+                          <span className="text-xs text-muted-foreground">
+                            This will override your current widget settings
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <Separator />
 
                     {/* Widget Visibility Section */}
                     <div className="space-y-6">
