@@ -252,11 +252,14 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
     if (file.fileType === 'image') {
       // Handle both Cloudinary URLs (https://...) and local paths (/uploads/...)
       let imageUrl;
-      if (file.filePath.startsWith('https://res.cloudinary.com')) {
+      console.log('🔍 Checking filePath:', file.filePath, 'Starts with cloudinary?', file.filePath.startsWith('https://res.cloudinary.com'));
+      if (file.filePath && file.filePath.includes('cloudinary.com')) {
         // Use proxy for Cloudinary images to avoid mixed content issues
         imageUrl = `/api/cloudinary-proxy?url=${encodeURIComponent(file.filePath)}`;
+        console.log('🌤️ Using Cloudinary proxy URL:', imageUrl);
       } else {
         imageUrl = file.filePath.startsWith('/') ? file.filePath : `/${file.filePath}`;
+        console.log('📁 Using local file URL:', imageUrl);
       }
       console.log('🖼️ Rendering image:', file.originalName, 'URL:', imageUrl, 'Original filePath:', file.filePath, 'File:', file);
       return (
@@ -270,9 +273,12 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
             console.log('✅ Image loaded successfully:', imageUrl);
           }}
           onError={(e) => {
-            console.error('🖼️ Image failed to load:', imageUrl, 'Error event:', e, 'File data:', file);
-            console.error('🖼️ Image error details:', {
-              src: e.currentTarget.src,
+            console.error('🚨 IMAGE LOAD FAILED');
+            console.error('🖼️ Attempted URL:', e.currentTarget.src);
+            console.error('🖼️ Original filePath:', file.filePath);
+            console.error('🖼️ Generated imageUrl:', imageUrl);
+            console.error('🖼️ File data:', file);
+            console.error('🖼️ Error details:', {
               naturalWidth: e.currentTarget.naturalWidth,
               naturalHeight: e.currentTarget.naturalHeight,
               complete: e.currentTarget.complete,
@@ -281,7 +287,6 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
             // Show error state
             e.currentTarget.style.border = '2px solid red';
             e.currentTarget.alt = `Failed to load: ${file.originalName}`;
-            console.error('🚨 Final image load failure - check network tab in browser dev tools');
           }}
           onLoad={() => {
             console.log('🖼️ Image loaded successfully:', imageUrl);
