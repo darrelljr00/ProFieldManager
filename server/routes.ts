@@ -11999,12 +11999,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user!.id;
       const organizationId = req.user!.organizationId;
-      const { name, description, color } = req.body;
+      const { name, description, color, templates } = req.body;
 
       if (!name?.trim()) {
         return res.status(400).json({ message: "Task group name is required" });
       }
 
+      if (!templates || templates.length === 0) {
+        return res.status(400).json({ message: "At least one task template is required" });
+      }
+
+      // Create the task group
       const taskGroup = await storage.createTaskGroup({
         name: name.trim(),
         description: description?.trim() || '',
@@ -12014,7 +12019,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isActive: true
       });
 
-      res.json(taskGroup);
+      // Create task templates for the group
+      const createdTemplates = [];
+      for (const template of templates) {
+        if (!template.title?.trim()) {
+          continue; // Skip templates without titles
+        }
+        
+        const createdTemplate = await storage.createTaskTemplate({
+          taskGroupId: taskGroup.id,
+          title: template.title.trim(),
+          description: template.description?.trim() || '',
+          type: template.type || 'checkbox',
+          isRequired: template.isRequired || false,
+          priority: template.priority || 'medium',
+          order: template.order || 0
+        });
+        createdTemplates.push(createdTemplate);
+      }
+
+      res.json({
+        ...taskGroup,
+        templates: createdTemplates,
+        taskCount: createdTemplates.length
+      });
     } catch (error: any) {
       console.error("Error creating task group:", error);
       res.status(500).json({ message: "Failed to create task group" });
@@ -12072,6 +12100,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error adding task group to project:", error);
       res.status(500).json({ message: "Failed to add task group to project" });
+    }
+  });
+
+  // Get task templates for a specific task group
+  app.get("/api/task-groups/:id/templates", requireAuth, async (req, res) => {
+    try {
+      const taskGroupId = parseInt(req.params.id);
+      const organizationId = req.user!.organizationId;
+      
+      // Verify the task group belongs to the user's organization
+      const taskGroup = await storage.getTaskGroup(taskGroupId, organizationId);
+      if (!taskGroup) {
+        return res.status(404).json({ message: "Task group not found" });
+      }
+      
+      const templates = await storage.getTaskTemplates(taskGroupId);
+      res.json(templates);
+    } catch (error: any) {
+      console.error("Error fetching task templates:", error);
+      res.status(500).json({ message: "Failed to fetch task templates" });
+    }
+  });
+
+  // Assign task group to projects
+  app.post("/api/projects/:id/task-groups", requireAuth, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const { taskGroupId } = req.body;
+      const userId = req.user!.id;
+      const organizationId = req.user!.organizationId;
+
+      if (!taskGroupId) {
+        return res.status(400).json({ message: "Task group ID is required" });
+      }
+
+      // Verify the task group exists and belongs to the user's organization
+      const taskGroup = await storage.getTaskGroup(taskGroupId, organizationId);
+      if (!taskGroup) {
+        return res.status(404).json({ message: "Task group not found" });
+      }
+
+      // Create tasks from the task group
+      const createdTasks = await storage.createTasksFromGroup(projectId, taskGroupId, userId);
+      
+      res.json({ 
+        message: `Successfully added ${createdTasks.length} tasks from group "${taskGroup.name}"`,
+        tasksAdded: createdTasks.length,
+        tasks: createdTasks
+      });
+    } catch (error: any) {
+      console.error("Error assigning task group to project:", error);
+      res.status(500).json({ message: "Failed to assign task group to project" });
     }
   });
 

@@ -161,6 +161,7 @@ function AuthenticatedApp() {
           <Route path="/human-resources" component={HumanResources} />
           <Route path="/file-manager" component={FileManager} />
           <Route path="/my-tasks" component={MyTasks} />
+          <Route path="/task-groups" component={TaskGroups} />
           <Route path="/gps-tracking" component={GpsTracking} />
           <Route path="/weather" component={Weather} />
           <Route path="/time-clock" component={TimeClock} />
