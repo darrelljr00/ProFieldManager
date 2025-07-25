@@ -7831,16 +7831,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { date, assignedUserId } = req.query;
       const userId = req.user!.id;
+      const user = await storage.getUser(userId);
       
-      // Get projects with location information for dispatch
-      const projects = await storage.getProjectsWithLocation(userId);
+      if (!user) {
+        return res.status(401).json({ message: 'User not found' });
+      }
+
+      // Get projects with location information and scheduled dates
+      const projects = await storage.getProjectsWithLocation({ 
+        userId: userId,
+        organizationId: user.organizationId 
+      });
+      
+      // Filter to only include projects with scheduled dates
+      let scheduledProjects = projects.filter(project => project.scheduledDate);
       
       // Filter by date if provided
-      let filteredProjects = projects;
       if (date) {
         const targetDate = new Date(date as string);
-        filteredProjects = projects.filter(project => {
-          if (!project.scheduledDate) return false;
+        scheduledProjects = scheduledProjects.filter(project => {
           const projectDate = new Date(project.scheduledDate);
           return projectDate.toDateString() === targetDate.toDateString();
         });
@@ -7849,18 +7858,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Filter by assigned user if provided
       if (assignedUserId) {
         const assignedId = parseInt(assignedUserId as string);
-        filteredProjects = filteredProjects.filter(project => 
+        scheduledProjects = scheduledProjects.filter(project => 
           project.users.some((userAssignment: any) => userAssignment.user.id === assignedId)
         );
       }
 
       // Transform to dispatch job format
-      const dispatchJobs = filteredProjects.map(project => ({
+      const dispatchJobs = scheduledProjects.map(project => ({
         id: project.id,
         projectId: project.id,
         projectName: project.name,
         description: project.description,
-        address: `${project.address}, ${project.city}, ${project.state} ${project.zipCode}`,
+        address: `${project.address || ''}, ${project.city || ''}, ${project.state || ''} ${project.zipCode || ''}`.trim(),
         lat: 0, // Will be geocoded on frontend
         lng: 0, // Will be geocoded on frontend
         scheduledDate: project.scheduledDate,
@@ -7868,8 +7877,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         estimatedDuration: project.estimatedDuration || 120,
         assignedTo: project.users?.[0]?.user?.username || 'Unassigned',
         assignedUserId: project.users?.[0]?.user?.id,
-        priority: project.priority as 'low' | 'medium' | 'high' | 'urgent',
-        status: project.status as 'scheduled' | 'in-progress' | 'completed',
+        priority: (project.priority || 'medium') as 'low' | 'medium' | 'high' | 'urgent',
+        status: (project.status || 'scheduled') as 'scheduled' | 'in-progress' | 'completed',
         currentLocation: project.currentLocation,
         dispatchNotes: project.dispatchNotes,
         updatedAt: project.updatedAt
