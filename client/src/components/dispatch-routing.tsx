@@ -81,8 +81,9 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
     queryKey: ['/api/dispatch/scheduled-jobs', selectedDateState],
     queryFn: async () => {
       const response = await apiRequest('GET', `/api/dispatch/scheduled-jobs?date=${selectedDateState}`);
-      console.log('API Response for date', selectedDateState, ':', response);
-      return response as unknown as JobLocation[];
+      const data = await response.json();
+      console.log('API Response for date', selectedDateState, ':', data);
+      return data as JobLocation[];
     },
   });
 
