@@ -3534,8 +3534,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Check if Cloudinary is configured
       if (!CloudinaryService.isConfigured()) {
-        console.log('⚠️ Cloudinary not configured, falling back to local storage');
-        return res.status(500).json({ message: "Cloud storage not configured" });
+        console.log('⚠️ Cloudinary not configured, using local storage fallback');
+        // Fall back to local storage instead of failing
       }
 
       // Get project settings to check if timestamp overlay is enabled
@@ -3589,35 +3589,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Upload to Cloudinary with automatic optimization
-      console.log('☁️ Uploading to Cloudinary...');
-      const fileBuffer = await fs.readFile(finalFilePath);
-      
-      // Determine folder based on file type
-      let cloudinaryFolder = 'project-files';
-      if (req.file.mimetype.startsWith('image/')) {
-        cloudinaryFolder = 'project-images';
-      } else if (req.file.mimetype.startsWith('video/')) {
-        cloudinaryFolder = 'project-videos';
-      } else if (req.file.mimetype.includes('pdf') || req.file.mimetype.includes('document')) {
-        cloudinaryFolder = 'project-documents';
+      let finalCloudinaryUrl = null;
+      let finalFileSize = req.file.size;
+      let finalMimeType = req.file.mimetype;
+
+      // Try Cloudinary upload first, fall back to local storage if it fails
+      if (CloudinaryService.isConfigured()) {
+        try {
+          console.log('☁️ Uploading to Cloudinary...');
+          const fileBuffer = await fs.readFile(finalFilePath);
+          
+          // Determine folder based on file type
+          let cloudinaryFolder = 'project-files';
+          if (req.file.mimetype.startsWith('image/')) {
+            cloudinaryFolder = 'project-images';
+          } else if (req.file.mimetype.startsWith('video/')) {
+            cloudinaryFolder = 'project-videos';
+          } else if (req.file.mimetype.includes('pdf') || req.file.mimetype.includes('document')) {
+            cloudinaryFolder = 'project-documents';
+          }
+
+          const cloudinaryResult = await CloudinaryService.uploadImage(fileBuffer, {
+            folder: cloudinaryFolder,
+            filename: req.file.originalname,
+            organizationId: user.organizationId,
+            quality: 80,
+            maxWidth: 2000,
+            maxHeight: 2000
+          });
+
+          if (cloudinaryResult.success) {
+            console.log('✅ Cloudinary upload successful:', cloudinaryResult.secureUrl);
+            finalCloudinaryUrl = cloudinaryResult.secureUrl;
+            finalFileSize = cloudinaryResult.bytes || req.file.size;
+            finalMimeType = cloudinaryResult.format ? `image/${cloudinaryResult.format}` : req.file.mimetype;
+          } else {
+            console.warn('⚠️ Cloudinary upload failed, using local storage:', cloudinaryResult.error);
+          }
+        } catch (cloudinaryError) {
+          console.warn('⚠️ Cloudinary upload error, using local storage:', cloudinaryError);
+        }
       }
-
-      const cloudinaryResult = await CloudinaryService.uploadImage(fileBuffer, {
-        folder: cloudinaryFolder,
-        filename: req.file.originalname,
-        organizationId: user.organizationId,
-        quality: 80, // Good quality with compression
-        maxWidth: 2000,
-        maxHeight: 2000
-      });
-
-      if (!cloudinaryResult.success) {
-        console.error('❌ Cloudinary upload failed:', cloudinaryResult.error);
-        return res.status(500).json({ message: "Failed to upload to cloud storage: " + cloudinaryResult.error });
-      }
-
-      console.log('✅ Cloudinary upload successful:', cloudinaryResult.secureUrl);
 
       // Determine file type based on MIME type
       let fileType = 'other';
@@ -3629,40 +3641,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fileType = 'document';
       }
 
-      // Save file data with Cloudinary URL
+      // Save file data (Cloudinary URL if successful, local path if fallback)
       const fileData = {
         projectId,
         taskId,
         uploadedById: userId,
-        fileName: cloudinaryResult.publicId!.split('/').pop() || req.file.originalname,
+        fileName: finalFilename,
         originalName: req.file.originalname,
-        filePath: cloudinaryResult.secureUrl!, // Use Cloudinary URL instead of local path
-        fileSize: cloudinaryResult.bytes || req.file.size,
-        mimeType: cloudinaryResult.format ? `image/${cloudinaryResult.format}` : req.file.mimetype,
+        filePath: finalCloudinaryUrl || finalFilePath.replace('./uploads/', 'uploads/'),
+        fileSize: finalFileSize,
+        mimeType: finalMimeType,
         fileType,
         description: req.body.description || `Camera photo taken on ${new Date().toLocaleDateString()} by ${user.firstName} ${user.lastName}`,
       };
 
-      console.log('📝 About to save Cloudinary file data to database:', fileData);
+      console.log('📝 About to save file data to database:', fileData);
       
       const projectFile = await storage.uploadProjectFile(fileData);
       
-      console.log('✅ File saved to database with Cloudinary URL successfully:', projectFile);
+      console.log('✅ File saved to database successfully:', projectFile);
       
-      // Clean up temporary files
-      try {
-        await fs.unlink(req.file.path);
-        if (finalFilePath !== req.file.path) {
-          await fs.unlink(finalFilePath);
+      // Clean up temporary files only if using Cloudinary
+      if (finalCloudinaryUrl) {
+        try {
+          await fs.unlink(req.file.path);
+          if (finalFilePath !== req.file.path) {
+            await fs.unlink(finalFilePath);
+          }
+        } catch (cleanupError) {
+          console.warn('⚠️ Failed to clean up temporary files:', cleanupError);
         }
-      } catch (cleanupError) {
-        console.warn('⚠️ Failed to clean up temporary files:', cleanupError);
       }
 
       res.status(201).json({
         ...projectFile,
-        cloudinaryUrl: cloudinaryResult.secureUrl,
-        thumbnailUrl: CloudinaryService.getThumbnailUrl(cloudinaryResult.publicId!)
+        isCloudStored: !!finalCloudinaryUrl,
+        cloudinaryUrl: finalCloudinaryUrl
       });
     } catch (error: any) {
       console.error("Error uploading file to Cloudinary:", error);

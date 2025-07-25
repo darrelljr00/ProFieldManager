@@ -40,37 +40,49 @@ export class CloudinaryService {
     try {
       const { folder, filename, organizationId, quality = 80, maxWidth = 2000, maxHeight = 2000 } = options;
       
-      // Create organization-specific folder path
-      const folderPath = `pro-field-manager/org-${organizationId}/${folder}`;
-      
-      // Generate public ID with timestamp for uniqueness
-      const timestamp = Date.now();
-      const publicId = filename 
-        ? `${folderPath}/${timestamp}-${filename.replace(/\.[^/.]+$/, '')}`
-        : `${folderPath}/${timestamp}-upload`;
+      console.log('🔧 Cloudinary Debug - Starting upload with options:', {
+        folder,
+        filename,
+        organizationId,
+        quality,
+        maxWidth,
+        maxHeight,
+        bufferSize: buffer.length
+      });
 
-      // Upload with automatic optimization
+      // Check configuration
+      console.log('🔧 Cloudinary Config Check:', {
+        cloud_name: process.env.CLOUDINARY_CLOUD_NAME ? 'SET' : 'MISSING',
+        api_key: process.env.CLOUDINARY_API_KEY ? 'SET' : 'MISSING',
+        api_secret: process.env.CLOUDINARY_API_SECRET ? 'SET' : 'MISSING'
+      });
+      
+      // Create organization-specific folder path
+      const folderPath = `org-${organizationId}/${folder}`;
+      
+      // Generate public ID with timestamp for uniqueness  
+      const timestamp = Date.now();
+      const cleanFilename = filename ? filename.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9-_]/g, '-') : 'upload';
+      const publicId = `${folderPath}/${timestamp}-${cleanFilename}`;
+      
+      console.log('🔧 Cloudinary Upload Parameters:', {
+        folderPath,
+        publicId,
+        timestamp
+      });
+
+      // Try minimal upload parameters to avoid signature issues
+      const uploadOptions = {
+        resource_type: 'image' as const,
+        quality: 'auto:good' as const,
+        transformation: `w_${maxWidth},h_${maxHeight},c_limit`
+      };
+      
+      console.log('🔧 Simplified upload options:', uploadOptions);
+
       const result: UploadApiResponse = await new Promise((resolve, reject) => {
         cloudinary.uploader.upload_stream(
-          {
-            public_id: publicId,
-            folder: folderPath,
-            resource_type: 'image',
-            format: 'jpg', // Convert to JPG for optimal compression
-            quality: quality,
-            transformation: [
-              {
-                width: maxWidth,
-                height: maxHeight,
-                crop: 'limit',
-                fetch_format: 'auto',
-                quality: 'auto:good'
-              }
-            ],
-            overwrite: false,
-            unique_filename: true,
-            use_filename: false
-          },
+          uploadOptions,
           (error, result) => {
             if (error) {
               console.error('Cloudinary upload error:', error);
