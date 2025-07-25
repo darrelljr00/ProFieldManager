@@ -63,7 +63,7 @@ export class CloudinaryService {
       // Generate public ID with timestamp for uniqueness  
       const timestamp = Date.now();
       const cleanFilename = filename ? filename.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9-_]/g, '-') : 'upload';
-      const publicId = `${folderPath}/${timestamp}-${cleanFilename}`;
+      const publicId = `${timestamp}-${cleanFilename}`;
       
       console.log('🔧 Cloudinary Upload Parameters:', {
         folderPath,
