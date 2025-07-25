@@ -7839,8 +7839,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get projects with location information and scheduled dates
       const projects = await storage.getProjectsWithLocation({ 
-        userId: userId,
-        organizationId: user.organizationId 
+        userId: userId
       });
       
       // Filter to only include projects with scheduled dates

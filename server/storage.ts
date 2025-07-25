@@ -1161,17 +1161,19 @@ export class DatabaseStorage implements IStorage {
       // Build where conditions based on filters
       const whereConditions = [];
       
-      if (filters.organizationId) {
-        whereConditions.push(eq(projects.organizationId, filters.organizationId));
-      }
-      
       if (filters.userId) {
         // Get user to check if they're admin
         const user = await this.getUser(filters.userId);
         if (user?.role !== 'admin') {
           whereConditions.push(eq(projects.userId, filters.userId));
         } else if (user.organizationId) {
-          whereConditions.push(eq(projects.organizationId, user.organizationId));
+          // For admin users, filter by organization through user table join
+          // We'll need to get users from the same organization
+          const orgUsers = await this.getUsersByOrganization(user.organizationId);
+          const orgUserIds = orgUsers.map(u => u.id);
+          if (orgUserIds.length > 0) {
+            whereConditions.push(inArray(projects.userId, orgUserIds));
+          }
         }
       }
 
