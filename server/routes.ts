@@ -7690,7 +7690,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Start location is required' });
       }
 
-      const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
+      const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY || 'AIzaSyCy9lgjvkKV3vS_U1IIcmxJUC8q8yJaASI';
       if (!GOOGLE_MAPS_API_KEY) {
         return res.status(500).json({ message: 'Google Maps API key not configured' });
       }
@@ -7938,7 +7938,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const routeLegs = [];
     
     // If Google Maps API key is available, use real traffic data
-    if (apiKey && process.env.GOOGLE_MAPS_API_KEY) {
+    if (apiKey) {
       try {
         const { Client } = await import('@googlemaps/google-maps-services-js');
         const client = new Client({});
@@ -11088,7 +11088,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const geocodeResponse = await client.reverseGeocode({
           params: {
             latlng: { lat: parseFloat(latitude), lng: parseFloat(longitude) },
-            key: process.env.GOOGLE_MAPS_API_KEY || 'your-api-key-here',
+            key: process.env.GOOGLE_MAPS_API_KEY || 'AIzaSyCy9lgjvkKV3vS_U1IIcmxJUC8q8yJaASI',
           },
         });
 

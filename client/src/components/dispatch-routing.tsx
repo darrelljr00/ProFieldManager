@@ -280,7 +280,7 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
       <html>
         <head>
           <title>Dispatch Routing - ${count} Map${count > 1 ? 's' : ''}</title>
-          <script src="https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&libraries=places"></script>
+          <script src="https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'AIzaSyCy9lgjvkKV3vS_U1IIcmxJUC8q8yJaASI'}&libraries=places"></script>
           <style>
             body { 
               margin: 0; 
