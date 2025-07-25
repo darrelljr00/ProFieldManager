@@ -3620,24 +3620,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Pre-compress large images before Cloudinary upload
+      // Pre-compress large images before Cloudinary upload (ensure under 10MB limit)
       let uploadBuffer = await fs.readFile(finalFilePath);
       let uploadFilePath = finalFilePath;
       
-      if (req.file.mimetype.startsWith('image/') && req.file.size > 1024 * 1024) {
+      // Compress if file is over 8MB to ensure Cloudinary compatibility (10MB limit)
+      if (req.file.mimetype.startsWith('image/') && req.file.size > 8 * 1024 * 1024) {
         console.log('🔄 Pre-compressing large image before Cloudinary upload...');
         try {
           const compressionResult = await compressImage(finalFilePath, {
             enableImageCompression: true,
-            imageQuality: 60, // More aggressive compression for Cloudinary upload
+            imageQuality: 50, // Aggressive compression for very large files
             preserve_original_images: true,
             retain_original_filename: false
           });
           
           if (compressionResult.success && compressionResult.compressedFilePath) {
-            console.log(`✅ Pre-compression successful: ${req.file.size} → ${compressionResult.compressedSize} bytes`);
             uploadBuffer = await fs.readFile(compressionResult.compressedFilePath);
             uploadFilePath = compressionResult.compressedFilePath;
+            console.log(`✅ Pre-compression successful: ${req.file.size} → ${compressionResult.compressedSize} bytes`);
+            
+            // If still over 10MB after compression, apply more aggressive compression
+            if (uploadBuffer.length > 10 * 1024 * 1024) {
+              console.log('🔄 Still over 10MB, applying maximum compression...');
+              const maxCompressionResult = await compressImage(compressionResult.compressedFilePath, {
+                enableImageCompression: true,
+                imageQuality: 30, // Very aggressive compression
+                preserve_original_images: true,
+                retain_original_filename: false
+              });
+              
+              if (maxCompressionResult.success && maxCompressionResult.compressedFilePath) {
+                uploadBuffer = await fs.readFile(maxCompressionResult.compressedFilePath);
+                uploadFilePath = maxCompressionResult.compressedFilePath;
+                console.log('✅ Maximum compression applied, final size:', uploadBuffer.length, 'bytes');
+              }
+            }
           }
         } catch (compressionError) {
           console.warn('⚠️ Pre-compression failed, using original:', compressionError);
