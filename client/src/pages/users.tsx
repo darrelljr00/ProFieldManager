@@ -113,6 +113,13 @@ type User = {
   canAccessReports?: boolean;
   canAccessSettings?: boolean;
   profilePicture?: string;
+  // HR-specific permissions
+  canViewHREmployees?: boolean;
+  canEditHREmployees?: boolean;
+  canViewAllEmployees?: boolean;
+  canEditAllEmployees?: boolean;
+  canViewOwnHRProfile?: boolean;
+  canEditOwnHRProfile?: boolean;
 };
 
 export default function UsersPage() {
@@ -602,10 +609,11 @@ export default function UsersPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="permissions">Permissions</TabsTrigger>
           <TabsTrigger value="tab-access">Tab Access</TabsTrigger>
+          <TabsTrigger value="hr-settings">HR Settings</TabsTrigger>
         </TabsList>
 
         <TabsContent value="users" className="space-y-6">
@@ -1967,6 +1975,232 @@ export default function UsersPage() {
                         <strong>Note:</strong> Tab access controls determine which navigation sections users can see and access. 
                         Users without access to specific tabs will not see those menu items in their navigation.
                       </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="hr-settings" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Human Resource Settings
+              </CardTitle>
+              <CardDescription>
+                Configure role-based permissions for HR functionality and employee management
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                {/* Permission Rules Overview */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">User</h4>
+                    <p className="text-sm text-blue-700 dark:text-blue-300">Can only see their own HR profile</p>
+                  </div>
+                  <div className="p-4 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800">
+                    <h4 className="font-semibold text-green-900 dark:text-green-100 mb-2">Manager</h4>
+                    <p className="text-sm text-green-700 dark:text-green-300">Can see all HR employees in their organization</p>
+                  </div>
+                  <div className="p-4 bg-purple-50 dark:bg-purple-950 rounded-lg border border-purple-200 dark:border-purple-800">
+                    <h4 className="font-semibold text-purple-900 dark:text-purple-100 mb-2">HR</h4>
+                    <p className="text-sm text-purple-700 dark:text-purple-300">Can see all employees and make changes</p>
+                  </div>
+                  <div className="p-4 bg-red-50 dark:bg-red-950 rounded-lg border border-red-200 dark:border-red-800">
+                    <h4 className="font-semibold text-red-900 dark:text-red-100 mb-2">Admin</h4>
+                    <p className="text-sm text-red-700 dark:text-red-300">Can see all employees and make changes including other HR</p>
+                  </div>
+                </div>
+
+                {/* HR Permissions Table */}
+                <div>
+                  <h3 className="text-lg font-medium mb-4">HR Permissions by User</h3>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>User</TableHead>
+                        <TableHead>Role</TableHead>
+                        <TableHead>View HR Employees</TableHead>
+                        <TableHead>Edit HR Employees</TableHead>
+                        <TableHead>View All Employees</TableHead>
+                        <TableHead>Edit All Employees</TableHead>
+                        <TableHead>View Own HR Profile</TableHead>
+                        <TableHead>Edit Own HR Profile</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredUsers?.map((user: any) => {
+                        // Determine default permissions based on role
+                        const getDefaultHRPermission = (permissionType: string) => {
+                          switch (user.role) {
+                            case 'admin':
+                              return true; // Admin can do everything
+                            case 'hr':
+                              switch (permissionType) {
+                                case 'canViewHREmployees':
+                                case 'canEditHREmployees':
+                                case 'canViewAllEmployees':
+                                case 'canEditAllEmployees':
+                                case 'canViewOwnHRProfile':
+                                case 'canEditOwnHRProfile':
+                                  return true;
+                                default:
+                                  return false;
+                              }
+                            case 'manager':
+                              switch (permissionType) {
+                                case 'canViewHREmployees':
+                                case 'canViewOwnHRProfile':
+                                  return true;
+                                default:
+                                  return false;
+                              }
+                            case 'user':
+                              switch (permissionType) {
+                                case 'canViewOwnHRProfile':
+                                  return true;
+                                default:
+                                  return false;
+                              }
+                            default:
+                              return false;
+                          }
+                        };
+
+                        return (
+                          <TableRow key={user.id}>
+                            <TableCell>
+                              <div>
+                                <div className="font-medium">{user.firstName} {user.lastName}</div>
+                                <div className="text-sm text-muted-foreground">{user.email}</div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={
+                                user.role === 'admin' ? 'destructive' : 
+                                user.role === 'hr' ? 'default' : 
+                                user.role === 'manager' ? 'secondary' : 
+                                'outline'
+                              }>
+                                {user.role.toUpperCase()}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Switch
+                                checked={user.canViewHREmployees ?? getDefaultHRPermission('canViewHREmployees')}
+                                onCheckedChange={(checked) => 
+                                  updateUserPermissionsMutation.mutate({
+                                    userId: user.id,
+                                    permissions: { canViewHREmployees: checked }
+                                  })
+                                }
+                                disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Switch
+                                checked={user.canEditHREmployees ?? getDefaultHRPermission('canEditHREmployees')}
+                                onCheckedChange={(checked) => 
+                                  updateUserPermissionsMutation.mutate({
+                                    userId: user.id,
+                                    permissions: { canEditHREmployees: checked }
+                                  })
+                                }
+                                disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Switch
+                                checked={user.canViewAllEmployees ?? getDefaultHRPermission('canViewAllEmployees')}
+                                onCheckedChange={(checked) => 
+                                  updateUserPermissionsMutation.mutate({
+                                    userId: user.id,
+                                    permissions: { canViewAllEmployees: checked }
+                                  })
+                                }
+                                disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Switch
+                                checked={user.canEditAllEmployees ?? getDefaultHRPermission('canEditAllEmployees')}
+                                onCheckedChange={(checked) => 
+                                  updateUserPermissionsMutation.mutate({
+                                    userId: user.id,
+                                    permissions: { canEditAllEmployees: checked }
+                                  })
+                                }
+                                disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Switch
+                                checked={user.canViewOwnHRProfile ?? getDefaultHRPermission('canViewOwnHRProfile')}
+                                onCheckedChange={(checked) => 
+                                  updateUserPermissionsMutation.mutate({
+                                    userId: user.id,
+                                    permissions: { canViewOwnHRProfile: checked }
+                                  })
+                                }
+                                disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Switch
+                                checked={user.canEditOwnHRProfile ?? getDefaultHRPermission('canEditOwnHRProfile')}
+                                onCheckedChange={(checked) => 
+                                  updateUserPermissionsMutation.mutate({
+                                    userId: user.id,
+                                    permissions: { canEditOwnHRProfile: checked }
+                                  })
+                                }
+                                disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
+                              />
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                  
+                  <div className="mt-6 p-4 bg-muted rounded-lg">
+                    <h4 className="font-medium mb-2">HR Permission Descriptions:</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-muted-foreground">
+                      <div><strong>View HR Employees:</strong> Can see other HR team members' profiles</div>
+                      <div><strong>Edit HR Employees:</strong> Can modify HR employee information</div>
+                      <div><strong>View All Employees:</strong> Can see all organization employees</div>
+                      <div><strong>Edit All Employees:</strong> Can modify any employee information</div>
+                      <div><strong>View Own HR Profile:</strong> Can view their own HR profile</div>
+                      <div><strong>Edit Own HR Profile:</strong> Can modify their own HR profile</div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Role-Based Default Permissions:</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
+                      <div className="text-blue-700 dark:text-blue-300">
+                        <strong>User:</strong><br/>
+                        • View/Edit Own Profile Only
+                      </div>
+                      <div className="text-blue-700 dark:text-blue-300">
+                        <strong>Manager:</strong><br/>
+                        • View HR Employees<br/>
+                        • View/Edit Own Profile
+                      </div>
+                      <div className="text-blue-700 dark:text-blue-300">
+                        <strong>HR:</strong><br/>
+                        • All Employee Access<br/>
+                        • Full Edit Permissions
+                      </div>
+                      <div className="text-blue-700 dark:text-blue-300">
+                        <strong>Admin:</strong><br/>
+                        • Full System Access<br/>
+                        • Override All Restrictions
+                      </div>
                     </div>
                   </div>
                 </div>

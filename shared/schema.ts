@@ -230,6 +230,13 @@ export const users = pgTable("users", {
   canAccessAdminSettings: boolean("can_access_admin_settings").default(false),
   canAccessHR: boolean("can_access_hr").default(false),
   canAccessMarketResearch: boolean("can_access_market_research").default(true),
+  // HR-specific permissions
+  canViewHREmployees: boolean("can_view_hr_employees").default(false),
+  canEditHREmployees: boolean("can_edit_hr_employees").default(false),
+  canViewAllEmployees: boolean("can_view_all_employees").default(false),
+  canEditAllEmployees: boolean("can_edit_all_employees").default(false),
+  canViewOwnHRProfile: boolean("can_view_own_hr_profile").default(true),
+  canEditOwnHRProfile: boolean("can_edit_own_hr_profile").default(false),
   lastLoginAt: timestamp("last_login_at"),
   passwordResetToken: text("password_reset_token"),
   passwordResetExpires: timestamp("password_reset_expires"),
