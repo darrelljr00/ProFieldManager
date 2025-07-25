@@ -2621,3 +2621,100 @@ export type StockAlert = typeof stockAlerts.$inferSelect;
 export type InsertStockAlert = z.infer<typeof insertStockAlertSchema>;
 export type PartsCategory = typeof partsCategories.$inferSelect;
 export type InsertPartsCategory = z.infer<typeof insertPartsCategorySchema>;
+
+// File and Folder Permissions System
+export const filePermissions = pgTable("file_permissions", {
+  id: serial("id").primaryKey(),
+  fileId: integer("file_id").notNull().references(() => fileManager.id, { onDelete: "cascade" }),
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }),
+  userRole: text("user_role"), // admin, manager, user - alternative to specific user
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  
+  // Permission levels
+  canView: boolean("can_view").default(false),
+  canDownload: boolean("can_download").default(false),
+  canEdit: boolean("can_edit").default(false),
+  canDelete: boolean("can_delete").default(false),
+  canShare: boolean("can_share").default(false),
+  canMove: boolean("can_move").default(false),
+  
+  // Metadata
+  grantedBy: integer("granted_by").notNull().references(() => users.id),
+  expiresAt: timestamp("expires_at"), // Optional expiration
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const folderPermissions = pgTable("folder_permissions", {
+  id: serial("id").primaryKey(),
+  folderId: integer("folder_id").notNull().references(() => fileFolders.id, { onDelete: "cascade" }),
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }),
+  userRole: text("user_role"), // admin, manager, user - alternative to specific user
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  
+  // Permission levels
+  canView: boolean("can_view").default(false),
+  canUpload: boolean("can_upload").default(false),
+  canCreateSubfolder: boolean("can_create_subfolder").default(false),
+  canEdit: boolean("can_edit").default(false),
+  canDelete: boolean("can_delete").default(false),
+  canMove: boolean("can_move").default(false),
+  
+  // Inheritance settings
+  inheritPermissions: boolean("inherit_permissions").default(true),
+  applyToSubfolders: boolean("apply_to_subfolders").default(false),
+  
+  // Metadata
+  grantedBy: integer("granted_by").notNull().references(() => users.id),
+  expiresAt: timestamp("expires_at"), // Optional expiration
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Default permissions for files and folders by role
+export const defaultPermissions = pgTable("default_permissions", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  userRole: text("user_role").notNull(), // admin, manager, user
+  resourceType: text("resource_type").notNull(), // file, folder
+  
+  // Default permission levels
+  canView: boolean("can_view").default(true),
+  canDownload: boolean("can_download").default(true),
+  canEdit: boolean("can_edit").default(false),
+  canDelete: boolean("can_delete").default(false),
+  canShare: boolean("can_share").default(false),
+  canMove: boolean("can_move").default(false),
+  canUpload: boolean("can_upload").default(false), // Folder only
+  canCreateSubfolder: boolean("can_create_subfolder").default(false), // Folder only
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Zod schemas for permissions
+export const insertFilePermissionSchema = createInsertSchema(filePermissions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertFolderPermissionSchema = createInsertSchema(folderPermissions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertDefaultPermissionSchema = createInsertSchema(defaultPermissions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Types
+export type FilePermission = typeof filePermissions.$inferSelect;
+export type InsertFilePermission = z.infer<typeof insertFilePermissionSchema>;
+export type FolderPermission = typeof folderPermissions.$inferSelect;
+export type InsertFolderPermission = z.infer<typeof insertFolderPermissionSchema>;
+export type DefaultPermission = typeof defaultPermissions.$inferSelect;
+export type InsertDefaultPermission = z.infer<typeof insertDefaultPermissionSchema>;

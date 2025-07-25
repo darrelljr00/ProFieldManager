@@ -10,7 +10,8 @@ import {
   inspectionTemplates, inspectionItems, inspectionRecords, inspectionResponses, inspectionNotifications,
   smsMessages, smsTemplates, sharedPhotoLinks, fileSecuritySettings, fileSecurityScans, fileAccessLogs,
   digitalSignatures, documentSignatureFields, departments, employees, employeeDocuments, timeOffRequests, performanceReviews, disciplinaryActions,
-  navigationOrder, backupSettings, backupJobs, partsSupplies, partsCategories, inventoryTransactions, stockAlerts
+  navigationOrder, backupSettings, backupJobs, partsSupplies, partsCategories, inventoryTransactions, stockAlerts,
+  filePermissions, folderPermissions, defaultPermissions
 } from "@shared/schema";
 import { marketResearchCompetitors } from "@shared/schema";
 import type { GasCard, InsertGasCard, GasCardAssignment, InsertGasCardAssignment, GasCardUsage, InsertGasCardUsage, GasCardProvider, InsertGasCardProvider } from "@shared/schema";
@@ -162,6 +163,22 @@ export interface IStorage {
   // Drag and drop methods
   moveFileToFolder(fileId: number, folderId: number | null, userId: number): Promise<{ file: any; previousFolderId: number | null }>;
   undoFileMove(fileId: number, previousFolderId: number | null, userId: number): Promise<any>;
+  
+  // File and Folder Permissions methods
+  getFilePermissions(fileId: number, organizationId: number): Promise<any[]>;
+  getFolderPermissions(folderId: number, organizationId: number): Promise<any[]>;
+  createFilePermission(permissionData: any): Promise<any>;
+  createFolderPermission(permissionData: any): Promise<any>;
+  updateFilePermission(id: number, updates: any): Promise<any>;
+  updateFolderPermission(id: number, updates: any): Promise<any>;
+  deleteFilePermission(id: number): Promise<boolean>;
+  deleteFolderPermission(id: number): Promise<boolean>;
+  getUserFilePermissions(userId: number, fileId: number, organizationId: number): Promise<any>;
+  getUserFolderPermissions(userId: number, folderId: number, organizationId: number): Promise<any>;
+  getDefaultPermissions(organizationId: number): Promise<any[]>;
+  setDefaultPermissions(organizationId: number, userRole: string, resourceType: string, permissions: any): Promise<any>;
+  checkFileAccess(userId: number, fileId: number, organizationId: number, action: string): Promise<boolean>;
+  checkFolderAccess(userId: number, folderId: number, organizationId: number, action: string): Promise<boolean>;
   
   // Image methods
   createImage(imageData: any): Promise<any>;
@@ -6398,6 +6415,446 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error creating tasks from group:', error);
       throw error;
+    }
+  }
+
+  // File and Folder Permissions methods
+  async getFilePermissions(fileId: number, organizationId: number): Promise<any[]> {
+    try {
+      return await db
+        .select({
+          id: filePermissions.id,
+          fileId: filePermissions.fileId,
+          userId: filePermissions.userId,
+          userRole: filePermissions.userRole,
+          canView: filePermissions.canView,
+          canDownload: filePermissions.canDownload,
+          canEdit: filePermissions.canEdit,
+          canDelete: filePermissions.canDelete,
+          canShare: filePermissions.canShare,
+          canMove: filePermissions.canMove,
+          grantedBy: filePermissions.grantedBy,
+          expiresAt: filePermissions.expiresAt,
+          createdAt: filePermissions.createdAt,
+          // User details if specific user
+          userName: users.firstName,
+          userLastName: users.lastName,
+          userEmail: users.email
+        })
+        .from(filePermissions)
+        .leftJoin(users, eq(filePermissions.userId, users.id))
+        .where(
+          and(
+            eq(filePermissions.fileId, fileId),
+            eq(filePermissions.organizationId, organizationId)
+          )
+        )
+        .orderBy(filePermissions.createdAt);
+    } catch (error) {
+      console.error('Error getting file permissions:', error);
+      throw error;
+    }
+  }
+
+  async getFolderPermissions(folderId: number, organizationId: number): Promise<any[]> {
+    try {
+      return await db
+        .select({
+          id: folderPermissions.id,
+          folderId: folderPermissions.folderId,
+          userId: folderPermissions.userId,
+          userRole: folderPermissions.userRole,
+          canView: folderPermissions.canView,
+          canUpload: folderPermissions.canUpload,
+          canEdit: folderPermissions.canEdit,
+          canDelete: folderPermissions.canDelete,
+          canShare: folderPermissions.canShare,
+          canMove: folderPermissions.canMove,
+          canManagePermissions: folderPermissions.canManagePermissions,
+          grantedBy: folderPermissions.grantedBy,
+          expiresAt: folderPermissions.expiresAt,
+          createdAt: folderPermissions.createdAt,
+          // User details if specific user
+          userName: users.firstName,
+          userLastName: users.lastName,
+          userEmail: users.email
+        })
+        .from(folderPermissions)
+        .leftJoin(users, eq(folderPermissions.userId, users.id))
+        .where(
+          and(
+            eq(folderPermissions.folderId, folderId),
+            eq(folderPermissions.organizationId, organizationId)
+          )
+        )
+        .orderBy(folderPermissions.createdAt);
+    } catch (error) {
+      console.error('Error getting folder permissions:', error);
+      throw error;
+    }
+  }
+
+  async createFilePermission(permissionData: any): Promise<any> {
+    try {
+      const [permission] = await db
+        .insert(filePermissions)
+        .values({
+          ...permissionData,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+        .returning();
+      
+      return permission;
+    } catch (error) {
+      console.error('Error creating file permission:', error);
+      throw error;
+    }
+  }
+
+  async createFolderPermission(permissionData: any): Promise<any> {
+    try {
+      const [permission] = await db
+        .insert(folderPermissions)
+        .values({
+          ...permissionData,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+        .returning();
+      
+      return permission;
+    } catch (error) {
+      console.error('Error creating folder permission:', error);
+      throw error;
+    }
+  }
+
+  async updateFilePermission(id: number, updates: any): Promise<any> {
+    try {
+      const [permission] = await db
+        .update(filePermissions)
+        .set({
+          ...updates,
+          updatedAt: new Date()
+        })
+        .where(eq(filePermissions.id, id))
+        .returning();
+      
+      return permission;
+    } catch (error) {
+      console.error('Error updating file permission:', error);
+      throw error;
+    }
+  }
+
+  async updateFolderPermission(id: number, updates: any): Promise<any> {
+    try {
+      const [permission] = await db
+        .update(folderPermissions)
+        .set({
+          ...updates,
+          updatedAt: new Date()
+        })
+        .where(eq(folderPermissions.id, id))
+        .returning();
+      
+      return permission;
+    } catch (error) {
+      console.error('Error updating folder permission:', error);
+      throw error;
+    }
+  }
+
+  async deleteFilePermission(id: number): Promise<boolean> {
+    try {
+      const result = await db
+        .delete(filePermissions)
+        .where(eq(filePermissions.id, id));
+      
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error('Error deleting file permission:', error);
+      throw error;
+    }
+  }
+
+  async deleteFolderPermission(id: number): Promise<boolean> {
+    try {
+      const result = await db
+        .delete(folderPermissions)
+        .where(eq(folderPermissions.id, id));
+      
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error('Error deleting folder permission:', error);
+      throw error;
+    }
+  }
+
+  async getUserFilePermissions(userId: number, fileId: number, organizationId: number): Promise<any> {
+    try {
+      // Get user role first
+      const user = await this.getUser(userId);
+      if (!user) return null;
+
+      // Check for specific user permission
+      const [specificPermission] = await db
+        .select()
+        .from(filePermissions)
+        .where(
+          and(
+            eq(filePermissions.fileId, fileId),
+            eq(filePermissions.userId, userId),
+            eq(filePermissions.organizationId, organizationId)
+          )
+        )
+        .limit(1);
+
+      if (specificPermission) {
+        return specificPermission;
+      }
+
+      // Check for role-based permission
+      const [rolePermission] = await db
+        .select()
+        .from(filePermissions)
+        .where(
+          and(
+            eq(filePermissions.fileId, fileId),
+            eq(filePermissions.userRole, user.role),
+            eq(filePermissions.organizationId, organizationId),
+            isNull(filePermissions.userId)
+          )
+        )
+        .limit(1);
+
+      return rolePermission || null;
+    } catch (error) {
+      console.error('Error getting user file permissions:', error);
+      throw error;
+    }
+  }
+
+  async getUserFolderPermissions(userId: number, folderId: number, organizationId: number): Promise<any> {
+    try {
+      // Get user role first
+      const user = await this.getUser(userId);
+      if (!user) return null;
+
+      // Check for specific user permission
+      const [specificPermission] = await db
+        .select()
+        .from(folderPermissions)
+        .where(
+          and(
+            eq(folderPermissions.folderId, folderId),
+            eq(folderPermissions.userId, userId),
+            eq(folderPermissions.organizationId, organizationId)
+          )
+        )
+        .limit(1);
+
+      if (specificPermission) {
+        return specificPermission;
+      }
+
+      // Check for role-based permission
+      const [rolePermission] = await db
+        .select()
+        .from(folderPermissions)
+        .where(
+          and(
+            eq(folderPermissions.folderId, folderId),
+            eq(folderPermissions.userRole, user.role),
+            eq(folderPermissions.organizationId, organizationId),
+            isNull(folderPermissions.userId)
+          )
+        )
+        .limit(1);
+
+      return rolePermission || null;
+    } catch (error) {
+      console.error('Error getting user folder permissions:', error);
+      throw error;
+    }
+  }
+
+  async getDefaultPermissions(organizationId: number): Promise<any[]> {
+    try {
+      return await db
+        .select()
+        .from(defaultPermissions)
+        .where(eq(defaultPermissions.organizationId, organizationId))
+        .orderBy(defaultPermissions.userRole, defaultPermissions.resourceType);
+    } catch (error) {
+      console.error('Error getting default permissions:', error);
+      throw error;
+    }
+  }
+
+  async setDefaultPermissions(organizationId: number, userRole: string, resourceType: string, permissions: any): Promise<any> {
+    try {
+      // Check if default permission already exists
+      const [existing] = await db
+        .select()
+        .from(defaultPermissions)
+        .where(
+          and(
+            eq(defaultPermissions.organizationId, organizationId),
+            eq(defaultPermissions.userRole, userRole),
+            eq(defaultPermissions.resourceType, resourceType)
+          )
+        )
+        .limit(1);
+
+      if (existing) {
+        // Update existing
+        const [updated] = await db
+          .update(defaultPermissions)
+          .set({
+            ...permissions,
+            updatedAt: new Date()
+          })
+          .where(eq(defaultPermissions.id, existing.id))
+          .returning();
+        
+        return updated;
+      } else {
+        // Create new
+        const [created] = await db
+          .insert(defaultPermissions)
+          .values({
+            organizationId,
+            userRole,
+            resourceType,
+            ...permissions,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          })
+          .returning();
+        
+        return created;
+      }
+    } catch (error) {
+      console.error('Error setting default permissions:', error);
+      throw error;
+    }
+  }
+
+  async checkFileAccess(userId: number, fileId: number, organizationId: number, action: string): Promise<boolean> {
+    try {
+      // Get user to check role
+      const user = await this.getUser(userId);
+      if (!user) return false;
+
+      // Admins have full access
+      if (user.role === 'admin') return true;
+
+      // Get file permissions
+      const permissions = await this.getUserFilePermissions(userId, fileId, organizationId);
+      
+      if (!permissions) {
+        // No specific permissions, check default permissions
+        const [defaultPerm] = await db
+          .select()
+          .from(defaultPermissions)
+          .where(
+            and(
+              eq(defaultPermissions.organizationId, organizationId),
+              eq(defaultPermissions.userRole, user.role),
+              eq(defaultPermissions.resourceType, 'file')
+            )
+          )
+          .limit(1);
+        
+        if (defaultPerm) {
+          switch (action) {
+            case 'view': return defaultPerm.canView || false;
+            case 'download': return defaultPerm.canDownload || false;
+            case 'edit': return defaultPerm.canEdit || false;
+            case 'delete': return defaultPerm.canDelete || false;
+            case 'share': return defaultPerm.canShare || false;
+            case 'move': return defaultPerm.canMove || false;
+            default: return false;
+          }
+        }
+        
+        return false; // No permissions found
+      }
+
+      // Check specific action permission
+      switch (action) {
+        case 'view': return permissions.canView || false;
+        case 'download': return permissions.canDownload || false;
+        case 'edit': return permissions.canEdit || false;
+        case 'delete': return permissions.canDelete || false;
+        case 'share': return permissions.canShare || false;
+        case 'move': return permissions.canMove || false;
+        default: return false;
+      }
+    } catch (error) {
+      console.error('Error checking file access:', error);
+      return false;
+    }
+  }
+
+  async checkFolderAccess(userId: number, folderId: number, organizationId: number, action: string): Promise<boolean> {
+    try {
+      // Get user to check role
+      const user = await this.getUser(userId);
+      if (!user) return false;
+
+      // Admins have full access
+      if (user.role === 'admin') return true;
+
+      // Get folder permissions
+      const permissions = await this.getUserFolderPermissions(userId, folderId, organizationId);
+      
+      if (!permissions) {
+        // No specific permissions, check default permissions
+        const [defaultPerm] = await db
+          .select()
+          .from(defaultPermissions)
+          .where(
+            and(
+              eq(defaultPermissions.organizationId, organizationId),
+              eq(defaultPermissions.userRole, user.role),
+              eq(defaultPermissions.resourceType, 'folder')
+            )
+          )
+          .limit(1);
+        
+        if (defaultPerm) {
+          switch (action) {
+            case 'view': return defaultPerm.canView || false;
+            case 'upload': return defaultPerm.canUpload || false;
+            case 'edit': return defaultPerm.canEdit || false;
+            case 'delete': return defaultPerm.canDelete || false;
+            case 'share': return defaultPerm.canShare || false;
+            case 'move': return defaultPerm.canMove || false;
+            case 'manage_permissions': return defaultPerm.canManagePermissions || false;
+            default: return false;
+          }
+        }
+        
+        return false; // No permissions found
+      }
+
+      // Check specific action permission
+      switch (action) {
+        case 'view': return permissions.canView || false;
+        case 'upload': return permissions.canUpload || false;
+        case 'edit': return permissions.canEdit || false;
+        case 'delete': return permissions.canDelete || false;
+        case 'share': return permissions.canShare || false;
+        case 'move': return permissions.canMove || false;
+        case 'manage_permissions': return permissions.canManagePermissions || false;
+        default: return false;
+      }
+    } catch (error) {
+      console.error('Error checking folder access:', error);
+      return false;
     }
   }
 }

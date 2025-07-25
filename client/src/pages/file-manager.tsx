@@ -33,11 +33,14 @@ import {
   Search,
   Filter,
   X,
-  Undo
+  Undo,
+  Shield
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import SignatureDialog from "@/components/signature-dialog";
 import { DocumentFieldEditor } from "@/components/document-field-editor";
+import { FilePermissionsDialog } from "@/components/permissions/FilePermissionsDialog";
+import { FolderPermissionsDialog } from "@/components/permissions/FolderPermissionsDialog";
 
 interface FileItem {
   id: number;
@@ -89,6 +92,7 @@ export default function FileManager() {
   const [createFileDialogOpen, setCreateFileDialogOpen] = useState(false);
   const [editFileDialogOpen, setEditFileDialogOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
+  const [selectedFolder, setSelectedFolder] = useState<Folder | null>(null);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [folderName, setFolderName] = useState("");
   const [folderDescription, setFolderDescription] = useState("");
@@ -100,6 +104,8 @@ export default function FileManager() {
   const [newFileName, setNewFileName] = useState("");
   const [newFileContent, setNewFileContent] = useState("");
   const [editingFileContent, setEditingFileContent] = useState("");
+  const [filePermissionsDialogOpen, setFilePermissionsDialogOpen] = useState(false);
+  const [folderPermissionsDialogOpen, setFolderPermissionsDialogOpen] = useState(false);
 
   // Search and Filter states
   const [searchTerm, setSearchTerm] = useState("");
@@ -1021,6 +1027,14 @@ export default function FileManager() {
                             <Edit className="mr-2 h-4 w-4" />
                             Rename
                           </DropdownMenuItem>
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedFolder(folder);
+                            setFolderPermissionsDialogOpen(true);
+                          }}>
+                            <Shield className="mr-2 h-4 w-4" />
+                            Permissions
+                          </DropdownMenuItem>
                           <DropdownMenuItem 
                             onClick={(e) => {
                               e.stopPropagation();
@@ -1149,6 +1163,15 @@ export default function FileManager() {
                           >
                             <Share2 className="mr-2 h-4 w-4" />
                             Share
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => {
+                              setSelectedFile(file);
+                              setFilePermissionsDialogOpen(true);
+                            }}
+                          >
+                            <Shield className="mr-2 h-4 w-4" />
+                            Permissions
                           </DropdownMenuItem>
                           {isDocumentSignable(file.mimeType) && (
                             <DropdownMenuItem 
@@ -1335,6 +1358,32 @@ export default function FileManager() {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* File Permissions Dialog */}
+        <FilePermissionsDialog
+          isOpen={filePermissionsDialogOpen}
+          onClose={() => {
+            setFilePermissionsDialogOpen(false);
+            setSelectedFile(null);
+          }}
+          file={selectedFile ? {
+            id: selectedFile.id,
+            fileName: selectedFile.originalName
+          } : null}
+        />
+
+        {/* Folder Permissions Dialog */}
+        <FolderPermissionsDialog
+          isOpen={folderPermissionsDialogOpen}
+          onClose={() => {
+            setFolderPermissionsDialogOpen(false);
+            setSelectedFolder(null);
+          }}
+          folder={selectedFolder ? {
+            id: selectedFolder.id,
+            name: selectedFolder.name
+          } : null}
+        />
       </div>
     </div>
   );

@@ -10116,6 +10116,204 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // File and Folder Permissions API routes
+  
+  // File permissions
+  app.get("/api/files/:id/permissions", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { id } = req.params;
+      const fileId = parseInt(id);
+      
+      const permissions = await storage.getFilePermissions(fileId, user.organizationId);
+      res.json(permissions);
+    } catch (error: any) {
+      console.error("Error fetching file permissions:", error);
+      res.status(500).json({ message: "Failed to fetch file permissions" });
+    }
+  });
+
+  app.post("/api/files/:id/permissions", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { id } = req.params;
+      const fileId = parseInt(id);
+      
+      const permissionData = {
+        ...req.body,
+        fileId,
+        organizationId: user.organizationId,
+        grantedBy: user.id
+      };
+      
+      const permission = await storage.createFilePermission(permissionData);
+      res.json(permission);
+    } catch (error: any) {
+      console.error("Error creating file permission:", error);
+      res.status(500).json({ message: "Failed to create file permission" });
+    }
+  });
+
+  app.put("/api/file-permissions/:id", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { id } = req.params;
+      const permissionId = parseInt(id);
+      
+      const permission = await storage.updateFilePermission(permissionId, req.body);
+      res.json(permission);
+    } catch (error: any) {
+      console.error("Error updating file permission:", error);
+      res.status(500).json({ message: "Failed to update file permission" });
+    }
+  });
+
+  app.delete("/api/file-permissions/:id", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { id } = req.params;
+      const permissionId = parseInt(id);
+      
+      const success = await storage.deleteFilePermission(permissionId);
+      if (success) {
+        res.json({ message: "File permission deleted successfully" });
+      } else {
+        res.status(404).json({ message: "File permission not found" });
+      }
+    } catch (error: any) {
+      console.error("Error deleting file permission:", error);
+      res.status(500).json({ message: "Failed to delete file permission" });
+    }
+  });
+
+  // Folder permissions
+  app.get("/api/folders/:id/permissions", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { id } = req.params;
+      const folderId = parseInt(id);
+      
+      const permissions = await storage.getFolderPermissions(folderId, user.organizationId);
+      res.json(permissions);
+    } catch (error: any) {
+      console.error("Error fetching folder permissions:", error);
+      res.status(500).json({ message: "Failed to fetch folder permissions" });
+    }
+  });
+
+  app.post("/api/folders/:id/permissions", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { id } = req.params;
+      const folderId = parseInt(id);
+      
+      const permissionData = {
+        ...req.body,
+        folderId,
+        organizationId: user.organizationId,
+        grantedBy: user.id
+      };
+      
+      const permission = await storage.createFolderPermission(permissionData);
+      res.json(permission);
+    } catch (error: any) {
+      console.error("Error creating folder permission:", error);
+      res.status(500).json({ message: "Failed to create folder permission" });
+    }
+  });
+
+  app.put("/api/folder-permissions/:id", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { id } = req.params;
+      const permissionId = parseInt(id);
+      
+      const permission = await storage.updateFolderPermission(permissionId, req.body);
+      res.json(permission);
+    } catch (error: any) {
+      console.error("Error updating folder permission:", error);
+      res.status(500).json({ message: "Failed to update folder permission" });
+    }
+  });
+
+  app.delete("/api/folder-permissions/:id", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { id } = req.params;
+      const permissionId = parseInt(id);
+      
+      const success = await storage.deleteFolderPermission(permissionId);
+      if (success) {
+        res.json({ message: "Folder permission deleted successfully" });
+      } else {
+        res.status(404).json({ message: "Folder permission not found" });
+      }
+    } catch (error: any) {
+      console.error("Error deleting folder permission:", error);
+      res.status(500).json({ message: "Failed to delete folder permission" });
+    }
+  });
+
+  // Access control check routes
+  app.get("/api/files/:id/access/:action", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { id, action } = req.params;
+      const fileId = parseInt(id);
+      
+      const hasAccess = await storage.checkFileAccess(user.id, fileId, user.organizationId, action);
+      res.json({ hasAccess });
+    } catch (error: any) {
+      console.error("Error checking file access:", error);
+      res.status(500).json({ message: "Failed to check file access" });
+    }
+  });
+
+  app.get("/api/folders/:id/access/:action", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { id, action } = req.params;
+      const folderId = parseInt(id);
+      
+      const hasAccess = await storage.checkFolderAccess(user.id, folderId, user.organizationId, action);
+      res.json({ hasAccess });
+    } catch (error: any) {
+      console.error("Error checking folder access:", error);
+      res.status(500).json({ message: "Failed to check folder access" });
+    }
+  });
+
+  // Default permissions management
+  app.get("/api/permissions/defaults", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const defaults = await storage.getDefaultPermissions(user.organizationId);
+      res.json(defaults);
+    } catch (error: any) {
+      console.error("Error fetching default permissions:", error);
+      res.status(500).json({ message: "Failed to fetch default permissions" });
+    }
+  });
+
+  app.post("/api/permissions/defaults", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { userRole, resourceType, ...permissions } = req.body;
+      
+      const defaultPermission = await storage.setDefaultPermissions(
+        user.organizationId,
+        userRole,
+        resourceType,
+        permissions
+      );
+      
+      res.json(defaultPermission);
+    } catch (error: any) {
+      console.error("Error setting default permissions:", error);
+      res.status(500).json({ message: "Failed to set default permissions" });
+    }
+  });
+
   // File creation and editing routes
   app.post("/api/files/create-text", requireAuth, async (req, res) => {
     try {
