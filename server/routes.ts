@@ -3628,31 +3628,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (req.file.mimetype.startsWith('image/') && req.file.size > 8 * 1024 * 1024) {
         console.log('🔄 Pre-compressing large image before Cloudinary upload...');
         try {
-          const compressionResult = await compressImage(finalFilePath, {
-            enableImageCompression: true,
-            imageQuality: 50, // Aggressive compression for very large files
-            preserve_original_images: true,
-            retain_original_filename: false
-          });
+          // Create temporary compressed file path
+          const compressedPath = finalFilePath + '.compressed.jpg';
           
-          if (compressionResult.success && compressionResult.compressedFilePath) {
-            uploadBuffer = await fs.readFile(compressionResult.compressedFilePath);
-            uploadFilePath = compressionResult.compressedFilePath;
+          const compressionResult = await compressImage(finalFilePath, compressedPath, user.organizationId);
+          
+          if (compressionResult.success) {
+            uploadBuffer = await fs.readFile(compressedPath);
+            uploadFilePath = compressedPath;
             console.log(`✅ Pre-compression successful: ${req.file.size} → ${compressionResult.compressedSize} bytes`);
             
             // If still over 10MB after compression, apply more aggressive compression
             if (uploadBuffer.length > 10 * 1024 * 1024) {
               console.log('🔄 Still over 10MB, applying maximum compression...');
-              const maxCompressionResult = await compressImage(compressionResult.compressedFilePath, {
-                enableImageCompression: true,
-                imageQuality: 30, // Very aggressive compression
-                preserve_original_images: true,
-                retain_original_filename: false
-              });
+              const maxCompressedPath = finalFilePath + '.max-compressed.jpg';
               
-              if (maxCompressionResult.success && maxCompressionResult.compressedFilePath) {
-                uploadBuffer = await fs.readFile(maxCompressionResult.compressedFilePath);
-                uploadFilePath = maxCompressionResult.compressedFilePath;
+              const maxCompressionResult = await compressImage(compressedPath, maxCompressedPath, user.organizationId);
+              
+              if (maxCompressionResult.success) {
+                uploadBuffer = await fs.readFile(maxCompressedPath);
+                uploadFilePath = maxCompressedPath;
                 console.log('✅ Maximum compression applied, final size:', uploadBuffer.length, 'bytes');
               }
             }
