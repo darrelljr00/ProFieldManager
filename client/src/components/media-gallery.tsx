@@ -252,11 +252,12 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
     if (file.fileType === 'image') {
       // Handle both Cloudinary URLs (https://...) and local paths (/uploads/...)
       let imageUrl;
-      console.log('🔍 Checking filePath:', file.filePath, 'Starts with cloudinary?', file.filePath.startsWith('https://res.cloudinary.com'));
+      console.log('🔍 Checking filePath:', file.filePath, 'Includes cloudinary?', file.filePath?.includes('cloudinary.com'));
       if (file.filePath && file.filePath.includes('cloudinary.com')) {
         // Use proxy for Cloudinary images to avoid mixed content issues
-        imageUrl = `/api/cloudinary-proxy?url=${encodeURIComponent(file.filePath)}`;
-        console.log('🌤️ Using Cloudinary proxy URL:', imageUrl);
+        const cleanUrl = file.filePath.startsWith('/') ? file.filePath.substring(1) : file.filePath;
+        imageUrl = `/api/cloudinary-proxy?url=${encodeURIComponent(cleanUrl)}`;
+        console.log('🌤️ Using Cloudinary proxy URL:', imageUrl, 'Clean URL:', cleanUrl);
       } else {
         imageUrl = file.filePath.startsWith('/') ? file.filePath : `/${file.filePath}`;
         console.log('📁 Using local file URL:', imageUrl);
