@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Car, Edit, Trash2, Calendar, Fuel, MapPin, Settings, CheckCircle, Clock, AlertTriangle, Save } from "lucide-react";
+import { Plus, Car, Edit, Trash2, Calendar, Fuel, MapPin, Settings, CheckCircle, Clock, AlertTriangle, Save, Wrench, User } from "lucide-react";
 
 interface Vehicle {
   id: number;
@@ -64,6 +64,8 @@ export function VehicleManagement() {
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
   const [maintenanceData, setMaintenanceData] = useState<{[vehicleId: number]: MaintenanceInterval[]}>({});
   const [isMaintenanceSetupOpen, setIsMaintenanceSetupOpen] = useState(false);
+  const [isInspectionDialogOpen, setIsInspectionDialogOpen] = useState(false);
+  const [selectedVehicleForInspection, setSelectedVehicleForInspection] = useState<Vehicle | null>(null);
   const [customIntervals, setCustomIntervals] = useState({
     oilChange: { days: 90, miles: 3000 },
     tirePressure: { days: 30, miles: 0 },
@@ -253,6 +255,11 @@ export function VehicleManagement() {
         variant: "destructive",
       });
     }
+  };
+
+  const handleInspectVehicle = (vehicle: Vehicle) => {
+    setSelectedVehicleForInspection(vehicle);
+    setIsInspectionDialogOpen(true);
   };
 
   const getStatusColor = (status: string) => {
@@ -451,6 +458,14 @@ export function VehicleManagement() {
                           <Button
                             variant="ghost"
                             size="sm"
+                            onClick={() => handleInspectVehicle(vehicle)}
+                            title="Inspect Vehicle"
+                          >
+                            <Wrench className="h-4 w-4 text-blue-600" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => {
                               setEditingVehicle(vehicle);
                               setIsEditDialogOpen(true);
@@ -486,6 +501,13 @@ export function VehicleManagement() {
           vehicle={editingVehicle}
           onSubmit={(data) => updateVehicleMutation.mutate({ id: editingVehicle!.id, data })}
           isLoading={updateVehicleMutation.isPending}
+        />
+      </Dialog>
+
+      <Dialog open={isInspectionDialogOpen} onOpenChange={setIsInspectionDialogOpen}>
+        <VehicleInspectionDialog
+          vehicle={selectedVehicleForInspection}
+          maintenanceIntervals={selectedVehicleForInspection ? maintenanceData[selectedVehicleForInspection.id] || [] : []}
         />
       </Dialog>
     </div>
@@ -884,6 +906,228 @@ function MaintenanceSetupDialog({ customIntervals, setCustomIntervals, onSetup, 
         >
           <Save className="h-4 w-4 mr-2" />
           {isLoading ? "Setting up..." : "Setup Maintenance Intervals"}
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  );
+}
+
+interface VehicleInspectionDialogProps {
+  vehicle: Vehicle | null;
+  maintenanceIntervals: MaintenanceInterval[];
+}
+
+function VehicleInspectionDialog({ vehicle, maintenanceIntervals }: VehicleInspectionDialogProps) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [user] = useState(() => {
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    return currentUser;
+  });
+
+  // Define all 7 maintenance types
+  const maintenanceTypes = [
+    { key: 'oil_change', label: 'Oil Change', icon: Fuel },
+    { key: 'tire_pressure', label: 'Tire Pressure Check', icon: Car },
+    { key: 'windshield_wash_fluid', label: 'Windshield Wash Fluid', icon: Car },
+    { key: 'oil_level', label: 'Oil Level Check', icon: Fuel },
+    { key: 'coolant_level', label: 'Coolant Level Check', icon: Fuel },
+    { key: 'tire_rotation', label: 'Tire Rotation', icon: Car },
+    { key: 'wiper_blades', label: 'Wiper Blades', icon: Car }
+  ];
+
+  const getMaintenanceItem = (maintenanceType: string) => {
+    return maintenanceIntervals.find(interval => interval.maintenanceType === maintenanceType);
+  };
+
+  const updateMaintenanceStatusMutation = useMutation({
+    mutationFn: async ({ intervalId, status }: { intervalId: number; status: string }) => {
+      return apiRequest("PUT", `/api/vehicles/${vehicle?.id}/maintenance/${intervalId}/status`, { status });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/vehicles/${vehicle?.id}/maintenance`] });
+      toast({
+        title: "Success",
+        description: "Maintenance status updated successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update maintenance status.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const toggleMaintenanceStatus = (maintenanceType: string) => {
+    const item = getMaintenanceItem(maintenanceType);
+    if (!item) return;
+
+    const newStatus = item.calculatedStatus === 'completed' ? 'due' : 'completed';
+    updateMaintenanceStatusMutation.mutate({ 
+      intervalId: item.id, 
+      status: newStatus 
+    });
+  };
+
+  const formatStatusDate = (item: MaintenanceInterval | undefined) => {
+    if (!item) return '';
+    
+    if (item.calculatedStatus === 'completed' && item.lastMaintenanceDate) {
+      return `Completed on ${new Date(item.lastMaintenanceDate).toLocaleDateString()}`;
+    }
+    
+    if (item.nextDueDate) {
+      return `Due by ${new Date(item.nextDueDate).toLocaleDateString()}`;
+    }
+    
+    return '';
+  };
+
+  const getStatusIcon = (item: MaintenanceInterval | undefined) => {
+    if (!item) return <Clock className="h-5 w-5 text-gray-400" />;
+    
+    const status = item.calculatedStatus || item.status;
+    
+    switch (status) {
+      case 'completed':
+        return <CheckCircle className="h-5 w-5 text-green-600" />;
+      case 'overdue':
+        return <AlertTriangle className="h-5 w-5 text-red-600" />;
+      default:
+        return <Clock className="h-5 w-5 text-blue-600" />;
+    }
+  };
+
+  const getStatusText = (item: MaintenanceInterval | undefined) => {
+    if (!item) return 'Not configured';
+    
+    const status = item.calculatedStatus || item.status;
+    
+    switch (status) {
+      case 'completed':
+        return 'Completed';
+      case 'overdue':
+        return 'Overdue';
+      case 'due':
+        return 'Due';
+      default:
+        return 'Unknown';
+    }
+  };
+
+  if (!vehicle) return null;
+
+  return (
+    <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+      <DialogHeader>
+        <DialogTitle className="flex items-center gap-2">
+          <Wrench className="h-5 w-5" />
+          Vehicle Inspection - {vehicle.vehicleNumber} ({vehicle.licensePlate})
+        </DialogTitle>
+        <p className="text-sm text-muted-foreground">
+          Review and update maintenance schedule items for this vehicle. Click to toggle completion status.
+        </p>
+      </DialogHeader>
+
+      <div className="space-y-6">
+        <div className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+          <div className="flex items-center gap-3">
+            <Car className="h-5 w-5 text-blue-600" />
+            <div>
+              <h3 className="font-medium text-blue-900 dark:text-blue-100">
+                {vehicle.year && vehicle.make && vehicle.model
+                  ? `${vehicle.year} ${vehicle.make} ${vehicle.model}`
+                  : "Vehicle Details"}
+              </h3>
+              <p className="text-sm text-blue-800 dark:text-blue-200">
+                Current Mileage: {vehicle.currentMileage ? `${vehicle.currentMileage.toLocaleString()} miles` : 'Not recorded'}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-blue-800 dark:text-blue-200">
+            <User className="h-4 w-4" />
+            Inspected by: {user.firstName || user.username}
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <h3 className="text-lg font-medium">Maintenance Schedule Items</h3>
+          
+          <div className="grid gap-3">
+            {maintenanceTypes.map((type) => {
+              const item = getMaintenanceItem(type.key);
+              const IconComponent = type.icon;
+              
+              return (
+                <div
+                  key={type.key}
+                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors"
+                  onClick={() => toggleMaintenanceStatus(type.key)}
+                >
+                  <div className="flex items-center gap-3">
+                    <IconComponent className="h-5 w-5 text-gray-600" />
+                    <div>
+                      <h4 className="font-medium">{type.label}</h4>
+                      {item && (
+                        <p className="text-sm text-muted-foreground">
+                          {formatStatusDate(item)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
+                      {getStatusIcon(item)}
+                      <span className={`text-sm font-medium ${
+                        item?.calculatedStatus === 'completed' ? 'text-green-600' :
+                        item?.calculatedStatus === 'overdue' ? 'text-red-600' :
+                        'text-blue-600'
+                      }`}>
+                        {getStatusText(item)}
+                      </span>
+                    </div>
+                    
+                    {item?.calculatedStatus === 'completed' && (
+                      <div className="text-xs text-muted-foreground">
+                        by {user.firstName || user.username}<br />
+                        {new Date().toLocaleDateString()}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <Separator />
+
+        <div className="bg-yellow-50 dark:bg-yellow-950 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
+            <div className="space-y-1">
+              <h4 className="font-medium text-yellow-900 dark:text-yellow-100">
+                Inspection Instructions
+              </h4>
+              <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                Click on any maintenance item to toggle between "Completed" and "Incomplete" status. 
+                Completed items will show today's date and your name for accountability. 
+                Regular inspections help maintain vehicle safety and performance.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <DialogFooter>
+        <Button
+          variant="outline"
+          onClick={() => {}}
+        >
+          Close
         </Button>
       </DialogFooter>
     </DialogContent>
