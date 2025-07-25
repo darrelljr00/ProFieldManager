@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { ImageCompressionSettings } from "@/components/ImageCompressionSettings";
-import { VehicleManagement } from "@/components/vehicle-management";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -673,12 +672,11 @@ export default function AdminSettingsPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-8">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="company">Company</TabsTrigger>
           <TabsTrigger value="system">System</TabsTrigger>
           <TabsTrigger value="inspections">Inspections</TabsTrigger>
-          <TabsTrigger value="vehicles">Vehicles</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
           <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
           <TabsTrigger value="logs">Activity Logs</TabsTrigger>
@@ -1399,10 +1397,6 @@ export default function AdminSettingsPage() {
               <InspectionManagement />
             </CardContent>
           </Card>
-        </TabsContent>
-
-        <TabsContent value="vehicles" className="space-y-6">
-          <VehicleManagement />
         </TabsContent>
 
         <TabsContent value="logs" className="space-y-6">
