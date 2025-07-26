@@ -4804,6 +4804,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         lunchBreakEnd: '13:00',
         autoDispatch: false,
         vehicleTabsCount: 1,
+        showMultiMapView: false,
         notificationSettings: {
           routeUpdates: true,
           jobStatusChanges: true,
@@ -4814,7 +4815,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (settings && settings.length > 0) {
         settings.forEach((setting: any) => {
           const key = setting.key.replace('dispatch_', '');
-          if (key === 'avoidTolls' || key === 'avoidHighways' || key === 'trafficAware' || key === 'autoDispatch') {
+          if (key === 'avoidTolls' || key === 'avoidHighways' || key === 'trafficAware' || key === 'autoDispatch' || key === 'showMultiMapView') {
             dispatchSettings[key] = setting.value === 'true';
           } else if (key === 'bufferMinutes' || key === 'maxJobsPerRoute' || key === 'vehicleTabsCount') {
             dispatchSettings[key] = parseInt(setting.value) || dispatchSettings[key];
@@ -4853,6 +4854,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         lunchBreakEnd,
         autoDispatch,
         vehicleTabsCount,
+        showMultiMapView,
         notificationSettings
       } = req.body;
       
@@ -4870,6 +4872,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         { key: 'dispatch_lunchBreakEnd', value: lunchBreakEnd || '13:00', isSecret: false },
         { key: 'dispatch_autoDispatch', value: String(autoDispatch || false), isSecret: false },
         { key: 'dispatch_vehicleTabsCount', value: String(vehicleTabsCount || 1), isSecret: false },
+        { key: 'dispatch_showMultiMapView', value: String(showMultiMapView || false), isSecret: false },
         { key: 'dispatch_notificationSettings', value: JSON.stringify(notificationSettings || {}), isSecret: false }
       ];
 

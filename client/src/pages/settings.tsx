@@ -148,6 +148,7 @@ type DispatchRoutingSettings = {
   lunchBreakEnd: string;
   autoDispatch: boolean;
   vehicleTabsCount: number;
+  showMultiMapView: boolean;
   notificationSettings: {
     routeUpdates: boolean;
     jobStatusChanges: boolean;
@@ -883,6 +884,7 @@ export default function Settings() {
       lunchBreakEnd: formData.get('lunchBreakEnd') as string,
       autoDispatch: formData.get('autoDispatch') === 'on',
       vehicleTabsCount: parseInt(formData.get('vehicleTabsCount') as string) || 1,
+      showMultiMapView: formData.get('showMultiMapView') === 'on',
       notificationSettings: {
         routeUpdates: formData.get('routeUpdates') === 'on',
         jobStatusChanges: formData.get('jobStatusChanges') === 'on',
@@ -3814,15 +3816,32 @@ export default function Settings() {
                       </div>
                     </div>
 
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        name="autoDispatch"
-                        defaultChecked={dispatchSettings?.autoDispatch || false}
-                      />
-                      <Label>Auto-Dispatch New Jobs</Label>
-                      <p className="text-sm text-muted-foreground ml-2">
-                        Automatically assign new jobs to optimal routes
-                      </p>
+                    <div className="grid grid-cols-1 gap-4">
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          name="autoDispatch"
+                          defaultChecked={dispatchSettings?.autoDispatch || false}
+                        />
+                        <div>
+                          <Label>Auto-Dispatch New Jobs</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Automatically assign new jobs to optimal routes
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          name="showMultiMapView"
+                          defaultChecked={dispatchSettings?.showMultiMapView || false}
+                        />
+                        <div>
+                          <Label>Show Multi-Map View</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Display multiple map views for better route visualization and planning
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
