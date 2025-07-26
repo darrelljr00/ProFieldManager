@@ -3,7 +3,8 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DraggableJobItem } from "./draggable-job-item";
 import { Badge } from "@/components/ui/badge";
-import { Truck, Calendar } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Truck, Calendar, Undo2 } from "lucide-react";
 
 interface JobLocation {
   id: number;
@@ -26,6 +27,8 @@ interface DroppableVehicleContainerProps {
   jobs: JobLocation[];
   selectedDate: string;
   onStatusUpdate: (jobId: number, status: string) => void;
+  onUndo?: () => void;
+  canUndo?: boolean;
 }
 
 export function DroppableVehicleContainer({ 
@@ -33,7 +36,9 @@ export function DroppableVehicleContainer({
   vehicleNumber, 
   jobs, 
   selectedDate,
-  onStatusUpdate 
+  onStatusUpdate,
+  onUndo,
+  canUndo
 }: DroppableVehicleContainerProps) {
   const { isOver, setNodeRef } = useDroppable({
     id: vehicleId,
@@ -50,6 +55,18 @@ export function DroppableVehicleContainer({
           <Badge variant="secondary" className="ml-auto">
             {vehicleJobs.length} jobs
           </Badge>
+          {vehicleId === 'unassigned' && onUndo && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onUndo}
+              disabled={!canUndo}
+              className="ml-2"
+            >
+              <Undo2 className="h-4 w-4 mr-1" />
+              Undo
+            </Button>
+          )}
         </CardTitle>
         <CardDescription>
           Jobs scheduled for {new Date(selectedDate).toLocaleDateString()}

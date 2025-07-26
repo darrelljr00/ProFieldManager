@@ -77,6 +77,7 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
   const [optimization, setOptimization] = useState<RouteOptimization | null>(null);
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [mapCount, setMapCount] = useState<'1' | '2' | '4'>('1');
+  const [undoStack, setUndoStack] = useState<Array<{jobId: number, fromVehicle: string, toVehicle: string, timestamp: number}>>([]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -303,10 +304,42 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
     // If dropped in same vehicle, no action needed
     if (draggedJob.vehicleId === newVehicleId) return;
 
+    // Track this change for undo functionality
+    const undoAction = {
+      jobId: draggedJob.projectId,
+      fromVehicle: draggedJob.vehicleId || 'unassigned',
+      toVehicle: newVehicleId,
+      timestamp: Date.now()
+    };
+
+    // Add to undo stack (keep only last 10 actions)
+    setUndoStack(prev => [undoAction, ...prev.slice(0, 9)]);
+
     // Update the job's vehicle assignment
     assignJobToVehicleMutation.mutate({
       jobId: draggedJob.projectId,
       vehicleId: newVehicleId
+    });
+  };
+
+  // Handle undo last action
+  const handleUndo = () => {
+    if (undoStack.length === 0) return;
+
+    const lastAction = undoStack[0];
+    
+    // Revert the job assignment
+    assignJobToVehicleMutation.mutate({
+      jobId: lastAction.jobId,
+      vehicleId: lastAction.fromVehicle
+    });
+
+    // Remove the action from undo stack
+    setUndoStack(prev => prev.slice(1));
+
+    toast({
+      title: "Action Undone",
+      description: "Job assignment has been reverted to previous vehicle.",
     });
   };
 
@@ -827,6 +860,8 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
             jobs={scheduledJobs}
             selectedDate={selectedDateState}
             onStatusUpdate={handleStatusUpdate}
+            onUndo={handleUndo}
+            canUndo={undoStack.length > 0}
           />
           
           {/* Dynamic Scheduled Jobs Vehicle Windows */}
