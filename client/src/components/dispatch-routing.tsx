@@ -125,6 +125,11 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
     console.log('Scheduled jobs data:', scheduledJobs);
   }, [scheduledJobs]);
 
+  // Force refresh of data when component mounts to ensure fresh data
+  useEffect(() => {
+    queryClient.invalidateQueries({ queryKey: ['/api/dispatch/scheduled-jobs'] });
+  }, [queryClient]);
+
   // WebSocket listeners for real-time job updates
   useEffect(() => {
     const handleJobStatusUpdate = (data: any) => {
