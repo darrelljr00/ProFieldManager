@@ -11083,12 +11083,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Perform reverse geocoding to get address from coordinates
       let address = null;
       try {
+        // Get Google Maps API key from integration settings
+        const googleMapsSettings = await storage.getSettings('integration');
+        const isGoogleMapsEnabled = googleMapsSettings?.integration_googleMapsEnabled === 'true';
+        const googleMapsApiKey = googleMapsSettings?.integration_googleMapsApiKey;
+        
+        if (!isGoogleMapsEnabled || !googleMapsApiKey) {
+          console.log('Google Maps integration disabled or API key not configured');
+          throw new Error('Google Maps integration not configured');
+        }
+        
         const client = new Client({});
         
         const geocodeResponse = await client.reverseGeocode({
           params: {
             latlng: { lat: parseFloat(latitude), lng: parseFloat(longitude) },
-            key: process.env.GOOGLE_MAPS_API_KEY || 'AIzaSyCy9lgjvkKV3vS_U1IIcmxJUC8q8yJaASI',
+            key: googleMapsApiKey,
           },
         });
 
