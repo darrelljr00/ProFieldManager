@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Navigation, Loader2 } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
 
 interface JobLocation {
   id: number;
@@ -48,6 +50,36 @@ export function DispatchMap({ jobs, optimization, startLocation }: DispatchMapPr
   const mapRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Fetch integration settings to get Google Maps API key
+  const { data: integrationSettings } = useQuery({
+    queryKey: ["/api/settings/integrations"],
+    queryFn: () => apiRequest("GET", "/api/settings/integrations"),
+  });
+
+  // Load Google Maps script with API key from integration settings
+  const loadGoogleMapsScript = (): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      if (window.google && window.google.maps) {
+        resolve();
+        return;
+      }
+
+      const apiKey = integrationSettings?.googleMapsApiKey;
+      if (!apiKey) {
+        reject(new Error('Google Maps API key not configured'));
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
+      script.async = true;
+      script.defer = true;
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error('Failed to load Google Maps'));
+      document.head.appendChild(script);
+    });
+  };
 
   const getPriorityColor = (priority: string) => {
     const colors = {
@@ -277,23 +309,36 @@ export function DispatchMap({ jobs, optimization, startLocation }: DispatchMapPr
 
   // Load Google Maps API
   useEffect(() => {
-    const loadGoogleMaps = () => {
-      if (window.google?.maps) {
-        initializeMap();
+    const loadAndInitMap = async () => {
+      if (!integrationSettings) {
+        return; // Wait for integration settings to load
+      }
+
+      const isGoogleMapsEnabled = integrationSettings.googleMapsEnabled;
+      const googleMapsApiKey = integrationSettings.googleMapsApiKey;
+
+      if (!isGoogleMapsEnabled || !googleMapsApiKey) {
+        setError('Google Maps API key not configured. Please go to Settings > Integrations to configure your Google Maps API key.');
+        setIsLoading(false);
         return;
       }
 
-      // For now, just show a message that Google Maps needs to be configured
-      setError('Google Maps integration requires API key configuration');
-      setIsLoading(false);
+      try {
+        await loadGoogleMapsScript();
+        await initializeMap();
+      } catch (err: any) {
+        console.error('Error loading Google Maps:', err);
+        setError(err.message || 'Failed to load Google Maps');
+        setIsLoading(false);
+      }
     };
 
     if (jobs.length > 0) {
-      loadGoogleMaps();
+      loadAndInitMap();
     } else {
       setIsLoading(false);
     }
-  }, [jobs, optimization, startLocation]);
+  }, [jobs, optimization, startLocation, integrationSettings]);
 
   if (jobs.length === 0) {
     return (
