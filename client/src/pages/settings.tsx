@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Save, Eye, EyeOff, Upload, X, Download, Database, Clock, AlertTriangle } from "lucide-react";
+import { Save, Eye, EyeOff, Upload, X, Download, Database, Clock, AlertTriangle, Map, MessageSquare, FileSignature } from "lucide-react";
 import { InvoicePreview } from "@/components/InvoicePreview";
 import SoundSettings from "@/components/SoundSettings";
 import { FileStorageManager } from "@/components/file-storage-manager";
@@ -236,6 +236,11 @@ export default function Settings() {
 
   const { data: backupJobs, isLoading: backupJobsLoading } = useQuery<BackupJob[]>({
     queryKey: ["/api/backup/jobs"],
+  });
+
+  // Integration settings query
+  const { data: integrationSettings, isLoading: integrationLoading } = useQuery({
+    queryKey: ["/api/settings/integrations"],
   });
 
   // Get organization users for admin dashboard management
@@ -613,6 +618,24 @@ export default function Settings() {
     },
   });
 
+  const integrationMutation = useMutation({
+    mutationFn: (data: any) => apiRequest("PUT", "/api/settings/integrations", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/integrations"] });
+      toast({
+        title: "Success",
+        description: "Integration settings saved successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save integration settings",
+        variant: "destructive",
+      });
+    },
+  });
+
   const toggleSecretVisibility = (key: string) => {
     setShowSecrets(prev => ({
       ...prev,
@@ -832,6 +855,7 @@ export default function Settings() {
           <TabsTrigger value="sounds" className="flex-shrink-0">Sounds</TabsTrigger>
           <TabsTrigger value="storage" className="flex-shrink-0">File Storage</TabsTrigger>
           <TabsTrigger value="vehicles" className="flex-shrink-0">Vehicles</TabsTrigger>
+          <TabsTrigger value="integrations" className="flex-shrink-0">Integrations</TabsTrigger>
           <TabsTrigger value="navigation" className="flex-shrink-0">Navigation</TabsTrigger>
         </TabsList>
 
@@ -3350,6 +3374,230 @@ export default function Settings() {
 
         <TabsContent value="sounds">
           <SoundSettings />
+        </TabsContent>
+
+        <TabsContent value="integrations">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Map className="h-5 w-5" />
+                Integration Settings
+              </CardTitle>
+              <CardDescription>
+                Configure third-party service integrations
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {integrationLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                </div>
+              ) : (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const formData = new FormData(e.currentTarget);
+                    const data = Object.fromEntries(formData.entries());
+                    integrationMutation.mutate(data);
+                  }}
+                  className="space-y-6"
+                >
+                  {/* Google Maps Settings */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-lg font-medium flex items-center gap-2">
+                          <Map className="h-4 w-4" />
+                          Google Maps API
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          Configure Google Maps API for GPS tracking and address geocoding
+                        </p>
+                      </div>
+                      <Switch
+                        name="googleMapsEnabled"
+                        defaultChecked={integrationSettings?.googleMapsEnabled || false}
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="googleMapsApiKey">Google Maps API Key</Label>
+                      <div className="relative">
+                        <Input
+                          id="googleMapsApiKey"
+                          name="googleMapsApiKey"
+                          type={showSecrets.googleMapsApiKey ? "text" : "password"}
+                          placeholder="Enter Google Maps API Key"
+                          defaultValue={integrationSettings?.googleMapsApiKey || ""}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-0 top-0 h-full px-3"
+                          onClick={() => setShowSecrets(prev => ({ ...prev, googleMapsApiKey: !prev.googleMapsApiKey }))}
+                        >
+                          {showSecrets.googleMapsApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Required for GPS address reverse geocoding. Get your API key from Google Cloud Console.
+                      </p>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* Twilio SMS Settings */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-lg font-medium flex items-center gap-2">
+                          <MessageSquare className="h-4 w-4" />
+                          Twilio SMS
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          Configure Twilio for SMS messaging and notifications
+                        </p>
+                      </div>
+                      <Switch
+                        name="twilioEnabled"
+                        defaultChecked={integrationSettings?.twilioEnabled || false}
+                      />
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="twilioAccountSid">Account SID</Label>
+                        <div className="relative">
+                          <Input
+                            id="twilioAccountSid"
+                            name="twilioAccountSid"
+                            type={showSecrets.twilioAccountSid ? "text" : "password"}
+                            placeholder="Enter Twilio Account SID"
+                            defaultValue={integrationSettings?.twilioAccountSid || ""}
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-0 top-0 h-full px-3"
+                            onClick={() => setShowSecrets(prev => ({ ...prev, twilioAccountSid: !prev.twilioAccountSid }))}
+                          >
+                            {showSecrets.twilioAccountSid ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </Button>
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="twilioAuthToken">Auth Token</Label>
+                        <div className="relative">
+                          <Input
+                            id="twilioAuthToken"
+                            name="twilioAuthToken"
+                            type={showSecrets.twilioAuthToken ? "text" : "password"}
+                            placeholder="Enter Twilio Auth Token"
+                            defaultValue={integrationSettings?.twilioAuthToken || ""}
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-0 top-0 h-full px-3"
+                            onClick={() => setShowSecrets(prev => ({ ...prev, twilioAuthToken: !prev.twilioAuthToken }))}
+                          >
+                            {showSecrets.twilioAuthToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="twilioPhoneNumber">Phone Number</Label>
+                      <Input
+                        id="twilioPhoneNumber"
+                        name="twilioPhoneNumber"
+                        placeholder="+1234567890"
+                        defaultValue={integrationSettings?.twilioPhoneNumber || ""}
+                      />
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* DocuSign Settings */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-lg font-medium flex items-center gap-2">
+                          <FileSignature className="h-4 w-4" />
+                          DocuSign
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          Configure DocuSign for electronic signatures
+                        </p>
+                      </div>
+                      <Switch
+                        name="docusignEnabled"
+                        defaultChecked={integrationSettings?.docusignEnabled || false}
+                      />
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="docusignClientId">Client ID</Label>
+                        <div className="relative">
+                          <Input
+                            id="docusignClientId"
+                            name="docusignClientId"
+                            type={showSecrets.docusignClientId ? "text" : "password"}
+                            placeholder="Enter DocuSign Client ID"
+                            defaultValue={integrationSettings?.docusignClientId || ""}
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-0 top-0 h-full px-3"
+                            onClick={() => setShowSecrets(prev => ({ ...prev, docusignClientId: !prev.docusignClientId }))}
+                          >
+                            {showSecrets.docusignClientId ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </Button>
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="docusignClientSecret">Client Secret</Label>
+                        <div className="relative">
+                          <Input
+                            id="docusignClientSecret"
+                            name="docusignClientSecret"
+                            type={showSecrets.docusignClientSecret ? "text" : "password"}
+                            placeholder="Enter DocuSign Client Secret"
+                            defaultValue={integrationSettings?.docusignClientSecret || ""}
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-0 top-0 h-full px-3"
+                            onClick={() => setShowSecrets(prev => ({ ...prev, docusignClientSecret: !prev.docusignClientSecret }))}
+                          >
+                            {showSecrets.docusignClientSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <Button type="submit" disabled={integrationMutation.isPending}>
+                      <Save className="h-4 w-4 mr-2" />
+                      {integrationMutation.isPending ? "Saving..." : "Save Integration Settings"}
+                    </Button>
+                  </div>
+                </form>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="vehicles">
