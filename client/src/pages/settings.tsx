@@ -149,6 +149,10 @@ type DispatchRoutingSettings = {
   autoDispatch: boolean;
   vehicleTabsCount: number;
   showMultiMapView: boolean;
+  jobSyncMode: 'automatic' | 'manual' | 'hybrid';
+  autoSyncByAssignment: boolean;
+  syncOnlyActiveJobs: boolean;
+  syncTimeWindow: number; // hours ahead to sync jobs
   notificationSettings: {
     routeUpdates: boolean;
     jobStatusChanges: boolean;
@@ -885,6 +889,10 @@ export default function Settings() {
       autoDispatch: formData.get('autoDispatch') === 'on',
       vehicleTabsCount: parseInt(formData.get('vehicleTabsCount') as string) || 1,
       showMultiMapView: formData.get('showMultiMapView') === 'on',
+      jobSyncMode: formData.get('jobSyncMode') as 'automatic' | 'manual' | 'hybrid' || 'manual',
+      autoSyncByAssignment: formData.get('autoSyncByAssignment') === 'on',
+      syncOnlyActiveJobs: formData.get('syncOnlyActiveJobs') === 'on',
+      syncTimeWindow: parseInt(formData.get('syncTimeWindow') as string) || 24,
       notificationSettings: {
         routeUpdates: formData.get('routeUpdates') === 'on',
         jobStatusChanges: formData.get('jobStatusChanges') === 'on',
@@ -3841,6 +3849,81 @@ export default function Settings() {
                             Display multiple map views for better route visualization and planning
                           </p>
                         </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* Job Synchronization Section */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Job Synchronization</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Configure how jobs are automatically synchronized to scheduled jobs based on employee assignments
+                    </p>
+                    
+                    <div className="grid grid-cols-1 gap-4">
+                      <div>
+                        <Label htmlFor="jobSyncMode">Sync Mode</Label>
+                        <Select name="jobSyncMode" defaultValue={dispatchSettings?.jobSyncMode || 'manual'}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select synchronization mode" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="manual">Manual - Jobs must be manually scheduled</SelectItem>
+                            <SelectItem value="automatic">Automatic - Jobs sync based on employee assignments</SelectItem>
+                            <SelectItem value="hybrid">Hybrid - Automatic sync with manual override</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Choose how jobs are synchronized to the dispatch routing system
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-4">
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          name="autoSyncByAssignment"
+                          defaultChecked={dispatchSettings?.autoSyncByAssignment || false}
+                        />
+                        <div>
+                          <Label>Auto-Sync by Employee Assignment</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Automatically sync jobs when employees are assigned to them
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          name="syncOnlyActiveJobs"
+                          defaultChecked={dispatchSettings?.syncOnlyActiveJobs || true}
+                        />
+                        <div>
+                          <Label>Sync Only Active Jobs</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Only synchronize jobs with 'active' status to dispatch routing
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-4">
+                      <div>
+                        <Label htmlFor="syncTimeWindow">Sync Time Window (hours)</Label>
+                        <Input
+                          id="syncTimeWindow"
+                          name="syncTimeWindow"
+                          type="number"
+                          min="1"
+                          max="168"
+                          placeholder="24"
+                          defaultValue={dispatchSettings?.syncTimeWindow || 24}
+                        />
+                        <p className="text-sm text-muted-foreground mt-1">
+                          How many hours ahead to sync jobs (1-168 hours)
+                        </p>
                       </div>
                     </div>
                   </div>

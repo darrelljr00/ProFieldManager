@@ -4825,6 +4825,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         autoDispatch: false,
         vehicleTabsCount: 1,
         showMultiMapView: false,
+        jobSyncMode: 'manual',
+        autoSyncByAssignment: false,
+        syncOnlyActiveJobs: true,
+        syncTimeWindow: 24,
         notificationSettings: {
           routeUpdates: true,
           jobStatusChanges: true,
@@ -4835,9 +4839,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (settings && settings.length > 0) {
         settings.forEach((setting: any) => {
           const key = setting.key.replace('dispatch_', '');
-          if (key === 'avoidTolls' || key === 'avoidHighways' || key === 'trafficAware' || key === 'autoDispatch' || key === 'showMultiMapView') {
+          if (key === 'avoidTolls' || key === 'avoidHighways' || key === 'trafficAware' || key === 'autoDispatch' || key === 'showMultiMapView' || key === 'autoSyncByAssignment' || key === 'syncOnlyActiveJobs') {
             dispatchSettings[key] = setting.value === 'true';
-          } else if (key === 'bufferMinutes' || key === 'maxJobsPerRoute' || key === 'vehicleTabsCount') {
+          } else if (key === 'bufferMinutes' || key === 'maxJobsPerRoute' || key === 'vehicleTabsCount' || key === 'syncTimeWindow') {
             dispatchSettings[key] = parseInt(setting.value) || dispatchSettings[key];
           } else if (key === 'notificationSettings') {
             try {
@@ -4875,6 +4879,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         autoDispatch,
         vehicleTabsCount,
         showMultiMapView,
+        jobSyncMode,
+        autoSyncByAssignment,
+        syncOnlyActiveJobs,
+        syncTimeWindow,
         notificationSettings
       } = req.body;
       
@@ -4893,6 +4901,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         { key: 'dispatch_autoDispatch', value: String(autoDispatch || false), isSecret: false },
         { key: 'dispatch_vehicleTabsCount', value: String(vehicleTabsCount || 1), isSecret: false },
         { key: 'dispatch_showMultiMapView', value: String(showMultiMapView || false), isSecret: false },
+        { key: 'dispatch_jobSyncMode', value: jobSyncMode || 'manual', isSecret: false },
+        { key: 'dispatch_autoSyncByAssignment', value: String(autoSyncByAssignment || false), isSecret: false },
+        { key: 'dispatch_syncOnlyActiveJobs', value: String(syncOnlyActiveJobs !== false), isSecret: false },
+        { key: 'dispatch_syncTimeWindow', value: String(syncTimeWindow || 24), isSecret: false },
         { key: 'dispatch_notificationSettings', value: JSON.stringify(notificationSettings || {}), isSecret: false }
       ];
 
