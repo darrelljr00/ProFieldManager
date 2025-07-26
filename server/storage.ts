@@ -1019,6 +1019,7 @@ export class DatabaseStorage implements IStorage {
         zipCode: projects.zipCode,
         country: projects.country,
         shareWithTeam: projects.shareWithTeam,
+        vehicleId: projects.vehicleId,
         createdAt: projects.createdAt,
         updatedAt: projects.updatedAt,
       })
@@ -1231,6 +1232,7 @@ export class DatabaseStorage implements IStorage {
           estimatedDuration: projects.estimatedDuration,
           currentLocation: projects.currentLocation,
           dispatchNotes: projects.dispatchNotes,
+          vehicleId: projects.vehicleId,
           createdAt: projects.createdAt,
           updatedAt: projects.updatedAt,
         })
