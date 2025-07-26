@@ -148,6 +148,7 @@ type DispatchRoutingSettings = {
   lunchBreakEnd: string;
   autoDispatch: boolean;
   vehicleTabsCount: number;
+  maxJobsPerVehicle: string | number;
   showMultiMapView: boolean;
   jobSyncMode: 'automatic' | 'manual' | 'hybrid';
   autoSyncByAssignment: boolean;
@@ -888,6 +889,7 @@ export default function Settings() {
       lunchBreakEnd: formData.get('lunchBreakEnd') as string,
       autoDispatch: formData.get('autoDispatch') === 'on',
       vehicleTabsCount: parseInt(formData.get('vehicleTabsCount') as string) || 1,
+      maxJobsPerVehicle: formData.get('maxJobsPerVehicle') as string || 'unlimited',
       showMultiMapView: formData.get('showMultiMapView') === 'on',
       jobSyncMode: formData.get('jobSyncMode') as 'automatic' | 'manual' | 'hybrid' || 'manual',
       autoSyncByAssignment: formData.get('autoSyncByAssignment') === 'on',
@@ -3804,7 +3806,7 @@ export default function Settings() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 gap-4">
+                    <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="vehicleTabsCount">Scheduled Jobs Vehicle Tabs</Label>
                         <Select name="vehicleTabsCount" defaultValue={String(dispatchSettings?.vehicleTabsCount || 1)}>
@@ -3820,6 +3822,31 @@ export default function Settings() {
                         </Select>
                         <p className="text-sm text-muted-foreground mt-1">
                           Number of vehicle tabs to display in the dispatch routing interface for tracking scheduled jobs by vehicle
+                        </p>
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="maxJobsPerVehicle">Max Jobs per Vehicle</Label>
+                        <Select name="maxJobsPerVehicle" defaultValue={String(dispatchSettings?.maxJobsPerVehicle || 'unlimited')}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select max jobs limit" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="1">1 Job</SelectItem>
+                            <SelectItem value="2">2 Jobs</SelectItem>
+                            <SelectItem value="3">3 Jobs</SelectItem>
+                            <SelectItem value="4">4 Jobs</SelectItem>
+                            <SelectItem value="5">5 Jobs</SelectItem>
+                            <SelectItem value="6">6 Jobs</SelectItem>
+                            <SelectItem value="7">7 Jobs</SelectItem>
+                            <SelectItem value="8">8 Jobs</SelectItem>
+                            <SelectItem value="9">9 Jobs</SelectItem>
+                            <SelectItem value="10">10 Jobs</SelectItem>
+                            <SelectItem value="unlimited">Unlimited</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Maximum number of jobs that can be assigned to each vehicle tab
                         </p>
                       </div>
                     </div>

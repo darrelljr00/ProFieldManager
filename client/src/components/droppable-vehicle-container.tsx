@@ -29,6 +29,7 @@ interface DroppableVehicleContainerProps {
   onStatusUpdate: (jobId: number, status: string) => void;
   onUndo?: () => void;
   canUndo?: boolean;
+  maxJobsPerVehicle?: string | number;
 }
 
 export function DroppableVehicleContainer({ 
@@ -38,7 +39,8 @@ export function DroppableVehicleContainer({
   selectedDate,
   onStatusUpdate,
   onUndo,
-  canUndo
+  canUndo,
+  maxJobsPerVehicle
 }: DroppableVehicleContainerProps) {
   const { isOver, setNodeRef } = useDroppable({
     id: vehicleId,
@@ -52,8 +54,21 @@ export function DroppableVehicleContainer({
         <CardTitle className="flex items-center gap-2">
           <Truck className="h-5 w-5" />
           Scheduled Jobs Vehicle {vehicleNumber}
-          <Badge variant="secondary" className="ml-auto">
-            {vehicleJobs.length} jobs
+          <Badge 
+            variant="secondary" 
+            className={`ml-auto ${
+              vehicleId !== 'unassigned' && 
+              maxJobsPerVehicle !== 'unlimited' && 
+              maxJobsPerVehicle &&
+              vehicleJobs.length >= parseInt(maxJobsPerVehicle as string) 
+                ? 'bg-red-100 text-red-800' 
+                : ''
+            }`}
+          >
+            {vehicleId === 'unassigned' || maxJobsPerVehicle === 'unlimited' 
+              ? `${vehicleJobs.length} jobs`
+              : `${vehicleJobs.length}/${maxJobsPerVehicle} jobs`
+            }
           </Badge>
           {vehicleId === 'unassigned' && onUndo && (
             <Button

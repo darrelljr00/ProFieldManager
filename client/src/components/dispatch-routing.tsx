@@ -85,7 +85,7 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
   const { data: dispatchSettings } = useQuery({
     queryKey: ['/api/settings/dispatch-routing'],
     queryFn: () => apiRequest('GET', '/api/settings/dispatch-routing')
-  }) as { data: { showMultiMapView?: boolean; vehicleTabsCount?: number } | undefined };
+  }) as { data: { showMultiMapView?: boolean; vehicleTabsCount?: number; maxJobsPerVehicle?: string | number } | undefined };
 
   // Handle date change
   const handleDateChange = (newDate: string) => {
@@ -303,6 +303,21 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
 
     // If dropped in same vehicle, no action needed
     if (draggedJob.vehicleId === newVehicleId) return;
+
+    // Check max jobs per vehicle limit (but not for unassigned)
+    if (newVehicleId !== 'unassigned' && dispatchSettings?.maxJobsPerVehicle !== 'unlimited') {
+      const maxJobs = parseInt(dispatchSettings.maxJobsPerVehicle as string);
+      const currentJobsInVehicle = scheduledJobs.filter(job => job.vehicleId === newVehicleId).length;
+      
+      if (currentJobsInVehicle >= maxJobs) {
+        toast({
+          title: "Vehicle at Capacity",
+          description: `Vehicle ${newVehicleId.replace('vehicle-', '')} already has ${maxJobs} job(s). Maximum capacity reached.`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
 
     // Track this change for undo functionality
     const undoAction = {
@@ -873,6 +888,7 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
               jobs={scheduledJobs}
               selectedDate={selectedDateState}
               onStatusUpdate={handleStatusUpdate}
+              maxJobsPerVehicle={dispatchSettings?.maxJobsPerVehicle}
             />
           ))}
         
