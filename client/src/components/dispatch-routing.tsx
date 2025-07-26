@@ -79,7 +79,7 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
   const { data: dispatchSettings } = useQuery({
     queryKey: ['/api/settings/dispatch-routing'],
     queryFn: () => apiRequest('GET', '/api/settings/dispatch-routing')
-  });
+  }) as { data: { showMultiMapView?: boolean; vehicleTabsCount?: number } | undefined };
 
   // Handle date change
   const handleDateChange = (newDate: string) => {
@@ -744,16 +744,25 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
         </Card>
       </div>
 
-      {/* Grid Layout with Vehicle Jobs Window */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Scheduled Jobs Vehicle Window */}
-        <ScheduledJobsVehicleWindow 
-          selectedDate={selectedDateState}
-          vehicleNumber="1"
-        />
+      {/* Grid Layout with Vehicle Jobs Windows */}
+      <div className={`grid gap-6 ${
+        (dispatchSettings?.vehicleTabsCount || 1) === 1 ? 'grid-cols-1' :
+        (dispatchSettings?.vehicleTabsCount || 1) === 2 ? 'grid-cols-1 lg:grid-cols-2' :
+        (dispatchSettings?.vehicleTabsCount || 1) === 3 ? 'grid-cols-1 lg:grid-cols-3' :
+        'grid-cols-1 lg:grid-cols-2 xl:grid-cols-4'
+      }`}>
+        {/* Dynamic Scheduled Jobs Vehicle Windows */}
+        {Array.from({ length: dispatchSettings?.vehicleTabsCount || 1 }, (_, index) => (
+          <ScheduledJobsVehicleWindow 
+            key={index + 1}
+            selectedDate={selectedDateState}
+            vehicleNumber={String(index + 1)}
+          />
+        ))}
         
-        {/* Optional: Additional Vehicle Windows */}
-        <Card>
+        {/* Multi-Map View Section - Only show if there's space or single column */}
+        {((dispatchSettings?.vehicleTabsCount || 1) === 1 || (dispatchSettings?.vehicleTabsCount || 1) >= 3) && (
+          <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <ExternalLink className="h-5 w-5" />
@@ -770,7 +779,7 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  onClick={() => openMultipleMapWindow(1)}
+                  onClick={() => openMultipleMapWindow('1')}
                   className="flex-1"
                 >
                   <Map className="h-4 w-4 mr-1" />
@@ -779,7 +788,7 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  onClick={() => openMultipleMapWindow(2)}
+                  onClick={() => openMultipleMapWindow('2')}
                   className="flex-1"
                 >
                   <Grid3X3 className="h-4 w-4 mr-1" />
@@ -788,7 +797,7 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  onClick={() => openMultipleMapWindow(4)}
+                  onClick={() => openMultipleMapWindow('4')}
                   className="flex-1"
                 >
                   <Grid3X3 className="h-4 w-4 mr-1" />
@@ -798,6 +807,7 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
             </div>
           </CardContent>
         </Card>
+        )}
       </div>
 
       {/* Optimized Route Results */}
