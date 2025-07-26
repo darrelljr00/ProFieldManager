@@ -118,6 +118,11 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
     ...job,
     vehicleId: job.vehicleId || 'unassigned'
   })) : [];
+  
+  // Debug: Log scheduled jobs data to verify vehicleId assignments
+  useEffect(() => {
+    console.log('Scheduled jobs data:', scheduledJobs);
+  }, [scheduledJobs]);
 
   // WebSocket listeners for real-time job updates
   useEffect(() => {
@@ -269,7 +274,9 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
         title: "Job Assigned",
         description: "Job successfully assigned to vehicle",
       });
+      // Force a hard refresh of scheduled jobs data
       queryClient.invalidateQueries({ queryKey: ['/api/dispatch/scheduled-jobs'] });
+      queryClient.refetchQueries({ queryKey: ['/api/dispatch/scheduled-jobs', selectedDateState] });
     },
     onError: (error: any) => {
       toast({
