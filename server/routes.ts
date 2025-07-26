@@ -4786,6 +4786,101 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Dispatch Routing Settings API
+  app.get("/api/settings/dispatch-routing", requireAuth, async (req, res) => {
+    try {
+      const settings = await storage.getSettingsByCategory('dispatch');
+      const dispatchSettings = {
+        defaultStartLocation: '',
+        routeOptimization: 'time',
+        avoidTolls: false,
+        avoidHighways: false,
+        trafficAware: true,
+        bufferMinutes: 15,
+        maxJobsPerRoute: 10,
+        workingHoursStart: '08:00',
+        workingHoursEnd: '17:00',
+        lunchBreakStart: '12:00',
+        lunchBreakEnd: '13:00',
+        autoDispatch: false,
+        notificationSettings: {
+          routeUpdates: true,
+          jobStatusChanges: true,
+          trafficAlerts: true,
+        }
+      };
+      
+      if (settings && settings.length > 0) {
+        settings.forEach((setting: any) => {
+          const key = setting.key.replace('dispatch_', '');
+          if (key === 'avoidTolls' || key === 'avoidHighways' || key === 'trafficAware' || key === 'autoDispatch') {
+            dispatchSettings[key] = setting.value === 'true';
+          } else if (key === 'bufferMinutes' || key === 'maxJobsPerRoute') {
+            dispatchSettings[key] = parseInt(setting.value) || dispatchSettings[key];
+          } else if (key === 'notificationSettings') {
+            try {
+              dispatchSettings.notificationSettings = JSON.parse(setting.value || '{}');
+            } catch {
+              // Keep defaults
+            }
+          } else if (key in dispatchSettings) {
+            dispatchSettings[key] = setting.value;
+          }
+        });
+      }
+
+      res.json(dispatchSettings);
+    } catch (error: any) {
+      console.error("Error fetching dispatch routing settings:", error);
+      res.status(500).json({ message: "Failed to fetch dispatch routing settings" });
+    }
+  });
+
+  app.put("/api/settings/dispatch-routing", requireAuth, async (req, res) => {
+    try {
+      const {
+        defaultStartLocation,
+        routeOptimization,
+        avoidTolls,
+        avoidHighways,
+        trafficAware,
+        bufferMinutes,
+        maxJobsPerRoute,
+        workingHoursStart,
+        workingHoursEnd,
+        lunchBreakStart,
+        lunchBreakEnd,
+        autoDispatch,
+        notificationSettings
+      } = req.body;
+      
+      const updates = [
+        { key: 'dispatch_defaultStartLocation', value: defaultStartLocation || '', isSecret: false },
+        { key: 'dispatch_routeOptimization', value: routeOptimization || 'time', isSecret: false },
+        { key: 'dispatch_avoidTolls', value: String(avoidTolls || false), isSecret: false },
+        { key: 'dispatch_avoidHighways', value: String(avoidHighways || false), isSecret: false },
+        { key: 'dispatch_trafficAware', value: String(trafficAware !== false), isSecret: false },
+        { key: 'dispatch_bufferMinutes', value: String(bufferMinutes || 15), isSecret: false },
+        { key: 'dispatch_maxJobsPerRoute', value: String(maxJobsPerRoute || 10), isSecret: false },
+        { key: 'dispatch_workingHoursStart', value: workingHoursStart || '08:00', isSecret: false },
+        { key: 'dispatch_workingHoursEnd', value: workingHoursEnd || '17:00', isSecret: false },
+        { key: 'dispatch_lunchBreakStart', value: lunchBreakStart || '12:00', isSecret: false },
+        { key: 'dispatch_lunchBreakEnd', value: lunchBreakEnd || '13:00', isSecret: false },
+        { key: 'dispatch_autoDispatch', value: String(autoDispatch || false), isSecret: false },
+        { key: 'dispatch_notificationSettings', value: JSON.stringify(notificationSettings || {}), isSecret: false }
+      ];
+
+      for (const update of updates) {
+        await storage.updateSettings(update.key, update.value, update.isSecret);
+      }
+
+      res.json({ message: "Dispatch routing settings updated successfully" });
+    } catch (error: any) {
+      console.error("Error updating dispatch routing settings:", error);
+      res.status(500).json({ message: "Failed to update dispatch routing settings" });
+    }
+  });
+
   // Invoice Settings API
   app.get("/api/settings/invoice", requireAuth, async (req, res) => {
     try {

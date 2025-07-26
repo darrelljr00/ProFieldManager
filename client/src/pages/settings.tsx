@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Save, Eye, EyeOff, Upload, X, Download, Database, Clock, AlertTriangle, Map, MessageSquare, FileSignature } from "lucide-react";
+import { Save, Eye, EyeOff, Upload, X, Download, Database, Clock, AlertTriangle, Map, MessageSquare, FileSignature, Route } from "lucide-react";
 import { InvoicePreview } from "@/components/InvoicePreview";
 import SoundSettings from "@/components/SoundSettings";
 import { FileStorageManager } from "@/components/file-storage-manager";
@@ -134,6 +134,26 @@ type WeatherSettings = {
   apiKey: string;
 };
 
+type DispatchRoutingSettings = {
+  defaultStartLocation: string;
+  routeOptimization: 'time' | 'distance' | 'traffic';
+  avoidTolls: boolean;
+  avoidHighways: boolean;
+  trafficAware: boolean;
+  bufferMinutes: number;
+  maxJobsPerRoute: number;
+  workingHoursStart: string;
+  workingHoursEnd: string;
+  lunchBreakStart: string;
+  lunchBreakEnd: string;
+  autoDispatch: boolean;
+  notificationSettings: {
+    routeUpdates: boolean;
+    jobStatusChanges: boolean;
+    trafficAlerts: boolean;
+  };
+};
+
 type BackupSettings = {
   id: number;
   organizationId: number;
@@ -241,6 +261,11 @@ export default function Settings() {
   // Integration settings query
   const { data: integrationSettings, isLoading: integrationLoading } = useQuery({
     queryKey: ["/api/settings/integrations"],
+  });
+
+  // Dispatch routing settings query
+  const { data: dispatchSettings, isLoading: dispatchLoading } = useQuery<DispatchRoutingSettings>({
+    queryKey: ["/api/settings/dispatch-routing"],
   });
 
   // Get organization users for admin dashboard management
@@ -601,7 +626,7 @@ export default function Settings() {
   };
 
   const reviewMutation = useMutation({
-    mutationFn: (data: any) => apiRequest('/api/reviews/settings', 'POST', data),
+    mutationFn: (data: any) => apiRequest('POST', '/api/reviews/settings', data),
     onSuccess: () => {
       toast({
         title: "Success", 
@@ -613,6 +638,25 @@ export default function Settings() {
       toast({
         title: "Error",
         description: "Failed to save review settings",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const dispatchMutation = useMutation({
+    mutationFn: (data: Partial<DispatchRoutingSettings>) =>
+      apiRequest("PUT", "/api/settings/dispatch-routing", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/dispatch-routing"] });
+      toast({
+        title: "Success",
+        description: "Dispatch routing settings saved successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save dispatch routing settings",
         variant: "destructive",
       });
     },
@@ -821,7 +865,32 @@ export default function Settings() {
     reviewMutation.mutate(data);
   };
 
-  if (paymentLoading || companyLoading || emailLoading || twilioLoading || ocrLoading || calendarLoading || invoiceLoading) {
+  const handleDispatchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const data: Partial<DispatchRoutingSettings> = {
+      defaultStartLocation: formData.get('defaultStartLocation') as string,
+      routeOptimization: formData.get('routeOptimization') as 'time' | 'distance' | 'traffic',
+      avoidTolls: formData.get('avoidTolls') === 'on',
+      avoidHighways: formData.get('avoidHighways') === 'on',
+      trafficAware: formData.get('trafficAware') === 'on',
+      bufferMinutes: parseInt(formData.get('bufferMinutes') as string) || 15,
+      maxJobsPerRoute: parseInt(formData.get('maxJobsPerRoute') as string) || 10,
+      workingHoursStart: formData.get('workingHoursStart') as string,
+      workingHoursEnd: formData.get('workingHoursEnd') as string,
+      lunchBreakStart: formData.get('lunchBreakStart') as string,
+      lunchBreakEnd: formData.get('lunchBreakEnd') as string,
+      autoDispatch: formData.get('autoDispatch') === 'on',
+      notificationSettings: {
+        routeUpdates: formData.get('routeUpdates') === 'on',
+        jobStatusChanges: formData.get('jobStatusChanges') === 'on',
+        trafficAlerts: formData.get('trafficAlerts') === 'on',
+      }
+    };
+    dispatchMutation.mutate(data);
+  };
+
+  if (paymentLoading || companyLoading || emailLoading || twilioLoading || ocrLoading || calendarLoading || invoiceLoading || dispatchLoading) {
     return (
       <div className="p-6">
         <div className="space-y-4">
@@ -855,6 +924,7 @@ export default function Settings() {
           <TabsTrigger value="sounds" className="flex-shrink-0">Sounds</TabsTrigger>
           <TabsTrigger value="storage" className="flex-shrink-0">File Storage</TabsTrigger>
           <TabsTrigger value="vehicles" className="flex-shrink-0">Vehicles</TabsTrigger>
+          <TabsTrigger value="dispatch" className="flex-shrink-0">Dispatch Routing</TabsTrigger>
           <TabsTrigger value="integrations" className="flex-shrink-0">Integrations</TabsTrigger>
           <TabsTrigger value="navigation" className="flex-shrink-0">Navigation</TabsTrigger>
         </TabsList>
@@ -3602,6 +3672,247 @@ export default function Settings() {
 
         <TabsContent value="vehicles">
           <VehicleManagement />
+        </TabsContent>
+
+        <TabsContent value="dispatch">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Route className="h-5 w-5" />
+                Dispatch Routing Settings
+              </CardTitle>
+              <CardDescription>
+                Configure route optimization, working hours, and dispatch preferences
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {dispatchLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                </div>
+              ) : (
+                <form onSubmit={handleDispatchSubmit} className="space-y-6">
+                  {/* Route Optimization Section */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Route Optimization</h3>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="defaultStartLocation">Default Start Location</Label>
+                        <Input
+                          id="defaultStartLocation"
+                          name="defaultStartLocation"
+                          placeholder="e.g., Company Office, 123 Main St"
+                          defaultValue={dispatchSettings?.defaultStartLocation || ""}
+                        />
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Starting location for all routes (can be overridden per route)
+                        </p>
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="routeOptimization">Route Optimization Priority</Label>
+                        <Select name="routeOptimization" defaultValue={dispatchSettings?.routeOptimization || "time"}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select optimization priority" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="time">Shortest Time</SelectItem>
+                            <SelectItem value="distance">Shortest Distance</SelectItem>
+                            <SelectItem value="traffic">Traffic-Aware</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          name="avoidTolls"
+                          defaultChecked={dispatchSettings?.avoidTolls || false}
+                        />
+                        <Label>Avoid Tolls</Label>
+                      </div>
+                      
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          name="avoidHighways"
+                          defaultChecked={dispatchSettings?.avoidHighways || false}
+                        />
+                        <Label>Avoid Highways</Label>
+                      </div>
+                      
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          name="trafficAware"
+                          defaultChecked={dispatchSettings?.trafficAware !== false}
+                        />
+                        <Label>Traffic-Aware Routing</Label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* Job Management Section */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Job Management</h3>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="bufferMinutes">Buffer Time (minutes)</Label>
+                        <Input
+                          id="bufferMinutes"
+                          name="bufferMinutes"
+                          type="number"
+                          min="0"
+                          max="120"
+                          placeholder="15"
+                          defaultValue={dispatchSettings?.bufferMinutes || 15}
+                        />
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Extra time added between jobs for travel and setup
+                        </p>
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="maxJobsPerRoute">Max Jobs per Route</Label>
+                        <Input
+                          id="maxJobsPerRoute"
+                          name="maxJobsPerRoute"
+                          type="number"
+                          min="1"
+                          max="50"
+                          placeholder="10"
+                          defaultValue={dispatchSettings?.maxJobsPerRoute || 10}
+                        />
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Maximum number of jobs to assign to a single route
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        name="autoDispatch"
+                        defaultChecked={dispatchSettings?.autoDispatch || false}
+                      />
+                      <Label>Auto-Dispatch New Jobs</Label>
+                      <p className="text-sm text-muted-foreground ml-2">
+                        Automatically assign new jobs to optimal routes
+                      </p>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* Working Hours Section */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Working Hours</h3>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="workingHoursStart">Working Hours Start</Label>
+                        <Input
+                          id="workingHoursStart"
+                          name="workingHoursStart"
+                          type="time"
+                          defaultValue={dispatchSettings?.workingHoursStart || "08:00"}
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="workingHoursEnd">Working Hours End</Label>
+                        <Input
+                          id="workingHoursEnd"
+                          name="workingHoursEnd"
+                          type="time"
+                          defaultValue={dispatchSettings?.workingHoursEnd || "17:00"}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="lunchBreakStart">Lunch Break Start</Label>
+                        <Input
+                          id="lunchBreakStart"
+                          name="lunchBreakStart"
+                          type="time"
+                          defaultValue={dispatchSettings?.lunchBreakStart || "12:00"}
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="lunchBreakEnd">Lunch Break End</Label>
+                        <Input
+                          id="lunchBreakEnd"
+                          name="lunchBreakEnd"
+                          type="time"
+                          defaultValue={dispatchSettings?.lunchBreakEnd || "13:00"}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* Notification Settings Section */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Notification Settings</h3>
+                    
+                    <div className="grid grid-cols-1 gap-4">
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          name="routeUpdates"
+                          defaultChecked={dispatchSettings?.notificationSettings?.routeUpdates !== false}
+                        />
+                        <div>
+                          <Label>Route Updates</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Notify team when routes are optimized or updated
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          name="jobStatusChanges"
+                          defaultChecked={dispatchSettings?.notificationSettings?.jobStatusChanges !== false}
+                        />
+                        <div>
+                          <Label>Job Status Changes</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Notify dispatchers when job status changes
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          name="trafficAlerts"
+                          defaultChecked={dispatchSettings?.notificationSettings?.trafficAlerts !== false}
+                        />
+                        <div>
+                          <Label>Traffic Alerts</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Send alerts for significant traffic delays
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <Button type="submit" disabled={dispatchMutation.isPending}>
+                      <Save className="h-4 w-4 mr-2" />
+                      {dispatchMutation.isPending ? "Saving..." : "Save Dispatch Settings"}
+                    </Button>
+                  </div>
+                </form>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="storage">
