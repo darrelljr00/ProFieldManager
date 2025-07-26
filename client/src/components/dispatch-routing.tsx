@@ -327,8 +327,8 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
       timestamp: Date.now()
     };
 
-    // Add to undo stack (keep only last 10 actions)
-    setUndoStack(prev => [undoAction, ...prev.slice(0, 9)]);
+    // Add to undo stack (keep only last 14 actions)
+    setUndoStack(prev => [undoAction, ...prev.slice(0, 13)]);
 
     // Update the job's vehicle assignment
     assignJobToVehicleMutation.mutate({
@@ -877,6 +877,7 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
             onStatusUpdate={handleStatusUpdate}
             onUndo={handleUndo}
             canUndo={undoStack.length > 0}
+            undoCount={undoStack.length}
           />
           
           {/* Dynamic Scheduled Jobs Vehicle Windows */}

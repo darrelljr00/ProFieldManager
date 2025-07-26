@@ -29,6 +29,7 @@ interface DroppableVehicleContainerProps {
   onStatusUpdate: (jobId: number, status: string) => void;
   onUndo?: () => void;
   canUndo?: boolean;
+  undoCount?: number;
   maxJobsPerVehicle?: string | number;
 }
 
@@ -40,6 +41,7 @@ export function DroppableVehicleContainer({
   onStatusUpdate,
   onUndo,
   canUndo,
+  undoCount = 0,
   maxJobsPerVehicle
 }: DroppableVehicleContainerProps) {
   const { isOver, setNodeRef } = useDroppable({
@@ -79,7 +81,7 @@ export function DroppableVehicleContainer({
               className="ml-2"
             >
               <Undo2 className="h-4 w-4 mr-1" />
-              Undo
+              Undo {undoCount > 0 ? `(${undoCount} action${undoCount > 1 ? 's' : ''})` : ''}
             </Button>
           )}
         </CardTitle>
