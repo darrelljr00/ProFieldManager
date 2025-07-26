@@ -12,6 +12,10 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { DispatchMap } from "@/components/dispatch-map";
 import { ScheduledJobsVehicleWindow } from "@/components/scheduled-jobs-vehicle-window";
+import { DroppableVehicleContainer } from "@/components/droppable-vehicle-container";
+import { DndContext, closestCenter, DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { DraggableJobItem } from "@/components/draggable-job-item";
 import { 
   Route, 
   Navigation, 
@@ -43,6 +47,7 @@ interface JobLocation {
   assignedTo?: string;
   priority: 'low' | 'medium' | 'high' | 'urgent';
   status: 'scheduled' | 'in-progress' | 'completed';
+  vehicleId?: string;
 }
 
 interface RouteOptimization {
@@ -108,8 +113,11 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
     },
   });
 
-  // Ensure scheduledJobs is always an array
-  const scheduledJobs = Array.isArray(scheduledJobsData) ? scheduledJobsData : [];
+  // Ensure scheduledJobs is always an array and add vehicleId if not present
+  const scheduledJobs = Array.isArray(scheduledJobsData) ? scheduledJobsData.map((job: JobLocation) => ({
+    ...job,
+    vehicleId: job.vehicleId || 'unassigned'
+  })) : [];
 
   // WebSocket listeners for real-time job updates
   useEffect(() => {
@@ -141,6 +149,14 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
             handleJobStatusUpdate(message.data);
           } else if (message.type === 'job_scheduled') {
             handleJobScheduled(message.data);
+          } else if (message.type === 'job_vehicle_assigned') {
+            // Handle job vehicle assignment updates
+            toast({
+              title: "Job Vehicle Assignment",
+              description: `${message.data.updatedBy} assigned job to vehicle`,
+            });
+            // Refetch scheduled jobs to update dispatch routing
+            queryClient.invalidateQueries({ queryKey: ['/api/dispatch/scheduled-jobs'] });
           } else if (message.type === 'job_status_changed') {
             // Handle job status changes that affect dispatch routing
             toast({
@@ -239,6 +255,51 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
     updateJobStatusMutation.mutate({
       jobId,
       status: newStatus,
+    });
+  };
+
+  // Job vehicle assignment mutation
+  const assignJobToVehicleMutation = useMutation({
+    mutationFn: async (data: { jobId: number; vehicleId: string }) => {
+      const response = await apiRequest('PATCH', `/api/dispatch/jobs/${data.jobId}/assign-vehicle`, data);
+      return response;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Job Assigned",
+        description: "Job successfully assigned to vehicle",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/dispatch/scheduled-jobs'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to assign job to vehicle",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Handle drag end event
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (!over) return;
+
+    const jobId = active.id as number;
+    const newVehicleId = over.id as string;
+
+    // Find the job being dragged
+    const draggedJob = scheduledJobs.find(job => job.id === jobId);
+    if (!draggedJob) return;
+
+    // If dropped in same vehicle, no action needed
+    if (draggedJob.vehicleId === newVehicleId) return;
+
+    // Update the job's vehicle assignment
+    assignJobToVehicleMutation.mutate({
+      jobId: draggedJob.projectId,
+      vehicleId: newVehicleId
     });
   };
 
@@ -744,21 +805,34 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
         </Card>
       </div>
 
-      {/* Grid Layout with Vehicle Jobs Windows */}
-      <div className={`grid gap-6 ${
-        (dispatchSettings?.vehicleTabsCount || 1) === 1 ? 'grid-cols-1' :
-        (dispatchSettings?.vehicleTabsCount || 1) === 2 ? 'grid-cols-1 lg:grid-cols-2' :
-        (dispatchSettings?.vehicleTabsCount || 1) === 3 ? 'grid-cols-1 lg:grid-cols-3' :
-        'grid-cols-1 lg:grid-cols-2 xl:grid-cols-4'
-      }`}>
-        {/* Dynamic Scheduled Jobs Vehicle Windows */}
-        {Array.from({ length: dispatchSettings?.vehicleTabsCount || 1 }, (_, index) => (
-          <ScheduledJobsVehicleWindow 
-            key={index + 1}
+      {/* Grid Layout with Vehicle Jobs Windows - Drag and Drop Enabled */}
+      <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <div className={`grid gap-6 ${
+          (dispatchSettings?.vehicleTabsCount || 1) === 1 ? 'grid-cols-1' :
+          (dispatchSettings?.vehicleTabsCount || 1) === 2 ? 'grid-cols-1 lg:grid-cols-2' :
+          (dispatchSettings?.vehicleTabsCount || 1) === 3 ? 'grid-cols-1 lg:grid-cols-3' :
+          'grid-cols-1 lg:grid-cols-2 xl:grid-cols-4'
+        }`}>
+          {/* Add Unassigned Jobs Pool */}
+          <DroppableVehicleContainer
+            vehicleId="unassigned"
+            vehicleNumber="Unassigned"
+            jobs={scheduledJobs}
             selectedDate={selectedDateState}
-            vehicleNumber={String(index + 1)}
+            onStatusUpdate={handleStatusUpdate}
           />
-        ))}
+          
+          {/* Dynamic Scheduled Jobs Vehicle Windows */}
+          {Array.from({ length: dispatchSettings?.vehicleTabsCount || 1 }, (_, index) => (
+            <DroppableVehicleContainer
+              key={index + 1}
+              vehicleId={`vehicle-${index + 1}`}
+              vehicleNumber={String(index + 1)}
+              jobs={scheduledJobs}
+              selectedDate={selectedDateState}
+              onStatusUpdate={handleStatusUpdate}
+            />
+          ))}
         
         {/* Multi-Map View Section - Only show if there's space or single column */}
         {((dispatchSettings?.vehicleTabsCount || 1) === 1 || (dispatchSettings?.vehicleTabsCount || 1) >= 3) && (
@@ -808,7 +882,8 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
           </CardContent>
         </Card>
         )}
-      </div>
+        </div>
+      </DndContext>
 
       {/* Optimized Route Results */}
       {optimization && (

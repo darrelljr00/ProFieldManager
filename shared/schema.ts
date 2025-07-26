@@ -427,6 +427,7 @@ export const projects = pgTable("projects", {
   estimatedDuration: integer("estimated_duration"), // in minutes
   currentLocation: text("current_location"), // Current GPS or text location
   dispatchNotes: text("dispatch_notes"), // Notes for dispatch routing
+  vehicleId: text("vehicle_id"), // Vehicle assignment for dispatch routing
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

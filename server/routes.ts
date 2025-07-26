@@ -7903,6 +7903,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Assign job to vehicle with WebSocket broadcast
+  app.patch('/api/dispatch/jobs/:id/assign-vehicle', requireAuth, async (req, res) => {
+    try {
+      const jobId = parseInt(req.params.id);
+      const { vehicleId } = req.body;
+      const userId = req.user!.id;
+      const user = await storage.getUser(userId);
+
+      if (!user) {
+        return res.status(401).json({ message: 'User not found' });
+      }
+
+      // Update project with vehicle assignment
+      const updates: any = { 
+        vehicleId: vehicleId === 'unassigned' ? null : vehicleId,
+        updatedAt: new Date()
+      };
+
+      const updatedProject = await storage.updateProject(jobId, updates);
+      
+      if (!updatedProject) {
+        return res.status(404).json({ message: 'Job not found' });
+      }
+
+      // Broadcast job vehicle assignment to all connected users in organization
+      const updateData = {
+        id: jobId,
+        vehicleId,
+        updatedBy: `${user.firstName} ${user.lastName}`,
+        updatedAt: new Date().toISOString()
+      };
+
+      // Broadcast to organization users
+      broadcastToWebUsers(user.organizationId, 'job_vehicle_assigned', updateData);
+
+      res.json({
+        success: true,
+        message: 'Job assigned to vehicle successfully',
+        data: updateData
+      });
+    } catch (error: any) {
+      console.error('Error assigning job to vehicle:', error);
+      res.status(500).json({ message: 'Failed to assign job to vehicle' });
+    }
+  });
+
   // Schedule a job for specific date/time
   app.post('/api/dispatch/schedule-job', requireAuth, async (req, res) => {
     try {
@@ -8077,6 +8123,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: (project.status || 'scheduled') as 'scheduled' | 'in-progress' | 'completed',
         currentLocation: project.currentLocation,
         dispatchNotes: project.dispatchNotes,
+        vehicleId: project.vehicleId || 'unassigned', // Vehicle assignment for drag and drop
         updatedAt: project.updatedAt
       }));
 
