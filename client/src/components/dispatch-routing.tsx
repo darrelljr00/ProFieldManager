@@ -75,6 +75,12 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Fetch dispatch routing settings to determine if multi-map view should be shown
+  const { data: dispatchSettings } = useQuery({
+    queryKey: ['/api/settings/dispatch-routing'],
+    queryFn: () => apiRequest('GET', '/api/settings/dispatch-routing')
+  });
+
   // Handle date change
   const handleDateChange = (newDate: string) => {
     setSelectedDateState(newDate);
@@ -557,47 +563,49 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
               )}
             </Button>
             
-            {/* Multi-Map Controls */}
-            <div className="flex items-center gap-2">
-              <Label htmlFor="mapCount" className="text-sm text-gray-600">
-                Maps:
-              </Label>
-              <Select value={mapCount} onValueChange={(value: '1' | '2' | '4') => setMapCount(value)}>
-                <SelectTrigger className="w-20">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">
-                    <div className="flex items-center gap-2">
-                      <Map className="h-4 w-4" />
-                      1
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="2">
-                    <div className="flex items-center gap-2">
-                      <Grid3X3 className="h-4 w-4" />
-                      2
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="4">
-                    <div className="flex items-center gap-2">
-                      <Grid3X3 className="h-4 w-4" />
-                      4
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-              <Button 
-                onClick={openMultipleMapWindow}
-                variant="outline"
-                size="sm"
-                disabled={scheduledJobs.length === 0}
-                className="whitespace-nowrap"
-              >
-                <ExternalLink className="h-4 w-4 mr-2" />
-                Open {mapCount} Map{mapCount !== '1' ? 's' : ''}
-              </Button>
-            </div>
+            {/* Multi-Map Controls - only show if enabled in settings */}
+            {dispatchSettings?.showMultiMapView && (
+              <div className="flex items-center gap-2">
+                <Label htmlFor="mapCount" className="text-sm text-gray-600">
+                  Maps:
+                </Label>
+                <Select value={mapCount} onValueChange={(value: '1' | '2' | '4') => setMapCount(value)}>
+                  <SelectTrigger className="w-20">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">
+                      <div className="flex items-center gap-2">
+                        <Map className="h-4 w-4" />
+                        1
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="2">
+                      <div className="flex items-center gap-2">
+                        <Grid3X3 className="h-4 w-4" />
+                        2
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="4">
+                      <div className="flex items-center gap-2">
+                        <Grid3X3 className="h-4 w-4" />
+                        4
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button 
+                  onClick={openMultipleMapWindow}
+                  variant="outline"
+                  size="sm"
+                  disabled={scheduledJobs.length === 0}
+                  className="whitespace-nowrap"
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Open {mapCount} Map{mapCount !== '1' ? 's' : ''}
+                </Button>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
