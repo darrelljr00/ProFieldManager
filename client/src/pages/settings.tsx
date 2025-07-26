@@ -147,6 +147,7 @@ type DispatchRoutingSettings = {
   lunchBreakStart: string;
   lunchBreakEnd: string;
   autoDispatch: boolean;
+  vehicleTabsCount: number;
   notificationSettings: {
     routeUpdates: boolean;
     jobStatusChanges: boolean;
@@ -881,6 +882,7 @@ export default function Settings() {
       lunchBreakStart: formData.get('lunchBreakStart') as string,
       lunchBreakEnd: formData.get('lunchBreakEnd') as string,
       autoDispatch: formData.get('autoDispatch') === 'on',
+      vehicleTabsCount: parseInt(formData.get('vehicleTabsCount') as string) || 1,
       notificationSettings: {
         routeUpdates: formData.get('routeUpdates') === 'on',
         jobStatusChanges: formData.get('jobStatusChanges') === 'on',
@@ -3788,6 +3790,26 @@ export default function Settings() {
                         />
                         <p className="text-sm text-muted-foreground mt-1">
                           Maximum number of jobs to assign to a single route
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-4">
+                      <div>
+                        <Label htmlFor="vehicleTabsCount">Scheduled Jobs Vehicle Tabs</Label>
+                        <Select name="vehicleTabsCount" defaultValue={String(dispatchSettings?.vehicleTabsCount || 1)}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select number of vehicle tabs" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="1">1 Vehicle Tab</SelectItem>
+                            <SelectItem value="2">2 Vehicle Tabs</SelectItem>
+                            <SelectItem value="3">3 Vehicle Tabs</SelectItem>
+                            <SelectItem value="4">4 Vehicle Tabs</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Number of vehicle tabs to display in the dispatch routing interface for tracking scheduled jobs by vehicle
                         </p>
                       </div>
                     </div>
