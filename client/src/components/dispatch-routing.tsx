@@ -141,6 +141,14 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
             handleJobStatusUpdate(message.data);
           } else if (message.type === 'job_scheduled') {
             handleJobScheduled(message.data);
+          } else if (message.type === 'job_status_changed') {
+            // Handle job status changes that affect dispatch routing
+            toast({
+              title: "Job Status Changed",
+              description: `${message.data.projectName} changed from ${message.data.oldStatus} to ${message.data.newStatus}`,
+            });
+            // Refetch scheduled jobs to update dispatch routing
+            queryClient.invalidateQueries({ queryKey: ['/api/dispatch/scheduled-jobs'] });
           }
         } catch (error) {
           console.error('Error parsing WebSocket message:', error);

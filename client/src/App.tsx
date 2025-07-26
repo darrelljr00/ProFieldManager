@@ -76,6 +76,7 @@ function AuthenticatedApp() {
         'quote_created': ['/api/quotes', '/api/dashboard'],
         'customer_created': ['/api/customers'],
         'project_created': ['/api/projects', '/api/dashboard'],
+        'job_status_changed': ['/api/projects', '/api/dispatch/scheduled-jobs', '/api/dashboard'],
         'sms_sent': ['/api/sms'],
         'lead_created': ['/api/leads'],
         'message_created': ['/api/messages'],

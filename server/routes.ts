@@ -3159,6 +3159,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Project not found or access denied" });
       }
 
+      // Get user for organization info
+      const user = await storage.getUser(userId);
+      if (user) {
+        // Broadcast job status change for dispatch routing synchronization
+        if (req.body.status && req.body.status !== currentProject.status) {
+          const statusChangeData = {
+            projectId: updatedProject.id,
+            projectName: updatedProject.name,
+            oldStatus: currentProject.status,
+            newStatus: req.body.status,
+            progress: updatedProject.progress || 0,
+            startDate: updatedProject.startDate,
+            updatedBy: `${user.firstName} ${user.lastName}`,
+            updatedAt: new Date().toISOString()
+          };
+          
+          broadcastToWebUsers(user.organizationId, 'job_status_changed', statusChangeData);
+        }
+      }
+
       // Check if project was just marked as completed and trigger review request
       if (req.body.status === 'completed' && currentProject.status !== 'completed') {
         try {
@@ -7943,7 +7963,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: userId
       });
       
-      // Filter projects based on date and status
+      // Filter projects based on date and status - synchronized with Progress tab "In Progress" logic
       let dispatchProjects = projects;
       
       if (date) {
@@ -7952,7 +7972,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const isToday = targetDate.toDateString() === today.toDateString();
         
         dispatchProjects = projects.filter(project => {
-          // Include jobs scheduled for the specific date
+          // Always include jobs scheduled for the specific date
           if (project.scheduledDate) {
             const projectDate = new Date(project.scheduledDate);
             if (projectDate.toDateString() === targetDate.toDateString()) {
@@ -7960,19 +7980,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           }
           
-          // If selecting today's date, also include active/in-progress jobs without scheduled dates
-          if (isToday && !project.scheduledDate && 
-              (project.status === 'active' || project.status === 'in-progress')) {
-            return true;
+          // Include "In Progress" jobs (matches Progress tab logic):
+          // - status === 'active' 
+          // - AND (no start date OR start date <= today)
+          // - AND progress < 100
+          if (project.status === 'active') {
+            const hasValidStartDate = !project.startDate || new Date(project.startDate) <= today;
+            const isNotCompleted = (project.progress || 0) < 100;
+            
+            if (hasValidStartDate && isNotCompleted) {
+              // For today's date, include all active in-progress jobs
+              if (isToday) {
+                return true;
+              }
+              // For other dates, only include if they have a scheduled date matching the target
+              if (project.scheduledDate) {
+                const projectDate = new Date(project.scheduledDate);
+                return projectDate.toDateString() === targetDate.toDateString();
+              }
+            }
+          }
+          
+          // Also include explicit in-progress status
+          if (project.status === 'in-progress') {
+            if (isToday) {
+              return true;
+            }
+            if (project.scheduledDate) {
+              const projectDate = new Date(project.scheduledDate);
+              return projectDate.toDateString() === targetDate.toDateString();
+            }
           }
           
           return false;
         });
       } else {
-        // If no date specified, show all jobs with scheduled dates or active status
-        dispatchProjects = projects.filter(project => 
-          project.scheduledDate || project.status === 'active' || project.status === 'in-progress'
-        );
+        // If no date specified, show all jobs that would appear in Progress tab "In Progress"
+        dispatchProjects = projects.filter(project => {
+          // Include jobs with scheduled dates
+          if (project.scheduledDate) {
+            return true;
+          }
+          
+          // Include "In Progress" jobs (synchronized with Progress tab logic)
+          if (project.status === 'active') {
+            const today = new Date();
+            const hasValidStartDate = !project.startDate || new Date(project.startDate) <= today;
+            const isNotCompleted = (project.progress || 0) < 100;
+            return hasValidStartDate && isNotCompleted;
+          }
+          
+          // Include explicit in-progress status
+          if (project.status === 'in-progress') {
+            return true;
+          }
+          
+          return false;
+        });
       }
 
       // Filter by assigned user if provided
