@@ -159,41 +159,75 @@ export default function ProjectDetail() {
 
   const uploadFileMutation = useMutation({
     mutationFn: async (formData: FormData) => {
-      console.log('📤 Starting file upload to project:', projectId);
-      console.log('FormData entries:', Array.from(formData.entries()));
+      console.log('📤 CRITICAL DEBUG - Starting file upload to project:', projectId);
+      console.log('📤 FormData entries:', Array.from(formData.entries()).map(([key, value]) => ({
+        key,
+        value: value instanceof File ? { name: value.name, size: value.size, type: value.type } : value
+      })));
       
       try {
+        console.log('🚀 Making API request...');
         const response = await apiRequest('POST', `/api/projects/${projectId}/files`, formData);
         
-        console.log('📡 Upload response status:', response.status);
+        console.log('📡 Upload response received:', {
+          status: response.status,
+          statusText: response.statusText,
+          ok: response.ok,
+          headers: Object.fromEntries(response.headers.entries())
+        });
         
+        if (!response.ok) {
+          console.error('❌ Response not OK, but should have been caught by apiRequest');
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        console.log('📋 Parsing response JSON...');
         const result = await response.json();
-        console.log('✅ Upload successful:', result);
+        console.log('✅ Upload successful - parsed result:', result);
+        console.log('✅ Upload result details:', {
+          id: result.id,
+          fileName: result.fileName,
+          originalName: result.originalName,
+          fileSize: result.fileSize,
+          isCloudStored: result.isCloudStored,
+          cloudinaryUrl: result.cloudinaryUrl
+        });
         return result;
       } catch (error) {
-        console.error('❌ Upload request failed:', error);
+        console.error('❌ CRITICAL ERROR in uploadFileMutation:', error);
+        console.error('❌ Error type:', typeof error);
+        console.error('❌ Error constructor:', error?.constructor?.name);
+        console.error('❌ Error message:', error instanceof Error ? error.message : String(error));
+        console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack');
         throw error;
       }
     },
     onSuccess: (result) => {
-      console.log('✅ Upload mutation onSuccess called:', result);
+      console.log('✅ CRITICAL SUCCESS - Upload mutation onSuccess called with result:', result);
       queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId, "files"] });
       setFileDialogOpen(false);
       toast({
-        title: "Photo Captured",
-        description: "Photo saved to project files",
+        title: "File Uploaded Successfully",
+        description: `${result.originalName || 'File'} has been uploaded to the project`,
       });
     },
     onError: (error: Error) => {
-      console.error('❌ Upload mutation onError called:', error);
+      console.error('❌ CRITICAL ERROR - Upload mutation onError called:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
       toast({
         title: "Upload Failed",
-        description: error.message,
+        description: `Failed to upload file: ${error.message}`,
         variant: "destructive",
       });
     },
     onMutate: (formData) => {
       console.log('🔄 Upload mutation onMutate called - starting upload...');
+      const file = formData.get('file') as File;
+      console.log('🔄 Uploading file:', file ? { name: file.name, size: file.size, type: file.type } : 'NO FILE');
     },
   });
 
