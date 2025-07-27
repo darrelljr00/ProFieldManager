@@ -31,11 +31,29 @@ export async function apiRequest(
     body = JSON.stringify(data);
   }
 
+  console.log('🌐 API Request:', {
+    method,
+    url,
+    hasFormData: data instanceof FormData,
+    formDataEntries: data instanceof FormData ? Array.from(data.entries()).map(([key, value]) => ({
+      key,
+      value: value instanceof File ? { name: value.name, size: value.size, type: value.type } : value
+    })) : undefined
+  });
+
   const res = await fetch(url, {
     method,
     headers,
     body,
     credentials: "include",
+  });
+
+  console.log('📡 API Response:', {
+    url,
+    status: res.status,
+    statusText: res.statusText,
+    ok: res.ok,
+    headers: Object.fromEntries(res.headers.entries())
   });
 
   await throwIfResNotOk(res);

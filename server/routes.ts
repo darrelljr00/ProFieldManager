@@ -3563,6 +3563,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/projects/:id/files", requireAuth, upload.single('file'), async (req, res) => {
     console.log('🔄 CLOUDINARY FILE UPLOAD REQUEST RECEIVED');
     console.log('Project ID:', req.params.id);
+    console.log('User authenticated?', !!req.user);
+    console.log('User details:', req.user ? { id: req.user.id, email: req.user.email, organizationId: req.user.organizationId } : 'NO USER');
     console.log('Has file?', !!req.file);
     console.log('File details:', req.file ? { 
       originalname: req.file.originalname, 
@@ -3573,15 +3575,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } : 'NO FILE');
     
     try {
+      if (!req.user) {
+        console.error('❌ No authenticated user found in request');
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
       if (!req.file) {
         console.log('❌ No file in request');
         return res.status(400).json({ message: "No file uploaded" });
       }
 
       const projectId = parseInt(req.params.id);
-      const userId = req.user!.id;
+      const userId = req.user.id;
       const taskId = req.body.taskId ? parseInt(req.body.taskId) : null;
-      const user = getAuthenticatedUser(req);
+      const user = req.user;
 
       // Ensure Cloudinary is properly configured
       if (!CloudinaryService.isConfigured()) {
@@ -3827,7 +3834,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         compressedSize: cloudinaryResult.bytes
       });
     } catch (error: any) {
-      console.error("Error uploading file to Cloudinary:", error);
+      console.error("❌ CRITICAL ERROR uploading file to Cloudinary:", error);
+      console.error("❌ Error stack:", error.stack);
+      console.error("❌ Request details:", {
+        projectId: req.params.id,
+        hasUser: !!req.user,
+        hasFile: !!req.file,
+        fileName: req.file?.originalname
+      });
       res.status(500).json({ message: "Failed to upload file: " + error.message });
     }
   });
