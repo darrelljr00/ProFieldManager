@@ -3824,15 +3824,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.warn('⚠️ Failed to clean up temporary files:', cleanupError);
       }
 
-      res.status(201).json({
-        ...projectFile,
+      // Ensure proper JSON response headers
+      res.setHeader('Content-Type', 'application/json');
+      
+      const successResponse = {
+        id: projectFile.id,
+        fileName: projectFile.fileName,
+        originalName: projectFile.originalName,
+        filePath: projectFile.filePath,
+        fileSize: projectFile.fileSize,
+        fileType: projectFile.fileType,
+        uploadedAt: projectFile.uploadedAt,
         isCloudStored: true,
         cloudinaryUrl: cloudinaryResult.secureUrl,
         thumbnailUrl: CloudinaryService.getThumbnailUrl(cloudinaryResult.publicId!),
         compressionApplied: true,
         originalSize: req.file.size,
-        compressedSize: cloudinaryResult.bytes
-      });
+        compressedSize: cloudinaryResult.bytes,
+        success: true,
+        message: "File uploaded successfully to Cloudinary"
+      };
+      
+      console.log('✅ FINAL SUCCESS RESPONSE BEING SENT:', JSON.stringify(successResponse, null, 2));
+      
+      res.status(201).json(successResponse);
     } catch (error: any) {
       console.error("❌ CRITICAL ERROR uploading file to Cloudinary:", error);
       console.error("❌ Error stack:", error.stack);
@@ -3842,7 +3857,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         hasFile: !!req.file,
         fileName: req.file?.originalname
       });
-      res.status(500).json({ message: "Failed to upload file: " + error.message });
+      
+      // Ensure proper JSON response headers for errors too
+      res.setHeader('Content-Type', 'application/json');
+      
+      const errorResponse = {
+        success: false,
+        message: "Failed to upload file: " + error.message,
+        error: error.message,
+        timestamp: new Date().toISOString()
+      };
+      
+      console.log('❌ FINAL ERROR RESPONSE BEING SENT:', JSON.stringify(errorResponse, null, 2));
+      
+      res.status(500).json(errorResponse);
     }
   });
 

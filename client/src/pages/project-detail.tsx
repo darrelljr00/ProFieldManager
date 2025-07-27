@@ -197,12 +197,19 @@ export default function ProjectDetail() {
         }
         
         const result = await response.json();
-        console.log('✅ Upload successful:', {
+        console.log('✅ Upload successful with structured response:', {
           id: result.id,
           fileName: result.fileName || result.originalName,
           fileSize: result.fileSize,
-          success: true
+          success: result.success,
+          isCloudStored: result.isCloudStored,
+          message: result.message
         });
+        
+        // Validate that we have a successful response
+        if (result.success === false) {
+          throw new Error(result.message || 'Upload failed according to server response');
+        }
         
         return result;
       } catch (error) {
@@ -214,12 +221,12 @@ export default function ProjectDetail() {
       }
     },
     onSuccess: (result) => {
-      console.log('✅ Upload success callback triggered');
+      console.log('✅ Upload success callback triggered with result:', result);
       queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId, "files"] });
       setFileDialogOpen(false);
       toast({
         title: "Upload Successful",
-        description: `${result.originalName || result.fileName || 'File'} uploaded successfully`,
+        description: result.message || `${result.originalName || result.fileName || 'File'} uploaded successfully to ${result.isCloudStored ? 'cloud storage' : 'local storage'}`,
       });
     },
     onError: (error: Error) => {
