@@ -3740,13 +3740,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Enhanced debugging for custom domain Cloudinary uploads
-      console.log('🌐 REQUEST ORIGIN DEBUG:', {
+      console.log('🌐 CUSTOM DOMAIN UPLOAD DEBUG:', {
         origin: req.headers.origin,
         host: req.headers.host,
         userAgent: req.headers['user-agent']?.slice(0, 50),
         isCustomDomain: req.headers.origin?.includes('profieldmanager.com'),
-        cloudinaryConfigured: CloudinaryService.isConfigured()
+        cloudinaryConfigured: CloudinaryService.isConfigured(),
+        fileName: req.file.originalname,
+        fileSize: req.file.size,
+        mimeType: req.file.mimetype
       });
+      
+      // Force custom domain uploads to use Cloudinary with extra debugging
+      if (req.headers.origin?.includes('profieldmanager.com')) {
+        console.log('🔍 CUSTOM DOMAIN DETECTED - Forcing Cloudinary upload with enhanced logging');
+      }
       
       // Debug the upload buffer size before Cloudinary upload
       console.log(`🔧 Uploading to Cloudinary - Buffer size: ${uploadBuffer.length} bytes (${(uploadBuffer.length / 1024 / 1024).toFixed(2)}MB)`);
@@ -3764,6 +3772,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!cloudinaryResult.success) {
         console.error('❌ CLOUDINARY UPLOAD FAILED - DETAILED ERROR:', cloudinaryResult.error);
         console.error('❌ Cloudinary error details:', JSON.stringify(cloudinaryResult, null, 2));
+        console.error('❌ Request context:', {
+          origin: req.headers.origin,
+          isCustomDomain: req.headers.origin?.includes('profieldmanager.com'),
+          userId: user.id,
+          orgId: user.organizationId
+        });
         console.warn('⚠️ Cloudinary upload failed, falling back to local storage:', cloudinaryResult.error);
         
         // Fallback to local storage with compression
