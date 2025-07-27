@@ -641,13 +641,28 @@ export default function Jobs() {
     const files = event.target.files;
     if (!files || !selectedProject) return;
 
+    console.log('📁 Projects page file upload starting:', {
+      fileCount: files.length,
+      projectId: selectedProject.id,
+      projectName: selectedProject.name
+    });
+
     for (const file of Array.from(files)) {
+      console.log('📤 Uploading file:', {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        lastModified: file.lastModified
+      });
+
       const formData = new FormData();
       formData.append('file', file);
       formData.append('description', `Uploaded file: ${file.name}`);
 
       try {
-        await apiRequest('POST', `/api/projects/${selectedProject.id}/files`, formData);
+        const response = await apiRequest('POST', `/api/projects/${selectedProject.id}/files`, formData);
+        console.log('✅ File upload successful:', file.name);
+        
         toast({
           title: "File uploaded successfully",
           description: `${file.name} has been uploaded to the job.`,
@@ -656,6 +671,9 @@ export default function Jobs() {
         // Refresh files list
         queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedProject.id, 'files'] });
       } catch (error) {
+        console.error('❌ Projects page upload error:', error);
+        console.error('❌ Error details for file:', file.name, error instanceof Error ? error.message : error);
+        
         toast({
           title: "Upload failed",
           description: `Failed to upload ${file.name}. Please try again.`,

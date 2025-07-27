@@ -145,17 +145,36 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
 
   const uploadFileMutation = useMutation({
     mutationFn: async (formData: FormData) => {
+      console.log('🚀 MediaGallery upload starting, projectId:', projectId);
+      console.log('📤 FormData details:', {
+        entries: Array.from(formData.entries()).map(([key, value]) => ({
+          key,
+          value: value instanceof File ? { name: value.name, size: value.size, type: value.type } : value
+        }))
+      });
+      
       const response = await fetch(`/api/projects/${projectId}/files`, {
         method: "POST",
         body: formData,
+        credentials: "include",
+      });
+      
+      console.log('📥 Upload response:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+        headers: Object.fromEntries(response.headers.entries())
       });
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: 'Upload failed' }));
+        console.error('❌ Upload failed with error data:', errorData);
         throw new Error(errorData.message || 'Upload failed');
       }
       
-      return response.json();
+      const result = await response.json();
+      console.log('✅ Upload successful, result:', result);
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId, "files"] });
@@ -165,6 +184,12 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
       });
     },
     onError: (error: Error) => {
+      console.error('❌ MediaGallery upload error:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
       toast({
         title: "Upload Failed",
         description: error.message,
