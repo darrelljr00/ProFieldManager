@@ -660,8 +660,14 @@ export default function Jobs() {
       formData.append('description', `Uploaded file: ${file.name}`);
 
       try {
+        console.log('🚀 About to make API request for file:', file.name);
         const response = await apiRequest('POST', `/api/projects/${selectedProject.id}/files`, formData);
         console.log('✅ File upload successful:', file.name);
+        console.log('✅ Response details:', response.status, response.statusText);
+        
+        // Parse the response to get the actual result
+        const result = await response.json();
+        console.log('✅ Upload result:', result);
         
         toast({
           title: "File uploaded successfully",
@@ -671,11 +677,14 @@ export default function Jobs() {
         // Refresh files list
         queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedProject.id, 'files'] });
       } catch (error) {
-        console.error('❌ Projects page upload error:', error);
-        console.error('❌ Error details for file:', file.name, error instanceof Error ? error.message : error);
+        console.error('❌ CRITICAL: Projects page upload error for file:', file.name);
+        console.error('❌ Full error object:', error);
+        console.error('❌ Error message:', error instanceof Error ? error.message : String(error));
+        console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+        console.error('❌ FormData contents before upload:', Array.from(formData.entries()));
         
         toast({
-          title: "Upload failed",
+          title: "Upload Failed",
           description: `Failed to upload ${file.name}. Please try again.`,
           variant: "destructive",
         });

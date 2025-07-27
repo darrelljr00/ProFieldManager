@@ -11,6 +11,13 @@ async function throwIfResNotOk(res: Response) {
     }
     
     const text = (await res.text()) || res.statusText;
+    console.error('❌ HTTP Error Response:', {
+      status: res.status,
+      statusText: res.statusText,
+      url: res.url,
+      headers: Object.fromEntries(res.headers.entries()),
+      body: text
+    });
     throw new Error(`${res.status}: ${text}`);
   }
 }
