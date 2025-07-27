@@ -59,11 +59,13 @@ export class CloudinaryService {
         configured_via_sdk: cloudinary.config().cloud_name,
         sdk_api_key: cloudinary.config().api_key ? 'SET' : 'MISSING'
       };
-      console.log('🔧 Cloudinary Config Check (Enhanced Debug):', {
+      console.log('🔧 CLOUDINARY CONFIG DEBUG - CUSTOM DOMAIN UPLOAD:', {
         ...configStatus,
         cloud_name_value: configStatus.cloud_name_value || 'UNDEFINED',
         api_key_length: process.env.CLOUDINARY_API_KEY?.length || 0,
-        api_secret_length: process.env.CLOUDINARY_API_SECRET?.length || 0
+        api_secret_length: process.env.CLOUDINARY_API_SECRET?.length || 0,
+        buffer_size: buffer.length,
+        options: JSON.stringify(options, null, 2)
       });
       
       // Create organization-specific folder path
@@ -96,8 +98,13 @@ export class CloudinaryService {
       console.log('🔧 Using signed SDK upload to Cloudinary');
 
       const result: UploadApiResponse = await new Promise((resolve, reject) => {
-        console.log('🔄 Creating Cloudinary upload stream with enhanced debugging...');
-        console.log('🔧 Upload options:', JSON.stringify(uploadOptions, null, 2));
+        console.log('🔄 CUSTOM DOMAIN: Creating Cloudinary upload stream with enhanced debugging...');
+        console.log('🔧 CUSTOM DOMAIN Upload options:', JSON.stringify(uploadOptions, null, 2));
+        console.log('🔧 Environment variables at upload time:', {
+          NODE_ENV: process.env.NODE_ENV,
+          CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME?.substring(0, 10) + '...',
+          timestamp: new Date().toISOString()
+        });
         
         const uploadStream = cloudinary.uploader.upload_stream(
           uploadOptions,
