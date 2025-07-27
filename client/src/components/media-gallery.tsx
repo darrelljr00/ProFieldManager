@@ -289,9 +289,6 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
             e.currentTarget.style.border = '2px solid red';
             e.currentTarget.alt = `Failed to load: ${file.originalName}`;
           }}
-          onLoad={() => {
-            console.log('🖼️ Image loaded successfully:', imageUrl);
-          }}
         />
       );
     }
