@@ -1,0 +1,69 @@
+{
+  "expo": {
+    "name": "Pro Field Manager",
+    "slug": "pro-field-manager",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.profieldmanager.app",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "This app uses location to track field service work and provide GPS navigation to job sites.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "This app uses location to track field service work and provide GPS navigation to job sites.",
+        "NSCameraUsageDescription": "This app uses the camera to capture photos for job documentation and inspection reports.",
+        "NSPhotoLibraryUsageDescription": "This app accesses the photo library to select and manage job-related images.",
+        "NSMicrophoneUsageDescription": "This app uses the microphone for video recording during inspections."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FFFFFF"
+      },
+      "package": "com.profieldmanager.app",
+      "versionCode": 1,
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "RECORD_AUDIO",
+        "INTERNET",
+        "ACCESS_NETWORK_STATE"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-camera",
+      "expo-media-library",
+      "expo-location",
+      "expo-notifications",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to let you select images for job documentation.",
+          "cameraPermission": "The app accesses your camera to let you capture photos for job documentation."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "your-eas-project-id"
+      }
+    }
+  }
+}

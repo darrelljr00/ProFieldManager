@@ -1,0 +1,63 @@
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+
+buildscript {
+    ext {
+        buildToolsVersion = "34.0.0"
+        minSdkVersion = 23
+        compileSdkVersion = 34
+        targetSdkVersion = 34
+        ndkVersion = "25.1.8937393"
+        kotlinVersion = "1.8.10"
+        
+        // React Native and related versions
+        reactNativeVersion = "0.74.5"
+        
+        // Support library versions
+        androidXVersion = "1.6.1"
+        androidXCoreVersion = "1.12.0"
+        
+        // Google Play Services versions
+        playServicesVersion = "21.0.1"
+        playServicesMapsVersion = "18.2.0"
+        
+        // Camera X versions
+        cameraxVersion = "1.3.1"
+    }
+    
+    repositories {
+        google()
+        mavenCentral()
+    }
+    
+    dependencies {
+        classpath("com.android.tools.build:gradle:8.1.4")
+        classpath("com.facebook.react:react-native-gradle-plugin")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
+        
+        // Google Services (for Firebase, Maps, etc.)
+        classpath("com.google.gms:google-services:4.4.0")
+        
+        // Crashlytics
+        classpath("com.google.firebase:firebase-crashlytics-gradle:2.9.9")
+        
+        // NOTE: Do not place your application dependencies here; they belong
+        // in the individual module build.gradle files
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+        maven { url "https://www.jitpack.io" }
+        // React Native Maps repository
+        maven { url "https://maven.google.com" }
+        // All of React Native (JS, Obj-C sources, Android binaries) is installed from npm
+        maven { url("$rootDir/../node_modules/react-native/android") }
+    }
+}
+
+wrapper {
+    gradleVersion = '8.3'
+    distributionType = 'ALL'
+}
