@@ -50,11 +50,20 @@ export class CloudinaryService {
         bufferSize: buffer.length
       });
 
-      // Check configuration
-      console.log('🔧 Cloudinary Config Check:', {
+      // Check configuration - Enhanced Debug for Custom Domain Issues
+      const configStatus = {
         cloud_name: process.env.CLOUDINARY_CLOUD_NAME ? 'SET' : 'MISSING',
         api_key: process.env.CLOUDINARY_API_KEY ? 'SET' : 'MISSING',
-        api_secret: process.env.CLOUDINARY_API_SECRET ? 'SET' : 'MISSING'
+        api_secret: process.env.CLOUDINARY_API_SECRET ? 'SET' : 'MISSING',
+        cloud_name_value: process.env.CLOUDINARY_CLOUD_NAME,
+        configured_via_sdk: cloudinary.config().cloud_name,
+        sdk_api_key: cloudinary.config().api_key ? 'SET' : 'MISSING'
+      };
+      console.log('🔧 Cloudinary Config Check (Enhanced Debug):', {
+        ...configStatus,
+        cloud_name_value: configStatus.cloud_name_value || 'UNDEFINED',
+        api_key_length: process.env.CLOUDINARY_API_KEY?.length || 0,
+        api_secret_length: process.env.CLOUDINARY_API_SECRET?.length || 0
       });
       
       // Create organization-specific folder path
@@ -116,6 +125,20 @@ export class CloudinaryService {
 
     } catch (error) {
       console.error('❌ Cloudinary upload failed:', error);
+      console.error('❌ Error details:', {
+        name: error instanceof Error ? error.name : 'Unknown',
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack?.split('\n').slice(0, 3) : 'No stack'
+      });
+      
+      // Check if it's a configuration error
+      if (error instanceof Error && error.message.includes('cloud_name')) {
+        console.error('🚨 CLOUDINARY CONFIGURATION ERROR - Cloud name issue');
+      }
+      if (error instanceof Error && error.message.includes('api_key')) {
+        console.error('🚨 CLOUDINARY CONFIGURATION ERROR - API key issue');
+      }
+      
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown upload error'
