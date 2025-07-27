@@ -92,6 +92,12 @@ export default function SimpleLogin() {
       return response.json();
     },
     onSuccess: async (response) => {
+      // Store token in localStorage for cross-domain access
+      if (response.token) {
+        localStorage.setItem('auth_token', response.token);
+        console.log('🔑 Token stored for cross-domain auth:', response.token.slice(0, 8) + '...');
+      }
+      
       // Clear all cached auth queries to force fresh fetch
       queryClient.removeQueries({ queryKey: ["/api/auth/me"] });
       

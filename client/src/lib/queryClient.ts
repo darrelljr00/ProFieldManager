@@ -30,6 +30,12 @@ export async function apiRequest(
   let headers: Record<string, string> = {};
   let body: string | FormData | undefined;
 
+  // Add stored token for cross-domain authentication
+  const storedToken = localStorage.getItem('auth_token');
+  if (storedToken) {
+    headers["Authorization"] = `Bearer ${storedToken}`;
+  }
+
   if (data instanceof FormData) {
     // For FormData, don't set Content-Type - let browser set multipart boundary
     body = data;
@@ -83,7 +89,16 @@ export const getQueryFn: <T>(options: {
       url = queryKey[0] as string;
     }
     
+    let headers: Record<string, string> = {};
+    
+    // Add stored token for cross-domain authentication
+    const storedToken = localStorage.getItem('auth_token');
+    if (storedToken) {
+      headers["Authorization"] = `Bearer ${storedToken}`;
+    }
+    
     const res = await fetch(url, {
+      headers,
       credentials: "include",
     });
 

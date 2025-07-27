@@ -104,7 +104,18 @@ export class AuthService {
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
   const token = req.headers.authorization?.replace('Bearer ', '') || req.cookies?.auth_token;
 
+  // Debug logging for custom domain authentication issues
+  console.log('🔐 Auth Debug:', {
+    origin: req.headers.origin,
+    host: req.headers.host,
+    cookies: req.cookies,
+    hasAuthToken: !!token,
+    authMethod: req.headers.authorization ? 'Bearer Token' : (req.cookies?.auth_token ? 'Cookie' : 'None'),
+    userAgent: req.headers['user-agent']?.slice(0, 50) + '...'
+  });
+
   if (!token) {
+    console.log('❌ No auth token found in request');
     return res.status(401).json({ message: "Authentication required" });
   }
 
