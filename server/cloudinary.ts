@@ -96,20 +96,54 @@ export class CloudinaryService {
       console.log('🔧 Using signed SDK upload to Cloudinary');
 
       const result: UploadApiResponse = await new Promise((resolve, reject) => {
-        cloudinary.uploader.upload_stream(
+        console.log('🔄 Creating Cloudinary upload stream with enhanced debugging...');
+        console.log('🔧 Upload options:', JSON.stringify(uploadOptions, null, 2));
+        
+        const uploadStream = cloudinary.uploader.upload_stream(
           uploadOptions,
           (error, result) => {
             if (error) {
-              console.error('❌ Cloudinary SDK upload error:', error);
+              console.error('❌ CLOUDINARY UPLOAD STREAM ERROR - FULL ANALYSIS:');
+              console.error('❌ Error object:', error);
+              console.error('❌ Error name:', error.name || 'No name');
+              console.error('❌ Error message:', error.message || 'No message');
+              console.error('❌ Error http_code:', error.http_code || 'No HTTP code');
+              console.error('❌ Error API response:', error.error?.message || 'No API message');
+              
+              // Specific error type checks
+              if (error.message?.includes('Invalid cloud_name')) {
+                console.error('🚨 INVALID CLOUD NAME - Check CLOUDINARY_CLOUD_NAME environment variable');
+              }
+              if (error.message?.includes('Invalid API key')) {
+                console.error('🚨 INVALID API KEY - Check CLOUDINARY_API_KEY environment variable');
+              }
+              if (error.http_code === 401) {
+                console.error('🚨 AUTHENTICATION ERROR - Verify all Cloudinary credentials');
+              }
+              if (error.http_code === 400) {
+                console.error('🚨 BAD REQUEST - Check upload parameters and buffer');
+              }
+              
               reject(error);
             } else if (result) {
-              console.log('✅ Cloudinary SDK upload successful:', result.secure_url);
+              console.log('✅ Cloudinary upload successful:', result.secure_url);
+              console.log('📊 Upload details:', {
+                public_id: result.public_id,
+                bytes: result.bytes,
+                format: result.format,
+                resource_type: result.resource_type
+              });
               resolve(result);
             } else {
-              reject(new Error('Unknown upload error'));
+              console.error('❌ No result returned from Cloudinary - this should not happen');
+              reject(new Error('No result returned from Cloudinary'));
             }
           }
-        ).end(buffer);
+        );
+        
+        console.log('📤 About to write buffer to stream - Buffer size:', buffer.length, 'bytes');
+        uploadStream.end(buffer);
+        console.log('✅ Buffer successfully written to upload stream');
       });
 
       return {

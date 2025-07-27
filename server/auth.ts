@@ -102,20 +102,28 @@ export class AuthService {
 
 // Authentication middleware
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
-  const token = req.headers.authorization?.replace('Bearer ', '') || req.cookies?.auth_token;
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.replace('Bearer ', '') || req.cookies?.auth_token;
 
-  // Debug logging for custom domain authentication issues
-  console.log('🔐 Auth Debug:', {
+  // Enhanced debug logging for custom domain authentication issues
+  console.log('🔐 Auth Debug (Enhanced):', {
     origin: req.headers.origin,
     host: req.headers.host,
+    authHeader: authHeader ? authHeader.substring(0, 20) + '...' : 'MISSING',
     cookies: req.cookies,
     hasAuthToken: !!token,
-    authMethod: req.headers.authorization ? 'Bearer Token' : (req.cookies?.auth_token ? 'Cookie' : 'None'),
+    tokenLength: token?.length || 0,
+    tokenPreview: token ? token.substring(0, 10) + '...' : 'NONE',
+    authMethod: authHeader ? 'Bearer Token' : (req.cookies?.auth_token ? 'Cookie' : 'None'),
     userAgent: req.headers['user-agent']?.slice(0, 50) + '...'
   });
 
   if (!token) {
     console.log('❌ No auth token found in request');
+    console.log('❌ Request headers:', JSON.stringify({
+      authorization: req.headers.authorization,
+      cookie: req.headers.cookie
+    }, null, 2));
     return res.status(401).json({ message: "Authentication required" });
   }
 
