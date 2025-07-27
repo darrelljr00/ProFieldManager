@@ -1088,10 +1088,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         req.ip
       );
 
+      // Cookie settings for custom domain support
+      const isCustomDomain = req.headers.origin === 'https://profieldmanager.com' || req.headers.origin === 'https://www.profieldmanager.com';
+      
       res.cookie('auth_token', session.token, { 
         httpOnly: true, 
-        secure: process.env.NODE_ENV === 'production', 
-        sameSite: 'strict',
+        secure: true, // Always secure for production domains
+        sameSite: isCustomDomain ? 'none' : 'lax', // Allow cross-origin for custom domain
+        domain: isCustomDomain ? '.profieldmanager.com' : undefined, // Set domain for custom domain
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
       });
 
@@ -1149,10 +1153,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         req.ip
       );
 
+      // Cookie settings for custom domain support
+      const isCustomDomain = req.headers.origin === 'https://profieldmanager.com' || req.headers.origin === 'https://www.profieldmanager.com';
+      
       res.cookie('auth_token', session.token, { 
         httpOnly: true, 
-        secure: process.env.NODE_ENV === 'production', 
-        sameSite: 'strict',
+        secure: true, // Always secure for production domains
+        sameSite: isCustomDomain ? 'none' : 'lax', // Allow cross-origin for custom domain
+        domain: isCustomDomain ? '.profieldmanager.com' : undefined, // Set domain for custom domain
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
       });
 
@@ -1182,7 +1190,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (token) {
         await AuthService.invalidateSession(token);
       }
-      res.clearCookie('auth_token');
+      // Clear cookie with proper domain handling for custom domain
+      const isCustomDomain = req.headers.origin === 'https://profieldmanager.com' || req.headers.origin === 'https://www.profieldmanager.com';
+      
+      res.clearCookie('auth_token', {
+        domain: isCustomDomain ? '.profieldmanager.com' : undefined,
+        path: '/'
+      });
       res.json({ message: "Logged out successfully" });
     } catch (error) {
       console.error("Logout error:", error);
@@ -2919,10 +2933,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           req.ip
         );
         
+        // Cookie settings for custom domain support
+        const isCustomDomain = req.headers.origin === 'https://profieldmanager.com' || req.headers.origin === 'https://www.profieldmanager.com';
+        
         res.cookie('auth_token', session.token, { 
           httpOnly: true, 
-          secure: process.env.NODE_ENV === 'production', 
-          sameSite: 'strict',
+          secure: true, // Always secure for production domains
+          sameSite: isCustomDomain ? 'none' : 'lax', // Allow cross-origin for custom domain
+          domain: isCustomDomain ? '.profieldmanager.com' : undefined, // Set domain for custom domain
           maxAge: 24 * 60 * 60 * 1000
         });
       }
@@ -3824,8 +3842,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.warn('⚠️ Failed to clean up temporary files:', cleanupError);
       }
 
-      // Ensure proper JSON response headers
+      // Ensure proper JSON response headers and CORS for custom domain
       res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
       
       const successResponse = {
         id: projectFile.id,
@@ -3858,8 +3878,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fileName: req.file?.originalname
       });
       
-      // Ensure proper JSON response headers for errors too
+      // Ensure proper JSON response headers and CORS for custom domain errors
       res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
       
       const errorResponse = {
         success: false,

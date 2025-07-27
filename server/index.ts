@@ -4,6 +4,45 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
+
+// CORS configuration to support custom domain profieldmanager.com
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  
+  // Allow requests from both Replit domain and custom domain
+  const allowedOrigins = [
+    'https://profieldmanager.com',
+    'https://www.profieldmanager.com',
+    /^https:\/\/.*\.replit\.dev$/,
+    /^https:\/\/.*\.repl\.co$/
+  ];
+  
+  // Check if origin matches allowed patterns
+  const isAllowedOrigin = allowedOrigins.some(allowed => {
+    if (typeof allowed === 'string') {
+      return origin === allowed;
+    } else {
+      return allowed.test(origin || '');
+    }
+  });
+  
+  if (isAllowedOrigin || !origin) {
+    res.header('Access-Control-Allow-Origin', origin || '*');
+  }
+  
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cookie');
+  res.header('Access-Control-Expose-Headers', 'Set-Cookie');
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  
+  next();
+});
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
