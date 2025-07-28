@@ -1,8 +1,10 @@
 # CUSTOM DOMAIN UPLOAD TROUBLESHOOTING GUIDE
 
-## ISSUE IDENTIFIED: Intermittent Upload Failures
+## ISSUE IDENTIFIED: Intermittent Cloudinary Upload Failures
 
-Based on the logs and code analysis, the issue is NOT with `signatureUrl` (which is DocuSign-related), but with intermittent Cloudinary authentication and response handling.
+**CRITICAL DISCOVERY:** The `signatureUrl: undefined` errors you're seeing are NOT related to upload signatures. This is an intermittent Cloudinary SDK issue that occurs randomly during upload stream creation.
+
+**Root Cause:** Cloudinary's `upload_stream` method occasionally fails with internal signature generation errors, completely unrelated to authentication or custom domain issues.
 
 ## ROOT CAUSES IDENTIFIED:
 

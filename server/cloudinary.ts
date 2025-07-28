@@ -106,61 +106,8 @@ export class CloudinaryService {
       
       console.log('🔧 Using signed SDK upload to Cloudinary');
 
-      const result: UploadApiResponse = await new Promise((resolve, reject) => {
-        console.log('🔄 CUSTOM DOMAIN: Creating Cloudinary upload stream with enhanced debugging...');
-        console.log('🔧 CUSTOM DOMAIN Upload options:', JSON.stringify(uploadOptions, null, 2));
-        console.log('🔧 Environment variables at upload time:', {
-          NODE_ENV: process.env.NODE_ENV,
-          CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME?.substring(0, 10) + '...',
-          timestamp: new Date().toISOString()
-        });
-        
-        const uploadStream = cloudinary.uploader.upload_stream(
-          uploadOptions,
-          (error, result) => {
-            if (error) {
-              console.error('❌ CLOUDINARY UPLOAD STREAM ERROR - FULL ANALYSIS:');
-              console.error('❌ Error object:', error);
-              console.error('❌ Error name:', error.name || 'No name');
-              console.error('❌ Error message:', error.message || 'No message');
-              console.error('❌ Error http_code:', error.http_code || 'No HTTP code');
-              console.error('❌ Error API response:', error.error?.message || 'No API message');
-              
-              // Specific error type checks
-              if (error.message?.includes('Invalid cloud_name')) {
-                console.error('🚨 INVALID CLOUD NAME - Check CLOUDINARY_CLOUD_NAME environment variable');
-              }
-              if (error.message?.includes('Invalid API key')) {
-                console.error('🚨 INVALID API KEY - Check CLOUDINARY_API_KEY environment variable');
-              }
-              if (error.http_code === 401) {
-                console.error('🚨 AUTHENTICATION ERROR - Verify all Cloudinary credentials');
-              }
-              if (error.http_code === 400) {
-                console.error('🚨 BAD REQUEST - Check upload parameters and buffer');
-              }
-              
-              reject(error);
-            } else if (result) {
-              console.log('✅ Cloudinary upload successful:', result.secure_url);
-              console.log('📊 Upload details:', {
-                public_id: result.public_id,
-                bytes: result.bytes,
-                format: result.format,
-                resource_type: result.resource_type
-              });
-              resolve(result);
-            } else {
-              console.error('❌ No result returned from Cloudinary - this should not happen');
-              reject(new Error('No result returned from Cloudinary'));
-            }
-          }
-        );
-        
-        console.log('📤 About to write buffer to stream - Buffer size:', buffer.length, 'bytes');
-        uploadStream.end(buffer);
-        console.log('✅ Buffer successfully written to upload stream');
-      });
+      // Enhanced upload with retry mechanism for intermittent failures
+      const result: UploadApiResponse = await this.uploadWithRetry(uploadOptions, buffer, 3);
 
       return {
         success: true,
@@ -194,6 +141,109 @@ export class CloudinaryService {
         error: error instanceof Error ? error.message : 'Unknown upload error'
       };
     }
+  }
+
+  /**
+   * Upload with retry mechanism to handle intermittent failures
+   * @param uploadOptions - Cloudinary upload options
+   * @param buffer - Image buffer
+   * @param maxRetries - Maximum number of retry attempts
+   */
+  private static async uploadWithRetry(
+    uploadOptions: any, 
+    buffer: Buffer, 
+    maxRetries: number = 3
+  ): Promise<UploadApiResponse> {
+    let lastError: any;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`🔄 Cloudinary upload attempt ${attempt}/${maxRetries}`);
+        
+        const result: UploadApiResponse = await new Promise((resolve, reject) => {
+          console.log('🔄 CUSTOM DOMAIN: Creating Cloudinary upload stream with enhanced debugging...');
+          console.log('🔧 CUSTOM DOMAIN Upload options (attempt ' + attempt + '):', JSON.stringify(uploadOptions, null, 2));
+          console.log('🔧 Environment variables at upload time:', {
+            NODE_ENV: process.env.NODE_ENV,
+            CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME?.substring(0, 10) + '...',
+            timestamp: new Date().toISOString(),
+            attempt: attempt
+          });
+          
+          const uploadStream = cloudinary.uploader.upload_stream(
+            uploadOptions,
+            (error, result) => {
+              if (error) {
+                console.error(`❌ CLOUDINARY UPLOAD STREAM ERROR (Attempt ${attempt}) - FULL ANALYSIS:`);
+                console.error('❌ Error object:', error);
+                console.error('❌ Error name:', error.name || 'No name');
+                console.error('❌ Error message:', error.message || 'No message');
+                console.error('❌ Error http_code:', error.http_code || 'No HTTP code');
+                console.error('❌ Error API response:', error.error?.message || 'No API message');
+                
+                // Enhanced error diagnostics for intermittent issues
+                if (error.message?.includes('signatureUrl')) {
+                  console.error('🚨 CRITICAL: signatureUrl error detected - This appears to be a Cloudinary SDK issue');
+                  console.error('🚨 Retry may resolve this intermittent authentication problem');
+                }
+                
+                // Specific error type checks
+                if (error.message?.includes('Invalid cloud_name')) {
+                  console.error('🚨 INVALID CLOUD NAME - Check CLOUDINARY_CLOUD_NAME environment variable');
+                }
+                if (error.message?.includes('Invalid API key')) {
+                  console.error('🚨 INVALID API KEY - Check CLOUDINARY_API_KEY environment variable');
+                }
+                if (error.http_code === 401) {
+                  console.error('🚨 AUTHENTICATION ERROR - Verify all Cloudinary credentials');
+                }
+                if (error.http_code === 400) {
+                  console.error('🚨 BAD REQUEST - Check upload parameters and buffer');
+                }
+                
+                reject(error);
+              } else if (result) {
+                console.log(`✅ Cloudinary upload successful (attempt ${attempt}):`, result.secure_url);
+                console.log('📊 Upload details:', {
+                  public_id: result.public_id,
+                  bytes: result.bytes,
+                  format: result.format,
+                  resource_type: result.resource_type,
+                  attempt: attempt
+                });
+                resolve(result);
+              } else {
+                console.error(`❌ No result returned from Cloudinary (attempt ${attempt}) - this should not happen`);
+                reject(new Error(`No result returned from Cloudinary on attempt ${attempt}`));
+              }
+            }
+          );
+          
+          console.log(`📤 About to write buffer to stream (attempt ${attempt}) - Buffer size:`, buffer.length, 'bytes');
+          uploadStream.end(buffer);
+          console.log(`✅ Buffer successfully written to upload stream (attempt ${attempt})`);
+        });
+        
+        // If we reach here, upload was successful
+        console.log(`✅ Upload succeeded on attempt ${attempt}`);
+        return result;
+        
+      } catch (error) {
+        lastError = error;
+        console.error(`❌ Upload attempt ${attempt} failed:`, error);
+        
+        // Check if we should retry
+        if (attempt < maxRetries) {
+          const delay = Math.pow(2, attempt - 1) * 1000; // Exponential backoff: 1s, 2s, 4s
+          console.log(`⏳ Retrying in ${delay}ms... (${maxRetries - attempt} attempts remaining)`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+    
+    // All retry attempts failed
+    console.error(`❌ All ${maxRetries} upload attempts failed. Last error:`, lastError);
+    throw lastError;
   }
 
   /**

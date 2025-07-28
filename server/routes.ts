@@ -3783,8 +3783,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           origin: req.headers.origin,
           isCustomDomain: req.headers.origin?.includes('profieldmanager.com'),
           userId: user.id,
-          orgId: user.organizationId
+          orgId: user.organizationId,
+          fileName: req.file.originalname,
+          fileSize: req.file.size,
+          mimeType: req.file.mimetype
         });
+        
+        // Check if this is the intermittent signatureUrl issue
+        if (cloudinaryResult.error?.includes('signatureUrl')) {
+          console.error('🚨 INTERMITTENT SIGNATURE ISSUE DETECTED - This is a known Cloudinary SDK issue');
+          console.error('🚨 The retry mechanism should have handled this - investigating further');
+        }
         
         // CRITICAL: Enhanced custom domain error handling and diagnostics
         if (req.headers.origin?.includes('profieldmanager.com')) {
