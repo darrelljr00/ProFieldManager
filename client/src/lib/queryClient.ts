@@ -1,4 +1,5 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { buildApiUrl, getAuthHeaders, isCustomDomain } from './api-config';
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -27,17 +28,17 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  let headers: Record<string, string> = {};
+  // Build the full URL using API configuration
+  const fullUrl = buildApiUrl(url);
+  
+  // Get appropriate headers for current domain
+  let headers = getAuthHeaders();
   let body: string | FormData | undefined;
-
-  // Add stored token for cross-domain authentication
-  const storedToken = localStorage.getItem('auth_token');
-  if (storedToken) {
-    headers["Authorization"] = `Bearer ${storedToken}`;
-  }
 
   if (data instanceof FormData) {
     // For FormData, don't set Content-Type - let browser set multipart boundary
+    // Remove Content-Type from headers if it exists
+    delete headers['Content-Type'];
     body = data;
   } else if (data) {
     headers["Content-Type"] = "application/json";
@@ -46,7 +47,10 @@ export async function apiRequest(
 
   console.log('🌐 API Request:', {
     method,
-    url,
+    originalUrl: url,
+    fullUrl,
+    isCustomDomain: isCustomDomain(),
+    hasAuthHeader: !!headers.Authorization,
     hasFormData: data instanceof FormData,
     formDataEntries: data instanceof FormData ? Array.from(data.entries()).map(([key, value]) => ({
       key,
@@ -54,15 +58,16 @@ export async function apiRequest(
     })) : undefined
   });
 
-  const res = await fetch(url, {
+  const res = await fetch(fullUrl, {
     method,
     headers,
     body,
-    credentials: "include",
+    credentials: isCustomDomain() ? "omit" : "include", // Don't send cookies for cross-origin requests
   });
 
   console.log('📡 API Response:', {
-    url,
+    originalUrl: url,
+    fullUrl,
     status: res.status,
     statusText: res.statusText,
     ok: res.ok,
@@ -89,17 +94,22 @@ export const getQueryFn: <T>(options: {
       url = queryKey[0] as string;
     }
     
-    let headers: Record<string, string> = {};
+    // Build the full URL using API configuration
+    const fullUrl = buildApiUrl(url);
     
-    // Add stored token for cross-domain authentication
-    const storedToken = localStorage.getItem('auth_token');
-    if (storedToken) {
-      headers["Authorization"] = `Bearer ${storedToken}`;
-    }
+    // Get appropriate headers for current domain
+    const headers = getAuthHeaders();
     
-    const res = await fetch(url, {
+    console.log('🌐 Query Request:', {
+      originalUrl: url,
+      fullUrl,
+      isCustomDomain: isCustomDomain(),
+      hasAuthHeader: !!headers.Authorization
+    });
+    
+    const res = await fetch(fullUrl, {
       headers,
-      credentials: "include",
+      credentials: isCustomDomain() ? "omit" : "include", // Don't send cookies for cross-origin requests
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
