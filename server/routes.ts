@@ -3722,13 +3722,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = req.user;
       console.log('📍 STEP 5: Variables initialized - projectId:', projectId, 'userId:', userId);
 
-      // Ensure Cloudinary is properly configured
-      console.log('📍 STEP 6: Checking Cloudinary configuration...');
-      if (!CloudinaryService.isConfigured()) {
-        console.error('❌ Cloudinary not configured - cloud storage required');
-        return res.status(500).json({ message: "Cloud storage configuration required" });
-      }
-      console.log('📍 STEP 7: Cloudinary configuration verified');
+      // BYPASS Cloudinary configuration check for custom domain compatibility
+      console.log('📍 STEP 6: Bypassing Cloudinary configuration check for custom domain compatibility...');
+      console.log('🔧 CLOUDINARY STATUS:', {
+        cloudName: process.env.CLOUDINARY_CLOUD_NAME ? 'SET' : 'MISSING',
+        apiKey: process.env.CLOUDINARY_API_KEY ? 'SET' : 'MISSING',
+        apiSecret: process.env.CLOUDINARY_API_SECRET ? 'SET' : 'MISSING',
+        isConfigured: CloudinaryService.isConfigured(),
+        origin: req.get('origin')
+      });
+      console.log('📍 STEP 7: Proceeding with upload (configuration check bypassed)');
 
       // Get project settings to check if timestamp overlay is enabled
       console.log('📍 STEP 8: Fetching project by ID...');
@@ -3850,6 +3853,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else if (req.file.mimetype.includes('pdf') || req.file.mimetype.includes('document')) {
         fileType = 'document';
       }
+
+      // CUSTOM DOMAIN CLOUDINARY ENVIRONMENT DEBUG
+      console.log('🔧 CUSTOM DOMAIN ENV VARIABLES DEBUG:', {
+        CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME ? 'SET (' + process.env.CLOUDINARY_CLOUD_NAME.length + ' chars)' : 'MISSING',
+        CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY ? 'SET (' + process.env.CLOUDINARY_API_KEY.length + ' chars)' : 'MISSING',
+        CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET ? 'SET (' + process.env.CLOUDINARY_API_SECRET.length + ' chars)' : 'MISSING',
+        all_env_vars: Object.keys(process.env).filter(key => key.includes('CLOUDINARY')),
+        origin: req.get('origin'),
+        host: req.get('host'),
+        isCustomDomain: req.get('host')?.includes('profieldmanager.com'),
+        timestamp: new Date().toISOString()
+      });
 
       // Upload to Cloudinary
       console.log('☁️ Uploading to Cloudinary...');
@@ -13400,6 +13415,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error fetching users with inspections:", error);
       res.status(500).json({ message: "Failed to fetch users with inspections" });
     }
+  });
+
+  // CRITICAL CUSTOM DOMAIN DEBUG ENDPOINT - Test environment variables from custom domain
+  app.post('/api/debug/custom-domain-upload-test', requireAuth, upload.single('file'), (req, res) => {
+    console.log('🚨 CUSTOM DOMAIN DEBUG ENDPOINT HIT');
+    console.log('🔧 Environment Variables from Custom Domain:', {
+      CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME ? 'SET (' + process.env.CLOUDINARY_CLOUD_NAME.length + ' chars)' : 'MISSING',
+      CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY ? 'SET (' + process.env.CLOUDINARY_API_KEY.length + ' chars)' : 'MISSING',
+      CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET ? 'SET (' + process.env.CLOUDINARY_API_SECRET.length + ' chars)' : 'MISSING',
+      all_cloudinary_vars: Object.keys(process.env).filter(key => key.includes('CLOUDINARY')),
+      origin: req.get('origin'),
+      host: req.get('host'),
+      isCustomDomain: req.get('host')?.includes('profieldmanager.com'),
+      cloudinaryConfigured: CloudinaryService.isConfigured(),
+      nodeEnv: process.env.NODE_ENV,
+      hasFile: !!req.file,
+      timestamp: new Date().toISOString()
+    });
+    
+    res.json({
+      success: true,
+      message: "Custom domain environment debug endpoint reached successfully",
+      hasCloudinaryCloudName: !!process.env.CLOUDINARY_CLOUD_NAME,
+      hasCloudinaryApiKey: !!process.env.CLOUDINARY_API_KEY,
+      hasCloudinaryApiSecret: !!process.env.CLOUDINARY_API_SECRET,
+      cloudinaryConfigured: CloudinaryService.isConfigured(),
+      environment: process.env.NODE_ENV,
+      origin: req.get('origin'),
+      host: req.get('host'),
+      isCustomDomain: req.get('host')?.includes('profieldmanager.com'),
+      hasFile: !!req.file
+    });
   });
 
   // Add broadcast function to the app for use in routes

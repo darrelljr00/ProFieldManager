@@ -310,11 +310,26 @@ export class CloudinaryService {
    * Check if Cloudinary is properly configured
    */
   static isConfigured(): boolean {
-    return !!(
+    const configured = !!(
       process.env.CLOUDINARY_CLOUD_NAME &&
       process.env.CLOUDINARY_API_KEY &&
       process.env.CLOUDINARY_API_SECRET
     );
+    
+    // Enhanced debugging for custom domain configuration issues
+    console.log('🔧 CLOUDINARY isConfigured() DEBUG:', {
+      configured,
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME ? 'SET' : 'MISSING',
+      api_key: process.env.CLOUDINARY_API_KEY ? 'SET' : 'MISSING', 
+      api_secret: process.env.CLOUDINARY_API_SECRET ? 'SET' : 'MISSING',
+      cloud_name_length: process.env.CLOUDINARY_CLOUD_NAME?.length || 0,
+      api_key_length: process.env.CLOUDINARY_API_KEY?.length || 0,
+      api_secret_length: process.env.CLOUDINARY_API_SECRET?.length || 0,
+      nodeEnv: process.env.NODE_ENV,
+      timestamp: new Date().toISOString()
+    });
+    
+    return configured;
   }
 }
 
