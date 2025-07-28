@@ -3574,7 +3574,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // File uploads (Cloudinary-based for permanent storage) - ENHANCED FOR CUSTOM DOMAINS
-  app.post("/api/projects/:id/files", requireAuth, upload.single('file'), async (req, res) => {
+  app.post("/api/projects/:id/files", (req, res, next) => {
+    console.log('🚨 MIDDLEWARE DEBUG: Upload route hit');
+    console.log('🚨 Headers:', JSON.stringify(req.headers, null, 2));
+    console.log('🚨 Body:', req.body);
+    console.log('🚨 URL:', req.url);
+    console.log('🚨 Method:', req.method);
+    next();
+  }, requireAuth, (req, res, next) => {
+    console.log('🚨 AFTER AUTH: User authenticated?', !!req.user);
+    if (req.user) {
+      console.log('🚨 User details:', { id: req.user.id, email: req.user.email, organizationId: req.user.organizationId });
+    }
+    next();
+  }, upload.single('file'), async (req, res) => {
     console.log('🔄 CLOUDINARY FILE UPLOAD REQUEST RECEIVED');
     console.log('🌐 CUSTOM DOMAIN UPLOAD DEBUG:', {
       projectId: req.params.id,
