@@ -1105,12 +1105,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/auth/login", async (req, res) => {
+    console.log('🌍 CRITICAL REQUEST: Login attempt received');
+    console.log('🔐 Login debug:', {
+      origin: req.headers.origin,
+      host: req.headers.host,
+      isCustomDomain: req.headers.origin?.includes('profieldmanager.com'),
+      hasBody: !!req.body,
+      bodyKeys: Object.keys(req.body || {})
+    });
+    
     try {
       const validatedData = loginSchema.parse(req.body);
+      console.log('✅ Login data validated for user:', validatedData.username);
       
       // Find user by username
       const user = await storage.getUserByUsername(validatedData.username);
       if (!user) {
+        console.log('❌ User not found:', validatedData.username);
         return res.status(401).json({ message: "Invalid credentials" });
       }
 
@@ -1121,10 +1132,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
       
       if (!isValidPassword) {
+        console.log('❌ Invalid password for user:', validatedData.username);
         return res.status(401).json({ message: "Invalid credentials" });
       }
 
       if (!user.isActive) {
+        console.log('❌ User account deactivated:', validatedData.username);
         return res.status(401).json({ message: "Account is deactivated" });
       }
 
@@ -1138,18 +1151,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         req.ip
       );
 
+      console.log('✅ Session created for user:', validatedData.username, 'Token:', session.token.substring(0, 8) + '...');
+
       // Cookie settings for custom domain support
-      const isCustomDomain = req.headers.origin === 'https://profieldmanager.com' || req.headers.origin === 'https://www.profieldmanager.com';
+      const isCustomDomain = req.headers.origin?.includes('profieldmanager.com') || req.headers.host?.includes('profieldmanager.com');
       
       res.cookie('auth_token', session.token, { 
         httpOnly: true, 
-        secure: true, // Always secure for production domains
+        secure: process.env.NODE_ENV === 'production', 
         sameSite: isCustomDomain ? 'none' : 'lax', // Allow cross-origin for custom domain
         domain: isCustomDomain ? '.profieldmanager.com' : undefined, // Set domain for custom domain
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
       });
 
-      res.json({
+      console.log('🍪 Cookie set with settings:', {
+        isCustomDomain,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: isCustomDomain ? 'none' : 'lax',
+        domain: isCustomDomain ? '.profieldmanager.com' : undefined
+      });
+
+      const response = {
         user: {
           id: user.id,
           username: user.username,
@@ -1158,13 +1180,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           lastName: user.lastName,
           role: user.role,
         },
-        token: session.token,
-      });
+        token: session.token, // Always include token for custom domain localStorage
+      };
+
+      console.log('✅ Login successful response prepared for user:', user.username);
+      res.json(response);
     } catch (error) {
       if (error instanceof ZodError) {
+        console.log('❌ Login validation error:', error.errors[0].message);
         return res.status(400).json({ message: error.errors[0].message });
       }
-      console.error("Login error:", error);
+      console.error("❌ Login error:", error);
       res.status(500).json({ message: "Login failed" });
     }
   });
