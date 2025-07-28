@@ -263,17 +263,13 @@ async function compressImage(inputPath: string, outputPath: string, organization
 const expenseUpload = multer({
   storage: multer.diskStorage({
     destination: async (req, file, cb) => {
-      const user = getAuthenticatedUser(req);
-      if (!user || !user.organizationId) {
-        return cb(new Error('Organization not found'), '');
-      }
-      
-      const uploadDir = getOrgUploadDir(user.organizationId, 'receipt_images');
       try {
-        await fs.mkdir(uploadDir, { recursive: true });
-        cb(null, uploadDir);
+        // Use a temporary directory during multer processing
+        const tempDir = path.join(process.cwd(), 'uploads', 'temp');
+        await fs.mkdir(tempDir, { recursive: true });
+        cb(null, tempDir);
       } catch (error) {
-        cb(error as Error, uploadDir);
+        cb(error as Error, 'uploads/temp');
       }
     },
     filename: (req, file, cb) => {
@@ -307,17 +303,13 @@ const expenseUpload = multer({
 const imageUpload = multer({
   storage: multer.diskStorage({
     destination: async (req, file, cb) => {
-      const user = getAuthenticatedUser(req);
-      if (!user || !user.organizationId) {
-        return cb(new Error('Organization not found'), '');
-      }
-      
-      const uploadDir = getOrgUploadDir(user.organizationId, 'image_gallery');
       try {
-        await fs.mkdir(uploadDir, { recursive: true });
-        cb(null, uploadDir);
+        // Use a temporary directory during multer processing
+        const tempDir = path.join(process.cwd(), 'uploads', 'temp');
+        await fs.mkdir(tempDir, { recursive: true });
+        cb(null, tempDir);
       } catch (error) {
-        cb(error as Error, uploadDir);
+        cb(error as Error, 'uploads/temp');
       }
     },
     filename: (req, file, cb) => {
@@ -350,17 +342,14 @@ const imageUpload = multer({
 const upload = multer({
   storage: multer.diskStorage({
     destination: async (req, file, cb) => {
-      const user = getAuthenticatedUser(req);
-      if (!user || !user.organizationId) {
-        return cb(new Error('Organization not found'), '');
-      }
-      
-      const uploadDir = getOrgUploadDir(user.organizationId, 'files');
       try {
-        await fs.mkdir(uploadDir, { recursive: true });
-        cb(null, uploadDir);
+        // Use a temporary directory during multer processing
+        // Organization-specific directory will be handled after authentication
+        const tempDir = path.join(process.cwd(), 'uploads', 'temp');
+        await fs.mkdir(tempDir, { recursive: true });
+        cb(null, tempDir);
       } catch (error) {
-        cb(error as Error, uploadDir);
+        cb(error as Error, 'uploads/temp');
       }
     },
     filename: (req, file, cb) => {
@@ -399,17 +388,13 @@ const upload = multer({
 const inspectionImageUpload = multer({
   storage: multer.diskStorage({
     destination: async (req, file, cb) => {
-      const user = getAuthenticatedUser(req);
-      if (!user || !user.organizationId) {
-        return cb(new Error('Organization not found'), '');
-      }
-      
-      const uploadDir = getOrgUploadDir(user.organizationId, 'inspection_report_images');
       try {
-        await fs.mkdir(uploadDir, { recursive: true });
-        cb(null, uploadDir);
+        // Use a temporary directory during multer processing
+        const tempDir = path.join(process.cwd(), 'uploads', 'temp');
+        await fs.mkdir(tempDir, { recursive: true });
+        cb(null, tempDir);
       } catch (error) {
-        cb(error as Error, uploadDir);
+        cb(error as Error, 'uploads/temp');
       }
     },
     filename: (req, file, cb) => {
