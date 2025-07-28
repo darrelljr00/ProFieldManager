@@ -3575,16 +3575,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Add comprehensive request logging middleware BEFORE all routes
   app.use((req, res, next) => {
-    console.log(`🌍 ALL REQUESTS: ${req.method} ${req.url} from ${req.headers.origin || req.headers.host}`);
-    if (req.url.includes('/api/projects/') && req.url.includes('/files') && req.method === 'POST') {
-      console.log('🚨 FILE UPLOAD REQUEST DETECTED:', {
-        url: req.url,
+    if (req.method === 'POST' && (req.url.includes('/files') || req.url.includes('/login'))) {
+      console.log('🌍 CRITICAL REQUEST:', {
         method: req.method,
-        contentType: req.headers['content-type'],
-        contentLength: req.headers['content-length'],
+        url: req.url,
         origin: req.headers.origin,
         host: req.headers.host,
-        userAgent: req.headers['user-agent']
+        contentType: req.headers['content-type'],
+        hasAuth: !!(req.headers.authorization || req.headers.cookie),
+        authHeader: req.headers.authorization ? 'PRESENT' : 'MISSING',
+        timestamp: new Date().toISOString()
       });
     }
     next();
