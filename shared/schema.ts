@@ -518,6 +518,7 @@ export const projectFiles = pgTable("project_files", {
   fileName: text("file_name").notNull(),
   originalName: text("original_name").notNull(),
   filePath: text("file_path").notNull(),
+  cloudinaryUrl: text("cloudinary_url"), // Cloudinary permanent storage URL
   fileSize: integer("file_size").notNull(),
   mimeType: text("mime_type").notNull(),
   fileType: text("file_type").notNull(), // image, video, document, other

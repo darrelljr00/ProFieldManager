@@ -2001,6 +2001,7 @@ export class DatabaseStorage implements IStorage {
         fileName: projectFiles.fileName,
         originalName: projectFiles.originalName,
         filePath: projectFiles.filePath,
+        cloudinaryUrl: projectFiles.cloudinaryUrl, // Include Cloudinary URL
         fileSize: projectFiles.fileSize,
         mimeType: projectFiles.mimeType,
         fileType: projectFiles.fileType,

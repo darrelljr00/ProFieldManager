@@ -778,6 +778,7 @@ export default function ProjectDetail() {
               fileName: file.fileName,
               originalName: file.originalName,
               filePath: file.filePath,
+              cloudinaryUrl: (file as any).cloudinaryUrl, // Add cloudinary URL if available
               fileSize: file.fileSize,
               fileType: file.mimeType?.startsWith('image/') ? 'image' : (file.mimeType?.startsWith('video/') ? 'video' : 'document'),
               mimeType: file.mimeType,

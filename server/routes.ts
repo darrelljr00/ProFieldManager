@@ -3856,7 +3856,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         uploadedById: userId,
         fileName: cloudinaryResult.publicId!.split('/').pop() || req.file.originalname,
         originalName: req.file.originalname,
-        filePath: cloudinaryResult.secureUrl!, // Always use Cloudinary URL
+        filePath: cloudinaryResult.secureUrl!, // Keep for backward compatibility
+        cloudinaryUrl: cloudinaryResult.secureUrl!, // Dedicated Cloudinary URL field
         fileSize: cloudinaryResult.bytes || req.file.size, // Use compressed size
         mimeType: cloudinaryResult.format ? `image/${cloudinaryResult.format}` : req.file.mimetype,
         fileType,

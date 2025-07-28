@@ -37,6 +37,7 @@ interface MediaFile {
   fileName: string;
   originalName: string;
   filePath: string;
+  cloudinaryUrl?: string;
   fileSize: number;
   fileType: string;
   mimeType: string;
@@ -275,17 +276,30 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
       : "w-full h-full object-cover transition-transform group-hover:scale-105";
 
     if (file.fileType === 'image') {
-      // Handle both Cloudinary URLs (https://...) and local paths (/uploads/...)
+      // CRITICAL FIX: Prioritize Cloudinary URLs over local paths for custom domain compatibility
       let imageUrl;
-      console.log('🔍 Checking filePath:', file.filePath, 'Includes cloudinary?', file.filePath?.includes('cloudinary.com'));
-      if (file.filePath && file.filePath.includes('cloudinary.com')) {
-        // Use proxy for Cloudinary images to avoid mixed content issues
+      console.log('🔍 CLOUDINARY PRIORITY CHECK:', {
+        hasCloudinaryUrl: !!file.cloudinaryUrl,
+        cloudinaryUrl: file.cloudinaryUrl,
+        filePath: file.filePath,
+        filePathIncludesCloudinary: file.filePath?.includes('cloudinary.com')
+      });
+      
+      // 1. First priority: Check if we have a dedicated cloudinaryUrl field
+      if (file.cloudinaryUrl) {
+        imageUrl = `/api/cloudinary-proxy?url=${encodeURIComponent(file.cloudinaryUrl)}`;
+        console.log('🌤️ PRIORITY 1: Using dedicated cloudinaryUrl field:', imageUrl);
+      }
+      // 2. Second priority: Check if filePath contains Cloudinary URL
+      else if (file.filePath && file.filePath.includes('cloudinary.com')) {
         const cleanUrl = file.filePath.startsWith('/') ? file.filePath.substring(1) : file.filePath;
         imageUrl = `/api/cloudinary-proxy?url=${encodeURIComponent(cleanUrl)}`;
-        console.log('🌤️ Using Cloudinary proxy URL:', imageUrl, 'Clean URL:', cleanUrl);
-      } else {
+        console.log('🌤️ PRIORITY 2: Using Cloudinary URL from filePath:', imageUrl);
+      }
+      // 3. Last resort: Use local path (may fail on custom domains)
+      else {
         imageUrl = file.filePath.startsWith('/') ? file.filePath : `/${file.filePath}`;
-        console.log('📁 Using local file URL:', imageUrl);
+        console.log('📁 FALLBACK: Using local file URL (may fail on custom domain):', imageUrl);
       }
       console.log('🖼️ Rendering image:', file.originalName, 'URL:', imageUrl, 'Original filePath:', file.filePath, 'File:', file);
       return (
