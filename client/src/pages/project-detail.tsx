@@ -206,9 +206,24 @@ export default function ProjectDetail() {
           message: result.message
         });
         
-        // Validate that we have a successful response
+        // Validate that we have a successful response  
+        console.log('🔍 Response validation check:', {
+          hasSuccessField: 'success' in result,
+          successValue: result.success,
+          successType: typeof result.success,
+          hasId: 'id' in result,
+          hasFilePath: 'filePath' in result
+        });
+        
         if (result.success === false) {
+          console.error('❌ Server explicitly returned success: false');
           throw new Error(result.message || 'Upload failed according to server response');
+        }
+        
+        // Additional validation - if we have an ID, it's likely successful
+        if (result.id || result.filePath) {
+          console.log('✅ Upload appears successful - has ID or filePath');
+          return result;
         }
         
         return result;
