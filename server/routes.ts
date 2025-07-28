@@ -3778,6 +3778,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
           userId: user.id,
           orgId: user.organizationId
         });
+        
+        // CRITICAL: Block local storage fallback for custom domains to prevent broken images
+        if (req.headers.origin?.includes('profieldmanager.com')) {
+          console.error('🚨 CUSTOM DOMAIN CLOUDINARY FAILURE - BLOCKING LOCAL STORAGE FALLBACK');
+          console.error('🚨 Custom domains cannot access local storage - upload must fail rather than create broken links');
+          
+          const errorResponse = {
+            success: false,
+            message: "Cloud storage upload failed. Please try again.",
+            error: cloudinaryResult.error,
+            isCustomDomain: true,
+            cloudinaryConfigured: CloudinaryService.isConfigured()
+          };
+          
+          return res.status(500).json(errorResponse);
+        }
+        
         console.warn('⚠️ Cloudinary upload failed, falling back to local storage:', cloudinaryResult.error);
         
         // Fallback to local storage with compression

@@ -68,6 +68,15 @@ export class CloudinaryService {
         options: JSON.stringify(options, null, 2)
       });
       
+      // Fail fast if Cloudinary is not properly configured
+      if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+        console.error('❌ CLOUDINARY NOT CONFIGURED - Missing environment variables');
+        return {
+          success: false,
+          error: 'Cloudinary configuration missing - check environment variables'
+        };
+      }
+      
       // Create organization-specific folder path
       const folderPath = `org-${organizationId}/${folder}`;
       
