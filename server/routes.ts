@@ -2959,13 +2959,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Projects
   app.get("/api/projects", requireAuth, async (req, res) => {
+    console.log('🔄 GET PROJECTS REQUEST RECEIVED');
     try {
+      console.log('📍 PROJECTS STEP 1: Getting authenticated user...');
       const user = getAuthenticatedUser(req);
+      console.log('📍 PROJECTS STEP 2: User details:', { id: user.id, organizationId: user.organizationId, role: user.role });
+      
+      console.log('📍 PROJECTS STEP 3: Getting status query...');
       const status = req.query.status as string;
+      console.log('📍 PROJECTS STEP 4: Status filter:', status);
+      
+      console.log('📍 PROJECTS STEP 5: Calling storage.getProjects...');
       const projects = await storage.getProjects(user.organizationId, user.id, user.role, status);
+      console.log('📍 PROJECTS STEP 6: Projects retrieved, count:', projects.length);
+      
       res.json(projects);
     } catch (error: any) {
-      console.error("Error fetching projects:", error);
+      console.error("❌ ERROR IN GET PROJECTS:", error);
+      console.error("❌ Error stack:", error.stack);
       res.status(500).json({ message: "Failed to fetch projects" });
     }
   });
