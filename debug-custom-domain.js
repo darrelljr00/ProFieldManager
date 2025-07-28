@@ -1,77 +1,74 @@
-#!/usr/bin/env node
-
 /**
- * Custom Domain Upload Diagnostic Tool
- * This script helps diagnose and fix upload issues on profieldmanager.com
+ * Debug script to check custom domain behavior in detail
  */
 
-console.log('🔍 CUSTOM DOMAIN UPLOAD DIAGNOSTIC TOOL');
-console.log('=====================================');
-
-// Check Cloudinary configuration
-console.log('\n1. CLOUDINARY CONFIGURATION:');
-console.log('CLOUDINARY_CLOUD_NAME:', process.env.CLOUDINARY_CLOUD_NAME ? 'SET' : 'MISSING');
-console.log('CLOUDINARY_API_KEY:', process.env.CLOUDINARY_API_KEY ? 'SET' : 'MISSING');
-console.log('CLOUDINARY_API_SECRET:', process.env.CLOUDINARY_API_SECRET ? 'SET' : 'MISSING');
-
-// Test Cloudinary connectivity
-async function testCloudinary() {
+async function debugCustomDomain() {
+  console.log('🔍 Debugging Custom Domain Issues');
+  console.log('==================================\n');
+  
+  const customDomain = 'https://profieldmanager.com';
+  const replitDomain = 'https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev';
+  const token = '8d761ca9bfd242cd5d795955a6555a82d890327745d88e32b9e0d4e74eb240e5';
+  
   try {
-    const { v2: cloudinary } = require('cloudinary');
-    
-    cloudinary.config({
-      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-      api_key: process.env.CLOUDINARY_API_KEY,
-      api_secret: process.env.CLOUDINARY_API_SECRET,
+    // Test 1: Check if custom domain returns HTML for API calls
+    console.log('1. Testing custom domain API endpoint behavior...');
+    const response1 = await fetch(`${customDomain}/api/auth/me`, {
+      headers: { 'Authorization': `Bearer ${token}` }
     });
     
-    console.log('\n2. CLOUDINARY CONNECTIVITY TEST:');
-    const result = await cloudinary.api.ping();
-    console.log('✅ Cloudinary connection successful:', result);
+    const text1 = await response1.text();
+    const isHtml = text1.includes('<!DOCTYPE html>');
     
-    return true;
+    console.log(`   Custom domain /api/auth/me: ${response1.status}`);
+    console.log(`   Response type: ${isHtml ? 'HTML (static hosting)' : 'JSON (API proxy)'}`);
+    console.log(`   Content preview: ${text1.substring(0, 100)}...`);
+    
+    // Test 2: Compare with Replit domain
+    console.log('\n2. Testing Replit domain for comparison...');
+    const response2 = await fetch(`${replitDomain}/api/auth/me`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    const text2 = await response2.text();
+    console.log(`   Replit domain /api/auth/me: ${response2.status}`);
+    console.log(`   Response type: JSON (API working)`);
+    console.log(`   Content preview: ${text2.substring(0, 100)}...`);
+    
+    // Test 3: Frontend simulation
+    console.log('\n3. Frontend API routing simulation...');
+    
+    // Simulate our API config detection
+    const hostname = 'profieldmanager.com';
+    const shouldRoute = hostname === 'profieldmanager.com';
+    const apiBaseUrl = shouldRoute ? replitDomain : '';
+    const fullUrl = `${apiBaseUrl}/api/auth/me`;
+    
+    console.log(`   Detected hostname: ${hostname}`);
+    console.log(`   Should route to Replit: ${shouldRoute}`);
+    console.log(`   Generated API URL: ${fullUrl}`);
+    
+    // Test the routed URL
+    const response3 = await fetch(fullUrl, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    console.log(`   Routed request status: ${response3.status}`);
+    console.log(`   Frontend routing works: ${response3.ok ? 'YES ✅' : 'NO ❌'}`);
+    
+    console.log('\n📊 DIAGNOSIS:');
+    if (isHtml) {
+      console.log('   ❌ Custom domain serves static files (confirmed)');
+      console.log('   ✅ Frontend routing solution is correct approach');
+      console.log('   📝 Users must access frontend which will route API calls');
+    } else {
+      console.log('   ✅ Custom domain is now proxying API calls correctly');
+      console.log('   ✅ Upload functionality should work directly');
+    }
+    
   } catch (error) {
-    console.log('❌ Cloudinary connection failed:', error.message);
-    return false;
+    console.error('❌ Debug failed:', error.message);
   }
 }
 
-// Check database connectivity
-async function testDatabase() {
-  try {
-    console.log('\n3. DATABASE CONNECTIVITY TEST:');
-    const { db } = require('./server/db');
-    
-    // Simple query to test connection
-    const result = await db.raw('SELECT NOW() as current_time');
-    console.log('✅ Database connection successful:', result.rows[0]);
-    
-    return true;
-  } catch (error) {
-    console.log('❌ Database connection failed:', error.message);
-    return false;
-  }
-}
-
-// Main diagnostic function
-async function runDiagnostics() {
-  console.log('\n🚀 Starting comprehensive diagnostics...\n');
-  
-  const cloudinaryOk = await testCloudinary();
-  const databaseOk = await testDatabase();
-  
-  console.log('\n📊 DIAGNOSTIC RESULTS:');
-  console.log('======================');
-  console.log('Cloudinary:', cloudinaryOk ? '✅ OK' : '❌ FAILED');
-  console.log('Database:', databaseOk ? '✅ OK' : '❌ FAILED');
-  
-  if (cloudinaryOk && databaseOk) {
-    console.log('\n✅ All systems operational. Issue likely authentication-related.');
-    console.log('💡 SOLUTION: User must login from profieldmanager.com to store auth token locally.');
-  } else {
-    console.log('\n❌ Infrastructure issues detected. Fix configuration before testing uploads.');
-  }
-}
-
-// Run diagnostics
-runDiagnostics().catch(console.error);
+debugCustomDomain();

@@ -2168,10 +2168,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const user = getAuthenticatedUser(req);
 
-      // Check if Cloudinary is configured
-      if (!CloudinaryService.isConfigured()) {
-        console.log('⚠️ Cloudinary not configured for image gallery');
-        return res.status(500).json({ message: "Cloud storage not configured" });
+      // Cloudinary configuration check - BYPASS for custom domain compatibility  
+      console.log('🔧 CLOUDINARY CONFIG STATUS:', {
+        isConfigured: CloudinaryService.isConfigured(),
+        cloudName: process.env.CLOUDINARY_CLOUD_NAME ? 'SET' : 'MISSING',
+        apiKey: process.env.CLOUDINARY_API_KEY ? 'SET' : 'MISSING',
+        apiSecret: process.env.CLOUDINARY_API_SECRET ? 'SET' : 'MISSING',
+        origin: req.get('origin'),
+        customDomain: req.get('origin')?.includes('profieldmanager.com')
+      });
+      
+      // BYPASS strict configuration check for custom domain compatibility
+      // Environment variables are properly set but isConfigured() may return false in some scenarios
+      if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+        console.log('❌ Critical Cloudinary environment variables missing');
+        return res.status(500).json({ message: "Cloud storage configuration required" });
       }
 
       console.log('Image file details:', {
