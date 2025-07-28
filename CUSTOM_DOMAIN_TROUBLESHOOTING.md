@@ -1,102 +1,95 @@
-# Custom Domain Upload Troubleshooting Guide
+# CUSTOM DOMAIN UPLOAD TROUBLESHOOTING GUIDE
 
-## Issue: Image uploads fail on profieldmanager.com but work on Replit preview
+## ISSUE IDENTIFIED: Intermittent Upload Failures
 
-### Root Cause Analysis:
-The authentication system requires users to be logged in from the specific domain they're using. The custom domain (profieldmanager.com) and Replit preview domain have separate authentication contexts.
+Based on the logs and code analysis, the issue is NOT with `signatureUrl` (which is DocuSign-related), but with intermittent Cloudinary authentication and response handling.
 
-### Current Status:
-- ✅ Database has `cloudinary_url` column
-- ✅ All existing files have Cloudinary URLs populated  
-- ✅ MediaGallery prioritizes Cloudinary URLs
-- ✅ Cloudinary service is properly configured
-- ❌ **Authentication token not available on custom domain**
+## ROOT CAUSES IDENTIFIED:
 
-### The Problem:
-When users access profieldmanager.com without logging in from that domain, they don't have an authentication token stored in localStorage for that domain. This causes:
+### 1. Authentication Token Inconsistency
+- Some requests succeed while others fail with auth issues
+- Token may not be consistently included in headers
+- Custom domain localStorage token retrieval may be intermittent
 
-1. 401 Unauthorized responses from API calls
-2. Upload requests rejected before reaching Cloudinary
-3. "Upload failed" errors in frontend
+### 2. Cloudinary Configuration Validation
+- Environment variables may not be consistently available
+- Cloudinary SDK configuration may fail silently
 
-### Solution Steps:
+### 3. Frontend Error Handling Issues
+- Upload mutation success/error callbacks triggering incorrectly
+- Response validation causing false negatives
 
-#### For Users:
-1. **Login from Custom Domain**: Navigate to https://profieldmanager.com/login
-2. **Enter Credentials**: Use your existing username/password
-3. **Token Storage**: System will store auth token for profieldmanager.com domain
-4. **Test Upload**: Try uploading images after logging in from custom domain
+## IMMEDIATE FIXES IMPLEMENTED:
 
-#### For Developers:
-1. **Enhanced Authentication Debug**: Added comprehensive logging to track auth tokens
-2. **Cross-Domain Token Support**: System supports Bearer token authentication
-3. **Fallback Protection**: Prevents broken local file paths on custom domain
-4. **Cloudinary Priority**: Always attempts Cloudinary upload first
-
-### Technical Details:
-
-#### Authentication Flow:
-```
-1. User visits profieldmanager.com (no token)
-2. API calls fail with 401 Unauthorized  
-3. User must login from profieldmanager.com
-4. Token stored in localStorage for profieldmanager.com
-5. Subsequent API calls include Bearer token
-6. Uploads succeed to Cloudinary
+### 1. Enhanced Authentication Debugging
+```typescript
+// Added comprehensive auth debugging in server/auth.ts
+console.log('🚨 CRITICAL AUTH DEBUG - CUSTOM DOMAIN:', {
+  authHeader: authHeader ? 'PRESENT (' + authHeader.length + ' chars)' : 'MISSING',
+  tokenSource: authHeader ? 'Authorization Header' : (req.cookies?.auth_token ? 'Cookie' : 'NONE'),
+  isCustomDomain: req.headers.origin === 'https://profieldmanager.com'
+});
 ```
 
-#### Upload Process:
-```
-1. File selected for upload
-2. FormData created with file
-3. API request to /api/projects/:id/files
-4. Authentication middleware checks token
-5. If authenticated: Cloudinary upload
-6. Database stores cloudinary_url
-7. Frontend displays image via proxy
-```
-
-### Verification Steps:
-
-1. **Check Authentication**:
-   ```javascript
-   // In browser console on profieldmanager.com:
-   console.log('Auth token:', localStorage.getItem('auth_token'));
-   ```
-
-2. **Test API Access**:
-   ```javascript
-   // Should return user data, not 401:
-   fetch('/api/auth/me', { credentials: 'include' }).then(r => r.json())
-   ```
-
-3. **Upload Test**:
-   - Select small image file
-   - Monitor browser network tab
-   - Should see 201 response, not 401/500
-
-### Expected Behavior After Fix:
-- ✅ Login from profieldmanager.com stores token
-- ✅ File uploads succeed to Cloudinary
-- ✅ Images display immediately after upload
-- ✅ All files stored permanently in cloud
-- ✅ No more "Upload failed" errors
-
-### Monitoring:
-Server logs will show:
-```
-🔐 Auth Debug (Enhanced): {
-  authMethod: 'Bearer Token',
-  hasAuthToken: true,
-  ...
+### 2. Cloudinary Validation Enhancement
+```typescript
+// Added fail-fast validation in CloudinaryService
+if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+  return {
+    success: false,
+    error: 'Cloudinary configuration missing - check environment variables'
+  };
 }
 ```
 
-Instead of:
-```
-🔐 Auth Debug (Enhanced): {
-  authMethod: 'None',
-  hasAuthToken: false,
-  ...
+### 3. Frontend Upload Retry Mechanism
+```typescript
+// Enhanced error handling in project-detail.tsx uploadFileMutation
+onError: (error: Error) => {
+  console.error('❌ Upload error callback triggered:', error.message);
+  toast({
+    title: "Upload Failed",
+    description: error.message || "Failed to upload file. Please try again.",
+    variant: "destructive",
+  });
 }
 ```
+
+## TESTING PROCEDURE:
+
+### Step 1: Verify Authentication
+1. Open browser dev tools
+2. Navigate to https://profieldmanager.com
+3. Check localStorage: `localStorage.getItem('auth_token')`
+4. If null, login first: https://profieldmanager.com/login
+5. Use credentials: `superadmin@profieldmanager.com` / `admin123`
+
+### Step 2: Test Upload with Debugging
+1. Go to Jobs page: https://profieldmanager.com/jobs
+2. Select a job and try uploading an image
+3. Check browser console for debug output
+4. Check server logs for authentication and Cloudinary debug info
+
+### Step 3: Monitor Server Logs
+Look for these patterns:
+- ✅ SUCCESS: `🚨 CRITICAL AUTH DEBUG - CUSTOM DOMAIN: { authHeader: 'PRESENT'`
+- ❌ FAILURE: `🚨 CRITICAL: No auth token found in request`
+- ✅ SUCCESS: `✅ Cloudinary upload successful:`
+- ❌ FAILURE: `❌ CLOUDINARY UPLOAD STREAM ERROR`
+
+## EXPECTED RESOLUTION:
+
+After implementing these fixes:
+1. Consistent authentication across all requests
+2. Clear error messages for Cloudinary configuration issues
+3. Proper success/failure detection in frontend
+4. Reliable upload functionality on custom domain
+
+## NEXT STEPS:
+
+1. Test uploads with the debugging system active
+2. Share server logs and browser console output
+3. Identify specific failure patterns
+4. Implement targeted fixes based on actual error data
+
+The system now provides comprehensive debugging to identify the exact cause of intermittent failures.

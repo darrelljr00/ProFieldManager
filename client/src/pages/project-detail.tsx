@@ -180,9 +180,13 @@ export default function ProjectDetail() {
         console.log('🚨 CRITICAL UPLOAD DEBUG:', {
           projectId,
           domain: window.location.hostname,
+          isCustomDomain: window.location.hostname === 'profieldmanager.com',
           hasToken: !!token,
           tokenLength: token?.length || 0,
-          authHeader: token ? 'PRESENT' : 'MISSING'
+          authHeader: token ? 'PRESENT' : 'MISSING',
+          fileName: file?.name,
+          fileSize: file?.size,
+          timestamp: new Date().toISOString()
         });
 
         const response = await fetch(`/api/projects/${projectId}/files`, {
@@ -201,7 +205,20 @@ export default function ProjectDetail() {
         
         if (!response.ok) {
           const errorText = await response.text();
-          console.error('❌ Upload failed with status:', response.status, errorText);
+          console.error('❌ CUSTOM DOMAIN: Upload failed with status:', response.status, errorText);
+          console.error('❌ Request details:', {
+            url: `/api/projects/${projectId}/files`,
+            method: 'POST',
+            hasAuth: !!token,
+            domain: window.location.hostname
+          });
+          
+          // Special handling for auth failures on custom domain
+          if (response.status === 401) {
+            console.error('🚨 AUTHENTICATION FAILURE - Token may be invalid');
+            throw new Error('Authentication failed. Please try logging in again.');
+          }
+          
           throw new Error(`Upload failed: ${response.status} ${response.statusText} - ${errorText}`);
         }
         
@@ -234,8 +251,14 @@ export default function ProjectDetail() {
         });
         
         if (result.success === false) {
-          console.error('❌ Server explicitly returned success: false');
-          throw new Error(result.message || 'Upload failed according to server response');
+          console.error('❌ CUSTOM DOMAIN: Server explicitly returned success: false');
+          console.error('❌ Server error details:', {
+            success: result.success,
+            message: result.message,
+            error: result.error,
+            cloudinaryError: result.cloudinaryError
+          });
+          throw new Error(result.message || result.error || 'Upload failed according to server response');
         }
         
         // Additional validation - if we have an ID, it's likely successful
@@ -263,10 +286,27 @@ export default function ProjectDetail() {
       });
     },
     onError: (error: Error) => {
-      console.error('❌ Upload error callback triggered:', error.message);
+      console.error('❌ CUSTOM DOMAIN: Upload error callback triggered:', error.message);
+      console.error('❌ Error context:', {
+        domain: window.location.hostname,
+        hasToken: !!localStorage.getItem('auth_token'),
+        errorType: error.name,
+        errorMessage: error.message,
+        isCustomDomain: window.location.hostname === 'profieldmanager.com'
+      });
+      
+      // Enhanced error messaging for custom domain issues
+      let errorDescription = error.message || "Failed to upload file. Please try again.";
+      
+      if (error.message.includes('Authentication')) {
+        errorDescription = "Authentication error. Please refresh the page and try again.";
+      } else if (error.message.includes('Cloudinary')) {
+        errorDescription = "Cloud storage error. Please try again or contact support.";
+      }
+      
       toast({
         title: "Upload Failed",
-        description: error.message || "Failed to upload file. Please try again.",
+        description: errorDescription,
         variant: "destructive",
       });
     },
