@@ -1931,7 +1931,7 @@ export default function Jobs() {
                         fileName: file.fileName,
                         originalName: file.originalName,
                         filePath: getProjectFileUrl(file),
-                        cloudinaryUrl: file.cloudinaryUrl, // Add cloudinary URL if available
+                        cloudinaryUrl: file.cloudinaryUrl || (file as any).cloudinary_url, // Support both field names
                         fileSize: file.fileSize,
                         fileType: file.mimeType?.startsWith('image/') ? 'image' : 'document',
                         mimeType: file.mimeType,
