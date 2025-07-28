@@ -3781,12 +3781,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // CRITICAL: Block local storage fallback for custom domains to prevent broken images
         if (req.headers.origin?.includes('profieldmanager.com')) {
-          console.error('🚨 CUSTOM DOMAIN CLOUDINARY FAILURE - BLOCKING LOCAL STORAGE FALLBACK');
-          console.error('🚨 Custom domains cannot access local storage - upload must fail rather than create broken links');
+          console.error('🚨 CUSTOM DOMAIN CLOUDINARY FAILURE - RETRY WITH FALLBACK OPTIONS');
+          console.error('🚨 Cloudinary error details:', JSON.stringify(cloudinaryResult, null, 2));
+          
+          // Try uploading without transformations as fallback
+          try {
+            console.log('🔄 Retrying Cloudinary upload without transformations...');
+            const retryResult = await CloudinaryService.uploadImage(uploadBuffer, {
+              folder: cloudinaryFolder,
+              filename: req.file.originalname,
+              organizationId: user.organizationId,
+              // Minimal options for retry
+            });
+            
+            if (retryResult.success) {
+              console.log('✅ Cloudinary retry successful:', retryResult.secureUrl);
+              // Use the retry result
+              const fileData = {
+                projectId,
+                taskId,
+                uploadedById: userId,
+                fileName: retryResult.publicId!.split('/').pop() || req.file.originalname,
+                originalName: req.file.originalname,
+                filePath: retryResult.secureUrl!,
+                cloudinaryUrl: retryResult.secureUrl!,
+                fileSize: retryResult.bytes || req.file.size,
+                mimeType: retryResult.format ? `image/${retryResult.format}` : req.file.mimetype,
+                fileType,
+                description: req.body.description || `File uploaded from ${req.headers.origin || 'custom domain'}`,
+              };
+              
+              const projectFile = await storage.uploadProjectFile(fileData);
+              
+              return res.status(201).json({
+                id: projectFile.id,
+                fileName: projectFile.fileName,
+                originalName: projectFile.originalName,
+                filePath: projectFile.filePath,
+                cloudinaryUrl: projectFile.cloudinaryUrl,
+                fileSize: projectFile.fileSize,
+                fileType: projectFile.fileType,
+                success: true,
+                isCloudStored: true,
+                message: "File uploaded successfully to Cloudinary (retry)"
+              });
+            }
+          } catch (retryError) {
+            console.error('❌ Cloudinary retry also failed:', retryError);
+          }
           
           const errorResponse = {
             success: false,
-            message: "Cloud storage upload failed. Please try again.",
+            message: "Cloud storage upload failed after retry. Please check your connection and try again.",
             error: cloudinaryResult.error,
             isCustomDomain: true,
             cloudinaryConfigured: CloudinaryService.isConfigured()
@@ -3893,11 +3939,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fileName: projectFile.fileName,
         originalName: projectFile.originalName,
         filePath: projectFile.filePath,
+        cloudinaryUrl: projectFile.cloudinaryUrl || cloudinaryResult.secureUrl, // Ensure cloudinaryUrl is included
         fileSize: projectFile.fileSize,
         fileType: projectFile.fileType,
-        uploadedAt: projectFile.uploadedAt,
+        uploadedAt: projectFile.createdAt,
         isCloudStored: true,
-        cloudinaryUrl: cloudinaryResult.secureUrl,
         thumbnailUrl: CloudinaryService.getThumbnailUrl(cloudinaryResult.publicId!),
         compressionApplied: true,
         originalSize: req.file.size,

@@ -286,7 +286,7 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
       });
       
       // 1. First priority: Check if we have a dedicated cloudinaryUrl field
-      if (file.cloudinaryUrl) {
+      if (file.cloudinaryUrl && file.cloudinaryUrl.includes('cloudinary.com')) {
         imageUrl = `/api/cloudinary-proxy?url=${encodeURIComponent(file.cloudinaryUrl)}`;
         console.log('🌤️ PRIORITY 1: Using dedicated cloudinaryUrl field:', imageUrl);
       }
@@ -296,10 +296,18 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
         imageUrl = `/api/cloudinary-proxy?url=${encodeURIComponent(cleanUrl)}`;
         console.log('🌤️ PRIORITY 2: Using Cloudinary URL from filePath:', imageUrl);
       }
-      // 3. Last resort: Use local path (may fail on custom domains)
+      // 3. Detect custom domain and force error for local paths
+      else if (window.location.hostname === 'profieldmanager.com') {
+        console.error('🚨 CUSTOM DOMAIN ERROR: Local file path detected on custom domain:', file.filePath);
+        // Show error placeholder instead of broken image
+        return <div className="w-full h-full flex items-center justify-center bg-red-100 text-red-600 text-sm">
+          <span>⚠️ Image not available on custom domain</span>
+        </div>;
+      }
+      // 4. Last resort: Use local path for Replit domains only
       else {
         imageUrl = file.filePath.startsWith('/') ? file.filePath : `/${file.filePath}`;
-        console.log('📁 FALLBACK: Using local file URL (may fail on custom domain):', imageUrl);
+        console.log('📁 FALLBACK: Using local file URL (Replit domain only):', imageUrl);
       }
       console.log('🖼️ Rendering image:', file.originalName, 'URL:', imageUrl, 'Original filePath:', file.filePath, 'File:', file);
       return (
