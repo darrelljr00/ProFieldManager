@@ -3573,21 +3573,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add global error handler for multer errors
+  app.use((error: any, req: any, res: any, next: any) => {
+    console.error('🚨 GLOBAL ERROR HANDLER TRIGGERED:', {
+      name: error.name,
+      message: error.message,
+      code: error.code,
+      field: error.field,
+      stack: error.stack,
+      url: req.url,
+      method: req.method
+    });
+    
+    if (error.name === 'MulterError') {
+      console.error('🚨 MULTER ERROR DETECTED:', error);
+      return res.status(400).json({
+        success: false,
+        message: 'File upload error: ' + error.message,
+        error: error.code
+      });
+    }
+    
+    next(error);
+  });
+
   // File uploads (Cloudinary-based for permanent storage) - ENHANCED FOR CUSTOM DOMAINS
   app.post("/api/projects/:id/files", (req, res, next) => {
-    console.log('🚨 MIDDLEWARE DEBUG: Upload route hit');
-    console.log('🚨 Headers:', JSON.stringify(req.headers, null, 2));
-    console.log('🚨 Body:', req.body);
+    console.log('🚨 MIDDLEWARE DEBUG: Upload route hit at', new Date().toISOString());
     console.log('🚨 URL:', req.url);
     console.log('🚨 Method:', req.method);
+    console.log('🚨 Content-Type:', req.headers['content-type']);
+    console.log('🚨 User-Agent:', req.headers['user-agent']);
     next();
   }, requireAuth, (req, res, next) => {
     console.log('🚨 AFTER AUTH: User authenticated?', !!req.user);
     if (req.user) {
-      console.log('🚨 User details:', { id: req.user.id, email: req.user.email, organizationId: req.user.organizationId });
+      console.log('🚨 Authenticated user:', { id: req.user.id, email: req.user.email, organizationId: req.user.organizationId });
+    } else {
+      console.log('🚨 NO USER AUTHENTICATED');
     }
     next();
-  }, upload.single('file'), async (req, res) => {
+  }, (req, res, next) => {
+    console.log('🚨 BEFORE MULTER: About to process file upload');
+    next();
+  }, upload.single('file'), (req, res, next) => {
+    console.log('🚨 AFTER MULTER: File processed?', !!req.file);
+    if (req.file) {
+      console.log('🚨 File details:', {
+        originalname: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size,
+        path: req.file.path
+      });
+    }
+    next();
+  }, async (req, res) => {
     console.log('🔄 CLOUDINARY FILE UPLOAD REQUEST RECEIVED');
     console.log('🌐 CUSTOM DOMAIN UPLOAD DEBUG:', {
       projectId: req.params.id,
