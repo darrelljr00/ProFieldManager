@@ -3610,6 +3610,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         contentType: req.headers['content-type'],
         hasAuth: !!(req.headers.authorization || req.headers.cookie),
         authHeader: req.headers.authorization ? 'PRESENT' : 'MISSING',
+        authPreview: req.headers.authorization ? req.headers.authorization.substring(0, 20) + '...' : 'NONE',
+        isCustomDomain: req.headers.origin?.includes('profieldmanager.com') || req.headers.host?.includes('profieldmanager.com'),
         timestamp: new Date().toISOString()
       });
     }

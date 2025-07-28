@@ -95,7 +95,12 @@ export default function SimpleLogin() {
       // Store token in localStorage for cross-domain access
       if (response.token) {
         localStorage.setItem('auth_token', response.token);
-        console.log('🔑 Token stored for cross-domain auth:', response.token.slice(0, 8) + '...');
+        console.log('🔑 CUSTOM DOMAIN: Token stored for cross-domain auth:', response.token.slice(0, 8) + '...');
+        console.log('🌐 Domain detection:', {
+          hostname: window.location.hostname,
+          isCustomDomain: window.location.hostname === 'profieldmanager.com',
+          tokenStored: !!localStorage.getItem('auth_token')
+        });
       }
       
       // Clear all cached auth queries to force fresh fetch
