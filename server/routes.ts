@@ -3599,30 +3599,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       path: req.file.path
     } : 'NO FILE');
     
+    // COMPREHENSIVE ERROR TRACKING - Step by step debugging
+    console.log('📍 STEP 1: Starting upload processing...');
+    
     try {
+      console.log('📍 STEP 2: Entering try block...');
+      
       if (!req.user) {
         console.error('❌ No authenticated user found in request');
         return res.status(401).json({ message: "Authentication required" });
       }
+      console.log('📍 STEP 3: User authentication verified');
 
       if (!req.file) {
         console.log('❌ No file in request');
         return res.status(400).json({ message: "No file uploaded" });
       }
+      console.log('📍 STEP 4: File presence verified');
 
       const projectId = parseInt(req.params.id);
       const userId = req.user.id;
       const taskId = req.body.taskId ? parseInt(req.body.taskId) : null;
       const user = req.user;
+      console.log('📍 STEP 5: Variables initialized - projectId:', projectId, 'userId:', userId);
 
       // Ensure Cloudinary is properly configured
+      console.log('📍 STEP 6: Checking Cloudinary configuration...');
       if (!CloudinaryService.isConfigured()) {
         console.error('❌ Cloudinary not configured - cloud storage required');
         return res.status(500).json({ message: "Cloud storage configuration required" });
       }
+      console.log('📍 STEP 7: Cloudinary configuration verified');
 
       // Get project settings to check if timestamp overlay is enabled
+      console.log('📍 STEP 8: Fetching project by ID...');
       const project = await storage.getProjectById(projectId);
+      console.log('📍 STEP 9: Project fetched successfully:', project ? 'found' : 'not found');
       console.log('=== TIMESTAMP & CLOUDINARY DEBUG ===');
       console.log('Project ID:', projectId);
       console.log('Project settings:', {
