@@ -3577,10 +3577,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // File uploads (Cloudinary-based for permanent storage)
+  // File uploads (Cloudinary-based for permanent storage) - ENHANCED FOR CUSTOM DOMAINS
   app.post("/api/projects/:id/files", requireAuth, upload.single('file'), async (req, res) => {
     console.log('🔄 CLOUDINARY FILE UPLOAD REQUEST RECEIVED');
-    console.log('Project ID:', req.params.id);
+    console.log('🌐 CUSTOM DOMAIN UPLOAD DEBUG:', {
+      projectId: req.params.id,
+      origin: req.headers.origin,
+      host: req.headers.host,
+      isCustomDomain: req.headers.origin?.includes('profieldmanager.com'),
+      userAgent: req.headers['user-agent']?.slice(0, 100),
+      timestamp: new Date().toISOString()
+    });
     console.log('User authenticated?', !!req.user);
     console.log('User details:', req.user ? { id: req.user.id, email: req.user.email, organizationId: req.user.organizationId } : 'NO USER');
     console.log('Has file?', !!req.file);
@@ -3779,10 +3786,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
           orgId: user.organizationId
         });
         
-        // CRITICAL: Block local storage fallback for custom domains to prevent broken images
+        // CRITICAL: Enhanced custom domain error handling and diagnostics
         if (req.headers.origin?.includes('profieldmanager.com')) {
-          console.error('🚨 CUSTOM DOMAIN CLOUDINARY FAILURE - RETRY WITH FALLBACK OPTIONS');
+          console.error('🚨 CUSTOM DOMAIN CLOUDINARY FAILURE - COMPREHENSIVE DEBUG');
           console.error('🚨 Cloudinary error details:', JSON.stringify(cloudinaryResult, null, 2));
+          console.error('🚨 User context:', JSON.stringify({
+            userId: user?.id,
+            organizationId: user?.organizationId,
+            email: user?.email,
+            isAuthenticated: !!user
+          }, null, 2));
+          console.error('🚨 Request context:', JSON.stringify({
+            origin: req.headers.origin,
+            host: req.headers.host,
+            userAgent: req.headers['user-agent']?.slice(0, 100),
+            contentLength: req.headers['content-length'],
+            contentType: req.headers['content-type']
+          }, null, 2));
           
           // Try uploading without transformations as fallback
           try {
