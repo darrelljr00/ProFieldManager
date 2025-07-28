@@ -51,7 +51,20 @@ export const buildApiUrl = (endpoint: string): string => {
   // Ensure endpoint starts with /
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
   
-  return `${baseUrl}${cleanEndpoint}`;
+  const finalUrl = `${baseUrl}${cleanEndpoint}`;
+  
+  // Enhanced debugging for custom domain uploads
+  if (window.location.hostname === 'profieldmanager.com') {
+    console.log('🌐 CUSTOM DOMAIN API ROUTING:', {
+      originalEndpoint: endpoint,
+      cleanEndpoint,
+      baseUrl,
+      finalUrl,
+      timestamp: new Date().toISOString()
+    });
+  }
+  
+  return finalUrl;
 };
 
 /**

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRoute } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
+import { buildApiUrl } from "@/lib/api-config";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -189,7 +190,11 @@ export default function ProjectDetail() {
           timestamp: new Date().toISOString()
         });
 
-        const response = await fetch(`/api/projects/${projectId}/files`, {
+        // Use buildApiUrl for proper custom domain routing
+        const uploadUrl = buildApiUrl(`/api/projects/${projectId}/files`);
+        console.log('🌐 UPLOAD URL RESOLVED:', uploadUrl);
+
+        const response = await fetch(uploadUrl, {
           method: 'POST',
           body: formData,
           credentials: 'include',
