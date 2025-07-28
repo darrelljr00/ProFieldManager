@@ -169,110 +169,23 @@ export default function ProjectDetail() {
       });
       
       try {
-        // CRITICAL: Custom domain authentication fix
-        const token = localStorage.getItem('auth_token');
-        const headers: HeadersInit = {};
-        
-        if (token) {
-          headers['Authorization'] = `Bearer ${token}`;
-          console.log('🔐 CUSTOM DOMAIN: Adding Authorization header for upload');
-        }
-        
-        console.log('🚨 CRITICAL UPLOAD DEBUG:', {
+        // CRITICAL: Use apiRequest for proper custom domain routing and authentication
+        console.log('🚨 CUSTOM DOMAIN UPLOAD ATTEMPT:', {
           projectId,
           domain: window.location.hostname,
           isCustomDomain: window.location.hostname === 'profieldmanager.com',
-          hasToken: !!token,
-          tokenLength: token?.length || 0,
-          authHeader: token ? 'PRESENT' : 'MISSING',
+          hasToken: !!localStorage.getItem('auth_token'),
+          tokenLength: localStorage.getItem('auth_token')?.length || 0,
           fileName: file?.name,
           fileSize: file?.size,
           timestamp: new Date().toISOString()
         });
 
-        // Use buildApiUrl for proper custom domain routing
-        const uploadUrl = buildApiUrl(`/api/projects/${projectId}/files`);
-        console.log('🌐 UPLOAD URL RESOLVED:', uploadUrl);
-
-        const response = await fetch(uploadUrl, {
-          method: 'POST',
-          body: formData,
-          credentials: 'include',
-          headers,
-        });
+        // Use apiRequest instead of direct fetch for proper routing
+        const response = await apiRequest('POST', `/api/projects/${projectId}/files`, formData);
         
-        console.log('📡 Raw response received:', {
-          status: response.status,
-          statusText: response.statusText,
-          ok: response.ok,
-          url: response.url
-        });
-        
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('❌ CUSTOM DOMAIN: Upload failed with status:', response.status, errorText);
-          console.error('❌ Request details:', {
-            url: `/api/projects/${projectId}/files`,
-            method: 'POST',
-            hasAuth: !!token,
-            domain: window.location.hostname
-          });
-          
-          // Special handling for auth failures on custom domain
-          if (response.status === 401) {
-            console.error('🚨 AUTHENTICATION FAILURE - Token may be invalid');
-            throw new Error('Authentication failed. Please try logging in again.');
-          }
-          
-          throw new Error(`Upload failed: ${response.status} ${response.statusText} - ${errorText}`);
-        }
-        
-        const contentType = response.headers.get('content-type');
-        console.log('📋 Response content-type:', contentType);
-        
-        if (!contentType || !contentType.includes('application/json')) {
-          const responseText = await response.text();
-          console.error('❌ Non-JSON response received:', responseText);
-          throw new Error('Server returned non-JSON response');
-        }
-        
-        const result = await response.json();
-        console.log('✅ Upload successful with structured response:', {
-          id: result.id,
-          fileName: result.fileName || result.originalName,
-          fileSize: result.fileSize,
-          success: result.success,
-          isCloudStored: result.isCloudStored,
-          message: result.message
-        });
-        
-        // Validate that we have a successful response  
-        console.log('🔍 Response validation check:', {
-          hasSuccessField: 'success' in result,
-          successValue: result.success,
-          successType: typeof result.success,
-          hasId: 'id' in result,
-          hasFilePath: 'filePath' in result
-        });
-        
-        if (result.success === false) {
-          console.error('❌ CUSTOM DOMAIN: Server explicitly returned success: false');
-          console.error('❌ Server error details:', {
-            success: result.success,
-            message: result.message,
-            error: result.error,
-            cloudinaryError: result.cloudinaryError
-          });
-          throw new Error(result.message || result.error || 'Upload failed according to server response');
-        }
-        
-        // Additional validation - if we have an ID, it's likely successful
-        if (result.id || result.filePath) {
-          console.log('✅ Upload appears successful - has ID or filePath');
-          return result;
-        }
-        
-        return result;
+        console.log('✅ Upload successful via apiRequest:', response);
+        return response;
       } catch (error) {
         console.error('❌ Upload error:', error);
         if (error instanceof Error) {

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Custom Domain Upload Diagnostic</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test { margin: 10px 0; padding: 10px; border: 1px solid #ccc; }
+        .pass { background: #d4edda; border-color: #c3e6cb; }
+        .fail { background: #f8d7da; border-color: #f5c6cb; }
+        .info { background: #d1ecf1; border-color: #bee5eb; }
+        button { padding: 10px 20px; margin: 5px; }
+        #results { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Custom Domain Upload Diagnostic</h1>
+    <p>This tool helps diagnose custom domain upload issues for profieldmanager.com</p>
+    
+    <div class="test info">
+        <h3>Current Domain Detection</h3>
+        <p>Current domain: <span id="currentDomain"></span></p>
+        <p>Is custom domain: <span id="isCustomDomain"></span></p>
+    </div>
+    
+    <div class="test" id="tokenTest">
+        <h3>Authentication Token Check</h3>
+        <p>Token in localStorage: <span id="hasToken"></span></p>
+        <p>Token length: <span id="tokenLength"></span></p>
+        <button onclick="checkToken()">Refresh Token Check</button>
+    </div>
+    
+    <div class="test" id="routingTest">
+        <h3>API Routing Test</h3>
+        <p>Upload endpoint would resolve to: <span id="resolvedUrl"></span></p>
+        <button onclick="testRouting()">Test Routing</button>
+    </div>
+    
+    <div class="test" id="connectivityTest">
+        <h3>Backend Connectivity Test</h3>
+        <p>Can reach Replit backend: <span id="backendStatus">Not tested</span></p>
+        <button onclick="testBackend()">Test Backend Connection</button>
+    </div>
+    
+    <div class="test" id="uploadTest">
+        <h3>Upload Test</h3>
+        <input type="file" id="testFile" accept="*/*">
+        <button onclick="testUpload()">Test Upload</button>
+        <div id="uploadResults"></div>
+    </div>
+    
+    <div id="results"></div>
+
+    <script>
+        // Simulate buildApiUrl function
+        function buildApiUrl(endpoint) {
+            const isCustomDomain = window.location.hostname === 'profieldmanager.com';
+            if (isCustomDomain) {
+                return `https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev${endpoint}`;
+            }
+            return endpoint;
+        }
+        
+        function updateDomainInfo() {
+            document.getElementById('currentDomain').textContent = window.location.hostname;
+            document.getElementById('isCustomDomain').textContent = window.location.hostname === 'profieldmanager.com';
+        }
+        
+        function checkToken() {
+            const token = localStorage.getItem('auth_token');
+            document.getElementById('hasToken').textContent = token ? 'Yes' : 'No';
+            document.getElementById('tokenLength').textContent = token ? token.length : '0';
+            
+            const testDiv = document.getElementById('tokenTest');
+            testDiv.className = token ? 'test pass' : 'test fail';
+        }
+        
+        function testRouting() {
+            const endpoint = '/api/projects/38/files';
+            const resolved = buildApiUrl(endpoint);
+            document.getElementById('resolvedUrl').textContent = resolved;
+            
+            const testDiv = document.getElementById('routingTest');
+            testDiv.className = resolved.includes('riker.replit.dev') || resolved === endpoint ? 'test pass' : 'test fail';
+        }
+        
+        async function testBackend() {
+            try {
+                const token = localStorage.getItem('auth_token');
+                const response = await fetch('https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/auth/me', {
+                    headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+                });
+                
+                document.getElementById('backendStatus').textContent = response.ok ? 'Connected' : `Error ${response.status}`;
+                const testDiv = document.getElementById('connectivityTest');
+                testDiv.className = response.ok ? 'test pass' : 'test fail';
+            } catch (error) {
+                document.getElementById('backendStatus').textContent = 'Connection failed: ' + error.message;
+                document.getElementById('connectivityTest').className = 'test fail';
+            }
+        }
+        
+        async function testUpload() {
+            const fileInput = document.getElementById('testFile');
+            const file = fileInput.files[0];
+            const resultsDiv = document.getElementById('uploadResults');
+            
+            if (!file) {
+                resultsDiv.innerHTML = '<p style="color: red;">Please select a file first</p>';
+                return;
+            }
+            
+            try {
+                const token = localStorage.getItem('auth_token');
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('description', 'Diagnostic test upload');
+                
+                const uploadUrl = buildApiUrl('/api/projects/38/files');
+                
+                resultsDiv.innerHTML = '<p>Testing upload...</p>';
+                
+                const response = await fetch(uploadUrl, {
+                    method: 'POST',
+                    body: formData,
+                    headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+                });
+                
+                const result = await response.text();
+                
+                resultsDiv.innerHTML = `
+                    <p><strong>Status:</strong> ${response.status} ${response.statusText}</p>
+                    <p><strong>Response:</strong> ${result.substring(0, 500)}</p>
+                `;
+                
+                const testDiv = document.getElementById('uploadTest');
+                testDiv.className = response.ok ? 'test pass' : 'test fail';
+                
+            } catch (error) {
+                resultsDiv.innerHTML = `<p style="color: red;">Upload failed: ${error.message}</p>`;
+                document.getElementById('uploadTest').className = 'test fail';
+            }
+        }
+        
+        // Initialize
+        updateDomainInfo();
+        checkToken();
+        testRouting();
+    </script>
+</body>
+</html>
