@@ -1,0 +1,13 @@
+Upload Verification Test
+======================
+
+This file is being uploaded to test the custom domain upload fix.
+Timestamp: 2025-07-28 16:06:00
+Test ID: custom-domain-upload-fix-verification
+
+Expected behavior:
+- File should upload successfully to Cloudinary cloud storage
+- Should return success response with permanent cloud URL
+- Should be visible in project file list immediately
+
+Testing the enhanced API routing system that automatically detects custom domain access and routes requests to working Replit backend.
