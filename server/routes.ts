@@ -3573,6 +3573,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add comprehensive request logging middleware BEFORE all routes
+  app.use((req, res, next) => {
+    console.log(`🌍 ALL REQUESTS: ${req.method} ${req.url} from ${req.headers.origin || req.headers.host}`);
+    if (req.url.includes('/api/projects/') && req.url.includes('/files') && req.method === 'POST') {
+      console.log('🚨 FILE UPLOAD REQUEST DETECTED:', {
+        url: req.url,
+        method: req.method,
+        contentType: req.headers['content-type'],
+        contentLength: req.headers['content-length'],
+        origin: req.headers.origin,
+        host: req.headers.host,
+        userAgent: req.headers['user-agent']
+      });
+    }
+    next();
+  });
+
   // Add global error handler for multer errors
   app.use((error: any, req: any, res: any, next: any) => {
     console.error('🚨 GLOBAL ERROR HANDLER TRIGGERED:', {
@@ -3628,7 +3645,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     next();
   }, async (req, res) => {
-    console.log('🔄 CLOUDINARY FILE UPLOAD REQUEST RECEIVED');
+    console.log('🔄 CLOUDINARY FILE UPLOAD REQUEST RECEIVED - HANDLER REACHED');
+    console.log('🚨 CRITICAL DEBUG - CLOUDINARY CONFIG:', {
+      cloudName: process.env.CLOUDINARY_CLOUD_NAME ? 'SET' : 'MISSING',
+      apiKey: process.env.CLOUDINARY_API_KEY ? 'SET' : 'MISSING', 
+      apiSecret: process.env.CLOUDINARY_API_SECRET ? 'SET' : 'MISSING'
+    });
     console.log('🌐 CUSTOM DOMAIN UPLOAD DEBUG:', {
       projectId: req.params.id,
       origin: req.headers.origin,
