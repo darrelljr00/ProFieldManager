@@ -3680,6 +3680,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`🔧 File size check: ${req.file.size} bytes (${(req.file.size / 1024 / 1024).toFixed(2)}MB), threshold: ${8 * 1024 * 1024} bytes (8MB)`);
       console.log(`🔧 MIME type: ${req.file.mimetype}, is image: ${req.file.mimetype.startsWith('image/')}`);
       
+      // TEMPORARILY DISABLE COMPRESSION TO PREVENT 500 ERRORS
+      // Note: The compressImage function is causing 500 Internal Server Errors
+      // Skip compression for now and use original file to ensure uploads work
+      console.log('🚫 COMPRESSION TEMPORARILY DISABLED - Using original file to prevent 500 errors');
+      
+      /*
       // Compress if file is over 8MB to ensure Cloudinary compatibility (10MB limit)
       if (req.file.mimetype.startsWith('image/') && req.file.size > 8 * 1024 * 1024) {
         console.log('🔄 Pre-compressing large image before Cloudinary upload...');
@@ -3722,6 +3728,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.warn('⚠️ Pre-compression failed, using original:', compressionError);
         }
       }
+      */
 
       // Determine file type based on MIME type
       let fileType = 'other';
