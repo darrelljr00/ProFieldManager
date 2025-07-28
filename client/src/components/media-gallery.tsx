@@ -154,10 +154,27 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
         }))
       });
       
+      // CRITICAL: Custom domain authentication fix for MediaGallery
+      const token = localStorage.getItem('auth_token');
+      const headers: HeadersInit = {};
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+        console.log('🔐 MEDIA GALLERY: Adding Authorization header for upload');
+      }
+      
+      console.log('🚨 MEDIA GALLERY UPLOAD DEBUG:', {
+        projectId,
+        domain: window.location.hostname,
+        hasToken: !!token,
+        tokenLength: token?.length || 0
+      });
+
       const response = await fetch(`/api/projects/${projectId}/files`, {
         method: "POST",
         body: formData,
         credentials: "include",
+        headers,
       });
       
       console.log('📥 Upload response:', {

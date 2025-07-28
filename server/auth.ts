@@ -100,30 +100,46 @@ export class AuthService {
   }
 }
 
-// Authentication middleware
+// Authentication middleware - CUSTOM DOMAIN CRITICAL DEBUG
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
   const token = authHeader?.replace('Bearer ', '') || req.cookies?.auth_token;
 
-  // Enhanced debug logging for custom domain authentication issues
-  console.log('🔐 Auth Debug (Enhanced):', {
+  // CRITICAL: Comprehensive debug logging for custom domain authentication issues
+  console.log('🚨 CRITICAL AUTH DEBUG - CUSTOM DOMAIN:', {
+    url: req.url,
+    method: req.method,
     origin: req.headers.origin,
     host: req.headers.host,
-    authHeader: authHeader ? authHeader.substring(0, 20) + '...' : 'MISSING',
-    cookies: req.cookies,
-    hasAuthToken: !!token,
+    isCustomDomain: req.headers.origin === 'https://profieldmanager.com',
+    authHeader: authHeader ? 'PRESENT (' + authHeader.length + ' chars)' : 'MISSING',
+    authHeaderRaw: authHeader ? authHeader.substring(0, 50) + '...' : 'NONE',
+    cookies: Object.keys(req.cookies || {}),
+    cookieAuth: req.cookies?.auth_token ? 'PRESENT (' + req.cookies.auth_token.length + ' chars)' : 'MISSING',
+    hasAnyToken: !!token,
     tokenLength: token?.length || 0,
-    tokenPreview: token ? token.substring(0, 10) + '...' : 'NONE',
-    authMethod: authHeader ? 'Bearer Token' : (req.cookies?.auth_token ? 'Cookie' : 'None'),
-    userAgent: req.headers['user-agent']?.slice(0, 50) + '...'
+    tokenSource: authHeader ? 'Authorization Header' : (req.cookies?.auth_token ? 'Cookie' : 'NONE'),
+    userAgent: req.headers['user-agent']?.slice(0, 100),
+    contentType: req.headers['content-type'],
+    allHeaders: Object.keys(req.headers)
   });
 
   if (!token) {
-    console.log('❌ No auth token found in request');
-    console.log('❌ Request headers:', JSON.stringify({
+    console.log('🚨 CRITICAL: No auth token found in request');
+    console.log('🚨 CUSTOM DOMAIN AUTH FAILURE - Full request context:', JSON.stringify({
+      url: req.url,
+      method: req.method,
+      origin: req.headers.origin,
+      host: req.headers.host,
       authorization: req.headers.authorization,
-      cookie: req.headers.cookie
+      cookie: req.headers.cookie,
+      referer: req.headers.referer,
+      userAgent: req.headers['user-agent']?.slice(0, 100),
+      contentType: req.headers['content-type'],
+      contentLength: req.headers['content-length'],
+      isCustomDomain: req.headers.origin === 'https://profieldmanager.com'
     }, null, 2));
+    console.log('🚨 All available cookie keys:', Object.keys(req.cookies || {}));
     return res.status(401).json({ message: "Authentication required" });
   }
 

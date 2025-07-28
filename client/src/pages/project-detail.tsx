@@ -168,10 +168,28 @@ export default function ProjectDetail() {
       });
       
       try {
+        // CRITICAL: Custom domain authentication fix
+        const token = localStorage.getItem('auth_token');
+        const headers: HeadersInit = {};
+        
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+          console.log('🔐 CUSTOM DOMAIN: Adding Authorization header for upload');
+        }
+        
+        console.log('🚨 CRITICAL UPLOAD DEBUG:', {
+          projectId,
+          domain: window.location.hostname,
+          hasToken: !!token,
+          tokenLength: token?.length || 0,
+          authHeader: token ? 'PRESENT' : 'MISSING'
+        });
+
         const response = await fetch(`/api/projects/${projectId}/files`, {
           method: 'POST',
           body: formData,
           credentials: 'include',
+          headers,
         });
         
         console.log('📡 Raw response received:', {

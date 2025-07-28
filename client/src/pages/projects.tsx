@@ -661,7 +661,30 @@ export default function Jobs() {
 
       try {
         console.log('🚀 About to make API request for file:', file.name);
-        const response = await apiRequest('POST', `/api/projects/${selectedProject.id}/files`, formData);
+        
+        // CRITICAL: Direct fetch with Authorization header for custom domain
+        const token = localStorage.getItem('auth_token');
+        const headers: HeadersInit = {};
+        
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+          console.log('🔐 PROJECTS PAGE: Adding Authorization header for upload');
+        }
+        
+        console.log('🚨 PROJECTS UPLOAD DEBUG:', {
+          projectId: selectedProject.id,
+          domain: window.location.hostname,
+          hasToken: !!token,
+          fileName: file.name
+        });
+
+        const response = await fetch(`/api/projects/${selectedProject.id}/files`, {
+          method: 'POST',
+          body: formData,
+          credentials: 'include',
+          headers,
+        });
+        
         console.log('✅ File upload successful:', file.name);
         console.log('✅ Response details:', response.status, response.statusText);
         
