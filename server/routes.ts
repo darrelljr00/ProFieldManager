@@ -3169,6 +3169,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get deleted projects - MUST be before /api/projects/:id route
+  app.get("/api/projects/deleted", requireAuth, async (req, res) => {
+    console.log("🚀 ROUTE: Deleted projects route called");
+    try {
+      const user = req.user!;
+      console.log("🔍 ROUTE: Fetching deleted projects for user:", user.id, "org:", user.organizationId, "role:", user.role);
+      const projects = await storage.getDeletedProjects(user.organizationId, user.role === 'admin' ? undefined : user.id);
+      console.log("✅ ROUTE: Found deleted projects:", projects.length);
+      res.json(projects);
+    } catch (error: any) {
+      console.error("❌ ROUTE ERROR:", error);
+      console.error("❌ ROUTE ERROR stack:", error.stack);
+      res.status(500).json({ message: "Failed to fetch deleted projects", error: error.message });
+    }
+  });
+
   app.get("/api/projects/:id", requireAuth, async (req, res) => {
     try {
       const projectId = parseInt(req.params.id);
@@ -3311,21 +3327,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get deleted projects
-  app.get("/api/projects/deleted", requireAuth, async (req, res) => {
-    console.log("🚀 ROUTE: Deleted projects route called");
-    try {
-      const user = req.user!;
-      console.log("🔍 ROUTE: Fetching deleted projects for user:", user.id, "org:", user.organizationId, "role:", user.role);
-      const projects = await storage.getDeletedProjects(user.organizationId, user.role === 'admin' ? undefined : user.id);
-      console.log("✅ ROUTE: Found deleted projects:", projects.length);
-      res.json(projects);
-    } catch (error: any) {
-      console.error("❌ ROUTE ERROR:", error);
-      console.error("❌ ROUTE ERROR stack:", error.stack);
-      res.status(500).json({ message: "Failed to fetch deleted projects", error: error.message });
-    }
-  });
+
 
   // Get cancelled projects
   app.get("/api/projects/cancelled", requireAuth, async (req, res) => {
