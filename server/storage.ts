@@ -1259,90 +1259,41 @@ export class DatabaseStorage implements IStorage {
 
   async getDeletedProjects(organizationId: number, userId?: number): Promise<any[]> {
     try {
-      console.log(`Fetching deleted projects for org ${organizationId}, user ${userId}`);
+      console.log(`🔍 STORAGE: Fetching deleted projects for org ${organizationId}, user ${userId}`);
       
-      if (userId) {
-        const result = await db.execute(
-          sql`SELECT 
-            p.id,
-            p.user_id as "userId",
-            p.name,
-            p.description,
-            p.status,
-            p.priority,
-            p.start_date as "startDate",
-            p.end_date as "endDate",
-            p.deadline,
-            p.progress,
-            p.budget,
-            p.customer_id as "customerId",
-            p.contact_name as "contactName",
-            p.contact_email as "contactEmail",
-            p.contact_phone as "contactPhone",
-            p.contact_company as "contactCompany",
-            p.address,
-            p.city,
-            p.state,
-            p.zip_code as "zipCode",
-            p.country,
-            p.created_at as "createdAt",
-            p.updated_at as "updatedAt",
-            u.first_name || ' ' || u.last_name as "creatorName",
-            u.email as "creatorEmail",
-            COALESCE(COUNT(t.id), 0) as "taskCount",
-            COALESCE(COUNT(CASE WHEN t.is_completed = true THEN 1 END), 0) as "completedTasks"
-          FROM projects p
-          INNER JOIN users u ON p.user_id = u.id
-          LEFT JOIN tasks t ON p.id = t.project_id
-          WHERE p.status = 'deleted' AND u.organization_id = ${organizationId} AND p.user_id = ${userId}
-          GROUP BY p.id, u.id, u.first_name, u.last_name, u.email
-          ORDER BY p.updated_at DESC`
-        );
-        console.log(`Found ${result.rows.length} deleted projects for specific user`);
-        return result.rows as any[];
-      } else {
-        const result = await db.execute(
-          sql`SELECT 
-            p.id,
-            p.user_id as "userId",
-            p.name,
-            p.description,
-            p.status,
-            p.priority,
-            p.start_date as "startDate",
-            p.end_date as "endDate",
-            p.deadline,
-            p.progress,
-            p.budget,
-            p.customer_id as "customerId",
-            p.contact_name as "contactName",
-            p.contact_email as "contactEmail",
-            p.contact_phone as "contactPhone",
-            p.contact_company as "contactCompany",
-            p.address,
-            p.city,
-            p.state,
-            p.zip_code as "zipCode",
-            p.country,
-            p.created_at as "createdAt",
-            p.updated_at as "updatedAt",
-            u.first_name || ' ' || u.last_name as "creatorName",
-            u.email as "creatorEmail",
-            COALESCE(COUNT(t.id), 0) as "taskCount",
-            COALESCE(COUNT(CASE WHEN t.is_completed = true THEN 1 END), 0) as "completedTasks"
-          FROM projects p
-          INNER JOIN users u ON p.user_id = u.id
-          LEFT JOIN tasks t ON p.id = t.project_id
-          WHERE p.status = 'deleted' AND u.organization_id = ${organizationId}
-          GROUP BY p.id, u.id, u.first_name, u.last_name, u.email
-          ORDER BY p.updated_at DESC`
-        );
-        console.log(`Found ${result.rows.length} deleted projects for all users`);
-        return result.rows as any[];
-      }
+      // Use a much simpler query first to test
+      const result = await db.select({
+        id: projects.id,
+        userId: projects.userId,
+        name: projects.name,
+        description: projects.description,
+        status: projects.status,
+        priority: projects.priority,
+        startDate: projects.startDate,
+        endDate: projects.endDate,
+        address: projects.address,
+        city: projects.city,
+        state: projects.state,
+        zipCode: projects.zipCode,
+        createdAt: projects.createdAt,
+        updatedAt: projects.updatedAt
+      })
+      .from(projects)
+      .innerJoin(users, eq(projects.userId, users.id))
+      .where(
+        and(
+          eq(projects.status, 'deleted'),
+          eq(users.organizationId, organizationId),
+          userId ? eq(projects.userId, userId) : undefined
+        )
+      )
+      .orderBy(desc(projects.updatedAt));
+
+      console.log(`✅ STORAGE: Found ${result.length} deleted projects`);
+      return result;
     } catch (error) {
-      console.error('Error fetching deleted projects:', error);
-      throw error; // Re-throw to see the actual error
+      console.error('❌ STORAGE ERROR:', error);
+      throw error;
     }
   }
 
