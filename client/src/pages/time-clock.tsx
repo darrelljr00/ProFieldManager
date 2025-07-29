@@ -1221,6 +1221,24 @@ export default function TimeClock() {
                               <Badge variant="outline">
                                 {trigger.triggerType.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                               </Badge>
+                              {trigger.assignToMode === 'specific_user' && trigger.assignedUserName && (
+                                <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+                                  <User className="h-3 w-3 mr-1" />
+                                  {trigger.assignedUserName} {trigger.assignedUserLastName || ''}
+                                </Badge>
+                              )}
+                              {trigger.assignToMode === 'all_users' && (
+                                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                                  <Users className="h-3 w-3 mr-1" />
+                                  All Users
+                                </Badge>
+                              )}
+                              {trigger.assignToMode === 'trigger_user' && (
+                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                  <User className="h-3 w-3 mr-1" />
+                                  Trigger User
+                                </Badge>
+                              )}
                               {trigger.hasFlashingAlert && (
                                 <Badge variant="outline" className="text-amber-600">
                                   <Zap className="h-3 w-3 mr-1" />
