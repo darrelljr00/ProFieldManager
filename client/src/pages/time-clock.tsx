@@ -1296,7 +1296,7 @@ export default function TimeClock() {
                           </div>
                         </div>
 
-                        {trigger.assignToMode !== 'trigger_user' && (
+                        {trigger.assignToMode && trigger.assignToMode !== 'trigger_user' && (
                           <div className="text-sm">
                             <span className="font-medium">Assigned to:</span>
                             <span className="ml-1">
