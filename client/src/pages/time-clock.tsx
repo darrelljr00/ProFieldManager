@@ -469,6 +469,21 @@ export default function TimeClock() {
     const start = new Date(startTime);
     const end = endTime ? new Date(endTime) : new Date();
     const duration = end.getTime() - start.getTime();
+    
+    // Debug logging
+    console.log('Duration Debug:', {
+      startTime,
+      startParsed: start.toISOString(),
+      endParsed: end.toISOString(),
+      durationMs: duration,
+      startValid: !isNaN(start.getTime()),
+      endValid: !isNaN(end.getTime())
+    });
+    
+    if (duration < 0 || isNaN(duration)) {
+      return "0h 0m";
+    }
+    
     const hours = Math.floor(duration / (1000 * 60 * 60));
     const minutes = Math.floor((duration % (1000 * 60 * 60)) / (1000 * 60));
     return `${hours}h ${minutes}m`;

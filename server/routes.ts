@@ -13617,11 +13617,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = getAuthenticatedUser(req);
       const { startDate, endDate } = req.query;
       
+      // Convert string dates to Date objects if provided
+      const startDateObj = startDate ? new Date(startDate as string) : undefined;
+      const endDateObj = endDate ? new Date(endDate as string) : undefined;
+      
       const entries = await storage.getTimeClockEntries(
-        user.organizationId,
         user.id,
-        startDate as string,
-        endDate as string
+        startDateObj,
+        endDateObj
       );
       
       res.json(entries);
@@ -13637,11 +13640,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = getAuthenticatedUser(req);
       const { startDate, endDate, userId } = req.query;
       
-      const entries = await storage.getTimeClockEntries(
+      // Convert string dates to Date objects if provided
+      const startDateObj = startDate ? new Date(startDate as string) : undefined;
+      const endDateObj = endDate ? new Date(endDate as string) : undefined;
+      
+      const entries = await storage.getTimeClockEntriesForOrganization(
         user.organizationId,
-        userId ? parseInt(userId as string) : undefined,
-        startDate as string,
-        endDate as string
+        startDateObj,
+        endDateObj
       );
       
       res.json(entries);
