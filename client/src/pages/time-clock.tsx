@@ -475,20 +475,47 @@ export default function TimeClock() {
       description: '',
       triggerType: 'clock_in',
       isActive: true,
+      
+      // Visual alerts
       hasFlashingAlert: false,
       flashColor: '#f59e0b',
       flashDuration: 5,
+      
+      // Sound alerts
       hasSoundAlert: false,
       soundType: 'chime',
       soundVolume: 80,
+      
+      // Display settings
       displayDuration: 10,
-      autoHide: true,
+      autoHide: false,
+      
+      // Text fields and content
       title: '',
       message: '',
       buttonText: 'Mark Complete',
+      
+      // Clock-out prevention
       preventClockOut: false,
       completionRequired: false,
-      delayMinutes: 0
+      
+      // Text input fields
+      hasTextField: false,
+      textFieldLabel: '',
+      textFieldRequired: false,
+      hasNumberField: false,
+      numberFieldLabel: '',
+      numberFieldRequired: false,
+      
+      // Assignment and timing
+      assignToUserId: undefined,
+      delayMinutes: 0,
+      maxTriggers: undefined,
+      
+      // Days of week and time constraints
+      allowedDays: [],
+      timeWindowStart: undefined,
+      timeWindowEnd: undefined
     });
   };
 
@@ -505,20 +532,47 @@ export default function TimeClock() {
       description: trigger.description || '',
       triggerType: trigger.triggerType,
       isActive: trigger.isActive,
+      
+      // Visual alerts
       hasFlashingAlert: trigger.hasFlashingAlert,
       flashColor: trigger.flashColor,
       flashDuration: trigger.flashDuration,
+      
+      // Sound alerts
       hasSoundAlert: trigger.hasSoundAlert,
       soundType: trigger.soundType,
       soundVolume: trigger.soundVolume,
+      
+      // Display settings
       displayDuration: trigger.displayDuration,
       autoHide: trigger.autoHide,
+      
+      // Text fields and content
       title: trigger.title,
       message: trigger.message,
       buttonText: trigger.buttonText,
+      
+      // Clock-out prevention
       preventClockOut: trigger.preventClockOut,
       completionRequired: trigger.completionRequired,
-      delayMinutes: trigger.delayMinutes
+      
+      // Text input fields
+      hasTextField: trigger.hasTextField || false,
+      textFieldLabel: trigger.textFieldLabel || '',
+      textFieldRequired: trigger.textFieldRequired || false,
+      hasNumberField: trigger.hasNumberField || false,
+      numberFieldLabel: trigger.numberFieldLabel || '',
+      numberFieldRequired: trigger.numberFieldRequired || false,
+      
+      // Assignment and timing
+      assignToUserId: trigger.assignToUserId,
+      delayMinutes: trigger.delayMinutes,
+      maxTriggers: trigger.maxTriggers,
+      
+      // Days of week and time constraints
+      allowedDays: trigger.allowedDays || [],
+      timeWindowStart: trigger.timeWindowStart,
+      timeWindowEnd: trigger.timeWindowEnd
     });
     setShowTriggerDialog(true);
   };
