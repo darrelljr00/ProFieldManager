@@ -1221,22 +1221,28 @@ export default function TimeClock() {
                               <Badge variant="outline">
                                 {trigger.triggerType.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                               </Badge>
-                              {trigger.assignToMode === 'specific_user' && trigger.assignedUserName && (
+                              {trigger.assignedToUserId && trigger.assignedUserName && (
                                 <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
                                   <User className="h-3 w-3 mr-1" />
                                   {trigger.assignedUserName} {trigger.assignedUserLastName || ''}
                                 </Badge>
                               )}
-                              {trigger.assignToMode === 'all_users' && (
+                              {trigger.assignedToRole === 'all_users' && (
                                 <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
                                   <Users className="h-3 w-3 mr-1" />
                                   All Users
                                 </Badge>
                               )}
-                              {trigger.assignToMode === 'trigger_user' && (
+                              {!trigger.assignedToUserId && !trigger.assignedToRole && (
                                 <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
                                   <User className="h-3 w-3 mr-1" />
                                   Trigger User
+                                </Badge>
+                              )}
+                              {trigger.assignedToRole && trigger.assignedToRole !== 'all_users' && (
+                                <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
+                                  <User className="h-3 w-3 mr-1" />
+                                  {trigger.assignedToRole.charAt(0).toUpperCase() + trigger.assignedToRole.slice(1)}
                                 </Badge>
                               )}
                               {trigger.hasFlashingAlert && (
@@ -1314,13 +1320,15 @@ export default function TimeClock() {
                           </div>
                         </div>
 
-                        {trigger.assignToMode && trigger.assignToMode !== 'trigger_user' && (
+                        {(trigger.assignedToUserId || trigger.assignedToRole) && (
                           <div className="text-sm">
                             <span className="font-medium">Assigned to:</span>
                             <span className="ml-1">
-                              {trigger.assignToMode === 'specific_user' && trigger.assignedUserName
-                                ? `${trigger.assignedUserName} ${trigger.assignedUserLastName}`
-                                : trigger.assignToMode.replace('_', ' ')}
+                              {trigger.assignedToUserId && trigger.assignedUserName
+                                ? `${trigger.assignedUserName} ${trigger.assignedUserLastName || ''}`
+                                : trigger.assignedToRole
+                                ? trigger.assignedToRole.replace('_', ' ').charAt(0).toUpperCase() + trigger.assignedToRole.replace('_', ' ').slice(1)
+                                : 'Trigger User'}
                             </span>
                           </div>
                         )}

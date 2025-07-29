@@ -4113,8 +4113,13 @@ export class DatabaseStorage implements IStorage {
           createdBy: taskTriggers.createdBy,
           createdAt: taskTriggers.createdAt,
           updatedAt: taskTriggers.updatedAt,
+          // Include assigned user details
+          assignedUserName: users.firstName,
+          assignedUserLastName: users.lastName,
+          assignedUserEmail: users.email,
         })
         .from(taskTriggers)
+        .leftJoin(users, eq(taskTriggers.assignedToUserId, users.id))
         .where(eq(taskTriggers.organizationId, organizationId))
         .orderBy(taskTriggers.createdAt);
       return triggers;
