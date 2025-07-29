@@ -35,7 +35,10 @@ import {
   Trash2,
   CheckCircle,
   AlertCircle,
-  PlayCircle
+  PlayCircle,
+  Zap,
+  Volume2,
+  FileText
 } from "lucide-react";
 
 interface TimeClockEntry {
@@ -71,35 +74,58 @@ interface LocationData {
   address?: string;
 }
 
-interface TimeClockTaskTrigger {
+interface TaskTrigger {
   id: number;
   organizationId: number;
-  userId?: number;
-  triggerEvent: 'clock_in' | 'clock_out' | 'break_start' | 'break_end';
+  name: string;
+  description?: string;
+  triggerType: 'clock_in' | 'clock_out' | 'break_start' | 'break_end' | 'manual';
   isActive: boolean;
-  taskTitle: string;
-  taskDescription: string;
-  taskType: string;
-  isRequired: boolean;
-  priority: 'low' | 'medium' | 'high';
-  assignToMode: 'trigger_user' | 'specific_user' | 'manager' | 'admin';
+  
+  // Alert settings
+  hasFlashingAlert: boolean;
+  flashColor: string;
+  flashDuration: number;
+  
+  // Sound settings
+  hasSoundAlert: boolean;
+  soundType: string;
+  soundVolume: number;
+  
+  // Duration and timing
+  displayDuration: number;
+  autoHide: boolean;
+  
+  // Text fields and content
+  title: string;
+  message: string;
+  buttonText: string;
+  
+  // Clock-out prevention
+  preventClockOut: boolean;
+  completionRequired: boolean;
+  
+  // Text input fields
+  hasTextField: boolean;
+  textFieldLabel?: string;
+  textFieldRequired: boolean;
+  hasNumberField: boolean;
+  numberFieldLabel?: string;
+  numberFieldRequired: boolean;
+  
+  // Assignment and timing
   assignToUserId?: number;
-  projectId?: number;
-  createProjectIfNone: boolean;
-  projectTemplate?: string;
   delayMinutes: number;
-  daysOfWeek: string[];
-  timeRange?: { start: string; end: string };
-  frequency: 'every_time' | 'once_per_day' | 'once_per_week';
-  lastTriggered?: string;
-  triggerCount: number;
+  maxTriggers?: number;
+  
+  // Days of week and time constraints
+  allowedDays: string[];
+  timeWindowStart?: string;
+  timeWindowEnd?: string;
+  
+  // Created info
   createdBy: number;
   createdAt: string;
-  creatorName?: string;
-  creatorLastName?: string;
-  assignedUserName?: string;
-  assignedUserLastName?: string;
-  projectName?: string;
 }
 
 export default function TimeClock() {
@@ -113,29 +139,59 @@ export default function TimeClock() {
   const [showLocationMap, setShowLocationMap] = useState(false);
   const [selectedEntryLocations, setSelectedEntryLocations] = useState<LocationData[]>([]);
   const [showTriggerDialog, setShowTriggerDialog] = useState(false);
-  const [editingTrigger, setEditingTrigger] = useState<TimeClockTaskTrigger | null>(null);
+  const [editingTrigger, setEditingTrigger] = useState<TaskTrigger | null>(null);
   const [triggerForm, setTriggerForm] = useState({
-    triggerEvent: 'clock_in' as const,
+    name: '',
+    description: '',
+    triggerType: 'clock_in' as const,
     isActive: true,
-    taskTitle: '',
-    taskDescription: '',
-    taskType: 'general',
-    isRequired: false,
-    priority: 'medium' as const,
-    assignToMode: 'trigger_user' as const,
+    
+    // Alert settings
+    hasFlashingAlert: true,
+    flashColor: '#f59e0b',
+    flashDuration: 5,
+    
+    // Sound settings
+    hasSoundAlert: true,
+    soundType: 'notification',
+    soundVolume: 80,
+    
+    // Duration and timing
+    displayDuration: 10,
+    autoHide: false,
+    
+    // Text fields and content
+    title: '',
+    message: '',
+    buttonText: 'Mark Complete',
+    
+    // Clock-out prevention
+    preventClockOut: false,
+    completionRequired: false,
+    
+    // Text input fields
+    hasTextField: false,
+    textFieldLabel: '',
+    textFieldRequired: false,
+    hasNumberField: false,
+    numberFieldLabel: '',
+    numberFieldRequired: false,
+    
+    // Assignment and timing
     assignToUserId: undefined as number | undefined,
-    projectId: undefined as number | undefined,
-    createProjectIfNone: false,
-    projectTemplate: '',
     delayMinutes: 0,
-    daysOfWeek: [] as string[],
-    timeRange: undefined as { start: string; end: string } | undefined,
-    frequency: 'every_time' as const
+    maxTriggers: undefined as number | undefined,
+    
+    // Days of week and time constraints
+    allowedDays: [] as string[],
+    timeWindowStart: '',
+    timeWindowEnd: ''
   });
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const isManager = user?.role === 'admin' || user?.role === 'manager';
+  const isAdmin = user?.role === 'admin';
 
   // Update current time every second
   useEffect(() => {
@@ -326,7 +382,7 @@ export default function TimeClock() {
 
   // Task triggers queries and mutations
   const { data: triggers = [], isLoading: triggersLoading, refetch: refetchTriggers } = useQuery({
-    queryKey: ["/api/timeclock/triggers"],
+    queryKey: ["/api/task-triggers"],
     enabled: isManager || isAdmin,
   });
 
@@ -336,9 +392,9 @@ export default function TimeClock() {
   });
 
   const createTriggerMutation = useMutation({
-    mutationFn: (data: any) => apiRequest("POST", "/api/timeclock/triggers", data),
+    mutationFn: (data: any) => apiRequest("POST", "/api/task-triggers", data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/timeclock/triggers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/task-triggers"] });
       setShowTriggerDialog(false);
       resetTriggerForm();
       toast({
@@ -357,9 +413,9 @@ export default function TimeClock() {
 
   const updateTriggerMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: any }) => 
-      apiRequest("PUT", `/api/timeclock/triggers/${id}`, data),
+      apiRequest("PUT", `/api/task-triggers/${id}`, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/timeclock/triggers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/task-triggers"] });
       setShowTriggerDialog(false);
       setEditingTrigger(null);
       resetTriggerForm();
@@ -378,9 +434,9 @@ export default function TimeClock() {
   });
 
   const deleteTriggerMutation = useMutation({
-    mutationFn: (id: number) => apiRequest("DELETE", `/api/timeclock/triggers/${id}`),
+    mutationFn: (id: number) => apiRequest("DELETE", `/api/task-triggers/${id}`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/timeclock/triggers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/task-triggers"] });
       toast({
         title: "Trigger Deleted",
         description: "Task trigger has been deleted successfully",
@@ -415,22 +471,24 @@ export default function TimeClock() {
 
   const resetTriggerForm = () => {
     setTriggerForm({
-      triggerEvent: 'clock_in',
+      name: '',
+      description: '',
+      triggerType: 'clock_in',
       isActive: true,
-      taskTitle: '',
-      taskDescription: '',
-      taskType: 'general',
-      isRequired: false,
-      priority: 'medium',
-      assignToMode: 'trigger_user',
-      assignToUserId: undefined,
-      projectId: undefined,
-      createProjectIfNone: false,
-      projectTemplate: '',
-      delayMinutes: 0,
-      daysOfWeek: [],
-      timeRange: undefined,
-      frequency: 'every_time'
+      hasFlashingAlert: false,
+      flashColor: '#f59e0b',
+      flashDuration: 5,
+      hasSoundAlert: false,
+      soundType: 'chime',
+      soundVolume: 80,
+      displayDuration: 10,
+      autoHide: true,
+      title: '',
+      message: '',
+      buttonText: 'Mark Complete',
+      preventClockOut: false,
+      completionRequired: false,
+      delayMinutes: 0
     });
   };
 
@@ -440,25 +498,27 @@ export default function TimeClock() {
     setShowTriggerDialog(true);
   };
 
-  const handleEditTrigger = (trigger: TimeClockTaskTrigger) => {
+  const handleEditTrigger = (trigger: TaskTrigger) => {
     setEditingTrigger(trigger);
     setTriggerForm({
-      triggerEvent: trigger.triggerEvent,
+      name: trigger.name,
+      description: trigger.description || '',
+      triggerType: trigger.triggerType,
       isActive: trigger.isActive,
-      taskTitle: trigger.taskTitle,
-      taskDescription: trigger.taskDescription,
-      taskType: trigger.taskType,
-      isRequired: trigger.isRequired,
-      priority: trigger.priority,
-      assignToMode: trigger.assignToMode,
-      assignToUserId: trigger.assignToUserId,
-      projectId: trigger.projectId,
-      createProjectIfNone: trigger.createProjectIfNone,
-      projectTemplate: trigger.projectTemplate || '',
-      delayMinutes: trigger.delayMinutes,
-      daysOfWeek: trigger.daysOfWeek,
-      timeRange: trigger.timeRange,
-      frequency: trigger.frequency
+      hasFlashingAlert: trigger.hasFlashingAlert,
+      flashColor: trigger.flashColor,
+      flashDuration: trigger.flashDuration,
+      hasSoundAlert: trigger.hasSoundAlert,
+      soundType: trigger.soundType,
+      soundVolume: trigger.soundVolume,
+      displayDuration: trigger.displayDuration,
+      autoHide: trigger.autoHide,
+      title: trigger.title,
+      message: trigger.message,
+      buttonText: trigger.buttonText,
+      preventClockOut: trigger.preventClockOut,
+      completionRequired: trigger.completionRequired,
+      delayMinutes: trigger.delayMinutes
     });
     setShowTriggerDialog(true);
   };
@@ -1092,7 +1152,7 @@ export default function TimeClock() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {triggers.map((trigger: TimeClockTaskTrigger) => (
+                    {triggers.map((trigger: TaskTrigger) => (
                       <div
                         key={trigger.id}
                         className="border rounded-lg p-4 space-y-3"
@@ -1100,16 +1160,34 @@ export default function TimeClock() {
                         <div className="flex items-start justify-between">
                           <div className="space-y-1">
                             <div className="flex items-center gap-2">
-                              <h3 className="font-medium">{trigger.taskTitle}</h3>
+                              <h3 className="font-medium">{trigger.name}</h3>
                               <Badge variant={trigger.isActive ? "default" : "secondary"}>
                                 {trigger.isActive ? "Active" : "Inactive"}
                               </Badge>
                               <Badge variant="outline">
-                                {trigger.triggerEvent.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                {trigger.triggerType.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                               </Badge>
+                              {trigger.hasFlashingAlert && (
+                                <Badge variant="outline" className="text-amber-600">
+                                  <Zap className="h-3 w-3 mr-1" />
+                                  Flash
+                                </Badge>
+                              )}
+                              {trigger.hasSoundAlert && (
+                                <Badge variant="outline" className="text-blue-600">
+                                  <Volume2 className="h-3 w-3 mr-1" />
+                                  Sound
+                                </Badge>
+                              )}
+                              {trigger.preventClockOut && (
+                                <Badge variant="outline" className="text-red-600">
+                                  <Clock className="h-3 w-3 mr-1" />
+                                  Blocks Clock-out
+                                </Badge>
+                              )}
                             </div>
                             <p className="text-sm text-muted-foreground">
-                              {trigger.taskDescription}
+                              {trigger.description || trigger.message}
                             </p>
                           </div>
                           <div className="flex items-center gap-2">
@@ -1141,18 +1219,22 @@ export default function TimeClock() {
 
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                           <div>
-                            <span className="font-medium">Priority:</span>
-                            <Badge variant="outline" className="ml-1">
-                              {trigger.priority}
-                            </Badge>
+                            <span className="font-medium">Alert Duration:</span>
+                            <span className="ml-1">{trigger.displayDuration}s</span>
                           </div>
                           <div>
-                            <span className="font-medium">Type:</span>
-                            <span className="ml-1">{trigger.taskType}</span>
+                            <span className="font-medium">Flash Color:</span>
+                            <div className="flex items-center gap-1 ml-1">
+                              <div 
+                                className="w-3 h-3 rounded-full border" 
+                                style={{ backgroundColor: trigger.flashColor }}
+                              />
+                              <span>{trigger.flashColor}</span>
+                            </div>
                           </div>
                           <div>
-                            <span className="font-medium">Frequency:</span>
-                            <span className="ml-1">{trigger.frequency.replace('_', ' ')}</span>
+                            <span className="font-medium">Sound:</span>
+                            <span className="ml-1">{trigger.soundType} ({trigger.soundVolume}%)</span>
                           </div>
                           <div>
                             <span className="font-medium">Delay:</span>
@@ -1207,215 +1289,422 @@ export default function TimeClock() {
                   </DialogDescription>
                 </DialogHeader>
 
-                <div className="space-y-4">
+                <div className="space-y-6">
                   {/* Basic Information */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="taskTitle">Task Title</Label>
-                      <Input
-                        id="taskTitle"
-                        value={triggerForm.taskTitle}
-                        onChange={(e) => setTriggerForm(prev => ({ ...prev, taskTitle: e.target.value }))}
-                        placeholder="e.g., Daily Safety Check"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="triggerEvent">Trigger Event</Label>
-                      <Select 
-                        value={triggerForm.triggerEvent} 
-                        onValueChange={(value: any) => setTriggerForm(prev => ({ ...prev, triggerEvent: value }))}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="clock_in">Clock In</SelectItem>
-                          <SelectItem value="clock_out">Clock Out</SelectItem>
-                          <SelectItem value="break_start">Break Start</SelectItem>
-                          <SelectItem value="break_end">Break End</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="taskDescription">Task Description</Label>
-                    <Textarea
-                      id="taskDescription"
-                      value={triggerForm.taskDescription}
-                      onChange={(e) => setTriggerForm(prev => ({ ...prev, taskDescription: e.target.value }))}
-                      placeholder="Detailed description of the task..."
-                      rows={3}
-                    />
-                  </div>
-
-                  {/* Task Settings */}
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="taskType">Task Type</Label>
-                      <Input
-                        id="taskType"
-                        value={triggerForm.taskType}
-                        onChange={(e) => setTriggerForm(prev => ({ ...prev, taskType: e.target.value }))}
-                        placeholder="e.g., safety, inspection"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="priority">Priority</Label>
-                      <Select 
-                        value={triggerForm.priority} 
-                        onValueChange={(value: any) => setTriggerForm(prev => ({ ...prev, priority: value }))}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="low">Low</SelectItem>
-                          <SelectItem value="medium">Medium</SelectItem>
-                          <SelectItem value="high">High</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="delayMinutes">Delay (minutes)</Label>
-                      <Input
-                        id="delayMinutes"
-                        type="number"
-                        value={triggerForm.delayMinutes}
-                        onChange={(e) => setTriggerForm(prev => ({ ...prev, delayMinutes: parseInt(e.target.value) || 0 }))}
-                        min="0"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Assignment Settings */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="assignToMode">Assign To</Label>
-                      <Select 
-                        value={triggerForm.assignToMode} 
-                        onValueChange={(value: any) => setTriggerForm(prev => ({ ...prev, assignToMode: value }))}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="trigger_user">User Who Triggered</SelectItem>
-                          <SelectItem value="specific_user">Specific User</SelectItem>
-                          <SelectItem value="manager">Manager</SelectItem>
-                          <SelectItem value="admin">Admin</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    {triggerForm.assignToMode === 'specific_user' && (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold">Basic Information</h3>
+                    <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="assignToUserId">Select User</Label>
+                        <Label htmlFor="name">Trigger Name</Label>
+                        <Input
+                          id="name"
+                          value={triggerForm.name}
+                          onChange={(e) => setTriggerForm(prev => ({ ...prev, name: e.target.value }))}
+                          placeholder="e.g., Daily Safety Check"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="triggerType">Trigger Event</Label>
                         <Select 
-                          value={triggerForm.assignToUserId?.toString() || "none"} 
-                          onValueChange={(value) => setTriggerForm(prev => ({ ...prev, assignToUserId: value === "none" ? undefined : parseInt(value) }))}
+                          value={triggerForm.triggerType} 
+                          onValueChange={(value: any) => setTriggerForm(prev => ({ ...prev, triggerType: value }))}
                         >
                           <SelectTrigger>
-                            <SelectValue placeholder="Select user" />
+                            <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="none">Select user</SelectItem>
-                            {users.map((user: any) => (
-                              <SelectItem key={user.id} value={user.id.toString()}>
-                                {user.firstName} {user.lastName}
-                              </SelectItem>
-                            ))}
+                            <SelectItem value="clock_in">Clock In</SelectItem>
+                            <SelectItem value="clock_out">Clock Out</SelectItem>
+                            <SelectItem value="break_start">Break Start</SelectItem>
+                            <SelectItem value="break_end">Break End</SelectItem>
+                            <SelectItem value="manual">Manual</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
-                    )}
-                  </div>
-
-                  {/* Project Settings */}
-                  <div className="space-y-4">
+                    </div>
                     <div className="space-y-2">
-                      <Label htmlFor="projectId">Project (Optional)</Label>
-                      <Select 
-                        value={triggerForm.projectId?.toString() || "none"} 
-                        onValueChange={(value) => setTriggerForm(prev => ({ ...prev, projectId: value === "none" ? undefined : parseInt(value) }))}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select project or leave empty" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">No specific project</SelectItem>
-                          {projects.map((project: any) => (
-                            <SelectItem key={project.id} value={project.id.toString()}>
-                              {project.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="createProjectIfNone"
-                        checked={triggerForm.createProjectIfNone}
-                        onCheckedChange={(checked) => setTriggerForm(prev => ({ ...prev, createProjectIfNone: !!checked }))}
+                      <Label htmlFor="description">Description (Optional)</Label>
+                      <Textarea
+                        id="description"
+                        value={triggerForm.description}
+                        onChange={(e) => setTriggerForm(prev => ({ ...prev, description: e.target.value }))}
+                        placeholder="Brief description of this trigger's purpose"
+                        rows={2}
                       />
-                      <Label htmlFor="createProjectIfNone">
-                        Create project if none selected
-                      </Label>
                     </div>
-
-                    {triggerForm.createProjectIfNone && (
-                      <div className="space-y-2">
-                        <Label htmlFor="projectTemplate">Project Template</Label>
-                        <Input
-                          id="projectTemplate"
-                          value={triggerForm.projectTemplate}
-                          onChange={(e) => setTriggerForm(prev => ({ ...prev, projectTemplate: e.target.value }))}
-                          placeholder="e.g., Daily Tasks - {date}"
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Frequency and Schedule */}
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="frequency">Frequency</Label>
-                      <Select 
-                        value={triggerForm.frequency} 
-                        onValueChange={(value: any) => setTriggerForm(prev => ({ ...prev, frequency: value }))}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="every_time">Every Time</SelectItem>
-                          <SelectItem value="once_per_day">Once Per Day</SelectItem>
-                          <SelectItem value="once_per_week">Once Per Week</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="isRequired"
-                        checked={triggerForm.isRequired}
-                        onCheckedChange={(checked) => setTriggerForm(prev => ({ ...prev, isRequired: !!checked }))}
-                      />
-                      <Label htmlFor="isRequired">
-                        Mark task as required
-                      </Label>
-                    </div>
-
                     <div className="flex items-center space-x-2">
                       <Switch
                         id="isActive"
                         checked={triggerForm.isActive}
                         onCheckedChange={(checked) => setTriggerForm(prev => ({ ...prev, isActive: checked }))}
                       />
-                      <Label htmlFor="isActive">
-                        Trigger is active
-                      </Label>
+                      <Label htmlFor="isActive">Active</Label>
                     </div>
+                  </div>
+
+                  {/* Alert Settings */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold flex items-center gap-2">
+                      <Zap className="h-5 w-5 text-amber-500" />
+                      Visual Alert Settings
+                    </h3>
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="hasFlashingAlert"
+                        checked={triggerForm.hasFlashingAlert}
+                        onCheckedChange={(checked) => setTriggerForm(prev => ({ ...prev, hasFlashingAlert: checked }))}
+                      />
+                      <Label htmlFor="hasFlashingAlert">Enable Flashing Alert</Label>
+                    </div>
+                    {triggerForm.hasFlashingAlert && (
+                      <div className="grid grid-cols-2 gap-4 ml-6">
+                        <div className="space-y-2">
+                          <Label htmlFor="flashColor">Flash Color</Label>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="color"
+                              id="flashColor"
+                              value={triggerForm.flashColor}
+                              onChange={(e) => setTriggerForm(prev => ({ ...prev, flashColor: e.target.value }))}
+                              className="w-10 h-10 rounded border"
+                            />
+                            <Input
+                              value={triggerForm.flashColor}
+                              onChange={(e) => setTriggerForm(prev => ({ ...prev, flashColor: e.target.value }))}
+                              placeholder="#f59e0b"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="flashDuration">Flash Duration (seconds)</Label>
+                          <Input
+                            id="flashDuration"
+                            type="number"
+                            min="1"
+                            max="60"
+                            value={triggerForm.flashDuration}
+                            onChange={(e) => setTriggerForm(prev => ({ ...prev, flashDuration: parseInt(e.target.value) || 5 }))}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Sound Settings */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold flex items-center gap-2">
+                      <Volume2 className="h-5 w-5 text-blue-500" />
+                      Sound Alert Settings
+                    </h3>
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="hasSoundAlert"
+                        checked={triggerForm.hasSoundAlert}
+                        onCheckedChange={(checked) => setTriggerForm(prev => ({ ...prev, hasSoundAlert: checked }))}
+                      />
+                      <Label htmlFor="hasSoundAlert">Enable Sound Alert</Label>
+                    </div>
+                    {triggerForm.hasSoundAlert && (
+                      <div className="grid grid-cols-2 gap-4 ml-6">
+                        <div className="space-y-2">
+                          <Label htmlFor="soundType">Sound Type</Label>
+                          <Select 
+                            value={triggerForm.soundType} 
+                            onValueChange={(value) => setTriggerForm(prev => ({ ...prev, soundType: value }))}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="chime">Chime</SelectItem>
+                              <SelectItem value="bell">Bell</SelectItem>
+                              <SelectItem value="notification">Notification</SelectItem>
+                              <SelectItem value="pop">Pop</SelectItem>
+                              <SelectItem value="ding">Ding</SelectItem>
+                              <SelectItem value="gentle">Gentle</SelectItem>
+                              <SelectItem value="modern">Modern</SelectItem>
+                              <SelectItem value="subtle">Subtle</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="soundVolume">Volume (%)</Label>
+                          <Input
+                            id="soundVolume"
+                            type="number"
+                            min="0"
+                            max="100"
+                            value={triggerForm.soundVolume}
+                            onChange={(e) => setTriggerForm(prev => ({ ...prev, soundVolume: parseInt(e.target.value) || 80 }))}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Display and Timing Settings */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold flex items-center gap-2">
+                      <Timer className="h-5 w-5 text-green-500" />
+                      Display & Timing Settings
+                    </h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="displayDuration">Display Duration (seconds)</Label>
+                        <Input
+                          id="displayDuration"
+                          type="number"
+                          min="1"
+                          max="300"
+                          value={triggerForm.displayDuration}
+                          onChange={(e) => setTriggerForm(prev => ({ ...prev, displayDuration: parseInt(e.target.value) || 10 }))}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="delayMinutes">Delay Before Trigger (minutes)</Label>
+                        <Input
+                          id="delayMinutes"
+                          type="number"
+                          min="0"
+                          value={triggerForm.delayMinutes}
+                          onChange={(e) => setTriggerForm(prev => ({ ...prev, delayMinutes: parseInt(e.target.value) || 0 }))}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="autoHide"
+                        checked={triggerForm.autoHide}
+                        onCheckedChange={(checked) => setTriggerForm(prev => ({ ...prev, autoHide: checked }))}
+                      />
+                      <Label htmlFor="autoHide">Auto-hide after display duration</Label>
+                    </div>
+                  </div>
+
+                  {/* Task Content */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold">Task Content</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="title">Task Title</Label>
+                        <Input
+                          id="title"
+                          value={triggerForm.title}
+                          onChange={(e) => setTriggerForm(prev => ({ ...prev, title: e.target.value }))}
+                          placeholder="e.g., Daily Safety Check"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="buttonText">Button Text</Label>
+                        <Input
+                          id="buttonText"
+                          value={triggerForm.buttonText}
+                          onChange={(e) => setTriggerForm(prev => ({ ...prev, buttonText: e.target.value }))}
+                          placeholder="e.g., Mark Complete"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="message">Task Message</Label>
+                      <Textarea
+                        id="message"
+                        value={triggerForm.message}
+                        onChange={(e) => setTriggerForm(prev => ({ ...prev, message: e.target.value }))}
+                        placeholder="Detailed instructions for the user..."
+                        rows={3}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Clock-out Prevention */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold flex items-center gap-2">
+                      <Clock className="h-5 w-5 text-red-500" />
+                      Clock-out Prevention
+                    </h3>
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="preventClockOut"
+                        checked={triggerForm.preventClockOut}
+                        onCheckedChange={(checked) => setTriggerForm(prev => ({ ...prev, preventClockOut: checked }))}
+                      />
+                      <Label htmlFor="preventClockOut">Prevent clock-out until completed</Label>
+                    </div>
+                    {triggerForm.preventClockOut && (
+                      <div className="flex items-center space-x-2 ml-6">
+                        <Switch
+                          id="completionRequired"
+                          checked={triggerForm.completionRequired}
+                          onCheckedChange={(checked) => setTriggerForm(prev => ({ ...prev, completionRequired: checked }))}
+                        />
+                        <Label htmlFor="completionRequired">Require task completion confirmation</Label>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Optional Text Input Fields */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-purple-500" />
+                      Optional Input Fields
+                    </h3>
+                    
+                    {/* Text Field */}
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="hasTextField"
+                          checked={triggerForm.hasTextField}
+                          onCheckedChange={(checked) => setTriggerForm(prev => ({ ...prev, hasTextField: checked }))}
+                        />
+                        <Label htmlFor="hasTextField">Include Text Input Field</Label>
+                      </div>
+                      {triggerForm.hasTextField && (
+                        <div className="grid grid-cols-2 gap-4 ml-6">
+                          <div className="space-y-2">
+                            <Label htmlFor="textFieldLabel">Text Field Label</Label>
+                            <Input
+                              id="textFieldLabel"
+                              value={triggerForm.textFieldLabel}
+                              onChange={(e) => setTriggerForm(prev => ({ ...prev, textFieldLabel: e.target.value }))}
+                              placeholder="e.g., Notes, Comments"
+                            />
+                          </div>
+                          <div className="flex items-center space-x-2 pt-6">
+                            <Switch
+                              id="textFieldRequired"
+                              checked={triggerForm.textFieldRequired}
+                              onCheckedChange={(checked) => setTriggerForm(prev => ({ ...prev, textFieldRequired: checked }))}
+                            />
+                            <Label htmlFor="textFieldRequired">Required</Label>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Number Field */}
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="hasNumberField"
+                          checked={triggerForm.hasNumberField}
+                          onCheckedChange={(checked) => setTriggerForm(prev => ({ ...prev, hasNumberField: checked }))}
+                        />
+                        <Label htmlFor="hasNumberField">Include Number Input Field</Label>
+                      </div>
+                      {triggerForm.hasNumberField && (
+                        <div className="grid grid-cols-2 gap-4 ml-6">
+                          <div className="space-y-2">
+                            <Label htmlFor="numberFieldLabel">Number Field Label</Label>
+                            <Input
+                              id="numberFieldLabel"
+                              value={triggerForm.numberFieldLabel}
+                              onChange={(e) => setTriggerForm(prev => ({ ...prev, numberFieldLabel: e.target.value }))}
+                              placeholder="e.g., Hours, Quantity"
+                            />
+                          </div>
+                          <div className="flex items-center space-x-2 pt-6">
+                            <Switch
+                              id="numberFieldRequired"
+                              checked={triggerForm.numberFieldRequired}
+                              onCheckedChange={(checked) => setTriggerForm(prev => ({ ...prev, numberFieldRequired: checked }))}
+                            />
+                            <Label htmlFor="numberFieldRequired">Required</Label>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Assignment Settings */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold">Assignment & Constraints</h3>
+                    <div className="space-y-2">
+                      <Label htmlFor="assignToUserId">Assign to Specific User (Optional)</Label>
+                      <Select 
+                        value={triggerForm.assignToUserId?.toString() || "none"} 
+                        onValueChange={(value) => setTriggerForm(prev => ({ ...prev, assignToUserId: value === "none" ? undefined : parseInt(value) }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Assign to any user or select specific user" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">No specific user (assigned to triggering user)</SelectItem>
+                          {users.map((user: any) => (
+                            <SelectItem key={user.id} value={user.id.toString()}>
+                              {user.firstName} {user.lastName}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="maxTriggers">Maximum Triggers (Optional)</Label>
+                      <Input
+                        id="maxTriggers"
+                        type="number"
+                        min="1"
+                        value={triggerForm.maxTriggers || ''}
+                        onChange={(e) => setTriggerForm(prev => ({ ...prev, maxTriggers: e.target.value ? parseInt(e.target.value) : undefined }))}
+                        placeholder="Leave empty for unlimited"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Time Constraints */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold flex items-center gap-2">
+                      <Calendar className="h-5 w-5 text-green-500" />
+                      Time Constraints (Optional)
+                    </h3>
+                    
+                    {/* Days of Week */}
+                    <div className="space-y-2">
+                      <Label>Allowed Days of Week</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => (
+                          <div key={day} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={day}
+                              checked={triggerForm.allowedDays.includes(day)}
+                              onCheckedChange={(checked) => {
+                                setTriggerForm(prev => ({
+                                  ...prev,
+                                  allowedDays: checked 
+                                    ? [...prev.allowedDays, day]
+                                    : prev.allowedDays.filter(d => d !== day)
+                                }));
+                              }}
+                            />
+                            <Label htmlFor={day} className="text-sm">{day.slice(0, 3)}</Label>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-xs text-muted-foreground">Leave empty to allow any day</p>
+                    </div>
+
+                    {/* Time Window */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="timeWindowStart">Start Time (Optional)</Label>
+                        <Input
+                          id="timeWindowStart"
+                          type="time"
+                          value={triggerForm.timeWindowStart || ''}
+                          onChange={(e) => setTriggerForm(prev => ({ ...prev, timeWindowStart: e.target.value || undefined }))}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="timeWindowEnd">End Time (Optional)</Label>
+                        <Input
+                          id="timeWindowEnd"
+                          type="time"
+                          value={triggerForm.timeWindowEnd || ''}
+                          onChange={(e) => setTriggerForm(prev => ({ ...prev, timeWindowEnd: e.target.value || undefined }))}
+                        />
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Leave empty to allow any time</p>
                   </div>
                 </div>
 
@@ -1425,7 +1714,7 @@ export default function TimeClock() {
                   </Button>
                   <Button 
                     onClick={handleSaveTrigger}
-                    disabled={!triggerForm.taskTitle || createTriggerMutation.isPending || updateTriggerMutation.isPending}
+                    disabled={!triggerForm.name || !triggerForm.title || createTriggerMutation.isPending || updateTriggerMutation.isPending}
                   >
                     {createTriggerMutation.isPending || updateTriggerMutation.isPending ? (
                       <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2" />

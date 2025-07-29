@@ -12,7 +12,8 @@ import {
   digitalSignatures, documentSignatureFields, departments, employees, employeeDocuments, timeOffRequests, performanceReviews, disciplinaryActions,
   navigationOrder, backupSettings, backupJobs, partsSupplies, partsCategories, inventoryTransactions, stockAlerts,
   filePermissions, folderPermissions, defaultPermissions, userDashboardSettings, dashboardProfiles, vehicles,
-  vehicleMaintenanceIntervals, vehicleMaintenanceRecords, vehicleJobAssignments, timeClockTaskTriggers
+  vehicleMaintenanceIntervals, vehicleMaintenanceRecords, vehicleJobAssignments, timeClockTaskTriggers,
+  taskTriggers, taskTriggerInstances, taskTriggerSettings
 } from "@shared/schema";
 import { marketResearchCompetitors } from "@shared/schema";
 import type { GasCard, InsertGasCard, GasCardAssignment, InsertGasCardAssignment, GasCardUsage, InsertGasCardUsage, GasCardProvider, InsertGasCardProvider } from "@shared/schema";
@@ -3526,6 +3527,22 @@ export class DatabaseStorage implements IStorage {
   }
 
   async clockOut(userId: number, notes?: string): Promise<any> {
+    // Get user's organization ID for trigger checking
+    const [user] = await db.select({ organizationId: users.organizationId })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    // Check if there are any active triggers preventing clock-out
+    const clockOutCheck = await this.checkClockOutPreventionTriggers(userId, user.organizationId);
+    if (!clockOutCheck.canClockOut) {
+      throw new Error(clockOutCheck.blockMessage || 'Complete required tasks before clocking out');
+    }
+
     const current = await this.getCurrentTimeClockEntry(userId);
     if (!current) {
       throw new Error("User is not currently clocked in");
@@ -3544,12 +3561,6 @@ export class DatabaseStorage implements IStorage {
       })
       .where(eq(timeClock.id, current.id))
       .returning();
-
-    // Get user's organization ID for trigger processing
-    const [user] = await db.select({ organizationId: users.organizationId })
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1);
 
     // Process time clock triggers for clock_out event
     try {
@@ -4031,6 +4042,348 @@ export class DatabaseStorage implements IStorage {
       } else {
         await createTask();
       }
+    }
+  }
+
+  // Task Triggers System - Comprehensive alert system with flashing, sound, duration settings
+  async createTaskTrigger(triggerData: any): Promise<any> {
+    try {
+      const [trigger] = await db
+        .insert(taskTriggers)
+        .values({
+          organizationId: triggerData.organizationId,
+          name: triggerData.name,
+          description: triggerData.description,
+          triggerType: triggerData.triggerType,
+          isActive: triggerData.isActive ?? true,
+          hasFlashingAlert: triggerData.hasFlashingAlert ?? true,
+          flashColor: triggerData.flashColor || '#ff0000',
+          flashDuration: triggerData.flashDuration || 5000,
+          hasSoundAlert: triggerData.hasSoundAlert ?? true,
+          soundType: triggerData.soundType || 'notification',
+          soundVolume: triggerData.soundVolume || 70,
+          displayDuration: triggerData.displayDuration || 10000,
+          autoHide: triggerData.autoHide ?? true,
+          title: triggerData.title,
+          message: triggerData.message,
+          buttonText: triggerData.buttonText || 'Mark Complete',
+          preventClockOut: triggerData.preventClockOut ?? false,
+          clockOutBlockMessage: triggerData.clockOutBlockMessage || 'Complete required tasks before clocking out',
+          assignedToUserId: triggerData.assignedToUserId || null,
+          assignedToRole: triggerData.assignedToRole || null,
+          requiresCompletion: triggerData.requiresCompletion ?? true,
+          allowMultipleCompletions: triggerData.allowMultipleCompletions ?? false,
+          createdBy: triggerData.createdBy,
+        })
+        .returning();
+      return trigger;
+    } catch (error) {
+      console.error('Error creating task trigger:', error);
+      throw error;
+    }
+  }
+
+  async getTaskTriggers(organizationId: number): Promise<any[]> {
+    try {
+      const triggers = await db
+        .select({
+          id: taskTriggers.id,
+          organizationId: taskTriggers.organizationId,
+          name: taskTriggers.name,
+          description: taskTriggers.description,
+          triggerType: taskTriggers.triggerType,
+          isActive: taskTriggers.isActive,
+          hasFlashingAlert: taskTriggers.hasFlashingAlert,
+          flashColor: taskTriggers.flashColor,
+          flashDuration: taskTriggers.flashDuration,
+          hasSoundAlert: taskTriggers.hasSoundAlert,
+          soundType: taskTriggers.soundType,
+          soundVolume: taskTriggers.soundVolume,
+          displayDuration: taskTriggers.displayDuration,
+          autoHide: taskTriggers.autoHide,
+          title: taskTriggers.title,
+          message: taskTriggers.message,
+          buttonText: taskTriggers.buttonText,
+          preventClockOut: taskTriggers.preventClockOut,
+          clockOutBlockMessage: taskTriggers.clockOutBlockMessage,
+          assignedToUserId: taskTriggers.assignedToUserId,
+          assignedToRole: taskTriggers.assignedToRole,
+          requiresCompletion: taskTriggers.requiresCompletion,
+          allowMultipleCompletions: taskTriggers.allowMultipleCompletions,
+          createdBy: taskTriggers.createdBy,
+          createdAt: taskTriggers.createdAt,
+          updatedAt: taskTriggers.updatedAt,
+        })
+        .from(taskTriggers)
+        .where(eq(taskTriggers.organizationId, organizationId))
+        .orderBy(taskTriggers.createdAt);
+      return triggers;
+    } catch (error) {
+      console.error('Error getting task triggers:', error);
+      throw error;
+    }
+  }
+
+  async getTaskTrigger(id: number, organizationId: number): Promise<any> {
+    try {
+      const [trigger] = await db
+        .select()
+        .from(taskTriggers)
+        .where(and(eq(taskTriggers.id, id), eq(taskTriggers.organizationId, organizationId)))
+        .limit(1);
+      return trigger;
+    } catch (error) {
+      console.error('Error getting task trigger:', error);
+      throw error;
+    }
+  }
+
+  async updateTaskTrigger(id: number, organizationId: number, updates: any): Promise<any> {
+    try {
+      const [trigger] = await db
+        .update(taskTriggers)
+        .set({
+          ...updates,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(taskTriggers.id, id), eq(taskTriggers.organizationId, organizationId)))
+        .returning();
+      return trigger;
+    } catch (error) {
+      console.error('Error updating task trigger:', error);
+      throw error;
+    }
+  }
+
+  async deleteTaskTrigger(id: number, organizationId: number): Promise<boolean> {
+    try {
+      await db
+        .delete(taskTriggers)
+        .where(and(eq(taskTriggers.id, id), eq(taskTriggers.organizationId, organizationId)));
+      return true;
+    } catch (error) {
+      console.error('Error deleting task trigger:', error);
+      return false;
+    }
+  }
+
+  // Process task triggers for time clock events
+  async processTriggerForTimeClockEvent(userId: number, organizationId: number, eventType: string, context: any = {}): Promise<void> {
+    try {
+      // Get active triggers for this event type
+      const applicableTriggers = await db
+        .select()
+        .from(taskTriggers)
+        .where(and(
+          eq(taskTriggers.organizationId, organizationId),
+          eq(taskTriggers.triggerType, eventType),
+          eq(taskTriggers.isActive, true)
+        ));
+
+      // Get user details for role-based filtering
+      const [user] = await db
+        .select({ role: users.role })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+
+      for (const trigger of applicableTriggers) {
+        // Check assignment filters
+        let shouldTrigger = true;
+        
+        if (trigger.assignedToUserId && trigger.assignedToUserId !== userId) {
+          shouldTrigger = false;
+        }
+        
+        if (trigger.assignedToRole && user?.role !== trigger.assignedToRole) {
+          shouldTrigger = false;
+        }
+
+        if (shouldTrigger) {
+          // Check if multiple completions are allowed or if already completed
+          if (!trigger.allowMultipleCompletions) {
+            const existingCompletion = await db
+              .select()
+              .from(taskTriggerCompletions)
+              .where(and(
+                eq(taskTriggerCompletions.triggerId, trigger.id),
+                eq(taskTriggerCompletions.userId, userId)
+              ))
+              .limit(1);
+            
+            if (existingCompletion.length > 0) {
+              continue; // Skip if already completed and multiple completions not allowed
+            }
+          }
+
+          // Create trigger instance
+          await db
+            .insert(taskTriggerInstances)
+            .values({
+              triggerId: trigger.id,
+              userId,
+              organizationId,
+              triggeredBy: eventType,
+              timeClockEntryId: context.timeClockEntryId || null,
+              status: 'active',
+              isVisible: true,
+              triggeredAt: new Date(),
+              expiresAt: trigger.displayDuration > 0 ? 
+                new Date(Date.now() + trigger.displayDuration) : null,
+            });
+        }
+      }
+    } catch (error) {
+      console.error('Error processing task triggers:', error);
+    }
+  }
+
+  // Get active trigger instances for a user
+  async getActiveTriggerInstances(userId: number, organizationId: number): Promise<any[]> {
+    try {
+      const instances = await db
+        .select({
+          id: taskTriggerInstances.id,
+          triggerId: taskTriggerInstances.triggerId,
+          status: taskTriggerInstances.status,
+          isVisible: taskTriggerInstances.isVisible,
+          triggeredBy: taskTriggerInstances.triggeredBy,
+          triggeredAt: taskTriggerInstances.triggeredAt,
+          expiresAt: taskTriggerInstances.expiresAt,
+          // Trigger details
+          triggerName: taskTriggers.name,
+          triggerTitle: taskTriggers.title,
+          triggerMessage: taskTriggers.message,
+          buttonText: taskTriggers.buttonText,
+          hasFlashingAlert: taskTriggers.hasFlashingAlert,
+          flashColor: taskTriggers.flashColor,
+          flashDuration: taskTriggers.flashDuration,
+          hasSoundAlert: taskTriggers.hasSoundAlert,
+          soundType: taskTriggers.soundType,
+          soundVolume: taskTriggers.soundVolume,
+          displayDuration: taskTriggers.displayDuration,
+          autoHide: taskTriggers.autoHide,
+          requiresCompletion: taskTriggers.requiresCompletion,
+        })
+        .from(taskTriggerInstances)
+        .innerJoin(taskTriggers, eq(taskTriggerInstances.triggerId, taskTriggers.id))
+        .where(and(
+          eq(taskTriggerInstances.userId, userId),
+          eq(taskTriggerInstances.organizationId, organizationId),
+          eq(taskTriggerInstances.status, 'active'),
+          eq(taskTriggerInstances.isVisible, true)
+        ))
+        .orderBy(taskTriggerInstances.triggeredAt);
+      
+      return instances;
+    } catch (error) {
+      console.error('Error getting active trigger instances:', error);
+      throw error;
+    }
+  }
+
+  // Complete a trigger instance
+  async completeTriggerInstance(instanceId: number, userId: number, organizationId: number, notes?: string): Promise<boolean> {
+    try {
+      // Get the instance and trigger details
+      const [instance] = await db
+        .select({
+          id: taskTriggerInstances.id,
+          triggerId: taskTriggerInstances.triggerId,
+          timeClockEntryId: taskTriggerInstances.timeClockEntryId,
+        })
+        .from(taskTriggerInstances)
+        .where(and(
+          eq(taskTriggerInstances.id, instanceId),
+          eq(taskTriggerInstances.userId, userId),
+          eq(taskTriggerInstances.organizationId, organizationId)
+        ))
+        .limit(1);
+
+      if (!instance) return false;
+
+      // Update the instance as completed
+      await db
+        .update(taskTriggerInstances)
+        .set({
+          status: 'completed',
+          completedAt: new Date(),
+          completedBy: userId,
+          updatedAt: new Date(),
+        })
+        .where(eq(taskTriggerInstances.id, instanceId));
+
+      // Create completion record
+      await db
+        .insert(taskTriggerCompletions)
+        .values({
+          triggerId: instance.triggerId,
+          userId,
+          organizationId,
+          notes,
+          timeClockEntryId: instance.timeClockEntryId,
+          triggerContext: { completedInstanceId: instanceId },
+        });
+
+      return true;
+    } catch (error) {
+      console.error('Error completing trigger instance:', error);
+      return false;
+    }
+  }
+
+  // Dismiss a trigger instance
+  async dismissTriggerInstance(instanceId: number, userId: number, organizationId: number): Promise<boolean> {
+    try {
+      await db
+        .update(taskTriggerInstances)
+        .set({
+          status: 'dismissed',
+          dismissedAt: new Date(),
+          isVisible: false,
+          updatedAt: new Date(),
+        })
+        .where(and(
+          eq(taskTriggerInstances.id, instanceId),
+          eq(taskTriggerInstances.userId, userId),
+          eq(taskTriggerInstances.organizationId, organizationId)
+        ));
+      return true;
+    } catch (error) {
+      console.error('Error dismissing trigger instance:', error);
+      return false;
+    }
+  }
+
+  // Check if user has active triggers that prevent clock-out
+  async checkClockOutPreventionTriggers(userId: number, organizationId: number): Promise<{ canClockOut: boolean; blockMessage?: string }> {
+    try {
+      const preventionTriggers = await db
+        .select({
+          clockOutBlockMessage: taskTriggers.clockOutBlockMessage,
+        })
+        .from(taskTriggerInstances)
+        .innerJoin(taskTriggers, eq(taskTriggerInstances.triggerId, taskTriggers.id))
+        .where(and(
+          eq(taskTriggerInstances.userId, userId),
+          eq(taskTriggerInstances.organizationId, organizationId),
+          eq(taskTriggerInstances.status, 'active'),
+          eq(taskTriggers.preventClockOut, true),
+          eq(taskTriggers.requiresCompletion, true)
+        ))
+        .limit(1);
+
+      if (preventionTriggers.length > 0) {
+        return {
+          canClockOut: false,
+          blockMessage: preventionTriggers[0].clockOutBlockMessage
+        };
+      }
+
+      return { canClockOut: true };
+    } catch (error) {
+      console.error('Error checking clock-out prevention triggers:', error);
+      return { canClockOut: true }; // Default to allowing clock-out on error
     }
   }
 

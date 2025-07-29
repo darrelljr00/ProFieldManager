@@ -5948,6 +5948,159 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // =============================================
+  // TASK TRIGGERS API ROUTES
+  // =============================================
+
+  // Get all task triggers for organization
+  app.get("/api/task-triggers", requireAuth, async (req, res) => {
+    try {
+      const organizationId = req.user!.organizationId;
+      const triggers = await storage.getTaskTriggers(organizationId);
+      res.json(triggers);
+    } catch (error: any) {
+      console.error("Error fetching task triggers:", error);
+      res.status(500).json({ message: "Failed to fetch task triggers" });
+    }
+  });
+
+  // Create new task trigger
+  app.post("/api/task-triggers", requireManagerOrAdmin, async (req, res) => {
+    try {
+      const organizationId = req.user!.organizationId;
+      const createdBy = req.user!.id;
+      const triggerData = {
+        ...req.body,
+        organizationId,
+        createdBy
+      };
+      
+      const trigger = await storage.createTaskTrigger(triggerData);
+      
+      // Broadcast to WebSocket clients
+      broadcastToWebUsers('task_trigger_created', { trigger }, organizationId);
+      
+      res.json(trigger);
+    } catch (error: any) {
+      console.error("Error creating task trigger:", error);
+      res.status(500).json({ message: "Failed to create task trigger" });
+    }
+  });
+
+  // Update task trigger
+  app.put("/api/task-triggers/:id", requireManagerOrAdmin, async (req, res) => {
+    try {
+      const triggerId = parseInt(req.params.id);
+      const organizationId = req.user!.organizationId;
+      
+      const trigger = await storage.updateTaskTrigger(triggerId, organizationId, req.body);
+      
+      // Broadcast to WebSocket clients
+      broadcastToWebUsers('task_trigger_updated', { trigger }, organizationId);
+      
+      res.json(trigger);
+    } catch (error: any) {
+      console.error("Error updating task trigger:", error);
+      res.status(500).json({ message: "Failed to update task trigger" });
+    }
+  });
+
+  // Delete task trigger
+  app.delete("/api/task-triggers/:id", requireManagerOrAdmin, async (req, res) => {
+    try {
+      const triggerId = parseInt(req.params.id);
+      const organizationId = req.user!.organizationId;
+      
+      await storage.deleteTaskTrigger(triggerId, organizationId);
+      
+      // Broadcast to WebSocket clients
+      broadcastToWebUsers('task_trigger_deleted', { triggerId }, organizationId);
+      
+      res.json({ message: "Task trigger deleted successfully" });
+    } catch (error: any) {
+      console.error("Error deleting task trigger:", error);
+      res.status(500).json({ message: "Failed to delete task trigger" });
+    }
+  });
+
+  // Get active trigger instances for user
+  app.get("/api/task-triggers/instances", requireAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const organizationId = req.user!.organizationId;
+      
+      const instances = await storage.getActiveTriggerInstances(userId, organizationId);
+      res.json(instances);
+    } catch (error: any) {
+      console.error("Error fetching trigger instances:", error);
+      res.status(500).json({ message: "Failed to fetch trigger instances" });
+    }
+  });
+
+  // Complete trigger instance (mark task as complete)
+  app.post("/api/task-triggers/instances/:id/complete", requireAuth, async (req, res) => {
+    try {
+      const instanceId = parseInt(req.params.id);
+      const userId = req.user!.id;
+      const organizationId = req.user!.organizationId;
+      const { textValue, numberValue } = req.body;
+      
+      await storage.completeTriggerInstance(instanceId, userId, organizationId, textValue, numberValue);
+      
+      // Broadcast to WebSocket clients
+      broadcastToWebUsers('trigger_instance_completed', { instanceId, userId }, organizationId);
+      
+      res.json({ message: "Task completed successfully" });
+    } catch (error: any) {
+      console.error("Error completing trigger instance:", error);
+      res.status(500).json({ message: "Failed to complete task" });
+    }
+  });
+
+  // Get task trigger settings
+  app.get("/api/task-triggers/settings", requireAuth, async (req, res) => {
+    try {
+      const organizationId = req.user!.organizationId;
+      
+      const settings = await storage.getTaskTriggerSettings(organizationId);
+      res.json(settings);
+    } catch (error: any) {
+      console.error("Error fetching task trigger settings:", error);
+      res.status(500).json({ message: "Failed to fetch task trigger settings" });
+    }
+  });
+
+  // Update task trigger settings
+  app.put("/api/task-triggers/settings", requireManagerOrAdmin, async (req, res) => {
+    try {
+      const organizationId = req.user!.organizationId;
+      
+      const settings = await storage.updateTaskTriggerSettings(organizationId, req.body);
+      
+      // Broadcast to WebSocket clients
+      broadcastToWebUsers('task_trigger_settings_updated', { settings }, organizationId);
+      
+      res.json(settings);
+    } catch (error: any) {
+      console.error("Error updating task trigger settings:", error);
+      res.status(500).json({ message: "Failed to update task trigger settings" });
+    }
+  });
+
+  // Check clock-out prevention
+  app.get("/api/task-triggers/clock-out-check", requireAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const organizationId = req.user!.organizationId;
+      
+      const result = await storage.checkClockOutPreventionTriggers(userId, organizationId);
+      res.json(result);
+    } catch (error: any) {
+      console.error("Error checking clock-out prevention:", error);
+      res.status(500).json({ message: "Failed to check clock-out prevention" });
+    }
+  });
+
   // Reports API endpoint
   app.get("/api/reports/data", requireAuth, async (req, res) => {
     try {

@@ -2481,6 +2481,123 @@ export const insertInspectionNotificationSchema = createInsertSchema(inspectionN
   sentAt: true,
 });
 
+// Task Triggers System - Comprehensive alert system with flashing, sound, duration settings
+export const taskTriggers = pgTable("task_triggers", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  name: text("name").notNull(), // Trigger name
+  description: text("description"),
+  
+  // Trigger conditions
+  triggerType: text("trigger_type").notNull(), // 'clock_in', 'clock_out', 'break_start', 'break_end', 'manual'
+  isActive: boolean("is_active").default(true),
+  
+  // Alert settings
+  hasFlashingAlert: boolean("has_flashing_alert").default(true),
+  flashColor: text("flash_color").default("#ff0000"), // Color for flashing alert
+  flashDuration: integer("flash_duration").default(5000), // Duration in milliseconds
+  
+  // Sound settings
+  hasSoundAlert: boolean("has_sound_alert").default(true),
+  soundType: text("sound_type").default("notification"), // 'chime', 'bell', 'notification', 'pop', etc.
+  soundVolume: integer("sound_volume").default(70), // Volume 0-100
+  
+  // Duration and timing
+  displayDuration: integer("display_duration").default(10000), // How long to show alert (ms)
+  autoHide: boolean("auto_hide").default(true),
+  
+  // Text fields and content
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  buttonText: text("button_text").default("Mark Complete"),
+  
+  // Clock-in prevention (when trigger is active, prevent clock-out)
+  preventClockOut: boolean("prevent_clock_out").default(false),
+  clockOutBlockMessage: text("clock_out_block_message").default("Complete required tasks before clocking out"),
+  
+  // Assignment and targeting
+  assignedToUserId: integer("assigned_to_user_id").references(() => users.id), // Specific user or null for all
+  assignedToRole: text("assigned_to_role"), // 'admin', 'manager', 'user' or null for all
+  
+  // Completion tracking
+  requiresCompletion: boolean("requires_completion").default(true),
+  allowMultipleCompletions: boolean("allow_multiple_completions").default(false),
+  
+  createdBy: integer("created_by").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const taskTriggerCompletions = pgTable("task_trigger_completions", {
+  id: serial("id").primaryKey(),
+  triggerId: integer("trigger_id").notNull().references(() => taskTriggers.id),
+  userId: integer("user_id").notNull().references(() => users.id),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  
+  // Completion details
+  completedAt: timestamp("completed_at").defaultNow(),
+  notes: text("notes"), // Optional completion notes
+  timeClockEntryId: integer("time_clock_entry_id").references(() => timeClock.id), // Link to time clock entry if triggered by clock action
+  
+  // Context data
+  triggerContext: jsonb("trigger_context"), // Additional context data from trigger event
+  
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const taskTriggerInstances = pgTable("task_trigger_instances", {
+  id: serial("id").primaryKey(),
+  triggerId: integer("trigger_id").notNull().references(() => taskTriggers.id),
+  userId: integer("user_id").notNull().references(() => users.id),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  
+  // Instance status
+  status: text("status").notNull().default("active"), // 'active', 'completed', 'dismissed', 'expired'
+  isVisible: boolean("is_visible").default(true),
+  
+  // Trigger event details
+  triggeredBy: text("triggered_by").notNull(), // 'clock_in', 'clock_out', 'break_start', 'break_end', 'manual'
+  triggeredAt: timestamp("triggered_at").defaultNow(),
+  timeClockEntryId: integer("time_clock_entry_id").references(() => timeClock.id),
+  
+  // Completion
+  completedAt: timestamp("completed_at"),
+  completedBy: integer("completed_by").references(() => users.id),
+  dismissedAt: timestamp("dismissed_at"),
+  expiresAt: timestamp("expires_at"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Task Trigger Schema Validation
+export const insertTaskTriggerSchema = createInsertSchema(taskTriggers).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertTaskTriggerCompletionSchema = createInsertSchema(taskTriggerCompletions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertTaskTriggerInstanceSchema = createInsertSchema(taskTriggerInstances).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Task Trigger Types
+export type TaskTrigger = typeof taskTriggers.$inferSelect;
+export type InsertTaskTrigger = z.infer<typeof insertTaskTriggerSchema>;
+
+export type TaskTriggerCompletion = typeof taskTriggerCompletions.$inferSelect;
+export type InsertTaskTriggerCompletion = z.infer<typeof insertTaskTriggerCompletionSchema>;
+
+export type TaskTriggerInstance = typeof taskTriggerInstances.$inferSelect;
+export type InsertTaskTriggerInstance = z.infer<typeof insertTaskTriggerInstanceSchema>;
+
 // Types
 export type InspectionTemplate = typeof inspectionTemplates.$inferSelect;
 export type InsertInspectionTemplate = z.infer<typeof insertInspectionTemplateSchema>;
