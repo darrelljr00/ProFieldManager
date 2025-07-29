@@ -77,6 +77,7 @@ export interface IStorage {
   cancelProject(id: number, userId: number): Promise<boolean>;
   getDeletedProjects(organizationId: number, userId?: number): Promise<any[]>;
   getCancelledProjects(organizationId: number, userId?: number): Promise<any[]>;
+  restoreProject(id: number, userId: number): Promise<boolean>;
   getProjectById(id: number): Promise<any>;
   getProjectsWithLocation(userId: number): Promise<any[]>;
   createProject(projectData: any): Promise<any>;
@@ -1371,6 +1372,55 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error fetching cancelled projects:', error);
       return [];
+    }
+  }
+
+  async restoreProject(id: number, userId: number): Promise<boolean> {
+    try {
+      // First check if the project exists and user has access
+      const user = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+
+      if (user.length === 0) {
+        return false; // User not found
+      }
+
+      // Check if project exists and user has access (either owns it or is admin in same org)
+      const existingProject = await db
+        .select()
+        .from(projects)
+        .leftJoin(users, eq(projects.userId, users.id))
+        .where(and(
+          eq(projects.id, id),
+          or(
+            eq(projects.status, 'deleted'),
+            eq(projects.status, 'cancelled')
+          ),
+          eq(users.organizationId, user[0].organizationId)
+        ))
+        .limit(1);
+
+      if (existingProject.length === 0) {
+        return false; // Project not found or user doesn't have access
+      }
+
+      // Restore project status to 'active'
+      const [project] = await db
+        .update(projects)
+        .set({ 
+          status: 'active',
+          updatedAt: new Date()
+        })
+        .where(eq(projects.id, id))
+        .returning();
+      
+      return !!project;
+    } catch (error) {
+      console.error('Error restoring project:', error);
+      return false;
     }
   }
 

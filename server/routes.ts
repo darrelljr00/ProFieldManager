@@ -3339,6 +3339,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Restore project endpoint (undo deletion/cancellation)
+  app.put("/api/projects/:id/restore", requireAuth, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const userId = req.user!.id;
+      const success = await storage.restoreProject(projectId, userId);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Project not found or access denied" });
+      }
+      
+      // Broadcast project restoration
+      broadcastToWebUsers('project_restored', { projectId, restoredBy: req.user!.username });
+      
+      res.json({ message: "Project restored successfully" });
+    } catch (error: any) {
+      console.error("Error restoring project:", error);
+      res.status(500).json({ message: "Failed to restore project" });
+    }
+  });
+
   // Project Users
   app.post("/api/projects/:id/users", requireAuth, async (req, res) => {
     try {

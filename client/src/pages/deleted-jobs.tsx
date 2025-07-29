@@ -1,10 +1,12 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Trash2, ArrowLeft, User, Calendar, MapPin, DollarSign } from "lucide-react";
+import { Trash2, ArrowLeft, User, Calendar, MapPin, DollarSign, Undo2 } from "lucide-react";
 import { format } from "date-fns";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface DeletedProject {
   id: number;
@@ -29,9 +31,39 @@ interface DeletedProject {
 }
 
 export function DeletedJobs() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
   const { data: deletedJobs = [], isLoading } = useQuery<DeletedProject[]>({
     queryKey: ["/api/projects/deleted"],
   });
+
+  const restoreMutation = useMutation({
+    mutationFn: async (projectId: number) => {
+      const response = await apiRequest("PUT", `/api/projects/${projectId}/restore`);
+      return response;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Job Restored",
+        description: "The job has been successfully restored to active jobs.",
+      });
+      // Invalidate and refetch both deleted jobs and regular projects
+      queryClient.invalidateQueries({ queryKey: ["/api/projects/deleted"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Restore Failed", 
+        description: error.message || "Failed to restore the job.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleRestore = (projectId: number) => {
+    restoreMutation.mutate(projectId);
+  };
 
   const priorityColors = {
     low: "bg-green-100 text-green-800",
@@ -186,6 +218,18 @@ export function DeletedJobs() {
                       </span>
                     </div>
                   </div>
+                </div>
+
+                {/* Undo Button */}
+                <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <Button
+                    onClick={() => handleRestore(job.id)}
+                    disabled={restoreMutation.isPending}
+                    className="w-full bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    <Undo2 className="w-4 h-4 mr-2" />
+                    {restoreMutation.isPending ? "Restoring..." : "Undo Delete"}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
