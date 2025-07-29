@@ -576,6 +576,15 @@ export default function TimeClock() {
     return entry.userId?.toString() === selectedUser;
   });
 
+  // Debug logging for filtering
+  console.log('🔍 FILTERING DEBUG:', {
+    entriesLength: entries.length,
+    selectedUser,
+    filteredLength: filteredEntries.length,
+    firstEntry: entries[0],
+    userIdMatch: entries[0]?.userId?.toString() === selectedUser
+  });
+
   const exportTimeData = () => {
     const csvContent = [
       ['Date', 'Employee', 'Clock In', 'Clock Out', 'Total Hours', 'Break Duration', 'Status', 'Notes'].join(','),
