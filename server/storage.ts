@@ -1258,7 +1258,18 @@ export class DatabaseStorage implements IStorage {
 
   async getDeletedProjects(organizationId: number, userId?: number): Promise<any[]> {
     try {
-      let query = db
+      // Build where conditions based on parameters
+      let whereConditions = [
+        eq(users.organizationId, organizationId),
+        eq(projects.status, 'deleted')
+      ];
+
+      // If userId is provided, add user filter (for non-admin users)
+      if (userId) {
+        whereConditions.push(eq(projects.userId, userId));
+      }
+
+      const query = db
         .select({
           id: projects.id,
           userId: projects.userId,
@@ -1293,21 +1304,9 @@ export class DatabaseStorage implements IStorage {
         .from(projects)
         .leftJoin(users, eq(projects.userId, users.id))
         .leftJoin(tasks, eq(projects.id, tasks.projectId))
-        .where(and(
-          eq(users.organizationId, organizationId),
-          eq(projects.status, 'deleted')
-        ))
+        .where(and(...whereConditions))
         .groupBy(projects.id, users.id)
         .orderBy(desc(projects.updatedAt));
-
-      // If userId is provided, filter by user (for non-admin users)
-      if (userId) {
-        query = query.where(and(
-          eq(users.organizationId, organizationId),
-          eq(projects.status, 'deleted'),
-          eq(projects.userId, userId)
-        ));
-      }
 
       return await query;
     } catch (error) {
@@ -1318,7 +1317,18 @@ export class DatabaseStorage implements IStorage {
 
   async getCancelledProjects(organizationId: number, userId?: number): Promise<any[]> {
     try {
-      let query = db
+      // Build where conditions based on parameters
+      let whereConditions = [
+        eq(users.organizationId, organizationId),
+        eq(projects.status, 'cancelled')
+      ];
+
+      // If userId is provided, add user filter (for non-admin users)
+      if (userId) {
+        whereConditions.push(eq(projects.userId, userId));
+      }
+
+      const query = db
         .select({
           id: projects.id,
           userId: projects.userId,
@@ -1353,21 +1363,9 @@ export class DatabaseStorage implements IStorage {
         .from(projects)
         .leftJoin(users, eq(projects.userId, users.id))
         .leftJoin(tasks, eq(projects.id, tasks.projectId))
-        .where(and(
-          eq(users.organizationId, organizationId),
-          eq(projects.status, 'cancelled')
-        ))
+        .where(and(...whereConditions))
         .groupBy(projects.id, users.id)
         .orderBy(desc(projects.updatedAt));
-
-      // If userId is provided, filter by user (for non-admin users)
-      if (userId) {
-        query = query.where(and(
-          eq(users.organizationId, organizationId),
-          eq(projects.status, 'cancelled'),
-          eq(projects.userId, userId)
-        ));
-      }
 
       return await query;
     } catch (error) {

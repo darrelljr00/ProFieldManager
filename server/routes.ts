@@ -3315,7 +3315,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/projects/deleted", requireAuth, async (req, res) => {
     try {
       const user = req.user!;
+      console.log("Fetching deleted projects for user:", user.id, "org:", user.organizationId, "role:", user.role);
       const projects = await storage.getDeletedProjects(user.organizationId, user.role === 'admin' ? undefined : user.id);
+      console.log("Found deleted projects:", projects.length);
       res.json(projects);
     } catch (error: any) {
       console.error("Error fetching deleted projects:", error);
@@ -3327,7 +3329,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/projects/cancelled", requireAuth, async (req, res) => {
     try {
       const user = req.user!;
+      console.log("Fetching cancelled projects for user:", user.id, "org:", user.organizationId, "role:", user.role);
       const projects = await storage.getCancelledProjects(user.organizationId, user.role === 'admin' ? undefined : user.id);
+      console.log("Found cancelled projects:", projects.length);
       res.json(projects);
     } catch (error: any) {
       console.error("Error fetching cancelled projects:", error);
