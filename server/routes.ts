@@ -13505,6 +13505,152 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Time Clock API
+  
+  // Get current time clock status for authenticated user
+  app.get("/api/time-clock/current", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const entry = await storage.getCurrentTimeClockEntry(user.id);
+      
+      res.json({ entry });
+    } catch (error: any) {
+      console.error("Error fetching current time clock entry:", error);
+      res.status(500).json({ message: "Failed to fetch current time clock entry" });
+    }
+  });
+
+  // Clock in
+  app.post("/api/time-clock/clock-in", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { location } = req.body;
+      const ipAddress = req.ip || req.connection.remoteAddress;
+      
+      const entry = await storage.clockIn(user.id, user.organizationId, location, ipAddress);
+      
+      // Broadcast to organization for real-time updates
+      broadcastToWebUsers(user.organizationId, 'time_clock_update', {
+        type: 'clock_in',
+        userId: user.id,
+        userName: user.firstName || user.username,
+        entry
+      });
+      
+      res.json({ entry, message: "Successfully clocked in" });
+    } catch (error: any) {
+      console.error("Error clocking in:", error);
+      res.status(500).json({ message: error.message || "Failed to clock in" });
+    }
+  });
+
+  // Clock out
+  app.post("/api/time-clock/clock-out", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { notes } = req.body;
+      
+      const entry = await storage.clockOut(user.id, notes);
+      
+      // Broadcast to organization for real-time updates
+      broadcastToWebUsers(user.organizationId, 'time_clock_update', {
+        type: 'clock_out',
+        userId: user.id,
+        userName: user.firstName || user.username,
+        entry
+      });
+      
+      res.json({ entry, message: "Successfully clocked out" });
+    } catch (error: any) {
+      console.error("Error clocking out:", error);
+      res.status(500).json({ message: error.message || "Failed to clock out" });
+    }
+  });
+
+  // Start break
+  app.post("/api/time-clock/start-break", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      const entry = await storage.startBreak(user.id);
+      
+      // Broadcast to organization for real-time updates
+      broadcastToWebUsers(user.organizationId, 'time_clock_update', {
+        type: 'start_break',
+        userId: user.id,
+        userName: user.firstName || user.username,
+        entry
+      });
+      
+      res.json({ entry, message: "Break started" });
+    } catch (error: any) {
+      console.error("Error starting break:", error);
+      res.status(500).json({ message: error.message || "Failed to start break" });
+    }
+  });
+
+  // End break
+  app.post("/api/time-clock/end-break", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      const entry = await storage.endBreak(user.id);
+      
+      // Broadcast to organization for real-time updates
+      broadcastToWebUsers(user.organizationId, 'time_clock_update', {
+        type: 'end_break',
+        userId: user.id,
+        userName: user.firstName || user.username,
+        entry
+      });
+      
+      res.json({ entry, message: "Break ended" });
+    } catch (error: any) {
+      console.error("Error ending break:", error);
+      res.status(500).json({ message: error.message || "Failed to end break" });
+    }
+  });
+
+  // Get time clock entries for authenticated user
+  app.get("/api/time-clock/entries", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { startDate, endDate } = req.query;
+      
+      const entries = await storage.getTimeClockEntries(
+        user.organizationId,
+        user.id,
+        startDate as string,
+        endDate as string
+      );
+      
+      res.json(entries);
+    } catch (error: any) {
+      console.error("Error fetching time clock entries:", error);
+      res.status(500).json({ message: "Failed to fetch time clock entries" });
+    }
+  });
+
+  // Get organization time clock entries (admin/manager only)
+  app.get("/api/time-clock/organization-entries", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { startDate, endDate, userId } = req.query;
+      
+      const entries = await storage.getTimeClockEntries(
+        user.organizationId,
+        userId ? parseInt(userId as string) : undefined,
+        startDate as string,
+        endDate as string
+      );
+      
+      res.json(entries);
+    } catch (error: any) {
+      console.error("Error fetching organization time clock entries:", error);
+      res.status(500).json({ message: "Failed to fetch organization time clock entries" });
+    }
+  });
+
   // Time Clock Task Triggers API
   
   // Get all time clock task triggers for organization
