@@ -172,7 +172,31 @@ export default function TimeClock() {
         ? `/api/time-clock/organization-entries?${params}`
         : `/api/time-clock/entries?${params}`;
       
-      return apiRequest("GET", endpoint).then(res => res.json());
+      console.log('🕒 TIME CLOCK QUERY:', {
+        isManager,
+        endpoint,
+        dateFilter,
+        userRole: user?.role
+      });
+      
+      return apiRequest("GET", endpoint)
+        .then(res => {
+          console.log('🕒 TIME CLOCK RESPONSE:', {
+            status: res.status,
+            endpoint,
+            isManager
+          });
+          return res.json();
+        })
+        .then(data => {
+          console.log('🕒 TIME CLOCK DATA:', {
+            dataLength: data.length,
+            endpoint,
+            isManager,
+            firstEntry: data[0]
+          });
+          return data;
+        });
     },
   });
 
