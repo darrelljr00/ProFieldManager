@@ -13505,6 +13505,183 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Time Clock Task Triggers API
+  
+  // Get all time clock task triggers for organization
+  app.get("/api/timeclock/triggers", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { userId } = req.query;
+      
+      const triggers = await storage.getTimeClockTaskTriggers(
+        user.organizationId,
+        userId ? parseInt(userId as string) : undefined
+      );
+      
+      res.json(triggers);
+    } catch (error: any) {
+      console.error("Error fetching time clock triggers:", error);
+      res.status(500).json({ message: "Failed to fetch time clock triggers" });
+    }
+  });
+
+  // Get a specific time clock task trigger
+  app.get("/api/timeclock/triggers/:id", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { id } = req.params;
+      
+      const trigger = await storage.getTimeClockTaskTrigger(parseInt(id), user.organizationId);
+      
+      if (!trigger) {
+        return res.status(404).json({ message: "Time clock trigger not found" });
+      }
+      
+      res.json(trigger);
+    } catch (error: any) {
+      console.error("Error fetching time clock trigger:", error);
+      res.status(500).json({ message: "Failed to fetch time clock trigger" });
+    }
+  });
+
+  // Create a new time clock task trigger
+  app.post("/api/timeclock/triggers", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      const triggerData = {
+        ...req.body,
+        organizationId: user.organizationId,
+        createdBy: user.id,
+        triggerCount: 0
+      };
+      
+      const trigger = await storage.createTimeClockTaskTrigger(triggerData);
+      
+      // Broadcast to organization for real-time updates
+      const broadcastData = {
+        type: 'timeclock_trigger_created',
+        trigger,
+        triggeredBy: user.firstName || user.username
+      };
+      broadcastToWebUsers(user.organizationId, broadcastData);
+      
+      res.status(201).json(trigger);
+    } catch (error: any) {
+      console.error("Error creating time clock trigger:", error);
+      res.status(500).json({ message: "Failed to create time clock trigger" });
+    }
+  });
+
+  // Update a time clock task trigger
+  app.put("/api/timeclock/triggers/:id", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { id } = req.params;
+      
+      const trigger = await storage.updateTimeClockTaskTrigger(
+        parseInt(id),
+        user.organizationId,
+        req.body
+      );
+      
+      if (!trigger) {
+        return res.status(404).json({ message: "Time clock trigger not found" });
+      }
+      
+      // Broadcast to organization for real-time updates
+      const broadcastData = {
+        type: 'timeclock_trigger_updated',
+        trigger,
+        triggeredBy: user.firstName || user.username
+      };
+      broadcastToWebUsers(user.organizationId, broadcastData);
+      
+      res.json(trigger);
+    } catch (error: any) {
+      console.error("Error updating time clock trigger:", error);
+      res.status(500).json({ message: "Failed to update time clock trigger" });
+    }
+  });
+
+  // Delete a time clock task trigger
+  app.delete("/api/timeclock/triggers/:id", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { id } = req.params;
+      
+      const success = await storage.deleteTimeClockTaskTrigger(parseInt(id), user.organizationId);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Time clock trigger not found" });
+      }
+      
+      // Broadcast to organization for real-time updates
+      const broadcastData = {
+        type: 'timeclock_trigger_deleted',
+        triggerId: parseInt(id),
+        triggeredBy: user.firstName || user.username
+      };
+      broadcastToWebUsers(user.organizationId, broadcastData);
+      
+      res.json({ message: "Time clock trigger deleted successfully" });
+    } catch (error: any) {
+      console.error("Error deleting time clock trigger:", error);
+      res.status(500).json({ message: "Failed to delete time clock trigger" });
+    }
+  });
+
+  // Get active triggers for a specific event type
+  app.get("/api/timeclock/triggers/active/:event", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { event } = req.params;
+      const { userId } = req.query;
+      
+      const triggers = await storage.getActiveTriggersForEvent(
+        user.organizationId,
+        event,
+        userId ? parseInt(userId as string) : undefined
+      );
+      
+      res.json(triggers);
+    } catch (error: any) {
+      console.error("Error fetching active triggers:", error);
+      res.status(500).json({ message: "Failed to fetch active triggers" });
+    }
+  });
+
+  // Manually trigger task creation from a specific trigger
+  app.post("/api/timeclock/triggers/:id/execute", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { id } = req.params;
+      const { targetUserId, eventData } = req.body;
+      
+      const trigger = await storage.getTimeClockTaskTrigger(parseInt(id), user.organizationId);
+      
+      if (!trigger) {
+        return res.status(404).json({ message: "Time clock trigger not found" });
+      }
+      
+      // Use the target user ID if provided, otherwise use current user
+      const userId = targetUserId || user.id;
+      
+      // Process the trigger manually
+      await storage.processTriggerForTimeClockEvent(
+        userId,
+        user.organizationId,
+        trigger.triggerEvent,
+        eventData
+      );
+      
+      res.json({ message: "Trigger executed successfully" });
+    } catch (error: any) {
+      console.error("Error executing trigger:", error);
+      res.status(500).json({ message: "Failed to execute trigger" });
+    }
+  });
+
   // CRITICAL CUSTOM DOMAIN DEBUG ENDPOINT - Test environment variables from custom domain
   app.post('/api/debug/custom-domain-upload-test', requireAuth, upload.single('file'), (req, res) => {
     console.log('🚨 CUSTOM DOMAIN DEBUG ENDPOINT HIT');

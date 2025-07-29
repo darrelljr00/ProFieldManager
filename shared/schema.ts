@@ -608,6 +608,47 @@ export const timeClockSettings = pgTable("time_clock_settings", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Time Clock Task Triggers - Automated task creation on clock in/out events
+export const timeClockTaskTriggers = pgTable("time_clock_task_triggers", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  userId: integer("user_id").references(() => users.id), // null = applies to all users
+  
+  // Trigger configuration
+  triggerEvent: text("trigger_event").notNull(), // 'clock_in', 'clock_out', 'break_start', 'break_end'
+  isActive: boolean("is_active").default(true),
+  
+  // Task configuration
+  taskTitle: text("task_title").notNull(),
+  taskDescription: text("task_description"),
+  taskType: text("task_type").notNull().default("checkbox"), // checkbox, text, number, image
+  isRequired: boolean("is_required").default(false),
+  priority: text("priority").notNull().default("medium"), // low, medium, high, urgent
+  
+  // Assignment rules
+  assignToMode: text("assign_to_mode").notNull().default("trigger_user"), // trigger_user, specific_user, manager, admin
+  assignToUserId: integer("assign_to_user_id").references(() => users.id), // For specific_user mode
+  
+  // Project association
+  projectId: integer("project_id").references(() => projects.id), // null = no specific project
+  createProjectIfNone: boolean("create_project_if_none").default(false),
+  projectTemplate: text("project_template"), // Template for auto-created projects
+  
+  // Scheduling and conditions
+  delayMinutes: integer("delay_minutes").default(0), // Delay before creating task
+  daysOfWeek: text("days_of_week").array(), // Mon, Tue, Wed, Thu, Fri, Sat, Sun - empty = all days
+  timeRange: jsonb("time_range"), // {start: "09:00", end: "17:00"} - null = any time
+  
+  // Frequency controls
+  frequency: text("frequency").default("every_occurrence"), // every_occurrence, once_per_day, once_per_week
+  lastTriggered: timestamp("last_triggered"),
+  triggerCount: integer("trigger_count").default(0),
+  
+  createdBy: integer("created_by").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const userDashboardSettings = pgTable("user_dashboard_settings", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
@@ -2932,3 +2973,14 @@ export const insertVehicleJobAssignmentSchema = createInsertSchema(vehicleJobAss
 // Types
 export type VehicleJobAssignment = typeof vehicleJobAssignments.$inferSelect;
 export type InsertVehicleJobAssignment = z.infer<typeof insertVehicleJobAssignmentSchema>;
+
+// Time Clock Task Triggers Zod schemas
+export const insertTimeClockTaskTriggerSchema = createInsertSchema(timeClockTaskTriggers).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Time Clock Task Triggers Types
+export type TimeClockTaskTrigger = typeof timeClockTaskTriggers.$inferSelect;
+export type InsertTimeClockTaskTrigger = z.infer<typeof insertTimeClockTaskTriggerSchema>;

@@ -12,7 +12,7 @@ import {
   digitalSignatures, documentSignatureFields, departments, employees, employeeDocuments, timeOffRequests, performanceReviews, disciplinaryActions,
   navigationOrder, backupSettings, backupJobs, partsSupplies, partsCategories, inventoryTransactions, stockAlerts,
   filePermissions, folderPermissions, defaultPermissions, userDashboardSettings, dashboardProfiles, vehicles,
-  vehicleMaintenanceIntervals, vehicleMaintenanceRecords, vehicleJobAssignments
+  vehicleMaintenanceIntervals, vehicleMaintenanceRecords, vehicleJobAssignments, timeClockTaskTriggers
 } from "@shared/schema";
 import { marketResearchCompetitors } from "@shared/schema";
 import type { GasCard, InsertGasCard, GasCardAssignment, InsertGasCardAssignment, GasCardUsage, InsertGasCardUsage, GasCardProvider, InsertGasCardProvider } from "@shared/schema";
@@ -299,6 +299,15 @@ export interface IStorage {
   updateTimeClockEntry(id: number, updates: any): Promise<any>;
   getTimeClockSettings(organizationId: number): Promise<any>;
   updateTimeClockSettings(organizationId: number, settings: any): Promise<any>;
+  
+  // Time clock task trigger methods
+  getTimeClockTaskTriggers(organizationId: number, userId?: number): Promise<any[]>;
+  getTimeClockTaskTrigger(id: number, organizationId: number): Promise<any>;
+  createTimeClockTaskTrigger(triggerData: any): Promise<any>;
+  updateTimeClockTaskTrigger(id: number, organizationId: number, updates: any): Promise<any>;
+  deleteTimeClockTaskTrigger(id: number, organizationId: number): Promise<boolean>;
+  getActiveTriggersForEvent(organizationId: number, triggerEvent: string, userId?: number): Promise<any[]>;
+  processTriggerForTimeClockEvent(userId: number, organizationId: number, triggerEvent: string, eventData?: any): Promise<void>;
   
   // Internal messaging methods
   getInternalMessages(userId: number): Promise<any[]>;
@@ -3506,6 +3515,13 @@ export class DatabaseStorage implements IStorage {
       status: "clocked_in"
     }).returning();
 
+    // Process time clock triggers for clock_in event
+    try {
+      await this.processTriggerForTimeClockEvent(userId, organizationId, 'clock_in', { location, ipAddress });
+    } catch (error) {
+      console.error('Failed to process clock_in triggers:', error);
+    }
+
     return entry;
   }
 
@@ -3529,6 +3545,26 @@ export class DatabaseStorage implements IStorage {
       .where(eq(timeClock.id, current.id))
       .returning();
 
+    // Get user's organization ID for trigger processing
+    const [user] = await db.select({ organizationId: users.organizationId })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    // Process time clock triggers for clock_out event
+    try {
+      if (user) {
+        await this.processTriggerForTimeClockEvent(userId, user.organizationId, 'clock_out', { 
+          notes, 
+          totalHours: totalHours.toString(),
+          clockInTime: current.clockInTime,
+          clockOutTime 
+        });
+      }
+    } catch (error) {
+      console.error('Failed to process clock_out triggers:', error);
+    }
+
     return entry;
   }
 
@@ -3549,6 +3585,21 @@ export class DatabaseStorage implements IStorage {
       })
       .where(eq(timeClock.id, current.id))
       .returning();
+
+    // Get user's organization ID for trigger processing
+    const [user] = await db.select({ organizationId: users.organizationId })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    // Process time clock triggers for break_start event
+    try {
+      if (user) {
+        await this.processTriggerForTimeClockEvent(userId, user.organizationId, 'break_start');
+      }
+    } catch (error) {
+      console.error('Failed to process break_start triggers:', error);
+    }
 
     return entry;
   }
@@ -3574,6 +3625,24 @@ export class DatabaseStorage implements IStorage {
       })
       .where(eq(timeClock.id, current.id))
       .returning();
+
+    // Get user's organization ID for trigger processing
+    const [user] = await db.select({ organizationId: users.organizationId })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    // Process time clock triggers for break_end event
+    try {
+      if (user) {
+        await this.processTriggerForTimeClockEvent(userId, user.organizationId, 'break_end', {
+          breakDuration: breakDuration.toString(),
+          totalBreakDuration: totalBreakDuration.toString()
+        });
+      }
+    } catch (error) {
+      console.error('Failed to process break_end triggers:', error);
+    }
 
     return entry;
   }
@@ -3693,6 +3762,253 @@ export class DatabaseStorage implements IStorage {
       return created;
     }
   }
+
+  // Time Clock Task Triggers methods
+  async getTimeClockTaskTriggers(organizationId: number, userId?: number): Promise<any[]> {
+    let whereConditions = [eq(timeClockTaskTriggers.organizationId, organizationId)];
+    
+    if (userId) {
+      whereConditions.push(
+        or(
+          eq(timeClockTaskTriggers.userId, userId),
+          isNull(timeClockTaskTriggers.userId) // Include organization-wide triggers
+        )
+      );
+    }
+
+    const triggers = await db.select({
+      id: timeClockTaskTriggers.id,
+      organizationId: timeClockTaskTriggers.organizationId,
+      userId: timeClockTaskTriggers.userId,
+      triggerEvent: timeClockTaskTriggers.triggerEvent,
+      isActive: timeClockTaskTriggers.isActive,
+      taskTitle: timeClockTaskTriggers.taskTitle,
+      taskDescription: timeClockTaskTriggers.taskDescription,
+      taskType: timeClockTaskTriggers.taskType,
+      isRequired: timeClockTaskTriggers.isRequired,
+      priority: timeClockTaskTriggers.priority,
+      assignToMode: timeClockTaskTriggers.assignToMode,
+      assignToUserId: timeClockTaskTriggers.assignToUserId,
+      projectId: timeClockTaskTriggers.projectId,
+      createProjectIfNone: timeClockTaskTriggers.createProjectIfNone,
+      projectTemplate: timeClockTaskTriggers.projectTemplate,
+      delayMinutes: timeClockTaskTriggers.delayMinutes,
+      daysOfWeek: timeClockTaskTriggers.daysOfWeek,
+      timeRange: timeClockTaskTriggers.timeRange,
+      frequency: timeClockTaskTriggers.frequency,
+      lastTriggered: timeClockTaskTriggers.lastTriggered,
+      triggerCount: timeClockTaskTriggers.triggerCount,
+      createdBy: timeClockTaskTriggers.createdBy,
+      createdAt: timeClockTaskTriggers.createdAt,
+      // Join creator info
+      creatorName: users.firstName,
+      creatorLastName: users.lastName,
+      // Join assigned user info if applicable
+      assignedUserName: sql`assigned_user.first_name`.as('assignedUserName'),
+      assignedUserLastName: sql`assigned_user.last_name`.as('assignedUserLastName'),
+      // Join project info if applicable
+      projectName: projects.name
+    })
+    .from(timeClockTaskTriggers)
+    .leftJoin(users, eq(timeClockTaskTriggers.createdBy, users.id))
+    .leftJoin(sql`users assigned_user`, sql`${timeClockTaskTriggers.assignToUserId} = assigned_user.id`)
+    .leftJoin(projects, eq(timeClockTaskTriggers.projectId, projects.id))
+    .where(and(...whereConditions))
+    .orderBy(desc(timeClockTaskTriggers.createdAt));
+
+    return triggers;
+  }
+
+  async getTimeClockTaskTrigger(id: number, organizationId: number): Promise<any> {
+    const [trigger] = await db.select()
+      .from(timeClockTaskTriggers)
+      .leftJoin(users, eq(timeClockTaskTriggers.createdBy, users.id))
+      .leftJoin(projects, eq(timeClockTaskTriggers.projectId, projects.id))
+      .where(and(
+        eq(timeClockTaskTriggers.id, id),
+        eq(timeClockTaskTriggers.organizationId, organizationId)
+      ))
+      .limit(1);
+
+    return trigger;
+  }
+
+  async createTimeClockTaskTrigger(triggerData: any): Promise<any> {
+    const [trigger] = await db.insert(timeClockTaskTriggers)
+      .values({
+        ...triggerData,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning();
+
+    return trigger;
+  }
+
+  async updateTimeClockTaskTrigger(id: number, organizationId: number, updates: any): Promise<any> {
+    const [trigger] = await db.update(timeClockTaskTriggers)
+      .set({
+        ...updates,
+        updatedAt: new Date()
+      })
+      .where(and(
+        eq(timeClockTaskTriggers.id, id),
+        eq(timeClockTaskTriggers.organizationId, organizationId)
+      ))
+      .returning();
+
+    return trigger;
+  }
+
+  async deleteTimeClockTaskTrigger(id: number, organizationId: number): Promise<boolean> {
+    const result = await db.delete(timeClockTaskTriggers)
+      .where(and(
+        eq(timeClockTaskTriggers.id, id),
+        eq(timeClockTaskTriggers.organizationId, organizationId)
+      ));
+
+    return result.rowCount > 0;
+  }
+
+  async getActiveTriggersForEvent(organizationId: number, triggerEvent: string, userId?: number): Promise<any[]> {
+    let whereConditions = [
+      eq(timeClockTaskTriggers.organizationId, organizationId),
+      eq(timeClockTaskTriggers.triggerEvent, triggerEvent),
+      eq(timeClockTaskTriggers.isActive, true)
+    ];
+
+    if (userId) {
+      whereConditions.push(
+        or(
+          eq(timeClockTaskTriggers.userId, userId),
+          isNull(timeClockTaskTriggers.userId) // Include organization-wide triggers
+        )
+      );
+    }
+
+    const triggers = await db.select()
+      .from(timeClockTaskTriggers)
+      .where(and(...whereConditions))
+      .orderBy(asc(timeClockTaskTriggers.delayMinutes));
+
+    return triggers;
+  }
+
+  async processTriggerForTimeClockEvent(userId: number, organizationId: number, triggerEvent: string, eventData?: any): Promise<void> {
+    // Get active triggers for this event
+    const triggers = await this.getActiveTriggersForEvent(organizationId, triggerEvent, userId);
+    
+    for (const trigger of triggers) {
+      // Check frequency constraints
+      const now = new Date();
+      if (trigger.frequency === 'once_per_day' && trigger.lastTriggered) {
+        const lastTriggered = new Date(trigger.lastTriggered);
+        const daysDiff = Math.floor((now.getTime() - lastTriggered.getTime()) / (1000 * 60 * 60 * 24));
+        if (daysDiff < 1) continue;
+      } else if (trigger.frequency === 'once_per_week' && trigger.lastTriggered) {
+        const lastTriggered = new Date(trigger.lastTriggered);
+        const daysDiff = Math.floor((now.getTime() - lastTriggered.getTime()) / (1000 * 60 * 60 * 24));
+        if (daysDiff < 7) continue;
+      }
+
+      // Check day of week constraints
+      if (trigger.daysOfWeek && trigger.daysOfWeek.length > 0) {
+        const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const currentDay = dayNames[now.getDay()];
+        if (!trigger.daysOfWeek.includes(currentDay)) continue;
+      }
+
+      // Check time range constraints
+      if (trigger.timeRange) {
+        const currentTime = now.toTimeString().slice(0, 5); // HH:MM format
+        if (trigger.timeRange.start && currentTime < trigger.timeRange.start) continue;
+        if (trigger.timeRange.end && currentTime > trigger.timeRange.end) continue;
+      }
+
+      // Determine who to assign the task to
+      let assignToUserId = userId; // Default to the trigger user
+      if (trigger.assignToMode === 'specific_user' && trigger.assignToUserId) {
+        assignToUserId = trigger.assignToUserId;
+      } else if (trigger.assignToMode === 'manager') {
+        // Find a manager in the organization (simplified)
+        const [manager] = await db.select()
+          .from(users)
+          .where(and(
+            eq(users.organizationId, organizationId),
+            eq(users.role, 'manager')
+          ))
+          .limit(1);
+        if (manager) assignToUserId = manager.id;
+      } else if (trigger.assignToMode === 'admin') {
+        // Find an admin in the organization
+        const [admin] = await db.select()
+          .from(users)
+          .where(and(
+            eq(users.organizationId, organizationId),
+            eq(users.role, 'admin')
+          ))
+          .limit(1);
+        if (admin) assignToUserId = admin.id;
+      }
+
+      // Create the task (with optional delay)
+      const createTask = async () => {
+        try {
+          // Determine project ID
+          let projectId = trigger.projectId;
+          if (!projectId && trigger.createProjectIfNone) {
+            // Create a new project using the template
+            const projectData = {
+              name: trigger.projectTemplate || `Auto-created for ${trigger.taskTitle}`,
+              description: `Project automatically created by time clock trigger: ${trigger.taskTitle}`,
+              organizationId,
+              createdBy: userId,
+              status: 'active'
+            };
+            const newProject = await this.createProject(projectData);
+            projectId = newProject.id;
+          }
+
+          // Create the task
+          const taskData = {
+            title: trigger.taskTitle,
+            description: trigger.taskDescription,
+            type: trigger.taskType,
+            isRequired: trigger.isRequired,
+            priority: trigger.priority,
+            userId: assignToUserId,
+            organizationId,
+            projectId,
+            isCompleted: false,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          };
+
+          await this.createTask(taskData);
+
+          // Update trigger statistics
+          await db.update(timeClockTaskTriggers)
+            .set({
+              lastTriggered: new Date(),
+              triggerCount: sql`${timeClockTaskTriggers.triggerCount} + 1`,
+              updatedAt: new Date()
+            })
+            .where(eq(timeClockTaskTriggers.id, trigger.id));
+
+        } catch (error) {
+          console.error('Failed to create task from trigger:', error);
+        }
+      };
+
+      // Execute with delay if specified
+      if (trigger.delayMinutes > 0) {
+        setTimeout(createTask, trigger.delayMinutes * 60 * 1000);
+      } else {
+        await createTask();
+      }
+    }
+  }
+
   // Image methods
   async createImage(imageData: any): Promise<any> {
     try {

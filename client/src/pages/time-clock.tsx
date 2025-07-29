@@ -9,6 +9,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
@@ -26,7 +29,13 @@ import {
   Users,
   Eye,
   Download,
-  Filter
+  Filter,
+  Plus,
+  Edit,
+  Trash2,
+  CheckCircle,
+  AlertCircle,
+  PlayCircle
 } from "lucide-react";
 
 interface TimeClockEntry {
@@ -62,6 +71,37 @@ interface LocationData {
   address?: string;
 }
 
+interface TimeClockTaskTrigger {
+  id: number;
+  organizationId: number;
+  userId?: number;
+  triggerEvent: 'clock_in' | 'clock_out' | 'break_start' | 'break_end';
+  isActive: boolean;
+  taskTitle: string;
+  taskDescription: string;
+  taskType: string;
+  isRequired: boolean;
+  priority: 'low' | 'medium' | 'high';
+  assignToMode: 'trigger_user' | 'specific_user' | 'manager' | 'admin';
+  assignToUserId?: number;
+  projectId?: number;
+  createProjectIfNone: boolean;
+  projectTemplate?: string;
+  delayMinutes: number;
+  daysOfWeek: string[];
+  timeRange?: { start: string; end: string };
+  frequency: 'every_time' | 'once_per_day' | 'once_per_week';
+  lastTriggered?: string;
+  triggerCount: number;
+  createdBy: number;
+  createdAt: string;
+  creatorName?: string;
+  creatorLastName?: string;
+  assignedUserName?: string;
+  assignedUserLastName?: string;
+  projectName?: string;
+}
+
 export default function TimeClock() {
   const [clockOutNotes, setClockOutNotes] = useState("");
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -72,6 +112,26 @@ export default function TimeClock() {
   });
   const [showLocationMap, setShowLocationMap] = useState(false);
   const [selectedEntryLocations, setSelectedEntryLocations] = useState<LocationData[]>([]);
+  const [showTriggerDialog, setShowTriggerDialog] = useState(false);
+  const [editingTrigger, setEditingTrigger] = useState<TimeClockTaskTrigger | null>(null);
+  const [triggerForm, setTriggerForm] = useState({
+    triggerEvent: 'clock_in' as const,
+    isActive: true,
+    taskTitle: '',
+    taskDescription: '',
+    taskType: 'general',
+    isRequired: false,
+    priority: 'medium' as const,
+    assignToMode: 'trigger_user' as const,
+    assignToUserId: undefined as number | undefined,
+    projectId: undefined as number | undefined,
+    createProjectIfNone: false,
+    projectTemplate: '',
+    delayMinutes: 0,
+    daysOfWeek: [] as string[],
+    timeRange: undefined as { start: string; end: string } | undefined,
+    frequency: 'every_time' as const
+  });
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -236,6 +296,153 @@ export default function TimeClock() {
     },
   });
 
+  // Task triggers queries and mutations
+  const { data: triggers = [], isLoading: triggersLoading, refetch: refetchTriggers } = useQuery({
+    queryKey: ["/api/timeclock/triggers"],
+    enabled: isManager || isAdmin,
+  });
+
+  const { data: projects = [] } = useQuery({
+    queryKey: ["/api/projects"],
+    enabled: isManager || isAdmin,
+  });
+
+  const createTriggerMutation = useMutation({
+    mutationFn: (data: any) => apiRequest("POST", "/api/timeclock/triggers", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/timeclock/triggers"] });
+      setShowTriggerDialog(false);
+      resetTriggerForm();
+      toast({
+        title: "Trigger Created",
+        description: "Task trigger has been created successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to Create Trigger",
+        description: error.message || "Failed to create task trigger",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateTriggerMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: any }) => 
+      apiRequest("PUT", `/api/timeclock/triggers/${id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/timeclock/triggers"] });
+      setShowTriggerDialog(false);
+      setEditingTrigger(null);
+      resetTriggerForm();
+      toast({
+        title: "Trigger Updated",
+        description: "Task trigger has been updated successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to Update Trigger",
+        description: error.message || "Failed to update task trigger",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteTriggerMutation = useMutation({
+    mutationFn: (id: number) => apiRequest("DELETE", `/api/timeclock/triggers/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/timeclock/triggers"] });
+      toast({
+        title: "Trigger Deleted",
+        description: "Task trigger has been deleted successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to Delete Trigger",
+        description: error.message || "Failed to delete task trigger",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const executeTriggerMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data?: any }) => 
+      apiRequest("POST", `/api/timeclock/triggers/${id}/execute`, data || {}),
+    onSuccess: () => {
+      toast({
+        title: "Trigger Executed",
+        description: "Task trigger has been executed successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to Execute Trigger",
+        description: error.message || "Failed to execute task trigger",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const resetTriggerForm = () => {
+    setTriggerForm({
+      triggerEvent: 'clock_in',
+      isActive: true,
+      taskTitle: '',
+      taskDescription: '',
+      taskType: 'general',
+      isRequired: false,
+      priority: 'medium',
+      assignToMode: 'trigger_user',
+      assignToUserId: undefined,
+      projectId: undefined,
+      createProjectIfNone: false,
+      projectTemplate: '',
+      delayMinutes: 0,
+      daysOfWeek: [],
+      timeRange: undefined,
+      frequency: 'every_time'
+    });
+  };
+
+  const handleCreateTrigger = () => {
+    setEditingTrigger(null);
+    resetTriggerForm();
+    setShowTriggerDialog(true);
+  };
+
+  const handleEditTrigger = (trigger: TimeClockTaskTrigger) => {
+    setEditingTrigger(trigger);
+    setTriggerForm({
+      triggerEvent: trigger.triggerEvent,
+      isActive: trigger.isActive,
+      taskTitle: trigger.taskTitle,
+      taskDescription: trigger.taskDescription,
+      taskType: trigger.taskType,
+      isRequired: trigger.isRequired,
+      priority: trigger.priority,
+      assignToMode: trigger.assignToMode,
+      assignToUserId: trigger.assignToUserId,
+      projectId: trigger.projectId,
+      createProjectIfNone: trigger.createProjectIfNone,
+      projectTemplate: trigger.projectTemplate || '',
+      delayMinutes: trigger.delayMinutes,
+      daysOfWeek: trigger.daysOfWeek,
+      timeRange: trigger.timeRange,
+      frequency: trigger.frequency
+    });
+    setShowTriggerDialog(true);
+  };
+
+  const handleSaveTrigger = () => {
+    if (editingTrigger) {
+      updateTriggerMutation.mutate({ id: editingTrigger.id, data: triggerForm });
+    } else {
+      createTriggerMutation.mutate(triggerForm);
+    }
+  };
+
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString('en-US', { 
       hour12: true,
@@ -390,6 +597,12 @@ export default function TimeClock() {
             <TabsTrigger value="management">
               <Users className="h-4 w-4 mr-2" />
               Team Management
+            </TabsTrigger>
+          )}
+          {(isManager || isAdmin) && (
+            <TabsTrigger value="triggers">
+              <Timer className="h-4 w-4 mr-2" />
+              Task Triggers
             </TabsTrigger>
           )}
           <TabsTrigger value="settings">
@@ -779,6 +992,392 @@ export default function TimeClock() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+        )}
+
+        {/* Task Triggers Tab */}
+        {(isManager || isAdmin) && (
+          <TabsContent value="triggers" className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold">Task Triggers</h2>
+                <p className="text-muted-foreground">
+                  Automatically create tasks when employees clock in, out, or take breaks
+                </p>
+              </div>
+              <Button onClick={handleCreateTrigger} className="flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                Create Trigger
+              </Button>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Timer className="h-5 w-5" />
+                  Active Triggers
+                </CardTitle>
+                <CardDescription>
+                  Manage automatic task creation based on time clock events
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {triggersLoading ? (
+                  <div className="flex items-center justify-center h-32">
+                    <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full" />
+                  </div>
+                ) : triggers.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Timer className="h-12 w-12 mx-auto mb-2 text-muted-foreground" />
+                    <p className="text-muted-foreground">No task triggers configured</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Create triggers to automatically generate tasks when employees clock in, out, or take breaks
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {triggers.map((trigger: TimeClockTaskTrigger) => (
+                      <div
+                        key={trigger.id}
+                        className="border rounded-lg p-4 space-y-3"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-medium">{trigger.taskTitle}</h3>
+                              <Badge variant={trigger.isActive ? "default" : "secondary"}>
+                                {trigger.isActive ? "Active" : "Inactive"}
+                              </Badge>
+                              <Badge variant="outline">
+                                {trigger.triggerEvent.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              {trigger.taskDescription}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEditTrigger(trigger)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => executeTriggerMutation.mutate({ id: trigger.id })}
+                              disabled={executeTriggerMutation.isPending}
+                            >
+                              <PlayCircle className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => deleteTriggerMutation.mutate(trigger.id)}
+                              disabled={deleteTriggerMutation.isPending}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                          <div>
+                            <span className="font-medium">Priority:</span>
+                            <Badge variant="outline" className="ml-1">
+                              {trigger.priority}
+                            </Badge>
+                          </div>
+                          <div>
+                            <span className="font-medium">Type:</span>
+                            <span className="ml-1">{trigger.taskType}</span>
+                          </div>
+                          <div>
+                            <span className="font-medium">Frequency:</span>
+                            <span className="ml-1">{trigger.frequency.replace('_', ' ')}</span>
+                          </div>
+                          <div>
+                            <span className="font-medium">Delay:</span>
+                            <span className="ml-1">{trigger.delayMinutes}m</span>
+                          </div>
+                        </div>
+
+                        {trigger.assignToMode !== 'trigger_user' && (
+                          <div className="text-sm">
+                            <span className="font-medium">Assigned to:</span>
+                            <span className="ml-1">
+                              {trigger.assignToMode === 'specific_user' && trigger.assignedUserName
+                                ? `${trigger.assignedUserName} ${trigger.assignedUserLastName}`
+                                : trigger.assignToMode.replace('_', ' ')}
+                            </span>
+                          </div>
+                        )}
+
+                        {trigger.projectId && trigger.projectName && (
+                          <div className="text-sm">
+                            <span className="font-medium">Project:</span>
+                            <span className="ml-1">{trigger.projectName}</span>
+                          </div>
+                        )}
+
+                        {trigger.triggerCount > 0 && (
+                          <div className="text-sm text-muted-foreground">
+                            Triggered {trigger.triggerCount} times
+                            {trigger.lastTriggered && (
+                              <span className="ml-1">
+                                • Last: {new Date(trigger.lastTriggered).toLocaleDateString()}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Task Trigger Dialog */}
+            <Dialog open={showTriggerDialog} onOpenChange={setShowTriggerDialog}>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>
+                    {editingTrigger ? "Edit Task Trigger" : "Create Task Trigger"}
+                  </DialogTitle>
+                  <DialogDescription>
+                    Configure automatic task creation based on time clock events
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="space-y-4">
+                  {/* Basic Information */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="taskTitle">Task Title</Label>
+                      <Input
+                        id="taskTitle"
+                        value={triggerForm.taskTitle}
+                        onChange={(e) => setTriggerForm(prev => ({ ...prev, taskTitle: e.target.value }))}
+                        placeholder="e.g., Daily Safety Check"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="triggerEvent">Trigger Event</Label>
+                      <Select 
+                        value={triggerForm.triggerEvent} 
+                        onValueChange={(value: any) => setTriggerForm(prev => ({ ...prev, triggerEvent: value }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="clock_in">Clock In</SelectItem>
+                          <SelectItem value="clock_out">Clock Out</SelectItem>
+                          <SelectItem value="break_start">Break Start</SelectItem>
+                          <SelectItem value="break_end">Break End</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="taskDescription">Task Description</Label>
+                    <Textarea
+                      id="taskDescription"
+                      value={triggerForm.taskDescription}
+                      onChange={(e) => setTriggerForm(prev => ({ ...prev, taskDescription: e.target.value }))}
+                      placeholder="Detailed description of the task..."
+                      rows={3}
+                    />
+                  </div>
+
+                  {/* Task Settings */}
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="taskType">Task Type</Label>
+                      <Input
+                        id="taskType"
+                        value={triggerForm.taskType}
+                        onChange={(e) => setTriggerForm(prev => ({ ...prev, taskType: e.target.value }))}
+                        placeholder="e.g., safety, inspection"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="priority">Priority</Label>
+                      <Select 
+                        value={triggerForm.priority} 
+                        onValueChange={(value: any) => setTriggerForm(prev => ({ ...prev, priority: value }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="low">Low</SelectItem>
+                          <SelectItem value="medium">Medium</SelectItem>
+                          <SelectItem value="high">High</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="delayMinutes">Delay (minutes)</Label>
+                      <Input
+                        id="delayMinutes"
+                        type="number"
+                        value={triggerForm.delayMinutes}
+                        onChange={(e) => setTriggerForm(prev => ({ ...prev, delayMinutes: parseInt(e.target.value) || 0 }))}
+                        min="0"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Assignment Settings */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="assignToMode">Assign To</Label>
+                      <Select 
+                        value={triggerForm.assignToMode} 
+                        onValueChange={(value: any) => setTriggerForm(prev => ({ ...prev, assignToMode: value }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="trigger_user">User Who Triggered</SelectItem>
+                          <SelectItem value="specific_user">Specific User</SelectItem>
+                          <SelectItem value="manager">Manager</SelectItem>
+                          <SelectItem value="admin">Admin</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {triggerForm.assignToMode === 'specific_user' && (
+                      <div className="space-y-2">
+                        <Label htmlFor="assignToUserId">Select User</Label>
+                        <Select 
+                          value={triggerForm.assignToUserId?.toString() || ""} 
+                          onValueChange={(value) => setTriggerForm(prev => ({ ...prev, assignToUserId: parseInt(value) || undefined }))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select user" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {users.map((user: any) => (
+                              <SelectItem key={user.id} value={user.id.toString()}>
+                                {user.firstName} {user.lastName}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Project Settings */}
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="projectId">Project (Optional)</Label>
+                      <Select 
+                        value={triggerForm.projectId?.toString() || ""} 
+                        onValueChange={(value) => setTriggerForm(prev => ({ ...prev, projectId: value ? parseInt(value) : undefined }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select project or leave empty" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">No specific project</SelectItem>
+                          {projects.map((project: any) => (
+                            <SelectItem key={project.id} value={project.id.toString()}>
+                              {project.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="createProjectIfNone"
+                        checked={triggerForm.createProjectIfNone}
+                        onCheckedChange={(checked) => setTriggerForm(prev => ({ ...prev, createProjectIfNone: !!checked }))}
+                      />
+                      <Label htmlFor="createProjectIfNone">
+                        Create project if none selected
+                      </Label>
+                    </div>
+
+                    {triggerForm.createProjectIfNone && (
+                      <div className="space-y-2">
+                        <Label htmlFor="projectTemplate">Project Template</Label>
+                        <Input
+                          id="projectTemplate"
+                          value={triggerForm.projectTemplate}
+                          onChange={(e) => setTriggerForm(prev => ({ ...prev, projectTemplate: e.target.value }))}
+                          placeholder="e.g., Daily Tasks - {date}"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Frequency and Schedule */}
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="frequency">Frequency</Label>
+                      <Select 
+                        value={triggerForm.frequency} 
+                        onValueChange={(value: any) => setTriggerForm(prev => ({ ...prev, frequency: value }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="every_time">Every Time</SelectItem>
+                          <SelectItem value="once_per_day">Once Per Day</SelectItem>
+                          <SelectItem value="once_per_week">Once Per Week</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="isRequired"
+                        checked={triggerForm.isRequired}
+                        onCheckedChange={(checked) => setTriggerForm(prev => ({ ...prev, isRequired: !!checked }))}
+                      />
+                      <Label htmlFor="isRequired">
+                        Mark task as required
+                      </Label>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="isActive"
+                        checked={triggerForm.isActive}
+                        onCheckedChange={(checked) => setTriggerForm(prev => ({ ...prev, isActive: checked }))}
+                      />
+                      <Label htmlFor="isActive">
+                        Trigger is active
+                      </Label>
+                    </div>
+                  </div>
+                </div>
+
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setShowTriggerDialog(false)}>
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={handleSaveTrigger}
+                    disabled={!triggerForm.taskTitle || createTriggerMutation.isPending || updateTriggerMutation.isPending}
+                  >
+                    {createTriggerMutation.isPending || updateTriggerMutation.isPending ? (
+                      <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2" />
+                    ) : null}
+                    {editingTrigger ? "Update Trigger" : "Create Trigger"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </TabsContent>
         )}
 
