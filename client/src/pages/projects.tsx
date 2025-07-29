@@ -216,7 +216,7 @@ function HistoricalJobs() {
                       <SelectValue placeholder="Select team member" />
                     </SelectTrigger>
                     <SelectContent>
-                      {users.map((user) => (
+                      {users.map((user: any) => (
                         <SelectItem key={user.id} value={user.id?.toString() || ""}>
                           {user.firstName} {user.lastName}
                         </SelectItem>
@@ -795,7 +795,7 @@ export default function Jobs() {
       
       toast({
         title: "Users assigned successfully",
-        description: `${response.assignmentsCount} team members have been added to the project.`,
+        description: `${(response as any).assignmentsCount || userIds.length} team members have been added to the project.`,
       });
 
       // Refresh project data
