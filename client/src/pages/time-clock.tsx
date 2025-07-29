@@ -1278,14 +1278,14 @@ export default function TimeClock() {
                     <div className="space-y-2">
                       <Label htmlFor="projectId">Project (Optional)</Label>
                       <Select 
-                        value={triggerForm.projectId?.toString() || ""} 
-                        onValueChange={(value) => setTriggerForm(prev => ({ ...prev, projectId: value ? parseInt(value) : undefined }))}
+                        value={triggerForm.projectId?.toString() || "none"} 
+                        onValueChange={(value) => setTriggerForm(prev => ({ ...prev, projectId: value === "none" ? undefined : parseInt(value) }))}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select project or leave empty" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">No specific project</SelectItem>
+                          <SelectItem value="none">No specific project</SelectItem>
                           {projects.map((project: any) => (
                             <SelectItem key={project.id} value={project.id.toString()}>
                               {project.name}
