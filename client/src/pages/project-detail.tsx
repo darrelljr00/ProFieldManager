@@ -123,6 +123,30 @@ export default function ProjectDetail() {
   const { data: files = [] } = useQuery<ProjectFile[]>({
     queryKey: ["/api/projects", projectId, "files"],
     enabled: !!projectId,
+    select: (data) => {
+      console.log('🗂️ PROJECT FILES API RESPONSE:', data);
+      
+      // Debug July 26 files specifically
+      const july26Files = data?.filter((file: any) => 
+        ['missing images.JPG', 'failed to load.JPG', '7519099369553255047.jpg'].includes(file.originalName)
+      ) || [];
+      
+      console.log('🔍 JULY 26 FILES FROM API:', july26Files);
+      july26Files.forEach((file: any) => {
+        console.log('📋 File Debug:', {
+          id: file.id,
+          originalName: file.originalName,
+          fileName: file.fileName,
+          filePath: file.filePath,
+          cloudinaryUrl: file.cloudinaryUrl,
+          fileType: file.fileType,
+          mimeType: file.mimeType,
+          uploadedBy: file.uploadedBy
+        });
+      });
+      
+      return data;
+    }
   });
 
   const { data: timeEntries = [] } = useQuery<TimeEntry[]>({
