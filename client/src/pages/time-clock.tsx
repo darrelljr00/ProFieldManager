@@ -672,7 +672,7 @@ export default function TimeClock() {
                 <CardDescription>Clock in, out, or manage breaks</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {!currentEntry && (
+                {(!currentEntry || !currentEntry.id) && (
                   <Button 
                     onClick={() => clockInMutation.mutate()}
                     disabled={clockInMutation.isPending}
