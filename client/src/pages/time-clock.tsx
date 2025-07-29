@@ -201,6 +201,7 @@ export default function TimeClock() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/time-clock/current"] });
       queryClient.invalidateQueries({ queryKey: ["/api/time-clock/entries"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/time-clock/organization-entries"] });
       toast({
         title: "Clocked In",
         description: "Successfully clocked in for work",
@@ -243,6 +244,7 @@ export default function TimeClock() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/time-clock/current"] });
       queryClient.invalidateQueries({ queryKey: ["/api/time-clock/entries"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/time-clock/organization-entries"] });
       setClockOutNotes("");
       toast({
         title: "Clocked Out",
@@ -263,6 +265,7 @@ export default function TimeClock() {
     mutationFn: () => apiRequest("POST", "/api/time-clock/start-break"),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/time-clock/current"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/time-clock/organization-entries"] });
       toast({
         title: "Break Started",
         description: "You are now on break",
@@ -282,6 +285,7 @@ export default function TimeClock() {
     mutationFn: () => apiRequest("POST", "/api/time-clock/end-break"),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/time-clock/current"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/time-clock/organization-entries"] });
       toast({
         title: "Break Ended",
         description: "You are back to work",
