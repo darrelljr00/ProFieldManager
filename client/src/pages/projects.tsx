@@ -487,21 +487,6 @@ export default function Jobs() {
 
   const { data: jobs = [], isLoading } = useQuery<ProjectWithDetails[]>({
     queryKey: ["/api/projects"],
-    select: (data) => {
-      console.log('🏗️ ALL PROJECTS API RESPONSE:', data);
-      console.log('🏗️ ALL PROJECTS COUNT:', data?.length || 0);
-      
-      // Check specifically for project 49
-      const project49 = data?.find((p: any) => p.id === 49);
-      if (project49) {
-        console.log('✅ PROJECT 49 FOUND IN ALL PROJECTS:', project49);
-      } else {
-        console.log('❌ PROJECT 49 NOT FOUND IN ALL PROJECTS');
-        console.log('🔍 All project IDs:', data?.map((p: any) => p.id) || []);
-      }
-      
-      return data;
-    }
   });
 
   const { data: customers = [] } = useQuery<Customer[]>({
@@ -945,8 +930,6 @@ export default function Jobs() {
   };
 
   const categorizeJobs = () => {
-    console.log('🔄 CATEGORIZING JOBS - Total jobs:', jobs.length);
-    
     const upcoming = jobs.filter(job => 
       job.status === 'planning' || 
       (job.status === 'active' && job.startDate && new Date(job.startDate) > new Date())
@@ -963,29 +946,9 @@ export default function Jobs() {
       job.status === 'delivered' || 
       job.progress === 100
     );
-    
-    console.log('📊 CATEGORIZATION RESULTS:');
-    console.log('  - Upcoming:', upcoming.length);
-    console.log('  - In Progress:', inProgress.length);
-    console.log('  - All Completed:', allCompleted.length);
-    console.log('  - Completed IDs:', allCompleted.map(j => j.id));
-    
-    // Check if project 49 is in completed
-    const project49InCompleted = allCompleted.find(j => j.id === 49);
-    if (project49InCompleted) {
-      console.log('✅ PROJECT 49 IS IN COMPLETED CATEGORY:', project49InCompleted);
-    } else {
-      console.log('❌ PROJECT 49 NOT IN COMPLETED CATEGORY');
-      // Check what status project 49 has
-      const project49 = jobs.find(j => j.id === 49);
-      if (project49) {
-        console.log('📝 PROJECT 49 STATUS:', project49.status, 'PROGRESS:', project49.progress);
-      }
-    }
 
     // Apply search filters to completed jobs
     const completed = filterCompletedJobs(allCompleted);
-    console.log('  - Filtered Completed:', completed.length);
 
     return { upcoming, inProgress, completed, allCompleted };
   };

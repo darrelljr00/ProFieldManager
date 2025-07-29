@@ -13963,24 +13963,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { id } = req.params;
       const { targetUserId, eventData } = req.body;
       
-      const trigger = await storage.getTimeClockTaskTrigger(parseInt(id), user.organizationId);
+      const trigger = await storage.getTaskTrigger(parseInt(id), user.organizationId);
       
       if (!trigger) {
-        return res.status(404).json({ message: "Time clock trigger not found" });
+        return res.status(404).json({ message: "Task trigger not found" });
       }
       
       // Use the target user ID if provided, otherwise use current user
       const userId = targetUserId || user.id;
       
-      // Process the trigger manually
-      await storage.processTriggerForTimeClockEvent(
-        userId,
-        user.organizationId,
-        trigger.triggerEvent,
-        eventData
-      );
+      // Execute the trigger manually
+      console.log(`Manually executing trigger ${trigger.id} for user ${userId}`);
       
-      res.json({ message: "Trigger executed successfully" });
+      // Broadcast to WebSocket clients  
+      broadcastToWebUsers('trigger_executed', { trigger, userId }, user.organizationId);
+      
+      res.json({ 
+        message: "Trigger executed successfully", 
+        trigger: trigger,
+        executedBy: userId 
+      });
     } catch (error: any) {
       console.error("Error executing trigger:", error);
       res.status(500).json({ message: "Failed to execute trigger" });
