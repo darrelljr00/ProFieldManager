@@ -321,8 +321,15 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
           <span>⚠️ Image not available on custom domain</span>
         </div>;
       }
-      // 4. Last resort: Use local path for Replit domains only
+      // 4. Enhanced fallback: Check for local files and handle missing files gracefully
       else {
+        // Check if it's a known missing file pattern and show error instead
+        if (file.filePath.includes('compressed-') || file.filePath.includes('timestamped-')) {
+          console.error('🚨 MISSING FILE: Compressed/timestamped file not found:', file.filePath);
+          return <div className="w-full h-full flex items-center justify-center bg-yellow-100 text-yellow-800 text-sm">
+            <span>⚠️ File no longer available</span>
+          </div>;
+        }
         imageUrl = file.filePath.startsWith('/') ? file.filePath : `/${file.filePath}`;
         console.log('📁 FALLBACK: Using local file URL (Replit domain only):', imageUrl);
       }
