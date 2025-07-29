@@ -1259,9 +1259,11 @@ export class DatabaseStorage implements IStorage {
 
   async getDeletedProjects(organizationId: number, userId?: number): Promise<any[]> {
     try {
+      console.log(`Fetching deleted projects for org ${organizationId}, user ${userId}`);
+      
       if (userId) {
-        const result = await db.execute(sql`
-          SELECT 
+        const result = await db.execute(
+          sql`SELECT 
             p.id,
             p.user_id as "userId",
             p.name,
@@ -1294,12 +1296,13 @@ export class DatabaseStorage implements IStorage {
           LEFT JOIN tasks t ON p.id = t.project_id
           WHERE p.status = 'deleted' AND u.organization_id = ${organizationId} AND p.user_id = ${userId}
           GROUP BY p.id, u.id, u.first_name, u.last_name, u.email
-          ORDER BY p.updated_at DESC
-        `);
+          ORDER BY p.updated_at DESC`
+        );
+        console.log(`Found ${result.rows.length} deleted projects for specific user`);
         return result.rows as any[];
       } else {
-        const result = await db.execute(sql`
-          SELECT 
+        const result = await db.execute(
+          sql`SELECT 
             p.id,
             p.user_id as "userId",
             p.name,
@@ -1332,13 +1335,14 @@ export class DatabaseStorage implements IStorage {
           LEFT JOIN tasks t ON p.id = t.project_id
           WHERE p.status = 'deleted' AND u.organization_id = ${organizationId}
           GROUP BY p.id, u.id, u.first_name, u.last_name, u.email
-          ORDER BY p.updated_at DESC
-        `);
+          ORDER BY p.updated_at DESC`
+        );
+        console.log(`Found ${result.rows.length} deleted projects for all users`);
         return result.rows as any[];
       }
     } catch (error) {
       console.error('Error fetching deleted projects:', error);
-      return [];
+      throw error; // Re-throw to see the actual error
     }
   }
 
