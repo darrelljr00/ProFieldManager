@@ -108,7 +108,7 @@ export default function TimeClock() {
   const [selectedUser, setSelectedUser] = useState<string>("all");
   const [dateFilter, setDateFilter] = useState({
     startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    endDate: new Date().toISOString().split('T')[0]
+    endDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0] // Include tomorrow to catch today's entries
   });
   const [showLocationMap, setShowLocationMap] = useState(false);
   const [selectedEntryLocations, setSelectedEntryLocations] = useState<LocationData[]>([]);

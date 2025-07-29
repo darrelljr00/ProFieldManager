@@ -3655,7 +3655,10 @@ export class DatabaseStorage implements IStorage {
     }
 
     if (endDate) {
-      whereConditions.push(lte(timeClock.clockInTime, endDate));
+      // Add 1 day to endDate to include entries from the entire end date
+      const endDatePlusOne = new Date(endDate);
+      endDatePlusOne.setDate(endDatePlusOne.getDate() + 1);
+      whereConditions.push(lte(timeClock.clockInTime, endDatePlusOne));
     }
 
     const entries = await db.select({
@@ -3697,7 +3700,10 @@ export class DatabaseStorage implements IStorage {
     }
 
     if (endDate) {
-      whereConditions.push(lte(timeClock.clockInTime, endDate));
+      // Add 1 day to endDate to include entries from the entire end date
+      const endDatePlusOne = new Date(endDate);
+      endDatePlusOne.setDate(endDatePlusOne.getDate() + 1);
+      whereConditions.push(lte(timeClock.clockInTime, endDatePlusOne));
     }
 
     const entries = await db.select({
