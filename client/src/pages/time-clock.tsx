@@ -626,32 +626,32 @@ export default function TimeClock() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {currentEntry ? (
+                {currentEntry?.entry ? (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <span>Status:</span>
-                      {getStatusBadge(currentEntry.status)}
+                      {getStatusBadge(currentEntry.entry.status)}
                     </div>
                     
                     <div className="flex items-center justify-between">
                       <span>Clocked in at:</span>
                       <span className="font-mono">
-                        {new Date(currentEntry.clockInTime).toLocaleTimeString('en-US', { hour12: true })}
+                        {new Date(currentEntry.entry.clockInTime).toLocaleTimeString('en-US', { hour12: true })}
                       </span>
                     </div>
                     
                     <div className="flex items-center justify-between">
                       <span>Duration:</span>
                       <span className="font-mono">
-                        {formatDuration(currentEntry.clockInTime)}
+                        {formatDuration(currentEntry.entry.clockInTime)}
                       </span>
                     </div>
 
-                    {currentEntry.status === 'on_break' && currentEntry.breakStart && (
+                    {currentEntry.entry.status === 'on_break' && currentEntry.entry.breakStart && (
                       <div className="flex items-center justify-between">
                         <span>Break started:</span>
                         <span className="font-mono">
-                          {new Date(currentEntry.breakStart).toLocaleTimeString('en-US', { hour12: true })}
+                          {new Date(currentEntry.entry.breakStart).toLocaleTimeString('en-US', { hour12: true })}
                         </span>
                       </div>
                     )}
@@ -672,7 +672,7 @@ export default function TimeClock() {
                 <CardDescription>Clock in, out, or manage breaks</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {(!currentEntry || !currentEntry.id) && (
+                {(!currentEntry?.entry || !currentEntry.entry.id) && (
                   <Button 
                     onClick={() => clockInMutation.mutate()}
                     disabled={clockInMutation.isPending}
@@ -684,7 +684,7 @@ export default function TimeClock() {
                   </Button>
                 )}
 
-                {currentEntry && currentEntry.status === 'clocked_in' && (
+                {currentEntry?.entry && currentEntry.entry.status === 'clocked_in' && (
                   <div className="space-y-3">
                     <Button
                       onClick={() => startBreakMutation.mutate()}
@@ -719,7 +719,7 @@ export default function TimeClock() {
                   </div>
                 )}
 
-                {currentEntry && currentEntry.status === 'on_break' && (
+                {currentEntry?.entry && currentEntry.entry.status === 'on_break' && (
                   <Button
                     onClick={() => endBreakMutation.mutate()}
                     disabled={endBreakMutation.isPending}
