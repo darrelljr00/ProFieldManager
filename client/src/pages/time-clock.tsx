@@ -486,6 +486,10 @@ export default function TimeClock() {
     
     const hours = Math.floor(duration / (1000 * 60 * 60));
     const minutes = Math.floor((duration % (1000 * 60 * 60)) / (1000 * 60));
+    
+    // Additional debug for display issue
+    console.log('Final duration display:', `${hours}h ${minutes}m`);
+    
     return `${hours}h ${minutes}m`;
   };
 

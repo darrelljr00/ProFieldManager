@@ -3682,6 +3682,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getTimeClockEntriesForOrganization(organizationId: number, startDate?: Date, endDate?: Date): Promise<any[]> {
+    console.log('🕒 ORG TIME CLOCK DEBUG:', {
+      organizationId,
+      startDate: startDate?.toISOString(),
+      endDate: endDate?.toISOString(),
+      startDateValid: startDate instanceof Date && !isNaN(startDate.getTime()),
+      endDateValid: endDate instanceof Date && !isNaN(endDate.getTime())
+    });
+
     let whereConditions = [eq(timeClock.organizationId, organizationId)];
 
     if (startDate) {
@@ -3715,6 +3723,17 @@ export class DatabaseStorage implements IStorage {
     .leftJoin(users, eq(timeClock.userId, users.id))
     .where(and(...whereConditions))
     .orderBy(desc(timeClock.clockInTime));
+
+    console.log('🕒 ORG TIME CLOCK RESULTS:', {
+      entriesCount: entries.length,
+      entries: entries.map(e => ({
+        id: e.id,
+        userId: e.userId,
+        status: e.status,
+        clockInTime: e.clockInTime,
+        userName: e.userName
+      }))
+    });
 
     return entries;
   }
