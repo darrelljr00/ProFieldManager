@@ -1184,6 +1184,21 @@ export class DatabaseStorage implements IStorage {
         return false;
       }
 
+      // Check if project exists and belongs to user's organization (via project creator's organization)
+      const existingProject = await db
+        .select({ id: projects.id })
+        .from(projects)
+        .innerJoin(users, eq(projects.userId, users.id))
+        .where(and(
+          eq(projects.id, id),
+          eq(users.organizationId, user.organizationId)
+        ))
+        .limit(1);
+
+      if (existingProject.length === 0) {
+        return false; // Project not found or user doesn't have access
+      }
+
       // Update project status to 'deleted' instead of actually deleting
       const [project] = await db
         .update(projects)
@@ -1191,10 +1206,7 @@ export class DatabaseStorage implements IStorage {
           status: 'deleted',
           updatedAt: new Date()
         })
-        .where(and(
-          eq(projects.id, id),
-          eq(projects.organizationId, user.organizationId) // Ensure project belongs to user's organization
-        ))
+        .where(eq(projects.id, id))
         .returning();
       
       return !!project;
@@ -1212,6 +1224,21 @@ export class DatabaseStorage implements IStorage {
         return false;
       }
 
+      // Check if project exists and belongs to user's organization (via project creator's organization)
+      const existingProject = await db
+        .select({ id: projects.id })
+        .from(projects)
+        .innerJoin(users, eq(projects.userId, users.id))
+        .where(and(
+          eq(projects.id, id),
+          eq(users.organizationId, user.organizationId)
+        ))
+        .limit(1);
+
+      if (existingProject.length === 0) {
+        return false; // Project not found or user doesn't have access
+      }
+
       // Update project status to 'cancelled'
       const [project] = await db
         .update(projects)
@@ -1219,10 +1246,7 @@ export class DatabaseStorage implements IStorage {
           status: 'cancelled',
           updatedAt: new Date()
         })
-        .where(and(
-          eq(projects.id, id),
-          eq(projects.organizationId, user.organizationId) // Ensure project belongs to user's organization
-        ))
+        .where(eq(projects.id, id))
         .returning();
       
       return !!project;
