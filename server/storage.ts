@@ -1178,6 +1178,12 @@ export class DatabaseStorage implements IStorage {
 
   async deleteProject(id: number, userId: number): Promise<boolean> {
     try {
+      // Get user's organization to ensure they can delete projects within their org
+      const user = await this.getUser(userId);
+      if (!user || !user.organizationId) {
+        return false;
+      }
+
       // Update project status to 'deleted' instead of actually deleting
       const [project] = await db
         .update(projects)
@@ -1187,7 +1193,7 @@ export class DatabaseStorage implements IStorage {
         })
         .where(and(
           eq(projects.id, id),
-          eq(projects.userId, userId) // Ensure user owns the project
+          eq(projects.organizationId, user.organizationId) // Ensure project belongs to user's organization
         ))
         .returning();
       
@@ -1200,6 +1206,12 @@ export class DatabaseStorage implements IStorage {
 
   async cancelProject(id: number, userId: number): Promise<boolean> {
     try {
+      // Get user's organization to ensure they can cancel projects within their org
+      const user = await this.getUser(userId);
+      if (!user || !user.organizationId) {
+        return false;
+      }
+
       // Update project status to 'cancelled'
       const [project] = await db
         .update(projects)
@@ -1209,7 +1221,7 @@ export class DatabaseStorage implements IStorage {
         })
         .where(and(
           eq(projects.id, id),
-          eq(projects.userId, userId) // Ensure user owns the project
+          eq(projects.organizationId, user.organizationId) // Ensure project belongs to user's organization
         ))
         .returning();
       
