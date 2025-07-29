@@ -54,6 +54,8 @@ import Login from "@/pages/login";
 import SimpleLogin from "@/pages/simple-login";
 import Landing from "@/pages/landing";
 import NotFound from "@/pages/not-found";
+import { DeletedJobs } from "@/pages/deleted-jobs";
+import { CancelledJobs } from "@/pages/cancelled-jobs";
 
 function AuthenticatedApp() {
   const { isAdmin } = useAuth();
@@ -92,6 +94,8 @@ function AuthenticatedApp() {
         'project_user_removed': ['/api/projects'],
         'project_users_assigned': ['/api/projects'], 
         'project_users_removed': ['/api/projects'],
+        'project_deleted': ['/api/projects', '/api/projects/deleted'],
+        'project_cancelled': ['/api/projects', '/api/projects/cancelled'],
         'employee_updated': ['/api/users', '/api/reports/employee-data', '/api/reports/data'],
         'employee_deleted': ['/api/users', '/api/reports/employee-data', '/api/reports/data'],
         'employee_permissions_updated': ['/api/users', '/api/reports/employee-data', '/api/reports/data'],
@@ -139,6 +143,8 @@ function AuthenticatedApp() {
           <Route path="/dashboard" component={Dashboard} />
           <Route path="/calendar" component={CalendarPage} />
           <Route path="/jobs" component={Projects} />
+          <Route path="/jobs/deleted" component={DeletedJobs} />
+          <Route path="/jobs/cancelled" component={CancelledJobs} />
           <Route path="/jobs/:id" component={ProjectDetail} />
           <Route path="/jobs/:id/tasks" component={JobTasks} />
           <Route path="/task-groups" component={TaskGroups} />

@@ -397,7 +397,7 @@ export const projects = pgTable("projects", {
   userId: integer("user_id").notNull().references(() => users.id),
   name: text("name").notNull(),
   description: text("description"),
-  status: text("status").notNull().default("active"), // active, completed, on-hold, cancelled
+  status: text("status").notNull().default("active"), // active, completed, on-hold, cancelled, deleted
   priority: text("priority").notNull().default("medium"), // low, medium, high, urgent
   startDate: timestamp("start_date"),
   endDate: timestamp("end_date"),

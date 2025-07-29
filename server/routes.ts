@@ -3274,16 +3274,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const projectId = parseInt(req.params.id);
       const userId = req.user!.id;
-      const deleted = await storage.deleteProject(projectId, userId);
+      const success = await storage.deleteProject(projectId, userId);
       
-      if (!deleted) {
-        return res.status(404).json({ message: "Project not found" });
+      if (!success) {
+        return res.status(404).json({ message: "Project not found or access denied" });
       }
       
-      res.json({ message: "Project deleted successfully" });
+      // Broadcast project deletion
+      broadcastToWebUsers('project_deleted', { projectId, deletedBy: req.user!.username });
+      
+      res.json({ message: "Project moved to deleted folder successfully" });
     } catch (error: any) {
       console.error("Error deleting project:", error);
       res.status(500).json({ message: "Failed to delete project" });
+    }
+  });
+
+  // Cancel project endpoint
+  app.put("/api/projects/:id/cancel", requireAuth, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const userId = req.user!.id;
+      const success = await storage.cancelProject(projectId, userId);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Project not found or access denied" });
+      }
+      
+      // Broadcast project cancellation
+      broadcastToWebUsers('project_cancelled', { projectId, cancelledBy: req.user!.username });
+      
+      res.json({ message: "Project cancelled successfully" });
+    } catch (error: any) {
+      console.error("Error cancelling project:", error);
+      res.status(500).json({ message: "Failed to cancel project" });
+    }
+  });
+
+  // Get deleted projects
+  app.get("/api/projects/deleted", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const projects = await storage.getDeletedProjects(user.organizationId, user.role === 'admin' ? undefined : user.id);
+      res.json(projects);
+    } catch (error: any) {
+      console.error("Error fetching deleted projects:", error);
+      res.status(500).json({ message: "Failed to fetch deleted projects" });
+    }
+  });
+
+  // Get cancelled projects
+  app.get("/api/projects/cancelled", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const projects = await storage.getCancelledProjects(user.organizationId, user.role === 'admin' ? undefined : user.id);
+      res.json(projects);
+    } catch (error: any) {
+      console.error("Error fetching cancelled projects:", error);
+      res.status(500).json({ message: "Failed to fetch cancelled projects" });
     }
   });
 

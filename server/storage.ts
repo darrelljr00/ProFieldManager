@@ -73,11 +73,14 @@ export interface IStorage {
   // Project/Job methods
   getProjects(organizationId: number, userId?: number, userRole?: string, status?: string): Promise<any[]>;
   getProject(id: number, userId: number): Promise<any>;
+  deleteProject(id: number, userId: number): Promise<boolean>;
+  cancelProject(id: number, userId: number): Promise<boolean>;
+  getDeletedProjects(organizationId: number, userId?: number): Promise<any[]>;
+  getCancelledProjects(organizationId: number, userId?: number): Promise<any[]>;
   getProjectById(id: number): Promise<any>;
   getProjectsWithLocation(userId: number): Promise<any[]>;
   createProject(projectData: any): Promise<any>;
   updateProject(id: number, updates: any): Promise<any>;
-  deleteProject(id: number): Promise<void>;
   assignUserToProject(userId: number, projectId: number, role?: string): Promise<any>;
   removeUserFromProject(userId: number, projectId: number): Promise<void>;
   
@@ -1173,8 +1176,168 @@ export class DatabaseStorage implements IStorage {
     return project;
   }
 
-  async deleteProject(id: number): Promise<void> {
-    await db.delete(projects).where(eq(projects.id, id));
+  async deleteProject(id: number, userId: number): Promise<boolean> {
+    try {
+      // Update project status to 'deleted' instead of actually deleting
+      const [project] = await db
+        .update(projects)
+        .set({ 
+          status: 'deleted',
+          updatedAt: new Date()
+        })
+        .where(and(
+          eq(projects.id, id),
+          eq(projects.userId, userId) // Ensure user owns the project
+        ))
+        .returning();
+      
+      return !!project;
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      return false;
+    }
+  }
+
+  async cancelProject(id: number, userId: number): Promise<boolean> {
+    try {
+      // Update project status to 'cancelled'
+      const [project] = await db
+        .update(projects)
+        .set({ 
+          status: 'cancelled',
+          updatedAt: new Date()
+        })
+        .where(and(
+          eq(projects.id, id),
+          eq(projects.userId, userId) // Ensure user owns the project
+        ))
+        .returning();
+      
+      return !!project;
+    } catch (error) {
+      console.error('Error cancelling project:', error);
+      return false;
+    }
+  }
+
+  async getDeletedProjects(organizationId: number, userId?: number): Promise<any[]> {
+    try {
+      let query = db
+        .select({
+          id: projects.id,
+          userId: projects.userId,
+          name: projects.name,
+          description: projects.description,
+          status: projects.status,
+          priority: projects.priority,
+          startDate: projects.startDate,
+          endDate: projects.endDate,
+          deadline: projects.deadline,
+          progress: projects.progress,
+          budget: projects.budget,
+          customerId: projects.customerId,
+          contactName: projects.contactName,
+          contactEmail: projects.contactEmail,
+          contactPhone: projects.contactPhone,
+          contactCompany: projects.contactCompany,
+          address: projects.address,
+          city: projects.city,
+          state: projects.state,
+          zipCode: projects.zipCode,
+          country: projects.country,
+          createdAt: projects.createdAt,
+          updatedAt: projects.updatedAt,
+          // User info
+          creatorName: sql<string>`${users.firstName} || ' ' || ${users.lastName}`,
+          creatorEmail: users.email,
+          // Task count
+          taskCount: sql<number>`count(${tasks.id})`,
+          completedTasks: sql<number>`count(case when ${tasks.isCompleted} = true then 1 end)`
+        })
+        .from(projects)
+        .leftJoin(users, eq(projects.userId, users.id))
+        .leftJoin(tasks, eq(projects.id, tasks.projectId))
+        .where(and(
+          eq(users.organizationId, organizationId),
+          eq(projects.status, 'deleted')
+        ))
+        .groupBy(projects.id, users.id)
+        .orderBy(desc(projects.updatedAt));
+
+      // If userId is provided, filter by user (for non-admin users)
+      if (userId) {
+        query = query.where(and(
+          eq(users.organizationId, organizationId),
+          eq(projects.status, 'deleted'),
+          eq(projects.userId, userId)
+        ));
+      }
+
+      return await query;
+    } catch (error) {
+      console.error('Error fetching deleted projects:', error);
+      return [];
+    }
+  }
+
+  async getCancelledProjects(organizationId: number, userId?: number): Promise<any[]> {
+    try {
+      let query = db
+        .select({
+          id: projects.id,
+          userId: projects.userId,
+          name: projects.name,
+          description: projects.description,
+          status: projects.status,
+          priority: projects.priority,
+          startDate: projects.startDate,
+          endDate: projects.endDate,
+          deadline: projects.deadline,
+          progress: projects.progress,
+          budget: projects.budget,
+          customerId: projects.customerId,
+          contactName: projects.contactName,
+          contactEmail: projects.contactEmail,
+          contactPhone: projects.contactPhone,
+          contactCompany: projects.contactCompany,
+          address: projects.address,
+          city: projects.city,
+          state: projects.state,
+          zipCode: projects.zipCode,
+          country: projects.country,
+          createdAt: projects.createdAt,
+          updatedAt: projects.updatedAt,
+          // User info
+          creatorName: sql<string>`${users.firstName} || ' ' || ${users.lastName}`,
+          creatorEmail: users.email,
+          // Task count
+          taskCount: sql<number>`count(${tasks.id})`,
+          completedTasks: sql<number>`count(case when ${tasks.isCompleted} = true then 1 end)`
+        })
+        .from(projects)
+        .leftJoin(users, eq(projects.userId, users.id))
+        .leftJoin(tasks, eq(projects.id, tasks.projectId))
+        .where(and(
+          eq(users.organizationId, organizationId),
+          eq(projects.status, 'cancelled')
+        ))
+        .groupBy(projects.id, users.id)
+        .orderBy(desc(projects.updatedAt));
+
+      // If userId is provided, filter by user (for non-admin users)
+      if (userId) {
+        query = query.where(and(
+          eq(users.organizationId, organizationId),
+          eq(projects.status, 'cancelled'),
+          eq(projects.userId, userId)
+        ));
+      }
+
+      return await query;
+    } catch (error) {
+      console.error('Error fetching cancelled projects:', error);
+      return [];
+    }
   }
 
   async assignUserToProject(userId: number, projectId: number, role: string = "member"): Promise<any> {

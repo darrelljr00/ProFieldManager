@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Calendar, Users, CheckCircle, Clock, AlertCircle, Folder, Settings, MapPin, Route, Star, Smartphone, Eye, Image, FileText, CheckSquare, Upload, Camera, DollarSign, Download, Trash2, Archive, User as UserIcon, Search, Filter, X } from "lucide-react";
+import { Plus, Calendar, Users, CheckCircle, Clock, AlertCircle, Folder, Settings, MapPin, Route, Star, Smartphone, Eye, Image, FileText, CheckSquare, Upload, Camera, DollarSign, Download, Trash2, Archive, User as UserIcon, Search, Filter, X, XCircle } from "lucide-react";
 import { Link } from "wouter";
 import { format } from "date-fns";
 import type { Project, Customer, User } from "@shared/schema";
@@ -589,6 +589,46 @@ export default function Jobs() {
     },
   });
 
+  const deleteProjectMutation = useMutation({
+    mutationFn: (projectId: number) => apiRequest("DELETE", `/api/projects/${projectId}`, {}),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects/deleted"] });
+      setViewDialogOpen(false);
+      toast({
+        title: "Job Deleted",
+        description: "Job has been moved to deleted folder",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to delete job",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const cancelProjectMutation = useMutation({
+    mutationFn: (projectId: number) => apiRequest("PUT", `/api/projects/${projectId}/cancel`, {}),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects/cancelled"] });
+      setViewDialogOpen(false);
+      toast({
+        title: "Job Cancelled",
+        description: "Job has been cancelled successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to cancel job",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleCreateJob = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -950,11 +990,39 @@ export default function Jobs() {
                     </Badge>
                   </div>
                 </div>
-                <Link href={`/jobs/${project.id}/settings`}>
-                  <Button variant="ghost" size="sm">
-                    <Settings className="h-4 w-4" />
+                <div className="flex gap-1">
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      cancelProjectMutation.mutate(project.id);
+                    }}
+                    className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                    title="Cancel Job"
+                  >
+                    <XCircle className="h-4 w-4" />
                   </Button>
-                </Link>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      deleteProjectMutation.mutate(project.id);
+                    }}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    title="Delete Job"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                  <Link href={`/jobs/${project.id}/settings`}>
+                    <Button variant="ghost" size="sm">
+                      <Settings className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -1090,6 +1158,20 @@ export default function Jobs() {
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Jobs</h1>
           <p className="text-gray-600 mt-1">Manage your jobs, tasks, and team collaboration</p>
+          <div className="flex gap-2 mt-3">
+            <Link href="/jobs/deleted">
+              <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50">
+                <Trash2 className="h-4 w-4 mr-2" />
+                Deleted Jobs
+              </Button>
+            </Link>
+            <Link href="/jobs/cancelled">
+              <Button variant="outline" size="sm" className="text-orange-600 hover:text-orange-700 hover:bg-orange-50">
+                <XCircle className="h-4 w-4 mr-2" />
+                Cancelled Jobs
+              </Button>
+            </Link>
+          </div>
         </div>
         <div className="flex gap-2">
           {isMobile && (
