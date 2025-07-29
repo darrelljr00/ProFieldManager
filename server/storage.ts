@@ -1259,57 +1259,55 @@ export class DatabaseStorage implements IStorage {
 
   async getDeletedProjects(organizationId: number, userId?: number): Promise<any[]> {
     try {
-      // Build where conditions based on parameters
-      let whereConditions = [
-        eq(users.organizationId, organizationId),
-        eq(projects.status, 'deleted')
-      ];
-
-      // If userId is provided, add user filter (for non-admin users)
+      let sqlQuery = `
+        SELECT 
+          p.id,
+          p.user_id as "userId",
+          p.name,
+          p.description,
+          p.status,
+          p.priority,
+          p.start_date as "startDate",
+          p.end_date as "endDate",
+          p.deadline,
+          p.progress,
+          p.budget,
+          p.customer_id as "customerId",
+          p.contact_name as "contactName",
+          p.contact_email as "contactEmail",
+          p.contact_phone as "contactPhone",
+          p.contact_company as "contactCompany",
+          p.address,
+          p.city,
+          p.state,
+          p.zip_code as "zipCode",
+          p.country,
+          p.created_at as "createdAt",
+          p.updated_at as "updatedAt",
+          u.first_name || ' ' || u.last_name as "creatorName",
+          u.email as "creatorEmail",
+          COALESCE(COUNT(t.id), 0) as "taskCount",
+          COALESCE(COUNT(CASE WHEN t.is_completed = true THEN 1 END), 0) as "completedTasks"
+        FROM projects p
+        INNER JOIN users u ON p.user_id = u.id
+        LEFT JOIN tasks t ON p.id = t.project_id
+        WHERE p.status = 'deleted' AND u.organization_id = $1
+      `;
+      
+      const params = [organizationId];
+      
       if (userId) {
-        whereConditions.push(eq(projects.userId, userId));
+        sqlQuery += ` AND p.user_id = $2`;
+        params.push(userId);
       }
+      
+      sqlQuery += `
+        GROUP BY p.id, u.id, u.first_name, u.last_name, u.email
+        ORDER BY p.updated_at DESC
+      `;
 
-      const query = db
-        .select({
-          id: projects.id,
-          userId: projects.userId,
-          name: projects.name,
-          description: projects.description,
-          status: projects.status,
-          priority: projects.priority,
-          startDate: projects.startDate,
-          endDate: projects.endDate,
-          deadline: projects.deadline,
-          progress: projects.progress,
-          budget: projects.budget,
-          customerId: projects.customerId,
-          contactName: projects.contactName,
-          contactEmail: projects.contactEmail,
-          contactPhone: projects.contactPhone,
-          contactCompany: projects.contactCompany,
-          address: projects.address,
-          city: projects.city,
-          state: projects.state,
-          zipCode: projects.zipCode,
-          country: projects.country,
-          createdAt: projects.createdAt,
-          updatedAt: projects.updatedAt,
-          // User info
-          creatorName: sql<string>`${users.firstName} || ' ' || ${users.lastName}`,
-          creatorEmail: users.email,
-          // Task count
-          taskCount: sql<number>`count(${tasks.id})`,
-          completedTasks: sql<number>`count(case when ${tasks.isCompleted} = true then 1 end)`
-        })
-        .from(projects)
-        .leftJoin(users, eq(projects.userId, users.id))
-        .leftJoin(tasks, eq(projects.id, tasks.projectId))
-        .where(and(...whereConditions))
-        .groupBy(projects.id, users.id)
-        .orderBy(desc(projects.updatedAt));
-
-      return await query;
+      const result = await db.execute(sql.raw(sqlQuery, ...params));
+      return result.rows as any[];
     } catch (error) {
       console.error('Error fetching deleted projects:', error);
       return [];
@@ -1318,57 +1316,55 @@ export class DatabaseStorage implements IStorage {
 
   async getCancelledProjects(organizationId: number, userId?: number): Promise<any[]> {
     try {
-      // Build where conditions based on parameters
-      let whereConditions = [
-        eq(users.organizationId, organizationId),
-        eq(projects.status, 'cancelled')
-      ];
-
-      // If userId is provided, add user filter (for non-admin users)
+      let sqlQuery = `
+        SELECT 
+          p.id,
+          p.user_id as "userId",
+          p.name,
+          p.description,
+          p.status,
+          p.priority,
+          p.start_date as "startDate",
+          p.end_date as "endDate",
+          p.deadline,
+          p.progress,
+          p.budget,
+          p.customer_id as "customerId",
+          p.contact_name as "contactName",
+          p.contact_email as "contactEmail",
+          p.contact_phone as "contactPhone",
+          p.contact_company as "contactCompany",
+          p.address,
+          p.city,
+          p.state,
+          p.zip_code as "zipCode",
+          p.country,
+          p.created_at as "createdAt",
+          p.updated_at as "updatedAt",
+          u.first_name || ' ' || u.last_name as "creatorName",
+          u.email as "creatorEmail",
+          COALESCE(COUNT(t.id), 0) as "taskCount",
+          COALESCE(COUNT(CASE WHEN t.is_completed = true THEN 1 END), 0) as "completedTasks"
+        FROM projects p
+        INNER JOIN users u ON p.user_id = u.id
+        LEFT JOIN tasks t ON p.id = t.project_id
+        WHERE p.status = 'cancelled' AND u.organization_id = $1
+      `;
+      
+      const params = [organizationId];
+      
       if (userId) {
-        whereConditions.push(eq(projects.userId, userId));
+        sqlQuery += ` AND p.user_id = $2`;
+        params.push(userId);
       }
+      
+      sqlQuery += `
+        GROUP BY p.id, u.id, u.first_name, u.last_name, u.email
+        ORDER BY p.updated_at DESC
+      `;
 
-      const query = db
-        .select({
-          id: projects.id,
-          userId: projects.userId,
-          name: projects.name,
-          description: projects.description,
-          status: projects.status,
-          priority: projects.priority,
-          startDate: projects.startDate,
-          endDate: projects.endDate,
-          deadline: projects.deadline,
-          progress: projects.progress,
-          budget: projects.budget,
-          customerId: projects.customerId,
-          contactName: projects.contactName,
-          contactEmail: projects.contactEmail,
-          contactPhone: projects.contactPhone,
-          contactCompany: projects.contactCompany,
-          address: projects.address,
-          city: projects.city,
-          state: projects.state,
-          zipCode: projects.zipCode,
-          country: projects.country,
-          createdAt: projects.createdAt,
-          updatedAt: projects.updatedAt,
-          // User info
-          creatorName: sql<string>`${users.firstName} || ' ' || ${users.lastName}`,
-          creatorEmail: users.email,
-          // Task count
-          taskCount: sql<number>`count(${tasks.id})`,
-          completedTasks: sql<number>`count(case when ${tasks.isCompleted} = true then 1 end)`
-        })
-        .from(projects)
-        .leftJoin(users, eq(projects.userId, users.id))
-        .leftJoin(tasks, eq(projects.id, tasks.projectId))
-        .where(and(...whereConditions))
-        .groupBy(projects.id, users.id)
-        .orderBy(desc(projects.updatedAt));
-
-      return await query;
+      const result = await db.execute(sql.raw(sqlQuery, ...params));
+      return result.rows as any[];
     } catch (error) {
       console.error('Error fetching cancelled projects:', error);
       return [];
