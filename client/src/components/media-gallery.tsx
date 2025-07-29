@@ -78,6 +78,26 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
   console.log('🖼️ MediaGallery DEBUG - Total files:', files.length);
   console.log('🖼️ MediaGallery DEBUG - Files:', files);
   
+  // CRITICAL: Enhanced debugging for specific missing files
+  const specificFiles = files.filter(file => 
+    file.originalName === 'missing images.JPG' || 
+    file.originalName === '7519099369553255047.jpg' || 
+    file.originalName === 'failed to load.JPG'
+  );
+  console.log('🔍 SPECIFIC FILES DEBUG:', specificFiles);
+  
+  specificFiles.forEach(file => {
+    console.log('🔍 SPECIFIC FILE DETAIL:', {
+      id: file.id,
+      originalName: file.originalName,
+      filePath: file.filePath,
+      cloudinaryUrl: file.cloudinaryUrl,
+      fileType: file.fileType,
+      hasCloudinaryUrl: !!file.cloudinaryUrl,
+      pathIncludesCloudinary: file.filePath?.includes('cloudinary.com')
+    });
+  });
+  
   const imageFiles = files.filter(file => file.fileType === 'image');
   console.log('🖼️ MediaGallery DEBUG - Image files:', imageFiles.length, imageFiles);
 

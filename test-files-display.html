@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Files Display</title>
+    <style>
+        body { font-family: Arial; margin: 20px; }
+        .file { margin: 10px 0; padding: 10px; border: 1px solid #ccc; }
+        img { max-width: 200px; max-height: 200px; }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <h2>Testing Specific Files Display</h2>
+    
+    <div class="file">
+        <h3>missing images.JPG</h3>
+        <p>Direct Cloudinary URL:</p>
+        <img src="https://res.cloudinary.com/dcx5v8cuk/image/upload/v1753544496/org-2/project-images/1753544496683-missing-images.jpg" 
+             onload="document.getElementById('status1').innerHTML='✅ Loaded Successfully'" 
+             onerror="document.getElementById('status1').innerHTML='❌ Failed to Load'">
+        <p id="status1">Loading...</p>
+        
+        <p>Via Proxy:</p>
+        <img src="/api/cloudinary-proxy?url=https%3A%2F%2Fres.cloudinary.com%2Fdcx5v8cuk%2Fimage%2Fupload%2Fv1753544496%2Forg-2%2Fproject-images%2F1753544496683-missing-images.jpg" 
+             onload="document.getElementById('proxy1').innerHTML='✅ Proxy Works'" 
+             onerror="document.getElementById('proxy1').innerHTML='❌ Proxy Failed'">
+        <p id="proxy1">Loading...</p>
+    </div>
+    
+    <div class="file">
+        <h3>failed to load.JPG</h3>
+        <p>Direct Cloudinary URL:</p>
+        <img src="https://res.cloudinary.com/dcx5v8cuk/image/upload/v1753544482/org-2/project-images/1753544482674-failed-to-load.jpg" 
+             onload="document.getElementById('status2').innerHTML='✅ Loaded Successfully'" 
+             onerror="document.getElementById('status2').innerHTML='❌ Failed to Load'">
+        <p id="status2">Loading...</p>
+        
+        <p>Via Proxy:</p>
+        <img src="/api/cloudinary-proxy?url=https%3A%2F%2Fres.cloudinary.com%2Fdcx5v8cuk%2Fimage%2Fupload%2Fv1753544482%2Forg-2%2Fproject-images%2F1753544482674-failed-to-load.jpg" 
+             onload="document.getElementById('proxy2').innerHTML='✅ Proxy Works'" 
+             onerror="document.getElementById('proxy2').innerHTML='❌ Proxy Failed'">
+        <p id="proxy2">Loading...</p>
+    </div>
+    
+    <div class="file">
+        <h3>7519099369553255047.jpg</h3>
+        <p>Direct Cloudinary URL:</p>
+        <img src="https://res.cloudinary.com/dcx5v8cuk/image/upload/v1753543908/org-2/project-images/1753543908322-7519099369553255047.jpg" 
+             onload="document.getElementById('status3').innerHTML='✅ Loaded Successfully'" 
+             onerror="document.getElementById('status3').innerHTML='❌ Failed to Load'">
+        <p id="status3">Loading...</p>
+        
+        <p>Via Proxy:</p>
+        <img src="/api/cloudinary-proxy?url=https%3A%2F%2Fres.cloudinary.com%2Fdcx5v8cuk%2Fimage%2Fupload%2Fv1753543908%2Forg-2%2Fproject-images%2F1753543908322-7519099369553255047.jpg" 
+             onload="document.getElementById('proxy3').innerHTML='✅ Proxy Works'" 
+             onerror="document.getElementById('proxy3').innerHTML='❌ Proxy Failed'">
+        <p id="proxy3">Loading...</p>
+    </div>
+    
+    <script>
+        console.log('Testing file display for specific images requested by user');
+        
+        // Test API endpoint
+        fetch('/api/projects/49/files', {
+            credentials: 'include'
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Project 49 files:', data);
+            const targetFiles = data.filter(file => 
+                file.originalName === 'missing images.JPG' || 
+                file.originalName === 'failed to load.JPG' || 
+                file.originalName === '7519099369553255047.jpg'
+            );
+            console.log('Target files found:', targetFiles);
+            document.getElementById('apiResult').innerHTML = JSON.stringify(targetFiles, null, 2);
+        })
+        .catch(error => {
+            console.error('API Error:', error);
+            document.getElementById('apiResult').innerHTML = 'Error: ' + error.message;
+        });
+    </script>
+    
+    <div class="file">
+        <h3>API Response for Project 49 Files:</h3>
+        <pre id="apiResult">Loading...</pre>
+    </div>
+</body>
+</html>
