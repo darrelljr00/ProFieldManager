@@ -1255,13 +1255,14 @@ export default function TimeClock() {
                       <div className="space-y-2">
                         <Label htmlFor="assignToUserId">Select User</Label>
                         <Select 
-                          value={triggerForm.assignToUserId?.toString() || ""} 
-                          onValueChange={(value) => setTriggerForm(prev => ({ ...prev, assignToUserId: parseInt(value) || undefined }))}
+                          value={triggerForm.assignToUserId?.toString() || "none"} 
+                          onValueChange={(value) => setTriggerForm(prev => ({ ...prev, assignToUserId: value === "none" ? undefined : parseInt(value) }))}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Select user" />
                           </SelectTrigger>
                           <SelectContent>
+                            <SelectItem value="none">Select user</SelectItem>
                             {users.map((user: any) => (
                               <SelectItem key={user.id} value={user.id.toString()}>
                                 {user.firstName} {user.lastName}
