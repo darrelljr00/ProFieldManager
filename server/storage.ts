@@ -14,7 +14,7 @@ import {
   filePermissions, folderPermissions, defaultPermissions, userDashboardSettings, dashboardProfiles, vehicles,
   vehicleMaintenanceIntervals, vehicleMaintenanceRecords, vehicleJobAssignments, timeClockTaskTriggers,
   taskTriggers, taskTriggerInstances, taskTriggerSettings, frontendPages, frontendSliders, frontendComponents,
-  frontendIcons, frontendBoxes
+  frontendIcons, frontendBoxes, frontendCategories
 } from "@shared/schema";
 import { marketResearchCompetitors } from "@shared/schema";
 import type { GasCard, InsertGasCard, GasCardAssignment, InsertGasCardAssignment, GasCardUsage, InsertGasCardUsage, GasCardProvider, InsertGasCardProvider } from "@shared/schema";
@@ -497,6 +497,12 @@ export interface IStorage {
   connectUsersToVehicleJobs(organizationId: number, date: string): Promise<any[]>;
   
   // Frontend Management methods
+  getFrontendCategories(organizationId: number): Promise<any[]>;
+  getFrontendCategory(id: number, organizationId: number): Promise<any>;
+  createFrontendCategory(categoryData: any): Promise<any>;
+  updateFrontendCategory(id: number, organizationId: number, updates: any): Promise<any>;
+  deleteFrontendCategory(id: number, organizationId: number): Promise<boolean>;
+  
   getFrontendPages(organizationId: number): Promise<any[]>;
   getFrontendPage(id: number, organizationId: number): Promise<any>;
   createFrontendPage(pageData: any): Promise<any>;
@@ -8849,6 +8855,79 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Frontend Management methods
+  async getFrontendCategories(organizationId: number): Promise<any[]> {
+    try {
+      const categories = await db
+        .select()
+        .from(frontendCategories)
+        .where(eq(frontendCategories.organizationId, organizationId))
+        .orderBy(asc(frontendCategories.type), asc(frontendCategories.sortOrder), asc(frontendCategories.name));
+      return categories;
+    } catch (error) {
+      console.error('Error fetching frontend categories:', error);
+      return [];
+    }
+  }
+
+  async getFrontendCategory(id: number, organizationId: number): Promise<any> {
+    try {
+      const [category] = await db
+        .select()
+        .from(frontendCategories)
+        .where(and(eq(frontendCategories.id, id), eq(frontendCategories.organizationId, organizationId)));
+      return category || null;
+    } catch (error) {
+      console.error('Error fetching frontend category:', error);
+      return null;
+    }
+  }
+
+  async createFrontendCategory(categoryData: any): Promise<any> {
+    try {
+      const [category] = await db
+        .insert(frontendCategories)
+        .values({
+          ...categoryData,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
+      return category;
+    } catch (error) {
+      console.error('Error creating frontend category:', error);
+      throw error;
+    }
+  }
+
+  async updateFrontendCategory(id: number, organizationId: number, updates: any): Promise<any> {
+    try {
+      const [category] = await db
+        .update(frontendCategories)
+        .set({
+          ...updates,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(frontendCategories.id, id), eq(frontendCategories.organizationId, organizationId)))
+        .returning();
+      return category;
+    } catch (error) {
+      console.error('Error updating frontend category:', error);
+      throw error;
+    }
+  }
+
+  async deleteFrontendCategory(id: number, organizationId: number): Promise<boolean> {
+    try {
+      await db
+        .delete(frontendCategories)
+        .where(and(eq(frontendCategories.id, id), eq(frontendCategories.organizationId, organizationId)));
+      return true;
+    } catch (error) {
+      console.error('Error deleting frontend category:', error);
+      return false;
+    }
+  }
+
   async getFrontendPages(organizationId: number): Promise<any[]> {
     try {
       const pages = await db

@@ -2114,6 +2114,22 @@ export type RegisterData = z.infer<typeof registerSchema>;
 export type ChangePasswordData = z.infer<typeof changePasswordSchema>;
 
 // Frontend Management Tables
+export const frontendCategories = pgTable("frontend_categories", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  name: text("name").notNull(),
+  slug: text("slug").notNull(),
+  description: text("description"),
+  type: text("type").notNull(), // header, footer, sidebar, main
+  position: text("position").default("top"), // top, bottom, left, right, center
+  isActive: boolean("is_active").default(true),
+  sortOrder: integer("sort_order").default(0),
+  styling: jsonb("styling"), // CSS styling options for category
+  createdBy: integer("created_by").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const frontendPages = pgTable("frontend_pages", {
   id: serial("id").primaryKey(),
   organizationId: integer("organization_id").notNull().references(() => organizations.id),
@@ -2156,6 +2172,7 @@ export const frontendComponents = pgTable("frontend_components", {
   id: serial("id").primaryKey(),
   organizationId: integer("organization_id").notNull().references(() => organizations.id),
   pageId: integer("page_id").references(() => frontendPages.id),
+  categoryId: integer("category_id").references(() => frontendCategories.id),
   componentType: text("component_type").notNull(), // hero, features, testimonials, pricing, contact, custom
   title: text("title"),
   content: jsonb("content"), // Component configuration as JSON
@@ -2188,6 +2205,7 @@ export const frontendBoxes = pgTable("frontend_boxes", {
   id: serial("id").primaryKey(),
   organizationId: integer("organization_id").notNull().references(() => organizations.id),
   pageId: integer("page_id").references(() => frontendPages.id),
+  categoryId: integer("category_id").references(() => frontendCategories.id),
   title: text("title").notNull(),
   description: text("description"),
   iconId: integer("icon_id").references(() => frontendIcons.id),
@@ -2206,6 +2224,18 @@ export const frontendBoxes = pgTable("frontend_boxes", {
 });
 
 // Frontend Management Insert Schemas
+export const insertFrontendCategorySchema = createInsertSchema(frontendCategories, {
+  name: z.string().min(1, "Category name is required"),
+  slug: z.string().min(1, "Slug is required"),
+  type: z.enum(["header", "footer", "sidebar", "main"], { required_error: "Category type is required" }),
+  organizationId: z.number(),
+  createdBy: z.number(),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertFrontendPageSchema = createInsertSchema(frontendPages, {
   title: z.string().min(1, "Title is required"),
   slug: z.string().min(1, "Slug is required"),
@@ -2265,6 +2295,8 @@ export const insertFrontendBoxSchema = createInsertSchema(frontendBoxes, {
 });
 
 // Frontend Management Types
+export type FrontendCategory = typeof frontendCategories.$inferSelect;
+export type InsertFrontendCategory = z.infer<typeof insertFrontendCategorySchema>;
 export type FrontendPage = typeof frontendPages.$inferSelect;
 export type InsertFrontendPage = z.infer<typeof insertFrontendPageSchema>;
 export type FrontendSlider = typeof frontendSliders.$inferSelect;

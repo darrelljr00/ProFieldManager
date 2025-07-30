@@ -67,6 +67,20 @@ interface FrontendIcon {
   updatedAt: string;
 }
 
+interface FrontendCategory {
+  id: number;
+  name: string;
+  slug: string;
+  description?: string;
+  type: string;
+  position: string;
+  isActive: boolean;
+  sortOrder: number;
+  styling?: any;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface FrontendBox {
   id: number;
   title: string;
@@ -91,15 +105,17 @@ interface FrontendBox {
 
 export default function FrontendManagement() {
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState("pages");
+  const [activeTab, setActiveTab] = useState("categories");
   const [editingPage, setEditingPage] = useState<FrontendPage | null>(null);
   const [editingSlider, setEditingSlider] = useState<FrontendSlider | null>(null);
   const [editingIcon, setEditingIcon] = useState<FrontendIcon | null>(null);
   const [editingBox, setEditingBox] = useState<FrontendBox | null>(null);
+  const [editingCategory, setEditingCategory] = useState<FrontendCategory | null>(null);
   const [showPageDialog, setShowPageDialog] = useState(false);
   const [showSliderDialog, setShowSliderDialog] = useState(false);
   const [showIconDialog, setShowIconDialog] = useState(false);
   const [showBoxDialog, setShowBoxDialog] = useState(false);
+  const [showCategoryDialog, setShowCategoryDialog] = useState(false);
 
   // Fetch data
   const { data: pages = [] } = useQuery({
@@ -120,6 +136,11 @@ export default function FrontendManagement() {
   const { data: boxes = [] } = useQuery({
     queryKey: ['/api/frontend/boxes'],
     enabled: activeTab === 'boxes'
+  });
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ['/api/frontend/categories'],
+    enabled: activeTab === 'categories'
   });
 
   // Page mutations
@@ -278,6 +299,45 @@ export default function FrontendManagement() {
     }
   });
 
+  // Category mutations
+  const createCategoryMutation = useMutation({
+    mutationFn: (data: Partial<FrontendCategory>) => apiRequest('POST', '/api/frontend/categories', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/frontend/categories'] });
+      setShowCategoryDialog(false);
+      setEditingCategory(null);
+      toast({ title: "Success", description: "Category created successfully" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to create category", variant: "destructive" });
+    }
+  });
+
+  const updateCategoryMutation = useMutation({
+    mutationFn: ({ id, ...data }: Partial<FrontendCategory> & { id: number }) => 
+      apiRequest('PUT', `/api/frontend/categories/${id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/frontend/categories'] });
+      setShowCategoryDialog(false);
+      setEditingCategory(null);
+      toast({ title: "Success", description: "Category updated successfully" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update category", variant: "destructive" });
+    }
+  });
+
+  const deleteCategoryMutation = useMutation({
+    mutationFn: (id: number) => apiRequest('DELETE', `/api/frontend/categories/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/frontend/categories'] });
+      toast({ title: "Success", description: "Category deleted successfully" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to delete category", variant: "destructive" });
+    }
+  });
+
   const handleSavePage = (data: any) => {
     if (editingPage) {
       updatePageMutation.mutate({ ...data, id: editingPage.id });
@@ -310,6 +370,14 @@ export default function FrontendManagement() {
     }
   };
 
+  const handleSaveCategory = (data: any) => {
+    if (editingCategory) {
+      updateCategoryMutation.mutate({ ...data, id: editingCategory.id });
+    } else {
+      createCategoryMutation.mutate(data);
+    }
+  };
+
   const openEditPage = (page?: FrontendPage) => {
     setEditingPage(page || null);
     setShowPageDialog(true);
@@ -330,6 +398,11 @@ export default function FrontendManagement() {
     setShowBoxDialog(true);
   };
 
+  const openEditCategory = (category?: FrontendCategory) => {
+    setEditingCategory(category || null);
+    setShowCategoryDialog(true);
+  };
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -347,7 +420,11 @@ export default function FrontendManagement() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="categories" className="flex items-center space-x-2">
+            <Layout className="h-4 w-4" />
+            <span>Categories</span>
+          </TabsTrigger>
           <TabsTrigger value="pages" className="flex items-center space-x-2">
             <FileText className="h-4 w-4" />
             <span>Pages</span>
@@ -365,6 +442,77 @@ export default function FrontendManagement() {
             <span>Boxes</span>
           </TabsTrigger>
         </TabsList>
+
+        {/* Categories Tab */}
+        <TabsContent value="categories" className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-semibold">Content Categories</h2>
+            <Button onClick={() => openEditCategory()} className="flex items-center space-x-2">
+              <Plus className="h-4 w-4" />
+              <span>Add Category</span>
+            </Button>
+          </div>
+
+          <Card>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Slug</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Position</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Order</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {categories.map((category: FrontendCategory) => (
+                    <TableRow key={category.id}>
+                      <TableCell className="font-medium">{category.name}</TableCell>
+                      <TableCell>
+                        <code className="bg-muted px-2 py-1 rounded text-sm">{category.slug}</code>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{category.type}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={category.position === 'header' ? 'default' : 'secondary'}>
+                          {category.position}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={category.isActive ? "default" : "secondary"}>
+                          {category.isActive ? "Active" : "Inactive"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{category.sortOrder}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openEditCategory(category)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => deleteCategoryMutation.mutate(category.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         {/* Pages Tab */}
         <TabsContent value="pages" className="space-y-6">
@@ -626,6 +774,14 @@ export default function FrontendManagement() {
         onOpenChange={setShowBoxDialog}
         box={editingBox}
         onSave={handleSaveBox}
+      />
+
+      {/* Category Dialog */}
+      <CategoryDialog
+        open={showCategoryDialog}
+        onOpenChange={setShowCategoryDialog}
+        category={editingCategory}
+        onSave={handleSaveCategory}
       />
     </div>
   );
@@ -1475,6 +1631,171 @@ function BoxDialog({
             </Button>
             <Button type="submit">
               {box ? 'Update' : 'Create'} Box
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// Category Dialog Component
+function CategoryDialog({ 
+  open, 
+  onOpenChange, 
+  category, 
+  onSave 
+}: { 
+  open: boolean; 
+  onOpenChange: (open: boolean) => void; 
+  category: FrontendCategory | null; 
+  onSave: (data: any) => void; 
+}) {
+  const [formData, setFormData] = useState({
+    name: '',
+    slug: '',
+    description: '',
+    type: 'navigation',
+    position: 'header',
+    isActive: true,
+    sortOrder: 0,
+    styling: {}
+  });
+
+  useState(() => {
+    if (category) {
+      setFormData({
+        name: category.name || '',
+        slug: category.slug || '',
+        description: category.description || '',
+        type: category.type || 'navigation',
+        position: category.position || 'header',
+        isActive: category.isActive ?? true,
+        sortOrder: category.sortOrder || 0,
+        styling: category.styling || {}
+      });
+    } else {
+      setFormData({
+        name: '',
+        slug: '',
+        description: '',
+        type: 'navigation',
+        position: 'header',
+        isActive: true,
+        sortOrder: 0,
+        styling: {}
+      });
+    }
+  }, [category, open]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave(formData);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[600px]">
+        <DialogHeader>
+          <DialogTitle>{category ? 'Edit' : 'Create'} Category</DialogTitle>
+          <DialogDescription>
+            {category ? 'Update the category details below.' : 'Add a new content category for organizing header and footer sections.'}
+          </DialogDescription>
+        </DialogHeader>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Category Name</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="e.g., Primary Navigation"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="slug">Slug</Label>
+              <Input
+                id="slug"
+                value={formData.slug}
+                onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                placeholder="e.g., primary-nav"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              rows={2}
+              placeholder="Brief description of this category's purpose..."
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="type">Category Type</Label>
+              <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="navigation">Navigation</SelectItem>
+                  <SelectItem value="content">Content</SelectItem>
+                  <SelectItem value="widget">Widget</SelectItem>
+                  <SelectItem value="menu">Menu</SelectItem>
+                  <SelectItem value="social">Social Links</SelectItem>
+                  <SelectItem value="footer">Footer Links</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="position">Position</Label>
+              <Select value={formData.position} onValueChange={(value) => setFormData({ ...formData, position: value })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="header">Header</SelectItem>
+                  <SelectItem value="footer">Footer</SelectItem>
+                  <SelectItem value="sidebar">Sidebar</SelectItem>
+                  <SelectItem value="main">Main Content</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="sortOrder">Sort Order</Label>
+              <Input
+                id="sortOrder"
+                type="number"
+                value={formData.sortOrder}
+                onChange={(e) => setFormData({ ...formData, sortOrder: Number(e.target.value) })}
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Switch
+                checked={formData.isActive}
+                onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
+              />
+              <Label>Active</Label>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="submit">
+              {category ? 'Update' : 'Create'} Category
             </Button>
           </DialogFooter>
         </form>

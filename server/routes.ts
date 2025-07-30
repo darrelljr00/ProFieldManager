@@ -14023,6 +14023,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Frontend Management API routes
   
+  // Frontend Categories
+  app.get('/api/frontend/categories', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const categories = await storage.getFrontendCategories(user.organizationId);
+      res.json(categories);
+    } catch (error: any) {
+      console.error('Error fetching frontend categories:', error);
+      res.status(500).json({ message: 'Failed to fetch frontend categories' });
+    }
+  });
+
+  app.get('/api/frontend/categories/:id', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const category = await storage.getFrontendCategory(Number(req.params.id), user.organizationId);
+      if (!category) {
+        return res.status(404).json({ message: 'Frontend category not found' });
+      }
+      res.json(category);
+    } catch (error: any) {
+      console.error('Error fetching frontend category:', error);
+      res.status(500).json({ message: 'Failed to fetch frontend category' });
+    }
+  });
+
+  app.post('/api/frontend/categories', requireManagerOrAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const categoryData = {
+        ...req.body,
+        organizationId: user.organizationId,
+        createdBy: user.id
+      };
+      const category = await storage.createFrontendCategory(categoryData);
+      broadcastToWebUsers({ type: 'frontend_category_created', category });
+      res.json(category);
+    } catch (error: any) {
+      console.error('Error creating frontend category:', error);
+      res.status(500).json({ message: 'Failed to create frontend category' });
+    }
+  });
+
+  app.put('/api/frontend/categories/:id', requireManagerOrAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const category = await storage.updateFrontendCategory(Number(req.params.id), user.organizationId, req.body);
+      if (!category) {
+        return res.status(404).json({ message: 'Frontend category not found' });
+      }
+      broadcastToWebUsers({ type: 'frontend_category_updated', category });
+      res.json(category);
+    } catch (error: any) {
+      console.error('Error updating frontend category:', error);
+      res.status(500).json({ message: 'Failed to update frontend category' });
+    }
+  });
+
+  app.delete('/api/frontend/categories/:id', requireManagerOrAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const success = await storage.deleteFrontendCategory(Number(req.params.id), user.organizationId);
+      if (!success) {
+        return res.status(404).json({ message: 'Frontend category not found' });
+      }
+      broadcastToWebUsers({ type: 'frontend_category_deleted', categoryId: Number(req.params.id) });
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('Error deleting frontend category:', error);
+      res.status(500).json({ message: 'Failed to delete frontend category' });
+    }
+  });
+  
   // Frontend Pages
   app.get('/api/frontend/pages', requireAuth, async (req, res) => {
     try {
