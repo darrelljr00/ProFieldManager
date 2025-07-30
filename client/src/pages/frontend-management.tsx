@@ -118,6 +118,15 @@ export default function FrontendManagement() {
   const [showBoxDialog, setShowBoxDialog] = useState(false);
   const [showCategoryDialog, setShowCategoryDialog] = useState(false);
   const [selectedPage, setSelectedPage] = useState<FrontendPage | null>(null);
+  const [draggedComponent, setDraggedComponent] = useState<any>(null);
+  const [canvasElements, setCanvasElements] = useState<any[]>([]);
+  const [deviceView, setDeviceView] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
+
+  // Fetch data
+  const { data: pages = [] } = useQuery({
+    queryKey: ['/api/frontend/pages'],
+    enabled: activeTab === 'pages' || activeTab === 'design'
+  });
 
   // Auto-select home page when pages are loaded
   React.useEffect(() => {
@@ -130,15 +139,6 @@ export default function FrontendManagement() {
       }
     }
   }, [pages, selectedPage]);
-  const [draggedComponent, setDraggedComponent] = useState<any>(null);
-  const [canvasElements, setCanvasElements] = useState<any[]>([]);
-  const [deviceView, setDeviceView] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
-
-  // Fetch data
-  const { data: pages = [] } = useQuery({
-    queryKey: ['/api/frontend/pages'],
-    enabled: activeTab === 'pages' || activeTab === 'design'
-  });
 
   const { data: sliders = [] } = useQuery({
     queryKey: ['/api/frontend/sliders'],
