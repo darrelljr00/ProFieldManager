@@ -123,14 +123,14 @@ export default function FrontendManagement() {
   const [deviceView, setDeviceView] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
 
   // Fetch data
-  const { data: pages = [] } = useQuery({
+  const { data: pages = [] } = useQuery<FrontendPage[]>({
     queryKey: ['/api/frontend/pages'],
     enabled: activeTab === 'pages' || activeTab === 'design'
   });
 
   // Auto-select home page when pages are loaded
   React.useEffect(() => {
-    if (pages.length > 0 && !selectedPage) {
+    if (pages && pages.length > 0 && !selectedPage) {
       const homePage = pages.find(p => p.slug === 'home' || p.title.toLowerCase().includes('home'));
       if (homePage) {
         setSelectedPage(homePage);
@@ -140,22 +140,22 @@ export default function FrontendManagement() {
     }
   }, [pages, selectedPage]);
 
-  const { data: sliders = [] } = useQuery({
+  const { data: sliders = [] } = useQuery<FrontendSlider[]>({
     queryKey: ['/api/frontend/sliders'],
     enabled: activeTab === 'sliders'
   });
 
-  const { data: icons = [] } = useQuery({
+  const { data: icons = [] } = useQuery<FrontendIcon[]>({
     queryKey: ['/api/frontend/icons'],
     enabled: activeTab === 'icons'
   });
 
-  const { data: boxes = [] } = useQuery({
+  const { data: boxes = [] } = useQuery<FrontendBox[]>({
     queryKey: ['/api/frontend/boxes'],
     enabled: activeTab === 'boxes'
   });
 
-  const { data: categories = [] } = useQuery({
+  const { data: categories = [] } = useQuery<FrontendCategory[]>({
     queryKey: ['/api/frontend/categories'],
     enabled: activeTab === 'categories'
   });
@@ -1524,7 +1524,7 @@ function IconDialog({
     tags: ''
   });
 
-  useState(() => {
+  React.useEffect(() => {
     if (icon) {
       setFormData({
         name: icon.name || '',
@@ -1710,7 +1710,7 @@ function BoxDialog({
     queryKey: ['/api/frontend/icons']
   });
 
-  useState(() => {
+  React.useEffect(() => {
     if (box) {
       setFormData({
         title: box.title || '',
@@ -1949,7 +1949,7 @@ function CategoryDialog({
     styling: {}
   });
 
-  useState(() => {
+  React.useEffect(() => {
     if (category) {
       setFormData({
         name: category.name || '',
