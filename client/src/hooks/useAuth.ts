@@ -49,11 +49,11 @@ export function useAuth() {
       
       // Fall back to cookie-based auth (for Replit domain)
       const response = await apiRequest("GET", "/api/auth/me");
-      return response.json();
+      return response;
     },
     retry: false,
     staleTime: 0, // Always check for fresh auth data
-    cacheTime: 0, // Don't cache auth data
+    gcTime: 0, // Don't cache auth data - updated from cacheTime to gcTime for TanStack Query v5
   });
 
   const logout = async () => {
@@ -74,6 +74,7 @@ export function useAuth() {
   return {
     user: data?.user,
     isAuthenticated: !!data?.user,
+    isAdmin: data?.user?.role === 'admin' || data?.user?.role === 'superadmin',
     isLoading,
     error,
     logout

@@ -56,6 +56,7 @@ import Landing from "@/pages/landing";
 import NotFound from "@/pages/not-found";
 import { DeletedJobs } from "@/pages/deleted-jobs";
 import { CancelledJobs } from "@/pages/cancelled-jobs";
+import FrontendManagement from "@/pages/frontend-management";
 
 function AuthenticatedApp() {
   const { isAdmin } = useAuth();
@@ -180,6 +181,7 @@ function AuthenticatedApp() {
           {isAdmin && <Route path="/admin-settings" component={AdminSettings} />}
           {isAdmin && <Route path="/saas-admin" component={SaasAdmin} />}
           {isAdmin && <Route path="/file-security" component={FileSecurity} />}
+          {isAdmin && <Route path="/frontend-management" component={FrontendManagement} />}
           <Route path="/settings" component={Settings} />
           <Route path="/reports" component={Reports} />
           <Route component={NotFound} />

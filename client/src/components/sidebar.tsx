@@ -37,7 +37,8 @@ import {
   Search,
   FileType,
   Mail,
-  Box
+  Box,
+  Monitor
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -374,6 +375,7 @@ export function Sidebar() {
     { name: "Human Resources", href: "/human-resources", icon: User, requiresAuth: true, permission: "canAccessHR" },
     { name: "User Management", href: "/users", icon: UserCog, requiresAuth: true, permission: "canAccessUsers" },
     { name: "SaaS Admin", href: "/saas-admin", icon: Server, requiresAuth: true, permission: "canAccessSaasAdmin" },
+    { name: "Frontend", href: "/frontend-management", icon: Monitor, requiresAuth: true, permission: "canAccessSaasAdmin" },
     {
       name: "Admin Settings",
       href: "/admin-settings",

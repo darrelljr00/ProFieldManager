@@ -14021,6 +14021,337 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // Frontend Management API routes
+  
+  // Frontend Pages
+  app.get('/api/frontend/pages', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const pages = await storage.getFrontendPages(user.organizationId);
+      res.json(pages);
+    } catch (error: any) {
+      console.error('Error fetching frontend pages:', error);
+      res.status(500).json({ message: 'Failed to fetch frontend pages' });
+    }
+  });
+
+  app.get('/api/frontend/pages/:id', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const page = await storage.getFrontendPage(Number(req.params.id), user.organizationId);
+      if (!page) {
+        return res.status(404).json({ message: 'Frontend page not found' });
+      }
+      res.json(page);
+    } catch (error: any) {
+      console.error('Error fetching frontend page:', error);
+      res.status(500).json({ message: 'Failed to fetch frontend page' });
+    }
+  });
+
+  app.post('/api/frontend/pages', requireManagerOrAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const pageData = {
+        ...req.body,
+        organizationId: user.organizationId,
+        createdBy: user.id
+      };
+      const page = await storage.createFrontendPage(pageData);
+      broadcastToWebUsers({ type: 'frontend_page_created', page });
+      res.json(page);
+    } catch (error: any) {
+      console.error('Error creating frontend page:', error);
+      res.status(500).json({ message: 'Failed to create frontend page' });
+    }
+  });
+
+  app.put('/api/frontend/pages/:id', requireManagerOrAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const page = await storage.updateFrontendPage(Number(req.params.id), user.organizationId, req.body);
+      if (!page) {
+        return res.status(404).json({ message: 'Frontend page not found' });
+      }
+      broadcastToWebUsers({ type: 'frontend_page_updated', page });
+      res.json(page);
+    } catch (error: any) {
+      console.error('Error updating frontend page:', error);
+      res.status(500).json({ message: 'Failed to update frontend page' });
+    }
+  });
+
+  app.delete('/api/frontend/pages/:id', requireManagerOrAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const success = await storage.deleteFrontendPage(Number(req.params.id), user.organizationId);
+      if (!success) {
+        return res.status(404).json({ message: 'Frontend page not found' });
+      }
+      broadcastToWebUsers({ type: 'frontend_page_deleted', pageId: Number(req.params.id) });
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('Error deleting frontend page:', error);
+      res.status(500).json({ message: 'Failed to delete frontend page' });
+    }
+  });
+
+  // Frontend Sliders
+  app.get('/api/frontend/sliders', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const sliders = await storage.getFrontendSliders(user.organizationId);
+      res.json(sliders);
+    } catch (error: any) {
+      console.error('Error fetching frontend sliders:', error);
+      res.status(500).json({ message: 'Failed to fetch frontend sliders' });
+    }
+  });
+
+  app.post('/api/frontend/sliders', requireManagerOrAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const sliderData = {
+        ...req.body,
+        organizationId: user.organizationId,
+        createdBy: user.id
+      };
+      const slider = await storage.createFrontendSlider(sliderData);
+      broadcastToWebUsers({ type: 'frontend_slider_created', slider });
+      res.json(slider);
+    } catch (error: any) {
+      console.error('Error creating frontend slider:', error);
+      res.status(500).json({ message: 'Failed to create frontend slider' });
+    }
+  });
+
+  app.put('/api/frontend/sliders/:id', requireManagerOrAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const slider = await storage.updateFrontendSlider(Number(req.params.id), user.organizationId, req.body);
+      if (!slider) {
+        return res.status(404).json({ message: 'Frontend slider not found' });
+      }
+      broadcastToWebUsers({ type: 'frontend_slider_updated', slider });
+      res.json(slider);
+    } catch (error: any) {
+      console.error('Error updating frontend slider:', error);
+      res.status(500).json({ message: 'Failed to update frontend slider' });
+    }
+  });
+
+  app.delete('/api/frontend/sliders/:id', requireManagerOrAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const success = await storage.deleteFrontendSlider(Number(req.params.id), user.organizationId);
+      if (!success) {
+        return res.status(404).json({ message: 'Frontend slider not found' });
+      }
+      broadcastToWebUsers({ type: 'frontend_slider_deleted', sliderId: Number(req.params.id) });
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('Error deleting frontend slider:', error);
+      res.status(500).json({ message: 'Failed to delete frontend slider' });
+    }
+  });
+
+  // Frontend Components
+  app.get('/api/frontend/components', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const pageId = req.query.pageId ? Number(req.query.pageId) : undefined;
+      const components = await storage.getFrontendComponents(user.organizationId, pageId);
+      res.json(components);
+    } catch (error: any) {
+      console.error('Error fetching frontend components:', error);
+      res.status(500).json({ message: 'Failed to fetch frontend components' });
+    }
+  });
+
+  app.post('/api/frontend/components', requireManagerOrAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const componentData = {
+        ...req.body,
+        organizationId: user.organizationId,
+        createdBy: user.id
+      };
+      const component = await storage.createFrontendComponent(componentData);
+      broadcastToWebUsers({ type: 'frontend_component_created', component });
+      res.json(component);
+    } catch (error: any) {
+      console.error('Error creating frontend component:', error);
+      res.status(500).json({ message: 'Failed to create frontend component' });
+    }
+  });
+
+  app.put('/api/frontend/components/:id', requireManagerOrAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const component = await storage.updateFrontendComponent(Number(req.params.id), user.organizationId, req.body);
+      if (!component) {
+        return res.status(404).json({ message: 'Frontend component not found' });
+      }
+      broadcastToWebUsers({ type: 'frontend_component_updated', component });
+      res.json(component);
+    } catch (error: any) {
+      console.error('Error updating frontend component:', error);
+      res.status(500).json({ message: 'Failed to update frontend component' });
+    }
+  });
+
+  app.delete('/api/frontend/components/:id', requireManagerOrAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const success = await storage.deleteFrontendComponent(Number(req.params.id), user.organizationId);
+      if (!success) {
+        return res.status(404).json({ message: 'Frontend component not found' });
+      }
+      broadcastToWebUsers({ type: 'frontend_component_deleted', componentId: Number(req.params.id) });
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('Error deleting frontend component:', error);
+      res.status(500).json({ message: 'Failed to delete frontend component' });
+    }
+  });
+
+  // Frontend Icons
+  app.get('/api/frontend/icons', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const icons = await storage.getFrontendIcons(user.organizationId);
+      res.json(icons);
+    } catch (error: any) {
+      console.error('Error fetching frontend icons:', error);
+      res.status(500).json({ message: 'Failed to fetch frontend icons' });
+    }
+  });
+
+  app.post('/api/frontend/icons', requireManagerOrAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const iconData = {
+        ...req.body,
+        organizationId: user.organizationId,
+        createdBy: user.id
+      };
+      const icon = await storage.createFrontendIcon(iconData);
+      broadcastToWebUsers({ type: 'frontend_icon_created', icon });
+      res.json(icon);
+    } catch (error: any) {
+      console.error('Error creating frontend icon:', error);
+      res.status(500).json({ message: 'Failed to create frontend icon' });
+    }
+  });
+
+  app.put('/api/frontend/icons/:id', requireManagerOrAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const icon = await storage.updateFrontendIcon(Number(req.params.id), user.organizationId, req.body);
+      if (!icon) {
+        return res.status(404).json({ message: 'Frontend icon not found' });
+      }
+      broadcastToWebUsers({ type: 'frontend_icon_updated', icon });
+      res.json(icon);
+    } catch (error: any) {
+      console.error('Error updating frontend icon:', error);
+      res.status(500).json({ message: 'Failed to update frontend icon' });
+    }
+  });
+
+  app.delete('/api/frontend/icons/:id', requireManagerOrAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const success = await storage.deleteFrontendIcon(Number(req.params.id), user.organizationId);
+      if (!success) {
+        return res.status(404).json({ message: 'Frontend icon not found' });
+      }
+      broadcastToWebUsers({ type: 'frontend_icon_deleted', iconId: Number(req.params.id) });
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('Error deleting frontend icon:', error);
+      res.status(500).json({ message: 'Failed to delete frontend icon' });
+    }
+  });
+
+  // Frontend Boxes
+  app.get('/api/frontend/boxes', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const pageId = req.query.pageId ? Number(req.query.pageId) : undefined;
+      const boxes = await storage.getFrontendBoxes(user.organizationId, pageId);
+      res.json(boxes);
+    } catch (error: any) {
+      console.error('Error fetching frontend boxes:', error);
+      res.status(500).json({ message: 'Failed to fetch frontend boxes' });
+    }
+  });
+
+  app.post('/api/frontend/boxes', requireManagerOrAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const boxData = {
+        ...req.body,
+        organizationId: user.organizationId,
+        createdBy: user.id
+      };
+      const box = await storage.createFrontendBox(boxData);
+      broadcastToWebUsers({ type: 'frontend_box_created', box });
+      res.json(box);
+    } catch (error: any) {
+      console.error('Error creating frontend box:', error);
+      res.status(500).json({ message: 'Failed to create frontend box' });
+    }
+  });
+
+  app.put('/api/frontend/boxes/:id', requireManagerOrAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const box = await storage.updateFrontendBox(Number(req.params.id), user.organizationId, req.body);
+      if (!box) {
+        return res.status(404).json({ message: 'Frontend box not found' });
+      }
+      broadcastToWebUsers({ type: 'frontend_box_updated', box });
+      res.json(box);
+    } catch (error: any) {
+      console.error('Error updating frontend box:', error);
+      res.status(500).json({ message: 'Failed to update frontend box' });
+    }
+  });
+
+  app.delete('/api/frontend/boxes/:id', requireManagerOrAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const success = await storage.deleteFrontendBox(Number(req.params.id), user.organizationId);
+      if (!success) {
+        return res.status(404).json({ message: 'Frontend box not found' });
+      }
+      broadcastToWebUsers({ type: 'frontend_box_deleted', boxId: Number(req.params.id) });
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('Error deleting frontend box:', error);
+      res.status(500).json({ message: 'Failed to delete frontend box' });
+    }
+  });
+
+  app.patch('/api/frontend/boxes/reorder', requireManagerOrAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { boxUpdates } = req.body;
+      
+      if (!Array.isArray(boxUpdates)) {
+        return res.status(400).json({ message: 'boxUpdates must be an array' });
+      }
+      
+      const updatedBoxes = await storage.updateFrontendBoxOrder(user.organizationId, boxUpdates);
+      broadcastToWebUsers({ type: 'frontend_boxes_reordered', boxes: updatedBoxes });
+      res.json({ success: true, boxes: updatedBoxes });
+    } catch (error: any) {
+      console.error('Error reordering frontend boxes:', error);
+      res.status(500).json({ message: 'Failed to reorder frontend boxes' });
+    }
+  });
+
   // Add broadcast function to the app for use in routes
   (app as any).broadcastToWebUsers = broadcastToWebUsers;
 

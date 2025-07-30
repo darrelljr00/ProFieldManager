@@ -13,7 +13,8 @@ import {
   navigationOrder, backupSettings, backupJobs, partsSupplies, partsCategories, inventoryTransactions, stockAlerts,
   filePermissions, folderPermissions, defaultPermissions, userDashboardSettings, dashboardProfiles, vehicles,
   vehicleMaintenanceIntervals, vehicleMaintenanceRecords, vehicleJobAssignments, timeClockTaskTriggers,
-  taskTriggers, taskTriggerInstances, taskTriggerSettings
+  taskTriggers, taskTriggerInstances, taskTriggerSettings, frontendPages, frontendSliders, frontendComponents,
+  frontendIcons, frontendBoxes
 } from "@shared/schema";
 import { marketResearchCompetitors } from "@shared/schema";
 import type { GasCard, InsertGasCard, GasCardAssignment, InsertGasCardAssignment, GasCardUsage, InsertGasCardUsage, GasCardProvider, InsertGasCardProvider } from "@shared/schema";
@@ -494,6 +495,38 @@ export interface IStorage {
   deleteVehicleJobAssignment(id: number, organizationId: number): Promise<boolean>;
   getUsersWithVehicleInspections(organizationId: number, date: string): Promise<any[]>;
   connectUsersToVehicleJobs(organizationId: number, date: string): Promise<any[]>;
+  
+  // Frontend Management methods
+  getFrontendPages(organizationId: number): Promise<any[]>;
+  getFrontendPage(id: number, organizationId: number): Promise<any>;
+  createFrontendPage(pageData: any): Promise<any>;
+  updateFrontendPage(id: number, organizationId: number, updates: any): Promise<any>;
+  deleteFrontendPage(id: number, organizationId: number): Promise<boolean>;
+  
+  getFrontendSliders(organizationId: number): Promise<any[]>;
+  getFrontendSlider(id: number, organizationId: number): Promise<any>;
+  createFrontendSlider(sliderData: any): Promise<any>;
+  updateFrontendSlider(id: number, organizationId: number, updates: any): Promise<any>;
+  deleteFrontendSlider(id: number, organizationId: number): Promise<boolean>;
+  
+  getFrontendComponents(organizationId: number, pageId?: number): Promise<any[]>;
+  getFrontendComponent(id: number, organizationId: number): Promise<any>;
+  createFrontendComponent(componentData: any): Promise<any>;
+  updateFrontendComponent(id: number, organizationId: number, updates: any): Promise<any>;
+  deleteFrontendComponent(id: number, organizationId: number): Promise<boolean>;
+  
+  getFrontendIcons(organizationId: number): Promise<any[]>;
+  getFrontendIcon(id: number, organizationId: number): Promise<any>;
+  createFrontendIcon(iconData: any): Promise<any>;
+  updateFrontendIcon(id: number, organizationId: number, updates: any): Promise<any>;
+  deleteFrontendIcon(id: number, organizationId: number): Promise<boolean>;
+  
+  getFrontendBoxes(organizationId: number, pageId?: number): Promise<any[]>;
+  getFrontendBox(id: number, organizationId: number): Promise<any>;
+  createFrontendBox(boxData: any): Promise<any>;
+  updateFrontendBox(id: number, organizationId: number, updates: any): Promise<any>;
+  deleteFrontendBox(id: number, organizationId: number): Promise<boolean>;
+  updateFrontendBoxOrder(organizationId: number, boxUpdates: any[]): Promise<any[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -8811,6 +8844,423 @@ export class DatabaseStorage implements IStorage {
       return assignments;
     } catch (error) {
       console.error('Error connecting users to vehicle jobs:', error);
+      throw error;
+    }
+  }
+
+  // Frontend Management methods
+  async getFrontendPages(organizationId: number): Promise<any[]> {
+    try {
+      const pages = await db
+        .select()
+        .from(frontendPages)
+        .where(eq(frontendPages.organizationId, organizationId))
+        .orderBy(asc(frontendPages.sortOrder), asc(frontendPages.title));
+      return pages;
+    } catch (error) {
+      console.error('Error fetching frontend pages:', error);
+      return [];
+    }
+  }
+
+  async getFrontendPage(id: number, organizationId: number): Promise<any> {
+    try {
+      const [page] = await db
+        .select()
+        .from(frontendPages)
+        .where(and(eq(frontendPages.id, id), eq(frontendPages.organizationId, organizationId)));
+      return page || null;
+    } catch (error) {
+      console.error('Error fetching frontend page:', error);
+      return null;
+    }
+  }
+
+  async createFrontendPage(pageData: any): Promise<any> {
+    try {
+      const [page] = await db
+        .insert(frontendPages)
+        .values({
+          ...pageData,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
+      return page;
+    } catch (error) {
+      console.error('Error creating frontend page:', error);
+      throw error;
+    }
+  }
+
+  async updateFrontendPage(id: number, organizationId: number, updates: any): Promise<any> {
+    try {
+      const [page] = await db
+        .update(frontendPages)
+        .set({
+          ...updates,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(frontendPages.id, id), eq(frontendPages.organizationId, organizationId)))
+        .returning();
+      return page;
+    } catch (error) {
+      console.error('Error updating frontend page:', error);
+      throw error;
+    }
+  }
+
+  async deleteFrontendPage(id: number, organizationId: number): Promise<boolean> {
+    try {
+      await db
+        .delete(frontendPages)
+        .where(and(eq(frontendPages.id, id), eq(frontendPages.organizationId, organizationId)));
+      return true;
+    } catch (error) {
+      console.error('Error deleting frontend page:', error);
+      return false;
+    }
+  }
+
+  async getFrontendSliders(organizationId: number): Promise<any[]> {
+    try {
+      const sliders = await db
+        .select()
+        .from(frontendSliders)
+        .where(eq(frontendSliders.organizationId, organizationId))
+        .orderBy(asc(frontendSliders.sortOrder), asc(frontendSliders.title));
+      return sliders;
+    } catch (error) {
+      console.error('Error fetching frontend sliders:', error);
+      return [];
+    }
+  }
+
+  async getFrontendSlider(id: number, organizationId: number): Promise<any> {
+    try {
+      const [slider] = await db
+        .select()
+        .from(frontendSliders)
+        .where(and(eq(frontendSliders.id, id), eq(frontendSliders.organizationId, organizationId)));
+      return slider || null;
+    } catch (error) {
+      console.error('Error fetching frontend slider:', error);
+      return null;
+    }
+  }
+
+  async createFrontendSlider(sliderData: any): Promise<any> {
+    try {
+      const [slider] = await db
+        .insert(frontendSliders)
+        .values({
+          ...sliderData,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
+      return slider;
+    } catch (error) {
+      console.error('Error creating frontend slider:', error);
+      throw error;
+    }
+  }
+
+  async updateFrontendSlider(id: number, organizationId: number, updates: any): Promise<any> {
+    try {
+      const [slider] = await db
+        .update(frontendSliders)
+        .set({
+          ...updates,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(frontendSliders.id, id), eq(frontendSliders.organizationId, organizationId)))
+        .returning();
+      return slider;
+    } catch (error) {
+      console.error('Error updating frontend slider:', error);
+      throw error;
+    }
+  }
+
+  async deleteFrontendSlider(id: number, organizationId: number): Promise<boolean> {
+    try {
+      await db
+        .delete(frontendSliders)
+        .where(and(eq(frontendSliders.id, id), eq(frontendSliders.organizationId, organizationId)));
+      return true;
+    } catch (error) {
+      console.error('Error deleting frontend slider:', error);
+      return false;
+    }
+  }
+
+  async getFrontendComponents(organizationId: number, pageId?: number): Promise<any[]> {
+    try {
+      let query = db
+        .select()
+        .from(frontendComponents)
+        .where(eq(frontendComponents.organizationId, organizationId));
+      
+      if (pageId) {
+        query = query.where(eq(frontendComponents.pageId, pageId));
+      }
+      
+      const components = await query.orderBy(asc(frontendComponents.sortOrder));
+      return components;
+    } catch (error) {
+      console.error('Error fetching frontend components:', error);
+      return [];
+    }
+  }
+
+  async getFrontendComponent(id: number, organizationId: number): Promise<any> {
+    try {
+      const [component] = await db
+        .select()
+        .from(frontendComponents)
+        .where(and(eq(frontendComponents.id, id), eq(frontendComponents.organizationId, organizationId)));
+      return component || null;
+    } catch (error) {
+      console.error('Error fetching frontend component:', error);
+      return null;
+    }
+  }
+
+  async createFrontendComponent(componentData: any): Promise<any> {
+    try {
+      const [component] = await db
+        .insert(frontendComponents)
+        .values({
+          ...componentData,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
+      return component;
+    } catch (error) {
+      console.error('Error creating frontend component:', error);
+      throw error;
+    }
+  }
+
+  async updateFrontendComponent(id: number, organizationId: number, updates: any): Promise<any> {
+    try {
+      const [component] = await db
+        .update(frontendComponents)
+        .set({
+          ...updates,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(frontendComponents.id, id), eq(frontendComponents.organizationId, organizationId)))
+        .returning();
+      return component;
+    } catch (error) {
+      console.error('Error updating frontend component:', error);
+      throw error;
+    }
+  }
+
+  async deleteFrontendComponent(id: number, organizationId: number): Promise<boolean> {
+    try {
+      await db
+        .delete(frontendComponents)
+        .where(and(eq(frontendComponents.id, id), eq(frontendComponents.organizationId, organizationId)));
+      return true;
+    } catch (error) {
+      console.error('Error deleting frontend component:', error);
+      return false;
+    }
+  }
+
+  async getFrontendIcons(organizationId: number): Promise<any[]> {
+    try {
+      const icons = await db
+        .select()
+        .from(frontendIcons)
+        .where(eq(frontendIcons.organizationId, organizationId))
+        .orderBy(asc(frontendIcons.category), asc(frontendIcons.name));
+      return icons;
+    } catch (error) {
+      console.error('Error fetching frontend icons:', error);
+      return [];
+    }
+  }
+
+  async getFrontendIcon(id: number, organizationId: number): Promise<any> {
+    try {
+      const [icon] = await db
+        .select()
+        .from(frontendIcons)
+        .where(and(eq(frontendIcons.id, id), eq(frontendIcons.organizationId, organizationId)));
+      return icon || null;
+    } catch (error) {
+      console.error('Error fetching frontend icon:', error);
+      return null;
+    }
+  }
+
+  async createFrontendIcon(iconData: any): Promise<any> {
+    try {
+      const [icon] = await db
+        .insert(frontendIcons)
+        .values({
+          ...iconData,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
+      return icon;
+    } catch (error) {
+      console.error('Error creating frontend icon:', error);
+      throw error;
+    }
+  }
+
+  async updateFrontendIcon(id: number, organizationId: number, updates: any): Promise<any> {
+    try {
+      const [icon] = await db
+        .update(frontendIcons)
+        .set({
+          ...updates,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(frontendIcons.id, id), eq(frontendIcons.organizationId, organizationId)))
+        .returning();
+      return icon;
+    } catch (error) {
+      console.error('Error updating frontend icon:', error);
+      throw error;
+    }
+  }
+
+  async deleteFrontendIcon(id: number, organizationId: number): Promise<boolean> {
+    try {
+      await db
+        .delete(frontendIcons)
+        .where(and(eq(frontendIcons.id, id), eq(frontendIcons.organizationId, organizationId)));
+      return true;
+    } catch (error) {
+      console.error('Error deleting frontend icon:', error);
+      return false;
+    }
+  }
+
+  async getFrontendBoxes(organizationId: number, pageId?: number): Promise<any[]> {
+    try {
+      let query = db
+        .select({
+          id: frontendBoxes.id,
+          title: frontendBoxes.title,
+          description: frontendBoxes.description,
+          link: frontendBoxes.link,
+          backgroundColor: frontendBoxes.backgroundColor,
+          textColor: frontendBoxes.textColor,
+          borderColor: frontendBoxes.borderColor,
+          hoverColor: frontendBoxes.hoverColor,
+          position: frontendBoxes.position,
+          sortOrder: frontendBoxes.sortOrder,
+          isVisible: frontendBoxes.isVisible,
+          animationEffect: frontendBoxes.animationEffect,
+          pageId: frontendBoxes.pageId,
+          iconId: frontendBoxes.iconId,
+          iconName: frontendIcons.name,
+          iconType: frontendIcons.iconType,
+          iconData: frontendIcons.iconData,
+        })
+        .from(frontendBoxes)
+        .leftJoin(frontendIcons, eq(frontendBoxes.iconId, frontendIcons.id))
+        .where(eq(frontendBoxes.organizationId, organizationId));
+      
+      if (pageId) {
+        query = query.where(eq(frontendBoxes.pageId, pageId));
+      }
+      
+      const boxes = await query.orderBy(asc(frontendBoxes.sortOrder));
+      return boxes;
+    } catch (error) {
+      console.error('Error fetching frontend boxes:', error);
+      return [];
+    }
+  }
+
+  async getFrontendBox(id: number, organizationId: number): Promise<any> {
+    try {
+      const [box] = await db
+        .select()
+        .from(frontendBoxes)
+        .where(and(eq(frontendBoxes.id, id), eq(frontendBoxes.organizationId, organizationId)));
+      return box || null;
+    } catch (error) {
+      console.error('Error fetching frontend box:', error);
+      return null;
+    }
+  }
+
+  async createFrontendBox(boxData: any): Promise<any> {
+    try {
+      const [box] = await db
+        .insert(frontendBoxes)
+        .values({
+          ...boxData,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
+      return box;
+    } catch (error) {
+      console.error('Error creating frontend box:', error);
+      throw error;
+    }
+  }
+
+  async updateFrontendBox(id: number, organizationId: number, updates: any): Promise<any> {
+    try {
+      const [box] = await db
+        .update(frontendBoxes)
+        .set({
+          ...updates,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(frontendBoxes.id, id), eq(frontendBoxes.organizationId, organizationId)))
+        .returning();
+      return box;
+    } catch (error) {
+      console.error('Error updating frontend box:', error);
+      throw error;
+    }
+  }
+
+  async deleteFrontendBox(id: number, organizationId: number): Promise<boolean> {
+    try {
+      await db
+        .delete(frontendBoxes)
+        .where(and(eq(frontendBoxes.id, id), eq(frontendBoxes.organizationId, organizationId)));
+      return true;
+    } catch (error) {
+      console.error('Error deleting frontend box:', error);
+      return false;
+    }
+  }
+
+  async updateFrontendBoxOrder(organizationId: number, boxUpdates: any[]): Promise<any[]> {
+    try {
+      const updatedBoxes = [];
+      for (const update of boxUpdates) {
+        const [box] = await db
+          .update(frontendBoxes)
+          .set({
+            position: update.position,
+            sortOrder: update.sortOrder,
+            updatedAt: new Date(),
+          })
+          .where(and(eq(frontendBoxes.id, update.id), eq(frontendBoxes.organizationId, organizationId)))
+          .returning();
+        updatedBoxes.push(box);
+      }
+      return updatedBoxes;
+    } catch (error) {
+      console.error('Error updating frontend box order:', error);
       throw error;
     }
   }

@@ -2113,6 +2113,169 @@ export type LoginData = z.infer<typeof loginSchema>;
 export type RegisterData = z.infer<typeof registerSchema>;
 export type ChangePasswordData = z.infer<typeof changePasswordSchema>;
 
+// Frontend Management Tables
+export const frontendPages = pgTable("frontend_pages", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  title: text("title").notNull(),
+  slug: text("slug").notNull(),
+  path: text("path").notNull(),
+  content: jsonb("content"), // Page content as JSON
+  metaTitle: text("meta_title"),
+  metaDescription: text("meta_description"),
+  isActive: boolean("is_active").default(true),
+  isPublic: boolean("is_public").default(false),
+  templateType: text("template_type").default("custom"), // custom, landing, about, contact
+  sortOrder: integer("sort_order").default(0),
+  createdBy: integer("created_by").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const frontendSliders = pgTable("frontend_sliders", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  title: text("title").notNull(),
+  subtitle: text("subtitle"),
+  description: text("description"),
+  imageUrl: text("image_url"),
+  buttonText: text("button_text"),
+  buttonLink: text("button_link"),
+  backgroundColor: text("background_color").default("#1e40af"),
+  textColor: text("text_color").default("#ffffff"),
+  isActive: boolean("is_active").default(true),
+  sortOrder: integer("sort_order").default(0),
+  displayDuration: integer("display_duration").default(5000), // milliseconds
+  animationType: text("animation_type").default("fade"), // fade, slide, zoom
+  createdBy: integer("created_by").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const frontendComponents = pgTable("frontend_components", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  pageId: integer("page_id").references(() => frontendPages.id),
+  componentType: text("component_type").notNull(), // hero, features, testimonials, pricing, contact, custom
+  title: text("title"),
+  content: jsonb("content"), // Component configuration as JSON
+  position: text("position").default("main"), // header, main, sidebar, footer
+  sortOrder: integer("sort_order").default(0),
+  isVisible: boolean("is_visible").default(true),
+  isGlobal: boolean("is_global").default(false), // Shows on all pages
+  styling: jsonb("styling"), // CSS styling options
+  createdBy: integer("created_by").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const frontendIcons = pgTable("frontend_icons", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  name: text("name").notNull(),
+  iconType: text("icon_type").notNull(), // lucide, custom, image
+  iconData: text("icon_data"), // Icon name for lucide, URL for image, SVG for custom
+  category: text("category").default("general"), // navigation, features, social, etc
+  description: text("description"),
+  isActive: boolean("is_active").default(true),
+  sortOrder: integer("sort_order").default(0),
+  createdBy: integer("created_by").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const frontendBoxes = pgTable("frontend_boxes", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  pageId: integer("page_id").references(() => frontendPages.id),
+  title: text("title").notNull(),
+  description: text("description"),
+  iconId: integer("icon_id").references(() => frontendIcons.id),
+  link: text("link"),
+  backgroundColor: text("background_color").default("#ffffff"),
+  textColor: text("text_color").default("#000000"),
+  borderColor: text("border_color").default("#e5e7eb"),
+  hoverColor: text("hover_color").default("#f3f4f6"),
+  position: jsonb("position"), // {x: 0, y: 0, width: 12, height: 4} for grid layout
+  sortOrder: integer("sort_order").default(0),
+  isVisible: boolean("is_visible").default(true),
+  animationEffect: text("animation_effect").default("none"), // none, fade, slide, bounce
+  createdBy: integer("created_by").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Frontend Management Insert Schemas
+export const insertFrontendPageSchema = createInsertSchema(frontendPages, {
+  title: z.string().min(1, "Title is required"),
+  slug: z.string().min(1, "Slug is required"),
+  path: z.string().min(1, "Path is required"),
+  content: z.any().optional(),
+  organizationId: z.number(),
+  createdBy: z.number(),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertFrontendSliderSchema = createInsertSchema(frontendSliders, {
+  title: z.string().min(1, "Title is required"),
+  organizationId: z.number(),
+  createdBy: z.number(),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertFrontendComponentSchema = createInsertSchema(frontendComponents, {
+  componentType: z.string().min(1, "Component type is required"),
+  content: z.any().optional(),
+  styling: z.any().optional(),
+  organizationId: z.number(),
+  createdBy: z.number(),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertFrontendIconSchema = createInsertSchema(frontendIcons, {
+  name: z.string().min(1, "Name is required"),
+  iconType: z.string().min(1, "Icon type is required"),
+  iconData: z.string().optional(),
+  organizationId: z.number(),
+  createdBy: z.number(),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertFrontendBoxSchema = createInsertSchema(frontendBoxes, {
+  title: z.string().min(1, "Title is required"),
+  position: z.any().optional(),
+  organizationId: z.number(),
+  createdBy: z.number(),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Frontend Management Types
+export type FrontendPage = typeof frontendPages.$inferSelect;
+export type InsertFrontendPage = z.infer<typeof insertFrontendPageSchema>;
+export type FrontendSlider = typeof frontendSliders.$inferSelect;
+export type InsertFrontendSlider = z.infer<typeof insertFrontendSliderSchema>;
+export type FrontendComponent = typeof frontendComponents.$inferSelect;
+export type InsertFrontendComponent = z.infer<typeof insertFrontendComponentSchema>;
+export type FrontendIcon = typeof frontendIcons.$inferSelect;
+export type InsertFrontendIcon = z.infer<typeof insertFrontendIconSchema>;
+export type FrontendBox = typeof frontendBoxes.$inferSelect;
+export type InsertFrontendBox = z.infer<typeof insertFrontendBoxSchema>;
+
 // File Manager types
 export type FileManager = typeof fileManager.$inferSelect;
 export type InsertFileManager = typeof fileManager.$inferInsert;
@@ -3101,3 +3264,4 @@ export const insertTimeClockTaskTriggerSchema = createInsertSchema(timeClockTask
 // Time Clock Task Triggers Types
 export type TimeClockTaskTrigger = typeof timeClockTaskTriggers.$inferSelect;
 export type InsertTimeClockTaskTrigger = z.infer<typeof insertTimeClockTaskTriggerSchema>;
+
