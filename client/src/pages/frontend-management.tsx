@@ -137,7 +137,7 @@ export default function FrontendManagement() {
   // Fetch data
   const { data: pages = [] } = useQuery({
     queryKey: ['/api/frontend/pages'],
-    enabled: activeTab === 'pages'
+    enabled: activeTab === 'pages' || activeTab === 'design'
   });
 
   const { data: sliders = [] } = useQuery({
