@@ -2176,8 +2176,8 @@ function DesignCanvas({
       </div>
 
       <div 
-        className="flex-1 bg-white border rounded-lg mx-auto my-4 overflow-auto relative"
-        style={getCanvasStyle()}
+        className="flex-1 bg-white border rounded-lg mx-auto my-4 overflow-y-auto overflow-x-hidden relative"
+        style={{...getCanvasStyle(), maxHeight: '600px'}}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
       >
@@ -2191,8 +2191,8 @@ function DesignCanvas({
           </div>
         ) : (
           <>
-            {/* Page Content Preview */}
-            <div className="p-6 space-y-6">
+            {/* Page Content Preview - Scrollable */}
+            <div className="p-6 space-y-6 min-h-full">
               {/* Show actual page content preview */}
               {selectedPage.slug === 'home' && (
                 <div className="space-y-8">
@@ -2241,6 +2241,46 @@ function DesignCanvas({
                         <div className="text-2xl font-bold text-blue-600">4.9/5</div>
                         <div className="text-gray-600">Customer Rating</div>
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Additional Content for Scrolling Demo */}
+                  <div className="space-y-6">
+                    <h2 className="text-2xl font-bold text-center">Powerful Integrations</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <div className="p-4 border rounded-lg text-center">
+                        <h4 className="font-semibold">Stripe</h4>
+                        <p className="text-sm text-gray-600">Payment Processing</p>
+                      </div>
+                      <div className="p-4 border rounded-lg text-center">
+                        <h4 className="font-semibold">QuickBooks</h4>
+                        <p className="text-sm text-gray-600">Accounting Integration</p>
+                      </div>
+                      <div className="p-4 border rounded-lg text-center">
+                        <h4 className="font-semibold">Google Maps</h4>
+                        <p className="text-sm text-gray-600">GPS & Routing</p>
+                      </div>
+                      <div className="p-4 border rounded-lg text-center">
+                        <h4 className="font-semibold">Twilio</h4>
+                        <p className="text-sm text-gray-600">SMS Communication</p>
+                      </div>
+                      <div className="p-4 border rounded-lg text-center">
+                        <h4 className="font-semibold">Zapier</h4>
+                        <p className="text-sm text-gray-600">Workflow Automation</p>
+                      </div>
+                      <div className="p-4 border rounded-lg text-center">
+                        <h4 className="font-semibold">DocuSign</h4>
+                        <p className="text-sm text-gray-600">Digital Signatures</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-blue-50 p-6 rounded-lg">
+                    <h2 className="text-2xl font-bold text-center mb-4">Ready to Get Started?</h2>
+                    <p className="text-center text-gray-600 mb-6">Join thousands of field service businesses already using Pro Field Manager</p>
+                    <div className="flex justify-center space-x-4">
+                      <div className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold">Start Free Trial</div>
+                      <div className="border border-blue-600 text-blue-600 px-8 py-3 rounded-lg font-semibold">Schedule Demo</div>
                     </div>
                   </div>
                 </div>
