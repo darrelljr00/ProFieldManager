@@ -1,4 +1,5 @@
 import { useState } from "react";
+import React from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -117,6 +118,18 @@ export default function FrontendManagement() {
   const [showBoxDialog, setShowBoxDialog] = useState(false);
   const [showCategoryDialog, setShowCategoryDialog] = useState(false);
   const [selectedPage, setSelectedPage] = useState<FrontendPage | null>(null);
+
+  // Auto-select home page when pages are loaded
+  React.useEffect(() => {
+    if (pages.length > 0 && !selectedPage) {
+      const homePage = pages.find(p => p.slug === 'home' || p.title.toLowerCase().includes('home'));
+      if (homePage) {
+        setSelectedPage(homePage);
+      } else {
+        setSelectedPage(pages[0]); // fallback to first page
+      }
+    }
+  }, [pages, selectedPage]);
   const [draggedComponent, setDraggedComponent] = useState<any>(null);
   const [canvasElements, setCanvasElements] = useState<any[]>([]);
   const [deviceView, setDeviceView] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
