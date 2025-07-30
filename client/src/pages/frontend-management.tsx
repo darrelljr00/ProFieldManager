@@ -105,7 +105,7 @@ interface FrontendBox {
 
 export default function FrontendManagement() {
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState("categories");
+  const [activeTab, setActiveTab] = useState("design");
   const [editingPage, setEditingPage] = useState<FrontendPage | null>(null);
   const [editingSlider, setEditingSlider] = useState<FrontendSlider | null>(null);
   const [editingIcon, setEditingIcon] = useState<FrontendIcon | null>(null);
@@ -116,6 +116,10 @@ export default function FrontendManagement() {
   const [showIconDialog, setShowIconDialog] = useState(false);
   const [showBoxDialog, setShowBoxDialog] = useState(false);
   const [showCategoryDialog, setShowCategoryDialog] = useState(false);
+  const [selectedPage, setSelectedPage] = useState<FrontendPage | null>(null);
+  const [draggedComponent, setDraggedComponent] = useState<any>(null);
+  const [canvasElements, setCanvasElements] = useState<any[]>([]);
+  const [deviceView, setDeviceView] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
 
   // Fetch data
   const { data: pages = [] } = useQuery({
@@ -403,6 +407,47 @@ export default function FrontendManagement() {
     setShowCategoryDialog(true);
   };
 
+  // Helper functions for drag and drop
+  const getDefaultProps = (type: string) => {
+    switch (type) {
+      case 'text':
+        return { content: 'Sample text content' };
+      case 'heading':
+        return { content: 'Heading Text', level: 'h2' };
+      case 'image':
+        return { src: '', alt: 'Image', width: '100%' };
+      case 'button':
+        return { text: 'Click Me', href: '#' };
+      case 'container':
+        return { maxWidth: '1200px' };
+      case 'hero':
+        return { title: 'Hero Title', subtitle: 'Hero Subtitle', image: '' };
+      case 'features':
+        return { title: 'Features', items: [] };
+      default:
+        return {};
+    }
+  };
+
+  const getDefaultStyle = (type: string) => {
+    switch (type) {
+      case 'text':
+        return { fontSize: '16px', color: '#000', padding: '10px' };
+      case 'heading':
+        return { fontSize: '32px', fontWeight: 'bold', color: '#000', padding: '10px' };
+      case 'image':
+        return { maxWidth: '100%', height: 'auto' };
+      case 'button':
+        return { backgroundColor: '#007bff', color: '#fff', padding: '10px 20px', borderRadius: '5px' };
+      case 'container':
+        return { backgroundColor: '#f8f9fa', padding: '20px', margin: '10px 0' };
+      case 'hero':
+        return { backgroundColor: '#007bff', color: '#fff', padding: '60px 20px', textAlign: 'center' };
+      default:
+        return { padding: '10px', margin: '5px' };
+    }
+  };
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -420,7 +465,11 @@ export default function FrontendManagement() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
+          <TabsTrigger value="design" className="flex items-center space-x-2">
+            <Palette className="h-4 w-4" />
+            <span>Design</span>
+          </TabsTrigger>
           <TabsTrigger value="categories" className="flex items-center space-x-2">
             <Layout className="h-4 w-4" />
             <span>Categories</span>
@@ -442,6 +491,231 @@ export default function FrontendManagement() {
             <span>Boxes</span>
           </TabsTrigger>
         </TabsList>
+
+        {/* Design Tab - Drag and Drop Page Builder */}
+        <TabsContent value="design" className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-semibold">Visual Page Designer</h2>
+            <div className="flex items-center space-x-4">
+              {/* Device Preview Controls */}
+              <div className="flex items-center space-x-2 border rounded-lg p-1">
+                <Button
+                  variant={deviceView === 'desktop' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setDeviceView('desktop')}
+                >
+                  <Monitor className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={deviceView === 'tablet' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setDeviceView('tablet')}
+                >
+                  <Tablet className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={deviceView === 'mobile' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setDeviceView('mobile')}
+                >
+                  <Smartphone className="h-4 w-4" />
+                </Button>
+              </div>
+              
+              {/* Page Selector */}
+              <Select value={selectedPage?.id.toString() || ''} onValueChange={(value) => {
+                const page = pages.find(p => p.id.toString() === value);
+                setSelectedPage(page || null);
+              }}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Select a page to design" />
+                </SelectTrigger>
+                <SelectContent>
+                  {pages.map((page: FrontendPage) => (
+                    <SelectItem key={page.id} value={page.id.toString()}>
+                      {page.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-12 gap-6 h-[800px]">
+            {/* Component Library Sidebar */}
+            <div className="col-span-3 border rounded-lg p-4 space-y-4 overflow-y-auto">
+              <h3 className="font-semibold text-lg">Component Library</h3>
+              
+              {/* Basic Components */}
+              <div className="space-y-2">
+                <h4 className="font-medium text-sm text-muted-foreground">BASIC ELEMENTS</h4>
+                <div className="grid grid-cols-2 gap-2">
+                  <DraggableComponent
+                    type="text"
+                    icon={<FileText className="h-4 w-4" />}
+                    label="Text"
+                  />
+                  <DraggableComponent
+                    type="heading"
+                    icon={<FileText className="h-4 w-4" />}
+                    label="Heading"
+                  />
+                  <DraggableComponent
+                    type="image"
+                    icon={<Image className="h-4 w-4" />}
+                    label="Image"
+                  />
+                  <DraggableComponent
+                    type="button"
+                    icon={<Box className="h-4 w-4" />}
+                    label="Button"
+                  />
+                </div>
+              </div>
+
+              {/* Layout Components */}
+              <div className="space-y-2">
+                <h4 className="font-medium text-sm text-muted-foreground">LAYOUT</h4>
+                <div className="grid grid-cols-2 gap-2">
+                  <DraggableComponent
+                    type="container"
+                    icon={<Layout className="h-4 w-4" />}
+                    label="Container"
+                  />
+                  <DraggableComponent
+                    type="row"
+                    icon={<Layout className="h-4 w-4" />}
+                    label="Row"
+                  />
+                  <DraggableComponent
+                    type="column"
+                    icon={<Layout className="h-4 w-4" />}
+                    label="Column"
+                  />
+                  <DraggableComponent
+                    type="grid"
+                    icon={<Layout className="h-4 w-4" />}
+                    label="Grid"
+                  />
+                </div>
+              </div>
+
+              {/* Content Components */}
+              <div className="space-y-2">
+                <h4 className="font-medium text-sm text-muted-foreground">CONTENT</h4>
+                <div className="grid grid-cols-1 gap-2">
+                  <DraggableComponent
+                    type="hero"
+                    icon={<Sliders className="h-4 w-4" />}
+                    label="Hero Section"
+                  />
+                  <DraggableComponent
+                    type="features"
+                    icon={<Box className="h-4 w-4" />}
+                    label="Features Grid"
+                  />
+                  <DraggableComponent
+                    type="testimonial"
+                    icon={<FileText className="h-4 w-4" />}
+                    label="Testimonial"
+                  />
+                  <DraggableComponent
+                    type="pricing"
+                    icon={<Box className="h-4 w-4" />}
+                    label="Pricing Table"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Design Canvas */}
+            <div className="col-span-6">
+              <DesignCanvas
+                deviceView={deviceView}
+                selectedPage={selectedPage}
+                elements={canvasElements}
+                onElementsChange={setCanvasElements}
+                onDrop={(component, position) => {
+                  const newElement = {
+                    id: Date.now(),
+                    type: component.type,
+                    position,
+                    props: getDefaultProps(component.type),
+                    style: getDefaultStyle(component.type)
+                  };
+                  setCanvasElements([...canvasElements, newElement]);
+                }}
+              />
+            </div>
+
+            {/* Properties Panel */}
+            <div className="col-span-3 border rounded-lg p-4 space-y-4 overflow-y-auto">
+              <h3 className="font-semibold text-lg">Properties</h3>
+              
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Element Type</Label>
+                  <p className="text-sm text-muted-foreground">Select an element to edit its properties</p>
+                </div>
+
+                {/* Style Controls */}
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label className="text-sm">Background Color</Label>
+                    <Input
+                      type="color"
+                      defaultValue="#ffffff"
+                      className="h-8 w-full"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-sm">Text Color</Label>
+                    <Input
+                      type="color"
+                      defaultValue="#000000"
+                      className="h-8 w-full"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm">Border Radius</Label>
+                    <Input
+                      type="number"
+                      placeholder="0"
+                      className="h-8"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm">Padding</Label>
+                    <Input
+                      type="number"
+                      placeholder="10"
+                      className="h-8"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm">Margin</Label>
+                    <Input
+                      type="number"
+                      placeholder="0"
+                      className="h-8"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t">
+                  <Button className="w-full" size="sm">
+                    <Save className="h-4 w-4 mr-2" />
+                    Save Changes
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </TabsContent>
 
         {/* Categories Tab */}
         <TabsContent value="categories" className="space-y-6">
@@ -1801,5 +2075,250 @@ function CategoryDialog({
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+// Draggable Component for the component library
+function DraggableComponent({ type, icon, label }: { type: string; icon: React.ReactNode; label: string }) {
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.setData('application/json', JSON.stringify({ type, label }));
+  };
+
+  return (
+    <div
+      draggable
+      onDragStart={handleDragStart}
+      className="flex flex-col items-center p-3 border rounded-lg cursor-move hover:bg-accent hover:border-accent-foreground transition-colors"
+    >
+      {icon}
+      <span className="text-xs mt-1 text-center">{label}</span>
+    </div>
+  );
+}
+
+// Design Canvas Component
+function DesignCanvas({ 
+  deviceView, 
+  selectedPage, 
+  elements, 
+  onElementsChange, 
+  onDrop 
+}: {
+  deviceView: 'desktop' | 'tablet' | 'mobile';
+  selectedPage: FrontendPage | null;
+  elements: any[];
+  onElementsChange: (elements: any[]) => void;
+  onDrop: (component: any, position: { x: number; y: number }) => void;
+}) {
+  const [selectedElement, setSelectedElement] = useState<any>(null);
+
+  const getCanvasStyle = () => {
+    switch (deviceView) {
+      case 'mobile':
+        return { width: '375px', minHeight: '667px' };
+      case 'tablet':
+        return { width: '768px', minHeight: '1024px' };
+      default:
+        return { width: '100%', minHeight: '800px' };
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const componentData = JSON.parse(e.dataTransfer.getData('application/json'));
+    const rect = e.currentTarget.getBoundingClientRect();
+    const position = {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top
+    };
+    onDrop(componentData, position);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleElementClick = (element: any) => {
+    setSelectedElement(element);
+  };
+
+  const handleElementMove = (elementId: number, newPosition: { x: number; y: number }) => {
+    const updatedElements = elements.map(el => 
+      el.id === elementId ? { ...el, position: newPosition } : el
+    );
+    onElementsChange(updatedElements);
+  };
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex items-center justify-between p-4 border-b bg-muted/50">
+        <h3 className="font-medium">
+          {selectedPage ? `Editing: ${selectedPage.title}` : 'Select a page to design'}
+        </h3>
+        <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+          <span>{deviceView.charAt(0).toUpperCase() + deviceView.slice(1)} View</span>
+          <span>•</span>
+          <span>{elements.length} elements</span>
+        </div>
+      </div>
+
+      <div 
+        className="flex-1 bg-white border rounded-lg mx-auto my-4 overflow-auto relative"
+        style={getCanvasStyle()}
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+      >
+        {!selectedPage ? (
+          <div className="flex items-center justify-center h-full text-muted-foreground">
+            <div className="text-center">
+              <Layout className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p className="text-lg font-medium">Select a page to start designing</p>
+              <p className="text-sm">Choose a page from the dropdown above to begin</p>
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Drop zone indicator */}
+            <div className="absolute inset-0 border-2 border-dashed border-transparent hover:border-primary/20 transition-colors pointer-events-none" />
+            
+            {/* Rendered elements */}
+            {elements.map((element) => (
+              <CanvasElement
+                key={element.id}
+                element={element}
+                isSelected={selectedElement?.id === element.id}
+                onClick={() => handleElementClick(element)}
+                onMove={(newPosition) => handleElementMove(element.id, newPosition)}
+              />
+            ))}
+
+            {/* Empty state for selected page */}
+            {elements.length === 0 && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-center text-muted-foreground">
+                  <Box className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">Drag components here to start building</p>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Individual Canvas Element Component
+function CanvasElement({ 
+  element, 
+  isSelected, 
+  onClick, 
+  onMove 
+}: {
+  element: any;
+  isSelected: boolean;
+  onClick: () => void;
+  onMove: (position: { x: number; y: number }) => void;
+}) {
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsDragging(true);
+    setDragStart({
+      x: e.clientX - element.position.x,
+      y: e.clientY - element.position.y
+    });
+    onClick();
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (isDragging) {
+      const newPosition = {
+        x: e.clientX - dragStart.x,
+        y: e.clientY - dragStart.y
+      };
+      onMove(newPosition);
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  const renderElementContent = () => {
+    switch (element.type) {
+      case 'text':
+        return <p style={element.style}>{element.props.content}</p>;
+      case 'heading':
+        const HeadingTag = element.props.level as keyof JSX.IntrinsicElements;
+        return <HeadingTag style={element.style}>{element.props.content}</HeadingTag>;
+      case 'image':
+        return (
+          <img 
+            src={element.props.src || '/api/placeholder/300/200'} 
+            alt={element.props.alt}
+            style={element.style}
+          />
+        );
+      case 'button':
+        return (
+          <button style={element.style}>
+            {element.props.text}
+          </button>
+        );
+      case 'container':
+        return (
+          <div style={element.style}>
+            <p className="text-muted-foreground text-sm">Container Element</p>
+          </div>
+        );
+      case 'hero':
+        return (
+          <div style={element.style}>
+            <h1 className="text-3xl font-bold mb-2">{element.props.title}</h1>
+            <p className="text-lg">{element.props.subtitle}</p>
+          </div>
+        );
+      default:
+        return (
+          <div style={element.style}>
+            <p className="text-muted-foreground">{element.type} component</p>
+          </div>
+        );
+    }
+  };
+
+  return (
+    <div
+      className={`absolute cursor-move select-none ${
+        isSelected ? 'ring-2 ring-primary ring-offset-2' : 'hover:ring-1 hover:ring-muted-foreground'
+      }`}
+      style={{
+        left: element.position.x,
+        top: element.position.y,
+        transform: isDragging ? 'scale(1.02)' : 'scale(1)',
+        transition: isDragging ? 'none' : 'transform 0.1s ease'
+      }}
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseUp}
+    >
+      {renderElementContent()}
+      
+      {/* Element controls */}
+      {isSelected && (
+        <div className="absolute -top-8 -right-1 flex space-x-1">
+          <Button size="sm" variant="outline" className="h-6 w-6 p-0">
+            <Edit className="h-3 w-3" />
+          </Button>
+          <Button size="sm" variant="outline" className="h-6 w-6 p-0">
+            <Trash2 className="h-3 w-3" />
+          </Button>
+        </div>
+      )}
+    </div>
   );
 }
