@@ -467,7 +467,7 @@ export const BUILTIN_WALKTHROUGHS: InteractiveWalkthrough[] = [
         id: 'add-invoice-button',
         title: 'Click Add Invoice',
         description: 'Click the "Add Invoice" or "Create Invoice" button to start creating a new invoice.',
-        targetSelector: '[data-testid="add-invoice-btn"], button:contains("Add Invoice"), button:contains("Create Invoice")',
+        targetSelector: '[data-testid="add-invoice-btn"], .add-invoice-btn',
         position: 'bottom',
         action: 'click'
       },
@@ -491,7 +491,7 @@ export const BUILTIN_WALKTHROUGHS: InteractiveWalkthrough[] = [
         id: 'add-line-items',
         title: 'Add Line Items',
         description: 'Add services, products, or labor to the invoice with quantities and prices.',
-        targetSelector: '[data-testid="add-line-item"], button:contains("Add Item")',
+        targetSelector: '[data-testid="add-line-item"], .add-item-btn',
         position: 'bottom',
         action: 'click'
       },
@@ -507,7 +507,7 @@ export const BUILTIN_WALKTHROUGHS: InteractiveWalkthrough[] = [
         id: 'save-invoice',
         title: 'Save Invoice',
         description: 'Click Save to create the invoice. You can then send it to the customer.',
-        targetSelector: 'button[type="submit"], button:contains("Save")',
+        targetSelector: 'button[type="submit"], .save-btn',
         position: 'bottom',
         action: 'click'
       }
@@ -533,7 +533,7 @@ export const BUILTIN_WALKTHROUGHS: InteractiveWalkthrough[] = [
         id: 'add-expense-button',
         title: 'Click Add Expense',
         description: 'Click the "Add Expense" button to create a new expense entry.',
-        targetSelector: '[data-testid="add-expense-btn"], button:contains("Add Expense")',
+        targetSelector: '[data-testid="add-expense-btn"], .add-expense-btn',
         position: 'bottom',
         action: 'click'
       },
@@ -583,7 +583,7 @@ export const BUILTIN_WALKTHROUGHS: InteractiveWalkthrough[] = [
         id: 'save-expense',
         title: 'Save Expense',
         description: 'Click Save to record the expense in your system.',
-        targetSelector: 'button[type="submit"], button:contains("Save")',
+        targetSelector: 'button[type="submit"], .save-btn',
         position: 'bottom',
         action: 'click'
       }
@@ -609,7 +609,7 @@ export const BUILTIN_WALKTHROUGHS: InteractiveWalkthrough[] = [
         id: 'add-lead-button',
         title: 'Click Add Lead',
         description: 'Click the "Add Lead" button to create a new sales lead.',
-        targetSelector: '[data-testid="add-lead-btn"], button:contains("Add Lead")',
+        targetSelector: '[data-testid="add-lead-btn"], .add-lead-btn',
         position: 'bottom',
         action: 'click'
       },
@@ -669,7 +669,7 @@ export const BUILTIN_WALKTHROUGHS: InteractiveWalkthrough[] = [
         id: 'save-lead',
         title: 'Save Lead',
         description: 'Click Save to add the lead to your pipeline for follow-up.',
-        targetSelector: 'button[type="submit"], button:contains("Save")',
+        targetSelector: 'button[type="submit"], .save-btn',
         position: 'bottom',
         action: 'click'
       }
@@ -695,7 +695,7 @@ export const BUILTIN_WALKTHROUGHS: InteractiveWalkthrough[] = [
         id: 'add-task-button',
         title: 'Click Add Task',
         description: 'Click the "Add Task" or "Create Task" button to create a new task.',
-        targetSelector: '[data-testid="add-task-btn"], button:contains("Add Task"), button:contains("Create Task")',
+        targetSelector: '[data-testid="add-task-btn"], .add-task-btn',
         position: 'bottom',
         action: 'click'
       },
@@ -745,7 +745,7 @@ export const BUILTIN_WALKTHROUGHS: InteractiveWalkthrough[] = [
         id: 'save-task',
         title: 'Save Task',
         description: 'Click Save to create the task and assign it to the team member.',
-        targetSelector: 'button[type="submit"], button:contains("Save")',
+        targetSelector: 'button[type="submit"], .save-btn',
         position: 'bottom',
         action: 'click'
       }
@@ -779,7 +779,7 @@ export const BUILTIN_WALKTHROUGHS: InteractiveWalkthrough[] = [
         id: 'start-inspection',
         title: 'Start New Inspection',
         description: 'Click "New Inspection" or "Start Inspection" to begin the inspection process.',
-        targetSelector: 'button:contains("New Inspection"), button:contains("Start Inspection")',
+        targetSelector: '[data-testid="start-inspection"], .start-inspection-btn',
         position: 'bottom',
         action: 'click'
       },
@@ -803,7 +803,7 @@ export const BUILTIN_WALKTHROUGHS: InteractiveWalkthrough[] = [
         id: 'take-photos',
         title: 'Take Photos',
         description: 'Use the camera button to document any issues or damage found during inspection.',
-        targetSelector: 'button:contains("Take Photo"), [data-testid="camera-btn"]',
+        targetSelector: '[data-testid="camera-btn"], .camera-btn',
         position: 'bottom',
         action: 'click'
       },
@@ -836,7 +836,7 @@ export const BUILTIN_WALKTHROUGHS: InteractiveWalkthrough[] = [
         id: 'complete-inspection',
         title: 'Complete Inspection',
         description: 'Review your inspection and click Complete to finalize the inspection report.',
-        targetSelector: 'button:contains("Complete"), button:contains("Finish Inspection")',
+        targetSelector: '[data-testid="complete-inspection"], .complete-btn',
         position: 'bottom',
         action: 'click'
       }
@@ -862,7 +862,7 @@ export const BUILTIN_WALKTHROUGHS: InteractiveWalkthrough[] = [
         id: 'compose-message',
         title: 'Start New Message',
         description: 'Click "New Message", "Compose", or the plus button to create a new message.',
-        targetSelector: 'button:contains("New Message"), button:contains("Compose"), [data-testid="compose-btn"]',
+        targetSelector: '[data-testid="compose-btn"], .compose-btn, .new-message-btn',
         position: 'bottom',
         action: 'click'
       },
@@ -904,7 +904,7 @@ export const BUILTIN_WALKTHROUGHS: InteractiveWalkthrough[] = [
         id: 'send-message',
         title: 'Send Message',
         description: 'Click Send to deliver the message to selected team members.',
-        targetSelector: 'button:contains("Send"), button[type="submit"]',
+        targetSelector: 'button[type="submit"], .send-btn',
         position: 'bottom',
         action: 'click'
       }
@@ -938,7 +938,7 @@ export const BUILTIN_WALKTHROUGHS: InteractiveWalkthrough[] = [
         id: 'upload-file',
         title: 'Upload New File',
         description: 'Click the Upload button or drag files to the upload area.',
-        targetSelector: 'button:contains("Upload"), [data-testid="upload-btn"], .upload-zone',
+        targetSelector: '[data-testid="upload-btn"], .upload-btn, .upload-zone',
         position: 'bottom',
         action: 'click'
       },
@@ -971,7 +971,7 @@ export const BUILTIN_WALKTHROUGHS: InteractiveWalkthrough[] = [
         id: 'share-file',
         title: 'Share Files',
         description: 'Right-click on a file or use the share button to share files with team members.',
-        targetSelector: '[data-testid="share-btn"], button:contains("Share")',
+        targetSelector: '[data-testid="share-btn"], .share-btn',
         position: 'bottom',
         action: 'click'
       },
@@ -1037,7 +1037,7 @@ export const BUILTIN_WALKTHROUGHS: InteractiveWalkthrough[] = [
         id: 'customize-dashboard',
         title: 'Customize Dashboard',
         description: 'Click the customize or settings button to personalize your dashboard layout.',
-        targetSelector: 'button:contains("Customize"), [data-testid="customize-btn"], .dashboard-settings',
+        targetSelector: '[data-testid="customize-btn"], .customize-btn, .dashboard-settings',
         position: 'top',
         action: 'click'
       },
@@ -1053,7 +1053,7 @@ export const BUILTIN_WALKTHROUGHS: InteractiveWalkthrough[] = [
         id: 'save-layout',
         title: 'Save Dashboard Layout',
         description: 'Save your customized dashboard layout so it persists between sessions.',
-        targetSelector: 'button:contains("Save Layout"), button:contains("Apply Changes")',
+        targetSelector: '[data-testid="save-layout"], .save-layout-btn',
         position: 'bottom',
         action: 'click'
       }

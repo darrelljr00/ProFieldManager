@@ -47,6 +47,8 @@ Preferred communication style: Simple, everyday language.
 - **Sound Notifications**: Customizable audio alerts for events.
 - **Employee Analytics**: Real-time performance metrics via WebSocket.
 - **Visual Page Designer**: Drag-and-drop interface for editing frontend pages (e.g., Home Page).
+- **Interactive Product Walkthroughs**: Step-by-step guided tours with visual element highlighting, action execution, and progress tracking for key features including invoice creation, expense tracking, lead management, task creation, vehicle inspections, team messaging, file management, and dashboard navigation.
+- **Comprehensive Help Documentation System**: Organized help sections with tutorials, FAQs, documentation, and interactive walkthroughs searchable by category and difficulty level, integrated into the admin interface with global accessibility.
 
 ## External Dependencies
 
