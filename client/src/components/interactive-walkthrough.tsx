@@ -59,6 +59,10 @@ export function WalkthroughPlayer({ walkthrough, onComplete, onClose }: Walkthro
   const [rating, setRating] = useState(0);
   const [feedback, setFeedback] = useState("");
   const [highlightedElement, setHighlightedElement] = useState<HTMLElement | null>(null);
+  const [isAutoPlaying, setIsAutoPlaying] = useState(false);
+  const [autoPlayTimer, setAutoPlayTimer] = useState<NodeJS.Timeout | null>(null);
+  const [autoPlayCountdown, setAutoPlayCountdown] = useState(0);
+  const [countdownInterval, setCountdownInterval] = useState<NodeJS.Timeout | null>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
 
@@ -152,6 +156,93 @@ export function WalkthroughPlayer({ walkthrough, onComplete, onClose }: Walkthro
   const handleComplete = () => {
     onComplete(rating, feedback);
   };
+
+  const startAutoPlay = () => {
+    setIsAutoPlaying(true);
+    setIsPlaying(true);
+    executeCurrentStep();
+  };
+
+  const stopAutoPlay = () => {
+    setIsAutoPlaying(false);
+    setIsPlaying(false);
+    if (autoPlayTimer) {
+      clearTimeout(autoPlayTimer);
+      setAutoPlayTimer(null);
+    }
+    if (countdownInterval) {
+      clearInterval(countdownInterval);
+      setCountdownInterval(null);
+    }
+    setAutoPlayCountdown(0);
+  };
+
+  const executeCurrentStep = () => {
+    const step = currentStepData;
+    if (!step) return;
+    
+    // Execute the step action
+    executeStep();
+    
+    // Start countdown (3 seconds)
+    setAutoPlayCountdown(3);
+    
+    // Countdown interval
+    const countdown = setInterval(() => {
+      setAutoPlayCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(countdown);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    
+    setCountdownInterval(countdown);
+    
+    // Set timer for next step (3 seconds)
+    const timer = setTimeout(() => {
+      clearInterval(countdown);
+      setCountdownInterval(null);
+      setAutoPlayCountdown(0);
+      
+      if (!isLastStep) {
+        nextStep();
+      } else {
+        // Last step - stop auto play and show completion
+        setIsAutoPlaying(false);
+        setIsPlaying(false);
+        setShowRating(true);
+      }
+    }, 3000);
+    
+    setAutoPlayTimer(timer);
+  };
+
+  // Auto play effect
+  useEffect(() => {
+    if (isAutoPlaying && isPlaying) {
+      executeCurrentStep();
+    }
+    
+    return () => {
+      if (autoPlayTimer) {
+        clearTimeout(autoPlayTimer);
+      }
+    };
+  }, [currentStep, isAutoPlaying]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (autoPlayTimer) {
+        clearTimeout(autoPlayTimer);
+      }
+      if (countdownInterval) {
+        clearInterval(countdownInterval);
+      }
+    };
+  }, []);
 
   const getActionIcon = (action: string) => {
     switch (action) {
@@ -267,38 +358,74 @@ export function WalkthroughPlayer({ walkthrough, onComplete, onClose }: Walkthro
                 size="sm"
                 variant="outline"
                 onClick={prevStep}
-                disabled={currentStep === 0}
+                disabled={currentStep === 0 || isAutoPlaying}
               >
                 <ArrowLeft className="w-4 h-4" />
               </Button>
               
-              <Button
-                size="sm"
-                onClick={executeStep}
-                className="flex-1"
-                disabled={isPlaying}
-              >
-                {isPlaying ? (
-                  <>
-                    <Pause className="w-4 h-4 mr-2" />
-                    Running...
-                  </>
-                ) : (
-                  <>
+              {!isAutoPlaying ? (
+                <>
+                  <Button
+                    size="sm"
+                    onClick={startAutoPlay}
+                    variant="secondary"
+                    className="flex-1"
+                  >
                     <Play className="w-4 h-4 mr-2" />
-                    Execute
-                  </>
-                )}
-              </Button>
-              
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={nextStep}
-              >
-                {isLastStep ? 'Finish' : <ArrowRight className="w-4 h-4" />}
-              </Button>
+                    Show Me
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={executeStep}
+                    variant="outline"
+                    disabled={isPlaying}
+                  >
+                    {isPlaying ? (
+                      <>
+                        <Pause className="w-4 h-4 mr-2" />
+                        Running...
+                      </>
+                    ) : (
+                      <>
+                        <Play className="w-4 h-4 mr-2" />
+                        Execute
+                      </>
+                    )}
+                  </Button>
+                  
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={nextStep}
+                  >
+                    {isLastStep ? 'Finish' : <ArrowRight className="w-4 h-4" />}
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  size="sm"
+                  onClick={stopAutoPlay}
+                  variant="destructive"
+                  className="flex-1"
+                >
+                  <Pause className="w-4 h-4 mr-2" />
+                  Stop Auto Play
+                </Button>
+              )}
             </div>
+            
+            {/* Auto-play countdown */}
+            {isAutoPlaying && autoPlayCountdown > 0 && (
+              <div className="text-center">
+                <div className="text-sm font-medium text-blue-600 mb-2">
+                  Next step in {autoPlayCountdown}s
+                </div>
+                <Progress 
+                  value={((3 - autoPlayCountdown) / 3) * 100} 
+                  className="h-1"
+                />
+              </div>
+            )}
             
             <div className="text-xs text-muted-foreground text-center">
               {completedSteps.size} of {walkthrough.steps.length} steps completed
