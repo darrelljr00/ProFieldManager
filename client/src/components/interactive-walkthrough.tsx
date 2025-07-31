@@ -108,12 +108,38 @@ export function WalkthroughPlayer({ walkthrough, onComplete, onClose }: Walkthro
     const step = currentStepData;
     if (!step) return;
 
+    setIsPlaying(true);
+
+    // Add visual feedback for step execution
+    if (step.targetSelector) {
+      const element = document.querySelector(step.targetSelector) as HTMLElement;
+      if (element) {
+        // Highlight the element being interacted with
+        element.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.5)';
+        element.style.transition = 'box-shadow 0.3s ease';
+        
+        // Scroll to element
+        element.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center',
+          inline: 'center'
+        });
+      }
+    }
+
+    await new Promise(resolve => setTimeout(resolve, 500)); // Brief pause for visual effect
+
     switch (step.action) {
       case 'click':
         if (step.targetSelector) {
           const element = document.querySelector(step.targetSelector) as HTMLElement;
           if (element) {
-            element.click();
+            // Simulate click with visual feedback
+            element.style.transform = 'scale(0.98)';
+            setTimeout(() => {
+              element.style.transform = '';
+              element.click();
+            }, 150);
           }
         }
         break;
@@ -123,9 +149,29 @@ export function WalkthroughPlayer({ walkthrough, onComplete, onClose }: Walkthro
           const element = document.querySelector(step.targetSelector) as HTMLInputElement;
           if (element) {
             element.focus();
-            element.value = step.actionData;
-            element.dispatchEvent(new Event('input', { bubbles: true }));
+            
+            // Simulate typing character by character
+            const text = step.actionData;
+            element.value = '';
+            
+            for (let i = 0; i < text.length; i++) {
+              await new Promise(resolve => setTimeout(resolve, 100));
+              element.value = text.substring(0, i + 1);
+              element.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+            
             element.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+        }
+        break;
+        
+      case 'hover':
+        if (step.targetSelector) {
+          const element = document.querySelector(step.targetSelector) as HTMLElement;
+          if (element) {
+            element.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            element.dispatchEvent(new MouseEvent('mouseleave', { bubbles: true }));
           }
         }
         break;
@@ -135,8 +181,20 @@ export function WalkthroughPlayer({ walkthrough, onComplete, onClose }: Walkthro
         break;
     }
 
+    // Clean up visual effects
+    if (step.targetSelector) {
+      const element = document.querySelector(step.targetSelector) as HTMLElement;
+      if (element) {
+        setTimeout(() => {
+          element.style.boxShadow = '';
+          element.style.transform = '';
+        }, 1000);
+      }
+    }
+
     // Mark step as completed
     setCompletedSteps(prev => new Set(prev).add(currentStep));
+    setIsPlaying(false);
   };
 
   const nextStep = () => {
@@ -313,6 +371,19 @@ export function WalkthroughPlayer({ walkthrough, onComplete, onClose }: Walkthro
         className="fixed inset-0 bg-black/30 z-50"
       />
       
+      {/* Floating Play Button - Top Right */}
+      {!isPlaying && !isAutoPlaying && (
+        <div className="fixed top-4 right-4 z-[70]">
+          <Button
+            onClick={startAutoPlay}
+            size="lg"
+            className="rounded-full shadow-lg bg-blue-600 hover:bg-blue-700 text-white h-14 w-14 p-0"
+          >
+            <Play className="w-6 h-6" />
+          </Button>
+        </div>
+      )}
+
       {/* Walkthrough Controls */}
       <div className="fixed top-4 right-4 z-[60]">
         <Card className="w-80">
@@ -329,9 +400,16 @@ export function WalkthroughPlayer({ walkthrough, onComplete, onClose }: Walkthro
                   </Badge>
                 </div>
               </div>
-              <Button size="sm" variant="ghost" onClick={onClose}>
-                <X className="w-4 h-4" />
-              </Button>
+              <div className="flex gap-2">
+                {isAutoPlaying && (
+                  <Button size="sm" variant="destructive" onClick={stopAutoPlay}>
+                    <Pause className="w-4 h-4" />
+                  </Button>
+                )}
+                <Button size="sm" variant="ghost" onClick={onClose}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
             <Progress value={progress} className="h-2 mt-2" />
           </CardHeader>
@@ -353,77 +431,66 @@ export function WalkthroughPlayer({ walkthrough, onComplete, onClose }: Walkthro
               )}
             </div>
             
-            <div className="flex items-center gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={prevStep}
-                disabled={currentStep === 0 || isAutoPlaying}
-              >
-                <ArrowLeft className="w-4 h-4" />
-              </Button>
-              
-              {!isAutoPlaying ? (
-                <>
-                  <Button
-                    size="sm"
-                    onClick={startAutoPlay}
-                    variant="secondary"
-                    className="flex-1"
-                  >
-                    <Play className="w-4 h-4 mr-2" />
-                    Show Me
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={executeStep}
-                    variant="outline"
-                    disabled={isPlaying}
-                  >
-                    {isPlaying ? (
-                      <>
-                        <Pause className="w-4 h-4 mr-2" />
-                        Running...
-                      </>
-                    ) : (
-                      <>
-                        <Play className="w-4 h-4 mr-2" />
-                        Execute
-                      </>
-                    )}
-                  </Button>
-                  
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={nextStep}
-                  >
-                    {isLastStep ? 'Finish' : <ArrowRight className="w-4 h-4" />}
-                  </Button>
-                </>
-              ) : (
+            {/* Manual Controls - Only show when not in auto-play */}
+            {!isAutoPlaying && (
+              <div className="flex items-center gap-2">
                 <Button
                   size="sm"
-                  onClick={stopAutoPlay}
-                  variant="destructive"
-                  className="flex-1"
+                  variant="outline"
+                  onClick={prevStep}
+                  disabled={currentStep === 0}
                 >
-                  <Pause className="w-4 h-4 mr-2" />
-                  Stop Auto Play
+                  <ArrowLeft className="w-4 h-4" />
                 </Button>
-              )}
-            </div>
+                
+                <Button
+                  size="sm"
+                  onClick={executeStep}
+                  variant="outline"
+                  className="flex-1"
+                  disabled={isPlaying}
+                >
+                  {isPlaying ? (
+                    <>
+                      <Pause className="w-4 h-4 mr-2" />
+                      Running...
+                    </>
+                  ) : (
+                    <>
+                      <Play className="w-4 h-4 mr-2" />
+                      Execute
+                    </>
+                  )}
+                </Button>
+                
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={nextStep}
+                >
+                  {isLastStep ? 'Finish' : <ArrowRight className="w-4 h-4" />}
+                </Button>
+              </div>
+            )}
             
-            {/* Auto-play countdown */}
-            {isAutoPlaying && autoPlayCountdown > 0 && (
-              <div className="text-center">
-                <div className="text-sm font-medium text-blue-600 mb-2">
-                  Next step in {autoPlayCountdown}s
+            {/* Auto-play status and countdown */}
+            {isAutoPlaying && (
+              <div className="text-center space-y-2">
+                <div className="flex items-center justify-center gap-2 text-sm font-medium text-blue-600">
+                  <Play className="w-4 h-4 animate-pulse" />
+                  Auto-Playing Walkthrough
                 </div>
-                <Progress 
-                  value={((3 - autoPlayCountdown) / 3) * 100} 
-                  className="h-1"
-                />
+                {autoPlayCountdown > 0 && (
+                  <>
+                    <div className="text-sm text-muted-foreground">
+                      Next step in {autoPlayCountdown}s
+                    </div>
+                    <Progress 
+                      value={((3 - autoPlayCountdown) / 3) * 100} 
+                      className="h-2"
+                    />
+                  </>
+                )}
               </div>
             )}
             
