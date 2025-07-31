@@ -288,6 +288,124 @@ Look for the "+" button or "Add New" buttons throughout the interface for quick 
     ]
   },
   {
+    id: 'task-management',
+    title: 'Task Management',
+    icon: Target,
+    color: 'bg-indigo-500',
+    items: [
+      {
+        id: 'create-task-guide',
+        title: 'Creating and Managing Tasks',
+        description: 'Learn how to create, assign, and track tasks effectively',
+        type: 'walkthrough',
+        difficulty: 'beginner',
+        estimatedTime: 8,
+        walkthroughId: 'create-task',
+        tags: ['tasks', 'assignment', 'productivity']
+      }
+    ]
+  },
+  {
+    id: 'financial-management',
+    title: 'Financial Management',
+    icon: BarChart3,
+    color: 'bg-emerald-500',
+    items: [
+      {
+        id: 'invoice-creation',
+        title: 'Creating Professional Invoices',
+        description: 'Step-by-step guide to create and send invoices',
+        type: 'walkthrough',
+        difficulty: 'beginner',
+        estimatedTime: 10,
+        walkthroughId: 'create-invoice',
+        tags: ['invoicing', 'billing', 'payments']
+      },
+      {
+        id: 'expense-tracking',
+        title: 'Tracking Business Expenses',
+        description: 'Learn how to record and categorize expenses',
+        type: 'walkthrough',
+        difficulty: 'beginner',
+        estimatedTime: 8,
+        walkthroughId: 'add-expense',
+        tags: ['expenses', 'accounting', 'financial']
+      }
+    ]
+  },
+  {
+    id: 'sales-marketing',
+    title: 'Sales & Marketing',
+    icon: Users,
+    color: 'bg-pink-500',
+    items: [
+      {
+        id: 'lead-management',
+        title: 'Managing Sales Leads',
+        description: 'Capture and convert potential customers',
+        type: 'walkthrough',
+        difficulty: 'beginner',
+        estimatedTime: 12,
+        walkthroughId: 'create-lead',
+        tags: ['leads', 'sales', 'crm']
+      }
+    ]
+  },
+  {
+    id: 'field-operations',
+    title: 'Field Operations',
+    icon: Settings,
+    color: 'bg-cyan-500',
+    items: [
+      {
+        id: 'vehicle-inspections',
+        title: 'Digital Vehicle Inspections',
+        description: 'Perform comprehensive vehicle inspections with photos',
+        type: 'walkthrough',
+        difficulty: 'intermediate',
+        estimatedTime: 15,
+        walkthroughId: 'vehicle-inspection',
+        tags: ['vehicles', 'inspections', 'maintenance']
+      }
+    ]
+  },
+  {
+    id: 'communication',
+    title: 'Team Communication',
+    icon: Users,
+    color: 'bg-violet-500',
+    items: [
+      {
+        id: 'team-messaging',
+        title: 'Team Messaging System',
+        description: 'Send messages and announcements to your team',
+        type: 'walkthrough',
+        difficulty: 'beginner',
+        estimatedTime: 6,
+        walkthroughId: 'create-team-message',
+        tags: ['messaging', 'communication', 'team']
+      }
+    ]
+  },
+  {
+    id: 'file-management',
+    title: 'File Management',
+    icon: FileText,
+    color: 'bg-amber-500',
+    items: [
+      {
+        id: 'file-manager-guide',
+        title: 'Using the File Manager',
+        description: 'Upload, organize, and share files effectively',
+        type: 'walkthrough',
+        difficulty: 'beginner',
+        estimatedTime: 10,
+        walkthroughId: 'use-file-manager',
+        tags: ['files', 'documents', 'organization']
+      }
+    ]
+  },
+  {
     id: 'admin-management',
     title: 'Admin & Management',
     icon: Shield,

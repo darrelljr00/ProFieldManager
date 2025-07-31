@@ -28,7 +28,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { HelpDocumentation } from "@/components/help-documentation";
-import { WalkthroughPlayer, BUILTIN_WALKTHROUGHS } from "@/components/interactive-walkthrough";
+import { WalkthroughPlayer, BUILTIN_WALKTHROUGHS, InteractiveWalkthrough } from "@/components/interactive-walkthrough";
 
 interface Tutorial {
   id: number;
@@ -236,13 +236,23 @@ export default function TutorialsPage() {
               <HelpCircle className="w-4 h-4" />
               Help Documentation
             </Button>
-            <Button
-              onClick={() => handleStartWalkthrough('dashboard-tour')}
-              className="flex items-center gap-2"
-            >
-              <Zap className="w-4 h-4" />
-              Quick Tour
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => handleStartWalkthrough('dashboard-tour')}
+                className="flex items-center gap-2"
+              >
+                <Zap className="w-4 h-4" />
+                Dashboard Tour
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => handleStartWalkthrough('create-customer')}
+                className="flex items-center gap-2"
+              >
+                <User className="w-4 h-4" />
+                Create Customer
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -470,6 +480,44 @@ export default function TutorialsPage() {
         </TabsContent>
 
         <TabsContent value="walkthroughs" className="space-y-6">
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-4">Quick Start Walkthroughs</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+              <Button
+                variant="outline"
+                onClick={() => handleStartWalkthrough('dashboard-tour')}
+                className="h-auto p-4 flex flex-col items-center gap-2"
+              >
+                <Activity className="w-6 h-6" />
+                <span className="text-sm">Dashboard</span>
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => handleStartWalkthrough('create-customer')}
+                className="h-auto p-4 flex flex-col items-center gap-2"
+              >
+                <User className="w-6 h-6" />
+                <span className="text-sm">Add Customer</span>
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => handleStartWalkthrough('create-invoice')}
+                className="h-auto p-4 flex flex-col items-center gap-2"
+              >
+                <FileText className="w-6 h-6" />
+                <span className="text-sm">Create Invoice</span>
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => handleStartWalkthrough('create-task')}
+                className="h-auto p-4 flex flex-col items-center gap-2"
+              >
+                <CheckCircle2 className="w-6 h-6" />
+                <span className="text-sm">Create Task</span>
+              </Button>
+            </div>
+          </div>
+          
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {BUILTIN_WALKTHROUGHS.map((walkthrough) => (
               <Card key={walkthrough.id} className="hover:shadow-lg transition-shadow">
@@ -484,6 +532,9 @@ export default function TutorialsPage() {
                         <Badge variant="outline" className="flex items-center gap-1">
                           <Play className="w-3 h-3" />
                           Interactive
+                        </Badge>
+                        <Badge variant="secondary" className="text-xs">
+                          {walkthrough.category}
                         </Badge>
                       </div>
                     </div>
