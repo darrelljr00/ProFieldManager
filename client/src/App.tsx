@@ -58,6 +58,7 @@ import { DeletedJobs } from "@/pages/deleted-jobs";
 import { CancelledJobs } from "@/pages/cancelled-jobs";
 import FrontendManagement from "@/pages/frontend-management";
 import Tutorials from "@/pages/tutorials";
+import { HelpButton } from "@/components/help-button";
 
 function AuthenticatedApp() {
   const { isAdmin } = useAuth();
@@ -190,6 +191,9 @@ function AuthenticatedApp() {
         </Switch>
         </div>
       </div>
+      
+      {/* Global Help Button */}
+      <HelpButton />
     </div>
   );
 }

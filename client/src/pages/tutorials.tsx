@@ -21,10 +21,14 @@ import {
   Filter,
   Trophy,
   Target,
-  Activity
+  Activity,
+  HelpCircle,
+  Zap
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
+import { HelpDocumentation } from "@/components/help-documentation";
+import { WalkthroughPlayer, BUILTIN_WALKTHROUGHS } from "@/components/interactive-walkthrough";
 
 interface Tutorial {
   id: number;
@@ -94,6 +98,8 @@ export default function TutorialsPage() {
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>("all");
   const [selectedType, setSelectedType] = useState<string>("all");
   const [activeTab, setActiveTab] = useState("browse");
+  const [showHelp, setShowHelp] = useState(false);
+  const [activeWalkthrough, setActiveWalkthrough] = useState<string | null>(null);
 
   // Fetch tutorials
   const { data: tutorials = [], isLoading: tutorialsLoading } = useQuery({
@@ -170,6 +176,14 @@ export default function TutorialsPage() {
     startTutorialMutation.mutate(tutorialId);
   };
 
+  const handleStartWalkthrough = (walkthroughId: string) => {
+    setActiveWalkthrough(walkthroughId);
+  };
+
+  const handleWalkthroughComplete = () => {
+    setActiveWalkthrough(null);
+  };
+
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
       case 'beginner': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
@@ -188,13 +202,49 @@ export default function TutorialsPage() {
     }
   };
 
+  // Render active walkthrough
+  if (activeWalkthrough) {
+    const walkthrough = BUILTIN_WALKTHROUGHS.find(w => w.id === activeWalkthrough);
+    if (walkthrough) {
+      return (
+        <WalkthroughPlayer
+          walkthrough={walkthrough}
+          onComplete={handleWalkthroughComplete}
+          onClose={handleWalkthroughComplete}
+        />
+      );
+    }
+  }
+
   return (
-    <div className="container mx-auto p-6">
+    <>
+      <div className="container mx-auto p-6">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-foreground mb-2">Learning Center</h1>
-        <p className="text-muted-foreground">
-          Master Pro Field Manager with our comprehensive tutorial library
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground mb-2">Learning Center</h1>
+            <p className="text-muted-foreground">
+              Master Pro Field Manager with our comprehensive tutorial library
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowHelp(true)}
+              className="flex items-center gap-2"
+            >
+              <HelpCircle className="w-4 h-4" />
+              Help Documentation
+            </Button>
+            <Button
+              onClick={() => handleStartWalkthrough('dashboard-tour')}
+              className="flex items-center gap-2"
+            >
+              <Zap className="w-4 h-4" />
+              Quick Tour
+            </Button>
+          </div>
+        </div>
       </div>
 
       {/* User Stats */}
@@ -263,8 +313,9 @@ export default function TutorialsPage() {
       )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="browse">Browse Tutorials</TabsTrigger>
+          <TabsTrigger value="walkthroughs">Interactive Tours</TabsTrigger>
           <TabsTrigger value="progress">My Progress</TabsTrigger>
           <TabsTrigger value="categories">Categories</TabsTrigger>
         </TabsList>
@@ -418,6 +469,56 @@ export default function TutorialsPage() {
           </div>
         </TabsContent>
 
+        <TabsContent value="walkthroughs" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {BUILTIN_WALKTHROUGHS.map((walkthrough) => (
+              <Card key={walkthrough.id} className="hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <CardTitle className="text-lg mb-2">{walkthrough.title}</CardTitle>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Badge className={getDifficultyColor(walkthrough.difficulty)}>
+                          {walkthrough.difficulty}
+                        </Badge>
+                        <Badge variant="outline" className="flex items-center gap-1">
+                          <Play className="w-3 h-3" />
+                          Interactive
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                </CardHeader>
+                
+                <CardContent>
+                  <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
+                    {walkthrough.description}
+                  </p>
+                  
+                  <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
+                    <div className="flex items-center gap-1">
+                      <Clock className="w-4 h-4" />
+                      {walkthrough.estimatedTime}min
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Target className="w-4 h-4" />
+                      {walkthrough.steps.length} steps
+                    </div>
+                  </div>
+                  
+                  <Button
+                    onClick={() => handleStartWalkthrough(walkthrough.id)}
+                    className="w-full"
+                  >
+                    <Play className="w-4 h-4 mr-2" />
+                    Start Walkthrough
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </TabsContent>
+
         <TabsContent value="progress" className="space-y-6">
           <div className="space-y-4">
             {userProgress.length === 0 ? (
@@ -509,6 +610,13 @@ export default function TutorialsPage() {
           </div>
         </TabsContent>
       </Tabs>
-    </div>
+      </div>
+      
+      {/* Help Documentation Modal */}
+      <HelpDocumentation
+        isOpen={showHelp}
+        onClose={() => setShowHelp(false)}
+      />
+    </>
   );
 }

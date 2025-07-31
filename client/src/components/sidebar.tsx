@@ -39,7 +39,8 @@ import {
   Mail,
   Box,
   Monitor,
-  BookOpen
+  BookOpen,
+  HelpCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
