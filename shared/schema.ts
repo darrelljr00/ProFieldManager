@@ -230,6 +230,7 @@ export const users = pgTable("users", {
   canAccessAdminSettings: boolean("can_access_admin_settings").default(false),
   canAccessHR: boolean("can_access_hr").default(false),
   canAccessMarketResearch: boolean("can_access_market_research").default(true),
+  canAccessTutorials: boolean("can_access_tutorials").default(true),
   // HR-specific permissions
   canViewHREmployees: boolean("can_view_hr_employees").default(false),
   canEditHREmployees: boolean("can_edit_hr_employees").default(false),
@@ -2113,6 +2114,63 @@ export type LoginData = z.infer<typeof loginSchema>;
 export type RegisterData = z.infer<typeof registerSchema>;
 export type ChangePasswordData = z.infer<typeof changePasswordSchema>;
 
+// Tutorial System Tables
+export const tutorials = pgTable("tutorials", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").references(() => organizations.id),
+  title: text("title").notNull(),
+  slug: text("slug").notNull(),
+  description: text("description"),
+  category: text("category").notNull(), // getting-started, core-features, mobile-app, advanced-features, admin-features
+  type: text("type").notNull(), // video, interactive, documentation
+  difficulty: text("difficulty").default("beginner"), // beginner, intermediate, advanced
+  estimatedTime: integer("estimated_time"), // in minutes
+  videoUrl: text("video_url"),
+  videoThumbnail: text("video_thumbnail"),
+  interactiveSteps: jsonb("interactive_steps"), // JSON array of interactive steps
+  content: text("content"), // Markdown content for documentation
+  tags: text("tags").array(),
+  isPublished: boolean("is_published").default(true),
+  sortOrder: integer("sort_order").default(0),
+  viewCount: integer("view_count").default(0),
+  averageRating: decimal("average_rating", { precision: 3, scale: 2 }).default("0"),
+  totalRatings: integer("total_ratings").default(0),
+  prerequisites: text("prerequisites").array(), // Array of tutorial IDs that should be completed first
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const tutorialProgress = pgTable("tutorial_progress", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id),
+  tutorialId: integer("tutorial_id").references(() => tutorials.id),
+  organizationId: integer("organization_id").references(() => organizations.id),
+  status: text("status").default("not_started"), // not_started, in_progress, completed
+  currentStep: integer("current_step").default(0),
+  completedSteps: integer("completed_steps").array(),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  timeSpent: integer("time_spent").default(0), // in seconds
+  rating: integer("rating"), // 1-5 star rating
+  feedback: text("feedback"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const tutorialCategories = pgTable("tutorial_categories", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").references(() => organizations.id),
+  name: text("name").notNull(),
+  slug: text("slug").notNull(),
+  description: text("description"),
+  icon: text("icon"),
+  color: text("color").default("#3B82F6"),
+  sortOrder: integer("sort_order").default(0),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Frontend Management Tables
 export const frontendCategories = pgTable("frontend_categories", {
   id: serial("id").primaryKey(),
@@ -2294,6 +2352,25 @@ export const insertFrontendBoxSchema = createInsertSchema(frontendBoxes, {
   updatedAt: true,
 });
 
+// Tutorial System Insert Schemas
+export const insertTutorialSchema = createInsertSchema(tutorials).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertTutorialProgressSchema = createInsertSchema(tutorialProgress).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertTutorialCategorySchema = createInsertSchema(tutorialCategories).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Frontend Management Types
 export type FrontendCategory = typeof frontendCategories.$inferSelect;
 export type InsertFrontendCategory = z.infer<typeof insertFrontendCategorySchema>;
@@ -2307,6 +2384,14 @@ export type FrontendIcon = typeof frontendIcons.$inferSelect;
 export type InsertFrontendIcon = z.infer<typeof insertFrontendIconSchema>;
 export type FrontendBox = typeof frontendBoxes.$inferSelect;
 export type InsertFrontendBox = z.infer<typeof insertFrontendBoxSchema>;
+
+// Tutorial System Types
+export type Tutorial = typeof tutorials.$inferSelect;
+export type InsertTutorial = z.infer<typeof insertTutorialSchema>;
+export type TutorialProgress = typeof tutorialProgress.$inferSelect;
+export type InsertTutorialProgress = z.infer<typeof insertTutorialProgressSchema>;
+export type TutorialCategory = typeof tutorialCategories.$inferSelect;
+export type InsertTutorialCategory = z.infer<typeof insertTutorialCategorySchema>;
 
 // File Manager types
 export type FileManager = typeof fileManager.$inferSelect;

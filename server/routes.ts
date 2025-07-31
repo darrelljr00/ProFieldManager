@@ -14425,6 +14425,160 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Tutorial System Routes
+  app.get("/api/tutorials", async (req, res) => {
+    try {
+      const { organizationId, category } = req.query;
+      const tutorials = await storage.getTutorials(
+        organizationId ? Number(organizationId) : undefined,
+        category as string
+      );
+      res.json(tutorials);
+    } catch (error: any) {
+      console.error("Error fetching tutorials:", error);
+      res.status(500).json({ message: "Failed to fetch tutorials" });
+    }
+  });
+
+  app.get("/api/tutorials/:id", async (req, res) => {
+    try {
+      const tutorialId = parseInt(req.params.id);
+      const tutorial = await storage.getTutorial(tutorialId);
+      
+      if (!tutorial) {
+        return res.status(404).json({ message: "Tutorial not found" });
+      }
+      
+      res.json(tutorial);
+    } catch (error: any) {
+      console.error("Error fetching tutorial:", error);
+      res.status(500).json({ message: "Failed to fetch tutorial" });
+    }
+  });
+
+  app.post("/api/tutorials", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const tutorialData = req.body;
+      const tutorial = await storage.createTutorial(tutorialData);
+      res.status(201).json(tutorial);
+    } catch (error: any) {
+      console.error("Error creating tutorial:", error);
+      res.status(500).json({ message: "Failed to create tutorial" });
+    }
+  });
+
+  app.put("/api/tutorials/:id", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const tutorialId = parseInt(req.params.id);
+      const updates = req.body;
+      const tutorial = await storage.updateTutorial(tutorialId, updates);
+      res.json(tutorial);
+    } catch (error: any) {
+      console.error("Error updating tutorial:", error);
+      res.status(500).json({ message: "Failed to update tutorial" });
+    }
+  });
+
+  app.delete("/api/tutorials/:id", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const tutorialId = parseInt(req.params.id);
+      await storage.deleteTutorial(tutorialId);
+      res.json({ message: "Tutorial deleted successfully" });
+    } catch (error: any) {
+      console.error("Error deleting tutorial:", error);
+      res.status(500).json({ message: "Failed to delete tutorial" });
+    }
+  });
+
+  app.get("/api/tutorial-categories", async (req, res) => {
+    try {
+      const { organizationId } = req.query;
+      const categories = await storage.getTutorialCategories(
+        organizationId ? Number(organizationId) : undefined
+      );
+      res.json(categories);
+    } catch (error: any) {
+      console.error("Error fetching tutorial categories:", error);
+      res.status(500).json({ message: "Failed to fetch tutorial categories" });
+    }
+  });
+
+  app.post("/api/tutorial-categories", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const categoryData = req.body;
+      const category = await storage.createTutorialCategory(categoryData);
+      res.status(201).json(category);
+    } catch (error: any) {
+      console.error("Error creating tutorial category:", error);
+      res.status(500).json({ message: "Failed to create tutorial category" });
+    }
+  });
+
+  app.get("/api/tutorial-progress", requireAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const { tutorialId } = req.query;
+      const progress = await storage.getTutorialProgress(
+        userId,
+        tutorialId ? Number(tutorialId) : undefined
+      );
+      res.json(progress);
+    } catch (error: any) {
+      console.error("Error fetching tutorial progress:", error);
+      res.status(500).json({ message: "Failed to fetch tutorial progress" });
+    }
+  });
+
+  app.post("/api/tutorial-progress/start", requireAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const organizationId = req.user!.organizationId;
+      const { tutorialId } = req.body;
+      const progress = await storage.startTutorial(userId, tutorialId, organizationId);
+      res.status(201).json(progress);
+    } catch (error: any) {
+      console.error("Error starting tutorial:", error);
+      res.status(500).json({ message: "Failed to start tutorial" });
+    }
+  });
+
+  app.put("/api/tutorial-progress/:tutorialId", requireAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const tutorialId = parseInt(req.params.tutorialId);
+      const progressData = req.body;
+      const progress = await storage.updateTutorialProgress(userId, tutorialId, progressData);
+      res.json(progress);
+    } catch (error: any) {
+      console.error("Error updating tutorial progress:", error);
+      res.status(500).json({ message: "Failed to update tutorial progress" });
+    }
+  });
+
+  app.post("/api/tutorial-progress/:tutorialId/complete", requireAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const tutorialId = parseInt(req.params.tutorialId);
+      const { rating, feedback } = req.body;
+      const progress = await storage.completeTutorial(userId, tutorialId, rating, feedback);
+      res.json(progress);
+    } catch (error: any) {
+      console.error("Error completing tutorial:", error);
+      res.status(500).json({ message: "Failed to complete tutorial" });
+    }
+  });
+
+  app.get("/api/tutorial-stats", requireAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const stats = await storage.getUserTutorialStats(userId);
+      res.json(stats);
+    } catch (error: any) {
+      console.error("Error fetching tutorial stats:", error);
+      res.status(500).json({ message: "Failed to fetch tutorial stats" });
+    }
+  });
+
   // Add broadcast function to the app for use in routes
   (app as any).broadcastToWebUsers = broadcastToWebUsers;
 

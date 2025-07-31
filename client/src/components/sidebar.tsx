@@ -38,7 +38,8 @@ import {
   FileType,
   Mail,
   Box,
-  Monitor
+  Monitor,
+  BookOpen
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -372,6 +373,7 @@ export function Sidebar() {
     { name: "Weather", href: "/weather", icon: Cloud, requiresAuth: true, permission: "canAccessWeather" },
     { name: "Reviews", href: "/reviews", icon: Star, requiresAuth: true, permission: "canAccessReviews" },
     { name: "Market Research", href: "/market-research", icon: BarChart3, requiresAuth: true, permission: "canAccessMarketResearch" },
+    { name: "Tutorials", href: "/tutorials", icon: BookOpen, requiresAuth: true, permission: "canAccessTutorials" },
     { name: "Human Resources", href: "/human-resources", icon: User, requiresAuth: true, permission: "canAccessHR" },
     { name: "User Management", href: "/users", icon: UserCog, requiresAuth: true, permission: "canAccessUsers" },
     { name: "SaaS Admin", href: "/saas-admin", icon: Server, requiresAuth: true, permission: "canAccessSaasAdmin" },

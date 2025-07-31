@@ -57,6 +57,7 @@ import NotFound from "@/pages/not-found";
 import { DeletedJobs } from "@/pages/deleted-jobs";
 import { CancelledJobs } from "@/pages/cancelled-jobs";
 import FrontendManagement from "@/pages/frontend-management";
+import Tutorials from "@/pages/tutorials";
 
 function AuthenticatedApp() {
   const { isAdmin } = useAuth();
@@ -175,6 +176,7 @@ function AuthenticatedApp() {
           <Route path="/time-clock" component={TimeClock} />
           <Route path="/form-builder" component={FormBuilder} />
           <Route path="/inspections" component={Inspections} />
+          <Route path="/tutorials" component={Tutorials} />
           <Route path="/mobile-test" component={MobileTest} />
           <Route path="/users" component={Users} />
           <Route path="/parts-supplies" component={PartsSupplies} />

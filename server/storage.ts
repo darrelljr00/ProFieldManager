@@ -14,7 +14,7 @@ import {
   filePermissions, folderPermissions, defaultPermissions, userDashboardSettings, dashboardProfiles, vehicles,
   vehicleMaintenanceIntervals, vehicleMaintenanceRecords, vehicleJobAssignments, timeClockTaskTriggers,
   taskTriggers, taskTriggerInstances, taskTriggerSettings, frontendPages, frontendSliders, frontendComponents,
-  frontendIcons, frontendBoxes, frontendCategories
+  frontendIcons, frontendBoxes, frontendCategories, tutorials, tutorialProgress, tutorialCategories
 } from "@shared/schema";
 import { marketResearchCompetitors } from "@shared/schema";
 import type { GasCard, InsertGasCard, GasCardAssignment, InsertGasCardAssignment, GasCardUsage, InsertGasCardUsage, GasCardProvider, InsertGasCardProvider } from "@shared/schema";
@@ -533,6 +533,22 @@ export interface IStorage {
   updateFrontendBox(id: number, organizationId: number, updates: any): Promise<any>;
   deleteFrontendBox(id: number, organizationId: number): Promise<boolean>;
   updateFrontendBoxOrder(organizationId: number, boxUpdates: any[]): Promise<any[]>;
+
+  // Tutorial System methods
+  getTutorials(organizationId?: number, category?: string): Promise<any[]>;
+  getTutorial(id: number): Promise<any | undefined>;
+  createTutorial(tutorialData: any): Promise<any>;
+  updateTutorial(id: number, updates: any): Promise<any>;
+  deleteTutorial(id: number): Promise<void>;
+  getTutorialCategories(organizationId?: number): Promise<any[]>;
+  createTutorialCategory(categoryData: any): Promise<any>;
+  updateTutorialCategory(id: number, updates: any): Promise<any>;
+  deleteTutorialCategory(id: number): Promise<void>;
+  getTutorialProgress(userId: number, tutorialId?: number): Promise<any[]>;
+  startTutorial(userId: number, tutorialId: number, organizationId: number): Promise<any>;
+  updateTutorialProgress(userId: number, tutorialId: number, progressData: any): Promise<any>;
+  completeTutorial(userId: number, tutorialId: number, rating?: number, feedback?: string): Promise<any>;
+  getUserTutorialStats(userId: number): Promise<any>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -9341,6 +9357,329 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error updating frontend box order:', error);
       throw error;
+    }
+  }
+
+  // Tutorial System methods
+  async getTutorials(organizationId?: number, category?: string): Promise<any[]> {
+    try {
+      let query = db.select().from(tutorials);
+      const conditions = [];
+
+      if (organizationId) {
+        conditions.push(or(eq(tutorials.organizationId, organizationId), isNull(tutorials.organizationId)));
+      }
+      if (category) {
+        conditions.push(eq(tutorials.category, category));
+      }
+      conditions.push(eq(tutorials.isPublished, true));
+
+      if (conditions.length > 0) {
+        query = query.where(and(...conditions));
+      }
+
+      const tutorialList = await query.orderBy(asc(tutorials.sortOrder), asc(tutorials.title));
+      return tutorialList;
+    } catch (error) {
+      console.error('Error fetching tutorials:', error);
+      return [];
+    }
+  }
+
+  async getTutorial(id: number): Promise<any | undefined> {
+    try {
+      const [tutorial] = await db
+        .select()
+        .from(tutorials)
+        .where(eq(tutorials.id, id));
+      return tutorial || undefined;
+    } catch (error) {
+      console.error('Error fetching tutorial:', error);
+      return undefined;
+    }
+  }
+
+  async createTutorial(tutorialData: any): Promise<any> {
+    try {
+      const [tutorial] = await db
+        .insert(tutorials)
+        .values({
+          ...tutorialData,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
+      return tutorial;
+    } catch (error) {
+      console.error('Error creating tutorial:', error);
+      throw error;
+    }
+  }
+
+  async updateTutorial(id: number, updates: any): Promise<any> {
+    try {
+      const [tutorial] = await db
+        .update(tutorials)
+        .set({
+          ...updates,
+          updatedAt: new Date(),
+        })
+        .where(eq(tutorials.id, id))
+        .returning();
+      return tutorial;
+    } catch (error) {
+      console.error('Error updating tutorial:', error);
+      throw error;
+    }
+  }
+
+  async deleteTutorial(id: number): Promise<void> {
+    try {
+      await db.delete(tutorials).where(eq(tutorials.id, id));
+    } catch (error) {
+      console.error('Error deleting tutorial:', error);
+      throw error;
+    }
+  }
+
+  async getTutorialCategories(organizationId?: number): Promise<any[]> {
+    try {
+      let query = db.select().from(tutorialCategories);
+      const conditions = [];
+
+      if (organizationId) {
+        conditions.push(or(eq(tutorialCategories.organizationId, organizationId), isNull(tutorialCategories.organizationId)));
+      }
+      conditions.push(eq(tutorialCategories.isActive, true));
+
+      if (conditions.length > 0) {
+        query = query.where(and(...conditions));
+      }
+
+      const categories = await query.orderBy(asc(tutorialCategories.sortOrder), asc(tutorialCategories.name));
+      return categories;
+    } catch (error) {
+      console.error('Error fetching tutorial categories:', error);
+      return [];
+    }
+  }
+
+  async createTutorialCategory(categoryData: any): Promise<any> {
+    try {
+      const [category] = await db
+        .insert(tutorialCategories)
+        .values({
+          ...categoryData,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
+      return category;
+    } catch (error) {
+      console.error('Error creating tutorial category:', error);
+      throw error;
+    }
+  }
+
+  async updateTutorialCategory(id: number, updates: any): Promise<any> {
+    try {
+      const [category] = await db
+        .update(tutorialCategories)
+        .set({
+          ...updates,
+          updatedAt: new Date(),
+        })
+        .where(eq(tutorialCategories.id, id))
+        .returning();
+      return category;
+    } catch (error) {
+      console.error('Error updating tutorial category:', error);
+      throw error;
+    }
+  }
+
+  async deleteTutorialCategory(id: number): Promise<void> {
+    try {
+      await db.delete(tutorialCategories).where(eq(tutorialCategories.id, id));
+    } catch (error) {
+      console.error('Error deleting tutorial category:', error);
+      throw error;
+    }
+  }
+
+  async getTutorialProgress(userId: number, tutorialId?: number): Promise<any[]> {
+    try {
+      let query = db
+        .select({
+          id: tutorialProgress.id,
+          tutorialId: tutorialProgress.tutorialId,
+          status: tutorialProgress.status,
+          currentStep: tutorialProgress.currentStep,
+          completedSteps: tutorialProgress.completedSteps,
+          startedAt: tutorialProgress.startedAt,
+          completedAt: tutorialProgress.completedAt,
+          timeSpent: tutorialProgress.timeSpent,
+          rating: tutorialProgress.rating,
+          feedback: tutorialProgress.feedback,
+          tutorial: {
+            id: tutorials.id,
+            title: tutorials.title,
+            category: tutorials.category,
+            type: tutorials.type,
+            difficulty: tutorials.difficulty,
+            estimatedTime: tutorials.estimatedTime,
+          },
+        })
+        .from(tutorialProgress)
+        .leftJoin(tutorials, eq(tutorialProgress.tutorialId, tutorials.id))
+        .where(eq(tutorialProgress.userId, userId));
+
+      if (tutorialId) {
+        query = query.where(and(eq(tutorialProgress.userId, userId), eq(tutorialProgress.tutorialId, tutorialId)));
+      }
+
+      const progress = await query.orderBy(desc(tutorialProgress.updatedAt));
+      return progress;
+    } catch (error) {
+      console.error('Error fetching tutorial progress:', error);
+      return [];
+    }
+  }
+
+  async startTutorial(userId: number, tutorialId: number, organizationId: number): Promise<any> {
+    try {
+      // Check if progress already exists
+      const [existingProgress] = await db
+        .select()
+        .from(tutorialProgress)
+        .where(and(eq(tutorialProgress.userId, userId), eq(tutorialProgress.tutorialId, tutorialId)));
+
+      if (existingProgress) {
+        // Update existing progress to start again
+        const [updatedProgress] = await db
+          .update(tutorialProgress)
+          .set({
+            status: 'in_progress',
+            startedAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .where(and(eq(tutorialProgress.userId, userId), eq(tutorialProgress.tutorialId, tutorialId)))
+          .returning();
+        return updatedProgress;
+      } else {
+        // Create new progress
+        const [newProgress] = await db
+          .insert(tutorialProgress)
+          .values({
+            userId,
+            tutorialId,
+            organizationId,
+            status: 'in_progress',
+            currentStep: 0,
+            completedSteps: [],
+            startedAt: new Date(),
+            timeSpent: 0,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .returning();
+        return newProgress;
+      }
+    } catch (error) {
+      console.error('Error starting tutorial:', error);
+      throw error;
+    }
+  }
+
+  async updateTutorialProgress(userId: number, tutorialId: number, progressData: any): Promise<any> {
+    try {
+      const [progress] = await db
+        .update(tutorialProgress)
+        .set({
+          ...progressData,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(tutorialProgress.userId, userId), eq(tutorialProgress.tutorialId, tutorialId)))
+        .returning();
+      return progress;
+    } catch (error) {
+      console.error('Error updating tutorial progress:', error);
+      throw error;
+    }
+  }
+
+  async completeTutorial(userId: number, tutorialId: number, rating?: number, feedback?: string): Promise<any> {
+    try {
+      const [progress] = await db
+        .update(tutorialProgress)
+        .set({
+          status: 'completed',
+          completedAt: new Date(),
+          rating,
+          feedback,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(tutorialProgress.userId, userId), eq(tutorialProgress.tutorialId, tutorialId)))
+        .returning();
+
+      // Update tutorial rating if rating was provided
+      if (rating) {
+        const [tutorial] = await db
+          .select()
+          .from(tutorials)
+          .where(eq(tutorials.id, tutorialId));
+
+        if (tutorial) {
+          const newTotalRatings = tutorial.totalRatings + 1;
+          const newAverageRating = ((tutorial.averageRating * tutorial.totalRatings) + rating) / newTotalRatings;
+
+          await db
+            .update(tutorials)
+            .set({
+              averageRating: newAverageRating.toFixed(2),
+              totalRatings: newTotalRatings,
+              updatedAt: new Date(),
+            })
+            .where(eq(tutorials.id, tutorialId));
+        }
+      }
+
+      return progress;
+    } catch (error) {
+      console.error('Error completing tutorial:', error);
+      throw error;
+    }
+  }
+
+  async getUserTutorialStats(userId: number): Promise<any> {
+    try {
+      const [stats] = await db
+        .select({
+          totalTutorials: count(tutorialProgress.id),
+          completedTutorials: sum(sql`CASE WHEN ${tutorialProgress.status} = 'completed' THEN 1 ELSE 0 END`),
+          inProgressTutorials: sum(sql`CASE WHEN ${tutorialProgress.status} = 'in_progress' THEN 1 ELSE 0 END`),
+          totalTimeSpent: sum(tutorialProgress.timeSpent),
+          averageRating: avg(tutorialProgress.rating),
+        })
+        .from(tutorialProgress)
+        .where(eq(tutorialProgress.userId, userId));
+
+      return stats || {
+        totalTutorials: 0,
+        completedTutorials: 0,
+        inProgressTutorials: 0,
+        totalTimeSpent: 0,
+        averageRating: 0,
+      };
+    } catch (error) {
+      console.error('Error fetching user tutorial stats:', error);
+      return {
+        totalTutorials: 0,
+        completedTutorials: 0,
+        inProgressTutorials: 0,
+        totalTimeSpent: 0,
+        averageRating: 0,
+      };
     }
   }
 }
