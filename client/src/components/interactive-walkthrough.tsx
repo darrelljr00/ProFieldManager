@@ -172,6 +172,18 @@ export function WalkthroughPlayer({ walkthrough, onComplete, onClose }: Walkthro
               element.style.transform = '';
               element.click();
             }, 150);
+          } else {
+            // Handle navigation for common routes
+            if (step.targetSelector.includes('dashboard') || step.targetSelector.includes('#/')) {
+              window.location.hash = '#/';
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            } else if (step.targetSelector.includes('invoice')) {
+              window.location.hash = '#/invoices';
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            } else if (step.targetSelector.includes('customer')) {
+              window.location.hash = '#/customers';
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            }
           }
         }
         break;
