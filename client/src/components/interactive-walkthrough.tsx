@@ -798,7 +798,7 @@ export const BUILTIN_WALKTHROUGHS: InteractiveWalkthrough[] = [
         id: 'navigate-expenses',
         title: 'Navigate to Expenses',
         description: 'Let\'s navigate to the expenses section to track your business expenses.',
-        targetSelector: 'a[href="#/expenses"], nav a:contains("Expenses")',
+        targetSelector: 'a[href="#/expenses"], nav a[href*="expense"]',
         position: 'right',
         action: 'click'
       },
