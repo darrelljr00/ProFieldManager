@@ -84,12 +84,17 @@ export function WalkthroughPlayer({ walkthrough, onComplete, onClose }: Walkthro
           inline: 'center'
         });
 
-        // Add highlight styles
+        // Add enhanced highlight styling with pulsing animation for auto-play
         element.style.position = 'relative';
         element.style.zIndex = '10001';
         element.style.boxShadow = '0 0 0 4px rgba(59, 130, 246, 0.5), 0 0 0 8px rgba(59, 130, 246, 0.2)';
         element.style.borderRadius = '8px';
         element.style.transition = 'all 0.3s ease';
+        
+        // Add pulsing animation for auto-play mode
+        if (isAutoPlaying) {
+          element.classList.add('walkthrough-highlight');
+        }
       }
     }
 
@@ -100,6 +105,7 @@ export function WalkthroughPlayer({ walkthrough, onComplete, onClose }: Walkthro
         highlightedElement.style.boxShadow = '';
         highlightedElement.style.borderRadius = '';
         highlightedElement.style.transition = '';
+        highlightedElement.classList.remove('walkthrough-highlight');
       }
     };
   }, [currentStep, currentStepData, highlightedElement]);
@@ -169,15 +175,39 @@ export function WalkthroughPlayer({ walkthrough, onComplete, onClose }: Walkthro
         if (step.targetSelector) {
           const element = document.querySelector(step.targetSelector) as HTMLElement;
           if (element) {
+            // Add hover visual effect
+            element.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
             element.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
             await new Promise(resolve => setTimeout(resolve, 1000));
             element.dispatchEvent(new MouseEvent('mouseleave', { bubbles: true }));
+            element.style.backgroundColor = '';
           }
         }
         break;
       
       case 'wait':
         await new Promise(resolve => setTimeout(resolve, step.duration || 2000));
+        break;
+        
+      case 'navigate':
+        if (step.actionData) {
+          // For navigation, we'll actually navigate to the target page
+          window.location.hash = step.actionData;
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+        break;
+        
+      case 'scroll':
+        if (step.targetSelector) {
+          const element = document.querySelector(step.targetSelector) as HTMLElement;
+          if (element) {
+            element.scrollIntoView({ 
+              behavior: 'smooth', 
+              block: 'center',
+              inline: 'center'
+            });
+          }
+        }
         break;
     }
 
