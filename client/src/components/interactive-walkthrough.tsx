@@ -183,6 +183,9 @@ export function WalkthroughPlayer({ walkthrough, onComplete, onClose }: Walkthro
             } else if (step.targetSelector.includes('customer')) {
               window.location.hash = '#/customers';
               await new Promise(resolve => setTimeout(resolve, 1000));
+            } else if (step.targetSelector.includes('expense')) {
+              window.location.hash = '#/expenses';
+              await new Promise(resolve => setTimeout(resolve, 1000));
             }
           }
         }
@@ -794,10 +797,18 @@ export const BUILTIN_WALKTHROUGHS: InteractiveWalkthrough[] = [
       {
         id: 'navigate-expenses',
         title: 'Navigate to Expenses',
-        description: 'Click on the Expenses link in the sidebar to open expense tracking.',
-        targetSelector: 'a[href="/expenses"]',
+        description: 'Let\'s navigate to the expenses section to track your business expenses.',
+        targetSelector: 'a[href="#/expenses"], nav a:contains("Expenses")',
         position: 'right',
         action: 'click'
+      },
+      {
+        id: 'wait-for-expenses',
+        title: 'Loading Expenses Page',
+        description: 'Perfect! The expenses page is loading with all your expense records.',
+        action: 'wait',
+        duration: 2000,
+        highlight: false
       },
       {
         id: 'add-expense-button',
