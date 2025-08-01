@@ -63,8 +63,11 @@ export function WalkthroughPlayer({ walkthrough, onComplete, onClose }: Walkthro
   const [autoPlayTimer, setAutoPlayTimer] = useState<NodeJS.Timeout | null>(null);
   const [autoPlayCountdown, setAutoPlayCountdown] = useState(0);
   const [countdownInterval, setCountdownInterval] = useState<NodeJS.Timeout | null>(null);
+  const [audioEnabled, setAudioEnabled] = useState(true);
+  const [isNarrating, setIsNarrating] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
+  const speechSynthesisRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   const currentStepData = walkthrough.steps[currentStep];
   const progress = ((currentStep + 1) / walkthrough.steps.length) * 100;
@@ -110,11 +113,34 @@ export function WalkthroughPlayer({ walkthrough, onComplete, onClose }: Walkthro
     };
   }, [currentStep, currentStepData, highlightedElement]);
 
+  // Audio narration function
+  const narrateStep = (text: string) => {
+    if (!audioEnabled || !window.speechSynthesis) return;
+    
+    // Cancel any existing speech
+    window.speechSynthesis.cancel();
+    
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.9;
+    utterance.pitch = 1;
+    utterance.volume = 0.7;
+    
+    utterance.onstart = () => setIsNarrating(true);
+    utterance.onend = () => setIsNarrating(false);
+    utterance.onerror = () => setIsNarrating(false);
+    
+    speechSynthesisRef.current = utterance;
+    window.speechSynthesis.speak(utterance);
+  };
+
   const executeStep = async () => {
     const step = currentStepData;
     if (!step) return;
 
     setIsPlaying(true);
+    
+    // Narrate the step
+    narrateStep(step.description);
 
     // Add visual feedback for step execution
     if (step.targetSelector) {
@@ -189,12 +215,9 @@ export function WalkthroughPlayer({ walkthrough, onComplete, onClose }: Walkthro
         await new Promise(resolve => setTimeout(resolve, step.duration || 2000));
         break;
         
-      case 'navigate':
-        if (step.actionData) {
-          // For navigation, we'll actually navigate to the target page
-          window.location.hash = step.actionData;
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
+      case 'highlight':
+        // Just highlight the element without any action
+        await new Promise(resolve => setTimeout(resolve, 1000));
         break;
         
       case 'scroll':
@@ -247,6 +270,7 @@ export function WalkthroughPlayer({ walkthrough, onComplete, onClose }: Walkthro
 
   const startAutoPlay = () => {
     setIsAutoPlaying(true);
+    narrateStep(`Starting automatic walkthrough: ${walkthrough.title}. I'll guide you through each step.`);
     setIsPlaying(true);
     executeCurrentStep();
   };
@@ -436,6 +460,15 @@ export function WalkthroughPlayer({ walkthrough, onComplete, onClose }: Walkthro
                     <Pause className="w-4 h-4" />
                   </Button>
                 )}
+                <Button 
+                  size="sm" 
+                  variant="ghost" 
+                  onClick={() => setAudioEnabled(!audioEnabled)}
+                  className={audioEnabled ? 'text-blue-600' : 'text-muted-foreground'}
+                  title={audioEnabled ? 'Disable Audio' : 'Enable Audio'}
+                >
+                  🔊
+                </Button>
                 <Button size="sm" variant="ghost" onClick={onClose}>
                   <X className="w-4 h-4" />
                 </Button>
@@ -509,6 +542,7 @@ export function WalkthroughPlayer({ walkthrough, onComplete, onClose }: Walkthro
                 <div className="flex items-center justify-center gap-2 text-sm font-medium text-blue-600">
                   <Play className="w-4 h-4 animate-pulse" />
                   Auto-Playing Walkthrough
+                  {isNarrating && <span className="text-green-600 animate-pulse">🎵</span>}
                 </div>
                 {autoPlayCountdown > 0 && (
                   <>
