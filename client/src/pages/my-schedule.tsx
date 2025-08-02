@@ -92,6 +92,9 @@ export default function MySchedulePage() {
     enabled: currentUser?.role !== 'user',
   });
 
+  console.log('Current user role:', currentUser?.role);
+  console.log('Available users for assignment:', users);
+
   // Fetch schedules
   const { data: schedules = [], isLoading } = useQuery({
     queryKey: ['/api/schedules', format(currentDate, 'MM'), format(currentDate, 'yyyy')],
@@ -386,22 +389,31 @@ export default function MySchedulePage() {
                         name="userId"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Assign To</FormLabel>
+                            <FormLabel>Assign To User</FormLabel>
                             <Select 
                               onValueChange={(value) => field.onChange(parseInt(value))}
                               value={field.value?.toString()}
                             >
                               <FormControl>
                                 <SelectTrigger>
-                                  <SelectValue placeholder="Select user" />
+                                  <SelectValue placeholder="Select a user to assign this schedule" />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                {users.map((user: any) => (
-                                  <SelectItem key={user.id} value={user.id.toString()}>
-                                    {user.firstName} {user.lastName} ({user.username})
+                                {users && users.length > 0 ? (
+                                  users.map((user: any) => (
+                                    <SelectItem key={user.id} value={user.id.toString()}>
+                                      {user.firstName && user.lastName 
+                                        ? `${user.firstName} ${user.lastName} (${user.username})`
+                                        : user.username
+                                      }
+                                    </SelectItem>
+                                  ))
+                                ) : (
+                                  <SelectItem value="" disabled>
+                                    No users available
                                   </SelectItem>
-                                ))}
+                                )}
                               </SelectContent>
                             </Select>
                             <FormMessage />
