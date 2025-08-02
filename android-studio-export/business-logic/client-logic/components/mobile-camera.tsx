@@ -1,0 +1,342 @@
+import { useCamera } from '@/hooks/useCamera';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Camera, RotateCcw, X, Check } from 'lucide-react';
+import React, { useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
+
+interface MobileCameraProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onPhotoTaken?: (file: File) => void;
+  projectId?: number;
+  customerId?: number;
+  title?: string;
+}
+
+export function MobileCamera({ 
+  isOpen, 
+  onClose, 
+  onPhotoTaken,
+  projectId,
+  customerId,
+  title = "Take Photo"
+}: MobileCameraProps) {
+  const { toast } = useToast();
+  const [capturedPhoto, setCapturedPhoto] = useState<Blob | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [gpsLocation, setGpsLocation] = useState<{latitude: number, longitude: number} | null>(null);
+  const [cameraFailed, setCameraFailed] = useState(false);
+  const {
+    isSupported,
+    stream,
+    videoRef,
+    canvasRef,
+    startCamera,
+    stopCamera,
+    capturePhoto,
+    switchCamera,
+  } = useCamera();
+
+  const handleOpenCamera = async () => {
+    if (!isSupported) {
+      toast({
+        title: "Camera Not Available",
+        description: "Your device doesn't support camera functionality",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    console.log('Starting camera access...');
+
+    // Get GPS location when opening camera
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setGpsLocation({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude
+          });
+          console.log('GPS location captured:', position.coords.latitude, position.coords.longitude);
+        },
+        (error) => {
+          console.warn('Could not get GPS location:', error);
+          setGpsLocation(null);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+      );
+    }
+
+    try {
+      const success = await startCamera({ facingMode: 'environment' });
+      if (!success) {
+        console.error('Camera failed to start');
+        setCameraFailed(true);
+      } else {
+        console.log('Camera started successfully');
+        setCameraFailed(false);
+      }
+    } catch (error) {
+      console.error('Error starting camera:', error);
+      setCameraFailed(true);
+    }
+  };
+
+  const playShutterSound = () => {
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      
+      // Create a more realistic camera shutter sound with two clicks
+      const createClick = (frequency: number, startTime: number, duration: number) => {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.setValueAtTime(frequency, startTime);
+        gainNode.gain.setValueAtTime(0.2, startTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+        
+        oscillator.start(startTime);
+        oscillator.stop(startTime + duration);
+      };
+      
+      // First click (higher pitch)
+      createClick(1200, audioContext.currentTime, 0.05);
+      // Second click (lower pitch) - shutter closing
+      createClick(800, audioContext.currentTime + 0.08, 0.05);
+      
+    } catch (error) {
+      console.log('Could not play shutter sound:', error);
+    }
+  };
+
+  const handleTakePhoto = async () => {
+    // Play shutter sound
+    playShutterSound();
+    
+    // Add visual feedback - brief flash effect
+    if (videoRef.current) {
+      const video = videoRef.current;
+      video.style.filter = 'brightness(1.5)';
+      setTimeout(() => {
+        video.style.filter = 'none';
+      }, 100);
+    }
+
+    const photo = await capturePhoto();
+    if (photo) {
+      setCapturedPhoto(photo);
+    }
+  };
+
+  const handleRetakePhoto = () => {
+    setCapturedPhoto(null);
+  };
+
+  const handleSavePhoto = async () => {
+    if (!capturedPhoto) return;
+
+    try {
+      setIsUploading(true);
+      
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const fileName = `camera-photo-${timestamp}.jpg`;
+      
+      console.log('📸 Creating file from captured photo blob:', fileName);
+      console.log('📍 GPS location available:', !!gpsLocation);
+      console.log('🎯 Project ID:', projectId);
+      
+      // Create file from blob with GPS metadata for upload
+      const file = new File([capturedPhoto], fileName, { type: 'image/jpeg' });
+      
+      if (onPhotoTaken) {
+        console.log('📸 Calling onPhotoTaken callback with file:', fileName);
+        // Let the parent component handle the upload with all the proper timestamp/project logic
+        onPhotoTaken(file);
+      } else {
+        console.log('⚠️ No onPhotoTaken callback provided - cannot upload file');
+        throw new Error('No upload handler provided');
+      }
+
+      toast({
+        title: "Photo Captured",
+        description: "Photo saved to project files",
+      });
+
+      handleClose();
+    } catch (error) {
+      console.error('Error processing photo:', error);
+      toast({
+        title: "Upload Failed",
+        description: "Failed to save photo. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleClose = () => {
+    stopCamera();
+    setCapturedPhoto(null);
+    setCameraFailed(false);
+    onClose();
+  };
+
+  const handleRetryCamera = async () => {
+    setCameraFailed(false);
+    await handleOpenCamera();
+  };
+
+  // Auto-start camera when dialog opens
+  React.useEffect(() => {
+    if (isOpen && !stream && !capturedPhoto) {
+      handleOpenCamera();
+    }
+  }, [isOpen]);
+
+  return (
+    <Dialog open={isOpen} onOpenChange={handleClose}>
+      <DialogContent className="max-w-full h-screen md:max-w-lg md:h-auto p-0 rounded-none md:rounded-lg overflow-hidden">
+        <DialogHeader className="p-4 border-b bg-white relative z-10">
+          <div className="flex items-center justify-between">
+            <DialogTitle className="text-lg">{title}</DialogTitle>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleClose}
+              className="h-8 w-8 p-0"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </DialogHeader>
+
+        <div className="flex-1 relative bg-black min-h-0" style={{ height: 'calc(100vh - 80px)' }}>
+          {/* Camera Error Screen */}
+          {cameraFailed && (
+            <div className="w-full h-full flex items-center justify-center bg-gray-900">
+              <div className="text-center p-6 max-w-sm">
+                <Camera className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-white mb-2">Camera Access Required</h3>
+                <p className="text-gray-300 text-sm mb-6">
+                  Please allow camera access to take photos. Check your browser permissions and try again.
+                </p>
+                <div className="space-y-3">
+                  <Button
+                    onClick={handleRetryCamera}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    <Camera className="h-4 w-4 mr-2" />
+                    Try Again
+                  </Button>
+                  <Button
+                    onClick={handleClose}
+                    variant="outline"
+                    className="w-full border-gray-600 text-gray-300 hover:bg-gray-800"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Camera View */}
+          <video
+            ref={videoRef}
+            className={`w-full h-full object-cover ${capturedPhoto || cameraFailed ? 'hidden' : 'block'}`}
+            playsInline
+            muted
+            autoPlay
+          />
+
+          {/* Captured Photo Preview */}
+          {capturedPhoto && (
+            <img
+              src={URL.createObjectURL(capturedPhoto)}
+              alt="Captured"
+              className="w-full h-full object-cover block"
+            />
+          )}
+
+          {/* Loading overlay when processing */}
+          {isUploading && (
+            <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-10">
+              <div className="bg-white rounded-lg p-4 flex items-center space-x-3">
+                <div className="animate-spin w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                <span className="text-gray-900 font-medium">Saving photo...</span>
+              </div>
+            </div>
+          )}
+
+          {/* Hidden canvas for photo capture */}
+          <canvas ref={canvasRef} className="hidden" />
+
+          {/* Camera Controls */}
+          {!cameraFailed && (
+            <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 via-black/60 to-transparent z-20 min-h-[120px] flex items-end">
+              <div className="w-full flex items-center justify-center space-x-6">
+                {!capturedPhoto ? (
+                <>
+                  {/* Switch Camera Button */}
+                  <Button
+                    variant="secondary"
+                    size="lg"
+                    onClick={switchCamera}
+                    className="bg-white/20 hover:bg-white/30 text-white border-white/30 h-12 w-12 p-0 rounded-full"
+                    disabled={!stream}
+                  >
+                    <RotateCcw className="h-5 w-5" />
+                  </Button>
+
+                  {/* Capture Button */}
+                  <Button
+                    size="lg"
+                    onClick={handleTakePhoto}
+                    className="w-20 h-20 rounded-full bg-white hover:bg-gray-100 text-gray-900 border-4 border-white/30"
+                    disabled={!stream}
+                  >
+                    <Camera className="h-8 w-8" />
+                  </Button>
+
+                  {/* Placeholder for symmetry */}
+                  <div className="w-12 h-12" />
+                </>
+              ) : (
+                <>
+                  {/* Retake Button */}
+                  <Button
+                    variant="secondary"
+                    size="lg"
+                    onClick={handleRetakePhoto}
+                    className="bg-red-600/80 hover:bg-red-700/80 text-white border-red-500/30 px-6 py-3 text-base font-medium rounded-lg"
+                  >
+                    <RotateCcw className="h-5 w-5 mr-2" />
+                    Retake
+                  </Button>
+
+                  {/* Save Button */}
+                  <Button
+                    size="lg"
+                    onClick={handleSavePhoto}
+                    disabled={isUploading}
+                    className="bg-green-600/80 hover:bg-green-700/80 text-white px-8 py-3 text-base font-medium rounded-lg disabled:opacity-50"
+                  >
+                    <Check className="h-5 w-5 mr-2" />
+                    {isUploading ? 'Saving...' : 'Save Photo'}
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
