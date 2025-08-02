@@ -43,10 +43,10 @@ I've successfully created a complete export package for your Pro Field Manager p
 
 ## 🚀 Quick Start Guide
 
-### Step 1: Download Export Package
+### Step 1: Download Complete React Native Project
 ```bash
-# The complete export is available in the android-studio-export/ directory
-# You can download this entire folder to your local machine
+# Download the complete project from: android-studio-export/ProFieldManagerMobile/
+# This includes the complete /android folder and all necessary files
 ```
 
 ### Step 2: Setup Android Development Environment
@@ -57,36 +57,33 @@ I've successfully created a complete export package for your Pro Field Manager p
 # Install React Native CLI
 npm install -g react-native-cli
 
-# Install Java Development Kit
+# Install Java Development Kit (JDK 11 or higher)
 # Download from: https://www.oracle.com/java/technologies/downloads/
 ```
 
-### Step 3: Create New React Native Project
+### Step 3: Open in Android Studio
 ```bash
-# Create new project
-npx react-native init ProFieldManagerMobile
+# 1. Launch Android Studio
+# 2. Choose "Open an existing Android Studio project"
+# 3. Navigate to and select the /android folder in ProFieldManagerMobile
+# 4. Wait for Gradle sync to complete
+```
+
+### Step 4: Build APK
+```bash
+# In Android Studio:
+# Build → Build Bundle(s)/APK(s) → Build APK(s)
+
+# Or via command line:
 cd ProFieldManagerMobile
-
-# Copy package.json from react-native-template/
-# Install dependencies
 npm install
+npm run build:android:debug
 ```
 
-### Step 4: Migrate Your Business Logic
+### Step 5: Your APK is Ready!
 ```bash
-# Copy API services from business-logic/
-# Adapt UI components for React Native
-# Implement navigation and state management
-```
-
-### Step 5: Build APK
-```bash
-# Debug APK
-cd android
-./gradlew assembleDebug
-
-# Release APK (after signing setup)
-./gradlew assembleRelease
+# APK location: android/app/build/outputs/apk/debug/
+# Install on device or distribute as needed
 ```
 
 ## 🎯 Key Benefits of This Approach
