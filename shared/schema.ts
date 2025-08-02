@@ -1384,6 +1384,39 @@ export const soundSettings = pgTable("sound_settings", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Late Arrivals Tracking
+export const lateArrivals = pgTable("late_arrivals", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  scheduleId: integer("schedule_id").references(() => schedules.id),
+  timeClockId: integer("time_clock_id").references(() => timeClock.id),
+  
+  // Schedule details
+  scheduledStartTime: timestamp("scheduled_start_time").notNull(),
+  actualClockInTime: timestamp("actual_clock_in_time").notNull(),
+  
+  // Late calculation
+  minutesLate: integer("minutes_late").notNull(),
+  hoursLate: decimal("hours_late", { precision: 4, scale: 2 }).notNull(),
+  
+  // Context
+  workDate: timestamp("work_date").notNull(), // The date of work (for easier querying)
+  location: text("location"), // Where they clocked in
+  reason: text("reason"), // Optional reason for being late
+  isExcused: boolean("is_excused").default(false),
+  excusedBy: integer("excused_by").references(() => users.id),
+  excusedAt: timestamp("excused_at"),
+  excuseReason: text("excuse_reason"),
+  
+  // Notifications
+  supervisorNotified: boolean("supervisor_notified").default(false),
+  notifiedAt: timestamp("notified_at"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Navigation Order insert schema
 export const insertNavigationOrderSchema = z.object({
   userId: z.number(),
@@ -1425,6 +1458,12 @@ export const insertSoundSettingsSchema = z.object({
   enabled: z.boolean().default(true),
 });
 
+export const insertLateArrivalSchema = createInsertSchema(lateArrivals).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type NavigationOrder = typeof navigationOrder.$inferSelect;
 export type InsertNavigationOrder = z.infer<typeof insertNavigationOrderSchema>;
@@ -1433,6 +1472,8 @@ export type InsertBackupSettings = z.infer<typeof insertBackupSettingsSchema>;
 export type BackupJob = typeof backupJobs.$inferSelect;
 export type SoundSettings = typeof soundSettings.$inferSelect;
 export type InsertSoundSettings = z.infer<typeof insertSoundSettingsSchema>;
+export type LateArrival = typeof lateArrivals.$inferSelect;
+export type InsertLateArrival = z.infer<typeof insertLateArrivalSchema>;
 
 // Insert schemas
 export const insertUserSchema = z.object({

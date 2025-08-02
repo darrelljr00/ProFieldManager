@@ -23,6 +23,7 @@ import {
   insertScheduleSchema,
   insertScheduleAssignmentSchema,
   insertScheduleCommentSchema,
+  insertLateArrivalSchema,
   loginSchema,
   registerSchema,
   changePasswordSchema,
@@ -32,7 +33,9 @@ import {
   type ChangePasswordData,
   type Schedule,
   type ScheduleAssignment,
-  type ScheduleComment
+  type ScheduleComment,
+  type LateArrival,
+  type InsertLateArrival
 } from "@shared/schema";
 import { AuthService, requireAuth, requireAdmin, requireManagerOrAdmin, requireTaskDelegationPermission } from "./auth";
 import { ZodError } from "zod";
@@ -45,7 +48,8 @@ import {
   gasCardAssignments, leads, calendarJobs, messages,
   images, settings, organizations, userSessions, vendors,
   soundSettings, userDashboardSettings, dashboardProfiles,
-  schedules, scheduleAssignments, scheduleComments
+  schedules, scheduleAssignments, scheduleComments, timeClock,
+  lateArrivals
 } from "@shared/schema";
 import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull } from "drizzle-orm";
 import { DocuSignService, getDocuSignConfig } from "./docusign";
@@ -14937,6 +14941,288 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error fetching my schedules:", error);
       res.status(500).json({ message: "Failed to fetch schedules" });
+    }
+  });
+
+  // === LATE ARRIVAL TRACKING ENDPOINTS ===
+  
+  // Track late arrival when clocking in
+  app.post("/api/time-clock/clock-in", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { location, ipAddress } = req.body;
+      const clockInTime = new Date();
+      
+      // Create time clock entry
+      const [timeClockEntry] = await db
+        .insert(timeClock)
+        .values({
+          userId: user.id,
+          organizationId: user.organizationId,
+          clockInTime,
+          clockInLocation: location,
+          clockInIP: ipAddress,
+          status: 'clocked_in',
+        })
+        .returning();
+      
+      // Check for today's schedule to detect late arrivals
+      const today = new Date().toISOString().split('T')[0];
+      const todaySchedule = await db
+        .select()
+        .from(schedules)
+        .where(
+          and(
+            eq(schedules.userId, user.id),
+            eq(schedules.organizationId, user.organizationId),
+            sql`DATE(${schedules.startDate}) = ${today}`,
+            eq(schedules.isActive, true)
+          )
+        )
+        .limit(1);
+      
+      if (todaySchedule.length > 0) {
+        const schedule = todaySchedule[0];
+        const scheduledDateTime = new Date(`${today}T${schedule.startTime}`);
+        
+        // Calculate if late (more than 5 minutes grace period)
+        const minutesLate = Math.max(0, Math.floor((clockInTime.getTime() - scheduledDateTime.getTime()) / (1000 * 60)) - 5);
+        
+        if (minutesLate > 0) {
+          // Record late arrival
+          await db
+            .insert(lateArrivals)
+            .values({
+              userId: user.id,
+              organizationId: user.organizationId,
+              scheduleId: schedule.id,
+              timeClockId: timeClockEntry.id,
+              scheduledStartTime: scheduledDateTime,
+              actualClockInTime: clockInTime,
+              minutesLate,
+              hoursLate: Number((minutesLate / 60).toFixed(2)),
+              workDate: new Date(today),
+              location,
+            });
+          
+          // Notify managers/admins
+          broadcastToWebUsers('late_arrival_detected', {
+            user: `${user.firstName} ${user.lastName}`,
+            minutesLate,
+            scheduledTime: schedule.startTime,
+            actualTime: clockInTime.toTimeString().slice(0, 5),
+            location,
+          });
+        }
+      }
+      
+      res.json({ 
+        timeClockEntry, 
+        scheduledTime: todaySchedule[0]?.startTime,
+        isLate: todaySchedule.length > 0 && (clockInTime.getTime() - new Date(`${today}T${todaySchedule[0].startTime}`).getTime()) > 5 * 60 * 1000
+      });
+    } catch (error: any) {
+      console.error("Error clocking in:", error);
+      res.status(500).json({ message: "Failed to clock in" });
+    }
+  });
+  
+  // Get late arrivals report
+  app.get("/api/reports/late-arrivals", requireManagerOrAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { startDate, endDate, userId } = req.query;
+      
+      let conditions = [eq(lateArrivals.organizationId, user.organizationId)];
+      
+      if (startDate) {
+        conditions.push(gte(lateArrivals.workDate, new Date(startDate as string)));
+      }
+      if (endDate) {
+        conditions.push(lte(lateArrivals.workDate, new Date(endDate as string)));
+      }
+      if (userId) {
+        conditions.push(eq(lateArrivals.userId, parseInt(userId as string)));
+      }
+      
+      const lateArrivalsList = await db
+        .select({
+          id: lateArrivals.id,
+          userId: lateArrivals.userId,
+          userName: sql`CONCAT(${users.firstName}, ' ', ${users.lastName})`,
+          workDate: lateArrivals.workDate,
+          scheduledStartTime: lateArrivals.scheduledStartTime,
+          actualClockInTime: lateArrivals.actualClockInTime,
+          minutesLate: lateArrivals.minutesLate,
+          hoursLate: lateArrivals.hoursLate,
+          location: lateArrivals.location,
+          reason: lateArrivals.reason,
+          isExcused: lateArrivals.isExcused,
+          excuseReason: lateArrivals.excuseReason,
+          excusedBy: lateArrivals.excusedBy,
+          excusedAt: lateArrivals.excusedAt,
+        })
+        .from(lateArrivals)
+        .leftJoin(users, eq(lateArrivals.userId, users.id))
+        .where(and(...conditions))
+        .orderBy(desc(lateArrivals.workDate), desc(lateArrivals.actualClockInTime));
+      
+      res.json(lateArrivalsList);
+    } catch (error: any) {
+      console.error("Error fetching late arrivals:", error);
+      res.status(500).json({ message: "Failed to fetch late arrivals" });
+    }
+  });
+  
+  // Get late arrivals summary/statistics
+  app.get("/api/reports/late-arrivals/summary", requireManagerOrAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { startDate, endDate } = req.query;
+      
+      let conditions = [eq(lateArrivals.organizationId, user.organizationId)];
+      
+      if (startDate) {
+        conditions.push(gte(lateArrivals.workDate, new Date(startDate as string)));
+      }
+      if (endDate) {
+        conditions.push(lte(lateArrivals.workDate, new Date(endDate as string)));
+      }
+      
+      // Get employee late arrival statistics
+      const employeeStats = await db
+        .select({
+          userId: lateArrivals.userId,
+          userName: sql`CONCAT(${users.firstName}, ' ', ${users.lastName})`,
+          totalLateArrivals: sql`COUNT(*)`.as('totalLateArrivals'),
+          totalMinutesLate: sql`SUM(${lateArrivals.minutesLate})`.as('totalMinutesLate'),
+          averageMinutesLate: sql`AVG(${lateArrivals.minutesLate})`.as('averageMinutesLate'),
+          excusedArrivals: sql`SUM(CASE WHEN ${lateArrivals.isExcused} THEN 1 ELSE 0 END)`.as('excusedArrivals'),
+        })
+        .from(lateArrivals)
+        .leftJoin(users, eq(lateArrivals.userId, users.id))
+        .where(and(...conditions))
+        .groupBy(lateArrivals.userId, users.firstName, users.lastName)
+        .orderBy(desc(sql`COUNT(*)`));
+      
+      // Get overall summary
+      const [overallSummary] = await db
+        .select({
+          totalLateArrivals: sql`COUNT(*)`.as('totalLateArrivals'),
+          totalEmployeesLate: sql`COUNT(DISTINCT ${lateArrivals.userId})`.as('totalEmployeesLate'),
+          totalMinutesLate: sql`SUM(${lateArrivals.minutesLate})`.as('totalMinutesLate'),
+          averageMinutesLate: sql`AVG(${lateArrivals.minutesLate})`.as('averageMinutesLate'),
+          totalExcusedArrivals: sql`SUM(CASE WHEN ${lateArrivals.isExcused} THEN 1 ELSE 0 END)`.as('totalExcusedArrivals'),
+        })
+        .from(lateArrivals)
+        .where(and(...conditions));
+      
+      res.json({
+        summary: overallSummary,
+        employeeStats,
+      });
+    } catch (error: any) {
+      console.error("Error fetching late arrivals summary:", error);
+      res.status(500).json({ message: "Failed to fetch late arrivals summary" });
+    }
+  });
+  
+  // Excuse a late arrival
+  app.put("/api/reports/late-arrivals/:id/excuse", requireManagerOrAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const lateArrivalId = parseInt(req.params.id);
+      const { excuseReason } = req.body;
+      
+      const [updatedLateArrival] = await db
+        .update(lateArrivals)
+        .set({
+          isExcused: true,
+          excusedBy: user.id,
+          excusedAt: new Date(),
+          excuseReason,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(lateArrivals.id, lateArrivalId),
+            eq(lateArrivals.organizationId, user.organizationId)
+          )
+        )
+        .returning();
+      
+      if (!updatedLateArrival) {
+        return res.status(404).json({ message: "Late arrival record not found" });
+      }
+      
+      res.json(updatedLateArrival);
+    } catch (error: any) {
+      console.error("Error excusing late arrival:", error);
+      res.status(500).json({ message: "Failed to excuse late arrival" });
+    }
+  });
+  
+  // Employee can add reason for late arrival
+  app.put("/api/my-late-arrivals/:id/reason", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const lateArrivalId = parseInt(req.params.id);
+      const { reason } = req.body;
+      
+      const [updatedLateArrival] = await db
+        .update(lateArrivals)
+        .set({
+          reason,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(lateArrivals.id, lateArrivalId),
+            eq(lateArrivals.userId, user.id),
+            eq(lateArrivals.organizationId, user.organizationId)
+          )
+        )
+        .returning();
+      
+      if (!updatedLateArrival) {
+        return res.status(404).json({ message: "Late arrival record not found" });
+      }
+      
+      res.json(updatedLateArrival);
+    } catch (error: any) {
+      console.error("Error updating late arrival reason:", error);
+      res.status(500).json({ message: "Failed to update late arrival reason" });
+    }
+  });
+  
+  // Get employee's own late arrivals
+  app.get("/api/my-late-arrivals", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { startDate, endDate } = req.query;
+      
+      let conditions = [
+        eq(lateArrivals.userId, user.id),
+        eq(lateArrivals.organizationId, user.organizationId)
+      ];
+      
+      if (startDate) {
+        conditions.push(gte(lateArrivals.workDate, new Date(startDate as string)));
+      }
+      if (endDate) {
+        conditions.push(lte(lateArrivals.workDate, new Date(endDate as string)));
+      }
+      
+      const myLateArrivals = await db
+        .select()
+        .from(lateArrivals)
+        .where(and(...conditions))
+        .orderBy(desc(lateArrivals.workDate));
+      
+      res.json(myLateArrivals);
+    } catch (error: any) {
+      console.error("Error fetching my late arrivals:", error);
+      res.status(500).json({ message: "Failed to fetch late arrivals" });
     }
   });
 

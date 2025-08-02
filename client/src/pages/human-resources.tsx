@@ -1314,7 +1314,7 @@ export default function HumanResources() {
               <CardDescription>Generate insights and reports on your workforce</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-lg">Department Distribution</CardTitle>
@@ -1361,6 +1361,8 @@ export default function HumanResources() {
                     </div>
                   </CardContent>
                 </Card>
+
+                <LateArrivalsReport />
               </div>
 
               <div className="mt-6 flex space-x-4">
@@ -1865,5 +1867,218 @@ export default function HumanResources() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+// Late Arrivals Report Component
+function LateArrivalsReport() {
+  const [selectedPeriod, setSelectedPeriod] = useState("30");
+  const [selectedEmployee, setSelectedEmployee] = useState("all");
+  
+  // Calculate date range based on selected period
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setDate(endDate.getDate() - parseInt(selectedPeriod));
+  
+  // Fetch late arrivals data
+  const { data: lateArrivals, isLoading: lateArrivalsLoading } = useQuery({
+    queryKey: ['/api/reports/late-arrivals', { 
+      startDate: startDate.toISOString(), 
+      endDate: endDate.toISOString(),
+      userId: selectedEmployee !== "all" ? selectedEmployee : undefined
+    }],
+    retry: false,
+  });
+  
+  // Fetch late arrivals summary
+  const { data: summary, isLoading: summaryLoading } = useQuery({
+    queryKey: ['/api/reports/late-arrivals/summary', { 
+      startDate: startDate.toISOString(), 
+      endDate: endDate.toISOString()
+    }],
+    retry: false,
+  });
+  
+  // Fetch employees for filter
+  const { data: employees = [] } = useQuery({
+    queryKey: ['/api/employees'],
+    retry: false,
+  });
+  
+  const isLoading = lateArrivalsLoading || summaryLoading;
+  
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Clock className="h-5 w-5 text-orange-500" />
+            <CardTitle className="text-lg">Days Late Report</CardTitle>
+          </div>
+          <Badge variant="outline" className="text-orange-600">
+            Last {selectedPeriod} days
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {/* Filter Controls */}
+          <div className="flex space-x-2">
+            <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="7">7 days</SelectItem>
+                <SelectItem value="30">30 days</SelectItem>
+                <SelectItem value="90">90 days</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="All employees" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All employees</SelectItem>
+                {employees.map((emp: any) => (
+                  <SelectItem key={emp.id} value={emp.id.toString()}>
+                    {emp.firstName} {emp.lastName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {/* Summary Stats */}
+          {!isLoading && summary?.summary && (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-red-50 p-3 rounded-lg">
+                <div className="text-2xl font-bold text-red-600">
+                  {summary.summary.totalLateArrivals || 0}
+                </div>
+                <div className="text-sm text-red-500">Late Arrivals</div>
+              </div>
+              <div className="bg-orange-50 p-3 rounded-lg">
+                <div className="text-2xl font-bold text-orange-600">
+                  {summary.summary.totalEmployeesLate || 0}
+                </div>
+                <div className="text-sm text-orange-500">Employees Affected</div>
+              </div>
+            </div>
+          )}
+          
+          {/* Recent Late Arrivals */}
+          {!isLoading && lateArrivals && lateArrivals.length > 0 ? (
+            <div className="space-y-2">
+              <h4 className="font-medium text-sm">Recent Late Arrivals</h4>
+              {lateArrivals.slice(0, 5).map((arrival: any) => (
+                <div key={arrival.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                  <div>
+                    <div className="font-medium text-sm">{arrival.userName}</div>
+                    <div className="text-xs text-gray-500">
+                      {new Date(arrival.workDate).toLocaleDateString()}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <Badge variant={arrival.minutesLate > 30 ? "destructive" : "secondary"}>
+                      {arrival.minutesLate}min late
+                    </Badge>
+                    {arrival.isExcused && (
+                      <div className="text-xs text-green-600 mt-1">Excused</div>
+                    )}
+                  </div>
+                </div>
+              ))}
+              
+              {lateArrivals.length > 5 && (
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm" className="w-full mt-2">
+                      View All ({lateArrivals.length} total)
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>Complete Late Arrivals Report</DialogTitle>
+                      <DialogDescription>
+                        Detailed view of all late arrivals for the selected period
+                      </DialogDescription>
+                    </DialogHeader>
+                    
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Employee</TableHead>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Scheduled</TableHead>
+                          <TableHead>Actual</TableHead>
+                          <TableHead>Minutes Late</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Reason</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {lateArrivals.map((arrival: any) => (
+                          <TableRow key={arrival.id}>
+                            <TableCell className="font-medium">
+                              {arrival.userName}
+                            </TableCell>
+                            <TableCell>
+                              {new Date(arrival.workDate).toLocaleDateString()}
+                            </TableCell>
+                            <TableCell>
+                              {new Date(arrival.scheduledStartTime).toLocaleTimeString([], {
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </TableCell>
+                            <TableCell>
+                              {new Date(arrival.actualClockInTime).toLocaleTimeString([], {
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={arrival.minutesLate > 30 ? "destructive" : "secondary"}>
+                                {arrival.minutesLate} min
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {arrival.isExcused ? (
+                                <Badge variant="outline" className="text-green-600">
+                                  Excused
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-red-600">
+                                  Unexcused
+                                </Badge>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              {arrival.reason || arrival.excuseReason || '-'}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </DialogContent>
+                </Dialog>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-4">
+              {isLoading ? (
+                <div className="text-sm text-gray-500">Loading late arrivals...</div>
+              ) : (
+                <div className="text-sm text-gray-500">
+                  No late arrivals in the selected period
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
