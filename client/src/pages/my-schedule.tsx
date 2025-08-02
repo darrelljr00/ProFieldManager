@@ -302,6 +302,12 @@ export default function MySchedulePage() {
   const monthDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
 
   const canManageSchedules = currentUser?.role === 'admin' || currentUser?.role === 'manager';
+  
+  console.log('Can manage schedules check:', {
+    currentUserRole: currentUser?.role,
+    canManageSchedules,
+    currentUser: currentUser
+  });
 
   if (isLoading) {
     return (
