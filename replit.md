@@ -49,6 +49,7 @@ Preferred communication style: Simple, everyday language.
 - **Visual Page Designer**: Drag-and-drop interface for editing frontend pages (e.g., Home Page).
 - **Interactive Product Walkthroughs**: Step-by-step guided tours with visual element highlighting, action execution, and progress tracking for key features including invoice creation, expense tracking, lead management, task creation, vehicle inspections, team messaging, file management, and dashboard navigation.
 - **Comprehensive Help Documentation System**: Organized help sections with tutorials, FAQs, documentation, and interactive walkthroughs searchable by category and difficulty level, integrated into the admin interface with global accessibility.
+- **Mobile App OTA Updates**: Complete Over-The-Air update system using Expo EAS Updates for automatic app updates without APK regeneration, supporting continuous deployment with channel-based control (development/preview/production).
 
 ## External Dependencies
 
@@ -60,3 +61,4 @@ Preferred communication style: Simple, everyday language.
 - **Cloudinary**: For cloud-based image and file storage, optimization, and delivery.
 - **ClamAV**: For file security and virus scanning.
 - **AWS S3**: For backup storage (integrated with backup utility).
+- **Expo & EAS**: For mobile app development, building, and Over-The-Air (OTA) updates with automatic deployment capabilities.
