@@ -20,13 +20,19 @@ import {
   insertGasCardAssignmentSchema,
   insertSharedPhotoLinkSchema,
   insertCalendarJobSchema,
+  insertScheduleSchema,
+  insertScheduleAssignmentSchema,
+  insertScheduleCommentSchema,
   loginSchema,
   registerSchema,
   changePasswordSchema,
   type Message,
   type LoginData,
   type RegisterData,
-  type ChangePasswordData 
+  type ChangePasswordData,
+  type Schedule,
+  type ScheduleAssignment,
+  type ScheduleComment
 } from "@shared/schema";
 import { AuthService, requireAuth, requireAdmin, requireManagerOrAdmin, requireTaskDelegationPermission } from "./auth";
 import { ZodError } from "zod";
@@ -38,7 +44,8 @@ import {
   expenses, expenseCategories, expenseReports, gasCards, 
   gasCardAssignments, leads, calendarJobs, messages,
   images, settings, organizations, userSessions, vendors,
-  soundSettings, userDashboardSettings, dashboardProfiles
+  soundSettings, userDashboardSettings, dashboardProfiles,
+  schedules, scheduleAssignments, scheduleComments
 } from "@shared/schema";
 import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull } from "drizzle-orm";
 import { DocuSignService, getDocuSignConfig } from "./docusign";
@@ -14576,6 +14583,360 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error fetching tutorial stats:", error);
       res.status(500).json({ message: "Failed to fetch tutorial stats" });
+    }
+  });
+
+  // Schedule Management Routes
+  app.get("/api/schedules", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { userId, month, year } = req.query;
+      
+      // Build filter conditions
+      const conditions = [eq(schedules.organizationId, user.organizationId)];
+      
+      // Role-based access control
+      if (user.role === 'user') {
+        // Users can only see their own schedules
+        conditions.push(eq(schedules.userId, user.id));
+      } else if (userId) {
+        // Managers/admins can filter by specific user
+        conditions.push(eq(schedules.userId, parseInt(userId as string)));
+      }
+      
+      // Date filtering
+      if (month && year) {
+        const startDate = new Date(parseInt(year as string), parseInt(month as string) - 1, 1);
+        const endDate = new Date(parseInt(year as string), parseInt(month as string), 0);
+        conditions.push(
+          gte(schedules.startDate, startDate.toISOString().split('T')[0]),
+          lte(schedules.startDate, endDate.toISOString().split('T')[0])
+        );
+      }
+      
+      const userSchedules = await db
+        .select({
+          id: schedules.id,
+          title: schedules.title,
+          description: schedules.description,
+          startDate: schedules.startDate,
+          endDate: schedules.endDate,
+          startTime: schedules.startTime,
+          endTime: schedules.endTime,
+          location: schedules.location,
+          address: schedules.address,
+          status: schedules.status,
+          priority: schedules.priority,
+          color: schedules.color,
+          notes: schedules.notes,
+          clockInTime: schedules.clockInTime,
+          clockOutTime: schedules.clockOutTime,
+          actualHours: schedules.actualHours,
+          createdAt: schedules.createdAt,
+          // User info
+          userId: schedules.userId,
+          userName: users.username,
+          userFirstName: users.firstName,
+          userLastName: users.lastName,
+          // Creator info
+          createdById: schedules.createdById,
+          createdByName: sql<string>`creator.username`.as('createdByName'),
+        })
+        .from(schedules)
+        .leftJoin(users, eq(schedules.userId, users.id))
+        .leftJoin(sql`${users} as creator`, sql`${schedules.createdById} = creator.id`)
+        .where(and(...conditions))
+        .orderBy(asc(schedules.startDate), asc(schedules.startTime));
+      
+      res.json(userSchedules);
+    } catch (error: any) {
+      console.error("Error fetching schedules:", error);
+      res.status(500).json({ message: "Failed to fetch schedules" });
+    }
+  });
+
+  app.post("/api/schedules", requireAuth, requireManagerOrAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      const scheduleData = insertScheduleSchema.parse({
+        ...req.body,
+        organizationId: user.organizationId,
+        createdById: user.id,
+      });
+      
+      const [schedule] = await db
+        .insert(schedules)
+        .values(scheduleData)
+        .returning();
+      
+      // Broadcast to all web users
+      broadcastToWebUsers('schedule_created', {
+        schedule,
+        createdBy: user.username
+      });
+      
+      res.status(201).json(schedule);
+    } catch (error: any) {
+      if (error instanceof ZodError) {
+        res.status(400).json({ message: "Validation error", errors: error.errors });
+      } else {
+        console.error("Error creating schedule:", error);
+        res.status(500).json({ message: "Failed to create schedule" });
+      }
+    }
+  });
+
+  app.get("/api/schedules/:id", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const scheduleId = parseInt(req.params.id);
+      
+      const [schedule] = await db
+        .select()
+        .from(schedules)
+        .where(
+          and(
+            eq(schedules.id, scheduleId),
+            eq(schedules.organizationId, user.organizationId)
+          )
+        );
+      
+      if (!schedule) {
+        return res.status(404).json({ message: "Schedule not found" });
+      }
+      
+      // Check access permissions
+      if (user.role === 'user' && schedule.userId !== user.id) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      res.json(schedule);
+    } catch (error: any) {
+      console.error("Error fetching schedule:", error);
+      res.status(500).json({ message: "Failed to fetch schedule" });
+    }
+  });
+
+  app.put("/api/schedules/:id", requireAuth, requireManagerOrAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const scheduleId = parseInt(req.params.id);
+      
+      const updateData = insertScheduleSchema.partial().parse(req.body);
+      
+      const [updatedSchedule] = await db
+        .update(schedules)
+        .set({
+          ...updateData,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(schedules.id, scheduleId),
+            eq(schedules.organizationId, user.organizationId)
+          )
+        )
+        .returning();
+      
+      if (!updatedSchedule) {
+        return res.status(404).json({ message: "Schedule not found" });
+      }
+      
+      // Broadcast update
+      broadcastToWebUsers('schedule_updated', {
+        schedule: updatedSchedule,
+        updatedBy: user.username
+      });
+      
+      res.json(updatedSchedule);
+    } catch (error: any) {
+      if (error instanceof ZodError) {
+        res.status(400).json({ message: "Validation error", errors: error.errors });
+      } else {
+        console.error("Error updating schedule:", error);
+        res.status(500).json({ message: "Failed to update schedule" });
+      }
+    }
+  });
+
+  app.delete("/api/schedules/:id", requireAuth, requireManagerOrAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const scheduleId = parseInt(req.params.id);
+      
+      const [deletedSchedule] = await db
+        .delete(schedules)
+        .where(
+          and(
+            eq(schedules.id, scheduleId),
+            eq(schedules.organizationId, user.organizationId)
+          )
+        )
+        .returning();
+      
+      if (!deletedSchedule) {
+        return res.status(404).json({ message: "Schedule not found" });
+      }
+      
+      // Broadcast deletion
+      broadcastToWebUsers('schedule_deleted', {
+        scheduleId,
+        deletedBy: user.username
+      });
+      
+      res.json({ message: "Schedule deleted successfully" });
+    } catch (error: any) {
+      console.error("Error deleting schedule:", error);
+      res.status(500).json({ message: "Failed to delete schedule" });
+    }
+  });
+
+  // Clock in/out for schedules
+  app.post("/api/schedules/:id/clock-in", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const scheduleId = parseInt(req.params.id);
+      
+      const [schedule] = await db
+        .select()
+        .from(schedules)
+        .where(
+          and(
+            eq(schedules.id, scheduleId),
+            eq(schedules.organizationId, user.organizationId),
+            eq(schedules.userId, user.id) // Only the assigned user can clock in
+          )
+        );
+      
+      if (!schedule) {
+        return res.status(404).json({ message: "Schedule not found or access denied" });
+      }
+      
+      if (schedule.clockInTime) {
+        return res.status(400).json({ message: "Already clocked in" });
+      }
+      
+      const [updatedSchedule] = await db
+        .update(schedules)
+        .set({
+          clockInTime: new Date(),
+          status: 'confirmed',
+          updatedAt: new Date(),
+        })
+        .where(eq(schedules.id, scheduleId))
+        .returning();
+      
+      // Broadcast clock in
+      broadcastToWebUsers('schedule_clock_in', {
+        schedule: updatedSchedule,
+        user: user.username
+      });
+      
+      res.json(updatedSchedule);
+    } catch (error: any) {
+      console.error("Error clocking in:", error);
+      res.status(500).json({ message: "Failed to clock in" });
+    }
+  });
+
+  app.post("/api/schedules/:id/clock-out", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const scheduleId = parseInt(req.params.id);
+      
+      const [schedule] = await db
+        .select()
+        .from(schedules)
+        .where(
+          and(
+            eq(schedules.id, scheduleId),
+            eq(schedules.organizationId, user.organizationId),
+            eq(schedules.userId, user.id)
+          )
+        );
+      
+      if (!schedule) {
+        return res.status(404).json({ message: "Schedule not found or access denied" });
+      }
+      
+      if (!schedule.clockInTime) {
+        return res.status(400).json({ message: "Must clock in first" });
+      }
+      
+      if (schedule.clockOutTime) {
+        return res.status(400).json({ message: "Already clocked out" });
+      }
+      
+      const clockOutTime = new Date();
+      const actualHours = (clockOutTime.getTime() - schedule.clockInTime.getTime()) / (1000 * 60 * 60);
+      
+      const [updatedSchedule] = await db
+        .update(schedules)
+        .set({
+          clockOutTime,
+          actualHours: actualHours.toFixed(2),
+          status: 'completed',
+          updatedAt: new Date(),
+        })
+        .where(eq(schedules.id, scheduleId))
+        .returning();
+      
+      // Broadcast clock out
+      broadcastToWebUsers('schedule_clock_out', {
+        schedule: updatedSchedule,
+        user: user.username,
+        hoursWorked: actualHours.toFixed(2)
+      });
+      
+      res.json(updatedSchedule);
+    } catch (error: any) {
+      console.error("Error clocking out:", error);
+      res.status(500).json({ message: "Failed to clock out" });
+    }
+  });
+
+  // User schedules overview (for regular users)
+  app.get("/api/my-schedule", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      const mySchedules = await db
+        .select({
+          id: schedules.id,
+          title: schedules.title,
+          description: schedules.description,
+          startDate: schedules.startDate,
+          endDate: schedules.endDate,
+          startTime: schedules.startTime,
+          endTime: schedules.endTime,
+          location: schedules.location,
+          address: schedules.address,
+          status: schedules.status,
+          priority: schedules.priority,
+          color: schedules.color,
+          notes: schedules.notes,
+          clockInTime: schedules.clockInTime,
+          clockOutTime: schedules.clockOutTime,
+          actualHours: schedules.actualHours,
+          createdAt: schedules.createdAt,
+          createdByName: users.username,
+        })
+        .from(schedules)
+        .leftJoin(users, eq(schedules.createdById, users.id))
+        .where(
+          and(
+            eq(schedules.organizationId, user.organizationId),
+            eq(schedules.userId, user.id),
+            eq(schedules.isActive, true)
+          )
+        )
+        .orderBy(asc(schedules.startDate), asc(schedules.startTime));
+      
+      res.json(mySchedules);
+    } catch (error: any) {
+      console.error("Error fetching my schedules:", error);
+      res.status(500).json({ message: "Failed to fetch schedules" });
     }
   });
 

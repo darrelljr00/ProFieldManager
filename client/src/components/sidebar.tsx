@@ -209,7 +209,8 @@ function SortableNavItem({
 // Default navigation order
 const DEFAULT_NAVIGATION_ORDER = [
   "Dashboard",
-  "Calendar", 
+  "Calendar",
+  "My Schedule",
   "Time Clock",
   "Jobs",
   "My Tasks",
@@ -322,6 +323,7 @@ export function Sidebar() {
   const navigationItems: NavigationItem[] = [
     { name: "Dashboard", href: "/", icon: BarChart3, requiresAuth: true, permission: "canAccessDashboard" },
     { name: "Calendar", href: "/calendar", icon: Calendar, requiresAuth: true, permission: "canAccessCalendar" },
+    { name: "My Schedule", href: "/my-schedule", icon: Calendar, requiresAuth: true, permission: "canAccessSchedule" },
     { name: "Time Clock", href: "/time-clock", icon: Clock, requiresAuth: true, permission: "canAccessTimeClock" },
     { 
       name: "Jobs", 

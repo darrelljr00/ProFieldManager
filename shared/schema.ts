@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, decimal, uuid, varchar, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, decimal, uuid, varchar, jsonb, date, time, pgEnum } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -2113,6 +2113,171 @@ export type OrganizationSignupData = z.infer<typeof organizationSignupSchema>;
 export type LoginData = z.infer<typeof loginSchema>;
 export type RegisterData = z.infer<typeof registerSchema>;
 export type ChangePasswordData = z.infer<typeof changePasswordSchema>;
+
+// Schedule Management System
+export const scheduleRecurrenceEnum = pgEnum('schedule_recurrence', ['none', 'weekly', 'biweekly', 'monthly']);
+
+export const schedules = pgTable("schedules", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  userId: integer("user_id").notNull().references(() => users.id),
+  createdById: integer("created_by_id").notNull().references(() => users.id),
+  
+  // Schedule details
+  title: text("title").notNull(),
+  description: text("description"),
+  
+  // Time details
+  startDate: date("start_date").notNull(),
+  endDate: date("end_date"),
+  startTime: time("start_time").notNull(),
+  endTime: time("end_time").notNull(),
+  
+  // Location
+  location: text("location"),
+  address: text("address"),
+  
+  // Recurrence
+  recurrence: scheduleRecurrenceEnum("recurrence").default("none"),
+  recurrenceEndDate: date("recurrence_end_date"),
+  
+  // Status and approvals
+  status: text("status").notNull().default("scheduled"), // scheduled, confirmed, cancelled, completed
+  requiresApproval: boolean("requires_approval").default(false),
+  isApproved: boolean("is_approved").default(true),
+  approvedBy: integer("approved_by").references(() => users.id),
+  approvedAt: timestamp("approved_at"),
+  
+  // Additional fields
+  priority: text("priority").default("medium"), // low, medium, high, urgent
+  notes: text("notes"),
+  color: text("color").default("#3B82F6"), // For calendar display
+  
+  // Time tracking
+  clockInTime: timestamp("clock_in_time"),
+  clockOutTime: timestamp("clock_out_time"),
+  actualHours: decimal("actual_hours", { precision: 5, scale: 2 }),
+  
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const scheduleTemplates = pgTable("schedule_templates", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  createdById: integer("created_by_id").notNull().references(() => users.id),
+  
+  name: text("name").notNull(),
+  description: text("description"),
+  
+  // Default schedule details
+  defaultStartTime: time("default_start_time").notNull(),
+  defaultEndTime: time("default_end_time").notNull(),
+  defaultLocation: text("default_location"),
+  defaultRecurrence: scheduleRecurrenceEnum("default_recurrence").default("weekly"),
+  
+  // Template settings
+  isPublic: boolean("is_public").default(false), // Can be used by managers/admins
+  category: text("category").default("general"), // general, shift, meeting, training
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const scheduleAssignments = pgTable("schedule_assignments", {
+  id: serial("id").primaryKey(),
+  scheduleId: integer("schedule_id").notNull().references(() => schedules.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id),
+  assignedById: integer("assigned_by_id").notNull().references(() => users.id),
+  
+  // Assignment status
+  status: text("status").default("assigned"), // assigned, accepted, declined, completed
+  responseDate: timestamp("response_date"),
+  notes: text("notes"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const scheduleNotifications = pgTable("schedule_notifications", {
+  id: serial("id").primaryKey(),
+  scheduleId: integer("schedule_id").notNull().references(() => schedules.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id),
+  
+  // Notification details
+  type: text("type").notNull(), // reminder, assignment, change, cancellation
+  message: text("message").notNull(),
+  scheduledFor: timestamp("scheduled_for").notNull(),
+  
+  // Delivery status
+  isSent: boolean("is_sent").default(false),
+  sentAt: timestamp("sent_at"),
+  method: text("method").default("email"), // email, sms, push, in_app
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const scheduleComments = pgTable("schedule_comments", {
+  id: serial("id").primaryKey(),
+  scheduleId: integer("schedule_id").notNull().references(() => schedules.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id),
+  
+  comment: text("comment").notNull(),
+  isInternal: boolean("is_internal").default(false), // Only visible to managers/admins
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Schedule management schemas
+export const insertScheduleSchema = createInsertSchema(schedules, {
+  title: z.string().min(1, "Title is required"),
+  startDate: z.string().min(1, "Start date is required"),
+  startTime: z.string().min(1, "Start time is required"),
+  endTime: z.string().min(1, "End time is required"),
+  priority: z.enum(["low", "medium", "high", "urgent"]).default("medium"),
+  status: z.enum(["scheduled", "confirmed", "cancelled", "completed"]).default("scheduled"),
+  recurrence: z.enum(["none", "weekly", "biweekly", "monthly"]).default("none"),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertScheduleTemplateSchema = createInsertSchema(scheduleTemplates, {
+  name: z.string().min(1, "Template name is required"),
+  defaultStartTime: z.string().min(1, "Default start time is required"),
+  defaultEndTime: z.string().min(1, "Default end time is required"),
+  category: z.enum(["general", "shift", "meeting", "training"]).default("general"),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertScheduleAssignmentSchema = createInsertSchema(scheduleAssignments, {
+  status: z.enum(["assigned", "accepted", "declined", "completed"]).default("assigned"),
+}).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertScheduleCommentSchema = createInsertSchema(scheduleComments, {
+  comment: z.string().min(1, "Comment is required"),
+}).omit({
+  id: true,
+  createdAt: true,
+});
+
+// Schedule management types
+export type Schedule = typeof schedules.$inferSelect;
+export type InsertSchedule = z.infer<typeof insertScheduleSchema>;
+export type ScheduleTemplate = typeof scheduleTemplates.$inferSelect;
+export type InsertScheduleTemplate = z.infer<typeof insertScheduleTemplateSchema>;
+export type ScheduleAssignment = typeof scheduleAssignments.$inferSelect;
+export type InsertScheduleAssignment = z.infer<typeof insertScheduleAssignmentSchema>;
+export type ScheduleNotification = typeof scheduleNotifications.$inferSelect;
+export type ScheduleComment = typeof scheduleComments.$inferSelect;
+export type InsertScheduleComment = z.infer<typeof insertScheduleCommentSchema>;
 
 // Tutorial System Tables
 export const tutorials = pgTable("tutorials", {
