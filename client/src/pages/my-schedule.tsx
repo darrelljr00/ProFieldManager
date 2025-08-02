@@ -86,13 +86,16 @@ export default function MySchedulePage() {
     queryKey: ['/api/auth/me'],
   });
 
+  // Extract user from the response structure
+  const user = currentUser?.user || currentUser;
+
   // Fetch users (for managers/admins)
   const { data: users = [] } = useQuery({
     queryKey: ['/api/users'],
-    enabled: currentUser?.role !== 'user',
+    enabled: user?.role !== 'user',
   });
 
-  console.log('Current user role:', currentUser?.role);
+  console.log('Current user role:', user?.role);
   console.log('Available users for assignment:', users);
 
   // Fetch schedules
@@ -113,7 +116,7 @@ export default function MySchedulePage() {
   // Fetch my schedule (simplified view for users)
   const { data: mySchedules = [] } = useQuery({
     queryKey: ['/api/my-schedule'],
-    enabled: currentUser?.role === 'user',
+    enabled: user?.role === 'user',
   });
 
   const form = useForm<ScheduleFormData>({
@@ -129,7 +132,7 @@ export default function MySchedulePage() {
       address: '',
       priority: 'medium',
       notes: '',
-      userId: currentUser?.id || 0,
+      userId: user?.id || 0,
     },
   });
 
@@ -301,12 +304,13 @@ export default function MySchedulePage() {
   const monthEnd = endOfMonth(currentDate);
   const monthDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
 
-  const canManageSchedules = currentUser?.role === 'admin' || currentUser?.role === 'manager';
+  const canManageSchedules = user?.role === 'admin' || user?.role === 'manager';
   
   console.log('Can manage schedules check:', {
-    currentUserRole: currentUser?.role,
+    currentUserRole: user?.role,
     canManageSchedules,
-    currentUser: currentUser
+    currentUser: currentUser,
+    extractedUser: user
   });
 
   if (isLoading) {
@@ -325,7 +329,7 @@ export default function MySchedulePage() {
         <div>
           <h1 className="text-3xl font-bold">My Schedule</h1>
           <p className="text-muted-foreground">
-            {currentUser?.role === 'user' 
+            {user?.role === 'user' 
               ? 'View your assigned schedules and clock in/out'
               : 'Manage team schedules and assignments'
             }
