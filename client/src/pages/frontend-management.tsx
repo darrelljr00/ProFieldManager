@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit, Trash2, Save, X, Eye, Settings, Layout, Image, FileText, Globe, Sliders, Box, Palette, Monitor, Smartphone, Tablet } from "lucide-react";
+import { Plus, Edit, Trash2, Save, X, Eye, Settings, Layout, Image, FileText, Globe, Sliders, Box, Palette, Monitor, Smartphone, Tablet, Crown } from "lucide-react";
 
 interface FrontendPage {
   id: number;
@@ -866,8 +866,90 @@ export default function FrontendManagement() {
 
         {/* Sliders Tab */}
         <TabsContent value="sliders" className="space-y-6">
+          {/* Top Slider Section */}
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 rounded-lg p-6 border border-blue-200 dark:border-blue-800">
+            <div className="flex justify-between items-center mb-4">
+              <div>
+                <h2 className="text-2xl font-semibold text-blue-900 dark:text-blue-100 flex items-center">
+                  <Crown className="h-6 w-6 mr-2" />
+                  Top Banner Slider
+                </h2>
+                <p className="text-blue-700 dark:text-blue-300 text-sm">
+                  Featured slider displayed prominently at the top of your website
+                </p>
+              </div>
+              <Button 
+                onClick={() => openEditSlider()} 
+                className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700"
+              >
+                <Plus className="h-4 w-4" />
+                <span>Add Top Slider</span>
+              </Button>
+            </div>
+
+            {/* Top Slider Preview */}
+            <div className="bg-white dark:bg-gray-900 rounded-lg p-4 border border-blue-200 dark:border-blue-700">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-medium text-blue-900 dark:text-blue-100">Active Top Slider</h3>
+                <Badge variant="default" className="bg-blue-600">Priority</Badge>
+              </div>
+              
+              {sliders.length > 0 ? (
+                <div className="space-y-3">
+                  {sliders
+                    .filter((slider: FrontendSlider) => slider.isActive)
+                    .slice(0, 1)
+                    .map((slider: FrontendSlider) => (
+                    <div key={slider.id} className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-950 rounded border">
+                      <div>
+                        <h4 className="font-medium text-blue-900 dark:text-blue-100">{slider.title}</h4>
+                        <p className="text-sm text-blue-700 dark:text-blue-300">{slider.subtitle}</p>
+                        <div className="flex items-center space-x-4 mt-2 text-xs text-blue-600 dark:text-blue-400">
+                          <span>Animation: {slider.animationType}</span>
+                          <span>Duration: {slider.displayDuration}ms</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openEditSlider(slider)}
+                          className="border-blue-300 text-blue-700 hover:bg-blue-100"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => deleteSliderMutation.mutate(slider.id)}
+                          className="border-red-300 text-red-700 hover:bg-red-100"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                  {sliders.filter((slider: FrontendSlider) => slider.isActive).length === 0 && (
+                    <div className="text-center py-8 text-blue-600 dark:text-blue-400">
+                      <Sliders className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                      <p>No active top slider configured</p>
+                      <p className="text-sm">Create your first slider to get started</p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-blue-600 dark:text-blue-400">
+                  <Sliders className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                  <p>No sliders created yet</p>
+                  <p className="text-sm">Create your first slider to get started</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* All Sliders Section */}
           <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-semibold">Homepage Sliders</h2>
+            <h2 className="text-2xl font-semibold">All Homepage Sliders</h2>
             <Button onClick={() => openEditSlider()} className="flex items-center space-x-2">
               <Plus className="h-4 w-4" />
               <span>Add Slider</span>
