@@ -125,7 +125,14 @@ export default function SimpleLogin() {
       
       // Use immediate redirect since auth state is now properly set
       const destination = getIntendedDestination();
-      setLocation(destination);
+      console.log('🎯 Redirecting after login to:', destination);
+      
+      // Force redirect to dashboard if destination is login page
+      if (destination === '/login' || destination === '/login-full' || destination === '/signup') {
+        setLocation('/');
+      } else {
+        setLocation(destination);
+      }
     },
     onError: (error: any) => {
       toast({

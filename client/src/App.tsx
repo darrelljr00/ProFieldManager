@@ -227,6 +227,11 @@ function Router() {
   }
 
   if (isAuthenticated) {
+    // Ensure we redirect to dashboard if user is on login page or unknown route
+    const currentPath = window.location.pathname;
+    if (currentPath === '/login' || currentPath === '/login-full' || currentPath === '/signup') {
+      window.history.replaceState({}, '', '/');
+    }
     return <AuthenticatedApp />;
   }
 
