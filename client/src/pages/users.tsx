@@ -1535,6 +1535,10 @@ export default function UsersPage() {
                         <TableHead>Mobile Test</TableHead>
                         <TableHead>Reviews</TableHead>
                         <TableHead>Market Research</TableHead>
+                        <TableHead>Parts & Supplies</TableHead>
+                        <TableHead>My Schedule</TableHead>
+                        <TableHead>Tutorials</TableHead>
+                        <TableHead>Front End</TableHead>
                         <TableHead>HR</TableHead>
                         <TableHead>User Mgmt</TableHead>
                         <TableHead>SaaS Admin</TableHead>
@@ -1809,25 +1813,53 @@ export default function UsersPage() {
                               disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
                             />
                           </TableCell>
+                          {/* Parts & Supplies */}
                           <TableCell>
                             <Switch
-                              checked={user.canAccessLeads === true}
+                              checked={(user as any).canAccessPartsSupplies === true}
                               onCheckedChange={(checked) => 
                                 updateUserPermissionsMutation.mutate({
                                   userId: user.id,
-                                  permissions: { canAccessLeads: checked }
+                                  permissions: { canAccessPartsSupplies: checked }
                                 })
                               }
                               disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
                             />
                           </TableCell>
+                          {/* My Schedule */}
                           <TableCell>
                             <Switch
-                              checked={user.canAccessGasCards === true}
+                              checked={(user as any).canAccessMySchedule === true}
                               onCheckedChange={(checked) => 
                                 updateUserPermissionsMutation.mutate({
                                   userId: user.id,
-                                  permissions: { canAccessGasCards: checked }
+                                  permissions: { canAccessMySchedule: checked }
+                                })
+                              }
+                              disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
+                            />
+                          </TableCell>
+                          {/* Tutorials */}
+                          <TableCell>
+                            <Switch
+                              checked={(user as any).canAccessTutorials === true}
+                              onCheckedChange={(checked) => 
+                                updateUserPermissionsMutation.mutate({
+                                  userId: user.id,
+                                  permissions: { canAccessTutorials: checked }
+                                })
+                              }
+                              disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
+                            />
+                          </TableCell>
+                          {/* Front End */}
+                          <TableCell>
+                            <Switch
+                              checked={(user as any).canAccessFrontEnd === true}
+                              onCheckedChange={(checked) => 
+                                updateUserPermissionsMutation.mutate({
+                                  userId: user.id,
+                                  permissions: { canAccessFrontEnd: checked }
                                 })
                               }
                               disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}

@@ -231,6 +231,9 @@ export const users = pgTable("users", {
   canAccessHR: boolean("can_access_hr").default(false),
   canAccessMarketResearch: boolean("can_access_market_research").default(true),
   canAccessTutorials: boolean("can_access_tutorials").default(true),
+  canAccessPartsSupplies: boolean("can_access_parts_supplies").default(true),
+  canAccessMySchedule: boolean("can_access_my_schedule").default(true),
+  canAccessFrontEnd: boolean("can_access_front_end").default(false),
   // HR-specific permissions
   canViewHREmployees: boolean("can_view_hr_employees").default(false),
   canEditHREmployees: boolean("can_edit_hr_employees").default(false),
