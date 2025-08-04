@@ -129,10 +129,20 @@ export default function SimpleLogin() {
       
       // Force redirect to dashboard if destination is login page
       if (destination === '/login' || destination === '/login-full' || destination === '/signup') {
+        console.log('🏠 Redirecting to dashboard');
         setLocation('/');
       } else {
+        console.log('🎯 Redirecting to intended destination:', destination);
         setLocation(destination);
       }
+      
+      // Also use window.location as fallback
+      setTimeout(() => {
+        if (window.location.pathname === '/login' || window.location.pathname === '/login-full') {
+          console.log('🔄 Fallback redirect to dashboard');
+          window.location.href = '/';
+        }
+      }, 100);
     },
     onError: (error: any) => {
       toast({
