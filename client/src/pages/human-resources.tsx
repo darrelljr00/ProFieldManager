@@ -60,6 +60,8 @@ interface Employee {
   manager?: string;
   location?: string;
   profileImage?: string;
+  notes?: string;
+  userId?: number;
 }
 
 interface TimeOffRequest {
@@ -640,13 +642,14 @@ export default function HumanResources() {
       </div>
 
       <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="employees">Employees</TabsTrigger>
           <TabsTrigger value="departments">Departments</TabsTrigger>
           <TabsTrigger value="timeoff">Time Off</TabsTrigger>
           <TabsTrigger value="performance">Performance</TabsTrigger>
           <TabsTrigger value="disciplinary">Disciplinary</TabsTrigger>
           <TabsTrigger value="reports">Reports</TabsTrigger>
+          <TabsTrigger value="access-control">Access Control</TabsTrigger>
         </TabsList>
 
         <TabsContent value="employees" className="space-y-4">
@@ -678,7 +681,7 @@ export default function HumanResources() {
                         <Checkbox
                           id="syncWithUser"
                           checked={showUserSync}
-                          onCheckedChange={setShowUserSync}
+                          onCheckedChange={(checked) => setShowUserSync(checked === true)}
                         />
                         <Label htmlFor="syncWithUser" className="text-sm font-medium">
                           Sync with existing user profile
@@ -1736,6 +1739,159 @@ export default function HumanResources() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* Access Control Tab */}
+        <TabsContent value="access-control" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                Employee Access Control
+              </CardTitle>
+              <CardDescription>
+                Manage employee access to different modules and navigation tabs based on their roles and responsibilities
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                {/* Employee Access Control Table */}
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Employee</TableHead>
+                        <TableHead>Department</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Dashboard</TableHead>
+                        <TableHead>Time Clock</TableHead>
+                        <TableHead>Jobs</TableHead>
+                        <TableHead>My Tasks</TableHead>
+                        <TableHead>Expenses</TableHead>
+                        <TableHead>GPS Tracking</TableHead>
+                        <TableHead>Messages</TableHead>
+                        <TableHead>File Manager</TableHead>
+                        <TableHead>Reports</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {employees.map((employee) => (
+                        <TableRow key={employee.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <Avatar className="h-8 w-8">
+                                <AvatarImage src={employee.profileImage} />
+                                <AvatarFallback>
+                                  {employee.firstName?.[0]}{employee.lastName?.[0]}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <div className="font-medium">
+                                  {employee.firstName} {employee.lastName}
+                                </div>
+                                <div className="text-sm text-muted-foreground">
+                                  {employee.position}
+                                </div>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{employee.department}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={getStatusColor(employee.status)}>
+                              {employee.status.replace('_', ' ')}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Checkbox defaultChecked disabled />
+                          </TableCell>
+                          <TableCell>
+                            <Checkbox defaultChecked />
+                          </TableCell>
+                          <TableCell>
+                            <Checkbox defaultChecked={employee.position !== 'Admin Assistant'} />
+                          </TableCell>
+                          <TableCell>
+                            <Checkbox defaultChecked />
+                          </TableCell>
+                          <TableCell>
+                            <Checkbox defaultChecked={employee.position !== 'Field Technician'} />
+                          </TableCell>
+                          <TableCell>
+                            <Checkbox defaultChecked />
+                          </TableCell>
+                          <TableCell>
+                            <Checkbox defaultChecked />
+                          </TableCell>
+                          <TableCell>
+                            <Checkbox defaultChecked={employee.position !== 'Field Technician'} />
+                          </TableCell>
+                          <TableCell>
+                            <Checkbox defaultChecked={employee.position === 'Manager' || employee.position === 'Supervisor'} />
+                          </TableCell>
+                          <TableCell>
+                            <Button variant="outline" size="sm">
+                              <Edit className="h-4 w-4 mr-1" />
+                              Configure
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Access Control Legend */}
+                <div className="mt-6 p-4 bg-muted rounded-lg">
+                  <h4 className="font-medium mb-3">Access Control Guidelines:</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      <span><strong>Dashboard:</strong> Universal access for all employees</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-blue-600" />
+                      <span><strong>Time Clock:</strong> Required for attendance tracking</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Building2 className="h-4 w-4 text-purple-600" />
+                      <span><strong>Jobs:</strong> Based on role and responsibilities</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="h-4 w-4 text-yellow-600" />
+                      <span><strong>Expenses:</strong> For expense reporting roles</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-indigo-600" />
+                      <span><strong>Reports:</strong> Management and supervisory roles</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-red-600" />
+                      <span><strong>GPS Tracking:</strong> Field staff and mobile workers</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bulk Actions */}
+                <div className="flex gap-3">
+                  <Button variant="outline">
+                    <Users className="h-4 w-4 mr-2" />
+                    Bulk Configure
+                  </Button>
+                  <Button variant="outline">
+                    <Download className="h-4 w-4 mr-2" />
+                    Export Access Report
+                  </Button>
+                  <Button>
+                    <Shield className="h-4 w-4 mr-2" />
+                    Apply Changes
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
 
       {/* Employee Detail Dialog */}
@@ -2082,3 +2238,4 @@ function LateArrivalsReport() {
     </Card>
   );
 }
+
