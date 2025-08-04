@@ -1740,153 +1740,128 @@ export default function HumanResources() {
           </Card>
         </TabsContent>
 
-        {/* Access Control Tab */}
+        {/* Access Control Tab - Properly integrated with User Management */}
         <TabsContent value="access-control" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Shield className="h-5 w-5" />
-                Employee Access Control
+                HR Navigation Access Control
               </CardTitle>
               <CardDescription>
-                Manage employee access to different modules and navigation tabs based on their roles and responsibilities
+                This tab provides HR-specific access control. For complete user management and navigation tab access control, please visit the dedicated User Management page.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                {/* Employee Access Control Table */}
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Employee</TableHead>
-                        <TableHead>Department</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Dashboard</TableHead>
-                        <TableHead>Time Clock</TableHead>
-                        <TableHead>Jobs</TableHead>
-                        <TableHead>My Tasks</TableHead>
-                        <TableHead>Expenses</TableHead>
-                        <TableHead>GPS Tracking</TableHead>
-                        <TableHead>Messages</TableHead>
-                        <TableHead>File Manager</TableHead>
-                        <TableHead>Reports</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {employees.map((employee) => (
-                        <TableRow key={employee.id}>
-                          <TableCell>
-                            <div className="flex items-center gap-3">
-                              <Avatar className="h-8 w-8">
-                                <AvatarImage src={employee.profileImage} />
-                                <AvatarFallback>
-                                  {employee.firstName?.[0]}{employee.lastName?.[0]}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <div className="font-medium">
-                                  {employee.firstName} {employee.lastName}
-                                </div>
-                                <div className="text-sm text-muted-foreground">
-                                  {employee.position}
-                                </div>
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{employee.department}</Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge className={getStatusColor(employee.status)}>
-                              {employee.status.replace('_', ' ')}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Checkbox defaultChecked disabled />
-                          </TableCell>
-                          <TableCell>
-                            <Checkbox defaultChecked />
-                          </TableCell>
-                          <TableCell>
-                            <Checkbox defaultChecked={employee.position !== 'Admin Assistant'} />
-                          </TableCell>
-                          <TableCell>
-                            <Checkbox defaultChecked />
-                          </TableCell>
-                          <TableCell>
-                            <Checkbox defaultChecked={employee.position !== 'Field Technician'} />
-                          </TableCell>
-                          <TableCell>
-                            <Checkbox defaultChecked />
-                          </TableCell>
-                          <TableCell>
-                            <Checkbox defaultChecked />
-                          </TableCell>
-                          <TableCell>
-                            <Checkbox defaultChecked={employee.position !== 'Field Technician'} />
-                          </TableCell>
-                          <TableCell>
-                            <Checkbox defaultChecked={employee.position === 'Manager' || employee.position === 'Supervisor'} />
-                          </TableCell>
-                          <TableCell>
-                            <Button variant="outline" size="sm">
-                              <Edit className="h-4 w-4 mr-1" />
-                              Configure
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-
-                {/* Access Control Legend */}
-                <div className="mt-6 p-4 bg-muted rounded-lg">
-                  <h4 className="font-medium mb-3">Access Control Guidelines:</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-600" />
-                      <span><strong>Dashboard:</strong> Universal access for all employees</span>
+                {/* Quick Link to User Management */}
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-medium text-blue-900">Complete User & Access Management</h3>
+                      <p className="text-sm text-blue-700 mt-1">
+                        For comprehensive user management, permissions, and navigation tab access control, visit the dedicated User Management page.
+                      </p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-blue-600" />
-                      <span><strong>Time Clock:</strong> Required for attendance tracking</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Building2 className="h-4 w-4 text-purple-600" />
-                      <span><strong>Jobs:</strong> Based on role and responsibilities</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <DollarSign className="h-4 w-4 text-yellow-600" />
-                      <span><strong>Expenses:</strong> For expense reporting roles</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-indigo-600" />
-                      <span><strong>Reports:</strong> Management and supervisory roles</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-red-600" />
-                      <span><strong>GPS Tracking:</strong> Field staff and mobile workers</span>
-                    </div>
+                    <Button 
+                      onClick={() => window.location.href = '/users'}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      <Users className="h-4 w-4 mr-2" />
+                      Open User Management
+                    </Button>
                   </div>
                 </div>
 
-                {/* Bulk Actions */}
-                <div className="flex gap-3">
-                  <Button variant="outline">
-                    <Users className="h-4 w-4 mr-2" />
-                    Bulk Configure
-                  </Button>
-                  <Button variant="outline">
-                    <Download className="h-4 w-4 mr-2" />
-                    Export Access Report
-                  </Button>
-                  <Button>
-                    <Shield className="h-4 w-4 mr-2" />
-                    Apply Changes
-                  </Button>
+                {/* HR-Specific Access Summary */}
+                <div>
+                  <h4 className="font-medium mb-4">HR Module Access Summary</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <Card>
+                      <CardContent className="p-4">
+                        <div className="flex items-center space-x-3">
+                          <Users className="h-8 w-8 text-blue-600" />
+                          <div>
+                            <p className="font-medium">Employee Management</p>
+                            <p className="text-sm text-muted-foreground">Managers & HR Staff</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    
+                    <Card>
+                      <CardContent className="p-4">
+                        <div className="flex items-center space-x-3">
+                          <Clock className="h-8 w-8 text-green-600" />
+                          <div>
+                            <p className="font-medium">Time Off Requests</p>
+                            <p className="text-sm text-muted-foreground">All Employees</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    
+                    <Card>
+                      <CardContent className="p-4">
+                        <div className="flex items-center space-x-3">
+                          <FileText className="h-8 w-8 text-purple-600" />
+                          <div>
+                            <p className="font-medium">Performance Reviews</p>
+                            <p className="text-sm text-muted-foreground">Supervisors & HR</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    
+                    <Card>
+                      <CardContent className="p-4">
+                        <div className="flex items-center space-x-3">
+                          <Building2 className="h-8 w-8 text-orange-600" />
+                          <div>
+                            <p className="font-medium">Departments</p>
+                            <p className="text-sm text-muted-foreground">HR & Admin Only</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    
+                    <Card>
+                      <CardContent className="p-4">
+                        <div className="flex items-center space-x-3">
+                          <AlertTriangle className="h-8 w-8 text-red-600" />
+                          <div>
+                            <p className="font-medium">Disciplinary Actions</p>
+                            <p className="text-sm text-muted-foreground">HR & Legal Only</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    
+                    <Card>
+                      <CardContent className="p-4">
+                        <div className="flex items-center space-x-3">
+                          <TrendingUp className="h-8 w-8 text-indigo-600" />
+                          <div>
+                            <p className="font-medium">HR Reports</p>
+                            <p className="text-sm text-muted-foreground">Management Only</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+
+                {/* Note about Access Control */}
+                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <div className="flex items-start space-x-3">
+                    <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
+                    <div>
+                      <h4 className="font-medium text-yellow-900">Access Control Information</h4>
+                      <p className="text-sm text-yellow-800 mt-1">
+                        This HR module integrates with the main user management system. All navigation tab access controls, user permissions, and role-based access are managed through the dedicated User Management page. Changes made there will automatically apply to HR module access.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </CardContent>
