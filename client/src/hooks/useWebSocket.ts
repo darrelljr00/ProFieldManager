@@ -20,9 +20,17 @@ export function useWebSocket() {
 
   useEffect(() => {
     if (!user) return;
+    
+    // Clear any existing connection
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
 
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const wsUrl = `${protocol}//${window.location.host}/ws`;
+    
+    console.log(`🔌 Creating WebSocket connection to: ${wsUrl} for user: ${user.username}`);
     
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
@@ -81,14 +89,8 @@ export function useWebSocket() {
       });
       setIsConnected(false);
       
-      // Try to reconnect after a delay
-      setTimeout(() => {
-        if (!isConnected && user) {
-          console.log('Attempting WebSocket reconnection...');
-          // Will trigger useEffect to reconnect
-          setIsConnected(null);
-        }
-      }, 3000);
+      // Don't auto-reconnect immediately on error - let the useEffect handle it
+      // This prevents rapid reconnection loops
     };
 
     return () => {

@@ -6006,8 +6006,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const lastCheck = req.query.lastCheck as string;
       
       // Get the last navigation update timestamp for this organization
-      const updateTimestampSetting = await storage.getSetting('navigation_update_timestamp', user.organizationId.toString());
-      const lastUpdateTime = updateTimestampSetting?.value || '1970-01-01T00:00:00.000Z';
+      const updateTimestampSettings = await storage.getSettings(`navigation_org_${user.organizationId}`);
+      const lastUpdateTime = updateTimestampSettings?.update_timestamp || '1970-01-01T00:00:00.000Z';
       
       const hasUpdates = lastCheck && new Date(lastUpdateTime) > new Date(lastCheck);
       
@@ -6073,7 +6073,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Store the navigation update timestamp for fallback polling
       try {
-        await storage.updateSetting('navigation_update_timestamp', organizationId.toString(), new Date().toISOString());
+        await storage.updateSetting(`navigation_org_${organizationId}`, 'update_timestamp', new Date().toISOString());
         console.log(`📅 Navigation update timestamp saved for org ${organizationId}`);
       } catch (error) {
         console.error('Error saving navigation update timestamp:', error);
