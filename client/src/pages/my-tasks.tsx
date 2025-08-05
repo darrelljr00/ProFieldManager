@@ -97,13 +97,23 @@ export default function MyTasks() {
   });
 
   const createTaskMutation = useMutation({
-    mutationFn: (data: any) => apiRequest("/api/tasks", "POST", data),
+    mutationFn: (data: any) => apiRequest("POST", "/api/tasks", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/tasks/assigned-to-me"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/tasks/created-by-me"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/tasks/team"] });
       setShowCreateDialog(false);
       toast({
         title: "Task Created",
         description: "Task has been successfully created and assigned",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create task",
+        variant: "destructive",
       });
     },
   });
@@ -113,9 +123,19 @@ export default function MyTasks() {
       apiRequest("PATCH", `/api/tasks/${id}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/tasks/assigned-to-me"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/tasks/created-by-me"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/tasks/team"] });
       toast({
         title: "Task Updated",
         description: "Task has been successfully updated",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update task",
+        variant: "destructive",
       });
     },
   });
@@ -124,11 +144,21 @@ export default function MyTasks() {
     mutationFn: (id: number) => apiRequest("DELETE", `/api/tasks/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/tasks/assigned-to-me"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/tasks/created-by-me"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/tasks/team"] });
       setShowTaskDetail(false);
       setSelectedTask(null);
       toast({
         title: "Task Deleted",
         description: "Task has been successfully deleted",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete task",
+        variant: "destructive",
       });
     },
   });
