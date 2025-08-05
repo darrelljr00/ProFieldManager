@@ -1025,7 +1025,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (settings && settings.length > 0) {
         settings.forEach((setting: any) => {
           // Check for organization-specific settings first
-          const orgPrefix = `org_${user.organizationId}_company_`;
+          const orgPrefix = `company_org_${user.organizationId}_`;
           if (setting.key.startsWith(orgPrefix)) {
             const key = setting.key.replace(orgPrefix, '');
             if (key in companySettings) {
@@ -1057,7 +1057,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Updating company settings for organization:', user.organizationId, 'with data:', settings);
       
       for (const [key, value] of Object.entries(settings)) {
-        const settingKey = `org_${user.organizationId}_company_${key}`;
+        const settingKey = `org_${user.organizationId}_${key}`;
         await storage.updateSetting('company', settingKey, String(value));
         console.log(`Updated setting: ${settingKey} = ${value}`);
       }
