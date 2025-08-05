@@ -73,7 +73,22 @@ export function useWebSocket() {
 
     ws.onerror = (error) => {
       console.error('WebSocket error:', error);
+      console.log('WebSocket error details:', {
+        readyState: ws.readyState,
+        url: ws.url,
+        protocol: ws.protocol,
+        extensions: ws.extensions
+      });
       setIsConnected(false);
+      
+      // Try to reconnect after a delay
+      setTimeout(() => {
+        if (!isConnected && user) {
+          console.log('Attempting WebSocket reconnection...');
+          // Will trigger useEffect to reconnect
+          setIsConnected(null);
+        }
+      }, 3000);
     };
 
     return () => {

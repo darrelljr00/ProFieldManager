@@ -104,7 +104,10 @@ function AuthenticatedApp() {
         'employee_deleted': ['/api/users', '/api/reports/employee-data', '/api/reports/data'],
         'employee_permissions_updated': ['/api/users', '/api/reports/employee-data', '/api/reports/data'],
         'employee_activated': ['/api/users', '/api/reports/employee-data', '/api/reports/data'],
-        'employee_deactivated': ['/api/users', '/api/reports/employee-data', '/api/reports/data']
+        'employee_deactivated': ['/api/users', '/api/reports/employee-data', '/api/reports/data'],
+        'navigation_order_updated': ['/api/navigation-order'],
+        'navigation_order_reset': ['/api/navigation-order'],
+        'navigation_order_forced_update': ['/api/navigation-order']
       };
       
       const queriesToInvalidate = queryInvalidationMap[eventType];

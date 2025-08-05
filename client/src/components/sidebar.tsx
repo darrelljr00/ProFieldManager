@@ -286,6 +286,30 @@ export function Sidebar() {
     enabled: isAuthenticated && !!user?.id,
   });
 
+  // Fallback polling for navigation updates when WebSocket is not connected
+  const { data: navigationUpdates } = useQuery({
+    queryKey: ["/api/navigation/check-updates"],
+    queryFn: async () => {
+      const lastCheck = localStorage.getItem('last_navigation_check') || '1970-01-01T00:00:00.000Z';
+      const response = await fetch(`/api/navigation/check-updates?lastCheck=${encodeURIComponent(lastCheck)}`, {
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await response.json();
+      
+      if (data.hasUpdates) {
+        console.log('📱 Navigation updates received via polling:', data);
+        localStorage.setItem('last_navigation_check', new Date().toISOString());
+        // Invalidate the navigation order query to refresh the sidebar
+        queryClient.invalidateQueries({ queryKey: ["/api/navigation-order"] });
+      }
+      
+      return data;
+    },
+    enabled: isAuthenticated && !!user?.id,
+    refetchInterval: 10000, // Poll every 10 seconds
+    refetchIntervalInBackground: true,
+  });
+
   useEffect(() => {
     if (savedOrder && savedOrder.length > 0) {
       setNavigationOrder(savedOrder);

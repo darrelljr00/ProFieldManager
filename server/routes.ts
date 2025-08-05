@@ -5999,17 +5999,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // API endpoint to check for navigation updates (fallback for WebSocket issues)
+  app.get("/api/navigation/check-updates", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const lastCheck = req.query.lastCheck as string;
+      
+      // Get the last navigation update timestamp for this organization
+      const updateTimestampSetting = await storage.getSetting('navigation_update_timestamp', user.organizationId.toString());
+      const lastUpdateTime = updateTimestampSetting?.value || '1970-01-01T00:00:00.000Z';
+      
+      const hasUpdates = lastCheck && new Date(lastUpdateTime) > new Date(lastCheck);
+      
+      if (hasUpdates) {
+        // Fetch current navigation order
+        const navigationOrder = await storage.getNavigationOrder(user.id, user.organizationId);
+        res.json({
+          hasUpdates: true,
+          navigationItems: navigationOrder,
+          lastUpdateTime,
+          message: 'Navigation has been updated'
+        });
+      } else {
+        res.json({ hasUpdates: false, lastUpdateTime });
+      }
+    } catch (error) {
+      console.error('Error checking navigation updates:', error);
+      res.status(500).json({ hasUpdates: false, error: 'Failed to check updates' });
+    }
+  });
+
+  // Test debug endpoint to verify logging is working
+  app.post("/api/admin/navigation/test-debug", requireAuth, async (req, res) => {
+    const user = getAuthenticatedUser(req);
+    console.log('🧪 TEST DEBUG ENDPOINT - User:', user.username, 'Org:', user.organizationId);
+    console.log('🧪 WebSocket clients count:', connectedClients.size);
+    res.json({ success: true, message: "Debug test working", user: user.username });
+  });
+
   // Push Navigation Updates API - Force navigation updates to all organization users
   app.post("/api/admin/navigation/push-updates", requireAuth, async (req, res) => {
     try {
       const user = getAuthenticatedUser(req);
       const organizationId = user.organizationId;
       
-      console.log('🔥 PUSH NAVIGATION UPDATES - Starting:', {
-        pushedBy: user.username,
-        pushedByUserId: user.id,
-        organizationId: organizationId
-      });
+      // Use multiple logging methods to ensure visibility
+      console.log('='.repeat(50));
+      console.log('🔥 PUSH NAVIGATION UPDATES - STARTING');
+      console.log('User:', user.username, 'ID:', user.id, 'Org:', organizationId);
+      console.log('='.repeat(50));
       
       // Fetch current navigation order for this organization
       const navigationOrder = await storage.getNavigationOrder(user.id, organizationId);
@@ -6033,18 +6071,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('📡 Broadcasting navigation_order_forced_update to org', organizationId, ':', broadcastData);
       broadcastToWebUsers(organizationId, 'navigation_order_forced_update', broadcastData);
       
+      // Store the navigation update timestamp for fallback polling
+      try {
+        await storage.updateSetting('navigation_update_timestamp', organizationId.toString(), new Date().toISOString());
+        console.log(`📅 Navigation update timestamp saved for org ${organizationId}`);
+      } catch (error) {
+        console.error('Error saving navigation update timestamp:', error);
+      }
+      
       // Get organization users for debugging
       try {
         const orgUsers = await storage.getUsersByOrganization(organizationId);
         console.log(`🏢 Organization ${organizationId} has ${orgUsers.length} users:`, 
           orgUsers.map(u => `${u.id}:${u.username}`));
+          
+        // Also log which users specifically need this update
+        if (orgUsers.some(u => u.username === 'julissa@texaspowerwash.net')) {
+          console.log('⭐ JULISSA FOUND in organization - she should receive this update');
+        }
       } catch (error) {
         console.error('Error fetching org users:', error);
       }
       
       res.json({ 
         success: true, 
-        message: "Navigation updates pushed to all organization users successfully" 
+        message: "Navigation updates pushed to all organization users successfully",
+        timestamp: new Date().toISOString(),
+        organizationId: organizationId
       });
     } catch (error: any) {
       console.error("Error pushing navigation updates:", error);
