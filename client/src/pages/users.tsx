@@ -410,7 +410,7 @@ export default function UsersPage() {
       manager: "secondary",
       user: "outline"
     };
-    return <Badge variant={colors[role] || "outline"}>{role}</Badge>;
+    return <Badge variant={colors[role] || "outline"}>{role || 'user'}</Badge>;
   };
 
   const getUserTypeBadge = (userType: string) => {
@@ -424,7 +424,7 @@ export default function UsersPage() {
       mobile: "Mobile Only", 
       both: "Web & Mobile"
     };
-    return <Badge variant={colors[userType] || "outline"}>{labels[userType] || userType}</Badge>;
+    return <Badge variant={colors[userType] || "outline"}>{labels[userType] || userType || 'both'}</Badge>;
   };
 
   const openEditDialog = (user: User) => {
@@ -2118,7 +2118,7 @@ export default function UsersPage() {
                                 user.role === 'manager' ? 'secondary' : 
                                 'outline'
                               }>
-                                {user.role.toUpperCase()}
+                                {user.role?.toUpperCase() || 'USER'}
                               </Badge>
                             </TableCell>
                             <TableCell>
