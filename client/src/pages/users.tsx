@@ -920,7 +920,7 @@ export default function UsersPage() {
                           />
                         ) : (
                           <span className="text-xs text-muted-foreground">
-                            {(user.firstName?.[0] || user.username[0]).toUpperCase()}
+                            {(user.firstName?.[0] || user.username?.[0] || 'U').toUpperCase()}
                           </span>
                         )}
                       </div>
