@@ -1015,10 +1015,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const settings = await storage.getSettingsByCategory('company');
       const companySettings = {
         companyName: '',
-        address: '',
-        phone: '',
-        email: '',
-        website: '',
+        companyEmail: '',
+        companyPhone: '',
+        companyWebsite: '',
+        companyStreetAddress: '',
+        companyCity: '',
+        companyState: '',
+        companyZipCode: '',
+        companyCountry: '',
+        companyAddress: '',
+        logoSize: '',
         logo: ''
       };
       
