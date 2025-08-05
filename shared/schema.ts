@@ -331,7 +331,6 @@ export const quoteLineItems = pgTable("quote_line_items", {
   quoteId: integer("quote_id").notNull().references(() => quotes.id),
   description: text("description").notNull(),
   quantity: decimal("quantity", { precision: 10, scale: 2 }).notNull(),
-  rate: decimal("rate", { precision: 10, scale: 2 }).notNull(),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

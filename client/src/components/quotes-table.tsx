@@ -430,7 +430,6 @@ export function QuotesTable({ quotes, isLoading }: QuotesTableProps) {
                     <TableRow>
                       <TableHead>Description</TableHead>
                       <TableHead>Quantity</TableHead>
-                      <TableHead>Rate</TableHead>
                       <TableHead>Amount</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -439,7 +438,6 @@ export function QuotesTable({ quotes, isLoading }: QuotesTableProps) {
                       <TableRow key={index}>
                         <TableCell>{item.description}</TableCell>
                         <TableCell>{parseFloat(item.quantity).toFixed(0)}</TableCell>
-                        <TableCell>${parseFloat(item.rate).toFixed(2)}</TableCell>
                         <TableCell>${parseFloat(item.amount).toFixed(2)}</TableCell>
                       </TableRow>
                     ))}

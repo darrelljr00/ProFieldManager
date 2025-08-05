@@ -27,7 +27,6 @@ import { Trash2, Plus } from "lucide-react";
 type LineItem = {
   description: string;
   quantity: number;
-  rate: number;
   amount: number;
 };
 
@@ -60,7 +59,7 @@ export function QuoteForm({ onSuccess }: QuoteFormProps) {
     total: "",
     currency: "USD",
     notes: "",
-    lineItems: [{ description: "", quantity: 1, rate: 0, amount: 0 }],
+    lineItems: [{ description: "", quantity: 1, amount: 0 }],
   });
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -88,7 +87,7 @@ export function QuoteForm({ onSuccess }: QuoteFormProps) {
         total: "",
         currency: "USD",
         notes: "",
-        lineItems: [{ description: "", quantity: 1, rate: 0, amount: 0 }],
+        lineItems: [{ description: "", quantity: 1, amount: 0 }],
       });
       onSuccess?.();
     },
@@ -103,7 +102,7 @@ export function QuoteForm({ onSuccess }: QuoteFormProps) {
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const subtotal = formData.lineItems.reduce((sum, item) => sum + (item.quantity * item.rate), 0);
+    const subtotal = formData.lineItems.reduce((sum, item) => sum + item.amount, 0);
     const tax = subtotal * 0.08; // 8% tax rate - you can make this configurable
     const total = subtotal + tax;
     
@@ -112,10 +111,7 @@ export function QuoteForm({ onSuccess }: QuoteFormProps) {
       subtotal: subtotal,
       tax: tax,
       total: total,
-      lineItems: formData.lineItems.map(item => ({
-        ...item,
-        amount: item.quantity * item.rate
-      }))
+      lineItems: formData.lineItems
     };
     mutation.mutate(quoteData);
   };
@@ -123,7 +119,7 @@ export function QuoteForm({ onSuccess }: QuoteFormProps) {
   const addLineItem = () => {
     setFormData(prev => ({
       ...prev,
-      lineItems: [...prev.lineItems, { description: "", quantity: 1, rate: 0, amount: 0 }]
+      lineItems: [...prev.lineItems, { description: "", quantity: 1, amount: 0 }]
     }));
   };
 
@@ -227,16 +223,15 @@ export function QuoteForm({ onSuccess }: QuoteFormProps) {
             
             {/* Header row for line items */}
             <div className="grid grid-cols-12 gap-2 mb-2 font-medium text-sm text-muted-foreground">
-              <div className="col-span-5">Description</div>
+              <div className="col-span-6">Description</div>
               <div className="col-span-2">Quantity</div>
-              <div className="col-span-3">Price ($)</div>
-              <div className="col-span-1">Total</div>
+              <div className="col-span-3">Amount ($)</div>
               <div className="col-span-1">Action</div>
             </div>
             
             {formData.lineItems.map((item, index) => (
               <div key={index} className="grid grid-cols-12 gap-2 mb-3 p-3 border rounded-lg bg-muted/30">
-                <div className="col-span-5">
+                <div className="col-span-6">
                   <Label className="text-xs text-muted-foreground">Description</Label>
                   <Input
                     placeholder="Enter item description..."
@@ -257,21 +252,16 @@ export function QuoteForm({ onSuccess }: QuoteFormProps) {
                   />
                 </div>
                 <div className="col-span-3">
-                  <Label className="text-xs text-muted-foreground">Price ($)</Label>
+                  <Label className="text-xs text-muted-foreground">Amount ($)</Label>
                   <Input
                     type="number"
                     step="0.01"
                     placeholder="0.00"
-                    value={item.rate}
-                    onChange={(e) => updateLineItem(index, 'rate', parseFloat(e.target.value) || 0)}
+                    value={item.amount}
+                    onChange={(e) => updateLineItem(index, 'amount', parseFloat(e.target.value) || 0)}
                     className="mt-1"
                     min="0"
                   />
-                </div>
-                <div className="col-span-1 flex items-end">
-                  <div className="text-sm font-medium mt-6">
-                    ${(item.quantity * item.rate).toFixed(2)}
-                  </div>
                 </div>
                 <div className="col-span-1 flex items-end">
                   <Button
@@ -294,19 +284,19 @@ export function QuoteForm({ onSuccess }: QuoteFormProps) {
                 <div className="flex justify-between items-center">
                   <span className="font-medium">Subtotal:</span>
                   <span className="font-medium">
-                    ${formData.lineItems.reduce((sum, item) => sum + (item.quantity * item.rate), 0).toFixed(2)}
+                    ${formData.lineItems.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">Tax (8%):</span>
                   <span className="text-sm">
-                    ${(formData.lineItems.reduce((sum, item) => sum + (item.quantity * item.rate), 0) * 0.08).toFixed(2)}
+                    ${(formData.lineItems.reduce((sum, item) => sum + item.amount, 0) * 0.08).toFixed(2)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center text-lg font-bold border-t pt-2">
                   <span>Total:</span>
                   <span>
-                    ${(formData.lineItems.reduce((sum, item) => sum + (item.quantity * item.rate), 0) * 1.08).toFixed(2)}
+                    ${(formData.lineItems.reduce((sum, item) => sum + item.amount, 0) * 1.08).toFixed(2)}
                   </span>
                 </div>
               </div>
