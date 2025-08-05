@@ -1295,6 +1295,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/auth/me", requireAuth, async (req, res) => {
     // Transform snake_case database fields to camelCase for frontend consistency
     const user = req.user;
+    
+    // Debug logging for critical permissions
+    console.log('🔍 DEBUG AUTH/ME - Raw user permissions for', user.username, ':', {
+      can_access_parts_supplies: user.can_access_parts_supplies,
+      can_access_my_schedule: user.can_access_my_schedule,
+      role: user.role,
+      organizationId: user.organizationId
+    });
+    
     const transformedUser = {
       ...user,
       // Transform all permission fields from snake_case to camelCase
@@ -1330,6 +1339,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       canAccessSchedule: user.can_access_my_schedule,
       // Keep original snake_case fields for backward compatibility if needed
     };
+    
+    // Debug logging for transformed permissions
+    console.log('🔄 DEBUG AUTH/ME - Transformed permissions:', {
+      canAccessParts: transformedUser.canAccessParts,
+      canAccessSchedule: transformedUser.canAccessSchedule
+    });
     
     res.json({ user: transformedUser });
   });

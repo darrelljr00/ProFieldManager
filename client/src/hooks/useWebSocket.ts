@@ -65,7 +65,17 @@ export function useWebSocket() {
           // Handle authentication refresh
           if (message.eventType === 'auth_refresh_required') {
             console.log('🔄 Received auth refresh request, invalidating auth cache');
+            
+            // Force a complete cache invalidation and refetch
             queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+            queryClient.removeQueries({ queryKey: ['/api/auth/me'] });
+            
+            // Also invalidate navigation queries to ensure fresh data
+            queryClient.invalidateQueries({ queryKey: ['/api/navigation-order'] });
+            queryClient.removeQueries({ queryKey: ['/api/navigation-order'] });
+            
+            console.log('🔄 Auth cache completely cleared, forcing fresh fetch');
+            
             toast({
               title: "Permissions Updated",
               description: "Your navigation permissions have been refreshed",
