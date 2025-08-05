@@ -1310,7 +1310,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       canAccessCustomers: user.can_access_customers,
       canAccessPayments: user.can_access_payments,
       canAccessFileManager: user.can_access_file_manager,
-      canAccessParts: user.can_access_parts,
+      canAccessParts: user.can_access_parts_supplies,
       canAccessFormBuilder: user.can_access_form_builder,
       canAccessInspections: user.can_access_inspections,
       canAccessInternalMessages: user.can_access_internal_messages,
@@ -1327,6 +1327,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       canAccessSaasAdmin: user.can_access_saas_admin,
       canAccessAdminSettings: user.can_access_admin_settings,
       canAccessReports: user.can_access_reports,
+      canAccessSchedule: user.can_access_my_schedule,
       // Keep original snake_case fields for backward compatibility if needed
     };
     
