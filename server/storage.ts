@@ -68,9 +68,10 @@ export interface IStorage {
   
   // Quote methods
   getQuotes(organizationId: number): Promise<any[]>;
+  getQuote(id: number, organizationId: number): Promise<any>;
   createQuote(quoteData: any): Promise<any>;
-  updateQuote(id: number, updates: any): Promise<any>;
-  deleteQuote(id: number): Promise<void>;
+  updateQuote(id: number, organizationId: number, updates: any): Promise<any>;
+  deleteQuote(id: number, organizationId: number): Promise<boolean>;
   
   // Project/Job methods
   getProjects(organizationId: number, userId?: number, userRole?: string, status?: string): Promise<any[]>;
@@ -1038,6 +1039,44 @@ export class DatabaseStorage implements IStorage {
     }
     
     return result;
+  }
+
+  async getQuote(id: number, organizationId: number): Promise<any> {
+    const [quoteWithCustomer] = await db
+      .select({
+        quote: quotes,
+        customer: customers,
+        user: {
+          id: users.id,
+          username: users.username,
+          firstName: users.firstName,
+          lastName: users.lastName,
+        }
+      })
+      .from(quotes)
+      .innerJoin(users, eq(quotes.userId, users.id))
+      .leftJoin(customers, eq(quotes.customerId, customers.id))
+      .where(and(
+        eq(quotes.id, id),
+        eq(users.organizationId, organizationId)
+      ));
+
+    if (!quoteWithCustomer) {
+      return null;
+    }
+
+    // Get line items for the quote
+    const lineItems = await db
+      .select()
+      .from(quoteLineItems)
+      .where(eq(quoteLineItems.quoteId, id));
+    
+    return {
+      ...quoteWithCustomer.quote,
+      customer: quoteWithCustomer.customer,
+      user: quoteWithCustomer.user,
+      lineItems: lineItems
+    };
   }
 
   async createQuote(quoteData: any): Promise<any> {
