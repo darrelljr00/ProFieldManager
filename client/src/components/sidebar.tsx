@@ -347,7 +347,7 @@ export function Sidebar() {
   const navigationItems: NavigationItem[] = [
     { name: "Dashboard", href: "/", icon: BarChart3, requiresAuth: true, permission: "canAccessDashboard" },
     { name: "Calendar", href: "/calendar", icon: Calendar, requiresAuth: true, permission: "canAccessCalendar" },
-    { name: "My Schedule", href: "/my-schedule", icon: Calendar, requiresAuth: true, permission: "canAccessSchedule" },
+    { name: "My Schedule", href: "/my-schedule", icon: Calendar, requiresAuth: true, permission: "can_access_my_schedule" },
     { name: "Time Clock", href: "/time-clock", icon: Clock, requiresAuth: true, permission: "canAccessTimeClock" },
     { 
       name: "Jobs", 
@@ -382,7 +382,7 @@ export function Sidebar() {
     { name: "Customers", href: "/customers", icon: Users, requiresAuth: true, permission: "canAccessCustomers" },
     { name: "Payments", href: "/payments", icon: CreditCard, requiresAuth: true, permission: "canAccessPayments" },
     { name: "File Manager", href: "/file-manager", icon: FolderOpen, requiresAuth: true, permission: "canAccessFileManager" },
-    { name: "Parts & Supplies", href: "/parts-supplies", icon: Box, requiresAuth: true, permission: "canAccessParts" },
+    { name: "Parts & Supplies", href: "/parts-supplies", icon: Box, requiresAuth: true, permission: "can_access_parts_supplies" },
     { name: "Form Builder", href: "/form-builder", icon: ClipboardList, requiresAuth: true, permission: "canAccessFormBuilder" },
     { name: "Inspections", href: "/inspections", icon: CheckSquare, requiresAuth: true, permission: "canAccessInspections" },
     { 
