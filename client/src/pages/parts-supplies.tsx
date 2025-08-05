@@ -40,6 +40,9 @@ export default function PartsSuppliesPage() {
   const [supplierFilter, setSupplierFilter] = useState("all");
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   
+  // Image upload state
+  const [uploadedImageUrl, setUploadedImageUrl] = useState("");
+  
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -61,39 +64,11 @@ export default function PartsSuppliesPage() {
     }
   };
 
-  // Image upload completion mutation
-  const imageUploadMutation = useMutation({
-    mutationFn: async ({ partId, imageURL }: { partId: number; imageURL: string }) => {
-      return apiRequest('PUT', `/api/parts-supplies/${partId}/image`, {
-        imageURL,
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/parts-supplies'] });
-      toast({
-        title: "Success",
-        description: "Part image uploaded successfully!",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Upload Error",
-        description: error.message || "Failed to save image. Please try again.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const handleImageUploadComplete = (result: UploadResult<Record<string, unknown>, Record<string, unknown>>, partId: number) => {
-    if (result.successful && result.successful.length > 0) {
-      const uploadedFile = result.successful[0];
-      const imageURL = uploadedFile.uploadURL;
-      
-      imageUploadMutation.mutate({
-        partId,
-        imageURL,
-      });
-    }
+  // Handle dialog close
+  const handleDialogClose = () => {
+    setIsCreateDialogOpen(false);
+    setUploadedImageUrl(""); // Clear uploaded image
+    form.reset(); // Reset form
   };
 
   // Fetch parts and supplies
@@ -164,6 +139,8 @@ export default function PartsSuppliesPage() {
       queryClient.invalidateQueries({ queryKey: ['/api/parts-supplies'] });
       queryClient.invalidateQueries({ queryKey: ['/api/stock-alerts'] });
       setIsCreateDialogOpen(false);
+      setUploadedImageUrl(""); // Clear uploaded image
+      form.reset(); // Reset form
       toast({ title: "Success", description: "Part created successfully" });
     },
     onError: (error: any) => {
@@ -206,12 +183,28 @@ export default function PartsSuppliesPage() {
     }
   });
 
+
+
+  const handleUploadComplete = async (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
+    if (result.successful && result.successful.length > 0) {
+      const uploadedFile = result.successful[0];
+      const imageUrl = uploadedFile.uploadURL;
+      setUploadedImageUrl(imageUrl);
+      
+      toast({
+        title: "Success",
+        description: "Image uploaded successfully",
+      });
+    }
+  };
+
   const onSubmit = (data: CreatePartFormData) => {
     const formattedData = {
       ...data,
       unitCost: data.unitCost ? parseFloat(data.unitCost) : null,
       unitPrice: data.unitPrice ? parseFloat(data.unitPrice) : null,
       weight: data.weight ? parseFloat(data.weight) : null,
+      imageUrl: uploadedImageUrl || null, // Include uploaded image URL
     };
     createPartMutation.mutate(formattedData);
   };
@@ -234,7 +227,7 @@ export default function PartsSuppliesPage() {
           <h1 className="text-3xl font-bold">Parts & Supplies</h1>
           <p className="text-muted-foreground">Manage your inventory and track stock levels</p>
         </div>
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <Dialog open={isCreateDialogOpen} onOpenChange={handleDialogClose}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
@@ -289,6 +282,46 @@ export default function PartsSuppliesPage() {
                     </FormItem>
                   )}
                 />
+
+                {/* Image Upload Section */}
+                <div className="space-y-3">
+                  <FormLabel>Part Image</FormLabel>
+                  <div className="flex items-center gap-4">
+                    {uploadedImageUrl && (
+                      <div className="relative">
+                        <img 
+                          src={uploadedImageUrl} 
+                          alt="Part preview" 
+                          className="w-16 h-16 object-cover rounded-md border"
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
+                          onClick={() => setUploadedImageUrl("")}
+                        >
+                          ×
+                        </Button>
+                      </div>
+                    )}
+                    <ObjectUploader
+                      maxNumberOfFiles={1}
+                      maxFileSize={5242880} // 5MB
+                      onGetUploadParameters={handleGetUploadParameters}
+                      onComplete={handleUploadComplete}
+                      buttonClassName="h-10"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Upload className="h-4 w-4" />
+                        <span>{uploadedImageUrl ? "Change Image" : "Upload Image"}</span>
+                      </div>
+                    </ObjectUploader>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Upload a clear image of the part (JPG, PNG - max 5MB)
+                  </p>
+                </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
@@ -654,28 +687,17 @@ export default function PartsSuppliesPage() {
                       filteredPartsSupplies.map((part: any) => (
                         <TableRow key={part.id}>
                           <TableCell>
-                            <div className="flex items-center space-x-2">
-                              {part.imageUrl ? (
-                                <img 
-                                  src={part.imageUrl} 
-                                  alt={part.name}
-                                  className="w-12 h-12 object-cover rounded-md border"
-                                />
-                              ) : (
-                                <div className="w-12 h-12 bg-gray-100 rounded-md border flex items-center justify-center">
-                                  <ImageIcon className="h-6 w-6 text-gray-400" />
-                                </div>
-                              )}
-                              <ObjectUploader
-                                maxNumberOfFiles={1}
-                                maxFileSize={10485760}
-                                onGetUploadParameters={handleGetUploadParameters}
-                                onComplete={(result) => handleImageUploadComplete(result, part.id)}
-                                buttonClassName="h-8 w-8 p-0"
-                              >
-                                <Upload className="h-4 w-4" />
-                              </ObjectUploader>
-                            </div>
+                            {part.imageUrl ? (
+                              <img 
+                                src={part.imageUrl} 
+                                alt={part.name}
+                                className="w-12 h-12 object-cover rounded-md border"
+                              />
+                            ) : (
+                              <div className="w-12 h-12 bg-gray-100 rounded-md border flex items-center justify-center">
+                                <ImageIcon className="h-6 w-6 text-gray-400" />
+                              </div>
+                            )}
                           </TableCell>
                           <TableCell className="font-medium">{part.name}</TableCell>
                           <TableCell>{part.sku || "-"}</TableCell>
