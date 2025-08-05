@@ -9188,7 +9188,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/tasks", requireAuth, async (req, res) => {
     try {
-      const { assignedToId, ...taskData } = req.body;
+      const { assignedToId, dueDate, ...taskData } = req.body;
       
       if (assignedToId && assignedToId !== req.user!.id) {
         const canDelegate = await storage.canUserDelegateTask(req.user!.id, assignedToId);
@@ -9199,9 +9199,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Process the task data with proper date conversion
+      const processedTaskData = {
+        ...taskData,
+        assignedToId,
+        dueDate: dueDate ? new Date(dueDate) : null,
+        organizationId: req.user!.organizationId,
+      };
+
       const task = await storage.createTaskForOrganization(
         req.user!.organizationId, 
-        { ...taskData, assignedToId }, 
+        processedTaskData, 
         req.user!.id
       );
 
