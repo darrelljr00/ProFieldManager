@@ -35,7 +35,7 @@ Preferred communication style: Simple, everyday language.
 - **Communication & Collaboration**: SMS (Twilio), internal WebSocket messaging, file sharing, Google My Business review requests.
 - **Mobile-First Features**: GPS tracking, mobile camera integration, time clock, offline support.
 - **File Management**: Secure uploads, organization-based file isolation, image processing and compression (Sharp library), Cloudinary integration for permanent cloud storage.
-- **Real-time Communication**: WebSocket for instant updates (project changes, messages, notifications).
+- **Real-time Communication**: WebSocket for instant updates (project changes, messages, notifications) with polling fallback system for reliable navigation updates when WebSocket connections fail.
 - **Security**: Malware scanning (ClamAV integration), file type restrictions.
 - **Backup Utility**: Automated scheduling, manual backups, AWS S3 integration.
 - **Dashboard Customization**: User-configurable widgets and role-based profiles.
