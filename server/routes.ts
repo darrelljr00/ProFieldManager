@@ -1991,12 +1991,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Quote not found" });
       }
 
-      const puppeteer = require('puppeteer');
+      const puppeteer = await import('puppeteer');
       
       // Generate HTML content for the quote
       const htmlContent = generateQuoteHTML(quote);
       
-      const browser = await puppeteer.launch({
+      const browser = await puppeteer.default.launch({
         headless: true,
         args: ['--no-sandbox', '--disable-setuid-sandbox']
       });
@@ -2035,20 +2035,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Quote not found" });
       }
 
-      const fs = require('fs');
-      const path = require('path');
+      const fs = await import('fs');
+      const path = await import('path');
       
       // Generate Word document content
       const wordContent = generateQuoteWordContent(quote);
       
       // Create a simple .docx structure (this is a simplified approach)
       const fileName = `Quote-${quote.quoteNumber}.docx`;
-      const tempPath = path.join(process.cwd(), 'temp', fileName);
+      const tempPath = path.default.join(process.cwd(), 'temp', fileName);
       
       // Ensure temp directory exists
-      const tempDir = path.dirname(tempPath);
-      if (!fs.existsSync(tempDir)) {
-        fs.mkdirSync(tempDir, { recursive: true });
+      const tempDir = path.default.dirname(tempPath);
+      if (!fs.default.existsSync(tempDir)) {
+        fs.default.mkdirSync(tempDir, { recursive: true });
       }
       
       // For now, we'll create a simple HTML-based document that Word can open
@@ -2065,17 +2065,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         </html>
       `;
       
-      fs.writeFileSync(tempPath, htmlForWord);
+      fs.default.writeFileSync(tempPath, htmlForWord);
       
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
       res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
       
-      const fileStream = fs.createReadStream(tempPath);
+      const fileStream = fs.default.createReadStream(tempPath);
       fileStream.pipe(res);
       
       // Clean up temp file after sending
       fileStream.on('end', () => {
-        fs.unlinkSync(tempPath);
+        fs.default.unlinkSync(tempPath);
       });
       
     } catch (error: any) {
