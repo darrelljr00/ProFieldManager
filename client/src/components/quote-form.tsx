@@ -224,45 +224,93 @@ export function QuoteForm({ onSuccess }: QuoteFormProps) {
                 Add Item
               </Button>
             </div>
+            
+            {/* Header row for line items */}
+            <div className="grid grid-cols-12 gap-2 mb-2 font-medium text-sm text-muted-foreground">
+              <div className="col-span-5">Description</div>
+              <div className="col-span-2">Quantity</div>
+              <div className="col-span-3">Price ($)</div>
+              <div className="col-span-1">Total</div>
+              <div className="col-span-1">Action</div>
+            </div>
+            
             {formData.lineItems.map((item, index) => (
-              <div key={index} className="grid grid-cols-12 gap-2 mb-2">
-                <div className="col-span-6">
+              <div key={index} className="grid grid-cols-12 gap-2 mb-3 p-3 border rounded-lg bg-muted/30">
+                <div className="col-span-5">
+                  <Label className="text-xs text-muted-foreground">Description</Label>
                   <Input
-                    placeholder="Description"
+                    placeholder="Enter item description..."
                     value={item.description}
                     onChange={(e) => updateLineItem(index, 'description', e.target.value)}
+                    className="mt-1"
                   />
                 </div>
                 <div className="col-span-2">
+                  <Label className="text-xs text-muted-foreground">Quantity</Label>
                   <Input
                     type="number"
-                    placeholder="Qty"
+                    placeholder="0"
                     value={item.quantity}
                     onChange={(e) => updateLineItem(index, 'quantity', parseInt(e.target.value) || 0)}
+                    className="mt-1"
+                    min="0"
                   />
                 </div>
                 <div className="col-span-3">
+                  <Label className="text-xs text-muted-foreground">Price ($)</Label>
                   <Input
                     type="number"
                     step="0.01"
-                    placeholder="Rate"
+                    placeholder="0.00"
                     value={item.rate}
                     onChange={(e) => updateLineItem(index, 'rate', parseFloat(e.target.value) || 0)}
+                    className="mt-1"
+                    min="0"
                   />
                 </div>
-                <div className="col-span-1">
+                <div className="col-span-1 flex items-end">
+                  <div className="text-sm font-medium mt-6">
+                    ${(item.quantity * item.rate).toFixed(2)}
+                  </div>
+                </div>
+                <div className="col-span-1 flex items-end">
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
                     onClick={() => removeLineItem(index)}
                     disabled={formData.lineItems.length === 1}
+                    className="mt-6"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
             ))}
+            
+            {/* Summary section */}
+            <div className="mt-6 p-4 border-t bg-muted/20">
+              <div className="flex justify-end space-y-2 flex-col">
+                <div className="flex justify-between items-center">
+                  <span className="font-medium">Subtotal:</span>
+                  <span className="font-medium">
+                    ${formData.lineItems.reduce((sum, item) => sum + (item.quantity * item.rate), 0).toFixed(2)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Tax (8%):</span>
+                  <span className="text-sm">
+                    ${(formData.lineItems.reduce((sum, item) => sum + (item.quantity * item.rate), 0) * 0.08).toFixed(2)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-lg font-bold border-t pt-2">
+                  <span>Total:</span>
+                  <span>
+                    ${(formData.lineItems.reduce((sum, item) => sum + (item.quantity * item.rate), 0) * 1.08).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div>
