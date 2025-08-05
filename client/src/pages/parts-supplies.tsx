@@ -15,8 +15,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Plus, Package, AlertTriangle, TrendingDown, MoreHorizontal, Edit, Trash2, Eye, Search, Filter, X } from "lucide-react";
+import { Plus, Package, AlertTriangle, TrendingDown, MoreHorizontal, Edit, Trash2, Eye, Search, Filter, X, Upload, Image as ImageIcon } from "lucide-react";
 import { insertPartsSuppliesSchema } from "@shared/schema";
+import { ObjectUploader } from "@/components/ObjectUploader";
+import type { UploadResult } from "@uppy/core";
 
 const createPartSchema = insertPartsSuppliesSchema.extend({
   unitCost: z.string().optional(),
@@ -40,6 +42,59 @@ export default function PartsSuppliesPage() {
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Image upload handlers
+  const handleGetUploadParameters = async () => {
+    try {
+      const response = await apiRequest('POST', '/api/objects/upload');
+      return {
+        method: 'PUT' as const,
+        url: response.uploadURL,
+      };
+    } catch (error) {
+      toast({
+        title: "Upload Error",
+        description: "Failed to get upload URL. Please try again.",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
+  // Image upload completion mutation
+  const imageUploadMutation = useMutation({
+    mutationFn: async ({ partId, imageURL }: { partId: number; imageURL: string }) => {
+      return apiRequest('PUT', `/api/parts-supplies/${partId}/image`, {
+        imageURL,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/parts-supplies'] });
+      toast({
+        title: "Success",
+        description: "Part image uploaded successfully!",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Upload Error",
+        description: error.message || "Failed to save image. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleImageUploadComplete = (result: UploadResult<Record<string, unknown>, Record<string, unknown>>, partId: number) => {
+    if (result.successful && result.successful.length > 0) {
+      const uploadedFile = result.successful[0];
+      const imageURL = uploadedFile.uploadURL;
+      
+      imageUploadMutation.mutate({
+        partId,
+        imageURL,
+      });
+    }
+  };
 
   // Fetch parts and supplies
   const { data: partsSupplies = [], isLoading: partsLoading } = useQuery({
@@ -572,6 +627,7 @@ export default function PartsSuppliesPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead>Image</TableHead>
                       <TableHead>Name</TableHead>
                       <TableHead>SKU</TableHead>
                       <TableHead>Category</TableHead>
@@ -586,17 +642,41 @@ export default function PartsSuppliesPage() {
                   <TableBody>
                     {partsLoading ? (
                       <TableRow>
-                        <TableCell colSpan={9} className="text-center">Loading...</TableCell>
+                        <TableCell colSpan={10} className="text-center">Loading...</TableCell>
                       </TableRow>
                     ) : filteredPartsSupplies.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={9} className="text-center">
+                        <TableCell colSpan={10} className="text-center">
                           {partsArray.length === 0 ? "No parts found. Click \"Add Part\" to get started." : "No parts match your search criteria."}
                         </TableCell>
                       </TableRow>
                     ) : (
                       filteredPartsSupplies.map((part: any) => (
                         <TableRow key={part.id}>
+                          <TableCell>
+                            <div className="flex items-center space-x-2">
+                              {part.imageUrl ? (
+                                <img 
+                                  src={part.imageUrl} 
+                                  alt={part.name}
+                                  className="w-12 h-12 object-cover rounded-md border"
+                                />
+                              ) : (
+                                <div className="w-12 h-12 bg-gray-100 rounded-md border flex items-center justify-center">
+                                  <ImageIcon className="h-6 w-6 text-gray-400" />
+                                </div>
+                              )}
+                              <ObjectUploader
+                                maxNumberOfFiles={1}
+                                maxFileSize={10485760}
+                                onGetUploadParameters={handleGetUploadParameters}
+                                onComplete={(result) => handleImageUploadComplete(result, part.id)}
+                                buttonClassName="h-8 w-8 p-0"
+                              >
+                                <Upload className="h-4 w-4" />
+                              </ObjectUploader>
+                            </div>
+                          </TableCell>
                           <TableCell className="font-medium">{part.name}</TableCell>
                           <TableCell>{part.sku || "-"}</TableCell>
                           <TableCell>

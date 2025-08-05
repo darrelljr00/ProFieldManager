@@ -4,6 +4,8 @@ import { WebSocketServer, WebSocket } from "ws";
 import Stripe from "stripe";
 import twilio from "twilio";
 import multer from "multer";
+import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
+import { ObjectPermission } from "./objectAcl";
 import path from "path";
 import fs from "fs/promises";
 import fsSync from "fs";
@@ -61,6 +63,8 @@ import { fileManager } from "./fileManager";
 import { CloudinaryService } from "./cloudinary";
 import { generateQuoteHTML, generateQuoteWordContent } from "./quoteGenerator";
 import fileUploadRouter from "./routes/fileUpload";
+import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
+import { ObjectPermission } from "./objectAcl";
 
 // Extend Express Request type to include user
 declare global {
@@ -10869,6 +10873,100 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error updating subscription plan features:", error);
       res.status(500).json({ message: "Failed to update subscription plan features" });
+    }
+  });
+
+  // Object Storage API endpoints
+  
+  // Serve public assets from object storage
+  app.get("/public-objects/:filePath(*)", async (req, res) => {
+    const filePath = req.params.filePath;
+    const objectStorageService = new ObjectStorageService();
+    try {
+      const file = await objectStorageService.searchPublicObject(filePath);
+      if (!file) {
+        return res.status(404).json({ error: "File not found" });
+      }
+      objectStorageService.downloadObject(file, res);
+    } catch (error) {
+      console.error("Error searching for public object:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Serve private objects with ACL check
+  app.get("/objects/:objectPath(*)", requireAuth, async (req, res) => {
+    const userId = req.user!.id.toString();
+    const objectStorageService = new ObjectStorageService();
+    try {
+      const objectFile = await objectStorageService.getObjectEntityFile(req.path);
+      const canAccess = await objectStorageService.canAccessObjectEntity({
+        objectFile,
+        userId: userId,
+        requestedPermission: ObjectPermission.READ,
+      });
+      if (!canAccess) {
+        return res.sendStatus(401);
+      }
+      objectStorageService.downloadObject(objectFile, res);
+    } catch (error) {
+      console.error("Error checking object access:", error);
+      if (error instanceof ObjectNotFoundError) {
+        return res.sendStatus(404);
+      }
+      return res.sendStatus(500);
+    }
+  });
+
+  // Get upload URL for object storage
+  app.post("/api/objects/upload", requireAuth, async (req, res) => {
+    try {
+      const objectStorageService = new ObjectStorageService();
+      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+      res.json({ uploadURL });
+    } catch (error) {
+      console.error("Error generating upload URL:", error);
+      res.status(500).json({ error: "Failed to generate upload URL" });
+    }
+  });
+
+  // Update parts & supplies with image URL after upload
+  app.put("/api/parts-supplies/:id/image", requireAuth, async (req, res) => {
+    if (!req.body.imageURL) {
+      return res.status(400).json({ error: "imageURL is required" });
+    }
+
+    try {
+      const partId = parseInt(req.params.id);
+      const userId = req.user!.id.toString();
+      const objectStorageService = new ObjectStorageService();
+      
+      // Normalize the object URL and set ACL policy
+      const objectPath = await objectStorageService.trySetObjectEntityAclPolicy(
+        req.body.imageURL,
+        {
+          owner: userId,
+          visibility: "private", // Parts images should be private to organization
+        }
+      );
+
+      // Update the parts/supplies record with the image URL
+      const updatedPart = await storage.updatePartSupply(partId, {
+        imageUrl: objectPath,
+      });
+
+      if (!updatedPart) {
+        return res.status(404).json({ error: "Part not found" });
+      }
+
+      res.status(200).json({
+        success: true,
+        objectPath: objectPath,
+        part: updatedPart
+      });
+    } catch (error) {
+      console.error("Error setting part image:", error);
+      res.status(500).json({ error: "Internal server error" });
     }
   });
 

@@ -3206,6 +3206,9 @@ export const partsSupplies = pgTable("parts_supplies", {
   location: text("location"), // Warehouse section, vehicle, etc.
   binLocation: text("bin_location"),
   
+  // Image
+  imageUrl: text("image_url"), // Object storage URL for part/supply image
+  
   // Status and flags
   isActive: boolean("is_active").default(true),
   isLowStock: boolean("is_low_stock").default(false),
