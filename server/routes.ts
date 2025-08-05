@@ -59,6 +59,7 @@ import marketResearchRouter from "./marketResearch";
 import { s3Service } from "./s3Service";
 import { fileManager } from "./fileManager";
 import { CloudinaryService } from "./cloudinary";
+import { generateQuoteHTML, generateQuoteWordContent } from "./quoteGenerator";
 import fileUploadRouter from "./routes/fileUpload";
 
 // Extend Express Request type to include user
@@ -1977,6 +1978,109 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(invoice);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Quote download endpoints
+  app.get("/api/quotes/:id/download/pdf", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const quote = await storage.getQuote(parseInt(req.params.id), user.organizationId);
+      
+      if (!quote) {
+        return res.status(404).json({ message: "Quote not found" });
+      }
+
+      const puppeteer = require('puppeteer');
+      
+      // Generate HTML content for the quote
+      const htmlContent = generateQuoteHTML(quote);
+      
+      const browser = await puppeteer.launch({
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
+      });
+      
+      const page = await browser.newPage();
+      await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+      
+      const pdfBuffer = await page.pdf({
+        format: 'A4',
+        printBackground: true,
+        margin: {
+          top: '1cm',
+          bottom: '1cm',
+          left: '1cm',
+          right: '1cm'
+        }
+      });
+      
+      await browser.close();
+      
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="Quote-${quote.quoteNumber}.pdf"`);
+      res.send(pdfBuffer);
+    } catch (error: any) {
+      console.error("Error generating PDF:", error);
+      res.status(500).json({ message: "Failed to generate PDF" });
+    }
+  });
+
+  app.get("/api/quotes/:id/download/word", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const quote = await storage.getQuote(parseInt(req.params.id), user.organizationId);
+      
+      if (!quote) {
+        return res.status(404).json({ message: "Quote not found" });
+      }
+
+      const fs = require('fs');
+      const path = require('path');
+      
+      // Generate Word document content
+      const wordContent = generateQuoteWordContent(quote);
+      
+      // Create a simple .docx structure (this is a simplified approach)
+      const fileName = `Quote-${quote.quoteNumber}.docx`;
+      const tempPath = path.join(process.cwd(), 'temp', fileName);
+      
+      // Ensure temp directory exists
+      const tempDir = path.dirname(tempPath);
+      if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true });
+      }
+      
+      // For now, we'll create a simple HTML-based document that Word can open
+      const htmlForWord = `
+        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word">
+        <head>
+          <meta charset="utf-8">
+          <title>Quote ${quote.quoteNumber}</title>
+          <!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View></w:WordDocument></xml><![endif]-->
+        </head>
+        <body>
+          ${wordContent}
+        </body>
+        </html>
+      `;
+      
+      fs.writeFileSync(tempPath, htmlForWord);
+      
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+      
+      const fileStream = fs.createReadStream(tempPath);
+      fileStream.pipe(res);
+      
+      // Clean up temp file after sending
+      fileStream.on('end', () => {
+        fs.unlinkSync(tempPath);
+      });
+      
+    } catch (error: any) {
+      console.error("Error generating Word document:", error);
+      res.status(500).json({ message: "Failed to generate Word document" });
     }
   });
 

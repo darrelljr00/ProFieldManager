@@ -34,7 +34,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Eye, Mail, FileText, Trash2, Check, X } from "lucide-react";
+import { Eye, Mail, FileText, Trash2, Check, X, Download } from "lucide-react";
 
 interface QuotesTableProps {
   quotes: (Quote & { customer: Customer; lineItems: QuoteLineItem[] })[];
@@ -50,6 +50,48 @@ export function QuotesTable({ quotes, isLoading }: QuotesTableProps) {
   const [emailMessage, setEmailMessage] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Download handler for PDF and Word documents
+  const handleDownload = async (quoteId: number, format: 'pdf' | 'word') => {
+    try {
+      const response = await fetch(`/api/quotes/${quoteId}/download/${format}`, {
+        method: 'GET',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to download ${format.toUpperCase()}`);
+      }
+
+      // Get the filename from the Content-Disposition header
+      const contentDisposition = response.headers.get('Content-Disposition');
+      const filename = contentDisposition
+        ? contentDisposition.split('filename=')[1]?.replace(/"/g, '')
+        : `quote-${quoteId}.${format === 'pdf' ? 'pdf' : 'docx'}`;
+
+      // Create blob and download
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: "Success",
+        description: `Quote downloaded as ${format.toUpperCase()}`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: `Failed to download ${format.toUpperCase()}: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  };
 
   // Fetch company settings for logo
   const { data: companySettings } = useQuery<{
@@ -256,6 +298,22 @@ export function QuotesTable({ quotes, isLoading }: QuotesTableProps) {
                           <FileText className="h-4 w-4" />
                         </Button>
                       )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDownload(quote.id, 'pdf')}
+                        title="Download PDF"
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDownload(quote.id, 'word')}
+                        title="Download Word"
+                      >
+                        <FileText className="h-4 w-4" />
+                      </Button>
                       <Button
                         variant="outline"
                         size="sm"
