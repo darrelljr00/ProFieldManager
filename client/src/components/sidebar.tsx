@@ -347,7 +347,7 @@ export function Sidebar() {
   const navigationItems: NavigationItem[] = [
     { name: "Dashboard", href: "/", icon: BarChart3, requiresAuth: true, permission: "canAccessDashboard" },
     { name: "Calendar", href: "/calendar", icon: Calendar, requiresAuth: true, permission: "canAccessCalendar" },
-    { name: "My Schedule", href: "/my-schedule", icon: Calendar, requiresAuth: true, permission: "canAccessSchedule" },
+    { name: "My Schedule", href: "/my-schedule", icon: Calendar, requiresAuth: true, permission: "canAccessMySchedule" },
     { name: "Time Clock", href: "/time-clock", icon: Clock, requiresAuth: true, permission: "canAccessTimeClock" },
     { 
       name: "Jobs", 
@@ -382,7 +382,7 @@ export function Sidebar() {
     { name: "Customers", href: "/customers", icon: Users, requiresAuth: true, permission: "canAccessCustomers" },
     { name: "Payments", href: "/payments", icon: CreditCard, requiresAuth: true, permission: "canAccessPayments" },
     { name: "File Manager", href: "/file-manager", icon: FolderOpen, requiresAuth: true, permission: "canAccessFileManager" },
-    { name: "Parts & Supplies", href: "/parts-supplies", icon: Box, requiresAuth: true, permission: "canAccessParts" },
+    { name: "Parts & Supplies", href: "/parts-supplies", icon: Box, requiresAuth: true, permission: "canAccessPartsSupplies" },
     { name: "Form Builder", href: "/form-builder", icon: ClipboardList, requiresAuth: true, permission: "canAccessFormBuilder" },
     { name: "Inspections", href: "/inspections", icon: CheckSquare, requiresAuth: true, permission: "canAccessInspections" },
     { 
@@ -441,7 +441,21 @@ export function Sidebar() {
     // Admin users have access to everything
     if (user.role === 'admin') return true;
     
-    // Debug: log permission checks for non-admin users
+    // Debug: log permission checks and user object structure for debugging auth issue
+    if (item.name === 'Parts & Supplies' || item.name === 'My Schedule') {
+      console.log(`🔍 SIDEBAR DEBUG - User object for ${item.name}:`, {
+        username: user.username,
+        role: user.role,
+        permission: item.permission,
+        permissionValue: (user as any)[item.permission],
+        hasCanAccessPartsSupplies: (user as any).canAccessPartsSupplies,
+        hasCanAccessMySchedule: (user as any).canAccessMySchedule,
+        hasCanAccessParts: (user as any).canAccessParts,
+        hasCanAccessSchedule: (user as any).canAccessSchedule,
+        allUserKeys: Object.keys(user).filter(key => key.includes('Access')).slice(0, 10)
+      });
+    }
+    
     console.log(`Checking permission for ${item.name}: ${item.permission} = ${(user as any)[item.permission]}`);
     
     return (user as any)[item.permission] === true;

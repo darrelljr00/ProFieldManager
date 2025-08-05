@@ -1292,6 +1292,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Debug endpoint to test user data transformation
+  app.get("/api/debug/user", requireAuth, async (req, res) => {
+    const user = req.user;
+    console.log('🔍 DEBUG ENDPOINT - Raw user from req.user:', JSON.stringify(user, null, 2));
+    
+    // Fresh database lookup
+    const freshUser = await storage.getUser(user.id);
+    console.log('🔍 DEBUG ENDPOINT - Fresh user from database:', JSON.stringify(freshUser, null, 2));
+    
+    res.json({ 
+      reqUser: user, 
+      freshUser: freshUser,
+      hasPartsAccess: freshUser?.can_access_parts_supplies,
+      hasScheduleAccess: freshUser?.can_access_my_schedule
+    });
+  });
+
   app.get("/api/auth/me", requireAuth, async (req, res) => {
     // Transform snake_case database fields to camelCase for frontend consistency
     const user = req.user;
@@ -1303,6 +1320,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       role: user.role,
       organizationId: user.organizationId
     });
+    
+    console.log('🔍 API CALL: /api/auth/me endpoint was called! User:', user.username);
     
     const transformedUser = {
       ...user,
@@ -1319,7 +1338,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       canAccessCustomers: user.can_access_customers,
       canAccessPayments: user.can_access_payments,
       canAccessFileManager: user.can_access_file_manager,
-      canAccessParts: user.can_access_parts_supplies,
+      canAccessPartsSupplies: user.can_access_parts_supplies,
       canAccessFormBuilder: user.can_access_form_builder,
       canAccessInspections: user.can_access_inspections,
       canAccessInternalMessages: user.can_access_internal_messages,
@@ -1336,14 +1355,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       canAccessSaasAdmin: user.can_access_saas_admin,
       canAccessAdminSettings: user.can_access_admin_settings,
       canAccessReports: user.can_access_reports,
-      canAccessSchedule: user.can_access_my_schedule,
+      canAccessMySchedule: user.can_access_my_schedule,
       // Keep original snake_case fields for backward compatibility if needed
     };
     
     // Debug logging for transformed permissions
     console.log('🔄 DEBUG AUTH/ME - Transformed permissions:', {
-      canAccessParts: transformedUser.canAccessParts,
-      canAccessSchedule: transformedUser.canAccessSchedule
+      canAccessPartsSupplies: transformedUser.canAccessPartsSupplies,
+      canAccessMySchedule: transformedUser.canAccessMySchedule
     });
     
     res.json({ user: transformedUser });
