@@ -64,11 +64,14 @@ export default function PartsSuppliesPage() {
     }
   };
 
-  // Handle dialog close
-  const handleDialogClose = () => {
-    setIsCreateDialogOpen(false);
-    setUploadedImageUrl(""); // Clear uploaded image
-    form.reset(); // Reset form
+  // Handle dialog open/close
+  const handleDialogOpenChange = (open: boolean) => {
+    setIsCreateDialogOpen(open);
+    if (!open) {
+      // Dialog is closing - clear uploaded image and reset form
+      setUploadedImageUrl("");
+      form.reset();
+    }
   };
 
   // Fetch parts and supplies
@@ -227,7 +230,7 @@ export default function PartsSuppliesPage() {
           <h1 className="text-3xl font-bold">Parts & Supplies</h1>
           <p className="text-muted-foreground">Manage your inventory and track stock levels</p>
         </div>
-        <Dialog open={isCreateDialogOpen} onOpenChange={handleDialogClose}>
+        <Dialog open={isCreateDialogOpen} onOpenChange={handleDialogOpenChange}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
