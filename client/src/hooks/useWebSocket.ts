@@ -36,7 +36,8 @@ export function useWebSocket() {
         type: 'auth',
         userId: user.id,
         username: user.username,
-        userType: 'web'
+        userType: 'web',
+        organizationId: user.organizationId
       }));
     };
 
@@ -103,7 +104,9 @@ export function useWebSocket() {
       'review_request_sent': `Review request sent by ${data.sentBy}`,
       'user_created': `New user registered: ${data.user?.username}`,
       'payment_processed': `Payment processed by ${data.processedBy}`,
-      'disciplinary_action_created': `Disciplinary action recorded by ${data.createdBy}`
+      'disciplinary_action_created': `Disciplinary action recorded by ${data.createdBy}`,
+      'navigation_order_updated': `Navigation tabs reordered by ${data.updatedBy}`,
+      'navigation_order_reset': `Navigation tabs reset to default by ${data.resetBy}`
     };
 
     const notificationMessage = notifications[eventType];

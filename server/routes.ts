@@ -775,10 +775,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
   
   // Store connected clients with user information
-  const connectedClients = new Map<WebSocket, { userId: number; username: string; userType: string }>();
+  const connectedClients = new Map<WebSocket, { userId: number; username: string; userType: string; organizationId?: number }>();
 
-  // Broadcast function to send updates to all connected web users
-  function broadcastToWebUsers(eventType: string, data: any, excludeUserId?: number) {
+  // Overloaded broadcast function to send updates to connected web users
+  function broadcastToWebUsers(eventType: string, data: any, excludeUserId?: number): void;
+  function broadcastToWebUsers(organizationId: number, eventType: string, data: any, excludeUserId?: number): void;
+  function broadcastToWebUsers(organizationIdOrEventType: number | string, eventTypeOrData: string | any, dataOrExcludeUserId?: any | number, excludeUserId?: number): void {
+    let targetOrganizationId: number | undefined;
+    let eventType: string;
+    let data: any;
+    let excludeUser: number | undefined;
+
+    // Handle overloaded parameters
+    if (typeof organizationIdOrEventType === 'number') {
+      // Called with organizationId first
+      targetOrganizationId = organizationIdOrEventType;
+      eventType = eventTypeOrData as string;
+      data = dataOrExcludeUserId;
+      excludeUser = excludeUserId;
+    } else {
+      // Called with eventType first (legacy)
+      eventType = organizationIdOrEventType;
+      data = eventTypeOrData;
+      excludeUser = dataOrExcludeUserId;
+    }
+
     const message = JSON.stringify({
       type: 'update',
       eventType,
@@ -789,8 +810,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     connectedClients.forEach((clientInfo, ws) => {
       if (ws.readyState === WebSocket.OPEN && 
           clientInfo.userType === 'web' && 
-          clientInfo.userId !== excludeUserId) {
-        ws.send(message);
+          clientInfo.userId !== excludeUser) {
+        
+        // If organizationId is specified, only send to users in that organization
+        if (targetOrganizationId !== undefined) {
+          if (clientInfo.organizationId === targetOrganizationId) {
+            ws.send(message);
+          }
+        } else {
+          // Send to all web users (legacy behavior)
+          ws.send(message);
+        }
       }
     });
   }
@@ -5907,8 +5937,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/navigation-order", requireAuth, async (req, res) => {
     try {
-      const userId = req.user!.id;
-      const organizationId = req.user!.organizationId;
+      const user = getAuthenticatedUser(req);
+      const userId = user.id;
+      const organizationId = user.organizationId;
       const { navigationItems } = req.body;
       
       if (!Array.isArray(navigationItems)) {
@@ -5916,6 +5947,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const savedOrder = await storage.saveNavigationOrder(userId, organizationId, navigationItems);
+      
+      // Broadcast navigation order update to organization users
+      broadcastToWebUsers(organizationId, 'navigation_order_updated', {
+        navigationItems: savedOrder,
+        updatedBy: user.username,
+        userId: userId,
+        organizationId: organizationId,
+        timestamp: new Date().toISOString()
+      }, userId);
+      
       res.json(savedOrder);
     } catch (error: any) {
       console.error("Error saving navigation order:", error);
@@ -5925,10 +5966,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/navigation-order", requireAuth, async (req, res) => {
     try {
-      const userId = req.user!.id;
-      const organizationId = req.user!.organizationId;
+      const user = getAuthenticatedUser(req);
+      const userId = user.id;
+      const organizationId = user.organizationId;
       
       const success = await storage.resetNavigationOrder(userId, organizationId);
+      
+      if (success) {
+        // Broadcast navigation order reset to organization users
+        broadcastToWebUsers(organizationId, 'navigation_order_reset', {
+          resetBy: user.username,
+          userId: userId,
+          organizationId: organizationId,
+          timestamp: new Date().toISOString()
+        }, userId);
+      }
+      
       res.json({ success, message: success ? "Navigation order reset successfully" : "No navigation order found" });
     } catch (error: any) {
       console.error("Error resetting navigation order:", error);
@@ -12143,7 +12196,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           connectedClients.set(ws, {
             userId: data.userId,
             username: data.username,
-            userType: data.userType || 'web'
+            userType: data.userType || 'web',
+            organizationId: data.organizationId
+          });
+          
+          console.log('WebSocket client authenticated:', {
+            userId: data.userId,
+            username: data.username,
+            userType: data.userType || 'web',
+            organizationId: data.organizationId
           });
           
           ws.send(JSON.stringify({
