@@ -1418,15 +1418,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/customers", requireAuth, async (req, res) => {
     try {
       const user = getAuthenticatedUser(req);
+      console.log("🔍 Customer creation debug - User object:", {
+        id: user?.id,
+        username: user?.username,
+        organizationId: user?.organizationId,
+        hasUser: !!user,
+        userKeys: Object.keys(user || {})
+      });
+      
       if (!user || !user.organizationId) {
+        console.log("❌ User validation failed:", { user: !!user, organizationId: user?.organizationId });
         return res.status(401).json({ message: "User not found or missing organization" });
       }
 
       console.log("Creating customer for user:", user.username, "organization:", user.organizationId);
+      console.log("Request body:", req.body);
 
       const customerData = insertCustomerSchema.parse({
         ...req.body,
         organizationId: user.organizationId,
+      });
+      
+      console.log("📋 Parsed customer data:", customerData);
+      console.log("📋 Final customer data with userId:", {
+        ...customerData,
+        userId: user.id,
       });
       
       const customer = await storage.createCustomer({
@@ -1442,8 +1458,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.status(201).json(customer);
     } catch (error: any) {
-      console.error("Error creating customer:", error);
+      console.error("❌ Customer creation error:", error);
       if (error instanceof ZodError) {
+        console.error("Zod validation errors:", error.errors);
         res.status(400).json({ message: "Validation error", errors: error.errors });
       } else {
         res.status(500).json({ message: error.message });
