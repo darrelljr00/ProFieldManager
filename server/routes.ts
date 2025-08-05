@@ -807,6 +807,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       timestamp: new Date().toISOString()
     });
 
+    let messageSentCount = 0;
     connectedClients.forEach((clientInfo, ws) => {
       if (ws.readyState === WebSocket.OPEN && 
           clientInfo.userType === 'web' && 
@@ -815,14 +816,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // If organizationId is specified, only send to users in that organization
         if (targetOrganizationId !== undefined) {
           if (clientInfo.organizationId === targetOrganizationId) {
+            console.log(`📤 Sending ${eventType} to user ${clientInfo.userId} (${clientInfo.username}) in org ${clientInfo.organizationId}`);
             ws.send(message);
+            messageSentCount++;
+          } else {
+            console.log(`⏭️ Skipping user ${clientInfo.userId} (${clientInfo.username}) - different org ${clientInfo.organizationId} vs ${targetOrganizationId}`);
           }
         } else {
           // Send to all web users (legacy behavior)
+          console.log(`📤 Sending ${eventType} to user ${clientInfo.userId} (${clientInfo.username}) - no org filter`);
           ws.send(message);
+          messageSentCount++;
         }
+      } else {
+        console.log(`⏭️ Skipping user ${clientInfo.userId} (${clientInfo.username}) - readyState: ${ws.readyState}, userType: ${clientInfo.userType}, excluded: ${clientInfo.userId === excludeUser}`);
       }
     });
+    console.log(`📊 WebSocket broadcast complete: ${messageSentCount} messages sent for ${eventType}`);
   }
   // PRIORITY: Settings endpoints must be registered first to avoid conflicts
   app.get('/api/settings/payment', async (req, res) => {
@@ -5995,17 +6005,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = getAuthenticatedUser(req);
       const organizationId = user.organizationId;
       
+      console.log('🔥 PUSH NAVIGATION UPDATES - Starting:', {
+        pushedBy: user.username,
+        pushedByUserId: user.id,
+        organizationId: organizationId
+      });
+      
       // Fetch current navigation order for this organization
       const navigationOrder = await storage.getNavigationOrder(user.id, organizationId);
+      console.log('📋 Navigation order fetched:', navigationOrder);
+      
+      // Check connected clients for debugging
+      console.log('🔌 Connected WebSocket clients:');
+      connectedClients.forEach((clientInfo, ws) => {
+        console.log(`  - User ${clientInfo.userId} (${clientInfo.username}) - Org: ${clientInfo.organizationId} - Type: ${clientInfo.userType} - State: ${ws.readyState === WebSocket.OPEN ? 'OPEN' : 'CLOSED'}`);
+      });
       
       // Broadcast navigation order update to all organization users
-      broadcastToWebUsers(organizationId, 'navigation_order_forced_update', {
+      const broadcastData = {
         navigationItems: navigationOrder,
         pushedBy: user.username,
         pushedByUserId: user.id,
         organizationId: organizationId,
         timestamp: new Date().toISOString()
-      });
+      };
+      
+      console.log('📡 Broadcasting navigation_order_forced_update to org', organizationId, ':', broadcastData);
+      broadcastToWebUsers(organizationId, 'navigation_order_forced_update', broadcastData);
+      
+      // Get organization users for debugging
+      try {
+        const orgUsers = await storage.getUsersByOrganization(organizationId);
+        console.log(`🏢 Organization ${organizationId} has ${orgUsers.length} users:`, 
+          orgUsers.map(u => `${u.id}:${u.username}`));
+      } catch (error) {
+        console.error('Error fetching org users:', error);
+      }
       
       res.json({ 
         success: true, 
