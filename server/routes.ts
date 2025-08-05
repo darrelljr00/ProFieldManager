@@ -6072,6 +6072,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('📡 Broadcasting navigation_order_forced_update to org', organizationId, ':', broadcastData);
       broadcastToWebUsers(organizationId, 'navigation_order_forced_update', broadcastData);
       
+      // Also broadcast auth refresh to ensure users see updated permissions
+      console.log('🔄 Broadcasting auth_refresh_required to org', organizationId);
+      broadcastToWebUsers(organizationId, 'auth_refresh_required', { 
+        message: 'User permissions updated, refreshing authentication data',
+        timestamp: new Date().toISOString() 
+      });
+      
       // Store the navigation update timestamp for fallback polling
       try {
         await storage.updateSetting(`navigation_org_${organizationId}`, 'update_timestamp', new Date().toISOString());

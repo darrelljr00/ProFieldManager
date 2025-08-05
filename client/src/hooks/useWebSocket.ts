@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useAuth } from "./useAuth";
 import { useToast } from "./use-toast";
 import { useSoundNotifications } from "./useSoundNotifications";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface WebSocketMessage {
   type: string;
@@ -14,6 +15,7 @@ export function useWebSocket() {
   const { user } = useAuth();
   const { toast } = useToast();
   const { playTeamMessageSound, playTextMessageSound } = useSoundNotifications();
+  const queryClient = useQueryClient();
   const wsRef = useRef<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [lastMessage, setLastMessage] = useState<WebSocketMessage | null>(null);
@@ -60,6 +62,18 @@ export function useWebSocket() {
         }
 
         if (message.type === 'update' && message.eventType && message.data) {
+          // Handle authentication refresh
+          if (message.eventType === 'auth_refresh_required') {
+            console.log('🔄 Received auth refresh request, invalidating auth cache');
+            queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+            toast({
+              title: "Permissions Updated",
+              description: "Your navigation permissions have been refreshed",
+              duration: 3000,
+            });
+            return;
+          }
+          
           // Play sound notifications for messages
           if (message.eventType === 'new_message' || message.eventType === 'message_sent') {
             playTeamMessageSound();
