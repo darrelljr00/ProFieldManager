@@ -797,8 +797,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createCustomer(customerData: any): Promise<Customer> {
+    console.log("💾 Storage createCustomer called with data:", customerData);
+    
     const insertData: any = {
       userId: customerData.userId,  // This should be the actual userId who created the customer
+      organizationId: customerData.organizationId,  // FIXED: Include organizationId
       name: customerData.name,
       email: customerData.email
     };
@@ -809,6 +812,8 @@ export class DatabaseStorage implements IStorage {
     if (customerData.state) insertData.state = customerData.state;
     if (customerData.zipCode) insertData.zipCode = customerData.zipCode;
     if (customerData.country) insertData.country = customerData.country;
+
+    console.log("💾 Final insert data:", insertData);
 
     const [customer] = await db
       .insert(customers)
