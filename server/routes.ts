@@ -1009,8 +1009,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/settings/company', async (req, res) => {
+  app.get('/api/settings/company', requireAuth, async (req, res) => {
     try {
+      const user = getAuthenticatedUser(req);
       const settings = await storage.getSettingsByCategory('company');
       const companySettings = {
         companyName: '',
@@ -1023,9 +1024,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (settings && settings.length > 0) {
         settings.forEach((setting: any) => {
-          const key = setting.key.replace('company_', '');
-          if (key in companySettings) {
-            companySettings[key] = setting.value;
+          // Check for organization-specific settings first
+          const orgPrefix = `org_${user.organizationId}_company_`;
+          if (setting.key.startsWith(orgPrefix)) {
+            const key = setting.key.replace(orgPrefix, '');
+            if (key in companySettings) {
+              companySettings[key] = setting.value;
+            }
+          }
+          // Fallback to old format for backward compatibility
+          else if (setting.key.startsWith('company_')) {
+            const key = setting.key.replace('company_', '');
+            if (key in companySettings && !companySettings[key]) {
+              companySettings[key] = setting.value;
+            }
           }
         });
       }
@@ -1037,12 +1049,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/settings/company', async (req, res) => {
+  app.put('/api/settings/company', requireAuth, async (req, res) => {
     try {
+      const user = getAuthenticatedUser(req);
       const settings = req.body;
+      
+      console.log('Updating company settings for organization:', user.organizationId, 'with data:', settings);
+      
       for (const [key, value] of Object.entries(settings)) {
-        await storage.updateSetting('company', `company_${key}`, String(value));
+        const settingKey = `org_${user.organizationId}_company_${key}`;
+        await storage.updateSetting('company', settingKey, String(value));
+        console.log(`Updated setting: ${settingKey} = ${value}`);
       }
+      
       res.json({ message: 'Company settings updated successfully' });
     } catch (error: any) {
       console.error('Error updating company settings:', error);
