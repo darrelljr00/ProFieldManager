@@ -97,6 +97,13 @@ export function QuotesTable({ quotes, isLoading }: QuotesTableProps) {
   const { data: companySettings } = useQuery<{
     companyName?: string;
     companyEmail?: string;
+    companyPhone?: string;
+    companyWebsite?: string;
+    companyStreetAddress?: string;
+    companyCity?: string;
+    companyState?: string;
+    companyZipCode?: string;
+    companyCountry?: string;
     logo?: string;
   }>({
     queryKey: ["/api/settings/company"],
@@ -354,9 +361,38 @@ export function QuotesTable({ quotes, isLoading }: QuotesTableProps) {
                     )}
                     <div>
                       <h3 className="text-lg font-semibold">{companySettings.companyName || 'Your Company'}</h3>
-                      {companySettings.companyEmail && (
-                        <p className="text-sm text-muted-foreground">{companySettings.companyEmail}</p>
-                      )}
+                      <div className="text-sm text-muted-foreground space-y-1">
+                        {companySettings.companyEmail && (
+                          <p>{companySettings.companyEmail}</p>
+                        )}
+                        {companySettings.companyPhone && (
+                          <p>{companySettings.companyPhone}</p>
+                        )}
+                        {(companySettings.companyStreetAddress || companySettings.companyCity || companySettings.companyState) && (
+                          <div className="space-y-0.5">
+                            {companySettings.companyStreetAddress && (
+                              <p>{companySettings.companyStreetAddress}</p>
+                            )}
+                            <p>
+                              {[
+                                companySettings.companyCity,
+                                companySettings.companyState,
+                                companySettings.companyZipCode
+                              ].filter(Boolean).join(', ')}
+                              {companySettings.companyCountry && companySettings.companyCountry !== 'United States' && (
+                                <span>, {companySettings.companyCountry}</span>
+                              )}
+                            </p>
+                          </div>
+                        )}
+                        {companySettings.companyWebsite && (
+                          <p className="text-blue-600 hover:underline">
+                            <a href={companySettings.companyWebsite.startsWith('http') ? companySettings.companyWebsite : `https://${companySettings.companyWebsite}`} target="_blank" rel="noopener noreferrer">
+                              {companySettings.companyWebsite}
+                            </a>
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <div className="text-right">
