@@ -5989,6 +5989,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Push Navigation Updates API - Force navigation updates to all organization users
+  app.post("/api/admin/navigation/push-updates", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const organizationId = user.organizationId;
+      
+      // Fetch current navigation order for this organization
+      const navigationOrder = await storage.getNavigationOrder(user.id, organizationId);
+      
+      // Broadcast navigation order update to all organization users
+      broadcastToWebUsers(organizationId, 'navigation_order_forced_update', {
+        navigationItems: navigationOrder,
+        pushedBy: user.username,
+        pushedByUserId: user.id,
+        organizationId: organizationId,
+        timestamp: new Date().toISOString()
+      });
+      
+      res.json({ 
+        success: true, 
+        message: "Navigation updates pushed to all organization users successfully" 
+      });
+    } catch (error: any) {
+      console.error("Error pushing navigation updates:", error);
+      res.status(500).json({ 
+        success: false,
+        message: "Failed to push navigation updates" 
+      });
+    }
+  });
+
   // Sound Settings API
   app.get("/api/settings/sounds", requireAuth, async (req, res) => {
     try {

@@ -339,6 +339,23 @@ export default function UsersPage() {
     },
   });
 
+  const pushNavigationUpdatesMutation = useMutation({
+    mutationFn: () => apiRequest("POST", "/api/admin/navigation/push-updates", {}),
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Navigation updates pushed to all users successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to push navigation updates",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleCreateUser = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -1990,7 +2007,18 @@ export default function UsersPage() {
                       <div><strong>Admin Override:</strong> Admin users always have full access regardless of settings</div>
                     </div>
                     <div className="mt-4 p-3 bg-green-50 dark:bg-green-950 rounded border border-green-200 dark:border-green-800">
-                      <h5 className="font-medium text-green-800 dark:text-green-200 mb-2">Complete Navigation Control</h5>
+                      <div className="flex justify-between items-start mb-2">
+                        <h5 className="font-medium text-green-800 dark:text-green-200">Complete Navigation Control</h5>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => pushNavigationUpdatesMutation.mutate()}
+                          disabled={pushNavigationUpdatesMutation.isPending}
+                          className="bg-green-100 hover:bg-green-200 text-green-800 border-green-300 dark:bg-green-900 dark:hover:bg-green-800 dark:text-green-200 dark:border-green-700"
+                        >
+                          {pushNavigationUpdatesMutation.isPending ? "Pushing..." : "Push Updates"}
+                        </Button>
+                      </div>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs text-green-700 dark:text-green-300">
                         <div>✓ Dashboard, Calendar, Time Clock</div>
                         <div>✓ Jobs, Tasks, Leads, Expenses</div>

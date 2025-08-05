@@ -106,7 +106,8 @@ export function useWebSocket() {
       'payment_processed': `Payment processed by ${data.processedBy}`,
       'disciplinary_action_created': `Disciplinary action recorded by ${data.createdBy}`,
       'navigation_order_updated': `Navigation tabs reordered by ${data.updatedBy}`,
-      'navigation_order_reset': `Navigation tabs reset to default by ${data.resetBy}`
+      'navigation_order_reset': `Navigation tabs reset to default by ${data.resetBy}`,
+      'navigation_order_forced_update': `Navigation updates pushed to all users by ${data.pushedBy}`
     };
 
     const notificationMessage = notifications[eventType];
