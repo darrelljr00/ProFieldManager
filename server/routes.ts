@@ -1991,20 +1991,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Quote not found" });
       }
 
-      const puppeteer = await import('puppeteer');
+      const htmlPdf = await import('html-pdf-node');
       
       // Generate HTML content for the quote
       const htmlContent = generateQuoteHTML(quote);
       
-      const browser = await puppeteer.default.launch({
-        headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
-      });
-      
-      const page = await browser.newPage();
-      await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
-      
-      const pdfBuffer = await page.pdf({
+      const options = {
         format: 'A4',
         printBackground: true,
         margin: {
@@ -2013,9 +2005,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           left: '1cm',
           right: '1cm'
         }
-      });
+      };
       
-      await browser.close();
+      const pdfBuffer = await htmlPdf.default.generatePdf({ content: htmlContent }, options);
       
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="Quote-${quote.quoteNumber}.pdf"`);
