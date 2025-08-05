@@ -1835,11 +1835,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Quote routes
-  app.get("/api/quotes", async (req, res) => {
+  app.get("/api/quotes", requireAuth, async (req, res) => {
     try {
-      const quotes = await storage.getQuotes(req.user.id);
+      const user = getAuthenticatedUser(req);
+      const quotes = await storage.getQuotes(user.organizationId);
       res.json(quotes);
     } catch (error: any) {
+      console.error("Error fetching quotes:", error);
       res.status(500).json({ message: error.message });
     }
   });
@@ -1890,9 +1892,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/quotes/:id", async (req, res) => {
+  app.get("/api/quotes/:id", requireAuth, async (req, res) => {
     try {
-      const quote = await storage.getQuote(parseInt(req.params.id), req.user.id);
+      const user = getAuthenticatedUser(req);
+      const quote = await storage.getQuote(parseInt(req.params.id), user.organizationId);
       if (!quote) {
         return res.status(404).json({ message: "Quote not found" });
       }
@@ -1902,10 +1905,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/quotes/:id", async (req, res) => {
+  app.put("/api/quotes/:id", requireAuth, async (req, res) => {
     try {
+      const user = getAuthenticatedUser(req);
       const quoteData = insertQuoteSchema.omit({ lineItems: true }).partial().parse(req.body);
-      const quote = await storage.updateQuote(parseInt(req.params.id), req.user.id, quoteData);
+      const quote = await storage.updateQuote(parseInt(req.params.id), user.organizationId, quoteData);
       if (!quote) {
         return res.status(404).json({ message: "Quote not found" });
       }
@@ -1919,9 +1923,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/quotes/:id", async (req, res) => {
+  app.delete("/api/quotes/:id", requireAuth, async (req, res) => {
     try {
-      const deleted = await storage.deleteQuote(parseInt(req.params.id), req.user.id);
+      const user = getAuthenticatedUser(req);
+      const deleted = await storage.deleteQuote(parseInt(req.params.id), user.organizationId);
       if (!deleted) {
         return res.status(404).json({ message: "Quote not found" });
       }

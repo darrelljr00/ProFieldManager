@@ -1,7 +1,7 @@
 import { db } from "./db";
 import { ensureOrganizationFolders } from "./folderCreation";
 import { 
-  users, customers, invoices, quotes, projects, tasks, taskGroups, taskTemplates,
+  users, customers, invoices, quotes, quoteLineItems, projects, tasks, taskGroups, taskTemplates,
   expenses, expenseCategories, vendors, expenseReports, gasCards, 
   gasCardAssignments, gasCardUsage, gasCardProviders, leads, calendarJobs, messages,
   images, settings, organizations, userSessions, subscriptionPlans,
@@ -1004,12 +1004,40 @@ export class DatabaseStorage implements IStorage {
 
   // Quote methods
   async getQuotes(organizationId: number): Promise<any[]> {
-    return await db
-      .select()
+    const quotesWithCustomers = await db
+      .select({
+        quote: quotes,
+        customer: customers,
+        user: {
+          id: users.id,
+          username: users.username,
+          firstName: users.firstName,
+          lastName: users.lastName,
+        }
+      })
       .from(quotes)
       .innerJoin(users, eq(quotes.userId, users.id))
+      .leftJoin(customers, eq(quotes.customerId, customers.id))
       .where(eq(users.organizationId, organizationId))
       .orderBy(desc(quotes.createdAt));
+
+    // Get line items for each quote
+    const result = [];
+    for (const row of quotesWithCustomers) {
+      const lineItems = await db
+        .select()
+        .from(quoteLineItems)
+        .where(eq(quoteLineItems.quoteId, row.quote.id));
+      
+      result.push({
+        ...row.quote,
+        customer: row.customer,
+        user: row.user,
+        lineItems: lineItems
+      });
+    }
+    
+    return result;
   }
 
   async createQuote(quoteData: any): Promise<any> {
