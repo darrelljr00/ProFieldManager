@@ -1897,10 +1897,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         total: parseFloat(req.body.total || 0),
       });
       
+      // Extract line items from the data
+      const { lineItems, ...quoteWithoutLineItems } = quoteData;
+      
       const quote = await storage.createQuote({
-        ...quoteData,
+        ...quoteWithoutLineItems,
         userId: req.user!.id,
       });
+
+      // Create line items for the quote
+      if (lineItems && lineItems.length > 0) {
+        await storage.createQuoteLineItems(quote.id, lineItems);
+      }
       
       // Broadcast to all web users except the creator
       (app as any).broadcastToWebUsers('quote_created', {

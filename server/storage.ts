@@ -1100,6 +1100,19 @@ export class DatabaseStorage implements IStorage {
     await db.delete(quotes).where(eq(quotes.id, id));
   }
 
+  async createQuoteLineItems(quoteId: number, lineItems: any[]): Promise<void> {
+    if (lineItems && lineItems.length > 0) {
+      const lineItemsWithQuoteId = lineItems.map(item => ({
+        ...item,
+        quoteId: quoteId,
+        quantity: item.quantity.toString(),
+        amount: item.amount.toString(),
+      }));
+      
+      await db.insert(quoteLineItems).values(lineItemsWithQuoteId);
+    }
+  }
+
   // Project/Job methods
   async getProjects(organizationId: number, userId?: number, userRole?: string, status?: string): Promise<any[]> {
     // Build the base query

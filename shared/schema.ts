@@ -1531,7 +1531,6 @@ export const insertQuoteSchema = z.object({
   lineItems: z.array(z.object({
     description: z.string().min(1),
     quantity: z.number().positive(),
-    rate: z.number().positive(),
     amount: z.number().positive(),
   })),
 });
@@ -1540,7 +1539,6 @@ export const insertQuoteLineItemSchema = z.object({
   quoteId: z.number(),
   description: z.string().min(1),
   quantity: z.number().positive(),
-  rate: z.number().positive(),
   amount: z.number().positive(),
 });
 
