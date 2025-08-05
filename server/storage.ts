@@ -749,6 +749,8 @@ export class DatabaseStorage implements IStorage {
       const results = await db
         .select({
           id: customers.id,
+          userId: customers.userId,
+          organizationId: customers.organizationId,
           name: customers.name,
           email: customers.email,
           phone: customers.phone,
@@ -756,9 +758,8 @@ export class DatabaseStorage implements IStorage {
           city: customers.city,
           state: customers.state,
           zipCode: customers.zipCode,
-          organizationId: customers.organizationId,
-          createdAt: customers.createdAt,
-          updatedAt: customers.updatedAt
+          country: customers.country,
+          createdAt: customers.createdAt
         })
         .from(customers)
         .where(eq(customers.organizationId, organizationId))
