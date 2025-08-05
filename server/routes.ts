@@ -1840,25 +1840,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/quotes", async (req, res) => {
+  app.post("/api/quotes", requireAuth, async (req, res) => {
     try {
+      const user = await storage.getUser(req.user!.id);
+      if (!user) {
+        return res.status(401).json({ message: "User not found" });
+      }
+
       // Generate quote number
       const quoteNumber = `QUO-${Date.now()}`;
       
       const quoteData = insertQuoteSchema.parse({
         ...req.body,
-        userId: req.user.id,
+        organizationId: user.organizationId,
         quoteNumber: req.body.quoteNumber || quoteNumber,
         status: req.body.status || 'draft',
+        // Convert string dates to Date objects
+        quoteDate: new Date(req.body.quoteDate),
+        expiryDate: new Date(req.body.expiryDate),
+        // Convert string numbers to numbers
+        customerId: parseInt(req.body.customerId),
+        subtotal: parseFloat(req.body.subtotal || 0),
+        tax: parseFloat(req.body.tax || 0),
+        total: parseFloat(req.body.total || 0),
       });
       
-      const quote = await storage.createQuote(quoteData);
+      const quote = await storage.createQuote({
+        ...quoteData,
+        userId: req.user!.id,
+      });
       
       // Broadcast to all web users except the creator
       (app as any).broadcastToWebUsers('quote_created', {
         quote,
-        createdBy: req.user.username
-      }, req.user.id);
+        createdBy: req.user!.username
+      }, req.user!.id);
       
       res.status(201).json(quote);
     } catch (error: any) {

@@ -55,7 +55,7 @@ export function QuoteForm({ onSuccess }: QuoteFormProps) {
     quoteNumber: "",
     quoteDate: new Date().toISOString().split('T')[0],
     expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    status: "pending",
+    status: "draft",
     subtotal: "",
     total: "",
     currency: "USD",
@@ -83,7 +83,7 @@ export function QuoteForm({ onSuccess }: QuoteFormProps) {
         quoteNumber: "",
         quoteDate: new Date().toISOString().split('T')[0],
         expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        status: "pending",
+        status: "draft",
         subtotal: "",
         total: "",
         currency: "USD",
@@ -104,13 +104,14 @@ export function QuoteForm({ onSuccess }: QuoteFormProps) {
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const subtotal = formData.lineItems.reduce((sum, item) => sum + (item.quantity * item.rate), 0);
+    const tax = subtotal * 0.08; // 8% tax rate - you can make this configurable
+    const total = subtotal + tax;
+    
     const quoteData = {
       ...formData,
-      quoteDate: new Date(formData.quoteDate),
-      expiryDate: new Date(formData.expiryDate),
-      subtotal: subtotal.toString(),
-      total: subtotal.toString(),
-      userId: 1, // This would come from auth context in a real app
+      subtotal: subtotal,
+      tax: tax,
+      total: total,
       lineItems: formData.lineItems.map(item => ({
         ...item,
         amount: item.quantity * item.rate
