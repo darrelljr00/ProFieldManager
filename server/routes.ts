@@ -13869,13 +13869,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/task-groups", requireAuth, async (req, res) => {
     try {
       console.log("🔧 Task Group Creation - Request received:", {
-        userId: req.user!.id,
-        organizationId: req.user!.organizationId,
+        user: req.user,
+        userId: req.user?.id,
+        organizationId: req.user?.organizationId,
         body: req.body
       });
 
-      const userId = req.user!.id;
-      const organizationId = req.user!.organizationId;
+      if (!req.user?.id) {
+        console.log("❌ Task Group Creation - No user ID found");
+        return res.status(401).json({ message: "User authentication required" });
+      }
+
+      if (!req.user?.organizationId) {
+        console.log("❌ Task Group Creation - No organization ID found");
+        return res.status(401).json({ message: "Organization access required" });
+      }
+
+      const userId = req.user.id;
+      const organizationId = req.user.organizationId;
       const { name, description, color, templates } = req.body;
 
       if (!name?.trim()) {
