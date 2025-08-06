@@ -51,7 +51,7 @@ import {
   images, settings, organizations, userSessions, vendors,
   soundSettings, userDashboardSettings, dashboardProfiles,
   schedules, scheduleAssignments, scheduleComments, timeClock,
-  lateArrivals
+  lateArrivals, notifications, notificationSettings
 } from "@shared/schema";
 import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull } from "drizzle-orm";
 import { DocuSignService, getDocuSignConfig } from "./docusign";
@@ -65,6 +65,7 @@ import { generateQuoteHTML, generateQuoteWordContent } from "./quoteGenerator";
 import fileUploadRouter from "./routes/fileUpload";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { ObjectPermission } from "./objectAcl";
+import { NotificationService, setBroadcastFunction } from "./notificationService";
 
 // Extend Express Request type to include user
 declare global {
@@ -866,6 +867,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   }
 
+  // Set up the notification service broadcast function
+  setBroadcastFunction(broadcastToUser);
+
   // Helper function to broadcast team status updates to organization users
   async function broadcastTeamStatusUpdate(organizationId: number) {
     try {
@@ -1057,6 +1061,112 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.updateSetting('notifications', `notifications_${key}`, String(value));
       }
       res.json({ message: 'Notification settings updated successfully' });
+    } catch (error: any) {
+      console.error('Error updating notification settings:', error);
+      res.status(500).json({ message: 'Failed to update notification settings' });
+    }
+  });
+
+  // === COMPREHENSIVE NOTIFICATION SYSTEM ROUTES ===
+
+  // Get user notifications
+  app.get('/api/notifications', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const limit = parseInt(req.query.limit as string) || 50;
+      
+      const notifications = await NotificationService.getUserNotifications(
+        user.id, 
+        user.organizationId, 
+        limit
+      );
+      
+      res.json(notifications);
+    } catch (error: any) {
+      console.error('Error fetching notifications:', error);
+      res.status(500).json({ message: 'Failed to fetch notifications' });
+    }
+  });
+
+  // Get unread notification count
+  app.get('/api/notifications/unread-count', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      const count = await NotificationService.getUnreadCount(
+        user.id, 
+        user.organizationId
+      );
+      
+      res.json({ count });
+    } catch (error: any) {
+      console.error('Error fetching unread count:', error);
+      res.status(500).json({ message: 'Failed to fetch unread count' });
+    }
+  });
+
+  // Mark notification as read
+  app.patch('/api/notifications/:id/read', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const notificationId = parseInt(req.params.id);
+      
+      await NotificationService.markAsRead(notificationId, user.id);
+      
+      res.json({ message: 'Notification marked as read' });
+    } catch (error: any) {
+      console.error('Error marking notification as read:', error);
+      res.status(500).json({ message: 'Failed to mark notification as read' });
+    }
+  });
+
+  // Mark all notifications as read
+  app.patch('/api/notifications/read-all', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      await NotificationService.markAllAsRead(user.id, user.organizationId);
+      
+      res.json({ message: 'All notifications marked as read' });
+    } catch (error: any) {
+      console.error('Error marking all notifications as read:', error);
+      res.status(500).json({ message: 'Failed to mark all notifications as read' });
+    }
+  });
+
+  // Get comprehensive notification settings
+  app.get('/api/notification-settings', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      const settings = await NotificationService.getNotificationSettings(
+        user.id, 
+        user.organizationId
+      );
+      
+      res.json(settings);
+    } catch (error: any) {
+      console.error('Error fetching notification settings:', error);
+      res.status(500).json({ message: 'Failed to fetch notification settings' });
+    }
+  });
+
+  // Update comprehensive notification settings
+  app.put('/api/notification-settings', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const updates = req.body;
+      
+      const [updatedSettings] = await NotificationService.updateNotificationSettings(
+        user.id, 
+        user.organizationId, 
+        updates
+      );
+      
+      res.json({
+        message: 'Notification settings updated successfully',
+        settings: updatedSettings
+      });
     } catch (error: any) {
       console.error('Error updating notification settings:', error);
       res.status(500).json({ message: 'Failed to update notification settings' });

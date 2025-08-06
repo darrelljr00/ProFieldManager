@@ -3309,6 +3309,124 @@ export const stockAlerts = pgTable("stock_alerts", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Comprehensive Notifications System
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").references(() => organizations.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(), // recipient
+  
+  // Notification details
+  type: text("type").notNull(), // job_assigned, job_completed, task_assigned, task_completed, task_triggered, lead_new, invoice_paid, stock_alert, schedule_reminder
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  
+  // Related entity IDs (for linking back to source)
+  relatedEntityType: text("related_entity_type"), // project, task, lead, invoice, customer, etc.
+  relatedEntityId: integer("related_entity_id"),
+  
+  // Notification metadata
+  priority: text("priority").default("normal"), // low, normal, high, urgent
+  category: text("category").notNull(), // user_based, team_based
+  
+  // Status tracking
+  isRead: boolean("is_read").default(false),
+  readAt: timestamp("read_at"),
+  isActioned: boolean("is_actioned").default(false), // for notifications that require action
+  actionedAt: timestamp("actioned_at"),
+  
+  // Delivery tracking
+  deliveredVia: text("delivered_via").array(), // ['in_app', 'email', 'sms', 'push']
+  emailSent: boolean("email_sent").default(false),
+  smsSent: boolean("sms_sent").default(false),
+  pushSent: boolean("push_sent").default(false),
+  
+  // Creator info
+  createdBy: integer("created_by").references(() => users.id), // who triggered this notification
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// User notification preferences
+export const notificationSettings = pgTable("notification_settings", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").references(() => organizations.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  
+  // Job notifications
+  jobAssignedInApp: boolean("job_assigned_in_app").default(true),
+  jobAssignedEmail: boolean("job_assigned_email").default(true),
+  jobAssignedSms: boolean("job_assigned_sms").default(false),
+  
+  jobCompletedInApp: boolean("job_completed_in_app").default(true),
+  jobCompletedEmail: boolean("job_completed_email").default(false),
+  jobCompletedSms: boolean("job_completed_sms").default(false),
+  
+  // Task notifications
+  taskAssignedInApp: boolean("task_assigned_in_app").default(true),
+  taskAssignedEmail: boolean("task_assigned_email").default(true),
+  taskAssignedSms: boolean("task_assigned_sms").default(false),
+  
+  taskCompletedInApp: boolean("task_completed_in_app").default(true),
+  taskCompletedEmail: boolean("task_completed_email").default(false),
+  taskCompletedSms: boolean("task_completed_sms").default(false),
+  
+  taskTriggeredInApp: boolean("task_triggered_in_app").default(true),
+  taskTriggeredEmail: boolean("task_triggered_email").default(true),
+  taskTriggeredSms: boolean("task_triggered_sms").default(false),
+  
+  // Lead notifications
+  leadNewInApp: boolean("lead_new_in_app").default(true),
+  leadNewEmail: boolean("lead_new_email").default(true),
+  leadNewSms: boolean("lead_new_sms").default(false),
+  
+  // Invoice notifications
+  invoicePaidInApp: boolean("invoice_paid_in_app").default(true),
+  invoicePaidEmail: boolean("invoice_paid_email").default(true),
+  invoicePaidSms: boolean("invoice_paid_sms").default(false),
+  
+  // System notifications
+  stockAlertInApp: boolean("stock_alert_in_app").default(true),
+  stockAlertEmail: boolean("stock_alert_email").default(false),
+  stockAlertSms: boolean("stock_alert_sms").default(false),
+  
+  scheduleReminderInApp: boolean("schedule_reminder_in_app").default(true),
+  scheduleReminderEmail: boolean("schedule_reminder_email").default(true),
+  scheduleReminderSms: boolean("schedule_reminder_sms").default(false),
+  
+  // Global settings
+  globalInApp: boolean("global_in_app").default(true),
+  globalEmail: boolean("global_email").default(true),
+  globalSms: boolean("global_sms").default(false),
+  
+  // Quiet hours
+  quietHoursEnabled: boolean("quiet_hours_enabled").default(false),
+  quietHoursStart: time("quiet_hours_start").default("22:00"),
+  quietHoursEnd: time("quiet_hours_end").default("07:00"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Zod schemas for notifications
+export const insertNotificationSchema = createInsertSchema(notifications).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertNotificationSettingsSchema = createInsertSchema(notificationSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Types for notifications
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+export type NotificationSettings = typeof notificationSettings.$inferSelect;
+export type InsertNotificationSettings = z.infer<typeof insertNotificationSettingsSchema>;
+
 // Parts Categories for better organization
 export const partsCategories = pgTable("parts_categories", {
   id: serial("id").primaryKey(),

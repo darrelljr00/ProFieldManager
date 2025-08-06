@@ -393,6 +393,7 @@ export function Sidebar() {
       permission: "canAccessInternalMessages",
       unreadCount: unreadCount
     },
+    { name: "Notifications", href: "/notifications", icon: Bell, requiresAuth: true, permission: "canAccessNotifications" },
     { name: "Image Gallery", href: "/image-gallery", icon: ImageIcon, requiresAuth: true, permission: "canAccessImageGallery" },
     { name: "SMS", href: "/sms", icon: Smartphone, requiresAuth: true, permission: "canAccessSMS" },
     { name: "Messages", href: "/messages", icon: Mail, requiresAuth: true, permission: "canAccessMessages" },

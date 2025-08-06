@@ -59,6 +59,7 @@ import { CancelledJobs } from "@/pages/cancelled-jobs";
 import FrontendManagement from "@/pages/frontend-management";
 import Tutorials from "@/pages/tutorials";
 import MySchedule from "@/pages/my-schedule";
+import Notifications from "@/pages/notifications";
 import { HelpButton } from "@/components/help-button";
 
 function AuthenticatedApp() {
@@ -183,6 +184,7 @@ function AuthenticatedApp() {
           <Route path="/inspections" component={Inspections} />
           <Route path="/tutorials" component={Tutorials} />
           <Route path="/my-schedule" component={MySchedule} />
+          <Route path="/notifications" component={Notifications} />
           <Route path="/mobile-test" component={MobileTest} />
           <Route path="/users" component={Users} />
           <Route path="/parts-supplies" component={PartsSupplies} />

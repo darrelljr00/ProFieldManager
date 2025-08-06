@@ -1,0 +1,510 @@
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { 
+  Bell, 
+  BellOff, 
+  Check, 
+  CheckCheck, 
+  Circle, 
+  Settings,
+  User,
+  Users,
+  Calendar,
+  DollarSign,
+  FileText,
+  AlertCircle,
+  Clock,
+  MessageSquare
+} from "lucide-react";
+import { toast } from "@/hooks/use-toast";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+import { apiRequest } from "@/lib/queryClient";
+
+interface Notification {
+  id: number;
+  type: string;
+  title: string;
+  message: string;
+  priority: 'low' | 'normal' | 'high' | 'urgent';
+  category: 'user_based' | 'team_based';
+  isRead: boolean;
+  createdAt: string;
+  readAt?: string;
+  relatedEntityType?: string;
+  relatedEntityId?: number;
+  createdBy?: number;
+}
+
+interface NotificationSettings {
+  id?: number;
+  userId: number;
+  organizationId: number;
+  jobAssignmentInApp: boolean;
+  jobAssignmentEmail: boolean;
+  jobAssignmentSms: boolean;
+  taskCompletionInApp: boolean;
+  taskCompletionEmail: boolean;
+  taskCompletionSms: boolean;
+  taskTriggerInApp: boolean;
+  taskTriggerEmail: boolean;
+  taskTriggerSms: boolean;
+  leadAssignmentInApp: boolean;
+  leadAssignmentEmail: boolean;
+  leadAssignmentSms: boolean;
+  invoicePaymentInApp: boolean;
+  invoicePaymentEmail: boolean;
+  invoicePaymentSms: boolean;
+  teamUpdatesInApp: boolean;
+  teamUpdatesEmail: boolean;
+  teamUpdatessSms: boolean;
+}
+
+const getNotificationIcon = (type: string) => {
+  switch (type) {
+    case 'job_assignment':
+    case 'job_completion':
+      return Calendar;
+    case 'task_assignment':
+    case 'task_completion':
+      return CheckCheck;
+    case 'task_trigger':
+      return AlertCircle;
+    case 'lead_assignment':
+      return User;
+    case 'invoice_payment':
+      return DollarSign;
+    case 'team_update':
+      return Users;
+    default:
+      return Bell;
+  }
+};
+
+const getPriorityColor = (priority: string) => {
+  switch (priority) {
+    case 'urgent':
+      return 'bg-red-500';
+    case 'high':
+      return 'bg-orange-500';
+    case 'normal':
+      return 'bg-blue-500';
+    case 'low':
+      return 'bg-gray-500';
+    default:
+      return 'bg-blue-500';
+  }
+};
+
+export default function NotificationsPage() {
+  const [activeTab, setActiveTab] = useState('all');
+  const queryClient = useQueryClient();
+
+  // Fetch notifications
+  const { data: notifications = [], isLoading: notificationsLoading } = useQuery<Notification[]>({
+    queryKey: ['/api/notifications'],
+    refetchInterval: 30000, // Refetch every 30 seconds
+  });
+
+  // Fetch unread count
+  const { data: unreadData } = useQuery<{ count: number }>({
+    queryKey: ['/api/notifications/unread-count'],
+    refetchInterval: 10000, // Refetch every 10 seconds
+  });
+
+  // Fetch notification settings
+  const { data: notificationSettings, isLoading: settingsLoading } = useQuery<NotificationSettings>({
+    queryKey: ['/api/notification-settings'],
+  });
+
+  // Mark as read mutation
+  const markAsReadMutation = useMutation({
+    mutationFn: async (notificationId: number) => {
+      return apiRequest(`/api/notifications/${notificationId}/read`, {
+        method: 'PATCH',
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/notifications/unread-count'] });
+    },
+  });
+
+  // Mark all as read mutation
+  const markAllAsReadMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest('/api/notifications/read-all', {
+        method: 'PATCH',
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/notifications/unread-count'] });
+      toast({
+        title: "Success",
+        description: "All notifications marked as read",
+      });
+    },
+  });
+
+  // Update notification settings mutation
+  const updateSettingsMutation = useMutation({
+    mutationFn: async (settings: Partial<NotificationSettings>) => {
+      return apiRequest('/api/notification-settings', {
+        method: 'PUT',
+        body: JSON.stringify(settings),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/notification-settings'] });
+      toast({
+        title: "Success",
+        description: "Notification settings updated",
+      });
+    },
+  });
+
+  const handleMarkAsRead = (notificationId: number) => {
+    markAsReadMutation.mutate(notificationId);
+  };
+
+  const handleMarkAllAsRead = () => {
+    markAllAsReadMutation.mutate();
+  };
+
+  const handleSettingChange = (setting: keyof NotificationSettings, value: boolean) => {
+    if (notificationSettings) {
+      updateSettingsMutation.mutate({
+        ...notificationSettings,
+        [setting]: value,
+      });
+    }
+  };
+
+  // Filter notifications based on active tab
+  const filteredNotifications = notifications.filter(notification => {
+    switch (activeTab) {
+      case 'unread':
+        return !notification.isRead;
+      case 'user':
+        return notification.category === 'user_based';
+      case 'team':
+        return notification.category === 'team_based';
+      default:
+        return true;
+    }
+  });
+
+  // Sort notifications by creation date (newest first)
+  const sortedNotifications = filteredNotifications.sort((a, b) => 
+    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+
+  const unreadCount = unreadData?.count || 0;
+
+  return (
+    <div className="container mx-auto p-6">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <Bell className="w-8 h-8 text-blue-600" />
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Notifications</h1>
+            <p className="text-gray-600">Stay updated with your team activities</p>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          {unreadCount > 0 && (
+            <Button 
+              onClick={handleMarkAllAsRead}
+              disabled={markAllAsReadMutation.isPending}
+              variant="outline"
+              size="sm"
+            >
+              <CheckCheck className="w-4 h-4 mr-1" />
+              Mark All Read
+            </Button>
+          )}
+          <Badge variant="secondary" className="text-sm">
+            {unreadCount} Unread
+          </Badge>
+        </div>
+      </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="all">All</TabsTrigger>
+          <TabsTrigger value="unread" className="relative">
+            Unread
+            {unreadCount > 0 && (
+              <Badge className="ml-2 bg-red-500 text-white text-xs px-1.5 py-0.5">
+                {unreadCount}
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="user">Personal</TabsTrigger>
+          <TabsTrigger value="team">Team</TabsTrigger>
+          <TabsTrigger value="settings">Settings</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="all" className="space-y-4">
+          <NotificationsList 
+            notifications={sortedNotifications}
+            loading={notificationsLoading}
+            onMarkAsRead={handleMarkAsRead}
+            markAsReadPending={markAsReadMutation.isPending}
+          />
+        </TabsContent>
+
+        <TabsContent value="unread" className="space-y-4">
+          <NotificationsList 
+            notifications={sortedNotifications}
+            loading={notificationsLoading}
+            onMarkAsRead={handleMarkAsRead}
+            markAsReadPending={markAsReadMutation.isPending}
+          />
+        </TabsContent>
+
+        <TabsContent value="user" className="space-y-4">
+          <NotificationsList 
+            notifications={sortedNotifications}
+            loading={notificationsLoading}
+            onMarkAsRead={handleMarkAsRead}
+            markAsReadPending={markAsReadMutation.isPending}
+          />
+        </TabsContent>
+
+        <TabsContent value="team" className="space-y-4">
+          <NotificationsList 
+            notifications={sortedNotifications}
+            loading={notificationsLoading}
+            onMarkAsRead={handleMarkAsRead}
+            markAsReadPending={markAsReadMutation.isPending}
+          />
+        </TabsContent>
+
+        <TabsContent value="settings" className="space-y-6">
+          <NotificationSettings 
+            settings={notificationSettings}
+            loading={settingsLoading}
+            onSettingChange={handleSettingChange}
+            updatePending={updateSettingsMutation.isPending}
+          />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+interface NotificationsListProps {
+  notifications: Notification[];
+  loading: boolean;
+  onMarkAsRead: (id: number) => void;
+  markAsReadPending: boolean;
+}
+
+function NotificationsList({ notifications, loading, onMarkAsRead, markAsReadPending }: NotificationsListProps) {
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (notifications.length === 0) {
+    return (
+      <Card>
+        <CardContent className="p-12 text-center">
+          <BellOff className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No notifications</h3>
+          <p className="text-gray-600">You're all caught up! Check back later for new updates.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardContent className="p-0">
+        <ScrollArea className="h-[600px]">
+          {notifications.map((notification, index) => {
+            const IconComponent = getNotificationIcon(notification.type);
+            const priorityColor = getPriorityColor(notification.priority);
+            
+            return (
+              <div key={notification.id}>
+                <div className={cn(
+                  "p-4 hover:bg-gray-50 transition-colors cursor-pointer",
+                  !notification.isRead && "bg-blue-50"
+                )}>
+                  <div className="flex items-start gap-3">
+                    <div className={cn(
+                      "p-2 rounded-full text-white",
+                      priorityColor
+                    )}>
+                      <IconComponent className="w-4 h-4" />
+                    </div>
+                    
+                    <div className="flex-1 space-y-1">
+                      <div className="flex items-start justify-between">
+                        <h4 className={cn(
+                          "text-sm font-medium",
+                          !notification.isRead && "font-semibold"
+                        )}>
+                          {notification.title}
+                        </h4>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-xs">
+                            {notification.category === 'user_based' ? 'Personal' : 'Team'}
+                          </Badge>
+                          {!notification.isRead && (
+                            <Button
+                              onClick={() => onMarkAsRead(notification.id)}
+                              disabled={markAsReadPending}
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0"
+                            >
+                              <Check className="w-3 h-3" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <p className="text-sm text-gray-600">
+                        {notification.message}
+                      </p>
+                      
+                      <div className="flex items-center gap-2 text-xs text-gray-500">
+                        <Clock className="w-3 h-3" />
+                        <span>{format(new Date(notification.createdAt), 'MMM d, h:mm a')}</span>
+                        {!notification.isRead && (
+                          <Circle className="w-2 h-2 fill-blue-600 text-blue-600 ml-2" />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                {index < notifications.length - 1 && <Separator />}
+              </div>
+            );
+          })}
+        </ScrollArea>
+      </CardContent>
+    </Card>
+  );
+}
+
+interface NotificationSettingsProps {
+  settings?: NotificationSettings;
+  loading: boolean;
+  onSettingChange: (setting: keyof NotificationSettings, value: boolean) => void;
+  updatePending: boolean;
+}
+
+function NotificationSettings({ settings, loading, onSettingChange, updatePending }: NotificationSettingsProps) {
+  if (loading || !settings) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const settingGroups = [
+    {
+      title: "Job & Task Management",
+      icon: Calendar,
+      settings: [
+        { key: 'jobAssignmentInApp', label: 'Job assignments (In-app)', description: 'When you are assigned to a new job' },
+        { key: 'jobAssignmentEmail', label: 'Job assignments (Email)', description: 'Email notifications for job assignments' },
+        { key: 'jobAssignmentSms', label: 'Job assignments (SMS)', description: 'SMS notifications for job assignments' },
+        { key: 'taskCompletionInApp', label: 'Task completions (In-app)', description: 'When tasks are completed' },
+        { key: 'taskCompletionEmail', label: 'Task completions (Email)', description: 'Email notifications for task completions' },
+        { key: 'taskCompletionSms', label: 'Task completions (SMS)', description: 'SMS notifications for task completions' },
+        { key: 'taskTriggerInApp', label: 'Task triggers (In-app)', description: 'When task triggers are activated' },
+        { key: 'taskTriggerEmail', label: 'Task triggers (Email)', description: 'Email notifications for task triggers' },
+        { key: 'taskTriggerSms', label: 'Task triggers (SMS)', description: 'SMS notifications for task triggers' },
+      ]
+    },
+    {
+      title: "Sales & Leads",
+      icon: User,
+      settings: [
+        { key: 'leadAssignmentInApp', label: 'Lead assignments (In-app)', description: 'When leads are assigned to you' },
+        { key: 'leadAssignmentEmail', label: 'Lead assignments (Email)', description: 'Email notifications for lead assignments' },
+        { key: 'leadAssignmentSms', label: 'Lead assignments (SMS)', description: 'SMS notifications for lead assignments' },
+      ]
+    },
+    {
+      title: "Financial",
+      icon: DollarSign,
+      settings: [
+        { key: 'invoicePaymentInApp', label: 'Invoice payments (In-app)', description: 'When invoices are paid' },
+        { key: 'invoicePaymentEmail', label: 'Invoice payments (Email)', description: 'Email notifications for invoice payments' },
+        { key: 'invoicePaymentSms', label: 'Invoice payments (SMS)', description: 'SMS notifications for invoice payments' },
+      ]
+    },
+    {
+      title: "Team Updates",
+      icon: Users,
+      settings: [
+        { key: 'teamUpdatesInApp', label: 'Team updates (In-app)', description: 'General team and organization updates' },
+        { key: 'teamUpdatesEmail', label: 'Team updates (Email)', description: 'Email notifications for team updates' },
+        { key: 'teamUpdatessSms', label: 'Team updates (SMS)', description: 'SMS notifications for team updates' },
+      ]
+    }
+  ];
+
+  return (
+    <div className="space-y-6">
+      {settingGroups.map((group) => {
+        const IconComponent = group.icon;
+        
+        return (
+          <Card key={group.title}>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <IconComponent className="w-5 h-5" />
+                {group.title}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {group.settings.map((setting) => (
+                <div key={setting.key} className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <div className="text-sm font-medium">{setting.label}</div>
+                    <div className="text-xs text-gray-600">{setting.description}</div>
+                  </div>
+                  <Button
+                    onClick={() => onSettingChange(setting.key as keyof NotificationSettings, !settings[setting.key as keyof NotificationSettings])}
+                    disabled={updatePending}
+                    variant={settings[setting.key as keyof NotificationSettings] ? "default" : "outline"}
+                    size="sm"
+                  >
+                    {settings[setting.key as keyof NotificationSettings] ? "Enabled" : "Disabled"}
+                  </Button>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        );
+      })}
+    </div>
+  );
+}

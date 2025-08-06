@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Bell, Plus, Calendar, MessageCircle, Users, CheckSquare, Cloud, Briefcase } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { apiRequest } from "@/lib/queryClient";
@@ -172,14 +173,7 @@ export default function Dashboard() {
               </Dialog>
             )}
             {settings.showNotifications && (
-              <div className="relative">
-                <Button variant="ghost" size="icon">
-                  <Bell className="w-5 h-5" />
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-4 h-4 md:w-5 md:h-5 rounded-full flex items-center justify-center text-[10px] md:text-xs">
-                    3
-                  </span>
-                </Button>
-              </div>
+              <NotificationBell />
             )}
           </div>
         </div>
@@ -451,6 +445,36 @@ export default function Dashboard() {
           </p>
         </div>
       </main>
+    </div>
+  );
+}
+
+// Notification Bell Component
+function NotificationBell() {
+  const [, navigate] = useLocation();
+  
+  // Fetch unread notification count
+  const { data: unreadData } = useQuery<{ count: number }>({
+    queryKey: ['/api/notifications/unread-count'],
+    refetchInterval: 10000, // Refetch every 10 seconds
+  });
+
+  const unreadCount = unreadData?.count || 0;
+
+  const handleClick = () => {
+    navigate('/notifications');
+  };
+
+  return (
+    <div className="relative">
+      <Button variant="ghost" size="icon" onClick={handleClick}>
+        <Bell className="w-5 h-5" />
+        {unreadCount > 0 && (
+          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-4 h-4 md:w-5 md:h-5 rounded-full flex items-center justify-center text-[10px] md:text-xs">
+            {unreadCount > 99 ? '99+' : unreadCount}
+          </span>
+        )}
+      </Button>
     </div>
   );
 }
