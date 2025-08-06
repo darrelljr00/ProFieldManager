@@ -839,6 +839,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log(`📊 WebSocket broadcast complete: ${messageSentCount} messages sent for ${eventType}`);
   }
 
+  // Function to broadcast to a specific user
+  function broadcastToUser(userId: number, organizationId: number, eventType: string, data: any): void {
+    const message = JSON.stringify({
+      type: 'update',
+      eventType,
+      data,
+      timestamp: new Date().toISOString()
+    });
+
+    let messageSent = false;
+    connectedClients.forEach((clientInfo, ws) => {
+      if (ws.readyState === WebSocket.OPEN && 
+          clientInfo.userType === 'web' && 
+          clientInfo.userId === userId &&
+          clientInfo.organizationId === organizationId) {
+        
+        console.log(`📤 Sending ${eventType} to specific user ${clientInfo.userId} (${clientInfo.username})`);
+        ws.send(message);
+        messageSent = true;
+      }
+    });
+    
+    if (!messageSent) {
+      console.log(`⚠️ No active WebSocket connection found for user ${userId} in org ${organizationId}`);
+    }
+  }
+
   // Helper function to broadcast team status updates to organization users
   async function broadcastTeamStatusUpdate(organizationId: number) {
     try {
@@ -3947,6 +3974,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       const task = await storage.createTask(taskData);
+      
+      // Create automated notifications if task has due date and is assigned
+      if (task.dueDate && task.assignedToId) {
+        try {
+          const { TaskNotificationService } = await import("./taskNotificationService");
+          await TaskNotificationService.createNotificationsForTask(
+            task.id, 
+            task.assignedToId, 
+            task.dueDate, 
+            req.user!.organizationId
+          );
+          console.log(`📅 Task notifications created for task ${task.id}`);
+        } catch (error) {
+          console.error("Error creating task notifications:", error);
+        }
+      }
+      
       res.status(201).json(task);
     } catch (error: any) {
       console.error("Error creating task:", error);
@@ -3966,6 +4010,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!updatedTask) {
         console.log(`Task ${taskId} not found`);
         return res.status(404).json({ message: "Task not found" });
+      }
+      
+      // Handle notification updates based on task changes
+      try {
+        const { TaskNotificationService } = await import("./taskNotificationService");
+        
+        // If task is completed, cancel pending notifications
+        if (updatedTask.isCompleted) {
+          await TaskNotificationService.cancelNotificationsForTask(taskId);
+          console.log(`📅 Task notifications cancelled for completed task ${taskId}`);
+        }
+        // If task due date changed and task is not completed
+        else if (req.body.dueDate && updatedTask.assignedToId && !updatedTask.isCompleted) {
+          await TaskNotificationService.updateNotificationsForTask(taskId, new Date(req.body.dueDate));
+          console.log(`📅 Task notifications updated for task ${taskId}`);
+        }
+        // If task was just assigned and has due date
+        else if (req.body.assignedToId && updatedTask.dueDate && !updatedTask.isCompleted) {
+          await TaskNotificationService.createNotificationsForTask(
+            taskId, 
+            updatedTask.assignedToId, 
+            updatedTask.dueDate, 
+            req.user!.organizationId
+          );
+          console.log(`📅 Task notifications created for newly assigned task ${taskId}`);
+        }
+      } catch (error) {
+        console.error("Error updating task notifications:", error);
       }
       
       console.log(`Task ${taskId} updated successfully:`, updatedTask);
@@ -15921,8 +15993,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Add broadcast function to the app for use in routes
+  // Add broadcast functions to the app for use in routes  
   (app as any).broadcastToWebUsers = broadcastToWebUsers;
+  (app as any).broadcastToUser = broadcastToUser;
+  
+  // Start notification processor for automated task reminders
+  const taskNotificationModule = await import("./taskNotificationService");
+  taskNotificationModule.startNotificationProcessor();
 
   return httpServer;
 }

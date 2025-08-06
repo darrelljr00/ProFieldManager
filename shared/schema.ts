@@ -653,6 +653,38 @@ export const timeClockTaskTriggers = pgTable("time_clock_task_triggers", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Task Notifications - Automated reminder system for task due dates
+export const taskNotifications = pgTable("task_notifications", {
+  id: serial("id").primaryKey(),
+  taskId: integer("task_id").notNull().references(() => tasks.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  
+  // Notification configuration
+  notificationType: text("notification_type").notNull(), // '24h', '12h', '6h', '3h', '1h'
+  hoursBeforeDue: integer("hours_before_due").notNull(), // 24, 12, 6, 3, 1
+  
+  // Delivery tracking
+  status: text("status").notNull().default("pending"), // pending, sent, failed
+  sentAt: timestamp("sent_at"),
+  failureReason: text("failure_reason"),
+  
+  // Notification content
+  subject: text("subject").notNull(),
+  message: text("message").notNull(),
+  
+  // Delivery channels
+  isEmailSent: boolean("is_email_sent").default(false),
+  isSmsSent: boolean("is_sms_sent").default(false),
+  isWebSocketSent: boolean("is_websocket_sent").default(false),
+  
+  // Scheduling
+  scheduledFor: timestamp("scheduled_for").notNull(), // When to send this notification
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const userDashboardSettings = pgTable("user_dashboard_settings", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
@@ -3592,3 +3624,13 @@ export const insertTimeClockTaskTriggerSchema = createInsertSchema(timeClockTask
 export type TimeClockTaskTrigger = typeof timeClockTaskTriggers.$inferSelect;
 export type InsertTimeClockTaskTrigger = z.infer<typeof insertTimeClockTaskTriggerSchema>;
 
+
+// Task Notification types
+export const insertTaskNotificationSchema = createInsertSchema(taskNotifications).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  sentAt: true,
+});
+export type InsertTaskNotification = z.infer<typeof insertTaskNotificationSchema>;
+export type SelectTaskNotification = typeof taskNotifications.$inferSelect;
