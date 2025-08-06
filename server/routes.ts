@@ -838,6 +838,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
     console.log(`📊 WebSocket broadcast complete: ${messageSentCount} messages sent for ${eventType}`);
   }
+
+  // Helper function to broadcast team status updates to organization users
+  async function broadcastTeamStatusUpdate(organizationId: number) {
+    try {
+      // Get current session statistics from database
+      const activeSessionsQuery = await db
+        .select({
+          userId: userSessions.userId,
+          deviceType: userSessions.deviceType,
+          userAgent: userSessions.userAgent,
+          user: {
+            id: users.id,
+            username: users.username,
+            organizationId: users.organizationId,
+            role: users.role
+          }
+        })
+        .from(userSessions)
+        .innerJoin(users, eq(userSessions.userId, users.id))
+        .where(
+          and(
+            gt(userSessions.expiresAt, sql`now()`),
+            eq(users.isActive, true),
+            eq(users.organizationId, organizationId)
+          )
+        );
+
+      // Count unique users (total online)
+      const uniqueUserIds = new Set(activeSessionsQuery.map(session => session.userId));
+      const onlineCount = uniqueUserIds.size;
+
+      // Count field users (mobile/field sessions)
+      const fieldUserIds = new Set();
+      activeSessionsQuery.forEach(session => {
+        const isMobileDevice = session.deviceType === 'mobile' || 
+                              (session.userAgent && (
+                                session.userAgent.toLowerCase().includes('mobile') ||
+                                session.userAgent.toLowerCase().includes('android') ||
+                                session.userAgent.toLowerCase().includes('iphone')
+                              ));
+        if (isMobileDevice) {
+          fieldUserIds.add(session.userId);
+        }
+      });
+      const inFieldCount = fieldUserIds.size;
+
+      // Get WebSocket connected clients count for verification
+      const webSocketClients = Array.from(connectedClients.values())
+        .filter(client => client.organizationId === organizationId);
+      
+      const webConnectedCount = new Set(webSocketClients.map(client => client.userId)).size;
+
+      // Broadcast team status to all organization users
+      broadcastToWebUsers(organizationId, 'team_status_updated', {
+        online: onlineCount,
+        inField: inFieldCount,
+        webSocketConnected: webConnectedCount,
+        organizationId: organizationId,
+        timestamp: new Date().toISOString()
+      });
+
+      console.log(`📊 Team status broadcasted to org ${organizationId}: ${onlineCount} online, ${inFieldCount} in field`);
+    } catch (error) {
+      console.error('Error broadcasting team status update:', error);
+    }
+  }
   // PRIORITY: Settings endpoints must be registered first to avoid conflicts
   app.get('/api/settings/payment', async (req, res) => {
     try {
@@ -2901,6 +2967,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(stats);
     } catch (error: any) {
       res.status(500).json({ message: "Error fetching user stats: " + error.message });
+    }
+  });
+
+  // Team status for dashboard (real-time user counts)
+  app.get("/api/team/status", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      
+      // Get current session statistics from database
+      const activeSessionsQuery = await db
+        .select({
+          userId: userSessions.userId,
+          deviceType: userSessions.deviceType,
+          userAgent: userSessions.userAgent,
+          user: {
+            id: users.id,
+            username: users.username,
+            organizationId: users.organizationId,
+            role: users.role
+          }
+        })
+        .from(userSessions)
+        .innerJoin(users, eq(userSessions.userId, users.id))
+        .where(
+          and(
+            gt(userSessions.expiresAt, sql`now()`),
+            eq(users.isActive, true),
+            eq(users.organizationId, user.organizationId) // Filter by organization
+          )
+        );
+
+      // Count unique users (total online)
+      const uniqueUserIds = new Set(activeSessionsQuery.map(session => session.userId));
+      const onlineCount = uniqueUserIds.size;
+
+      // Count field users (mobile/field sessions)
+      const fieldUserIds = new Set();
+      activeSessionsQuery.forEach(session => {
+        const isMobileDevice = session.deviceType === 'mobile' || 
+                              (session.userAgent && (
+                                session.userAgent.toLowerCase().includes('mobile') ||
+                                session.userAgent.toLowerCase().includes('android') ||
+                                session.userAgent.toLowerCase().includes('iphone')
+                              ));
+        if (isMobileDevice) {
+          fieldUserIds.add(session.userId);
+        }
+      });
+      const inFieldCount = fieldUserIds.size;
+
+      // Get WebSocket connected clients count for verification
+      const webSocketClients = Array.from(connectedClients.values())
+        .filter(client => client.organizationId === user.organizationId);
+      
+      const webConnectedCount = new Set(webSocketClients.map(client => client.userId)).size;
+
+      res.json({
+        online: onlineCount,
+        inField: inFieldCount,
+        webSocketConnected: webConnectedCount,
+        organizationId: user.organizationId
+      });
+    } catch (error: any) {
+      console.error("Error fetching team status:", error);
+      res.status(500).json({ message: "Error fetching team status: " + error.message });
     }
   });
 
@@ -12446,7 +12577,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   wss.on('connection', (ws, req) => {
     console.log('New WebSocket connection');
 
-    ws.on('message', (message) => {
+    ws.on('message', async (message) => {
       try {
         const data = JSON.parse(message.toString());
         
@@ -12470,20 +12601,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
             type: 'auth_success',
             message: 'WebSocket authenticated successfully'
           }));
+
+          // Broadcast team status update when user connects
+          await broadcastTeamStatusUpdate(data.organizationId);
         }
       } catch (error) {
         console.error('Error processing WebSocket message:', error);
       }
     });
 
-    ws.on('close', () => {
+    ws.on('close', async () => {
+      const clientInfo = connectedClients.get(ws);
       connectedClients.delete(ws);
       console.log('WebSocket connection closed');
+      
+      // Broadcast team status update when user disconnects
+      if (clientInfo?.organizationId) {
+        await broadcastTeamStatusUpdate(clientInfo.organizationId);
+      }
     });
 
-    ws.on('error', (error) => {
+    ws.on('error', async (error) => {
       console.error('WebSocket error:', error);
+      const clientInfo = connectedClients.get(ws);
       connectedClients.delete(ws);
+      
+      // Broadcast team status update when user disconnects due to error
+      if (clientInfo?.organizationId) {
+        await broadcastTeamStatusUpdate(clientInfo.organizationId);
+      }
     });
   });
 

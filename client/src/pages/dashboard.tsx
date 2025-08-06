@@ -8,7 +8,10 @@ import { InvoiceForm } from "@/components/invoice-form";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Bell, Plus, Calendar, MessageCircle, Users, CheckSquare, Cloud, Briefcase } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { useWebSocket } from "@/hooks/useWebSocket";
+import { apiRequest } from "@/lib/queryClient";
 
 type DashboardSettings = {
   // Widget visibility
@@ -43,6 +46,14 @@ type DashboardSettings = {
 
 export default function Dashboard() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const { user } = useAuth();
+  
+  // Team status state for real-time updates
+  const [teamStatus, setTeamStatus] = useState({
+    online: 0,
+    inField: 0,
+    webSocketConnected: 0
+  });
 
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ["/api/dashboard/stats"],
@@ -58,6 +69,37 @@ export default function Dashboard() {
 
   const { data: dashboardSettings, isLoading: settingsLoading } = useQuery<DashboardSettings>({
     queryKey: ["/api/settings/dashboard"],
+  });
+
+  // Query for initial team status
+  const { data: initialTeamStatus, isLoading: teamStatusLoading } = useQuery({
+    queryKey: ["/api/team/status"],
+    refetchInterval: 30000 // Fallback refresh every 30 seconds
+  });
+
+  // Update team status when initial data loads
+  useEffect(() => {
+    if (initialTeamStatus) {
+      setTeamStatus({
+        online: initialTeamStatus.online || 0,
+        inField: initialTeamStatus.inField || 0,
+        webSocketConnected: initialTeamStatus.webSocketConnected || 0
+      });
+    }
+  }, [initialTeamStatus]);
+
+  // WebSocket connection for real-time updates
+  const { isConnected } = useWebSocket({
+    onMessage: (data) => {
+      if (data.eventType === 'team_status_updated') {
+        console.log('📊 Real-time team status update received:', data.data);
+        setTeamStatus({
+          online: data.data.online || 0,
+          inField: data.data.inField || 0,
+          webSocketConnected: data.data.webSocketConnected || 0
+        });
+      }
+    }
   });
 
   // Use default settings if not loaded yet
@@ -342,15 +384,22 @@ export default function Dashboard() {
                   <div className="space-y-2">
                     <div className="flex justify-between">
                       <span className="text-sm text-gray-600">Online</span>
-                      <span className="font-semibold text-green-600">6</span>
+                      <span className={`font-semibold ${teamStatusLoading ? 'text-gray-400' : 'text-green-600'}`}>
+                        {teamStatusLoading ? '...' : teamStatus.online}
+                        {isConnected && <span className="ml-1 text-xs text-green-500">●</span>}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-gray-600">In Field</span>
-                      <span className="font-semibold text-blue-600">4</span>
+                      <span className={`font-semibold ${teamStatusLoading ? 'text-gray-400' : 'text-blue-600'}`}>
+                        {teamStatusLoading ? '...' : teamStatus.inField}
+                      </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">Offline</span>
-                      <span className="font-semibold text-gray-600">2</span>
+                      <span className="text-sm text-gray-600">Connected</span>
+                      <span className={`font-semibold ${teamStatusLoading ? 'text-gray-400' : 'text-orange-600'}`}>
+                        {teamStatusLoading ? '...' : teamStatus.webSocketConnected}
+                      </span>
                     </div>
                   </div>
                 </CardContent>
