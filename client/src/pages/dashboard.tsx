@@ -55,6 +55,9 @@ export default function Dashboard() {
     webSocketConnected: 0
   });
 
+  // Enhanced task analytics state for real-time updates
+  const [taskAnalyticsData, setTaskAnalyticsData] = useState<any>(null);
+
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ["/api/dashboard/stats"],
   });
@@ -79,14 +82,21 @@ export default function Dashboard() {
 
   // Update team status when initial data loads
   useEffect(() => {
-    if (initialTeamStatus) {
+    if (initialTeamStatus && typeof initialTeamStatus === 'object') {
       setTeamStatus({
-        online: initialTeamStatus.online || 0,
-        inField: initialTeamStatus.inField || 0,
-        webSocketConnected: initialTeamStatus.webSocketConnected || 0
+        online: (initialTeamStatus as any).online || 0,
+        inField: (initialTeamStatus as any).inField || 0,
+        webSocketConnected: (initialTeamStatus as any).webSocketConnected || 0
       });
     }
   }, [initialTeamStatus]);
+
+  // Update task analytics when initial data loads
+  useEffect(() => {
+    if (taskAnalytics) {
+      setTaskAnalyticsData(taskAnalytics);
+    }
+  }, [taskAnalytics]);
 
   // WebSocket connection for real-time updates
   const { isConnected } = useWebSocket({
@@ -99,11 +109,17 @@ export default function Dashboard() {
           webSocketConnected: data.data.webSocketConnected || 0
         });
       }
+      
+      // Handle task analytics updates
+      if (data.eventType === 'task_analytics_updated') {
+        console.log('📊 Real-time task analytics update received:', data.data);
+        setTaskAnalyticsData(data.data);
+      }
     }
   });
 
   // Use default settings if not loaded yet
-  const settings = dashboardSettings || {
+  const settings: DashboardSettings = dashboardSettings || {
     showStatsCards: true,
     showRevenueChart: true,
     showRecentActivity: true,
@@ -272,40 +288,58 @@ export default function Dashboard() {
                 <CardContent>
                   {taskAnalyticsLoading ? (
                     <div className="text-sm text-muted-foreground">Loading analytics...</div>
-                  ) : taskAnalytics?.summary ? (
+                  ) : (taskAnalyticsData?.summary || taskAnalytics?.summary) ? (
                     <div className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600">Total Tasks</span>
-                        <span className="font-bold text-lg">{taskAnalytics.summary.totalTasks}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600">Completed</span>
-                        <span className="font-semibold text-green-600">
-                          {taskAnalytics.summary.completedTasks} ({taskAnalytics.summary.completionRate}%)
-                        </span>
-                      </div>
-                      <div className="bg-gray-200 rounded-full h-2">
-                        <div 
-                          className="bg-green-600 h-2 rounded-full transition-all duration-300"
-                          style={{ width: `${taskAnalytics.summary.completionRate}%` }}
-                        ></div>
-                      </div>
-                      <div className="pt-2 space-y-1">
-                        <div className="flex justify-between text-xs">
-                          <span className="text-gray-500">Today</span>
-                          <span className="text-green-600 font-medium">{taskAnalytics.summary.completedToday}</span>
-                        </div>
-                        <div className="flex justify-between text-xs">
-                          <span className="text-gray-500">This Week</span>
-                          <span className="text-blue-600 font-medium">{taskAnalytics.summary.completedThisWeek}</span>
-                        </div>
-                        {taskAnalytics.summary.averageCompletionTime > 0 && (
-                          <div className="flex justify-between text-xs">
-                            <span className="text-gray-500">Avg Time</span>
-                            <span className="text-purple-600 font-medium">{taskAnalytics.summary.averageCompletionTime}h</span>
-                          </div>
-                        )}
-                      </div>
+                      {(() => {
+                        const data = taskAnalyticsData?.summary || taskAnalytics?.summary;
+                        return (
+                          <>
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm text-gray-600">
+                                {user?.role === 'admin' || user?.role === 'manager' ? 'Team Tasks' : 'Total Tasks'}
+                              </span>
+                              <span className="font-bold text-lg">
+                                {data.totalTasks}
+                                {isConnected && <span className="ml-1 text-xs text-green-500">●</span>}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm text-gray-600">Completed</span>
+                              <span className="font-semibold text-green-600">
+                                {data.completedTasks} ({data.completionRate}%)
+                              </span>
+                            </div>
+                            <div className="bg-gray-200 rounded-full h-2">
+                              <div 
+                                className="bg-green-600 h-2 rounded-full transition-all duration-300"
+                                style={{ width: `${data.completionRate}%` }}
+                              ></div>
+                            </div>
+                            <div className="pt-2 space-y-1">
+                              <div className="flex justify-between text-xs">
+                                <span className="text-gray-500">Today</span>
+                                <span className="text-green-600 font-medium">{data.completedToday}</span>
+                              </div>
+                              <div className="flex justify-between text-xs">
+                                <span className="text-gray-500">This Week</span>
+                                <span className="text-blue-600 font-medium">{data.completedThisWeek}</span>
+                              </div>
+                              {data.averageCompletionTime > 0 && (
+                                <div className="flex justify-between text-xs">
+                                  <span className="text-gray-500">Avg Time</span>
+                                  <span className="text-purple-600 font-medium">{data.averageCompletionTime}h</span>
+                                </div>
+                              )}
+                              {(user?.role === 'admin' || user?.role === 'manager') && data.activeTeamMembers && (
+                                <div className="flex justify-between text-xs">
+                                  <span className="text-gray-500">Team Members</span>
+                                  <span className="text-orange-600 font-medium">{data.activeTeamMembers}</span>
+                                </div>
+                              )}
+                            </div>
+                          </>
+                        );
+                      })()}
                     </div>
                   ) : (
                     <div className="text-center text-gray-500">

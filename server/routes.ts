@@ -6848,6 +6848,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get comprehensive task analytics
       const taskAnalytics = await storage.getTaskCompletionAnalytics(organizationId);
       
+      // Enhanced analytics for admins/managers - include team member count
+      let enhancedAnalytics = taskAnalytics;
+      if (user.role === 'admin' || user.role === 'manager') {
+        // Get active team members count for team-wide context
+        const activeTeamMembers = await db
+          .select({ count: sql<number>`count(*)` })
+          .from(users)
+          .where(
+            and(
+              eq(users.organizationId, organizationId),
+              eq(users.isActive, true)
+            )
+          );
+        
+        enhancedAnalytics = {
+          ...taskAnalytics,
+          activeTeamMembers: activeTeamMembers[0]?.count || 0
+        };
+      }
+      
       // For the analytics endpoint, return summary data with simpler calculations
       const tasksSummary = {
         dailyCompletions: [],
@@ -6855,7 +6875,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       res.json({
-        summary: taskAnalytics,
+        summary: enhancedAnalytics,
         completionData: tasksSummary.dailyCompletions,
         projectBreakdown: tasksSummary.projectBreakdown,
         timeRange: {
@@ -9759,6 +9779,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
             completedById: task.completedById,
             organizationId: user.organizationId
           });
+
+          // Broadcast updated task analytics for real-time dashboard updates
+          if (req.body.isCompleted === true) {
+            // Get fresh task analytics after completion
+            const updatedAnalytics = await storage.getTaskCompletionAnalytics(user.organizationId);
+            
+            // Enhanced analytics for admins/managers
+            const activeTeamMembers = await db
+              .select({ count: sql<number>`count(*)` })
+              .from(users)
+              .where(
+                and(
+                  eq(users.organizationId, user.organizationId),
+                  eq(users.isActive, true)
+                )
+              );
+            
+            const enhancedAnalytics = {
+              ...updatedAnalytics,
+              activeTeamMembers: activeTeamMembers[0]?.count || 0
+            };
+            
+            // Broadcast task analytics update to all users in organization
+            broadcastToWebUsers('task_analytics_updated', {
+              summary: enhancedAnalytics,
+              organizationId: user.organizationId,
+              updatedBy: user.id,
+              taskId: task.id
+            });
+          }
         } catch (error) {
           console.log('WebSocket broadcast error (non-critical):', error);
         }
