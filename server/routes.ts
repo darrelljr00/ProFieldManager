@@ -13868,18 +13868,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create a new task group
   app.post("/api/task-groups", requireAuth, async (req, res) => {
     try {
+      console.log("🔧 Task Group Creation - Request received:", {
+        userId: req.user!.id,
+        organizationId: req.user!.organizationId,
+        body: req.body
+      });
+
       const userId = req.user!.id;
       const organizationId = req.user!.organizationId;
       const { name, description, color, templates } = req.body;
 
       if (!name?.trim()) {
+        console.log("❌ Task Group Creation - Missing name");
         return res.status(400).json({ message: "Task group name is required" });
       }
 
       if (!templates || templates.length === 0) {
+        console.log("❌ Task Group Creation - Missing templates");
         return res.status(400).json({ message: "At least one task template is required" });
       }
 
+      console.log("✅ Task Group Creation - Creating task group...");
       // Create the task group
       const taskGroup = await storage.createTaskGroup({
         name: name.trim(),
@@ -13890,13 +13899,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isActive: true
       });
 
+      console.log("✅ Task Group Created:", taskGroup);
+
       // Create task templates for the group
       const createdTemplates = [];
       for (const template of templates) {
         if (!template.title?.trim()) {
+          console.log("⚠️ Skipping template without title:", template);
           continue; // Skip templates without titles
         }
         
+        console.log("Creating template:", template);
         const createdTemplate = await storage.createTaskTemplate({
           taskGroupId: taskGroup.id,
           title: template.title.trim(),
@@ -13906,17 +13919,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
           priority: template.priority || 'medium',
           order: template.order || 0
         });
+        console.log("✅ Template Created:", createdTemplate);
         createdTemplates.push(createdTemplate);
       }
 
-      res.json({
+      const result = {
         ...taskGroup,
         templates: createdTemplates,
         taskCount: createdTemplates.length
-      });
+      };
+
+      console.log("🎉 Task Group Creation Complete:", result);
+      res.json(result);
     } catch (error: any) {
-      console.error("Error creating task group:", error);
-      res.status(500).json({ message: "Failed to create task group" });
+      console.error("💥 Error creating task group:", {
+        error: error.message,
+        stack: error.stack,
+        name: error.name,
+        details: error
+      });
+      res.status(500).json({ message: "Failed to create task group: " + error.message });
     }
   });
 
