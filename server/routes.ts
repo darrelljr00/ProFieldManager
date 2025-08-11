@@ -1395,7 +1395,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       host: req.headers.host,
       isCustomDomain: req.headers.origin?.includes('profieldmanager.com'),
       hasBody: !!req.body,
-      bodyKeys: Object.keys(req.body || {})
+      bodyKeys: Object.keys(req.body || {}),
+      userAgent: req.headers['user-agent']?.substring(0, 50),
+      referer: req.headers.referer
     });
     
     try {
@@ -1440,9 +1442,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Cookie settings for custom domain support
       const isCustomDomain = req.headers.origin?.includes('profieldmanager.com') || req.headers.host?.includes('profieldmanager.com');
       
+      // CRITICAL: Set proper CORS headers for custom domain authentication
+      if (isCustomDomain && req.headers.origin) {
+        res.header('Access-Control-Allow-Origin', req.headers.origin);
+        res.header('Access-Control-Allow-Credentials', 'true');
+      }
+      
       res.cookie('auth_token', session.token, { 
         httpOnly: true, 
-        secure: process.env.NODE_ENV === 'production', 
+        secure: isCustomDomain ? true : (process.env.NODE_ENV === 'production'), // Always secure for custom domain
         sameSite: isCustomDomain ? 'none' : 'lax', // Allow cross-origin for custom domain
         domain: isCustomDomain ? '.profieldmanager.com' : undefined, // Set domain for custom domain
         maxAge: 24 * 60 * 60 * 1000 // 24 hours

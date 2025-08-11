@@ -62,7 +62,7 @@ export async function apiRequest(
     method,
     headers,
     body,
-    credentials: isCustomDomain() ? "omit" : "include", // Don't send cookies for cross-origin requests
+    credentials: "include", // Always include credentials for authentication
   });
 
   console.log('📡 API Response:', {

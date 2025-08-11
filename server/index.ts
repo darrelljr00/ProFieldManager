@@ -26,8 +26,10 @@ app.use((req, res, next) => {
     }
   });
   
-  if (isAllowedOrigin || !origin) {
-    res.header('Access-Control-Allow-Origin', origin || '*');
+  if (isAllowedOrigin) {
+    res.header('Access-Control-Allow-Origin', origin);
+  } else if (!origin) {
+    res.header('Access-Control-Allow-Origin', '*');
   }
   
   res.header('Access-Control-Allow-Credentials', 'true');
