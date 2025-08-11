@@ -20,10 +20,29 @@ import { insertPartsSuppliesSchema } from "@shared/schema";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import type { UploadResult } from "@uppy/core";
 
-const createPartSchema = insertPartsSuppliesSchema.extend({
+const createPartSchema = z.object({
+  name: z.string().min(1, "Part name is required"),
+  description: z.string().optional(),
+  category: z.string().min(1, "Category is required"),
+  sku: z.string().optional(),
+  currentStock: z.number().min(0).default(0),
+  minStockLevel: z.number().min(0).default(0),
+  maxStockLevel: z.number().optional(),
+  reorderPoint: z.number().optional(),
+  reorderQuantity: z.number().optional(),
   unitCost: z.string().optional(),
   unitPrice: z.string().optional(),
   weight: z.string().optional(),
+  dimensions: z.string().optional(),
+  unit: z.string().default("each"),
+  supplier: z.string().optional(),
+  supplierSku: z.string().optional(),
+  supplierContact: z.string().optional(),
+  location: z.string().optional(),
+  binLocation: z.string().optional(),
+  imageUrl: z.string().optional(),
+  requiresSpecialHandling: z.boolean().optional(),
+  isHazardous: z.boolean().optional(),
 });
 
 type CreatePartFormData = z.infer<typeof createPartSchema>;
@@ -50,9 +69,10 @@ export default function PartsSuppliesPage() {
   const handleGetUploadParameters = async () => {
     try {
       const response = await apiRequest('POST', '/api/objects/upload');
+      const result = await response.json();
       return {
         method: 'PUT' as const,
-        url: response.uploadURL,
+        url: result.uploadURL,
       };
     } catch (error) {
       toast({
@@ -77,7 +97,10 @@ export default function PartsSuppliesPage() {
   // Fetch parts and supplies
   const { data: partsSupplies = [], isLoading: partsLoading } = useQuery({
     queryKey: ['/api/parts-supplies'],
-    queryFn: () => apiRequest('GET', '/api/parts-supplies')
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/parts-supplies');
+      return response.json();
+    }
   });
 
   // Filter and search logic
@@ -104,7 +127,7 @@ export default function PartsSuppliesPage() {
 
   // Get unique suppliers for filter dropdown
   const uniqueSuppliers = Array.isArray(partsSupplies) 
-    ? [...new Set(partsSupplies.map((part: any) => part.supplier).filter(Boolean))]
+    ? Array.from(new Set(partsSupplies.map((part: any) => part.supplier).filter(Boolean)))
     : [];
 
   // Clear all filters
@@ -126,18 +149,27 @@ export default function PartsSuppliesPage() {
   // Fetch categories
   const { data: categories = [] } = useQuery({
     queryKey: ['/api/parts-categories'],
-    queryFn: () => apiRequest('GET', '/api/parts-categories')
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/parts-categories');
+      return response.json();
+    }
   });
 
   // Fetch stock alerts
   const { data: stockAlerts = [] } = useQuery({
     queryKey: ['/api/stock-alerts'],
-    queryFn: () => apiRequest('GET', '/api/stock-alerts')
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/stock-alerts');
+      return response.json();
+    }
   });
 
   // Create part mutation
   const createPartMutation = useMutation({
-    mutationFn: (data: any) => apiRequest('POST', '/api/parts-supplies', data),
+    mutationFn: async (data: any) => {
+      const response = await apiRequest('POST', '/api/parts-supplies', data);
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/parts-supplies'] });
       queryClient.invalidateQueries({ queryKey: ['/api/stock-alerts'] });
@@ -153,8 +185,10 @@ export default function PartsSuppliesPage() {
 
   // Update stock mutation
   const updateStockMutation = useMutation({
-    mutationFn: ({ partId, newStock, reason }: { partId: number, newStock: number, reason?: string }) => 
-      apiRequest('PUT', `/api/parts-supplies/${partId}/stock`, { newStock, reason }),
+    mutationFn: async ({ partId, newStock, reason }: { partId: number, newStock: number, reason?: string }) => {
+      const response = await apiRequest('PUT', `/api/parts-supplies/${partId}/stock`, { newStock, reason });
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/parts-supplies'] });
       queryClient.invalidateQueries({ queryKey: ['/api/stock-alerts'] });
@@ -177,12 +211,19 @@ export default function PartsSuppliesPage() {
       maxStockLevel: 100,
       reorderPoint: 10,
       reorderQuantity: 50,
-      unit: "each",
       unitCost: "",
       unitPrice: "",
       weight: "",
+      dimensions: "",
+      unit: "each",
+      supplier: "",
+      supplierSku: "",
+      supplierContact: "",
       location: "",
-      supplier: ""
+      binLocation: "",
+      imageUrl: "",
+      requiresSpecialHandling: false,
+      isHazardous: false
     }
   });
 
@@ -219,7 +260,7 @@ export default function PartsSuppliesPage() {
   const lowStockParts = partsArray.filter((part: any) => part.isLowStock).length;
   const outOfStockParts = partsArray.filter((part: any) => part.isOutOfStock).length;
   const totalValue = partsArray.reduce((sum: number, part: any) => 
-    sum + (part.currentStock * (parseFloat(part.unitCost) || 0)), 0
+    sum + (part.currentStock * (parseFloat(part.unitCost?.toString() || '0') || 0)), 0
   );
 
   return (
