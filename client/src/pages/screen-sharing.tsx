@@ -253,7 +253,7 @@ export default function ScreenSharing() {
 
       return meeting;
     },
-    onSuccess: (meeting) => {
+    onSuccess: (meeting: Meeting) => {
       queryClient.invalidateQueries({ queryKey: ['/api/meetings'] });
       setIsStartNowDialogOpen(false);
       setInstantMeeting({
@@ -490,7 +490,7 @@ export default function ScreenSharing() {
 
       // Send notifications to selected participants or all members
       const recipients = meetingData.sendToAll 
-        ? organizationMembers.map((member: any) => member.id)
+        ? (organizationMembers as any[]).map((member: any) => member.id)
         : meetingData.selectedParticipants;
 
       // TODO: Implement actual notification sending via WebSocket or other service
@@ -836,11 +836,11 @@ export default function ScreenSharing() {
                   {!instantMeeting.sendToAll && (
                     <div className="border rounded-lg p-3 max-h-48 overflow-y-auto">
                       <p className="text-sm font-medium mb-2">Select specific members:</p>
-                      {organizationMembers.length === 0 ? (
+                      {(organizationMembers as any[]).length === 0 ? (
                         <p className="text-sm text-gray-500">Loading members...</p>
                       ) : (
                         <div className="space-y-2">
-                          {organizationMembers.map((member: any) => (
+                          {(organizationMembers as any[]).map((member: any) => (
                             <div key={member.id} className="flex items-center space-x-2">
                               <Checkbox
                                 id={`member-${member.id}`}
@@ -1016,7 +1016,7 @@ export default function ScreenSharing() {
           </Card>
         ) : (
           <div className="grid gap-4">
-            {meetings.map((meeting: Meeting) => (
+            {(meetings as Meeting[]).map((meeting: Meeting) => (
               <Card key={meeting.id} className="hover:shadow-md transition-shadow">
                 <CardHeader className="pb-3">
                   <div className="flex justify-between items-start">

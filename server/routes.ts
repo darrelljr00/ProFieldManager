@@ -16304,7 +16304,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create new meeting
-  app.post("/api/meetings", requireAuth, async (req, res) => {
+  app.post("/api/meetings", (req, res, next) => {
+    console.log("📞 POST /api/meetings hit - before auth");
+    requireAuth(req, res, next);
+  }, async (req, res) => {
     try {
       const user = getAuthenticatedUser(req);
       console.log("🔍 Meeting creation request:", { userId: user.id, organizationId: user.organizationId, body: req.body });
