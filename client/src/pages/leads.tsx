@@ -27,7 +27,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Edit, Trash2, Phone, Mail, DollarSign, Calendar, Search, Filter, X, MapPin, BarChart3, TrendingUp, Users, Target } from "lucide-react";
+import { Plus, Edit, Trash2, Phone, Mail, DollarSign, Calendar, Search, Filter, X, MapPin, BarChart3, TrendingUp, Users, Target, Hash } from "lucide-react";
 import type { Lead, InsertLead } from "@shared/schema";
 
 // Google Maps heatmap functionality
@@ -543,6 +543,63 @@ export default function Leads() {
     acc[grade] = (acc[grade] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
+
+  // City distribution analytics
+  const cityStats = leads.reduce((acc, item) => {
+    const lead = item.leads || item;
+    if (lead.city?.trim()) {
+      const city = lead.city.trim().toLowerCase();
+      acc[city] = (acc[city] || 0) + 1;
+    }
+    return acc;
+  }, {} as Record<string, number>);
+
+  // Top cities sorted by lead count
+  const topCities = Object.entries(cityStats)
+    .sort(([,a], [,b]) => b - a)
+    .slice(0, 10);
+
+  // Zip code analytics
+  const zipCodeStats = leads.reduce((acc, item) => {
+    const lead = item.leads || item;
+    if (lead.zipCode?.trim()) {
+      const zip = lead.zipCode.trim();
+      acc[zip] = (acc[zip] || 0) + 1;
+    }
+    return acc;
+  }, {} as Record<string, number>);
+
+  // Top zip codes sorted by lead count
+  const topZipCodes = Object.entries(zipCodeStats)
+    .sort(([,a], [,b]) => b - a)
+    .slice(0, 10);
+
+  // Location data coverage analytics
+  const locationCoverage = {
+    withAddress: leads.filter(item => {
+      const lead = item.leads || item;
+      return lead.address?.trim();
+    }).length,
+    withCity: leads.filter(item => {
+      const lead = item.leads || item;
+      return lead.city?.trim();
+    }).length,
+    withZipCode: leads.filter(item => {
+      const lead = item.leads || item;
+      return lead.zipCode?.trim();
+    }).length,
+    withCompleteLocation: leads.filter(item => {
+      const lead = item.leads || item;
+      return lead.address?.trim() && lead.city?.trim() && lead.zipCode?.trim() && lead.state?.trim();
+    }).length
+  };
+
+  const coveragePercentages = {
+    address: totalLeads > 0 ? (locationCoverage.withAddress / totalLeads * 100).toFixed(1) : '0',
+    city: totalLeads > 0 ? (locationCoverage.withCity / totalLeads * 100).toFixed(1) : '0',
+    zipCode: totalLeads > 0 ? (locationCoverage.withZipCode / totalLeads * 100).toFixed(1) : '0',
+    complete: totalLeads > 0 ? (locationCoverage.withCompleteLocation / totalLeads * 100).toFixed(1) : '0'
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -1421,6 +1478,160 @@ export default function Leads() {
               )}
             </CardContent>
           </Card>
+
+          {/* Additional Analytics Sections */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Lead Distribution by City */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <MapPin className="h-5 w-5" />
+                  Lead Distribution by City
+                </CardTitle>
+                <CardDescription>Top cities with the most leads</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {topCities.length > 0 ? topCities.map(([city, count]) => (
+                    <div key={city} className="flex items-center justify-between">
+                      <span className="text-sm font-medium capitalize">
+                        {city}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <div className="w-16 bg-gray-200 rounded-full h-2">
+                          <div 
+                            className="bg-blue-500 h-2 rounded-full"
+                            style={{ width: `${(count / Math.max(...topCities.map(([,c]) => c))) * 100}%` }}
+                          />
+                        </div>
+                        <span className="text-sm text-muted-foreground min-w-[2rem]">{count}</span>
+                      </div>
+                    </div>
+                  )) : (
+                    <div className="text-center text-muted-foreground py-8">
+                      <MapPin className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                      <p>No city data available</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Top Zip Codes */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Hash className="h-5 w-5" />
+                  Top Zip Codes
+                </CardTitle>
+                <CardDescription>Zip codes with highest lead concentration</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {topZipCodes.length > 0 ? topZipCodes.map(([zip, count]) => (
+                    <div key={zip} className="flex items-center justify-between">
+                      <span className="text-sm font-medium font-mono">
+                        {zip}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <div className="w-16 bg-gray-200 rounded-full h-2">
+                          <div 
+                            className="bg-green-500 h-2 rounded-full"
+                            style={{ width: `${(count / Math.max(...topZipCodes.map(([,c]) => c))) * 100}%` }}
+                          />
+                        </div>
+                        <span className="text-sm text-muted-foreground min-w-[2rem]">{count}</span>
+                      </div>
+                    </div>
+                  )) : (
+                    <div className="text-center text-muted-foreground py-8">
+                      <Hash className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                      <p>No zip code data available</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Lead Location Data Coverage */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5" />
+                  Location Data Coverage
+                </CardTitle>
+                <CardDescription>Completeness of lead location information</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Complete Location</span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-16 bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-green-500 h-2 rounded-full"
+                          style={{ width: `${coveragePercentages.complete}%` }}
+                        />
+                      </div>
+                      <span className="text-sm text-muted-foreground min-w-[3rem]">{coveragePercentages.complete}%</span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Has Address</span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-16 bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-blue-500 h-2 rounded-full"
+                          style={{ width: `${coveragePercentages.address}%` }}
+                        />
+                      </div>
+                      <span className="text-sm text-muted-foreground min-w-[3rem]">{coveragePercentages.address}%</span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Has City</span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-16 bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-orange-500 h-2 rounded-full"
+                          style={{ width: `${coveragePercentages.city}%` }}
+                        />
+                      </div>
+                      <span className="text-sm text-muted-foreground min-w-[3rem]">{coveragePercentages.city}%</span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Has Zip Code</span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-16 bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-purple-500 h-2 rounded-full"
+                          style={{ width: `${coveragePercentages.zipCode}%` }}
+                        />
+                      </div>
+                      <span className="text-sm text-muted-foreground min-w-[3rem]">{coveragePercentages.zipCode}%</span>
+                    </div>
+                  </div>
+
+                  <div className="pt-3 border-t">
+                    <div className="grid grid-cols-2 gap-4 text-xs text-muted-foreground">
+                      <div>
+                        <div className="font-medium">Total: {totalLeads}</div>
+                        <div>Complete: {locationCoverage.withCompleteLocation}</div>
+                      </div>
+                      <div>
+                        <div className="font-medium">Mappable: {locationCoverage.withAddress}</div>
+                        <div>Missing: {totalLeads - locationCoverage.withAddress}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
     </div>
