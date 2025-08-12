@@ -191,8 +191,17 @@ export default function Leads() {
           geocodeLeadAddresses();
         })
         .catch((error) => {
-          setMapError(error.message);
+          console.error("Google Maps failed to load:", error);
+          setMapError("Google Maps API not available - using address list visualization");
           setIsMapLoaded(false);
+          
+          // Extract addresses for fallback display
+          const addresses = leads.map(item => {
+            const lead = item.leads || item;
+            return lead.address ? `${lead.address}, ${lead.city}, ${lead.state} ${lead.zipCode}`.trim() : null;
+          }).filter(Boolean);
+          
+          console.log("📍 Lead addresses for visualization:", addresses);
         });
     }
   }, [activeTab, leads]);
@@ -1323,11 +1332,53 @@ export default function Leads() {
             </CardHeader>
             <CardContent>
               {mapError ? (
-                <div className="h-[500px] flex items-center justify-center bg-muted rounded-lg">
-                  <div className="text-center">
-                    <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-red-600">Map Loading Error</h3>
-                    <p className="text-muted-foreground">{mapError}</p>
+                <div className="space-y-4">
+                  <div className="text-center text-sm text-muted-foreground mb-4">
+                    Google Maps not available - showing address listing
+                  </div>
+                  <div className="h-[500px] overflow-y-auto border rounded-lg">
+                    <div className="p-4 space-y-3">
+                      {leads.map((item, index) => {
+                        const lead = item.leads || item;
+                        if (!lead.address || !lead.address.trim()) return null;
+                        
+                        const fullAddress = `${lead.address}, ${lead.city}, ${lead.state} ${lead.zipCode}`.trim();
+                        const addressParts = fullAddress.split(',').map(part => part.trim()).filter(Boolean);
+                        
+                        return (
+                          <div key={lead.id || index} className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg border">
+                            <MapPin className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-slate-900">{lead.name}</div>
+                              <div className="text-sm text-slate-600 mt-1">
+                                {addressParts.map((part, i) => (
+                                  <span key={i}>
+                                    {part}
+                                    {i < addressParts.length - 1 && <span className="text-slate-400">, </span>}
+                                  </span>
+                                ))}
+                              </div>
+                              <div className="flex items-center gap-4 mt-2 text-xs">
+                                <span className={`px-2 py-1 rounded-full text-white ${
+                                  lead.grade === 'hot' ? 'bg-red-500' :
+                                  lead.grade === 'warm' ? 'bg-orange-400' :
+                                  'bg-blue-400'
+                                }`}>
+                                  {lead.grade || 'cold'}
+                                </span>
+                                <span className="text-slate-500">{lead.leadSource || 'unknown'}</span>
+                                {lead.leadPrice && (
+                                  <span className="text-green-600 font-medium">${parseFloat(lead.leadPrice).toLocaleString()}</span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }).filter(Boolean)}
+                    </div>
+                  </div>
+                  <div className="text-center text-sm text-muted-foreground">
+                    Showing {leadsWithAddress} leads with addresses • Real-time updates active
                   </div>
                 </div>
               ) : !isMapLoaded ? (
