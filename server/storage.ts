@@ -944,12 +944,37 @@ export class DatabaseStorage implements IStorage {
 
   // Invoice methods
   async getInvoices(organizationId: number): Promise<any[]> {
-    return await db
-      .select()
+    const results = await db
+      .select({
+        id: invoices.id,
+        userId: invoices.userId,
+        customerId: invoices.customerId,
+        invoiceNumber: invoices.invoiceNumber,
+        status: invoices.status,
+        subtotal: invoices.subtotal,
+        taxRate: invoices.taxRate,
+        taxAmount: invoices.taxAmount,
+        total: invoices.total,
+        currency: invoices.currency,
+        notes: invoices.notes,
+        invoiceDate: invoices.invoiceDate,
+        dueDate: invoices.dueDate,
+        paidAt: invoices.paidAt,
+        stripePaymentIntentId: invoices.stripePaymentIntentId,
+        squarePaymentId: invoices.squarePaymentId,
+        paymentMethod: invoices.paymentMethod,
+        attachmentUrl: invoices.attachmentUrl,
+        originalFileName: invoices.originalFileName,
+        isUploadedInvoice: invoices.isUploadedInvoice,
+        createdAt: invoices.createdAt,
+        updatedAt: invoices.updatedAt,
+      })
       .from(invoices)
       .innerJoin(users, eq(invoices.userId, users.id))
       .where(eq(users.organizationId, organizationId))
       .orderBy(desc(invoices.createdAt));
+
+    return results;
   }
 
   async createInvoice(invoiceData: any): Promise<any> {

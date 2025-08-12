@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useRef } from "react";
+import React from "react";
 import { InvoicesTable } from "@/components/invoices-table";
 import { InvoiceForm } from "@/components/invoice-form";
 import { Button } from "@/components/ui/button";
@@ -32,10 +33,16 @@ export default function Invoices() {
   console.log("🔍 INVOICES PAGE DEBUG:", {
     invoices: invoices,
     invoicesLength: Array.isArray(invoices) ? invoices.length : 'not array',
+    invoicesFirstItem: Array.isArray(invoices) && invoices.length > 0 ? invoices[0] : 'none',
     isLoading,
     error: error?.message || 'none',
     user: user?.email || 'not logged in'
   });
+
+  // Force query invalidation to get fresh data
+  React.useEffect(() => {
+    queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
+  }, [queryClient]);
 
   // Type guard to ensure invoices is an array
   const safeInvoices = Array.isArray(invoices) ? invoices : [];

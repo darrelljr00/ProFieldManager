@@ -1915,7 +1915,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Invoice routes
   console.log("🔧 Registering invoice GET route");
-  app.get("/api/invoices", async (req, res) => {
+  app.get("/api/invoices", requireAuth, async (req, res) => {
+    console.log("🌍 INVOICE REQUEST - GET /api/invoices called");
     console.log("🎯 INVOICE ROUTE HANDLER CALLED for GET /api/invoices");
     try {
       const user = getAuthenticatedUser(req);
