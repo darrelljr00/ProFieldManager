@@ -48,8 +48,9 @@ export const getApiBaseUrl = (): string => {
 export const buildApiUrl = (endpoint: string): string => {
   const baseUrl = getApiBaseUrl();
   
-  // Ensure endpoint starts with /
-  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  // Ensure endpoint is a string and starts with /
+  const endpointStr = String(endpoint || '');
+  const cleanEndpoint = endpointStr.startsWith('/') ? endpointStr : `/${endpointStr}`;
   
   const finalUrl = `${baseUrl}${cleanEndpoint}`;
   

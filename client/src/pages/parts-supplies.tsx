@@ -205,6 +205,9 @@ export default function PartsSuppliesPage() {
   // Edit part mutation
   const editPartMutation = useMutation({
     mutationFn: async (data: any) => {
+      if (!editingPart?.id) {
+        throw new Error('No part selected for editing');
+      }
       const response = await apiRequest('PUT', `/api/parts-supplies/${editingPart.id}`, data);
       return response.json();
     },
