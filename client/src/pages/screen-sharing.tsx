@@ -274,10 +274,11 @@ export default function ScreenSharing() {
         description: `"${meeting.title}" has started successfully`
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      console.error("Meeting creation error:", error);
       toast({
         title: "Failed to Start Meeting",
-        description: "Could not start the meeting. Please try again.",
+        description: error.message || "Could not start the meeting. Please try again.",
         variant: "destructive"
       });
     },

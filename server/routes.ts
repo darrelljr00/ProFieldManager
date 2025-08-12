@@ -16307,18 +16307,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/meetings", requireAuth, async (req, res) => {
     try {
       const user = getAuthenticatedUser(req);
-      const meetingData = insertMeetingSchema.parse(req.body);
+      console.log("🔍 Meeting creation request:", { userId: user.id, organizationId: user.organizationId, body: req.body });
       
-      const newMeeting = await storage.createMeeting({
+      const meetingData = insertMeetingSchema.parse(req.body);
+      console.log("✅ Meeting data validated:", meetingData);
+      
+      const createData = {
         ...meetingData,
         organizationId: user.organizationId,
         hostId: user.id,
-      });
+      };
+      console.log("📝 Creating meeting with data:", createData);
+      
+      const newMeeting = await storage.createMeeting(createData);
+      console.log("✅ Meeting created successfully:", newMeeting);
       
       res.status(201).json(newMeeting);
     } catch (error: any) {
-      console.error("Error creating meeting:", error);
-      res.status(500).json({ message: "Failed to create meeting" });
+      console.error("❌ Error creating meeting - Full error:", error);
+      console.error("❌ Error stack:", error.stack);
+      console.error("❌ Error message:", error.message);
+      res.status(500).json({ message: "Failed to create meeting", error: error.message });
     }
   });
 
