@@ -7147,7 +7147,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user!.id;
       const leadData = req.body;
       
-      const updatedLead = await storage.updateLead(leadId, userId, {
+      const updatedLead = await storage.updateLead(leadId, {
         ...leadData,
         leadPrice: leadData.leadPrice ? parseFloat(leadData.leadPrice) : null,
         followUpDate: leadData.followUpDate ? new Date(leadData.followUpDate) : null,
