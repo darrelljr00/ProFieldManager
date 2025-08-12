@@ -45,6 +45,7 @@ import { SharePhotosDialog } from "@/components/share-photos-dialog";
 import { MobileCamera } from "@/components/mobile-camera";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { apiRequest } from "@/lib/queryClient";
 
 interface ImageFile {
   id: number;
@@ -103,14 +104,7 @@ export default function ImageGallery() {
           formData.append('projectId', uploadProjectId);
         }
 
-        const response = await apiRequest('POST', '/api/upload/image', formData);
-        
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`Upload failed for ${file.name}: ${response.status} ${response.statusText} - ${errorText}`);
-        }
-        
-        return response.json();
+        return await apiRequest('POST', '/api/upload/image', formData);
       });
 
       return Promise.all(uploadPromises);
