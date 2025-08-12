@@ -54,17 +54,17 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
   });
 
   // Fetch company settings for invoice header
-  const { data: companySettings } = useQuery({
+  const { data: companySettings } = useQuery<any>({
     queryKey: ["/api/settings/company"],
   });
 
   // Fetch invoice settings for default values
-  const { data: invoiceSettings } = useQuery({
+  const { data: invoiceSettings } = useQuery<any>({
     queryKey: ["/api/settings/invoice"],
   });
 
   // Fetch payment settings for Square integration
-  const { data: paymentSettings } = useQuery({
+  const { data: paymentSettings } = useQuery<any>({
     queryKey: ["/api/settings/payment"],
   });
 
@@ -169,6 +169,9 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
   };
 
   const onSubmit = (data: InvoiceFormData) => {
+    console.log("Form submitted with data:", data);
+    console.log("Form errors:", errors);
+    
     const invoiceData: InsertInvoice = {
       ...data,
       userId: 1, // This will be set by the backend from authenticated user
@@ -183,6 +186,8 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
       status: "draft", // Default status
       paymentMethod: selectedPaymentMethod,
     };
+    
+    console.log("Submitting invoice data:", invoiceData);
     
     // If Square is selected and enabled, initiate Square payment sync
     if (selectedPaymentMethod === "square" && paymentSettings?.squareEnabled) {
@@ -485,6 +490,11 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
             type="submit" 
             disabled={createInvoiceMutation.isPending}
             className="bg-primary hover:bg-blue-700"
+            onClick={() => {
+              console.log("Create Invoice button clicked");
+              console.log("Current form errors:", errors);
+              console.log("Form values:", watch());
+            }}
           >
             {createInvoiceMutation.isPending ? "Creating..." : "Create Invoice"}
           </Button>
