@@ -73,19 +73,34 @@ export function ObjectUploader({
       })
       .on("complete", (result) => {
         onComplete?.(result);
+        setShowModal(false); // Close modal after upload completion
       })
   );
 
+  const handleButtonClick = () => {
+    console.log('ObjectUploader button clicked, opening modal');
+    setShowModal(true);
+  };
+
+  const handleModalClose = () => {
+    console.log('ObjectUploader modal closing');
+    setShowModal(false);
+  };
+
   return (
     <div>
-      <Button onClick={() => setShowModal(true)} className={buttonClassName}>
+      <Button 
+        type="button" 
+        onClick={handleButtonClick} 
+        className={buttonClassName}
+      >
         {children}
       </Button>
 
       <DashboardModal
         uppy={uppy}
         open={showModal}
-        onRequestClose={() => setShowModal(false)}
+        onRequestClose={handleModalClose}
         proudlyDisplayPoweredByUppy={false}
       />
     </div>
