@@ -26,6 +26,10 @@ import {
   insertScheduleAssignmentSchema,
   insertScheduleCommentSchema,
   insertLateArrivalSchema,
+  insertMeetingSchema,
+  insertMeetingParticipantSchema,
+  insertMeetingMessageSchema,
+  insertMeetingRecordingSchema,
   loginSchema,
   registerSchema,
   changePasswordSchema,
@@ -37,7 +41,11 @@ import {
   type ScheduleAssignment,
   type ScheduleComment,
   type LateArrival,
-  type InsertLateArrival
+  type InsertLateArrival,
+  type Meeting,
+  type MeetingParticipant,
+  type MeetingMessage,
+  type MeetingRecording
 } from "@shared/schema";
 import { AuthService, requireAuth, requireAdmin, requireManagerOrAdmin, requireTaskDelegationPermission } from "./auth";
 import { ZodError } from "zod";
@@ -53,7 +61,7 @@ import {
   schedules, scheduleAssignments, scheduleComments, timeClock,
   lateArrivals, notifications, notificationSettings,
   partsSupplies, inventoryTransactions, stockAlerts,
-  partsCategories
+  partsCategories, meetings, meetingParticipants, meetingMessages, meetingRecordings
 } from "@shared/schema";
 import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull } from "drizzle-orm";
 import { DocuSignService, getDocuSignConfig } from "./docusign";
@@ -16226,6 +16234,303 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error fetching my late arrivals:", error);
       res.status(500).json({ message: "Failed to fetch late arrivals" });
+    }
+  });
+
+  // ===== MEETINGS ROUTES =====
+  
+  // Get all meetings for organization (managers/admins) or user-specific meetings
+  app.get("/api/meetings", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { userId } = req.query;
+      
+      // Get meetings based on role
+      let meetings: Meeting[];
+      if (user.role === 'admin' || user.role === 'manager') {
+        // Admins/managers can see all organization meetings or filter by specific user
+        meetings = await storage.getMeetings(user.organizationId, userId as string | undefined);
+      } else {
+        // Regular users only see their own meetings
+        meetings = await storage.getMeetings(user.organizationId, user.id);
+      }
+      
+      res.json(meetings);
+    } catch (error: any) {
+      console.error("Error fetching meetings:", error);
+      res.status(500).json({ message: "Failed to fetch meetings" });
+    }
+  });
+
+  // Get specific meeting details
+  app.get("/api/meetings/:id", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const meetingId = parseInt(req.params.id);
+      
+      const meeting = await storage.getMeeting(meetingId, user.organizationId);
+      if (!meeting) {
+        return res.status(404).json({ message: "Meeting not found" });
+      }
+      
+      res.json(meeting);
+    } catch (error: any) {
+      console.error("Error fetching meeting:", error);
+      res.status(500).json({ message: "Failed to fetch meeting" });
+    }
+  });
+
+  // Create new meeting
+  app.post("/api/meetings", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const meetingData = insertMeetingSchema.parse(req.body);
+      
+      const newMeeting = await storage.createMeeting({
+        ...meetingData,
+        organizationId: user.organizationId,
+        hostUserId: user.id,
+      });
+      
+      res.status(201).json(newMeeting);
+    } catch (error: any) {
+      console.error("Error creating meeting:", error);
+      res.status(500).json({ message: "Failed to create meeting" });
+    }
+  });
+
+  // Update meeting
+  app.put("/api/meetings/:id", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const meetingId = parseInt(req.params.id);
+      
+      // Check if meeting exists and user has permission
+      const existingMeeting = await storage.getMeeting(meetingId, user.organizationId);
+      if (!existingMeeting) {
+        return res.status(404).json({ message: "Meeting not found" });
+      }
+      
+      // Only host or admin/manager can update meeting
+      if (existingMeeting.hostUserId !== user.id && !['admin', 'manager'].includes(user.role)) {
+        return res.status(403).json({ message: "Permission denied" });
+      }
+      
+      const updates = insertMeetingSchema.partial().parse(req.body);
+      const updatedMeeting = await storage.updateMeeting(meetingId, user.organizationId, updates);
+      
+      res.json(updatedMeeting);
+    } catch (error: any) {
+      console.error("Error updating meeting:", error);
+      res.status(500).json({ message: "Failed to update meeting" });
+    }
+  });
+
+  // Delete meeting
+  app.delete("/api/meetings/:id", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const meetingId = parseInt(req.params.id);
+      
+      // Check if meeting exists and user has permission
+      const existingMeeting = await storage.getMeeting(meetingId, user.organizationId);
+      if (!existingMeeting) {
+        return res.status(404).json({ message: "Meeting not found" });
+      }
+      
+      // Only host or admin/manager can delete meeting
+      if (existingMeeting.hostUserId !== user.id && !['admin', 'manager'].includes(user.role)) {
+        return res.status(403).json({ message: "Permission denied" });
+      }
+      
+      const deleted = await storage.deleteMeeting(meetingId, user.organizationId);
+      if (!deleted) {
+        return res.status(404).json({ message: "Meeting not found" });
+      }
+      
+      res.json({ message: "Meeting deleted successfully" });
+    } catch (error: any) {
+      console.error("Error deleting meeting:", error);
+      res.status(500).json({ message: "Failed to delete meeting" });
+    }
+  });
+
+  // Join meeting
+  app.post("/api/meetings/:id/join", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const meetingId = parseInt(req.params.id);
+      
+      // Check if meeting exists and is accessible
+      const meeting = await storage.getMeeting(meetingId, user.organizationId);
+      if (!meeting) {
+        return res.status(404).json({ message: "Meeting not found" });
+      }
+      
+      // Check if meeting is active
+      if (meeting.status !== 'active') {
+        return res.status(400).json({ message: "Meeting is not active" });
+      }
+      
+      const participant = await storage.joinMeeting(meetingId, user.id);
+      res.json(participant);
+    } catch (error: any) {
+      console.error("Error joining meeting:", error);
+      res.status(500).json({ message: "Failed to join meeting" });
+    }
+  });
+
+  // Leave meeting
+  app.post("/api/meetings/:id/leave", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const meetingId = parseInt(req.params.id);
+      
+      const success = await storage.leaveMeeting(meetingId, user.id);
+      if (!success) {
+        return res.status(404).json({ message: "Meeting participation not found" });
+      }
+      
+      res.json({ message: "Left meeting successfully" });
+    } catch (error: any) {
+      console.error("Error leaving meeting:", error);
+      res.status(500).json({ message: "Failed to leave meeting" });
+    }
+  });
+
+  // Get meeting participants
+  app.get("/api/meetings/:id/participants", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const meetingId = parseInt(req.params.id);
+      
+      // Verify meeting exists and user has access
+      const meeting = await storage.getMeeting(meetingId, user.organizationId);
+      if (!meeting) {
+        return res.status(404).json({ message: "Meeting not found" });
+      }
+      
+      const participants = await storage.getMeetingParticipants(meetingId);
+      res.json(participants);
+    } catch (error: any) {
+      console.error("Error fetching meeting participants:", error);
+      res.status(500).json({ message: "Failed to fetch participants" });
+    }
+  });
+
+  // Get meeting messages/chat
+  app.get("/api/meetings/:id/messages", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const meetingId = parseInt(req.params.id);
+      
+      // Verify meeting exists and user has access
+      const meeting = await storage.getMeeting(meetingId, user.organizationId);
+      if (!meeting) {
+        return res.status(404).json({ message: "Meeting not found" });
+      }
+      
+      const messages = await storage.getMeetingMessages(meetingId);
+      res.json(messages);
+    } catch (error: any) {
+      console.error("Error fetching meeting messages:", error);
+      res.status(500).json({ message: "Failed to fetch messages" });
+    }
+  });
+
+  // Send message in meeting
+  app.post("/api/meetings/:id/messages", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const meetingId = parseInt(req.params.id);
+      
+      // Verify meeting exists and user is a participant
+      const meeting = await storage.getMeeting(meetingId, user.organizationId);
+      if (!meeting) {
+        return res.status(404).json({ message: "Meeting not found" });
+      }
+      
+      const messageData = insertMeetingMessageSchema.parse(req.body);
+      const newMessage = await storage.createMeetingMessage({
+        ...messageData,
+        meetingId,
+        senderId: user.id,
+      });
+      
+      res.status(201).json(newMessage);
+    } catch (error: any) {
+      console.error("Error sending meeting message:", error);
+      res.status(500).json({ message: "Failed to send message" });
+    }
+  });
+
+  // Get meeting recordings
+  app.get("/api/meetings/:id/recordings", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const meetingId = parseInt(req.params.id);
+      
+      const recordings = await storage.getMeetingRecordings(meetingId, user.organizationId);
+      res.json(recordings);
+    } catch (error: any) {
+      console.error("Error fetching meeting recordings:", error);
+      res.status(500).json({ message: "Failed to fetch recordings" });
+    }
+  });
+
+  // Create meeting recording
+  app.post("/api/meetings/:id/recordings", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const meetingId = parseInt(req.params.id);
+      
+      // Verify meeting exists and user has permission
+      const meeting = await storage.getMeeting(meetingId, user.organizationId);
+      if (!meeting) {
+        return res.status(404).json({ message: "Meeting not found" });
+      }
+      
+      const recordingData = insertMeetingRecordingSchema.parse(req.body);
+      const newRecording = await storage.createMeetingRecording({
+        ...recordingData,
+        meetingId,
+        recordedBy: user.id,
+      });
+      
+      res.status(201).json(newRecording);
+    } catch (error: any) {
+      console.error("Error creating meeting recording:", error);
+      res.status(500).json({ message: "Failed to create recording" });
+    }
+  });
+
+  // Update meeting status
+  app.patch("/api/meetings/:id/status", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const meetingId = parseInt(req.params.id);
+      const { status } = req.body;
+      
+      if (!['scheduled', 'active', 'ended', 'cancelled'].includes(status)) {
+        return res.status(400).json({ message: "Invalid status" });
+      }
+      
+      // Check if meeting exists and user has permission
+      const existingMeeting = await storage.getMeeting(meetingId, user.organizationId);
+      if (!existingMeeting) {
+        return res.status(404).json({ message: "Meeting not found" });
+      }
+      
+      // Only host or admin/manager can update meeting status
+      if (existingMeeting.hostUserId !== user.id && !['admin', 'manager'].includes(user.role)) {
+        return res.status(403).json({ message: "Permission denied" });
+      }
+      
+      const updatedMeeting = await storage.updateMeetingStatus(meetingId, user.organizationId, status);
+      res.json(updatedMeeting);
+    } catch (error: any) {
+      console.error("Error updating meeting status:", error);
+      res.status(500).json({ message: "Failed to update meeting status" });
     }
   });
 

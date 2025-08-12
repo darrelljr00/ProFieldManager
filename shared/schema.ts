@@ -108,6 +108,8 @@ export const subscriptionPlans = pgTable("subscription_plans", {
   hasMultiLocation: boolean("has_multi_location").default(false),
   hasInventoryManagement: boolean("has_inventory_management").default(false),
   hasPaymentProcessing: boolean("has_payment_processing").default(false),
+  hasScreenSharing: boolean("has_screen_sharing").default(true),
+  hasMeetings: boolean("has_meetings").default(true),
   
   isActive: boolean("is_active").default(true),
   isPopular: boolean("is_popular").default(false),
@@ -3791,3 +3793,147 @@ export const insertTaskNotificationSchema = createInsertSchema(taskNotifications
 });
 export type InsertTaskNotification = z.infer<typeof insertTaskNotificationSchema>;
 export type SelectTaskNotification = typeof taskNotifications.$inferSelect;
+
+// Meetings and Screen Sharing System
+export const meetings = pgTable("meetings", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  hostId: integer("host_id").notNull().references(() => users.id),
+  
+  // Meeting details
+  title: text("title").notNull(),
+  description: text("description"),
+  meetingType: text("meeting_type").notNull().default("video"), // 'video', 'audio_only', 'screen_share'
+  
+  // Meeting status and timing
+  status: text("status").notNull().default("scheduled"), // 'scheduled', 'active', 'ended', 'cancelled'
+  scheduledStartTime: timestamp("scheduled_start_time"),
+  actualStartTime: timestamp("actual_start_time"),
+  actualEndTime: timestamp("actual_end_time"),
+  duration: integer("duration"), // in minutes
+  
+  // WebRTC and connection settings
+  roomId: text("room_id").notNull().unique(), // Unique room identifier for WebRTC
+  isRecording: boolean("is_recording").default(false),
+  allowScreenShare: boolean("allow_screen_share").default(true),
+  allowChat: boolean("allow_chat").default(true),
+  requirePassword: boolean("require_password").default(false),
+  password: text("password"), // Hashed password if required
+  maxParticipants: integer("max_participants").default(50),
+  
+  // Meeting settings
+  isPublic: boolean("is_public").default(false), // If true, anyone in org can join
+  waitingRoomEnabled: boolean("waiting_room_enabled").default(false),
+  muteOnJoin: boolean("mute_on_join").default(false),
+  cameraOffOnJoin: boolean("camera_off_on_join").default(false),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const meetingParticipants = pgTable("meeting_participants", {
+  id: serial("id").primaryKey(),
+  meetingId: integer("meeting_id").notNull().references(() => meetings.id),
+  userId: integer("user_id").notNull().references(() => users.id),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  
+  // Participant role and permissions
+  role: text("role").notNull().default("participant"), // 'host', 'co_host', 'participant'
+  canScreenShare: boolean("can_screen_share").default(true),
+  canRecord: boolean("can_record").default(false),
+  canMuteOthers: boolean("can_mute_others").default(false),
+  canManageParticipants: boolean("can_manage_participants").default(false),
+  
+  // Join/leave tracking
+  joinedAt: timestamp("joined_at"),
+  leftAt: timestamp("left_at"),
+  connectionStatus: text("connection_status").default("disconnected"), // 'connected', 'disconnected', 'reconnecting'
+  
+  // Current state
+  isMuted: boolean("is_muted").default(false),
+  isCameraOff: boolean("is_camera_off").default(false),
+  isScreenSharing: boolean("is_screen_sharing").default(false),
+  hasRaisedHand: boolean("has_raised_hand").default(false),
+  
+  invitedAt: timestamp("invited_at").defaultNow(),
+  respondedAt: timestamp("responded_at"),
+  response: text("response"), // 'accepted', 'declined', 'tentative'
+});
+
+export const meetingMessages = pgTable("meeting_messages", {
+  id: serial("id").primaryKey(),
+  meetingId: integer("meeting_id").notNull().references(() => meetings.id),
+  senderId: integer("sender_id").notNull().references(() => users.id),
+  
+  // Message content
+  message: text("message").notNull(),
+  messageType: text("message_type").notNull().default("text"), // 'text', 'system', 'file', 'emoji'
+  isPrivate: boolean("is_private").default(false), // Private message to host
+  recipientId: integer("recipient_id").references(() => users.id), // For private messages
+  
+  // File attachments
+  attachments: jsonb("attachments"), // Array of file objects
+  
+  sentAt: timestamp("sent_at").defaultNow(),
+});
+
+export const meetingRecordings = pgTable("meeting_recordings", {
+  id: serial("id").primaryKey(),
+  meetingId: integer("meeting_id").notNull().references(() => meetings.id),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  
+  // Recording details
+  filename: text("filename").notNull(),
+  filePath: text("file_path").notNull(), // Cloud storage path
+  fileSize: integer("file_size"), // in bytes
+  duration: integer("duration"), // in seconds
+  format: text("format").default("mp4"), // 'mp4', 'webm'
+  quality: text("quality").default("720p"), // '480p', '720p', '1080p'
+  
+  // Recording metadata
+  startedAt: timestamp("started_at").notNull(),
+  endedAt: timestamp("ended_at").notNull(),
+  startedBy: integer("started_by").notNull().references(() => users.id),
+  
+  // Access control
+  isPublic: boolean("is_public").default(false), // Accessible to all org members
+  downloadUrl: text("download_url"), // Signed URL for download
+  viewUrl: text("view_url"), // Signed URL for viewing
+  expiresAt: timestamp("expires_at"), // When URLs expire
+  
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Schema validation for meetings
+export const insertMeetingSchema = createInsertSchema(meetings).omit({
+  id: true,
+  roomId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertMeetingParticipantSchema = createInsertSchema(meetingParticipants).omit({
+  id: true,
+  invitedAt: true,
+});
+
+export const insertMeetingMessageSchema = createInsertSchema(meetingMessages).omit({
+  id: true,
+  sentAt: true,
+});
+
+export const insertMeetingRecordingSchema = createInsertSchema(meetingRecordings).omit({
+  id: true,
+  createdAt: true,
+});
+
+// Types
+export type Meeting = typeof meetings.$inferSelect;
+export type MeetingParticipant = typeof meetingParticipants.$inferSelect;
+export type MeetingMessage = typeof meetingMessages.$inferSelect;
+export type MeetingRecording = typeof meetingRecordings.$inferSelect;
+
+export type InsertMeeting = z.infer<typeof insertMeetingSchema>;
+export type InsertMeetingParticipant = z.infer<typeof insertMeetingParticipantSchema>;
+export type InsertMeetingMessage = z.infer<typeof insertMeetingMessageSchema>;
+export type InsertMeetingRecording = z.infer<typeof insertMeetingRecordingSchema>;

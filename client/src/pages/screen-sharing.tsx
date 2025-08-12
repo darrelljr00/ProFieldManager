@@ -1,0 +1,815 @@
+import { useState, useEffect, useRef } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useToast } from '@/hooks/use-toast';
+import { 
+  Video, 
+  VideoOff, 
+  Mic, 
+  MicOff, 
+  Monitor, 
+  MonitorOff, 
+  Phone, 
+  PhoneOff,
+  Users,
+  MessageSquare,
+  Calendar,
+  Plus,
+  Settings,
+  Copy,
+  Send,
+  PlayCircle,
+  StopCircle,
+  Upload
+} from 'lucide-react';
+import { format } from 'date-fns';
+import { apiRequest } from '@/lib/queryClient';
+
+interface Meeting {
+  id: number;
+  title: string;
+  description?: string;
+  scheduledStartTime: string;
+  scheduledEndTime?: string;
+  actualStartTime?: string;
+  actualEndTime?: string;
+  status: 'scheduled' | 'active' | 'ended' | 'cancelled';
+  hostUserId: string;
+  organizationId: number;
+  meetingUrl?: string;
+  isRecording: boolean;
+  maxParticipants?: number;
+  createdAt: string;
+  updatedAt: string;
+  participants?: MeetingParticipant[];
+  messages?: MeetingMessage[];
+  recordings?: MeetingRecording[];
+}
+
+interface MeetingParticipant {
+  id: number;
+  meetingId: number;
+  userId: string;
+  joinedAt: string;
+  leftAt?: string;
+  role: 'host' | 'participant';
+  user?: {
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+}
+
+interface MeetingMessage {
+  id: number;
+  meetingId: number;
+  senderId: string;
+  content: string;
+  messageType: 'text' | 'system';
+  sentAt: string;
+  sender?: {
+    firstName: string;
+    lastName: string;
+  };
+}
+
+interface MeetingRecording {
+  id: number;
+  meetingId: number;
+  title: string;
+  recordingUrl: string;
+  startTime: string;
+  endTime?: string;
+  duration?: number;
+  fileSize?: number;
+  recordedBy: string;
+  createdAt: string;
+}
+
+export default function ScreenSharing() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  // State management
+  const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isVideoEnabled, setIsVideoEnabled] = useState(true);
+  const [isAudioEnabled, setIsAudioEnabled] = useState(true);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [isInMeeting, setIsInMeeting] = useState(false);
+  const [chatMessage, setChatMessage] = useState('');
+  const [participants, setParticipants] = useState<MeetingParticipant[]>([]);
+  const [chatMessages, setChatMessages] = useState<MeetingMessage[]>([]);
+  
+  // WebRTC refs
+  const localVideoRef = useRef<HTMLVideoElement>(null);
+  const localScreenRef = useRef<HTMLVideoElement>(null);
+  const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  const peerConnection = useRef<RTCPeerConnection | null>(null);
+  const localStream = useRef<MediaStream | null>(null);
+  const screenStream = useRef<MediaStream | null>(null);
+  
+  // Form states
+  const [newMeeting, setNewMeeting] = useState({
+    title: '',
+    description: '',
+    scheduledStartTime: '',
+    scheduledEndTime: '',
+    maxParticipants: 10
+  });
+
+  // Fetch meetings
+  const { data: meetings = [], isLoading: meetingsLoading } = useQuery({
+    queryKey: ['/api/meetings'],
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
+
+  // Create meeting mutation
+  const createMeetingMutation = useMutation({
+    mutationFn: async (meetingData: any) => {
+      return await apiRequest('/api/meetings', {
+        method: 'POST',
+        body: JSON.stringify(meetingData),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/meetings'] });
+      setIsCreateDialogOpen(false);
+      setNewMeeting({
+        title: '',
+        description: '',
+        scheduledStartTime: '',
+        scheduledEndTime: '',
+        maxParticipants: 10
+      });
+      toast({
+        title: 'Success',
+        description: 'Meeting created successfully',
+      });
+    },
+    onError: (error: any) => {
+      console.error('Create meeting error:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to create meeting',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Join meeting mutation
+  const joinMeetingMutation = useMutation({
+    mutationFn: async (meetingId: number) => {
+      return await apiRequest(`/api/meetings/${meetingId}/join`, {
+        method: 'POST',
+      });
+    },
+    onSuccess: () => {
+      setIsInMeeting(true);
+      initializeWebRTC();
+      toast({
+        title: 'Success',
+        description: 'Joined meeting successfully',
+      });
+    },
+    onError: (error: any) => {
+      console.error('Join meeting error:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to join meeting',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Leave meeting mutation
+  const leaveMeetingMutation = useMutation({
+    mutationFn: async (meetingId: number) => {
+      return await apiRequest(`/api/meetings/${meetingId}/leave`, {
+        method: 'POST',
+      });
+    },
+    onSuccess: () => {
+      setIsInMeeting(false);
+      setSelectedMeeting(null);
+      cleanupWebRTC();
+      toast({
+        title: 'Success',
+        description: 'Left meeting successfully',
+      });
+    },
+    onError: (error: any) => {
+      console.error('Leave meeting error:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to leave meeting',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Send message mutation
+  const sendMessageMutation = useMutation({
+    mutationFn: async ({ meetingId, content }: { meetingId: number; content: string }) => {
+      return await apiRequest(`/api/meetings/${meetingId}/messages`, {
+        method: 'POST',
+        body: JSON.stringify({ content, messageType: 'text' }),
+      });
+    },
+    onSuccess: () => {
+      setChatMessage('');
+      fetchMessages();
+    },
+    onError: (error: any) => {
+      console.error('Send message error:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to send message',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // WebRTC initialization
+  const initializeWebRTC = async () => {
+    try {
+      // Get user media
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: isVideoEnabled,
+        audio: isAudioEnabled,
+      });
+      
+      localStream.current = stream;
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = stream;
+      }
+
+      // Initialize peer connection
+      peerConnection.current = new RTCPeerConnection({
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+        ],
+      });
+
+      // Add local stream tracks
+      stream.getTracks().forEach(track => {
+        peerConnection.current?.addTrack(track, stream);
+      });
+
+      // Handle remote stream
+      peerConnection.current.ontrack = (event) => {
+        const [remoteStream] = event.streams;
+        if (remoteVideoRef.current) {
+          remoteVideoRef.current.srcObject = remoteStream;
+        }
+      };
+
+    } catch (error) {
+      console.error('Failed to initialize WebRTC:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to access camera/microphone',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // Screen sharing
+  const toggleScreenShare = async () => {
+    try {
+      if (!isScreenSharing) {
+        const screenStreamData = await navigator.mediaDevices.getDisplayMedia({
+          video: true,
+          audio: true,
+        });
+        
+        screenStream.current = screenStreamData;
+        if (localScreenRef.current) {
+          localScreenRef.current.srcObject = screenStreamData;
+        }
+
+        // Replace video track in peer connection
+        if (peerConnection.current) {
+          const videoTrack = screenStreamData.getVideoTracks()[0];
+          const sender = peerConnection.current.getSenders().find(s => 
+            s.track && s.track.kind === 'video'
+          );
+          if (sender) {
+            await sender.replaceTrack(videoTrack);
+          }
+        }
+
+        setIsScreenSharing(true);
+        
+        // Handle screen share end
+        screenStreamData.getVideoTracks()[0].addEventListener('ended', () => {
+          setIsScreenSharing(false);
+          stopScreenShare();
+        });
+        
+      } else {
+        stopScreenShare();
+      }
+    } catch (error) {
+      console.error('Screen sharing error:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to start screen sharing',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const stopScreenShare = async () => {
+    if (screenStream.current) {
+      screenStream.current.getTracks().forEach(track => track.stop());
+      screenStream.current = null;
+    }
+    
+    if (localScreenRef.current) {
+      localScreenRef.current.srcObject = null;
+    }
+
+    // Restore camera video
+    if (localStream.current && peerConnection.current) {
+      const videoTrack = localStream.current.getVideoTracks()[0];
+      const sender = peerConnection.current.getSenders().find(s => 
+        s.track && s.track.kind === 'video'
+      );
+      if (sender && videoTrack) {
+        await sender.replaceTrack(videoTrack);
+      }
+    }
+
+    setIsScreenSharing(false);
+  };
+
+  // Cleanup WebRTC
+  const cleanupWebRTC = () => {
+    if (localStream.current) {
+      localStream.current.getTracks().forEach(track => track.stop());
+      localStream.current = null;
+    }
+    
+    if (screenStream.current) {
+      screenStream.current.getTracks().forEach(track => track.stop());
+      screenStream.current = null;
+    }
+    
+    if (peerConnection.current) {
+      peerConnection.current.close();
+      peerConnection.current = null;
+    }
+  };
+
+  // Toggle video
+  const toggleVideo = () => {
+    if (localStream.current) {
+      const videoTrack = localStream.current.getVideoTracks()[0];
+      if (videoTrack) {
+        videoTrack.enabled = !isVideoEnabled;
+        setIsVideoEnabled(!isVideoEnabled);
+      }
+    }
+  };
+
+  // Toggle audio
+  const toggleAudio = () => {
+    if (localStream.current) {
+      const audioTrack = localStream.current.getAudioTracks()[0];
+      if (audioTrack) {
+        audioTrack.enabled = !isAudioEnabled;
+        setIsAudioEnabled(!isAudioEnabled);
+      }
+    }
+  };
+
+  // Fetch participants and messages
+  const fetchParticipants = async (meetingId: number) => {
+    try {
+      const response = await apiRequest(`/api/meetings/${meetingId}/participants`);
+      setParticipants(response);
+    } catch (error) {
+      console.error('Failed to fetch participants:', error);
+    }
+  };
+
+  const fetchMessages = async () => {
+    if (!selectedMeeting) return;
+    
+    try {
+      const response = await apiRequest(`/api/meetings/${selectedMeeting.id}/messages`);
+      setChatMessages(response);
+    } catch (error) {
+      console.error('Failed to fetch messages:', error);
+    }
+  };
+
+  // Effects
+  useEffect(() => {
+    if (selectedMeeting) {
+      fetchParticipants(selectedMeeting.id);
+      fetchMessages();
+    }
+  }, [selectedMeeting]);
+
+  useEffect(() => {
+    return () => {
+      cleanupWebRTC();
+    };
+  }, []);
+
+  // Handle create meeting
+  const handleCreateMeeting = () => {
+    createMeetingMutation.mutate(newMeeting);
+  };
+
+  // Handle join meeting
+  const handleJoinMeeting = (meeting: Meeting) => {
+    setSelectedMeeting(meeting);
+    joinMeetingMutation.mutate(meeting.id);
+  };
+
+  // Handle leave meeting
+  const handleLeaveMeeting = () => {
+    if (selectedMeeting) {
+      leaveMeetingMutation.mutate(selectedMeeting.id);
+    }
+  };
+
+  // Handle send message
+  const handleSendMessage = () => {
+    if (selectedMeeting && chatMessage.trim()) {
+      sendMessageMutation.mutate({ 
+        meetingId: selectedMeeting.id, 
+        content: chatMessage.trim() 
+      });
+    }
+  };
+
+  // Get status color
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'active': return 'bg-green-500';
+      case 'scheduled': return 'bg-blue-500';
+      case 'ended': return 'bg-gray-500';
+      case 'cancelled': return 'bg-red-500';
+      default: return 'bg-gray-500';
+    }
+  };
+
+  // Copy meeting URL
+  const copyMeetingUrl = (meeting: Meeting) => {
+    const url = `${window.location.origin}/screen-sharing?meeting=${meeting.id}`;
+    navigator.clipboard.writeText(url);
+    toast({
+      title: 'Success',
+      description: 'Meeting URL copied to clipboard',
+    });
+  };
+
+  if (isInMeeting && selectedMeeting) {
+    return (
+      <div className="flex flex-col h-screen bg-gray-900">
+        {/* Meeting Header */}
+        <div className="flex justify-between items-center p-4 bg-gray-800 border-b border-gray-700">
+          <div>
+            <h1 className="text-white text-xl font-semibold">{selectedMeeting.title}</h1>
+            <p className="text-gray-300 text-sm">
+              Meeting ID: {selectedMeeting.id} • {participants.length} participants
+            </p>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={toggleVideo}
+              variant={isVideoEnabled ? "default" : "destructive"}
+              size="sm"
+            >
+              {isVideoEnabled ? <Video className="w-4 h-4" /> : <VideoOff className="w-4 h-4" />}
+            </Button>
+            
+            <Button
+              onClick={toggleAudio}
+              variant={isAudioEnabled ? "default" : "destructive"}
+              size="sm"
+            >
+              {isAudioEnabled ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
+            </Button>
+            
+            <Button
+              onClick={toggleScreenShare}
+              variant={isScreenSharing ? "destructive" : "default"}
+              size="sm"
+            >
+              {isScreenSharing ? <MonitorOff className="w-4 h-4" /> : <Monitor className="w-4 h-4" />}
+            </Button>
+            
+            <Button
+              onClick={handleLeaveMeeting}
+              variant="destructive"
+              size="sm"
+            >
+              <PhoneOff className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Video Area */}
+        <div className="flex-1 flex">
+          <div className="flex-1 relative bg-black">
+            {/* Main video (remote or screen share) */}
+            <video
+              ref={remoteVideoRef}
+              autoPlay
+              playsInline
+              className="w-full h-full object-cover"
+            />
+            
+            {/* Local video/screen share */}
+            <div className="absolute bottom-4 right-4 w-48 h-32 bg-gray-800 rounded-lg overflow-hidden">
+              {isScreenSharing ? (
+                <video
+                  ref={localScreenRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <video
+                  ref={localVideoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full h-full object-cover"
+                />
+              )}
+            </div>
+          </div>
+
+          {/* Chat Sidebar */}
+          <div className="w-80 bg-gray-800 border-l border-gray-700 flex flex-col">
+            {/* Participants */}
+            <div className="p-4 border-b border-gray-700">
+              <div className="flex items-center gap-2 mb-3">
+                <Users className="w-4 h-4 text-gray-300" />
+                <span className="text-white font-medium">Participants ({participants.length})</span>
+              </div>
+              <div className="space-y-2 max-h-32 overflow-y-auto">
+                {participants.map((participant) => (
+                  <div key={participant.id} className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-gray-300 text-sm">
+                      {participant.user?.firstName} {participant.user?.lastName}
+                      {participant.role === 'host' && (
+                        <Badge variant="secondary" className="ml-2 text-xs">Host</Badge>
+                      )}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Chat Messages */}
+            <div className="flex-1 p-4 overflow-y-auto">
+              <div className="flex items-center gap-2 mb-3">
+                <MessageSquare className="w-4 h-4 text-gray-300" />
+                <span className="text-white font-medium">Chat</span>
+              </div>
+              
+              <div className="space-y-3">
+                {chatMessages.map((message) => (
+                  <div key={message.id} className="bg-gray-700 p-2 rounded-lg">
+                    <div className="flex justify-between items-start mb-1">
+                      <span className="text-blue-300 font-medium text-sm">
+                        {message.sender?.firstName} {message.sender?.lastName}
+                      </span>
+                      <span className="text-gray-400 text-xs">
+                        {format(new Date(message.sentAt), 'HH:mm')}
+                      </span>
+                    </div>
+                    <p className="text-gray-200 text-sm">{message.content}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Chat Input */}
+            <div className="p-4 border-t border-gray-700">
+              <div className="flex gap-2">
+                <Input
+                  value={chatMessage}
+                  onChange={(e) => setChatMessage(e.target.value)}
+                  placeholder="Type a message..."
+                  className="bg-gray-700 border-gray-600 text-white"
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      handleSendMessage();
+                    }
+                  }}
+                />
+                <Button
+                  onClick={handleSendMessage}
+                  disabled={!chatMessage.trim() || sendMessageMutation.isPending}
+                  size="sm"
+                >
+                  <Send className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto p-6 space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold">Screen Sharing & Meetings</h1>
+          <p className="text-gray-600 mt-2">Collaborate with your team through video meetings and screen sharing</p>
+        </div>
+        
+        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="flex items-center gap-2">
+              <Plus className="w-4 h-4" />
+              Create Meeting
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Create New Meeting</DialogTitle>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="title">Meeting Title *</Label>
+                <Input
+                  id="title"
+                  value={newMeeting.title}
+                  onChange={(e) => setNewMeeting(prev => ({ ...prev, title: e.target.value }))}
+                  placeholder="Enter meeting title"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={newMeeting.description}
+                  onChange={(e) => setNewMeeting(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Meeting description (optional)"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="scheduledStartTime">Start Time *</Label>
+                <Input
+                  id="scheduledStartTime"
+                  type="datetime-local"
+                  value={newMeeting.scheduledStartTime}
+                  onChange={(e) => setNewMeeting(prev => ({ ...prev, scheduledStartTime: e.target.value }))}
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="scheduledEndTime">End Time</Label>
+                <Input
+                  id="scheduledEndTime"
+                  type="datetime-local"
+                  value={newMeeting.scheduledEndTime}
+                  onChange={(e) => setNewMeeting(prev => ({ ...prev, scheduledEndTime: e.target.value }))}
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="maxParticipants">Max Participants</Label>
+                <Input
+                  id="maxParticipants"
+                  type="number"
+                  min="2"
+                  max="100"
+                  value={newMeeting.maxParticipants}
+                  onChange={(e) => setNewMeeting(prev => ({ ...prev, maxParticipants: parseInt(e.target.value) || 10 }))}
+                />
+              </div>
+              
+              <Button
+                onClick={handleCreateMeeting}
+                disabled={!newMeeting.title || !newMeeting.scheduledStartTime || createMeetingMutation.isPending}
+                className="w-full"
+              >
+                {createMeetingMutation.isPending ? 'Creating...' : 'Create Meeting'}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* Meetings List */}
+      <div className="grid gap-4">
+        <h2 className="text-xl font-semibold flex items-center gap-2">
+          <Calendar className="w-5 h-5" />
+          Meetings
+        </h2>
+        
+        {meetingsLoading ? (
+          <div className="text-center py-8 text-gray-500">Loading meetings...</div>
+        ) : meetings.length === 0 ? (
+          <Card>
+            <CardContent className="text-center py-8">
+              <Video className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500">No meetings scheduled</p>
+              <p className="text-gray-400 text-sm mt-2">Create your first meeting to get started</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid gap-4">
+            {meetings.map((meeting: Meeting) => (
+              <Card key={meeting.id} className="hover:shadow-md transition-shadow">
+                <CardHeader className="pb-3">
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-1">
+                      <CardTitle className="text-lg">{meeting.title}</CardTitle>
+                      {meeting.description && (
+                        <p className="text-gray-600 text-sm">{meeting.description}</p>
+                      )}
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <Badge className={`${getStatusColor(meeting.status)} text-white`}>
+                        {meeting.status}
+                      </Badge>
+                    </div>
+                  </div>
+                </CardHeader>
+                
+                <CardContent>
+                  <div className="flex justify-between items-center">
+                    <div className="space-y-1">
+                      <p className="text-sm text-gray-600">
+                        <strong>Scheduled:</strong> {format(new Date(meeting.scheduledStartTime), 'MMM dd, yyyy HH:mm')}
+                      </p>
+                      
+                      {meeting.scheduledEndTime && (
+                        <p className="text-sm text-gray-600">
+                          <strong>Ends:</strong> {format(new Date(meeting.scheduledEndTime), 'MMM dd, yyyy HH:mm')}
+                        </p>
+                      )}
+                      
+                      <p className="text-sm text-gray-600">
+                        <strong>Meeting ID:</strong> {meeting.id}
+                      </p>
+                      
+                      {meeting.maxParticipants && (
+                        <p className="text-sm text-gray-600">
+                          <strong>Max Participants:</strong> {meeting.maxParticipants}
+                        </p>
+                      )}
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <Button
+                        onClick={() => copyMeetingUrl(meeting)}
+                        variant="outline"
+                        size="sm"
+                      >
+                        <Copy className="w-4 h-4" />
+                      </Button>
+                      
+                      {meeting.status === 'scheduled' || meeting.status === 'active' ? (
+                        <Button
+                          onClick={() => handleJoinMeeting(meeting)}
+                          disabled={joinMeetingMutation.isPending}
+                          size="sm"
+                        >
+                          <Video className="w-4 h-4 mr-2" />
+                          {joinMeetingMutation.isPending ? 'Joining...' : 'Join Meeting'}
+                        </Button>
+                      ) : (
+                        <Button disabled size="sm" variant="secondary">
+                          Meeting {meeting.status}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

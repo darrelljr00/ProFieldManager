@@ -14,7 +14,8 @@ import {
   filePermissions, folderPermissions, defaultPermissions, userDashboardSettings, dashboardProfiles, vehicles,
   vehicleMaintenanceIntervals, vehicleMaintenanceRecords, vehicleJobAssignments, timeClockTaskTriggers,
   taskTriggers, taskTriggerInstances, taskTriggerSettings, frontendPages, frontendSliders, frontendComponents,
-  frontendIcons, frontendBoxes, frontendCategories, tutorials, tutorialProgress, tutorialCategories, leadSettings
+  frontendIcons, frontendBoxes, frontendCategories, tutorials, tutorialProgress, tutorialCategories, leadSettings,
+  meetings, meetingParticipants, meetingMessages, meetingRecordings
 } from "@shared/schema";
 import { marketResearchCompetitors } from "@shared/schema";
 import type { GasCard, InsertGasCard, GasCardAssignment, InsertGasCardAssignment, GasCardUsage, InsertGasCardUsage, GasCardProvider, InsertGasCardProvider } from "@shared/schema";
@@ -24,7 +25,9 @@ import type {
   Expense, ExpenseCategory, ExpenseReport, GasCard,
   Lead, CalendarJob, Message, Organization, Department,
   Employee, TimeOffRequest, PerformanceReview, DisciplinaryAction,
-  NavigationOrder, InsertNavigationOrder, BackupSettings, BackupJob
+  NavigationOrder, InsertNavigationOrder, BackupSettings, BackupJob,
+  Meeting, MeetingParticipant, MeetingMessage, MeetingRecording,
+  InsertMeeting, InsertMeetingParticipant, InsertMeetingMessage, InsertMeetingRecording
 } from "@shared/schema";
 
 export interface IStorage {
@@ -554,6 +557,21 @@ export interface IStorage {
   updateTutorialProgress(userId: number, tutorialId: number, progressData: any): Promise<any>;
   completeTutorial(userId: number, tutorialId: number, rating?: number, feedback?: string): Promise<any>;
   getUserTutorialStats(userId: number): Promise<any>;
+
+  // Meeting methods
+  getMeetings(organizationId: number, userId?: number): Promise<Meeting[]>;
+  getMeeting(id: number, organizationId: number): Promise<Meeting | undefined>;
+  createMeeting(meetingData: InsertMeeting): Promise<Meeting>;
+  updateMeeting(id: number, organizationId: number, updates: Partial<InsertMeeting>): Promise<Meeting>;
+  deleteMeeting(id: number, organizationId: number): Promise<boolean>;
+  joinMeeting(meetingId: number, userId: number): Promise<MeetingParticipant>;
+  leaveMeeting(meetingId: number, userId: number): Promise<boolean>;
+  getMeetingParticipants(meetingId: number): Promise<MeetingParticipant[]>;
+  getMeetingMessages(meetingId: number): Promise<MeetingMessage[]>;
+  createMeetingMessage(messageData: InsertMeetingMessage): Promise<MeetingMessage>;
+  getMeetingRecordings(meetingId: number, organizationId: number): Promise<MeetingRecording[]>;
+  createMeetingRecording(recordingData: InsertMeetingRecording): Promise<MeetingRecording>;
+  updateMeetingStatus(id: number, organizationId: number, status: string): Promise<Meeting>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -9882,6 +9900,148 @@ export class DatabaseStorage implements IStorage {
     }
 
     return updatedSettings;
+  }
+
+  // Meeting Operations
+  async getMeetings(organizationId: number, userId?: number): Promise<Meeting[]> {
+    const query = db.select().from(meetings).where(eq(meetings.organizationId, organizationId));
+    
+    if (userId) {
+      // Get meetings where user is host or participant
+      const userMeetings = await db
+        .select()
+        .from(meetings)
+        .leftJoin(meetingParticipants, eq(meetings.id, meetingParticipants.meetingId))
+        .where(
+          and(
+            eq(meetings.organizationId, organizationId),
+            or(
+              eq(meetings.hostUserId, userId),
+              eq(meetingParticipants.userId, userId)
+            )
+          )
+        );
+      return userMeetings.map(row => row.meetings);
+    }
+    
+    return await query.orderBy(desc(meetings.createdAt));
+  }
+
+  async getMeeting(id: number, organizationId: number): Promise<Meeting | undefined> {
+    const [meeting] = await db
+      .select()
+      .from(meetings)
+      .where(and(eq(meetings.id, id), eq(meetings.organizationId, organizationId)));
+    return meeting;
+  }
+
+  async createMeeting(meetingData: InsertMeeting): Promise<Meeting> {
+    const [meeting] = await db.insert(meetings).values(meetingData).returning();
+    
+    // Auto-join the host as a participant
+    if (meetingData.hostUserId) {
+      await db.insert(meetingParticipants).values({
+        meetingId: meeting.id,
+        userId: meetingData.hostUserId,
+        status: 'joined',
+        joinedAt: new Date()
+      });
+    }
+    
+    return meeting;
+  }
+
+  async updateMeeting(id: number, organizationId: number, updates: Partial<InsertMeeting>): Promise<Meeting> {
+    const [meeting] = await db
+      .update(meetings)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(and(eq(meetings.id, id), eq(meetings.organizationId, organizationId)))
+      .returning();
+    return meeting;
+  }
+
+  async deleteMeeting(id: number, organizationId: number): Promise<boolean> {
+    const result = await db
+      .delete(meetings)
+      .where(and(eq(meetings.id, id), eq(meetings.organizationId, organizationId)));
+    return result.rowCount > 0;
+  }
+
+  async joinMeeting(meetingId: number, userId: number): Promise<MeetingParticipant> {
+    // Check if user is already a participant
+    const [existingParticipant] = await db
+      .select()
+      .from(meetingParticipants)
+      .where(and(eq(meetingParticipants.meetingId, meetingId), eq(meetingParticipants.userId, userId)));
+
+    if (existingParticipant) {
+      // Update existing participant status
+      const [participant] = await db
+        .update(meetingParticipants)
+        .set({ status: 'joined', joinedAt: new Date() })
+        .where(and(eq(meetingParticipants.meetingId, meetingId), eq(meetingParticipants.userId, userId)))
+        .returning();
+      return participant;
+    } else {
+      // Create new participant
+      const [participant] = await db
+        .insert(meetingParticipants)
+        .values({ meetingId, userId, status: 'joined', joinedAt: new Date() })
+        .returning();
+      return participant;
+    }
+  }
+
+  async leaveMeeting(meetingId: number, userId: number): Promise<boolean> {
+    const result = await db
+      .update(meetingParticipants)
+      .set({ status: 'left', leftAt: new Date() })
+      .where(and(eq(meetingParticipants.meetingId, meetingId), eq(meetingParticipants.userId, userId)));
+    return result.rowCount > 0;
+  }
+
+  async getMeetingParticipants(meetingId: number): Promise<MeetingParticipant[]> {
+    return await db
+      .select()
+      .from(meetingParticipants)
+      .where(eq(meetingParticipants.meetingId, meetingId))
+      .orderBy(asc(meetingParticipants.joinedAt));
+  }
+
+  async getMeetingMessages(meetingId: number): Promise<MeetingMessage[]> {
+    return await db
+      .select()
+      .from(meetingMessages)
+      .where(eq(meetingMessages.meetingId, meetingId))
+      .orderBy(asc(meetingMessages.sentAt));
+  }
+
+  async createMeetingMessage(messageData: InsertMeetingMessage): Promise<MeetingMessage> {
+    const [message] = await db.insert(meetingMessages).values(messageData).returning();
+    return message;
+  }
+
+  async getMeetingRecordings(meetingId: number, organizationId: number): Promise<MeetingRecording[]> {
+    return await db
+      .select()
+      .from(meetingRecordings)
+      .leftJoin(meetings, eq(meetingRecordings.meetingId, meetings.id))
+      .where(and(eq(meetingRecordings.meetingId, meetingId), eq(meetings.organizationId, organizationId)))
+      .then(rows => rows.map(row => row.meeting_recordings));
+  }
+
+  async createMeetingRecording(recordingData: InsertMeetingRecording): Promise<MeetingRecording> {
+    const [recording] = await db.insert(meetingRecordings).values(recordingData).returning();
+    return recording;
+  }
+
+  async updateMeetingStatus(id: number, organizationId: number, status: string): Promise<Meeting> {
+    const [meeting] = await db
+      .update(meetings)
+      .set({ status, updatedAt: new Date() })
+      .where(and(eq(meetings.id, id), eq(meetings.organizationId, organizationId)))
+      .returning();
+    return meeting;
   }
 }
 
