@@ -9904,24 +9904,14 @@ export class DatabaseStorage implements IStorage {
 
   // Meeting Operations
   async getMeetings(organizationId: number, userId?: number): Promise<Meeting[]> {
-    const query = db.select().from(meetings).where(eq(meetings.organizationId, organizationId));
+    let query = db.select().from(meetings).where(eq(meetings.organizationId, organizationId));
     
     if (userId) {
-      // Get meetings where user is host or participant
-      const userMeetings = await db
-        .select()
-        .from(meetings)
-        .leftJoin(meetingParticipants, eq(meetings.id, meetingParticipants.meetingId))
-        .where(
-          and(
-            eq(meetings.organizationId, organizationId),
-            or(
-              eq(meetings.hostUserId, userId),
-              eq(meetingParticipants.userId, userId)
-            )
-          )
-        );
-      return userMeetings.map(row => row.meetings);
+      // For now, just get meetings where user is the host
+      query = query.where(and(
+        eq(meetings.organizationId, organizationId),
+        eq(meetings.hostId, userId)
+      ));
     }
     
     return await query.orderBy(desc(meetings.createdAt));
@@ -9939,10 +9929,10 @@ export class DatabaseStorage implements IStorage {
     const [meeting] = await db.insert(meetings).values(meetingData).returning();
     
     // Auto-join the host as a participant
-    if (meetingData.hostUserId) {
+    if (meetingData.hostId) {
       await db.insert(meetingParticipants).values({
         meetingId: meeting.id,
-        userId: meetingData.hostUserId,
+        userId: meetingData.hostId,
         status: 'joined',
         joinedAt: new Date()
       });

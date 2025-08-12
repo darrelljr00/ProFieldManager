@@ -3803,31 +3803,18 @@ export const meetings = pgTable("meetings", {
   // Meeting details
   title: text("title").notNull(),
   description: text("description"),
-  meetingType: text("meeting_type").notNull().default("video"), // 'video', 'audio_only', 'screen_share'
   
   // Meeting status and timing
-  status: text("status").notNull().default("scheduled"), // 'scheduled', 'active', 'ended', 'cancelled'
+  status: text("status"),
   scheduledStartTime: timestamp("scheduled_start_time"),
   scheduledEndTime: timestamp("scheduled_end_time"),
   actualStartTime: timestamp("actual_start_time"),
   actualEndTime: timestamp("actual_end_time"),
-  duration: integer("duration"), // in minutes
   
   // WebRTC and connection settings
   meetingUrl: text("meeting_url"),
-  roomId: text("room_id").notNull().unique(), // Unique room identifier for WebRTC
-  isRecording: boolean("is_recording").default(false),
-  allowScreenShare: boolean("allow_screen_share").default(true),
-  allowChat: boolean("allow_chat").default(true),
-  requirePassword: boolean("require_password").default(false),
-  password: text("password"), // Hashed password if required
-  maxParticipants: integer("max_participants").default(50),
-  
-  // Meeting settings
-  isPublic: boolean("is_public").default(false), // If true, anyone in org can join
-  waitingRoomEnabled: boolean("waiting_room_enabled").default(false),
-  muteOnJoin: boolean("mute_on_join").default(false),
-  cameraOffOnJoin: boolean("camera_off_on_join").default(false),
+  isRecording: boolean("is_recording"),
+  maxParticipants: integer("max_participants"),
   
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
