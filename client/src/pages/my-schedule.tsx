@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, parseISO, addMonths, subMonths } from 'date-fns';
-import { Calendar, ChevronLeft, ChevronRight, Clock, MapPin, User, Plus, Edit, Trash, Play, Square } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, Clock, MapPin, User as UserIcon, Plus, Edit, Trash, Play, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -15,6 +15,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
+import type { User } from '@shared/schema';
 
 interface Schedule {
   id: number;
@@ -87,13 +88,13 @@ export default function MySchedulePage() {
   });
 
   // Extract user from the response structure
-  const user = currentUser?.user || currentUser;
+  const user = (currentUser?.user || currentUser) as User | undefined;
 
   // Fetch users (for managers/admins)
   const { data: users = [] } = useQuery({
     queryKey: ['/api/users'],
     enabled: user?.role !== 'user',
-  });
+  }) as { data: User[] };
 
   console.log('Current user role:', user?.role);
   console.log('Available users for assignment:', users);
@@ -102,16 +103,12 @@ export default function MySchedulePage() {
   const { data: schedules = [], isLoading } = useQuery({
     queryKey: ['/api/schedules', format(currentDate, 'MM'), format(currentDate, 'yyyy')],
     queryFn: async () => {
-      const response = await apiRequest('/api/schedules', {
-        method: 'GET',
-        query: {
-          month: format(currentDate, 'MM'),
-          year: format(currentDate, 'yyyy'),
-        },
-      });
-      return response;
+      const month = format(currentDate, 'MM');
+      const year = format(currentDate, 'yyyy');
+      const response = await apiRequest('GET', `/api/schedules?month=${month}&year=${year}`);
+      return response.json();
     },
-  });
+  }) as { data: Schedule[], isLoading: boolean };
 
   // Fetch my schedule (simplified view for users)
   const { data: mySchedules = [] } = useQuery({
@@ -139,10 +136,7 @@ export default function MySchedulePage() {
   // Create schedule mutation
   const createScheduleMutation = useMutation({
     mutationFn: async (data: ScheduleFormData) => {
-      return apiRequest('/api/schedules', {
-        method: 'POST',
-        body: data,
-      });
+      return apiRequest('POST', '/api/schedules', data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/schedules'] });
@@ -166,10 +160,7 @@ export default function MySchedulePage() {
   // Update schedule mutation
   const updateScheduleMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: Partial<ScheduleFormData> }) => {
-      return apiRequest(`/api/schedules/${id}`, {
-        method: 'PUT',
-        body: data,
-      });
+      return apiRequest('PUT', `/api/schedules/${id}`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/schedules'] });
@@ -193,9 +184,7 @@ export default function MySchedulePage() {
   // Delete schedule mutation
   const deleteScheduleMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest(`/api/schedules/${id}`, {
-        method: 'DELETE',
-      });
+      return apiRequest('DELETE', `/api/schedules/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/schedules'] });
@@ -217,9 +206,7 @@ export default function MySchedulePage() {
   // Clock in mutation
   const clockInMutation = useMutation({
     mutationFn: async (scheduleId: number) => {
-      return apiRequest(`/api/schedules/${scheduleId}/clock-in`, {
-        method: 'POST',
-      });
+      return apiRequest('POST', `/api/schedules/${scheduleId}/clock-in`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/schedules'] });
@@ -241,9 +228,7 @@ export default function MySchedulePage() {
   // Clock out mutation
   const clockOutMutation = useMutation({
     mutationFn: async (scheduleId: number) => {
-      return apiRequest(`/api/schedules/${scheduleId}/clock-out`, {
-        method: 'POST',
-      });
+      return apiRequest('POST', `/api/schedules/${scheduleId}/clock-out`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/schedules'] });
@@ -788,7 +773,7 @@ function ScheduleCard({
               )}
               {schedule.userName && (
                 <div className="flex items-center gap-1">
-                  <User className="h-4 w-4" />
+                  <UserIcon className="h-4 w-4" />
                   {schedule.userFirstName} {schedule.userLastName}
                 </div>
               )}
