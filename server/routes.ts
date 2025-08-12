@@ -650,6 +650,13 @@ const invoiceUpload = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Global request logger
+  app.use((req, res, next) => {
+    if (req.path.startsWith('/api/invoices')) {
+      console.log(`🌍 INVOICE REQUEST - ${req.method} ${req.path} from ${req.ip}`);
+    }
+    next();
+  });
   
   // Custom static file handler for uploads - must be first to override Vite middleware
   app.get('/uploads/*', async (req, res) => {
@@ -1646,13 +1653,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Apply authentication middleware to protected routes only
   app.use('/api', (req, res, next) => {
+    console.log(`🔍 API MIDDLEWARE - ${req.method} ${req.path}`);
     // Skip auth for these routes
     const publicRoutes = ['/api/auth/', '/api/seed', '/api/settings/'];
     const isPublic = publicRoutes.some(route => req.path.startsWith(route) || req.path === route);
     
     if (isPublic) {
+      console.log(`🔓 PUBLIC ROUTE - Skipping auth for ${req.path}`);
       return next();
     }
+    console.log(`🔒 PROTECTED ROUTE - Applying auth for ${req.path}`);
     return requireAuth(req, res, next);
   });
 

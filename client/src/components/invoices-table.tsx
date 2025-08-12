@@ -365,8 +365,8 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll }: Invoi
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {selectedInvoice.lineItems.map((item, index) => (
-                      <TableRow key={index}>
+                    {(selectedInvoice.lineItems || []).map((item, index) => (
+                      <TableRow key={`${selectedInvoice.id}-line-${index}`}>
                         <TableCell>{item.description}</TableCell>
                         <TableCell className="text-right">{item.quantity}</TableCell>
                         <TableCell className="text-right">${parseFloat(item.rate).toFixed(2)}</TableCell>
