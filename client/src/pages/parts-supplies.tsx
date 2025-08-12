@@ -49,7 +49,9 @@ type CreatePartFormData = z.infer<typeof createPartSchema>;
 
 export default function PartsSuppliesPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedPart, setSelectedPart] = useState<any>(null);
+  const [editingPart, setEditingPart] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("inventory");
   
   // Search and Filter states
@@ -199,7 +201,56 @@ export default function PartsSuppliesPage() {
     }
   });
 
+  // Edit part mutation
+  const editPartMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const response = await apiRequest('PUT', `/api/parts-supplies/${editingPart.id}`, data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/parts-supplies'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/stock-alerts'] });
+      setIsEditDialogOpen(false);
+      setEditingPart(null);
+      setUploadedImageUrl("");
+      editForm.reset();
+      toast({ title: "Success", description: "Part updated successfully" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message || "Failed to update part", variant: "destructive" });
+    }
+  });
+
   const form = useForm<CreatePartFormData>({
+    resolver: zodResolver(createPartSchema),
+    defaultValues: {
+      name: "",
+      description: "",
+      category: "",
+      sku: "",
+      currentStock: 0,
+      minStockLevel: 0,
+      maxStockLevel: 100,
+      reorderPoint: 10,
+      reorderQuantity: 50,
+      unitCost: "",
+      unitPrice: "",
+      weight: "",
+      dimensions: "",
+      unit: "each",
+      supplier: "",
+      supplierSku: "",
+      supplierContact: "",
+      location: "",
+      binLocation: "",
+      imageUrl: "",
+      requiresSpecialHandling: false,
+      isHazardous: false
+    }
+  });
+
+  // Edit form
+  const editForm = useForm<CreatePartFormData>({
     resolver: zodResolver(createPartSchema),
     defaultValues: {
       name: "",
@@ -251,6 +302,61 @@ export default function PartsSuppliesPage() {
       imageUrl: uploadedImageUrl || null, // Include uploaded image URL
     };
     createPartMutation.mutate(formattedData);
+  };
+
+  const onEditSubmit = (data: CreatePartFormData) => {
+    const formattedData = {
+      ...data,
+      unitCost: data.unitCost ? parseFloat(data.unitCost) : null,
+      unitPrice: data.unitPrice ? parseFloat(data.unitPrice) : null,
+      weight: data.weight ? parseFloat(data.weight) : null,
+      imageUrl: uploadedImageUrl || editingPart?.imageUrl || null,
+    };
+    editPartMutation.mutate(formattedData);
+  };
+
+  // Handle editing a part
+  const handleEditPart = (part: any) => {
+    setEditingPart(part);
+    setUploadedImageUrl(part.imageUrl || "");
+    
+    // Populate the edit form with current part data
+    editForm.reset({
+      name: part.name || "",
+      description: part.description || "",
+      category: part.category || "",
+      sku: part.sku || "",
+      currentStock: part.currentStock || 0,
+      minStockLevel: part.minStockLevel || 0,
+      maxStockLevel: part.maxStockLevel || 100,
+      reorderPoint: part.reorderPoint || 10,
+      reorderQuantity: part.reorderQuantity || 50,
+      unitCost: part.unitCost?.toString() || "",
+      unitPrice: part.unitPrice?.toString() || "",
+      weight: part.weight?.toString() || "",
+      dimensions: part.dimensions || "",
+      unit: part.unit || "each",
+      supplier: part.supplier || "",
+      supplierSku: part.supplierSku || "",
+      supplierContact: part.supplierContact || "",
+      location: part.location || "",
+      binLocation: part.binLocation || "",
+      imageUrl: part.imageUrl || "",
+      requiresSpecialHandling: part.requiresSpecialHandling || false,
+      isHazardous: part.isHazardous || false,
+    });
+    
+    setIsEditDialogOpen(true);
+  };
+
+  // Handle closing edit dialog
+  const handleEditDialogClose = (open: boolean) => {
+    setIsEditDialogOpen(open);
+    if (!open) {
+      setEditingPart(null);
+      setUploadedImageUrl("");
+      editForm.reset();
+    }
   };
 
   // Calculate inventory stats
@@ -532,6 +638,354 @@ export default function PartsSuppliesPage() {
             </Form>
           </DialogContent>
         </Dialog>
+
+        {/* Edit Part Dialog */}
+        <Dialog open={isEditDialogOpen} onOpenChange={handleEditDialogClose}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Edit Part</DialogTitle>
+            </DialogHeader>
+            <Form {...editForm}>
+              <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={editForm.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Part Name *</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g., Brake Fluid" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editForm.control}
+                    name="sku"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>SKU</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g., BF-001" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <FormField
+                  control={editForm.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Description</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="Brief description of the part..." {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={editForm.control}
+                    name="category"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Category *</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select category" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="Automotive">Automotive</SelectItem>
+                            <SelectItem value="Tools">Tools</SelectItem>
+                            <SelectItem value="Safety">Safety</SelectItem>
+                            <SelectItem value="Electrical">Electrical</SelectItem>
+                            <SelectItem value="Plumbing">Plumbing</SelectItem>
+                            <SelectItem value="Hardware">Hardware</SelectItem>
+                            <SelectItem value="Other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editForm.control}
+                    name="unit"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Unit</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select unit" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="each">Each</SelectItem>
+                            <SelectItem value="box">Box</SelectItem>
+                            <SelectItem value="case">Case</SelectItem>
+                            <SelectItem value="gallon">Gallon</SelectItem>
+                            <SelectItem value="liter">Liter</SelectItem>
+                            <SelectItem value="pound">Pound</SelectItem>
+                            <SelectItem value="kilogram">Kilogram</SelectItem>
+                            <SelectItem value="foot">Foot</SelectItem>
+                            <SelectItem value="meter">Meter</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Stock Information */}
+                <div className="grid grid-cols-3 gap-4">
+                  <FormField
+                    control={editForm.control}
+                    name="currentStock"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Current Stock</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            min="0" 
+                            {...field} 
+                            onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                            value={field.value || 0}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editForm.control}
+                    name="minStockLevel"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Min Stock Level</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            min="0" 
+                            {...field} 
+                            onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                            value={field.value || 0}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editForm.control}
+                    name="maxStockLevel"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Max Stock Level</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            min="0" 
+                            {...field} 
+                            onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                            value={field.value || 0}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Pricing Information */}
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={editForm.control}
+                    name="unitCost"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Unit Cost ($)</FormLabel>
+                        <FormControl>
+                          <Input placeholder="0.00" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editForm.control}
+                    name="unitPrice"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Unit Price ($)</FormLabel>
+                        <FormControl>
+                          <Input placeholder="0.00" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Image Upload */}
+                <div className="space-y-2">
+                  <FormLabel>Product Image</FormLabel>
+                  <div className="flex items-center gap-4">
+                    {(uploadedImageUrl || editingPart?.imageUrl) && (
+                      <div className="w-20 h-20 border rounded-md overflow-hidden">
+                        <img 
+                          src={uploadedImageUrl || editingPart?.imageUrl} 
+                          alt="Part preview"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
+                    <ObjectUploader
+                      maxNumberOfFiles={1}
+                      maxFileSize={10485760} // 10MB
+                      onGetUploadParameters={handleGetUploadParameters}
+                      onComplete={handleUploadComplete}
+                      buttonClassName="flex-shrink-0"
+                    >
+                      <div className="flex items-center gap-2">
+                        <ImageIcon className="h-4 w-4" />
+                        <span>{uploadedImageUrl || editingPart?.imageUrl ? "Change Image" : "Upload Image"}</span>
+                      </div>
+                    </ObjectUploader>
+                  </div>
+                </div>
+
+                {/* Location Information */}
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={editForm.control}
+                    name="location"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Location</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g., Warehouse A" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editForm.control}
+                    name="binLocation"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Bin Location</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g., A-12-C" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Supplier Information */}
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={editForm.control}
+                    name="supplier"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Supplier</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g., ABC Supply Co." {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editForm.control}
+                    name="supplierSku"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Supplier SKU</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Supplier's part number" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Safety Flags */}
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={editForm.control}
+                    name="requiresSpecialHandling"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel>Requires Special Handling</FormLabel>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editForm.control}
+                    name="isHazardous"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel>Hazardous Material</FormLabel>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="flex justify-end space-x-2 pt-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleEditDialogClose(false)}
+                    disabled={editPartMutation.isPending}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    disabled={editPartMutation.isPending}
+                  >
+                    {editPartMutation.isPending ? "Updating..." : "Update Part"}
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Search and Filter Controls */}
@@ -768,16 +1222,7 @@ export default function PartsSuppliesPage() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => {
-                                  const newStock = prompt(`Update stock for ${part.name}:`, part.currentStock.toString());
-                                  if (newStock !== null && !isNaN(parseInt(newStock))) {
-                                    updateStockMutation.mutate({
-                                      partId: part.id,
-                                      newStock: parseInt(newStock),
-                                      reason: "Manual adjustment"
-                                    });
-                                  }
-                                }}
+                                onClick={() => handleEditPart(part)}
                               >
                                 <Edit className="h-3 w-3" />
                               </Button>
