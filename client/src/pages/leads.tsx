@@ -943,7 +943,7 @@ export default function Leads() {
                   {Object.entries(leadSourceStats).map(([source, count]) => (
                     <div key={source} className="flex items-center justify-between">
                       <span className="text-sm font-medium capitalize">
-                        {source.replace('_', ' ')}
+                        {(source || 'unknown').replace('_', ' ')}
                       </span>
                       <div className="flex items-center gap-2">
                         <div className="w-20 bg-gray-200 rounded-full h-2">
@@ -973,7 +973,7 @@ export default function Leads() {
                   {Object.entries(statusStats).map(([status, count]) => (
                     <div key={status} className="flex items-center justify-between">
                       <span className="text-sm font-medium capitalize">
-                        {status.replace('_', ' ')}
+                        {(status || 'unknown').replace('_', ' ')}
                       </span>
                       <div className="flex items-center gap-2">
                         <div className="w-20 bg-gray-200 rounded-full h-2">
