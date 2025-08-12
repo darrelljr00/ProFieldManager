@@ -825,7 +825,7 @@ export default function Leads() {
                     </TableCell>
                     <TableCell>
                       <Badge className={getStatusColor(lead.status)}>
-                        {lead.status.replace('_', ' ')}
+                        {(lead.status || 'unknown').replace('_', ' ')}
                       </Badge>
                     </TableCell>
                     <TableCell>
