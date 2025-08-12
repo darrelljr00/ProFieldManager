@@ -2629,10 +2629,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Image upload specifically for image gallery (Cloudinary-based)
   app.post("/api/upload/image", requireAuth, imageUpload.single('file'), async (req, res) => {
     try {
-      console.log('☁️ Cloudinary Image Gallery upload request received:', {
+      console.log('☁️ CRITICAL: Image Gallery upload request received:', {
         file: req.file ? 'Present' : 'Missing',
         body: req.body,
-        user: req.user?.username
+        user: req.user?.username,
+        userId: req.user?.id,
+        authenticated: !!req.user,
+        authenticationMethod: req.user ? 'SUCCESS' : 'FAILED'
       });
 
       if (!req.file) {
@@ -11294,11 +11297,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get upload URL for object storage
   app.post("/api/objects/upload", requireAuth, async (req, res) => {
     try {
+      console.log('🔄 Getting upload URL for user:', req.user?.username);
       const objectStorageService = new ObjectStorageService();
       const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+      console.log('✅ Generated upload URL successfully');
       res.json({ uploadURL });
     } catch (error) {
-      console.error("Error generating upload URL:", error);
+      console.error("❌ Error generating upload URL:", error);
       res.status(500).json({ error: "Failed to generate upload URL" });
     }
   });

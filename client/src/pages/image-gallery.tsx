@@ -103,11 +103,7 @@ export default function ImageGallery() {
           formData.append('projectId', uploadProjectId);
         }
 
-        const response = await fetch('/api/upload/image', {
-          method: 'POST',
-          body: formData,
-          credentials: 'include',
-        });
+        const response = await apiRequest('POST', '/api/upload/image', formData);
         
         if (!response.ok) {
           const errorText = await response.text();
