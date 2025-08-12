@@ -347,6 +347,9 @@ export default function Leads() {
       phone: formData.get('phone') as string,
       email: formData.get('email') as string,
       address: formData.get('address') as string,
+      city: formData.get('city') as string,
+      state: formData.get('state') as string,
+      zipCode: formData.get('zipCode') as string,
       serviceDescription: formData.get('serviceDescription') as string,
       leadPrice: formData.get('leadPrice') as string,
       leadSource: formData.get('leadSource') as string,
@@ -513,13 +516,45 @@ export default function Leads() {
               </div>
 
               <div>
-                <Label htmlFor="address">Address</Label>
+                <Label htmlFor="address">Street Address</Label>
                 <Input
                   id="address"
                   name="address"
                   defaultValue={selectedLead?.address || ""}
-                  placeholder="123 Main St, City, State 12345"
+                  placeholder="123 Main St"
                 />
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="city">City</Label>
+                  <Input
+                    id="city"
+                    name="city"
+                    defaultValue={selectedLead?.city || ""}
+                    placeholder="City"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="state">State</Label>
+                  <Input
+                    id="state"
+                    name="state"
+                    defaultValue={selectedLead?.state || ""}
+                    placeholder="State"
+                    maxLength={2}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="zipCode">Zip Code</Label>
+                  <Input
+                    id="zipCode"
+                    name="zipCode"
+                    defaultValue={selectedLead?.zipCode || ""}
+                    placeholder="12345"
+                    maxLength={10}
+                  />
+                </div>
               </div>
 
               <div>
