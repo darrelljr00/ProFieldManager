@@ -102,10 +102,78 @@ export default function Leads() {
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const wsRef = useRef<WebSocket | null>(null);
 
   const { data: leads = [], isLoading } = useQuery<Lead[]>({
     queryKey: ["/api/leads"],
   });
+
+  // WebSocket connection for real-time heatmap updates
+  useEffect(() => {
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    
+    console.log("🔌 Connecting to WebSocket for leads heatmap updates:", wsUrl);
+    
+    const ws = new WebSocket(wsUrl);
+    wsRef.current = ws;
+
+    ws.onopen = () => {
+      console.log("✅ WebSocket connected for leads heatmap");
+      ws.send(JSON.stringify({ type: 'auth', username: 'leads_heatmap_user' }));
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data);
+        console.log("📨 WebSocket message received:", message);
+
+        // Handle lead-related events for heatmap updates
+        if (message.type === 'lead_created' || message.type === 'lead_updated' || message.type === 'lead_deleted') {
+          console.log("🗺️ Lead change detected, refreshing leads data for heatmap");
+          
+          // Invalidate and refetch leads data
+          queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+          
+          // Show toast notification
+          if (message.type === 'lead_created') {
+            toast({
+              title: "New Lead Added",
+              description: `${message.data.lead.name} has been added to the system`,
+            });
+          } else if (message.type === 'lead_updated') {
+            toast({
+              title: "Lead Updated",
+              description: `Lead information has been updated`,
+            });
+          } else if (message.type === 'lead_deleted') {
+            toast({
+              title: "Lead Deleted",
+              description: `A lead has been removed from the system`,
+            });
+          }
+        }
+      } catch (error) {
+        console.error("❌ Error parsing WebSocket message:", error);
+      }
+    };
+
+    ws.onerror = (error) => {
+      console.error("❌ WebSocket error:", error);
+    };
+
+    ws.onclose = () => {
+      console.log("🔌 WebSocket disconnected for leads heatmap");
+    };
+
+    // Cleanup on unmount
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+    };
+  }, [queryClient, toast]);
 
   // Debug: log the leads data
   console.log("Leads data:", leads);
@@ -128,6 +196,14 @@ export default function Leads() {
         });
     }
   }, [activeTab, leads]);
+
+  // Auto-refresh heatmap when leads data changes (including from WebSocket updates)
+  useEffect(() => {
+    if (activeTab === "analytics" && isMapLoaded && leads.length > 0) {
+      console.log("🗺️ Refreshing heatmap due to leads data change");
+      geocodeLeadAddresses();
+    }
+  }, [leads, activeTab, isMapLoaded]);
 
   // Geocode lead addresses
   const geocodeLeadAddresses = async () => {

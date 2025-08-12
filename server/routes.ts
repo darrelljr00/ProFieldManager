@@ -7157,6 +7157,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!updatedLead) {
         return res.status(404).json({ message: "Lead not found" });
       }
+
+      // Broadcast lead update to all web users except the updater
+      (app as any).broadcastToWebUsers('lead_updated', {
+        lead: updatedLead,
+        updatedBy: req.user!.username
+      }, req.user!.id);
       
       res.json(updatedLead);
     } catch (error: any) {
@@ -7175,6 +7181,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!success) {
         return res.status(404).json({ message: "Lead not found" });
       }
+
+      // Broadcast lead deletion to all web users except the deleter
+      (app as any).broadcastToWebUsers('lead_deleted', {
+        leadId,
+        deletedBy: req.user!.username
+      }, req.user!.id);
       
       res.json({ message: "Lead deleted successfully" });
     } catch (error: any) {
