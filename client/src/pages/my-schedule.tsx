@@ -100,14 +100,10 @@ export default function MySchedulePage() {
   console.log('Available users for assignment:', users);
 
   // Fetch schedules
+  const month = format(currentDate, 'MM');
+  const year = format(currentDate, 'yyyy');
   const { data: schedules = [], isLoading } = useQuery({
-    queryKey: ['/api/schedules', format(currentDate, 'MM'), format(currentDate, 'yyyy')],
-    queryFn: async () => {
-      const month = format(currentDate, 'MM');
-      const year = format(currentDate, 'yyyy');
-      const response = await apiRequest('GET', `/api/schedules?month=${month}&year=${year}`);
-      return response.json();
-    },
+    queryKey: [`/api/schedules?month=${month}&year=${year}`],
   }) as { data: Schedule[], isLoading: boolean };
 
   // Fetch my schedule (simplified view for users)
