@@ -279,7 +279,7 @@ export default function MySchedulePage() {
 
   const getSchedulesForDate = (date: Date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
-    const schedulesToUse = currentUser?.role === 'user' ? mySchedules : schedules;
+    const schedulesToUse = user?.role === 'user' ? mySchedules : schedules;
     return schedulesToUse.filter((schedule: Schedule) => schedule.startDate === dateStr);
   };
 
@@ -310,13 +310,22 @@ export default function MySchedulePage() {
     <div className="container mx-auto py-8 px-4">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold">My Schedule</h1>
+          <h1 className="text-3xl font-bold">
+            {user?.role === 'user' ? 'My Schedule' : 'Team Schedules'}
+          </h1>
           <p className="text-muted-foreground">
             {user?.role === 'user' 
               ? 'View your assigned schedules and clock in/out'
-              : 'Manage team schedules and assignments'
+              : 'Manage and view all organization schedules'
             }
           </p>
+          {user?.role !== 'user' && (
+            <div className="mt-2">
+              <Badge variant="secondary" className="text-xs">
+                Viewing all organization schedules as {user?.role}
+              </Badge>
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-4">
           <div className="flex rounded-md border">
