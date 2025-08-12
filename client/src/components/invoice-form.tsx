@@ -29,10 +29,10 @@ const invoiceSchema = z.object({
   paymentMethod: z.enum(["check", "ach", "square"]).default("check"),
   notes: z.string().optional(),
   lineItems: z.array(lineItemSchema).min(1, "At least one line item is required"),
-  subtotal: z.number(),
-  taxRate: z.number().min(0),
-  taxAmount: z.number(),
-  total: z.number(),
+  subtotal: z.number().default(0),
+  taxRate: z.number().min(0).default(0),
+  taxAmount: z.number().default(0),
+  total: z.number().default(0),
 });
 
 type InvoiceFormData = z.infer<typeof invoiceSchema>;
@@ -77,13 +77,15 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
   } = useForm<InvoiceFormData>({
     resolver: zodResolver(invoiceSchema),
     defaultValues: {
-      currency: invoiceSettings?.defaultCurrency || "USD",
+      currency: "USD",
       paymentMethod: "check",
-      lineItems: lineItems,
+      lineItems: [{ description: "", quantity: 1, rate: 0, amount: 0 }],
       subtotal: 0,
-      taxRate: taxRate,
+      taxRate: 0.1,
       taxAmount: 0,
       total: 0,
+      invoiceDate: new Date().toISOString().split('T')[0], // Current date in YYYY-MM-DD format
+      dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days from now
     },
   });
 
@@ -91,6 +93,7 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
   useEffect(() => {
     if (invoiceSettings?.taxRate) {
       setTaxRate(invoiceSettings.taxRate / 100);
+      setValue('taxRate', invoiceSettings.taxRate / 100);
     }
     if (invoiceSettings?.defaultCurrency) {
       setValue('currency', invoiceSettings.defaultCurrency);
@@ -99,6 +102,12 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
       setValue('notes', invoiceSettings.invoiceFooter);
     }
   }, [invoiceSettings, setValue]);
+
+  // Sync line items with form when they change
+  useEffect(() => {
+    setValue('lineItems', lineItems);
+    calculateTotals(lineItems);
+  }, [lineItems, setValue]);
 
   const createInvoiceMutation = useMutation({
     mutationFn: (data: InsertInvoice) => apiRequest("POST", "/api/invoices", data),

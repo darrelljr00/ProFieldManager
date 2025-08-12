@@ -22,7 +22,7 @@ export default function Invoices() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  const { data: invoices, isLoading } = useQuery({
+  const { data: invoices = [], isLoading } = useQuery({
     queryKey: ["/api/invoices"],
   });
 
@@ -99,12 +99,12 @@ export default function Invoices() {
     uploadInvoiceMutation.mutate(formData);
   };
 
-  const filteredInvoices = invoices?.filter(invoice => {
-    const matchesSearch = invoice.customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         invoice.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredInvoices = invoices.filter(invoice => {
+    const matchesSearch = invoice.customer?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         invoice.invoiceNumber?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || invoice.status === statusFilter;
     return matchesSearch && matchesStatus;
-  }) || [];
+  });
 
   return (
     <div className="flex-1">
