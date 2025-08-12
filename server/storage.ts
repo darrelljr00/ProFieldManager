@@ -14,7 +14,7 @@ import {
   filePermissions, folderPermissions, defaultPermissions, userDashboardSettings, dashboardProfiles, vehicles,
   vehicleMaintenanceIntervals, vehicleMaintenanceRecords, vehicleJobAssignments, timeClockTaskTriggers,
   taskTriggers, taskTriggerInstances, taskTriggerSettings, frontendPages, frontendSliders, frontendComponents,
-  frontendIcons, frontendBoxes, frontendCategories, tutorials, tutorialProgress, tutorialCategories
+  frontendIcons, frontendBoxes, frontendCategories, tutorials, tutorialProgress, tutorialCategories, leadSettings
 } from "@shared/schema";
 import { marketResearchCompetitors } from "@shared/schema";
 import type { GasCard, InsertGasCard, GasCardAssignment, InsertGasCardAssignment, GasCardUsage, InsertGasCardUsage, GasCardProvider, InsertGasCardProvider } from "@shared/schema";
@@ -9779,6 +9779,35 @@ export class DatabaseStorage implements IStorage {
         averageRating: 0,
       };
     }
+  }
+
+  // Lead Settings Operations
+  async getLeadSettings(organizationId: number): Promise<any> {
+    const [settings] = await db
+      .select()
+      .from(leadSettings)
+      .where(eq(leadSettings.organizationId, organizationId));
+    return settings;
+  }
+
+  async updateLeadSettings(organizationId: number, updates: any): Promise<any> {
+    // First try to update existing settings
+    const [updatedSettings] = await db
+      .update(leadSettings)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(leadSettings.organizationId, organizationId))
+      .returning();
+
+    // If no existing settings, create new ones
+    if (!updatedSettings) {
+      const [newSettings] = await db
+        .insert(leadSettings)
+        .values({ organizationId, ...updates })
+        .returning();
+      return newSettings;
+    }
+
+    return updatedSettings;
   }
 }
 

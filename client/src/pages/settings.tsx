@@ -76,6 +76,22 @@ type TwilioSettings = {
   webhookUrl: string;
 };
 
+type LeadSettings = {
+  autoFollowUpEnabled: boolean;
+  followUpInterval1: number;
+  followUpInterval2: number;
+  followUpInterval3: number;
+  followUpInterval4: number;
+  followUpType1: 'sms' | 'email' | 'call';
+  followUpType2: 'sms' | 'email' | 'call';
+  followUpType3: 'sms' | 'email' | 'call';
+  followUpType4: 'sms' | 'email' | 'call';
+  smsTemplate: string;
+  emailTemplate: string;
+  emailSubject: string;
+  callReminder: string;
+};
+
 type CalendarSettings = {
   schedulingBufferMinutes: number;
   preventOverlapping: boolean;
@@ -237,6 +253,10 @@ export default function Settings() {
     queryKey: ["/api/settings/twilio"],
   });
 
+  const { data: leadSettings, isLoading: leadLoading } = useQuery<LeadSettings>({
+    queryKey: ["/api/lead-settings"],
+  });
+
   const { data: ocrSettings, isLoading: ocrLoading } = useQuery<OcrSettings>({
     queryKey: ["/api/settings/ocr"],
   });
@@ -376,6 +396,25 @@ export default function Settings() {
       toast({
         title: "Connection Failed",
         description: error.message || "Failed to connect to Twilio",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const leadSettingsMutation = useMutation({
+    mutationFn: (data: Partial<LeadSettings>) =>
+      apiRequest("PUT", "/api/lead-settings", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/lead-settings"] });
+      toast({
+        title: "Success",
+        description: "Lead settings saved successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save lead settings",
         variant: "destructive",
       });
     },
@@ -904,7 +943,7 @@ export default function Settings() {
     dispatchMutation.mutate(data);
   };
 
-  if (paymentLoading || companyLoading || emailLoading || twilioLoading || ocrLoading || calendarLoading || invoiceLoading || dispatchLoading) {
+  if (paymentLoading || companyLoading || emailLoading || twilioLoading || leadLoading || ocrLoading || calendarLoading || invoiceLoading || dispatchLoading) {
     return (
       <div className="p-6">
         <div className="space-y-4">
@@ -928,6 +967,7 @@ export default function Settings() {
           <TabsTrigger value="company" className="flex-shrink-0">Company</TabsTrigger>
           <TabsTrigger value="email" className="flex-shrink-0">Email</TabsTrigger>
           <TabsTrigger value="sms" className="flex-shrink-0">SMS</TabsTrigger>
+          <TabsTrigger value="leads" className="flex-shrink-0">Leads</TabsTrigger>
           <TabsTrigger value="calendar" className="flex-shrink-0">Calendar</TabsTrigger>
           <TabsTrigger value="ocr" className="flex-shrink-0">OCR</TabsTrigger>
           <TabsTrigger value="reviews" className="flex-shrink-0">Reviews</TabsTrigger>
@@ -1698,6 +1738,161 @@ export default function Settings() {
                   <Button type="submit" disabled={calendarMutation.isPending}>
                     <Save className="h-4 w-4 mr-2" />
                     {calendarMutation.isPending ? "Saving..." : "Save Calendar Settings"}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="leads">
+          <Card>
+            <CardHeader>
+              <CardTitle>Lead Settings</CardTitle>
+              <CardDescription>
+                Configure automated follow-up settings for leads management
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                const formData = new FormData(e.currentTarget);
+                leadSettingsMutation.mutate({
+                  autoFollowUpEnabled: formData.get('autoFollowUpEnabled') === 'on',
+                  followUpInterval1: Number(formData.get('followUpInterval1')),
+                  followUpInterval2: Number(formData.get('followUpInterval2')),
+                  followUpInterval3: Number(formData.get('followUpInterval3')),
+                  followUpInterval4: Number(formData.get('followUpInterval4')),
+                  followUpType1: formData.get('followUpType1') as 'sms' | 'email' | 'call',
+                  followUpType2: formData.get('followUpType2') as 'sms' | 'email' | 'call',
+                  followUpType3: formData.get('followUpType3') as 'sms' | 'email' | 'call',
+                  followUpType4: formData.get('followUpType4') as 'sms' | 'email' | 'call',
+                  smsTemplate: formData.get('smsTemplate') as string,
+                  emailTemplate: formData.get('emailTemplate') as string,
+                  emailSubject: formData.get('emailSubject') as string,
+                  callReminder: formData.get('callReminder') as string,
+                });
+              }} className="space-y-6">
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-medium">Enable Automated Follow-ups</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Automatically send follow-up messages to leads at custom intervals
+                    </p>
+                  </div>
+                  <Switch
+                    name="autoFollowUpEnabled"
+                    defaultChecked={leadSettings?.autoFollowUpEnabled || false}
+                  />
+                </div>
+
+                <Separator />
+
+                <div className="space-y-6">
+                  <h3 className="text-lg font-medium">Follow-up Schedule</h3>
+                  
+                  {[1, 2, 3, 4].map((num) => (
+                    <div key={num} className="grid grid-cols-3 gap-4 p-4 border rounded-lg">
+                      <div>
+                        <Label htmlFor={`followUpInterval${num}`}>Follow-up #{num} - Days After</Label>
+                        <Input
+                          id={`followUpInterval${num}`}
+                          name={`followUpInterval${num}`}
+                          type="number"
+                          min="1"
+                          max="365"
+                          placeholder="7"
+                          defaultValue={leadSettings?.[`followUpInterval${num}` as keyof LeadSettings] || (num === 1 ? 1 : num === 2 ? 3 : num === 3 ? 7 : 14)}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor={`followUpType${num}`}>Type</Label>
+                        <Select name={`followUpType${num}`} defaultValue={leadSettings?.[`followUpType${num}` as keyof LeadSettings] || 'sms'}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="sms">SMS</SelectItem>
+                            <SelectItem value="email">Email</SelectItem>
+                            <SelectItem value="call">Call Reminder</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex items-end">
+                        <p className="text-sm text-muted-foreground">
+                          {num === 1 && "Initial follow-up"}
+                          {num === 2 && "Second attempt"}
+                          {num === 3 && "Third attempt"}
+                          {num === 4 && "Final attempt"}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <Separator />
+
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Message Templates</h3>
+                  
+                  <div>
+                    <Label htmlFor="smsTemplate">SMS Template</Label>
+                    <Textarea
+                      id="smsTemplate"
+                      name="smsTemplate"
+                      placeholder="Hi {name}, we wanted to follow up on your recent inquiry about our services. Are you still interested in learning more?"
+                      defaultValue={leadSettings?.smsTemplate}
+                      className="min-h-[80px]"
+                    />
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Use {`{name}`} for customer name, {`{service}`} for service type
+                    </p>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="emailSubject">Email Subject</Label>
+                    <Input
+                      id="emailSubject"
+                      name="emailSubject"
+                      placeholder="Following up on your service inquiry"
+                      defaultValue={leadSettings?.emailSubject}
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="emailTemplate">Email Template</Label>
+                    <Textarea
+                      id="emailTemplate"
+                      name="emailTemplate"
+                      placeholder="Dear {name},\n\nWe wanted to follow up on your recent inquiry about our {service} services. We're here to answer any questions you might have and provide you with a personalized quote.\n\nBest regards,\nYour Service Team"
+                      defaultValue={leadSettings?.emailTemplate}
+                      className="min-h-[120px]"
+                    />
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Use {`{name}`} for customer name, {`{service}`} for service type
+                    </p>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="callReminder">Call Reminder Notes</Label>
+                    <Textarea
+                      id="callReminder"
+                      name="callReminder"
+                      placeholder="Remind to call {name} about {service} inquiry. Review previous conversations and prepare personalized quote."
+                      defaultValue={leadSettings?.callReminder}
+                      className="min-h-[80px]"
+                    />
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Template for call reminder tasks. Use {`{name}`} for customer name, {`{service}`} for service type
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex justify-end">
+                  <Button type="submit" disabled={leadSettingsMutation.isPending}>
+                    <Save className="h-4 w-4 mr-2" />
+                    {leadSettingsMutation.isPending ? "Saving..." : "Save Lead Settings"}
                   </Button>
                 </div>
               </form>

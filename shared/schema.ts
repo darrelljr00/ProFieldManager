@@ -923,6 +923,41 @@ export const leads = pgTable("leads", {
   notes: text("notes"),
   contactedAt: timestamp("contacted_at"),
   followUpDate: timestamp("follow_up_date"),
+  // Follow-up attempts
+  followUpAttempt1Date: timestamp("follow_up_attempt_1_date"),
+  followUpAttempt1Type: text("follow_up_attempt_1_type"), // sms, email, call
+  followUpAttempt1Completed: boolean("follow_up_attempt_1_completed").default(false),
+  followUpAttempt2Date: timestamp("follow_up_attempt_2_date"),
+  followUpAttempt2Type: text("follow_up_attempt_2_type"),
+  followUpAttempt2Completed: boolean("follow_up_attempt_2_completed").default(false),
+  followUpAttempt3Date: timestamp("follow_up_attempt_3_date"),
+  followUpAttempt3Type: text("follow_up_attempt_3_type"),
+  followUpAttempt3Completed: boolean("follow_up_attempt_3_completed").default(false),
+  followUpAttempt4Date: timestamp("follow_up_attempt_4_date"),
+  followUpAttempt4Type: text("follow_up_attempt_4_type"),
+  followUpAttempt4Completed: boolean("follow_up_attempt_4_completed").default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Lead Settings table
+export const leadSettings = pgTable("lead_settings", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  // Automatic follow-up settings
+  enableAutoFollowUp: boolean("enable_auto_follow_up").default(false),
+  autoFollowUpInterval: integer("auto_follow_up_interval").default(24), // hours
+  defaultFollowUpMethod: text("default_follow_up_method").default("email"), // sms, email, call
+  // SMS follow-up settings
+  enableSmsFollowUp: boolean("enable_sms_follow_up").default(false),
+  smsTemplate: text("sms_template").default("Hi {name}, this is a follow-up regarding your {service} request. Please let us know if you have any questions."),
+  // Email follow-up settings
+  enableEmailFollowUp: boolean("enable_email_follow_up").default(false),
+  emailTemplate: text("email_template").default("Dear {name},\n\nWe wanted to follow up on your recent inquiry about {service}. We're here to help and answer any questions you may have.\n\nBest regards,\nThe Team"),
+  emailSubject: text("email_subject").default("Follow-up on your {service} inquiry"),
+  // Voice call settings
+  enableVoiceFollowUp: boolean("enable_voice_follow_up").default(false),
+  voiceScript: text("voice_script").default("Hello {name}, this is a follow-up call regarding your {service} request. Please call us back when convenient."),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

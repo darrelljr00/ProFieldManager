@@ -357,6 +357,19 @@ export default function Leads() {
       priority: formData.get('priority') as string,
       notes: formData.get('notes') as string,
       followUpDate: formData.get('followUpDate') as string || null,
+      // Follow-up attempts
+      followUpAttempt1Date: formData.get('followUpAttempt1Date') as string || null,
+      followUpAttempt1Type: formData.get('followUpAttempt1Type') as string || null,
+      followUpAttempt1Completed: formData.get('followUpAttempt1Completed') === 'on',
+      followUpAttempt2Date: formData.get('followUpAttempt2Date') as string || null,
+      followUpAttempt2Type: formData.get('followUpAttempt2Type') as string || null,
+      followUpAttempt2Completed: formData.get('followUpAttempt2Completed') === 'on',
+      followUpAttempt3Date: formData.get('followUpAttempt3Date') as string || null,
+      followUpAttempt3Type: formData.get('followUpAttempt3Type') as string || null,
+      followUpAttempt3Completed: formData.get('followUpAttempt3Completed') === 'on',
+      followUpAttempt4Date: formData.get('followUpAttempt4Date') as string || null,
+      followUpAttempt4Type: formData.get('followUpAttempt4Type') as string || null,
+      followUpAttempt4Completed: formData.get('followUpAttempt4Completed') === 'on',
     };
 
     if (selectedLead) {
@@ -639,6 +652,151 @@ export default function Leads() {
                   type="date"
                   defaultValue={selectedLead?.followUpDate ? new Date(selectedLead.followUpDate).toISOString().split('T')[0] : ""}
                 />
+              </div>
+
+              {/* Follow-up Attempts Section */}
+              <div className="space-y-4">
+                <Label className="text-base font-semibold">Follow-up Attempts</Label>
+                
+                {/* Follow-up Attempt 1 */}
+                <div className="grid grid-cols-12 gap-2 items-end">
+                  <div className="col-span-1 flex items-center justify-center">
+                    <input 
+                      type="checkbox" 
+                      name="followUpAttempt1Completed"
+                      defaultChecked={selectedLead?.followUpAttempt1Completed || false}
+                      className="rounded"
+                    />
+                  </div>
+                  <div className="col-span-3">
+                    <Label htmlFor="followUpAttempt1Type">Method</Label>
+                    <select 
+                      id="followUpAttempt1Type"
+                      name="followUpAttempt1Type"
+                      defaultValue={selectedLead?.followUpAttempt1Type || ""}
+                      className="w-full p-2 border rounded-md"
+                    >
+                      <option value="">Select method</option>
+                      <option value="sms">SMS</option>
+                      <option value="email">Email</option>
+                      <option value="call">Phone Call</option>
+                    </select>
+                  </div>
+                  <div className="col-span-8">
+                    <Label htmlFor="followUpAttempt1Date">Date & Time</Label>
+                    <Input
+                      id="followUpAttempt1Date"
+                      name="followUpAttempt1Date"
+                      type="datetime-local"
+                      defaultValue={selectedLead?.followUpAttempt1Date ? new Date(selectedLead.followUpAttempt1Date).toISOString().slice(0, 16) : ""}
+                    />
+                  </div>
+                </div>
+
+                {/* Follow-up Attempt 2 */}
+                <div className="grid grid-cols-12 gap-2 items-end">
+                  <div className="col-span-1 flex items-center justify-center">
+                    <input 
+                      type="checkbox" 
+                      name="followUpAttempt2Completed"
+                      defaultChecked={selectedLead?.followUpAttempt2Completed || false}
+                      className="rounded"
+                    />
+                  </div>
+                  <div className="col-span-3">
+                    <Label htmlFor="followUpAttempt2Type">Method</Label>
+                    <select 
+                      id="followUpAttempt2Type"
+                      name="followUpAttempt2Type"
+                      defaultValue={selectedLead?.followUpAttempt2Type || ""}
+                      className="w-full p-2 border rounded-md"
+                    >
+                      <option value="">Select method</option>
+                      <option value="sms">SMS</option>
+                      <option value="email">Email</option>
+                      <option value="call">Phone Call</option>
+                    </select>
+                  </div>
+                  <div className="col-span-8">
+                    <Label htmlFor="followUpAttempt2Date">Date & Time</Label>
+                    <Input
+                      id="followUpAttempt2Date"
+                      name="followUpAttempt2Date"
+                      type="datetime-local"
+                      defaultValue={selectedLead?.followUpAttempt2Date ? new Date(selectedLead.followUpAttempt2Date).toISOString().slice(0, 16) : ""}
+                    />
+                  </div>
+                </div>
+
+                {/* Follow-up Attempt 3 */}
+                <div className="grid grid-cols-12 gap-2 items-end">
+                  <div className="col-span-1 flex items-center justify-center">
+                    <input 
+                      type="checkbox" 
+                      name="followUpAttempt3Completed"
+                      defaultChecked={selectedLead?.followUpAttempt3Completed || false}
+                      className="rounded"
+                    />
+                  </div>
+                  <div className="col-span-3">
+                    <Label htmlFor="followUpAttempt3Type">Method</Label>
+                    <select 
+                      id="followUpAttempt3Type"
+                      name="followUpAttempt3Type"
+                      defaultValue={selectedLead?.followUpAttempt3Type || ""}
+                      className="w-full p-2 border rounded-md"
+                    >
+                      <option value="">Select method</option>
+                      <option value="sms">SMS</option>
+                      <option value="email">Email</option>
+                      <option value="call">Phone Call</option>
+                    </select>
+                  </div>
+                  <div className="col-span-8">
+                    <Label htmlFor="followUpAttempt3Date">Date & Time</Label>
+                    <Input
+                      id="followUpAttempt3Date"
+                      name="followUpAttempt3Date"
+                      type="datetime-local"
+                      defaultValue={selectedLead?.followUpAttempt3Date ? new Date(selectedLead.followUpAttempt3Date).toISOString().slice(0, 16) : ""}
+                    />
+                  </div>
+                </div>
+
+                {/* Follow-up Attempt 4 */}
+                <div className="grid grid-cols-12 gap-2 items-end">
+                  <div className="col-span-1 flex items-center justify-center">
+                    <input 
+                      type="checkbox" 
+                      name="followUpAttempt4Completed"
+                      defaultChecked={selectedLead?.followUpAttempt4Completed || false}
+                      className="rounded"
+                    />
+                  </div>
+                  <div className="col-span-3">
+                    <Label htmlFor="followUpAttempt4Type">Method</Label>
+                    <select 
+                      id="followUpAttempt4Type"
+                      name="followUpAttempt4Type"
+                      defaultValue={selectedLead?.followUpAttempt4Type || ""}
+                      className="w-full p-2 border rounded-md"
+                    >
+                      <option value="">Select method</option>
+                      <option value="sms">SMS</option>
+                      <option value="email">Email</option>
+                      <option value="call">Phone Call</option>
+                    </select>
+                  </div>
+                  <div className="col-span-8">
+                    <Label htmlFor="followUpAttempt4Date">Date & Time</Label>
+                    <Input
+                      id="followUpAttempt4Date"
+                      name="followUpAttempt4Date"
+                      type="datetime-local"
+                      defaultValue={selectedLead?.followUpAttempt4Date ? new Date(selectedLead.followUpAttempt4Date).toISOString().slice(0, 16) : ""}
+                    />
+                  </div>
+                </div>
               </div>
 
               <div>

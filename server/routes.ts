@@ -7183,6 +7183,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Lead Settings API
+  app.get("/api/lead-settings", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const settings = await storage.getLeadSettings(user.organizationId);
+      res.json(settings || {});
+    } catch (error: any) {
+      console.error("Error fetching lead settings:", error);
+      res.status(500).json({ message: "Failed to fetch lead settings" });
+    }
+  });
+
+  app.put("/api/lead-settings", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const settings = await storage.updateLeadSettings(user.organizationId, req.body);
+      res.json(settings);
+    } catch (error: any) {
+      console.error("Error updating lead settings:", error);
+      res.status(500).json({ message: "Failed to update lead settings" });
+    }
+  });
+
   // Digital Signatures API
   app.get("/api/projects/:id/signatures", requireAuth, async (req, res) => {
     try {
