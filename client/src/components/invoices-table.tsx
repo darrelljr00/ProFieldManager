@@ -31,15 +31,31 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll }: Invoi
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
 
   // Fetch company settings for logo and company info
-  const { data: companySettings } = useQuery({
-    queryKey: ['/api/settings', 'company'],
+  const { data: companySettings, isLoading: companySettingsLoading, error: companyError } = useQuery({
+    queryKey: ['/api/settings/company'],
     queryFn: async () => {
-      const response = await fetch('/api/settings?category=company', {
+      console.log("🔍 COMPANY SETTINGS: Fetching company settings...");
+      const response = await fetch('/api/settings/company', {
         credentials: 'include'
       });
-      if (!response.ok) return [];
-      return response.json();
+      console.log("🔍 COMPANY SETTINGS: Response status:", response.status);
+      if (!response.ok) {
+        console.log("🔍 COMPANY SETTINGS: Response not ok, returning empty object");
+        return {};
+      }
+      const data = await response.json();
+      console.log("🔍 COMPANY SETTINGS: Received data:", data);
+      return data;
     },
+  });
+
+  // Debug company settings
+  console.log("🔍 COMPANY DEBUG:", {
+    companySettings,
+    isLoading: companySettingsLoading,
+    error: companyError?.message || 'none',
+    isObject: typeof companySettings === 'object' && companySettings !== null,
+    keys: companySettings ? Object.keys(companySettings) : 'no keys'
   });
 
   const sendInvoiceMutation = useMutation({
@@ -257,14 +273,14 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll }: Invoi
               {/* Company Header with Logo */}
               <div className="flex justify-between items-start border-b pb-6">
                 <div className="flex items-center space-x-4">
-                  {Array.isArray(companySettings) && companySettings.find((s: any) => s.key === 'logo')?.value && (
+                  {companySettings?.logo && (
                     <img 
-                      src={companySettings.find((s: any) => s.key === 'logo')?.value || "/uploads/logo-1749855277221-54980640.jpg"} 
+                      src={companySettings.logo} 
                       alt="Company Logo" 
                       className={`object-contain ${
-                        Array.isArray(companySettings) && companySettings.find((s: any) => s.key === 'logoSize')?.value === 'small' ? 'h-12 w-12' :
-                        Array.isArray(companySettings) && companySettings.find((s: any) => s.key === 'logoSize')?.value === 'large' ? 'h-24 w-24' :
-                        Array.isArray(companySettings) && companySettings.find((s: any) => s.key === 'logoSize')?.value === 'xlarge' ? 'h-32 w-32' :
+                        companySettings.logoSize === 'small' ? 'h-12 w-12' :
+                        companySettings.logoSize === 'large' ? 'h-24 w-24' :
+                        companySettings.logoSize === 'xlarge' ? 'h-32 w-32' :
                         'h-16 w-16'
                       }`}
                       onError={(e) => {
@@ -274,20 +290,20 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll }: Invoi
                   )}
                   <div>
                     <h2 className="text-2xl font-bold text-gray-900">
-                      {Array.isArray(companySettings) && companySettings.find((s: any) => s.key === 'name')?.value || "Your Company Name"}
+                      {companySettings?.companyName || "Your Company Name"}
                     </h2>
                     <p className="text-sm text-gray-600">
-                      {Array.isArray(companySettings) && companySettings.find((s: any) => s.key === 'address')?.value || "123 Business Street"}
+                      {companySettings?.companyStreetAddress || "123 Business Street"}
                     </p>
                     <p className="text-sm text-gray-600">
-                      {Array.isArray(companySettings) && companySettings.find((s: any) => s.key === 'city')?.value || "City"}, {Array.isArray(companySettings) && companySettings.find((s: any) => s.key === 'state')?.value || "State"} {Array.isArray(companySettings) && companySettings.find((s: any) => s.key === 'zip')?.value || "12345"}
+                      {companySettings?.companyCity || "City"}, {companySettings?.companyState || "State"} {companySettings?.companyZipCode || "12345"}
                     </p>
                     <p className="text-sm text-gray-600">
-                      Phone: {Array.isArray(companySettings) && companySettings.find((s: any) => s.key === 'phone')?.value || "(555) 123-4567"}
+                      Phone: {companySettings?.companyPhone || "(555) 123-4567"}
                     </p>
-                    {Array.isArray(companySettings) && companySettings.find((s: any) => s.key === 'email')?.value && (
+                    {companySettings?.companyEmail && (
                       <p className="text-sm text-gray-600">
-                        Email: {companySettings.find((s: any) => s.key === 'email')?.value}
+                        Email: {companySettings.companyEmail}
                       </p>
                     )}
                   </div>
