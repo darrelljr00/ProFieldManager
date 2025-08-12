@@ -51,7 +51,9 @@ import {
   images, settings, organizations, userSessions, vendors,
   soundSettings, userDashboardSettings, dashboardProfiles,
   schedules, scheduleAssignments, scheduleComments, timeClock,
-  lateArrivals, notifications, notificationSettings
+  lateArrivals, notifications, notificationSettings,
+  partsSupplies, inventoryTransactions, stockAlerts,
+  partsCategories
 } from "@shared/schema";
 import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull } from "drizzle-orm";
 import { DocuSignService, getDocuSignConfig } from "./docusign";
@@ -13590,16 +13592,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create new part
   app.post("/api/parts-supplies", requireAuth, async (req, res) => {
     try {
+      console.log('📦 CREATE PART - Request body:', req.body);
+      console.log('📦 CREATE PART - User info:', { id: req.user!.id, orgId: req.user!.organizationId });
+      
       const partData = {
         ...req.body,
         organizationId: req.user!.organizationId,
         createdBy: req.user!.id
       };
       
+      console.log('📦 CREATE PART - Part data to insert:', partData);
+      
       const newPart = await storage.createPartSupply(partData);
+      console.log('📦 CREATE PART - Successfully created:', newPart);
       res.status(201).json(newPart);
     } catch (error) {
-      console.error('Error creating part:', error);
+      console.error('📦 CREATE PART - Error details:', error);
       res.status(500).json({ error: 'Failed to create part' });
     }
   });
