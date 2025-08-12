@@ -99,11 +99,7 @@ export default function PartsSuppliesPage() {
 
   // Fetch parts and supplies
   const { data: partsSupplies = [], isLoading: partsLoading } = useQuery({
-    queryKey: ['/api/parts-supplies'],
-    queryFn: async () => {
-      const response = await apiRequest('GET', '/api/parts-supplies');
-      return response.json();
-    }
+    queryKey: ['/api/parts-supplies']
   });
 
   // Filter and search logic
@@ -151,20 +147,12 @@ export default function PartsSuppliesPage() {
 
   // Fetch categories
   const { data: categories = [] } = useQuery({
-    queryKey: ['/api/parts-categories'],
-    queryFn: async () => {
-      const response = await apiRequest('GET', '/api/parts-categories');
-      return response.json();
-    }
+    queryKey: ['/api/parts-categories']
   });
 
   // Fetch stock alerts
   const { data: stockAlerts = [] } = useQuery({
-    queryKey: ['/api/stock-alerts'],
-    queryFn: async () => {
-      const response = await apiRequest('GET', '/api/stock-alerts');
-      return response.json();
-    }
+    queryKey: ['/api/stock-alerts']
   });
 
   // Create part mutation
