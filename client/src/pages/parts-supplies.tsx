@@ -278,10 +278,34 @@ export default function PartsSuppliesPage() {
       const imageUrl = uploadedFile.uploadURL;
       setUploadedImageUrl(imageUrl);
       
-      toast({
-        title: "Success",
-        description: "Image uploaded successfully",
-      });
+      // If we're editing a part, immediately update the part's image in the database
+      if (editingPart && editingPart.id) {
+        try {
+          await apiRequest('PUT', `/api/parts-supplies/${editingPart.id}/image`, {
+            imageURL: imageUrl
+          });
+          
+          // Refresh the parts list to show the updated image
+          queryClient.invalidateQueries({ queryKey: ["/api/parts-supplies"] });
+          
+          toast({
+            title: "Success",
+            description: "Image uploaded and part updated successfully",
+          });
+        } catch (error) {
+          console.error('Failed to update part image:', error);
+          toast({
+            title: "Upload Complete",
+            description: "Image uploaded but failed to update part. Please save the form to apply changes.",
+            variant: "destructive",
+          });
+        }
+      } else {
+        toast({
+          title: "Success",
+          description: "Image uploaded successfully",
+        });
+      }
     }
   };
 
