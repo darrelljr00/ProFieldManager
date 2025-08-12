@@ -346,6 +346,7 @@ export default function Leads() {
       name: formData.get('name') as string,
       phone: formData.get('phone') as string,
       email: formData.get('email') as string,
+      address: formData.get('address') as string,
       serviceDescription: formData.get('serviceDescription') as string,
       leadPrice: formData.get('leadPrice') as string,
       leadSource: formData.get('leadSource') as string,
