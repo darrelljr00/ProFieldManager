@@ -15624,16 +15624,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const user = getAuthenticatedUser(req);
       
+      console.log("📅 Creating schedule - Request body:", req.body);
+      console.log("📅 Creating schedule - User info:", { id: user.id, organizationId: user.organizationId });
+      
       const scheduleData = insertScheduleSchema.parse({
         ...req.body,
         organizationId: user.organizationId,
         createdById: user.id,
       });
       
+      console.log("📅 Creating schedule - Parsed data:", scheduleData);
+      
       const [schedule] = await db
         .insert(schedules)
         .values(scheduleData)
         .returning();
+      
+      console.log("📅 Creating schedule - Success:", schedule);
       
       // Broadcast to all web users
       broadcastToWebUsers('schedule_created', {
@@ -15643,10 +15650,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.status(201).json(schedule);
     } catch (error: any) {
+      console.error("📅 Creating schedule - Full error details:", error);
       if (error instanceof ZodError) {
+        console.error("📅 Creating schedule - Zod validation errors:", error.errors);
         res.status(400).json({ message: "Validation error", errors: error.errors });
       } else {
-        console.error("Error creating schedule:", error);
+        console.error("📅 Creating schedule - Database/other error:", error.message, error.stack);
         res.status(500).json({ message: "Failed to create schedule" });
       }
     }
