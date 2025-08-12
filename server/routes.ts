@@ -4981,6 +4981,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Move trash route before the :id route to avoid parameter conflicts
+  app.get("/api/expenses/trash", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      console.log("🗑️ TRASH DEBUG - User object:", { id: user.id, organizationId: user.organizationId, role: user.role });
+      
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      // Ensure organizationId is a valid number
+      if (!user.organizationId) {
+        console.log("🗑️ TRASH DEBUG - User missing organizationId:", user);
+        return res.json([]); // Return empty array instead of error
+      }
+      
+      const organizationId = parseInt(String(user.organizationId));
+      console.log("🗑️ TRASH DEBUG - Parsed organizationId:", organizationId);
+      
+      if (isNaN(organizationId)) {
+        console.log("🗑️ TRASH DEBUG - Invalid organizationId for user:", user.id, "orgId:", user.organizationId);
+        return res.json([]); // Return empty array instead of error
+      }
+      
+      const trashedExpenses = await storage.getTrashedExpenses(organizationId, user.id);
+      console.log("🗑️ TRASH DEBUG - Found trashed expenses:", trashedExpenses.length);
+      res.json(trashedExpenses);
+    } catch (error: any) {
+      console.error("🗑️ TRASH DEBUG - Error fetching trashed expenses:", error);
+      res.status(500).json({ message: "Failed to fetch expense" });
+    }
+  });
+
   app.get("/api/expenses/:id", requireAuth, async (req, res) => {
     try {
       const expenseId = parseInt(req.params.id);
@@ -5178,38 +5211,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Expense trash management routes
-  app.get("/api/expenses/trash", requireAuth, async (req, res) => {
-    try {
-      const user = getAuthenticatedUser(req);
-      console.log("🗑️ TRASH DEBUG - User object:", { id: user.id, organizationId: user.organizationId, role: user.role });
-      
-      if (!user) {
-        return res.status(401).json({ message: "Authentication required" });
-      }
-      
-      // Ensure organizationId is a valid number
-      if (!user.organizationId) {
-        console.log("🗑️ TRASH DEBUG - User missing organizationId:", user);
-        return res.json([]); // Return empty array instead of error
-      }
-      
-      const organizationId = parseInt(String(user.organizationId));
-      console.log("🗑️ TRASH DEBUG - Parsed organizationId:", organizationId);
-      
-      if (isNaN(organizationId)) {
-        console.log("🗑️ TRASH DEBUG - Invalid organizationId for user:", user.id, "orgId:", user.organizationId);
-        return res.json([]); // Return empty array instead of error
-      }
-      
-      const trashedExpenses = await storage.getTrashedExpenses(organizationId, user.id);
-      console.log("🗑️ TRASH DEBUG - Found trashed expenses:", trashedExpenses.length);
-      res.json(trashedExpenses);
-    } catch (error: any) {
-      console.error("🗑️ TRASH DEBUG - Error fetching trashed expenses:", error);
-      res.status(500).json({ message: "Failed to fetch expense" });
-    }
-  });
+  // Expense trash management routes (moved above for proper route order)
 
   app.post("/api/expenses/:id/restore", requireAuth, async (req, res) => {
     try {
