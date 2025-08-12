@@ -820,7 +820,7 @@ export default function Leads() {
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline">
-                        {lead.leadSource.replace('_', ' ')}
+                        {(lead.leadSource || 'unknown').replace('_', ' ')}
                       </Badge>
                     </TableCell>
                     <TableCell>
