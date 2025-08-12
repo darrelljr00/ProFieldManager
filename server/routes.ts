@@ -1920,12 +1920,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate invoice number
       const invoiceNumber = `INV-${Date.now()}`;
       
-      const invoiceData = insertInvoiceSchema.parse({
+      // Convert date strings to Date objects
+      const requestData = {
         ...req.body,
         userId: req.user.id,
         invoiceNumber: req.body.invoiceNumber || invoiceNumber,
         status: req.body.status || 'draft',
-      });
+        invoiceDate: req.body.invoiceDate ? new Date(req.body.invoiceDate) : new Date(),
+        dueDate: req.body.dueDate ? new Date(req.body.dueDate) : new Date(),
+      };
+      
+      const invoiceData = insertInvoiceSchema.parse(requestData);
       
       const invoice = await storage.createInvoice(invoiceData);
       

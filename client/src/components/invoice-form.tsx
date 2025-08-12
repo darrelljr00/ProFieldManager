@@ -173,8 +173,9 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
       ...data,
       userId: 1, // This will be set by the backend from authenticated user
       invoiceNumber: `INV-${Date.now()}`, // Generate invoice number
-      invoiceDate: new Date(data.invoiceDate),
-      dueDate: new Date(data.dueDate),
+      // Send dates as strings - backend will convert to Date objects
+      invoiceDate: data.invoiceDate,
+      dueDate: data.dueDate,
       subtotal: data.subtotal.toString(),
       taxRate: (taxRate * 100).toString(), // Convert to percentage
       taxAmount: data.taxAmount.toString(),
