@@ -133,7 +133,8 @@ export default function Leads() {
   const geocodeLeadAddresses = async () => {
     const locations: LatLng[] = [];
     
-    for (const lead of leads) {
+    for (const item of leads) {
+      const lead = item.leads || item; // Handle nested structure
       if (lead.address && lead.address.trim()) {
         try {
           const location = await geocodeAddress(lead.address);
@@ -219,9 +220,10 @@ export default function Leads() {
   };
 
   // Filter leads based on search query and filters
-  const filteredLeads = leads.filter((lead) => {
+  const filteredLeads = leads.filter((item) => {
+    const lead = item.leads || item; // Handle nested structure
     const matchesSearch = searchQuery === "" || 
-      lead.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      lead.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       lead.phone?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       lead.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       lead.serviceDescription?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -410,25 +412,31 @@ export default function Leads() {
 
   // Analytics calculations
   const totalLeads = leads.length;
-  const leadsWithAddress = leads.filter(lead => lead.address?.trim()).length;
+  const leadsWithAddress = leads.filter(item => {
+    const lead = item.leads || item;
+    return lead.address?.trim();
+  }).length;
   const geocodedLeads = leadLocations.length;
   const geocodeRate = leadsWithAddress > 0 ? (geocodedLeads / leadsWithAddress * 100).toFixed(1) : '0';
 
   // Lead source analytics
-  const leadSourceStats = leads.reduce((acc, lead) => {
+  const leadSourceStats = leads.reduce((acc, item) => {
+    const lead = item.leads || item;
     const source = lead.leadSource || 'unknown';
     acc[source] = (acc[source] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
 
   // Status analytics  
-  const statusStats = leads.reduce((acc, lead) => {
+  const statusStats = leads.reduce((acc, item) => {
+    const lead = item.leads || item;
     acc[lead.status] = (acc[lead.status] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
 
   // Grade analytics
-  const gradeStats = leads.reduce((acc, lead) => {
+  const gradeStats = leads.reduce((acc, item) => {
+    const lead = item.leads || item;
     const grade = lead.grade || 'cold';
     acc[grade] = (acc[grade] || 0) + 1;
     return acc;
@@ -786,7 +794,9 @@ export default function Leads() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredLeads.map((lead) => (
+                {filteredLeads.map((item) => {
+                  const lead = item.leads || item; // Handle nested structure
+                  return (
                   <TableRow key={lead.id} className={getRowColor(lead.grade || "cold")}>
                     <TableCell className="font-medium">{lead.name}</TableCell>
                     <TableCell>
@@ -857,21 +867,22 @@ export default function Leads() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => openDialog(lead)}
+                          onClick={() => openDialog({ ...lead, id: item.id || lead.id })}
                         >
                           <Edit className="h-3 w-3" />
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => deleteMutation.mutate(lead.id)}
+                          onClick={() => deleteMutation.mutate(item.id || lead.id)}
                         >
                           <Trash2 className="h-3 w-3" />
                         </Button>
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           )}
