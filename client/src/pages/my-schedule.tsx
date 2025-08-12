@@ -136,7 +136,9 @@ export default function MySchedulePage() {
   // Create schedule mutation
   const createScheduleMutation = useMutation({
     mutationFn: async (data: ScheduleFormData) => {
-      return apiRequest('POST', '/api/schedules', data);
+      console.log('🎯 Creating schedule with data:', data);
+      const response = await apiRequest('POST', '/api/schedules', data);
+      return response;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/schedules'] });
