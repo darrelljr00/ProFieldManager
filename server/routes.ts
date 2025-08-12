@@ -1907,23 +1907,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/invoices", requireAuth, async (req, res) => {
     try {
       const user = getAuthenticatedUser(req);
+      console.log("📋 Invoice GET request - User:", user.id, "Org:", user.organizationId);
       const invoices = await storage.getInvoices(user.organizationId);
+      console.log("📋 Found invoices:", invoices.length);
       res.json(invoices);
     } catch (error: any) {
-      console.error("Error fetching invoices:", error);
+      console.error("❌ Error fetching invoices:", error);
       res.status(500).json({ message: error.message });
     }
   });
 
-  app.post("/api/invoices", async (req, res) => {
+  app.post("/api/invoices", requireAuth, async (req, res) => {
     try {
+      // Get authenticated user
+      const user = getAuthenticatedUser(req);
+      
       // Generate invoice number
       const invoiceNumber = `INV-${Date.now()}`;
       
       // Convert date strings to Date objects
       const requestData = {
         ...req.body,
-        userId: req.user.id,
+        userId: user.id,
+        organizationId: user.organizationId,
         invoiceNumber: req.body.invoiceNumber || invoiceNumber,
         status: req.body.status || 'draft',
         invoiceDate: req.body.invoiceDate ? new Date(req.body.invoiceDate) : new Date(),
@@ -1937,8 +1943,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Broadcast to all web users except the creator
       (app as any).broadcastToWebUsers('invoice_created', {
         invoice,
-        createdBy: req.user.username
-      }, req.user.id);
+        createdBy: user.username
+      }, user.id);
       
       res.status(201).json(invoice);
     } catch (error: any) {
@@ -1950,9 +1956,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/invoices/:id", async (req, res) => {
+  app.get("/api/invoices/:id", requireAuth, async (req, res) => {
     try {
-      const invoice = await storage.getInvoice(parseInt(req.params.id), req.user.id);
+      const user = getAuthenticatedUser(req);
+      const invoice = await storage.getInvoice(parseInt(req.params.id), user.id);
       if (!invoice) {
         return res.status(404).json({ message: "Invoice not found" });
       }
@@ -1962,10 +1969,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/invoices/:id", async (req, res) => {
+  app.put("/api/invoices/:id", requireAuth, async (req, res) => {
     try {
+      const user = getAuthenticatedUser(req);
       const invoiceData = insertInvoiceSchema.omit({ lineItems: true }).partial().parse(req.body);
-      const invoice = await storage.updateInvoice(parseInt(req.params.id), req.user.id, invoiceData);
+      const invoice = await storage.updateInvoice(parseInt(req.params.id), user.id, invoiceData);
       if (!invoice) {
         return res.status(404).json({ message: "Invoice not found" });
       }
@@ -1979,9 +1987,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/invoices/:id", async (req, res) => {
+  app.delete("/api/invoices/:id", requireAuth, async (req, res) => {
     try {
-      const deleted = await storage.deleteInvoice(parseInt(req.params.id), req.user.id);
+      const user = getAuthenticatedUser(req);
+      const deleted = await storage.deleteInvoice(parseInt(req.params.id), user.id);
       if (!deleted) {
         return res.status(404).json({ message: "Invoice not found" });
       }
@@ -2876,7 +2885,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create message record first with pending status
       const messageData = {
-        userId: req.user.id,
+        userId: user.id,
         customerId: customerId || null,
         to: to,
         from: process.env.TWILIO_PHONE_NUMBER || "+15551234567", // Sample Twilio phone number

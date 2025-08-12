@@ -156,8 +156,11 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
   AuthService.validateSession(token)
     .then((sessionData) => {
       if (!sessionData) {
+        console.log('🚨 SESSION VALIDATION FAILED - Invalid session data');
         return res.status(401).json({ message: "Invalid or expired session" });
       }
+
+      console.log('✅ SESSION VALIDATION SUCCESS for:', sessionData.user.username);
 
       // Attach user to request - include all permission fields from database
       req.user = {
@@ -202,10 +205,11 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
         can_access_reports: sessionData.user.canAccessReports,
       };
 
+      console.log('🎯 AUTH MIDDLEWARE - About to call next() for:', req.url);
       next();
     })
     .catch((error) => {
-      console.error("Auth middleware error:", error);
+      console.error("❌ Auth middleware error:", error);
       res.status(500).json({ message: "Authentication error" });
     });
 }
