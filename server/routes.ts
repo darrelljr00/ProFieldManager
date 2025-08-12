@@ -5203,7 +5203,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(trashedExpenses);
     } catch (error: any) {
       console.error("Error fetching trashed expenses:", error);
-      res.status(500).json({ message: "Failed to fetch trashed expenses" });
+      res.status(500).json({ message: "Failed to fetch expense" });
     }
   });
 
