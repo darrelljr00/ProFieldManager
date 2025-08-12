@@ -22,8 +22,19 @@ export default function Invoices() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  const { data: invoices = [], isLoading } = useQuery({
+  const { data: invoices = [], isLoading, error } = useQuery({
     queryKey: ["/api/invoices"],
+    retry: 1,
+    retryOnMount: true,
+  });
+
+  // Debug logging
+  console.log("🔍 INVOICES PAGE DEBUG:", {
+    invoices: invoices,
+    invoicesLength: Array.isArray(invoices) ? invoices.length : 'not array',
+    isLoading,
+    error: error?.message || 'none',
+    user: user?.email || 'not logged in'
   });
 
   // Type guard to ensure invoices is an array
