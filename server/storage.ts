@@ -4553,6 +4553,7 @@ export class DatabaseStorage implements IStorage {
           projectId: imageData.projectId || null,
           customerId: imageData.customerId || null,
           description: imageData.description || null,
+          cloudinaryUrl: imageData.cloudinaryUrl || null,
         })
         .returning();
       return image;
@@ -4604,11 +4605,22 @@ export class DatabaseStorage implements IStorage {
         .orderBy(desc(images.createdAt));
 
       // Add correct URL paths for organization-based file structure and map date field
-      return imageResults.map(image => ({
-        ...image,
-        uploadDate: image.createdAt, // Map createdAt to uploadDate for frontend compatibility
-        url: `/uploads/org-${userInfo.organizationId}/image_gallery/${image.filename}`
-      }));
+      return imageResults.map(image => {
+        // If the image has a cloudinaryUrl (newer uploads), use that
+        let imageUrl;
+        if (image.cloudinaryUrl) {
+          imageUrl = image.cloudinaryUrl;
+        } else {
+          // Fall back to local file path for older uploads
+          imageUrl = `/uploads/org-${userInfo.organizationId}/image_gallery/${image.filename}`;
+        }
+
+        return {
+          ...image,
+          uploadDate: image.createdAt, // Map createdAt to uploadDate for frontend compatibility
+          url: imageUrl
+        };
+      });
     } catch (error) {
       console.error('Error fetching images:', error);
       return [];

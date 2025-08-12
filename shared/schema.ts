@@ -1002,6 +1002,7 @@ export const images = pgTable("images", {
   description: text("description"),
   annotations: jsonb("annotations").default('[]'),
   annotatedImageUrl: text("annotated_image_url"),
+  cloudinaryUrl: text("cloudinary_url"), // URL for images stored in Cloudinary
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

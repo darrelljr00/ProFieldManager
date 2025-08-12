@@ -2699,6 +2699,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         organizationId: user.organizationId,
         projectId: req.body.projectId ? parseInt(req.body.projectId) : null,
         customerId: req.body.customerId ? parseInt(req.body.customerId) : null,
+        cloudinaryUrl: cloudinaryResult.secureUrl,
       };
 
       console.log('Creating Cloudinary image record:', imageData);
