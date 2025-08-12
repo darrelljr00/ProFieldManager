@@ -107,6 +107,12 @@ export default function Leads() {
     queryKey: ["/api/leads"],
   });
 
+  // Debug: log the leads data
+  console.log("Leads data:", leads);
+  if (leads.length > 0) {
+    console.log("First lead:", leads[0]);
+  }
+
   // Analytics: Load Google Maps and geocode addresses when switching to analytics tab
   useEffect(() => {
     if (activeTab === "analytics" && leads.length > 0) {
