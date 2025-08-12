@@ -1,7 +1,7 @@
 import { db } from "./db";
 import { ensureOrganizationFolders } from "./folderCreation";
 import { 
-  users, customers, invoices, quotes, quoteLineItems, projects, tasks, taskGroups, taskTemplates,
+  users, customers, invoices, quotes, quoteLineItems, payments, projects, tasks, taskGroups, taskTemplates,
   expenses, expenseCategories, vendors, expenseReports, gasCards, 
   gasCardAssignments, gasCardUsage, gasCardProviders, leads, calendarJobs, messages,
   images, settings, organizations, userSessions, subscriptionPlans,
@@ -111,6 +111,10 @@ export interface IStorage {
   createExpenseCategory(categoryData: any): Promise<any>;
   updateExpenseCategory(id: number, updates: any): Promise<any>;
   deleteExpenseCategory(id: number): Promise<void>;
+  
+  // Payment methods
+  getPayments(userId: number): Promise<any[]>;
+  createPayment(paymentData: any): Promise<any>;
   
   // Lead methods
   getLeads(organizationId: number): Promise<any[]>;
@@ -2116,6 +2120,51 @@ export class DatabaseStorage implements IStorage {
 
   async deleteLead(id: number): Promise<void> {
     await db.delete(leads).where(eq(leads.id, id));
+  }
+
+  // Payment methods
+  async getPayments(userId: number): Promise<any[]> {
+    try {
+      // Get user to check organization
+      const user = await this.getUser(userId);
+      if (!user) return [];
+
+      const results = await db
+        .select({
+          id: payments.id,
+          invoiceId: payments.invoiceId,
+          amount: payments.amount,
+          currency: payments.currency,
+          method: payments.method,
+          status: payments.status,
+          externalId: payments.externalId,
+          createdAt: payments.createdAt,
+          // Include invoice information
+          invoice: {
+            id: invoices.id,
+            invoiceNumber: invoices.invoiceNumber,
+            total: invoices.total
+          }
+        })
+        .from(payments)
+        .innerJoin(invoices, eq(payments.invoiceId, invoices.id))
+        .innerJoin(users, eq(invoices.userId, users.id))
+        .where(eq(users.organizationId, user.organizationId))
+        .orderBy(desc(payments.createdAt));
+
+      return results;
+    } catch (error) {
+      console.error("Error in getPayments:", error);
+      return [];
+    }
+  }
+
+  async createPayment(paymentData: any): Promise<any> {
+    const [payment] = await db
+      .insert(payments)
+      .values(paymentData)
+      .returning();
+    return payment;
   }
 
   // Settings methods
