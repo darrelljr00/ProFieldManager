@@ -271,7 +271,7 @@ export default function Leads() {
 
   const createMutation = useMutation({
     mutationFn: (data: Partial<InsertLead>) => 
-      apiRequest("/api/leads", "POST", data),
+      apiRequest("POST", "/api/leads", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
       setIsDialogOpen(false);
