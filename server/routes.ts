@@ -1450,19 +1450,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.header('Access-Control-Allow-Credentials', 'true');
       }
       
+      // Fix: Don't set domain for custom domain - let browser handle it
       res.cookie('auth_token', session.token, { 
         httpOnly: true, 
-        secure: isCustomDomain ? true : (process.env.NODE_ENV === 'production'), // Always secure for custom domain
+        secure: true, // Always secure for HTTPS
         sameSite: isCustomDomain ? 'none' : 'lax', // Allow cross-origin for custom domain
-        domain: isCustomDomain ? '.profieldmanager.com' : undefined, // Set domain for custom domain
+        // domain: undefined, // Let browser set domain automatically
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
       });
 
       console.log('🍪 Cookie set with settings:', {
         isCustomDomain,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: isCustomDomain ? 'none' : 'lax',
-        domain: isCustomDomain ? '.profieldmanager.com' : undefined
+        secure: true,
+        sameSite: isCustomDomain ? 'none' : 'lax'
       });
 
       const response = {

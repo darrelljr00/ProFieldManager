@@ -102,6 +102,16 @@ export class AuthService {
 
 // Authentication middleware - CUSTOM DOMAIN CRITICAL DEBUG
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
+  // Set CORS headers for custom domain FIRST
+  const isCustomDomain = req.headers.origin?.includes('profieldmanager.com') || req.headers.host?.includes('profieldmanager.com');
+  
+  if (isCustomDomain && req.headers.origin) {
+    res.header('Access-Control-Allow-Origin', req.headers.origin);
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cookie');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  }
+
   const authHeader = req.headers.authorization;
   const token = authHeader?.replace('Bearer ', '') || req.cookies?.auth_token;
 
@@ -111,7 +121,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
     method: req.method,
     origin: req.headers.origin,
     host: req.headers.host,
-    isCustomDomain: req.headers.origin === 'https://profieldmanager.com',
+    isCustomDomain,
     authHeader: authHeader ? 'PRESENT (' + authHeader.length + ' chars)' : 'MISSING',
     authHeaderRaw: authHeader ? authHeader.substring(0, 50) + '...' : 'NONE',
     cookies: Object.keys(req.cookies || {}),
@@ -137,7 +147,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
       userAgent: req.headers['user-agent']?.slice(0, 100),
       contentType: req.headers['content-type'],
       contentLength: req.headers['content-length'],
-      isCustomDomain: req.headers.origin === 'https://profieldmanager.com'
+      isCustomDomain
     }, null, 2));
     console.log('🚨 All available cookie keys:', Object.keys(req.cookies || {}));
     return res.status(401).json({ message: "Authentication required" });

@@ -94,6 +94,12 @@ export default function LoginPage() {
       return response.json();
     },
     onSuccess: (response) => {
+      // Store token in localStorage for custom domain authentication
+      if (response.token) {
+        localStorage.setItem('auth_token', response.token);
+        console.log('🔑 Auth token stored in localStorage for custom domain');
+      }
+      
       // Invalidate auth queries to refresh user state
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
       toast({
@@ -117,6 +123,12 @@ export default function LoginPage() {
       return response.json();
     },
     onSuccess: (response) => {
+      // Store token in localStorage for custom domain authentication
+      if (response.token) {
+        localStorage.setItem('auth_token', response.token);
+        console.log('🔑 Auth token stored in localStorage for custom domain');
+      }
+      
       // Invalidate auth queries to refresh user state
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
       toast({

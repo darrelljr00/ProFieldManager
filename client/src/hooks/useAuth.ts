@@ -1,6 +1,7 @@
 import React from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { buildApiUrl } from "@/lib/api-config";
 
 interface User {
   id: number;
@@ -42,7 +43,7 @@ export function useAuth() {
       if (storedToken) {
         try {
           console.log('🔍 USEAUTH: Using stored token for auth');
-          const response = await fetch('/api/auth/me', {
+          const response = await fetch(buildApiUrl('/api/auth/me'), {
             headers: {
               'Authorization': `Bearer ${storedToken}`,
               'Content-Type': 'application/json'
