@@ -16,9 +16,9 @@ import type { InsertInvoice, Customer } from "@shared/schema";
 
 const lineItemSchema = z.object({
   description: z.string().min(1, "Description is required"),
-  quantity: z.number().positive("Quantity must be positive"),
-  rate: z.number().positive("Rate must be positive"),
-  amount: z.number().positive("Amount must be positive"),
+  quantity: z.number().min(0.01, "Quantity must be greater than 0"),
+  rate: z.number().min(0, "Rate must be non-negative"),
+  amount: z.number().min(0, "Amount must be non-negative"),
 });
 
 const invoiceSchema = z.object({
