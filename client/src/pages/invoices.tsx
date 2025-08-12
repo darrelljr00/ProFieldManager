@@ -26,6 +26,9 @@ export default function Invoices() {
     queryKey: ["/api/invoices"],
   });
 
+  // Type guard to ensure invoices is an array
+  const safeInvoices = Array.isArray(invoices) ? invoices : [];
+
   // Upload previous invoice mutation
   const uploadInvoiceMutation = useMutation({
     mutationFn: async (formData: FormData) => {
@@ -99,7 +102,7 @@ export default function Invoices() {
     uploadInvoiceMutation.mutate(formData);
   };
 
-  const filteredInvoices = invoices.filter(invoice => {
+  const filteredInvoices = safeInvoices.filter((invoice: any) => {
     const matchesSearch = invoice.customer?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          invoice.invoiceNumber?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || invoice.status === statusFilter;

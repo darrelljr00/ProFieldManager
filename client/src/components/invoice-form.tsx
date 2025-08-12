@@ -112,8 +112,10 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
   const createInvoiceMutation = useMutation({
     mutationFn: (data: InsertInvoice) => apiRequest("POST", "/api/invoices", data),
     onSuccess: () => {
+      // Force refetch of invoices and dashboard stats
       queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      queryClient.refetchQueries({ queryKey: ["/api/invoices"] });
       toast({
         title: "Success",
         description: "Invoice created successfully",
@@ -169,9 +171,6 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
   };
 
   const onSubmit = (data: InvoiceFormData) => {
-    console.log("Form submitted with data:", data);
-    console.log("Form errors:", errors);
-    
     const invoiceData: InsertInvoice = {
       ...data,
       userId: 1, // This will be set by the backend from authenticated user
@@ -186,8 +185,6 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
       status: "draft", // Default status
       paymentMethod: selectedPaymentMethod,
     };
-    
-    console.log("Submitting invoice data:", invoiceData);
     
     // If Square is selected and enabled, initiate Square payment sync
     if (selectedPaymentMethod === "square" && paymentSettings?.squareEnabled) {
@@ -490,11 +487,6 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
             type="submit" 
             disabled={createInvoiceMutation.isPending}
             className="bg-primary hover:bg-blue-700"
-            onClick={() => {
-              console.log("Create Invoice button clicked");
-              console.log("Current form errors:", errors);
-              console.log("Form values:", watch());
-            }}
           >
             {createInvoiceMutation.isPending ? "Creating..." : "Create Invoice"}
           </Button>
