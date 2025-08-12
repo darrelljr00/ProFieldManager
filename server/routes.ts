@@ -1905,7 +1905,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Invoice routes
   console.log("🔧 Registering invoice GET route");
-  app.get("/api/invoices", requireAuth, async (req, res) => {
+  app.get("/api/invoices", async (req, res) => {
     console.log("🎯 INVOICE ROUTE HANDLER CALLED for GET /api/invoices");
     try {
       const user = getAuthenticatedUser(req);
@@ -1919,7 +1919,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/invoices", requireAuth, async (req, res) => {
+  app.post("/api/invoices", async (req, res) => {
     try {
       // Get authenticated user
       const user = getAuthenticatedUser(req);
@@ -1958,7 +1958,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/invoices/:id", requireAuth, async (req, res) => {
+  app.get("/api/invoices/:id", async (req, res) => {
     try {
       const user = getAuthenticatedUser(req);
       const invoice = await storage.getInvoice(parseInt(req.params.id), user.id);
@@ -1971,7 +1971,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/invoices/:id", requireAuth, async (req, res) => {
+  app.put("/api/invoices/:id", async (req, res) => {
     try {
       const user = getAuthenticatedUser(req);
       const invoiceData = insertInvoiceSchema.omit({ lineItems: true }).partial().parse(req.body);
@@ -1989,7 +1989,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/invoices/:id", requireAuth, async (req, res) => {
+  app.delete("/api/invoices/:id", async (req, res) => {
     try {
       const user = getAuthenticatedUser(req);
       const deleted = await storage.deleteInvoice(parseInt(req.params.id), user.id);
