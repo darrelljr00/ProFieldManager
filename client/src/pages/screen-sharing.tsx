@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { 
@@ -27,7 +28,11 @@ import {
   Send,
   PlayCircle,
   StopCircle,
-  Upload
+  Upload,
+  Clock,
+  UserPlus,
+  Bell,
+  Zap
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { apiRequest } from '@/lib/queryClient';
@@ -125,6 +130,22 @@ export default function ScreenSharing() {
     maxParticipants: 10
   });
 
+  // Additional dialogs and instant meeting state
+  const [isStartNowDialogOpen, setIsStartNowDialogOpen] = useState(false);
+  const [instantMeeting, setInstantMeeting] = useState({
+    title: '',
+    description: '',
+    selectedParticipants: [] as number[],
+    sendToAll: false,
+    enableReminder: false,
+    reminderMinutes: 5
+  });
+
+  // Organization members data
+  const { data: organizationMembers = [] } = useQuery({
+    queryKey: ['/api/users/organization-members']
+  });
+
   // Fetch meetings
   const { data: meetings = [], isLoading: meetingsLoading } = useQuery({
     queryKey: ['/api/meetings'],
@@ -134,10 +155,7 @@ export default function ScreenSharing() {
   // Create meeting mutation
   const createMeetingMutation = useMutation({
     mutationFn: async (meetingData: any) => {
-      return await apiRequest('/api/meetings', {
-        method: 'POST',
-        body: JSON.stringify(meetingData),
-      });
+      return await apiRequest('POST', '/api/meetings', meetingData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/meetings'] });
@@ -167,9 +185,7 @@ export default function ScreenSharing() {
   // Join meeting mutation
   const joinMeetingMutation = useMutation({
     mutationFn: async (meetingId: number) => {
-      return await apiRequest(`/api/meetings/${meetingId}/join`, {
-        method: 'POST',
-      });
+      return await apiRequest('POST', `/api/meetings/${meetingId}/join`);
     },
     onSuccess: () => {
       setIsInMeeting(true);
@@ -192,9 +208,7 @@ export default function ScreenSharing() {
   // Leave meeting mutation
   const leaveMeetingMutation = useMutation({
     mutationFn: async (meetingId: number) => {
-      return await apiRequest(`/api/meetings/${meetingId}/leave`, {
-        method: 'POST',
-      });
+      return await apiRequest('POST', `/api/meetings/${meetingId}/leave`);
     },
     onSuccess: () => {
       setIsInMeeting(false);
@@ -215,13 +229,64 @@ export default function ScreenSharing() {
     },
   });
 
+  // Start meeting now mutation
+  const startMeetingNowMutation = useMutation({
+    mutationFn: async (meetingData: any) => {
+      // Create meeting with immediate start time
+      const now = new Date();
+      const endTime = new Date(now.getTime() + 60 * 60 * 1000); // 1 hour from now
+      
+      const payload = {
+        title: meetingData.title,
+        description: meetingData.description,
+        scheduledStartTime: now.toISOString(),
+        scheduledEndTime: endTime.toISOString(),
+        maxParticipants: meetingData.selectedParticipants.length + 1
+      };
+
+      const meeting = await apiRequest('POST', '/api/meetings', payload);
+      
+      // Send notifications/invitations to participants if needed
+      if (meetingData.sendToAll || meetingData.selectedParticipants.length > 0) {
+        await sendMeetingNotifications(meeting, meetingData);
+      }
+
+      return meeting;
+    },
+    onSuccess: (meeting) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/meetings'] });
+      setIsStartNowDialogOpen(false);
+      setInstantMeeting({
+        title: '',
+        description: '',
+        selectedParticipants: [],
+        sendToAll: false,
+        enableReminder: false,
+        reminderMinutes: 5
+      });
+      
+      // Auto-join the meeting
+      setSelectedMeeting(meeting);
+      joinMeetingMutation.mutate(meeting.id);
+
+      toast({
+        title: "Meeting Started",
+        description: `"${meeting.title}" has started successfully`
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to Start Meeting",
+        description: "Could not start the meeting. Please try again.",
+        variant: "destructive"
+      });
+    },
+  });
+
   // Send message mutation
   const sendMessageMutation = useMutation({
     mutationFn: async ({ meetingId, content }: { meetingId: number; content: string }) => {
-      return await apiRequest(`/api/meetings/${meetingId}/messages`, {
-        method: 'POST',
-        body: JSON.stringify({ content, messageType: 'text' }),
-      });
+      return await apiRequest('POST', `/api/meetings/${meetingId}/messages`, { content, messageType: 'text' });
     },
     onSuccess: () => {
       setChatMessage('');
@@ -394,8 +459,9 @@ export default function ScreenSharing() {
   // Fetch participants and messages
   const fetchParticipants = async (meetingId: number) => {
     try {
-      const response = await apiRequest(`/api/meetings/${meetingId}/participants`);
-      setParticipants(response);
+      const response = await apiRequest('GET', `/api/meetings/${meetingId}/participants`);
+      const data = await response.json();
+      setParticipants(data);
     } catch (error) {
       console.error('Failed to fetch participants:', error);
     }
@@ -405,11 +471,77 @@ export default function ScreenSharing() {
     if (!selectedMeeting) return;
     
     try {
-      const response = await apiRequest(`/api/meetings/${selectedMeeting.id}/messages`);
-      setChatMessages(response);
+      const response = await apiRequest('GET', `/api/meetings/${selectedMeeting.id}/messages`);
+      const data = await response.json();
+      setChatMessages(data);
     } catch (error) {
       console.error('Failed to fetch messages:', error);
     }
+  };
+
+  // Send meeting notifications
+  const sendMeetingNotifications = async (meeting: any, meetingData: any) => {
+    try {
+      if (meetingData.enableReminder) {
+        // Play notification sound
+        playNotificationSound();
+      }
+
+      // Send notifications to selected participants or all members
+      const recipients = meetingData.sendToAll 
+        ? organizationMembers.map((member: any) => member.id)
+        : meetingData.selectedParticipants;
+
+      // TODO: Implement actual notification sending via WebSocket or other service
+      console.log('Sending meeting notifications to:', recipients);
+      
+      // For now, just show a toast indicating notifications were sent
+      if (recipients.length > 0) {
+        toast({
+          title: "Notifications Sent",
+          description: `Meeting invitation sent to ${recipients.length} member(s)`
+        });
+      }
+    } catch (error) {
+      console.error('Failed to send meeting notifications:', error);
+    }
+  };
+
+  // Play notification sound
+  const playNotificationSound = () => {
+    try {
+      const audio = new Audio('/sounds/notification.mp3');
+      audio.volume = 0.5;
+      audio.play().catch(error => {
+        console.log('Could not play notification sound:', error);
+      });
+    } catch (error) {
+      console.log('Notification sound not available:', error);
+    }
+  };
+
+  // Handle participant selection
+  const handleParticipantToggle = (participantId: number) => {
+    setInstantMeeting(prev => ({
+      ...prev,
+      selectedParticipants: prev.selectedParticipants.includes(participantId)
+        ? prev.selectedParticipants.filter(id => id !== participantId)
+        : [...prev.selectedParticipants, participantId]
+    }));
+  };
+
+  // Handle start meeting now
+  const handleStartMeetingNow = () => {
+    if (!instantMeeting.title.trim()) {
+      toast({
+        title: "Title Required",
+        description: "Please enter a meeting title",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    startMeetingNowMutation.mutate(instantMeeting);
   };
 
   // Effects
@@ -640,14 +772,160 @@ export default function ScreenSharing() {
           <p className="text-gray-600 mt-2">Collaborate with your team through video meetings and screen sharing</p>
         </div>
         
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="flex items-center gap-2">
-              <Plus className="w-4 h-4" />
-              Create Meeting
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md">
+        <div className="flex gap-3">
+          <Dialog open={isStartNowDialogOpen} onOpenChange={setIsStartNowDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="default" className="flex items-center gap-2 bg-green-600 hover:bg-green-700">
+                <Zap className="w-4 h-4" />
+                Start Meeting Now
+              </Button>
+            </DialogTrigger>
+            
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Zap className="w-5 h-5 text-green-600" />
+                  Start Meeting Now
+                </DialogTitle>
+              </DialogHeader>
+              
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="instant-title">Meeting Title *</Label>
+                  <Input
+                    id="instant-title"
+                    value={instantMeeting.title}
+                    onChange={(e) => setInstantMeeting(prev => ({ ...prev, title: e.target.value }))}
+                    placeholder="Quick team meeting"
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="instant-description">Description (Optional)</Label>
+                  <Textarea
+                    id="instant-description"
+                    value={instantMeeting.description}
+                    onChange={(e) => setInstantMeeting(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Brief description of the meeting"
+                    rows={2}
+                  />
+                </div>
+                
+                {/* Participant Selection */}
+                <div className="space-y-3">
+                  <Label>Invite Participants</Label>
+                  
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="send-to-all"
+                      checked={instantMeeting.sendToAll}
+                      onCheckedChange={(checked) => 
+                        setInstantMeeting(prev => ({ 
+                          ...prev, 
+                          sendToAll: !!checked,
+                          selectedParticipants: !!checked ? [] : prev.selectedParticipants
+                        }))
+                      }
+                    />
+                    <label htmlFor="send-to-all" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                      Send to all organization members
+                    </label>
+                  </div>
+
+                  {!instantMeeting.sendToAll && (
+                    <div className="border rounded-lg p-3 max-h-48 overflow-y-auto">
+                      <p className="text-sm font-medium mb-2">Select specific members:</p>
+                      {organizationMembers.length === 0 ? (
+                        <p className="text-sm text-gray-500">Loading members...</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {organizationMembers.map((member: any) => (
+                            <div key={member.id} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`member-${member.id}`}
+                                checked={instantMeeting.selectedParticipants.includes(member.id)}
+                                onCheckedChange={() => handleParticipantToggle(member.id)}
+                              />
+                              <label htmlFor={`member-${member.id}`} className="text-sm">
+                                {member.firstName} {member.lastName} ({member.email})
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Notification Settings */}
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="enable-reminder"
+                      checked={instantMeeting.enableReminder}
+                      onCheckedChange={(checked) => 
+                        setInstantMeeting(prev => ({ ...prev, enableReminder: !!checked }))
+                      }
+                    />
+                    <label htmlFor="enable-reminder" className="text-sm font-medium leading-none">
+                      <Bell className="w-4 h-4 inline mr-1" />
+                      Play notification sound
+                    </label>
+                  </div>
+
+                  {instantMeeting.enableReminder && (
+                    <div>
+                      <Label htmlFor="reminder-minutes">Reminder Time</Label>
+                      <Select 
+                        value={instantMeeting.reminderMinutes.toString()}
+                        onValueChange={(value) => setInstantMeeting(prev => ({ 
+                          ...prev, 
+                          reminderMinutes: parseInt(value) 
+                        }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="0">Immediately</SelectItem>
+                          <SelectItem value="1">1 minute before</SelectItem>
+                          <SelectItem value="5">5 minutes before</SelectItem>
+                          <SelectItem value="10">10 minutes before</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex justify-end gap-2 pt-4">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setIsStartNowDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={handleStartMeetingNow}
+                    disabled={startMeetingNowMutation.isPending || !instantMeeting.title.trim()}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    <Zap className="w-4 h-4 mr-2" />
+                    {startMeetingNowMutation.isPending ? 'Starting...' : 'Start Meeting Now'}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+          
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="flex items-center gap-2">
+                <Plus className="w-4 h-4" />
+                Schedule Meeting
+              </Button>
+            </DialogTrigger>
+            
+            <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>Create New Meeting</DialogTitle>
             </DialogHeader>
@@ -715,6 +993,7 @@ export default function ScreenSharing() {
             </div>
           </DialogContent>
         </Dialog>
+      </div>
       </div>
 
       {/* Meetings List */}

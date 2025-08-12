@@ -3156,6 +3156,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get organization members for meeting participants
+  app.get("/api/users/organization-members", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const organizationMembers = await storage.getUsersByOrganization(user.organizationId);
+      
+      // Remove sensitive information and only return needed fields
+      const safeMembers = organizationMembers.map(member => ({
+        id: member.id,
+        firstName: member.firstName,
+        lastName: member.lastName,
+        email: member.email,
+        role: member.role,
+        isActive: member.isActive
+      })).filter(member => member.isActive); // Only return active users
+      
+      res.json(safeMembers);
+    } catch (error: any) {
+      console.error("Error fetching organization members:", error);
+      res.status(500).json({ message: "Error fetching organization members: " + error.message });
+    }
+  });
+
   // Team status for dashboard (real-time user counts)
   app.get("/api/team/status", requireAuth, async (req, res) => {
     try {
