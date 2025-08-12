@@ -71,13 +71,16 @@ export default function PartsSuppliesPage() {
   // Image upload handlers
   const handleGetUploadParameters = async () => {
     try {
+      console.log('🔄 Getting upload parameters...');
       const response = await apiRequest('POST', '/api/objects/upload');
       const result = await response.json();
+      console.log('✅ Upload parameters received:', result);
       return {
         method: 'PUT' as const,
         url: result.uploadURL,
       };
     } catch (error) {
+      console.error('❌ Failed to get upload parameters:', error);
       toast({
         title: "Upload Error",
         description: "Failed to get upload URL. Please try again.",
