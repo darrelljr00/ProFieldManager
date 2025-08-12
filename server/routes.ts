@@ -16312,7 +16312,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const newMeeting = await storage.createMeeting({
         ...meetingData,
         organizationId: user.organizationId,
-        hostUserId: user.id,
+        hostId: user.id,
       });
       
       res.status(201).json(newMeeting);
@@ -16335,7 +16335,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Only host or admin/manager can update meeting
-      if (existingMeeting.hostUserId !== user.id && !['admin', 'manager'].includes(user.role)) {
+      if (existingMeeting.hostId !== user.id && !['admin', 'manager'].includes(user.role)) {
         return res.status(403).json({ message: "Permission denied" });
       }
       
@@ -16362,7 +16362,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Only host or admin/manager can delete meeting
-      if (existingMeeting.hostUserId !== user.id && !['admin', 'manager'].includes(user.role)) {
+      if (existingMeeting.hostId !== user.id && !['admin', 'manager'].includes(user.role)) {
         return res.status(403).json({ message: "Permission denied" });
       }
       
@@ -16545,7 +16545,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Only host or admin/manager can update meeting status
-      if (existingMeeting.hostUserId !== user.id && !['admin', 'manager'].includes(user.role)) {
+      if (existingMeeting.hostId !== user.id && !['admin', 'manager'].includes(user.role)) {
         return res.status(403).json({ message: "Permission denied" });
       }
       
