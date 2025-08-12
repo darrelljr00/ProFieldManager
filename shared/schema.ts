@@ -3798,7 +3798,7 @@ export type SelectTaskNotification = typeof taskNotifications.$inferSelect;
 export const meetings = pgTable("meetings", {
   id: serial("id").primaryKey(),
   organizationId: integer("organization_id").notNull().references(() => organizations.id),
-  hostId: integer("host_id").notNull().references(() => users.id),
+  hostId: integer("host_user_id").notNull().references(() => users.id),
   
   // Meeting details
   title: text("title").notNull(),
@@ -3808,11 +3808,13 @@ export const meetings = pgTable("meetings", {
   // Meeting status and timing
   status: text("status").notNull().default("scheduled"), // 'scheduled', 'active', 'ended', 'cancelled'
   scheduledStartTime: timestamp("scheduled_start_time"),
+  scheduledEndTime: timestamp("scheduled_end_time"),
   actualStartTime: timestamp("actual_start_time"),
   actualEndTime: timestamp("actual_end_time"),
   duration: integer("duration"), // in minutes
   
   // WebRTC and connection settings
+  meetingUrl: text("meeting_url"),
   roomId: text("room_id").notNull().unique(), // Unique room identifier for WebRTC
   isRecording: boolean("is_recording").default(false),
   allowScreenShare: boolean("allow_screen_share").default(true),
