@@ -11526,6 +11526,190 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==================== Call Manager API Routes ====================
+  
+  // Get call logs
+  app.get("/api/call-manager/logs", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      // Mock call logs for now - replace with actual database query
+      const callLogs = [
+        {
+          id: "1",
+          phoneNumber: "+15551234567",
+          direction: "outbound",
+          status: "completed",
+          duration: 185,
+          timestamp: new Date(Date.now() - 3600000).toISOString(),
+          contactName: "John Smith",
+          notes: "Discussed project requirements"
+        },
+        {
+          id: "2", 
+          phoneNumber: "+15559876543",
+          direction: "inbound",
+          status: "missed",
+          timestamp: new Date(Date.now() - 7200000).toISOString(),
+          contactName: "Sarah Johnson"
+        },
+        {
+          id: "3",
+          phoneNumber: "+15555555555",
+          direction: "outbound", 
+          status: "completed",
+          duration: 92,
+          timestamp: new Date(Date.now() - 10800000).toISOString(),
+          contactName: "Mike Wilson"
+        }
+      ];
+      
+      res.json(callLogs);
+    } catch (error) {
+      console.error("Error fetching call logs:", error);
+      res.status(500).json({ message: "Failed to fetch call logs" });
+    }
+  });
+
+  // Get contacts
+  app.get("/api/call-manager/contacts", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      // Mock contacts for now - replace with actual database query
+      const contacts = [
+        {
+          id: "1",
+          name: "John Smith",
+          phoneNumber: "+15551234567",
+          email: "john@example.com",
+          company: "ABC Construction",
+          tags: ["VIP", "Customer"]
+        },
+        {
+          id: "2",
+          name: "Sarah Johnson", 
+          phoneNumber: "+15559876543",
+          email: "sarah@example.com",
+          company: "Johnson Enterprises",
+          tags: ["Lead"]
+        },
+        {
+          id: "3",
+          name: "Mike Wilson",
+          phoneNumber: "+15555555555",
+          email: "mike@example.com",
+          company: "Wilson Corp",
+          tags: ["Vendor"]
+        }
+      ];
+      
+      res.json(contacts);
+    } catch (error) {
+      console.error("Error fetching contacts:", error);
+      res.status(500).json({ message: "Failed to fetch contacts" });
+    }
+  });
+
+  // Get active calls
+  app.get("/api/call-manager/active-calls", requireAuth, async (req, res) => {
+    try {
+      // Mock active calls - replace with actual call management system
+      const activeCalls = [];
+      
+      res.json(activeCalls);
+    } catch (error) {
+      console.error("Error fetching active calls:", error);
+      res.status(500).json({ message: "Failed to fetch active calls" });
+    }
+  });
+
+  // Make a call
+  app.post("/api/call-manager/make-call", requireAuth, async (req, res) => {
+    try {
+      const { phoneNumber, contactId } = req.body;
+      const user = getAuthenticatedUser(req);
+      
+      if (!phoneNumber) {
+        return res.status(400).json({ message: "Phone number is required" });
+      }
+      
+      // Mock call initiation - replace with actual Twilio or VoIP integration
+      const call = {
+        id: nanoid(),
+        phoneNumber,
+        contactName: contactId ? "Contact Name" : undefined,
+        status: "connecting",
+        startTime: new Date().toISOString(),
+        duration: 0,
+        isMuted: false,
+        isOnHold: false
+      };
+      
+      // In a real implementation, you would:
+      // 1. Use Twilio Voice API to initiate the call
+      // 2. Store call details in database
+      // 3. Set up webhooks for call status updates
+      
+      console.log(`📞 Initiating call to ${phoneNumber} for user ${user.username}`);
+      
+      res.json({ call });
+    } catch (error) {
+      console.error("Error making call:", error);
+      res.status(500).json({ message: "Failed to initiate call" });
+    }
+  });
+
+  // End a call
+  app.post("/api/call-manager/end-call/:callId", requireAuth, async (req, res) => {
+    try {
+      const { callId } = req.params;
+      const user = getAuthenticatedUser(req);
+      
+      // Mock call termination - replace with actual call management
+      console.log(`📞 Ending call ${callId} for user ${user.username}`);
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error ending call:", error);
+      res.status(500).json({ message: "Failed to end call" });
+    }
+  });
+
+  // Toggle hold/resume call
+  app.post("/api/call-manager/toggle-hold", requireAuth, async (req, res) => {
+    try {
+      const { callId, action } = req.body;
+      const user = getAuthenticatedUser(req);
+      
+      // Mock hold/resume - replace with actual call management
+      const isOnHold = action === 'hold';
+      console.log(`📞 ${action} call ${callId} for user ${user.username}`);
+      
+      res.json({ isOnHold });
+    } catch (error) {
+      console.error("Error toggling hold:", error);
+      res.status(500).json({ message: "Failed to toggle hold" });
+    }
+  });
+
+  // Toggle mute/unmute call
+  app.post("/api/call-manager/toggle-mute", requireAuth, async (req, res) => {
+    try {
+      const { callId, action } = req.body;
+      const user = getAuthenticatedUser(req);
+      
+      // Mock mute/unmute - replace with actual call management
+      const isMuted = action === 'mute';
+      console.log(`📞 ${action} call ${callId} for user ${user.username}`);
+      
+      res.json({ isMuted });
+    } catch (error) {
+      console.error("Error toggling mute:", error);
+      res.status(500).json({ message: "Failed to toggle mute" });
+    }
+  });
+
   // SaaS Organization Signup
   app.post("/api/organizations/signup", async (req, res) => {
     try {

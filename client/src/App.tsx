@@ -33,7 +33,7 @@ import ImageGallery from "@/pages/image-gallery";
 import Users from "@/pages/users";
 import AdminSettings from "@/pages/admin-settings";
 import SaasAdmin from "@/pages/saas-admin";
-import CallManager from "@/pages/saas-admin/call-manager";
+import CallManager from "@/pages/call-manager";
 import SmsPage from "@/pages/sms";
 import Reviews from "@/pages/reviews";
 import Settings from "@/pages/settings";
