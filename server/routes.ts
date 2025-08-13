@@ -16319,6 +16319,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...meetingData,
         organizationId: user.organizationId,
         hostId: user.id,
+        status: meetingData.status || 'active', // Ensure status is set to active
       };
       console.log("📝 Creating meeting with data:", createData);
       
