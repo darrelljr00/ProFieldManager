@@ -182,6 +182,8 @@ export default function ScreenSharing() {
     },
   });
 
+
+
   // Join meeting mutation
   const joinMeetingMutation = useMutation({
     mutationFn: async (meetingId: number) => {
@@ -302,6 +304,77 @@ export default function ScreenSharing() {
       });
     },
   });
+
+  // Handler functions
+  const handleParticipantToggle = (participantId: number) => {
+    setInstantMeeting(prev => ({
+      ...prev,
+      selectedParticipants: prev.selectedParticipants.includes(participantId)
+        ? prev.selectedParticipants.filter(id => id !== participantId)
+        : [...prev.selectedParticipants, participantId]
+    }));
+  };
+
+  const handleStartMeetingNow = () => {
+    startMeetingNowMutation.mutate(instantMeeting);
+  };
+
+  const playNotificationSound = () => {
+    try {
+      // Create audio context for notification sound
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      // Create a pleasant notification sound (similar to Teams/Zoom)
+      oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+      oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
+      oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 0.2);
+      
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.3);
+    } catch (error) {
+      console.warn('Failed to play notification sound:', error);
+    }
+  };
+
+  const sendMeetingNotifications = async (meeting: any, meetingData: any) => {
+    try {
+      // Play notification sound if enabled
+      if (meetingData.enableReminder) {
+        playNotificationSound();
+      }
+
+      // Send notifications to participants
+      if (meetingData.sendToAll) {
+        await apiRequest('POST', '/api/notifications', {
+          type: 'meeting_invite',
+          title: `Meeting Started: ${meetingData.title}`,
+          message: `${meetingData.title} has started. Click to join.`,
+          userId: null, // Send to all organization members
+          data: { meetingId: meeting.id, meetingUrl: `/screen-sharing?meeting=${meeting.id}` }
+        });
+      } else if (meetingData.selectedParticipants?.length > 0) {
+        for (const participantId of meetingData.selectedParticipants) {
+          await apiRequest('POST', '/api/notifications', {
+            type: 'meeting_invite',
+            title: `Meeting Started: ${meetingData.title}`,
+            message: `${meetingData.title} has started. Click to join.`,
+            userId: participantId,
+            data: { meetingId: meeting.id, meetingUrl: `/screen-sharing?meeting=${meeting.id}` }
+          });
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to send meeting notifications:', error);
+    }
+  };
 
   // WebRTC initialization
   const initializeWebRTC = async () => {
@@ -480,70 +553,11 @@ export default function ScreenSharing() {
     }
   };
 
-  // Send meeting notifications
-  const sendMeetingNotifications = async (meeting: any, meetingData: any) => {
-    try {
-      if (meetingData.enableReminder) {
-        // Play notification sound
-        playNotificationSound();
-      }
 
-      // Send notifications to selected participants or all members
-      const recipients = meetingData.sendToAll 
-        ? (organizationMembers as any[]).map((member: any) => member.id)
-        : meetingData.selectedParticipants;
 
-      // TODO: Implement actual notification sending via WebSocket or other service
-      console.log('Sending meeting notifications to:', recipients);
-      
-      // For now, just show a toast indicating notifications were sent
-      if (recipients.length > 0) {
-        toast({
-          title: "Notifications Sent",
-          description: `Meeting invitation sent to ${recipients.length} member(s)`
-        });
-      }
-    } catch (error) {
-      console.error('Failed to send meeting notifications:', error);
-    }
-  };
 
-  // Play notification sound
-  const playNotificationSound = () => {
-    try {
-      const audio = new Audio('/sounds/notification.mp3');
-      audio.volume = 0.5;
-      audio.play().catch(error => {
-        console.log('Could not play notification sound:', error);
-      });
-    } catch (error) {
-      console.log('Notification sound not available:', error);
-    }
-  };
 
-  // Handle participant selection
-  const handleParticipantToggle = (participantId: number) => {
-    setInstantMeeting(prev => ({
-      ...prev,
-      selectedParticipants: prev.selectedParticipants.includes(participantId)
-        ? prev.selectedParticipants.filter(id => id !== participantId)
-        : [...prev.selectedParticipants, participantId]
-    }));
-  };
 
-  // Handle start meeting now
-  const handleStartMeetingNow = () => {
-    if (!instantMeeting.title.trim()) {
-      toast({
-        title: "Title Required",
-        description: "Please enter a meeting title",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    startMeetingNowMutation.mutate(instantMeeting);
-  };
 
   // Effects
   useEffect(() => {

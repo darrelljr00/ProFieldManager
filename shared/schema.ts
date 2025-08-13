@@ -3824,29 +3824,13 @@ export const meetingParticipants = pgTable("meeting_participants", {
   id: serial("id").primaryKey(),
   meetingId: integer("meeting_id").notNull().references(() => meetings.id),
   userId: integer("user_id").notNull().references(() => users.id),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id),
   
   // Participant role and permissions
   role: text("role").notNull().default("participant"), // 'host', 'co_host', 'participant'
-  canScreenShare: boolean("can_screen_share").default(true),
-  canRecord: boolean("can_record").default(false),
-  canMuteOthers: boolean("can_mute_others").default(false),
-  canManageParticipants: boolean("can_manage_participants").default(false),
   
   // Join/leave tracking
   joinedAt: timestamp("joined_at"),
   leftAt: timestamp("left_at"),
-  connectionStatus: text("connection_status").default("disconnected"), // 'connected', 'disconnected', 'reconnecting'
-  
-  // Current state
-  isMuted: boolean("is_muted").default(false),
-  isCameraOff: boolean("is_camera_off").default(false),
-  isScreenSharing: boolean("is_screen_sharing").default(false),
-  hasRaisedHand: boolean("has_raised_hand").default(false),
-  
-  invitedAt: timestamp("invited_at").defaultNow(),
-  respondedAt: timestamp("responded_at"),
-  response: text("response"), // 'accepted', 'declined', 'tentative'
 });
 
 export const meetingMessages = pgTable("meeting_messages", {
@@ -3894,9 +3878,13 @@ export const meetingRecordings = pgTable("meeting_recordings", {
 });
 
 // Schema validation for meetings
-export const insertMeetingSchema = createInsertSchema(meetings).omit({
+export const insertMeetingSchema = createInsertSchema(meetings, {
+  scheduledStartTime: z.string().transform((str) => new Date(str)).optional(),
+  scheduledEndTime: z.string().transform((str) => new Date(str)).optional(),
+}).omit({
   id: true,
-  roomId: true,
+  organizationId: true,
+  hostId: true,
   createdAt: true,
   updatedAt: true,
 });

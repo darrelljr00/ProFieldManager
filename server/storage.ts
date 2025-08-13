@@ -9933,7 +9933,7 @@ export class DatabaseStorage implements IStorage {
       await db.insert(meetingParticipants).values({
         meetingId: meeting.id,
         userId: meetingData.hostId,
-        status: 'joined',
+        role: 'host',
         joinedAt: new Date()
       });
     }
@@ -9965,10 +9965,10 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(meetingParticipants.meetingId, meetingId), eq(meetingParticipants.userId, userId)));
 
     if (existingParticipant) {
-      // Update existing participant status
+      // Update existing participant to rejoin
       const [participant] = await db
         .update(meetingParticipants)
-        .set({ status: 'joined', joinedAt: new Date() })
+        .set({ joinedAt: new Date(), leftAt: null })
         .where(and(eq(meetingParticipants.meetingId, meetingId), eq(meetingParticipants.userId, userId)))
         .returning();
       return participant;
@@ -9976,7 +9976,7 @@ export class DatabaseStorage implements IStorage {
       // Create new participant
       const [participant] = await db
         .insert(meetingParticipants)
-        .values({ meetingId, userId, status: 'joined', joinedAt: new Date() })
+        .values({ meetingId, userId, role: 'participant', joinedAt: new Date() })
         .returning();
       return participant;
     }
@@ -9985,7 +9985,7 @@ export class DatabaseStorage implements IStorage {
   async leaveMeeting(meetingId: number, userId: number): Promise<boolean> {
     const result = await db
       .update(meetingParticipants)
-      .set({ status: 'left', leftAt: new Date() })
+      .set({ leftAt: new Date() })
       .where(and(eq(meetingParticipants.meetingId, meetingId), eq(meetingParticipants.userId, userId)));
     return result.rowCount > 0;
   }
