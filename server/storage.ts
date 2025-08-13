@@ -565,8 +565,12 @@ export interface IStorage {
   updateMeeting(id: number, organizationId: number, updates: Partial<InsertMeeting>): Promise<Meeting>;
   deleteMeeting(id: number, organizationId: number): Promise<boolean>;
   joinMeeting(meetingId: number, userId: number): Promise<MeetingParticipant>;
+  joinMeetingWithStatus(meetingId: number, userId: number, status: string): Promise<MeetingParticipant>;
   leaveMeeting(meetingId: number, userId: number): Promise<boolean>;
   getMeetingParticipants(meetingId: number): Promise<MeetingParticipant[]>;
+  getWaitingRoomParticipants(meetingId: number): Promise<MeetingParticipant[]>;
+  admitParticipant(participantId: number, admittedBy: number): Promise<boolean>;
+  denyParticipant(participantId: number): Promise<boolean>;
   getMeetingMessages(meetingId: number): Promise<MeetingMessage[]>;
   createMeetingMessage(messageData: InsertMeetingMessage): Promise<MeetingMessage>;
   getMeetingRecordings(meetingId: number, organizationId: number): Promise<MeetingRecording[]>;
@@ -9928,13 +9932,16 @@ export class DatabaseStorage implements IStorage {
   async createMeeting(meetingData: InsertMeeting): Promise<Meeting> {
     const [meeting] = await db.insert(meetings).values(meetingData).returning();
     
-    // Auto-join the host as a participant
+    // Auto-join the host as a participant with admitted status
     if (meetingData.hostId) {
       await db.insert(meetingParticipants).values({
         meetingId: meeting.id,
         userId: meetingData.hostId,
         role: 'host',
-        joinedAt: new Date()
+        status: 'admitted',
+        joinedAt: new Date(),
+        admittedAt: new Date(),
+        admittedBy: meetingData.hostId
       });
     }
     
@@ -9982,10 +9989,47 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async joinMeetingWithStatus(meetingId: number, userId: number, status: string): Promise<MeetingParticipant> {
+    // Check if user is already a participant
+    const [existingParticipant] = await db
+      .select()
+      .from(meetingParticipants)
+      .where(and(eq(meetingParticipants.meetingId, meetingId), eq(meetingParticipants.userId, userId)));
+
+    if (existingParticipant) {
+      // Update existing participant status
+      const [participant] = await db
+        .update(meetingParticipants)
+        .set({ 
+          status,
+          joinedAt: status === "admitted" ? new Date() : null,
+          admittedAt: status === "admitted" ? new Date() : null,
+          leftAt: null 
+        })
+        .where(and(eq(meetingParticipants.meetingId, meetingId), eq(meetingParticipants.userId, userId)))
+        .returning();
+      return participant;
+    } else {
+      // Create new participant with waiting room status
+      const [participant] = await db
+        .insert(meetingParticipants)
+        .values({ 
+          meetingId, 
+          userId, 
+          role: 'participant', 
+          status,
+          joinedAt: status === "admitted" ? new Date() : null,
+          admittedAt: status === "admitted" ? new Date() : null
+        })
+        .returning();
+      return participant;
+    }
+  }
+
   async leaveMeeting(meetingId: number, userId: number): Promise<boolean> {
     const result = await db
       .update(meetingParticipants)
-      .set({ leftAt: new Date() })
+      .set({ leftAt: new Date(), status: "left" })
       .where(and(eq(meetingParticipants.meetingId, meetingId), eq(meetingParticipants.userId, userId)));
     return result.rowCount > 0;
   }
@@ -9996,6 +10040,47 @@ export class DatabaseStorage implements IStorage {
       .from(meetingParticipants)
       .where(eq(meetingParticipants.meetingId, meetingId))
       .orderBy(asc(meetingParticipants.joinedAt));
+  }
+
+  async getWaitingRoomParticipants(meetingId: number): Promise<MeetingParticipant[]> {
+    return await db
+      .select()
+      .from(meetingParticipants)
+      .where(and(
+        eq(meetingParticipants.meetingId, meetingId),
+        eq(meetingParticipants.status, "waiting")
+      ))
+      .orderBy(asc(meetingParticipants.id));
+  }
+
+  async admitParticipant(participantId: number, admittedBy: number): Promise<boolean> {
+    const result = await db
+      .update(meetingParticipants)
+      .set({ 
+        status: "admitted",
+        admittedAt: new Date(),
+        admittedBy,
+        joinedAt: new Date()
+      })
+      .where(and(
+        eq(meetingParticipants.id, participantId),
+        eq(meetingParticipants.status, "waiting")
+      ));
+    return result.rowCount > 0;
+  }
+
+  async denyParticipant(participantId: number): Promise<boolean> {
+    const result = await db
+      .update(meetingParticipants)
+      .set({ 
+        status: "denied",
+        leftAt: new Date()
+      })
+      .where(and(
+        eq(meetingParticipants.id, participantId),
+        eq(meetingParticipants.status, "waiting")
+      ));
+    return result.rowCount > 0;
   }
 
   async getMeetingMessages(meetingId: number): Promise<MeetingMessage[]> {

@@ -3828,6 +3828,11 @@ export const meetingParticipants = pgTable("meeting_participants", {
   // Participant role and permissions
   role: text("role").notNull().default("participant"), // 'host', 'co_host', 'participant'
   
+  // Waiting room functionality
+  status: text("status").notNull().default("waiting"), // 'waiting', 'admitted', 'denied', 'left'
+  admittedAt: timestamp("admitted_at"), // When host admitted them
+  admittedBy: integer("admitted_by").references(() => users.id), // Host who admitted them
+  
   // Join/leave tracking
   joinedAt: timestamp("joined_at"),
   leftAt: timestamp("left_at"),
@@ -3891,7 +3896,10 @@ export const insertMeetingSchema = createInsertSchema(meetings, {
 
 export const insertMeetingParticipantSchema = createInsertSchema(meetingParticipants).omit({
   id: true,
-  invitedAt: true,
+  admittedAt: true,
+  admittedBy: true,
+  joinedAt: true,
+  leftAt: true,
 });
 
 export const insertMeetingMessageSchema = createInsertSchema(meetingMessages).omit({

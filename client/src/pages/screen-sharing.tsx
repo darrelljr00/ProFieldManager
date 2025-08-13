@@ -37,6 +37,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { apiRequest } from '@/lib/queryClient';
+import { useAuth } from '@/hooks/useAuth';
 
 interface Meeting {
   id: number;
@@ -63,9 +64,12 @@ interface MeetingParticipant {
   id: number;
   meetingId: number;
   userId: string;
-  joinedAt: string;
+  joinedAt?: string;
   leftAt?: string;
   role: 'host' | 'participant';
+  status: 'waiting' | 'admitted' | 'denied' | 'left';
+  admittedAt?: string;
+  admittedBy?: number;
   user?: {
     firstName: string;
     lastName: string;
@@ -102,6 +106,7 @@ interface MeetingRecording {
 export default function ScreenSharing() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user: currentUser } = useAuth();
   
   // State management
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
@@ -110,8 +115,10 @@ export default function ScreenSharing() {
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [isInMeeting, setIsInMeeting] = useState(false);
+  const [isWaitingForAdmission, setIsWaitingForAdmission] = useState(false);
   const [chatMessage, setChatMessage] = useState('');
   const [participants, setParticipants] = useState<MeetingParticipant[]>([]);
+  const [waitingParticipants, setWaitingParticipants] = useState<MeetingParticipant[]>([]);
   const [chatMessages, setChatMessages] = useState<MeetingMessage[]>([]);
   const [hasMediaAccess, setHasMediaAccess] = useState(false);
   const [mediaPermissionDenied, setMediaPermissionDenied] = useState(false);
@@ -147,6 +154,13 @@ export default function ScreenSharing() {
   // Organization members data
   const { data: organizationMembers = [] } = useQuery({
     queryKey: ['/api/users/organization-members']
+  });
+
+  // Waiting room participants query (only for hosts/admins)
+  const { data: waitingRoomData = [], refetch: refetchWaitingRoom } = useQuery({
+    queryKey: [`/api/meetings/${selectedMeeting?.id}/waiting-room`],
+    enabled: !!selectedMeeting?.id && isInMeeting,
+    refetchInterval: 5000, // Check for waiting participants every 5 seconds
   });
 
   // Fetch meetings
@@ -187,18 +201,27 @@ export default function ScreenSharing() {
 
 
 
-  // Join meeting mutation
+  // Join meeting mutation (with waiting room support)
   const joinMeetingMutation = useMutation({
     mutationFn: async (meetingId: number) => {
       return await apiRequest('POST', `/api/meetings/${meetingId}/join`);
     },
-    onSuccess: () => {
-      setIsInMeeting(true);
-      initializeWebRTC();
-      toast({
-        title: 'Success',
-        description: 'Joined meeting successfully',
-      });
+    onSuccess: (response: any) => {
+      if (response.isWaiting) {
+        setIsWaitingForAdmission(true);
+        toast({
+          title: 'Waiting for admission',
+          description: response.message || 'Please wait for the host to admit you to the meeting',
+        });
+      } else {
+        setIsInMeeting(true);
+        setIsWaitingForAdmission(false);
+        initializeWebRTC();
+        toast({
+          title: 'Success',
+          description: 'Joined meeting successfully',
+        });
+      }
     },
     onError: (error: any) => {
       console.error('Join meeting error:', error);
@@ -217,6 +240,7 @@ export default function ScreenSharing() {
     },
     onSuccess: () => {
       setIsInMeeting(false);
+      setIsWaitingForAdmission(false);
       setSelectedMeeting(null);
       cleanupWebRTC();
       toast({
@@ -229,6 +253,50 @@ export default function ScreenSharing() {
       toast({
         title: 'Error',
         description: 'Failed to leave meeting',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Admit participant mutation  
+  const admitParticipantMutation = useMutation({
+    mutationFn: async ({ meetingId, participantId }: { meetingId: number; participantId: number }) => {
+      return await apiRequest('POST', `/api/meetings/${meetingId}/admit-participant`, { participantId });
+    },
+    onSuccess: () => {
+      refetchWaitingRoom();
+      toast({
+        title: 'Success',
+        description: 'Participant admitted to meeting',
+      });
+    },
+    onError: (error: any) => {
+      console.error('Admit participant error:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to admit participant',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Deny participant mutation  
+  const denyParticipantMutation = useMutation({
+    mutationFn: async ({ meetingId, participantId }: { meetingId: number; participantId: number }) => {
+      return await apiRequest('POST', `/api/meetings/${meetingId}/deny-participant`, { participantId });
+    },
+    onSuccess: () => {
+      refetchWaitingRoom();
+      toast({
+        title: 'Success',
+        description: 'Participant denied access',
+      });
+    },
+    onError: (error: any) => {
+      console.error('Deny participant error:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to deny participant',
         variant: 'destructive',
       });
     },
@@ -749,6 +817,35 @@ export default function ScreenSharing() {
     });
   };
 
+  // Check if current user is the host
+  const isHost = selectedMeeting && currentUser && selectedMeeting.hostUserId === currentUser.id;
+
+  // Waiting room display for participants
+  if (isWaitingForAdmission && selectedMeeting) {
+    return (
+      <div className="flex flex-col h-screen bg-gray-900 items-center justify-center">
+        <div className="bg-gray-800 p-8 rounded-lg max-w-md mx-auto text-center">
+          <Clock className="w-16 h-16 text-yellow-500 mx-auto mb-4 animate-pulse" />
+          <h2 className="text-2xl font-semibold text-white mb-2">Waiting for admission</h2>
+          <p className="text-gray-300 mb-4">
+            Please wait for the host to admit you to "{selectedMeeting.title}"
+          </p>
+          <p className="text-gray-400 text-sm mb-6">
+            Meeting ID: {selectedMeeting.id}
+          </p>
+          <Button
+            onClick={handleLeaveMeeting}
+            variant="outline"
+            className="w-full"
+          >
+            <PhoneOff className="w-4 h-4 mr-2" />
+            Leave Meeting
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   if (isInMeeting && selectedMeeting) {
     return (
       <div className="flex flex-col h-screen bg-gray-900">
@@ -760,6 +857,14 @@ export default function ScreenSharing() {
               ? " Camera/microphone access was denied. Click 'Enable Media' to grant permissions."
               : " Click 'Enable Media' to access camera and microphone for full meeting experience."
             }
+          </div>
+        )}
+
+        {/* Waiting Room Alert for Hosts */}
+        {isHost && waitingRoomData.length > 0 && (
+          <div className="bg-orange-600 text-white px-4 py-2 text-sm text-center">
+            <span className="font-medium">Waiting Room:</span> 
+            {waitingRoomData.length} participant{waitingRoomData.length > 1 ? 's' : ''} waiting for admission
           </div>
         )}
 
@@ -876,6 +981,54 @@ export default function ScreenSharing() {
 
           {/* Chat Sidebar */}
           <div className="w-80 bg-gray-800 border-l border-gray-700 flex flex-col">
+            {/* Waiting Room (Host Only) */}
+            {isHost && waitingRoomData.length > 0 && (
+              <div className="p-4 border-b border-gray-700">
+                <div className="flex items-center gap-2 mb-3">
+                  <Clock className="w-4 h-4 text-orange-400" />
+                  <span className="text-white font-medium">Waiting Room ({waitingRoomData.length})</span>
+                </div>
+                <div className="space-y-2 max-h-32 overflow-y-auto">
+                  {waitingRoomData.map((participant: MeetingParticipant) => (
+                    <div key={participant.id} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-orange-400 rounded-full animate-pulse"></div>
+                        <span className="text-gray-300 text-sm">
+                          {participant.user?.firstName} {participant.user?.lastName}
+                        </span>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-6 w-6 p-0 text-green-500 border-green-500 hover:bg-green-50"
+                          onClick={() => admitParticipantMutation.mutate({ 
+                            meetingId: selectedMeeting.id, 
+                            participantId: participant.id 
+                          })}
+                          disabled={admitParticipantMutation.isPending}
+                        >
+                          <UserPlus className="w-3 h-3" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-6 w-6 p-0 text-red-500 border-red-500 hover:bg-red-50"
+                          onClick={() => denyParticipantMutation.mutate({ 
+                            meetingId: selectedMeeting.id, 
+                            participantId: participant.id 
+                          })}
+                          disabled={denyParticipantMutation.isPending}
+                        >
+                          <PhoneOff className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Participants */}
             <div className="p-4 border-b border-gray-700">
               <div className="flex items-center gap-2 mb-3">

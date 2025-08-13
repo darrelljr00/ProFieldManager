@@ -16391,7 +16391,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Join meeting
+  // Join meeting (with waiting room support)
   app.post("/api/meetings/:id/join", requireAuth, async (req, res) => {
     try {
       const user = getAuthenticatedUser(req);
@@ -16408,8 +16408,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Meeting is not active" });
       }
       
-      const participant = await storage.joinMeeting(meetingId, user.id);
-      res.json(participant);
+      // If user is the host, they can join directly
+      let status = "waiting";
+      if (meeting.hostId === user.id || user.role === 'admin' || user.role === 'manager') {
+        status = "admitted";
+      }
+      
+      const participant = await storage.joinMeetingWithStatus(meetingId, user.id, status);
+      
+      if (status === "waiting") {
+        res.json({ 
+          ...participant, 
+          message: "Please wait for the host to admit you to the meeting",
+          isWaiting: true 
+        });
+      } else {
+        res.json({ 
+          ...participant,
+          message: "Joined meeting successfully",
+          isWaiting: false 
+        });
+      }
     } catch (error: any) {
       console.error("Error joining meeting:", error);
       res.status(500).json({ message: "Failed to join meeting" });
@@ -16434,7 +16453,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get meeting participants
+  // Get waiting room participants (host only)
+  app.get("/api/meetings/:id/waiting-room", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const meetingId = parseInt(req.params.id);
+      
+      // Check if meeting exists and user has permission
+      const meeting = await storage.getMeeting(meetingId, user.organizationId);
+      if (!meeting) {
+        return res.status(404).json({ message: "Meeting not found" });
+      }
+      
+      // Only hosts and admins can see waiting room
+      if (meeting.hostId !== user.id && !['admin', 'manager'].includes(user.role)) {
+        return res.status(403).json({ message: "Permission denied" });
+      }
+      
+      const waitingParticipants = await storage.getWaitingRoomParticipants(meetingId);
+      res.json(waitingParticipants);
+    } catch (error: any) {
+      console.error("Error fetching waiting room participants:", error);
+      res.status(500).json({ message: "Failed to fetch waiting room participants" });
+    }
+  });
+
+  // Get meeting participants (with waiting room status)
   app.get("/api/meetings/:id/participants", requireAuth, async (req, res) => {
     try {
       const user = getAuthenticatedUser(req);
@@ -16451,6 +16495,151 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error fetching meeting participants:", error);
       res.status(500).json({ message: "Failed to fetch participants" });
+    }
+  });
+
+  // Get waiting room participants (host/admin only)
+  app.get("/api/meetings/:id/waiting-room", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const meetingId = parseInt(req.params.id);
+      
+      // Verify meeting exists and user has access
+      const meeting = await storage.getMeeting(meetingId, user.organizationId);
+      if (!meeting) {
+        return res.status(404).json({ message: "Meeting not found" });
+      }
+      
+      // Only host/admin can view waiting room
+      if (meeting.hostId !== user.id && !['admin', 'manager'].includes(user.role)) {
+        return res.status(403).json({ message: "Permission denied" });
+      }
+      
+      const waitingParticipants = await storage.getWaitingRoomParticipants(meetingId);
+      res.json(waitingParticipants);
+    } catch (error: any) {
+      console.error("Error fetching waiting room participants:", error);
+      res.status(500).json({ message: "Failed to fetch waiting room participants" });
+    }
+  });
+
+  // Admit participant from waiting room
+  app.post("/api/meetings/:id/admit/:participantId", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const meetingId = parseInt(req.params.id);
+      const participantId = parseInt(req.params.participantId);
+      
+      // Verify meeting exists and user has permission
+      const meeting = await storage.getMeeting(meetingId, user.organizationId);
+      if (!meeting) {
+        return res.status(404).json({ message: "Meeting not found" });
+      }
+      
+      // Only host/admin can admit participants
+      if (meeting.hostId !== user.id && !['admin', 'manager'].includes(user.role)) {
+        return res.status(403).json({ message: "Permission denied" });
+      }
+      
+      const success = await storage.admitParticipant(participantId, user.id);
+      if (!success) {
+        return res.status(404).json({ message: "Participant not found or already admitted" });
+      }
+      
+      res.json({ message: "Participant admitted successfully" });
+    } catch (error: any) {
+      console.error("Error admitting participant:", error);
+      res.status(500).json({ message: "Failed to admit participant" });
+    }
+  });
+
+  // Deny participant from waiting room
+  app.post("/api/meetings/:id/deny/:participantId", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const meetingId = parseInt(req.params.id);
+      const participantId = parseInt(req.params.participantId);
+      
+      // Verify meeting exists and user has permission
+      const meeting = await storage.getMeeting(meetingId, user.organizationId);
+      if (!meeting) {
+        return res.status(404).json({ message: "Meeting not found" });
+      }
+      
+      // Only host/admin can deny participants
+      if (meeting.hostId !== user.id && !['admin', 'manager'].includes(user.role)) {
+        return res.status(403).json({ message: "Permission denied" });
+      }
+      
+      const success = await storage.denyParticipant(participantId);
+      if (!success) {
+        return res.status(404).json({ message: "Participant not found" });
+      }
+      
+      res.json({ message: "Participant denied successfully" });
+    } catch (error: any) {
+      console.error("Error denying participant:", error);
+      res.status(500).json({ message: "Failed to deny participant" });
+    }
+  });
+
+  // Admit participant from waiting room (body-based)
+  app.post("/api/meetings/:id/admit-participant", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const meetingId = parseInt(req.params.id);
+      const { participantId } = req.body;
+      
+      // Verify meeting exists and user has permission
+      const meeting = await storage.getMeeting(meetingId, user.organizationId);
+      if (!meeting) {
+        return res.status(404).json({ message: "Meeting not found" });
+      }
+      
+      // Only host/admin can admit participants
+      if (meeting.hostId !== user.id && !['admin', 'manager'].includes(user.role)) {
+        return res.status(403).json({ message: "Permission denied" });
+      }
+      
+      const success = await storage.admitParticipant(participantId, user.id);
+      if (!success) {
+        return res.status(404).json({ message: "Participant not found or already admitted" });
+      }
+      
+      res.json({ message: "Participant admitted successfully" });
+    } catch (error: any) {
+      console.error("Error admitting participant:", error);
+      res.status(500).json({ message: "Failed to admit participant" });
+    }
+  });
+
+  // Deny participant from waiting room (body-based)
+  app.post("/api/meetings/:id/deny-participant", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const meetingId = parseInt(req.params.id);
+      const { participantId } = req.body;
+      
+      // Verify meeting exists and user has permission
+      const meeting = await storage.getMeeting(meetingId, user.organizationId);
+      if (!meeting) {
+        return res.status(404).json({ message: "Meeting not found" });
+      }
+      
+      // Only host/admin can deny participants
+      if (meeting.hostId !== user.id && !['admin', 'manager'].includes(user.role)) {
+        return res.status(403).json({ message: "Permission denied" });
+      }
+      
+      const success = await storage.denyParticipant(participantId);
+      if (!success) {
+        return res.status(404).json({ message: "Participant not found" });
+      }
+      
+      res.json({ message: "Participant denied successfully" });
+    } catch (error: any) {
+      console.error("Error denying participant:", error);
+      res.status(500).json({ message: "Failed to deny participant" });
     }
   });
 
