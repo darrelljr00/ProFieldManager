@@ -72,23 +72,29 @@ export default function CallManager() {
   const [currentTab, setCurrentTab] = useState("dialer");
 
   // Fetch call logs
-  const { data: callLogs = [], isLoading: isLoadingLogs } = useQuery({
+  const { data: callLogsData, isLoading: isLoadingLogs } = useQuery({
     queryKey: ["/api/call-manager/logs"],
     queryFn: () => apiRequest("GET", "/api/call-manager/logs"),
   });
+  
+  const callLogs = Array.isArray(callLogsData) ? callLogsData : [];
 
   // Fetch contacts
-  const { data: contacts = [], isLoading: isLoadingContacts } = useQuery({
+  const { data: contactsData, isLoading: isLoadingContacts } = useQuery({
     queryKey: ["/api/call-manager/contacts"],
     queryFn: () => apiRequest("GET", "/api/call-manager/contacts"),
   });
+  
+  const contacts = Array.isArray(contactsData) ? contactsData : [];
 
   // Fetch active calls
-  const { data: activeCalls = [] } = useQuery({
+  const { data: activeCallsData } = useQuery({
     queryKey: ["/api/call-manager/active-calls"],
     queryFn: () => apiRequest("GET", "/api/call-manager/active-calls"),
     refetchInterval: 2000, // Poll every 2 seconds for active calls
   });
+  
+  const activeCalls = Array.isArray(activeCallsData) ? activeCallsData : [];
 
   // Make a call mutation
   const makeCallMutation = useMutation({
