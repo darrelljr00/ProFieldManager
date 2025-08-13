@@ -4692,7 +4692,16 @@ export class DatabaseStorage implements IStorage {
   async getImages(userId: number): Promise<any[]> {
     try {
       const userInfo = await this.getUser(userId);
-      if (!userInfo) return [];
+      if (!userInfo) {
+        console.log('🔍 IMAGES DEBUG: No user info found for userId:', userId);
+        return [];
+      }
+
+      console.log('🔍 IMAGES DEBUG: User info:', {
+        userId: userInfo.id,
+        organizationId: userInfo.organizationId,
+        username: userInfo.username
+      });
 
       // Get images filtered by organization and exclude deleted images
       const imageResults = await db
@@ -4705,6 +4714,12 @@ export class DatabaseStorage implements IStorage {
           )
         )
         .orderBy(desc(images.createdAt));
+
+      console.log('🔍 IMAGES DEBUG: Raw query results:', {
+        count: imageResults.length,
+        organizationId: userInfo.organizationId,
+        results: imageResults.slice(0, 2) // Log first 2 results for debugging
+      });
 
       // Add correct URL paths for organization-based file structure and map date field
       return imageResults.map(image => {
