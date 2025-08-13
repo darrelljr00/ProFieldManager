@@ -90,6 +90,17 @@ export default function ImageGallery() {
     queryKey: ['/api/images'],
   });
 
+  // Debug logging for image query
+  console.log('🖼️ Image Gallery - Query State:', {
+    isLoading: imagesQuery.isLoading,
+    isError: imagesQuery.isError,
+    error: imagesQuery.error,
+    data: imagesQuery.data,
+    dataLength: Array.isArray(imagesQuery.data) ? imagesQuery.data.length : 'not array',
+    status: imagesQuery.status,
+    fetchStatus: imagesQuery.fetchStatus
+  });
+
   const projectsQuery = useQuery({
     queryKey: ['/api/projects'],
   });
@@ -495,7 +506,7 @@ export default function ImageGallery() {
               className="rounded-l-none border-l"
             >
               <Trash2 className="h-4 w-4 mr-2" />
-              Trash ({trashedImagesQuery.data?.length || 0})
+              Trash ({Array.isArray(trashedImagesQuery.data) ? trashedImagesQuery.data.length : 0})
             </Button>
           </div>
           
