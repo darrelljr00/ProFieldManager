@@ -40,7 +40,9 @@ import {
   Box,
   Monitor,
   BookOpen,
-  HelpCircle
+  HelpCircle,
+  Building,
+  Phone
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -263,11 +265,7 @@ export function Sidebar() {
   // Save navigation order mutation
   const saveOrderMutation = useMutation({
     mutationFn: async (newOrder: string[]) => {
-      return apiRequest('/api/navigation-order', {
-        method: 'POST',
-        body: JSON.stringify({ navigationItems: newOrder }),
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return apiRequest('/api/navigation-order', 'POST', { navigationItems: newOrder });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/navigation-order'] });
@@ -312,13 +310,13 @@ export function Sidebar() {
   });
 
   useEffect(() => {
-    if (savedOrder && savedOrder.length > 0) {
-      setNavigationOrder(savedOrder);
+    if (savedOrder && Array.isArray(savedOrder) && savedOrder.length > 0) {
+      setNavigationOrder(savedOrder as string[]);
     }
   }, [savedOrder]);
 
   useEffect(() => {
-    if (messages) {
+    if (messages && Array.isArray(messages)) {
       const unread = messages.filter((msg: any) => !msg.isRead && msg.senderId !== user?.id).length;
       setUnreadCount(unread);
     }
@@ -406,7 +404,17 @@ export function Sidebar() {
     { name: "Screen Sharing", href: "/screen-sharing", icon: Monitor, requiresAuth: true, permission: "canAccessMessages" },
     { name: "Human Resources", href: "/human-resources", icon: User, requiresAuth: true, permission: "canAccessHR" },
     { name: "User Management", href: "/users", icon: UserCog, requiresAuth: true, permission: "canAccessUsers" },
-    { name: "SaaS Admin", href: "/saas-admin", icon: Server, requiresAuth: true, permission: "canAccessSaasAdmin" },
+    { 
+      name: "SaaS Admin", 
+      href: "/saas-admin", 
+      icon: Server, 
+      requiresAuth: true, 
+      permission: "canAccessSaasAdmin",
+      subItems: [
+        { name: "Organizations", href: "/saas-admin", icon: Building },
+        { name: "Call Manager", href: "/saas-admin/call-manager", icon: Phone }
+      ]
+    },
     { name: "Frontend", href: "/frontend-management", icon: Monitor, requiresAuth: true, permission: "canAccessSaasAdmin" },
     {
       name: "Admin Settings",
