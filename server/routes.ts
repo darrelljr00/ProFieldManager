@@ -17125,6 +17125,137 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Twilio Integration API Routes
+  const { twilioService } = await import("./twilio");
+
+  // Get Twilio account information
+  app.get("/api/twilio/account", requireAdmin, async (req, res) => {
+    try {
+      const accountInfo = await twilioService.getAccountInfo();
+      res.json(accountInfo);
+    } catch (error: any) {
+      console.error("Error fetching Twilio account:", error);
+      res.status(500).json({ message: "Failed to fetch account information" });
+    }
+  });
+
+  // Get all purchased phone numbers
+  app.get("/api/twilio/phone-numbers", requireAdmin, async (req, res) => {
+    try {
+      const phoneNumbers = await twilioService.getPhoneNumbers();
+      res.json(phoneNumbers);
+    } catch (error: any) {
+      console.error("Error fetching phone numbers:", error);
+      res.status(500).json({ message: "Failed to fetch phone numbers" });
+    }
+  });
+
+  // Search for available phone numbers
+  app.get("/api/twilio/available-numbers", requireAdmin, async (req, res) => {
+    try {
+      const { areaCode, region } = req.query;
+      const availableNumbers = await twilioService.searchAvailableNumbers(
+        areaCode as string,
+        region as string
+      );
+      res.json(availableNumbers);
+    } catch (error: any) {
+      console.error("Error searching available numbers:", error);
+      res.status(500).json({ message: "Failed to search available numbers" });
+    }
+  });
+
+  // Purchase a phone number
+  app.post("/api/twilio/purchase-number", requireAdmin, async (req, res) => {
+    try {
+      const { phoneNumber, friendlyName } = req.body;
+      
+      if (!phoneNumber) {
+        return res.status(400).json({ message: "Phone number is required" });
+      }
+
+      const purchasedNumber = await twilioService.purchasePhoneNumber(phoneNumber, friendlyName);
+      res.json(purchasedNumber);
+    } catch (error: any) {
+      console.error("Error purchasing phone number:", error);
+      res.status(500).json({ message: error.message || "Failed to purchase phone number" });
+    }
+  });
+
+  // Release a phone number
+  app.delete("/api/twilio/phone-numbers/:sid", requireAdmin, async (req, res) => {
+    try {
+      const { sid } = req.params;
+      const success = await twilioService.releasePhoneNumber(sid);
+      
+      if (success) {
+        res.json({ message: "Phone number released successfully" });
+      } else {
+        res.status(400).json({ message: "Failed to release phone number" });
+      }
+    } catch (error: any) {
+      console.error("Error releasing phone number:", error);
+      res.status(500).json({ message: error.message || "Failed to release phone number" });
+    }
+  });
+
+  // Get call logs
+  app.get("/api/twilio/call-logs", requireAuth, async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 50;
+      const callLogs = await twilioService.getCallLogs(limit);
+      res.json(callLogs);
+    } catch (error: any) {
+      console.error("Error fetching call logs:", error);
+      res.status(500).json({ message: "Failed to fetch call logs" });
+    }
+  });
+
+  // Make an outbound call
+  app.post("/api/twilio/make-call", requireAuth, async (req, res) => {
+    try {
+      const { from, to, callbackUrl } = req.body;
+      
+      if (!from || !to) {
+        return res.status(400).json({ message: "From and to phone numbers are required" });
+      }
+
+      const call = await twilioService.makeCall(from, to, callbackUrl);
+      res.json(call);
+    } catch (error: any) {
+      console.error("Error making call:", error);
+      res.status(500).json({ message: error.message || "Failed to initiate call" });
+    }
+  });
+
+  // Send SMS message
+  app.post("/api/twilio/send-sms", requireAuth, async (req, res) => {
+    try {
+      const { from, to, body } = req.body;
+      
+      if (!from || !to || !body) {
+        return res.status(400).json({ message: "From, to, and message body are required" });
+      }
+
+      const message = await twilioService.sendSMS(from, to, body);
+      res.json(message);
+    } catch (error: any) {
+      console.error("Error sending SMS:", error);
+      res.status(500).json({ message: error.message || "Failed to send SMS" });
+    }
+  });
+
+  // Get usage statistics
+  app.get("/api/twilio/usage-stats", requireAdmin, async (req, res) => {
+    try {
+      const usageStats = await twilioService.getUsageStats();
+      res.json(usageStats);
+    } catch (error: any) {
+      console.error("Error fetching usage stats:", error);
+      res.status(500).json({ message: "Failed to fetch usage statistics" });
+    }
+  });
+
   // Add broadcast functions to the app for use in routes  
   (app as any).broadcastToWebUsers = broadcastToWebUsers;
   (app as any).broadcastToUser = broadcastToUser;
