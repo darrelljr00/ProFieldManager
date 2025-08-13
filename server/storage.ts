@@ -564,6 +564,7 @@ export interface IStorage {
   createMeeting(meetingData: InsertMeeting): Promise<Meeting>;
   updateMeeting(id: number, organizationId: number, updates: Partial<InsertMeeting>): Promise<Meeting>;
   deleteMeeting(id: number, organizationId: number): Promise<boolean>;
+  cleanupExpiredMeetings(): Promise<number>;
   joinMeeting(meetingId: number, userId: number): Promise<MeetingParticipant>;
   joinMeetingWithStatus(meetingId: number, userId: number, status: string): Promise<MeetingParticipant>;
   leaveMeeting(meetingId: number, userId: number): Promise<boolean>;
@@ -10117,6 +10118,61 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(meetings.id, id), eq(meetings.organizationId, organizationId)))
       .returning();
     return meeting;
+  }
+
+  async cleanupExpiredMeetings(): Promise<number> {
+    try {
+      const now = new Date();
+      const twoDaysAgo = new Date(now.getTime() - (2 * 24 * 60 * 60 * 1000)); // 2 days ago
+      
+      // Find expired meetings that are older than 2 days past their scheduled end time
+      const expiredMeetings = await db
+        .select({ id: meetings.id, organizationId: meetings.organizationId })
+        .from(meetings)
+        .where(
+          and(
+            lt(meetings.scheduledEndTime, twoDaysAgo),
+            isNotNull(meetings.scheduledEndTime)
+          )
+        );
+
+      if (expiredMeetings.length === 0) {
+        return 0;
+      }
+
+      // Delete meeting messages first (foreign key constraint)
+      for (const meeting of expiredMeetings) {
+        await db
+          .delete(meetingMessages)
+          .where(eq(meetingMessages.meetingId, meeting.id));
+      }
+
+      // Delete meeting participants
+      for (const meeting of expiredMeetings) {
+        await db
+          .delete(meetingParticipants)
+          .where(eq(meetingParticipants.meetingId, meeting.id));
+      }
+
+      // Delete meeting recordings
+      for (const meeting of expiredMeetings) {
+        await db
+          .delete(meetingRecordings)
+          .where(eq(meetingRecordings.meetingId, meeting.id));
+      }
+
+      // Finally delete the meetings
+      const deletedMeetingIds = expiredMeetings.map(m => m.id);
+      await db
+        .delete(meetings)
+        .where(inArray(meetings.id, deletedMeetingIds));
+
+      console.log(`🧹 Cleaned up ${expiredMeetings.length} expired meetings:`, deletedMeetingIds);
+      return expiredMeetings.length;
+    } catch (error) {
+      console.error('Error cleaning up expired meetings:', error);
+      throw error;
+    }
   }
 }
 

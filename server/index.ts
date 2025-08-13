@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import cookieParser from "cookie-parser";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { storage } from "./storage";
 
 const app = express();
 
@@ -105,11 +106,37 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = 5000;
+  // Setup automatic meeting cleanup scheduler
+  const setupMeetingCleanup = () => {
+    const cleanupExpiredMeetings = async () => {
+      try {
+        const deletedCount = await storage.cleanupExpiredMeetings();
+        if (deletedCount > 0) {
+          log(`🧹 Automatically cleaned up ${deletedCount} expired meetings`);
+        }
+      } catch (error) {
+        console.error('❌ Error during automatic meeting cleanup:', error);
+      }
+    };
+
+    // Run cleanup every 24 hours (24 * 60 * 60 * 1000 = 86400000ms)
+    const cleanupInterval = 24 * 60 * 60 * 1000;
+    
+    // Run initial cleanup after 5 minutes to avoid server startup conflicts
+    setTimeout(cleanupExpiredMeetings, 5 * 60 * 1000);
+    
+    // Then run every 24 hours
+    setInterval(cleanupExpiredMeetings, cleanupInterval);
+    
+    log('📅 Meeting cleanup scheduler initialized - runs every 24 hours');
+  };
+
   server.listen({
     port,
     host: "0.0.0.0",
     reusePort: true,
   }, () => {
     log(`serving on port ${port}`);
+    setupMeetingCleanup();
   });
 })();

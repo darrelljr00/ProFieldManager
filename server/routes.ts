@@ -16391,6 +16391,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Cleanup expired meetings (admin/manager only)
+  app.post("/api/meetings/cleanup-expired", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      // Only admin/manager can trigger cleanup
+      if (!['admin', 'manager'].includes(user.role)) {
+        return res.status(403).json({ message: "Permission denied - Admin or Manager role required" });
+      }
+      
+      const deletedCount = await storage.cleanupExpiredMeetings();
+      
+      res.json({ 
+        message: `Successfully cleaned up ${deletedCount} expired meetings`,
+        deletedCount 
+      });
+    } catch (error: any) {
+      console.error("Error cleaning up expired meetings:", error);
+      res.status(500).json({ message: "Failed to cleanup expired meetings" });
+    }
+  });
+
   // Join meeting (with waiting room support)
   app.post("/api/meetings/:id/join", requireAuth, async (req, res) => {
     try {

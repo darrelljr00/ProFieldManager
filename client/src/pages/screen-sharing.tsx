@@ -33,7 +33,8 @@ import {
   UserPlus,
   Bell,
   Zap,
-  Camera
+  Camera,
+  Trash2
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { apiRequest } from '@/lib/queryClient';
@@ -371,6 +372,28 @@ export default function ScreenSharing() {
       toast({
         title: 'Error',
         description: 'Failed to send message',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Cleanup expired meetings mutation (admin/manager only)
+  const cleanupExpiredMeetingsMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest('POST', '/api/meetings/cleanup', {});
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/meetings'] });
+      toast({
+        title: 'Cleanup Complete',
+        description: `Successfully cleaned up ${data.deletedCount} expired meetings`,
+      });
+    },
+    onError: (error: any) => {
+      console.error('Cleanup expired meetings error:', error);
+      toast({
+        title: 'Cleanup Failed',
+        description: 'Failed to cleanup expired meetings. Please try again.',
         variant: 'destructive',
       });
     },
@@ -1113,6 +1136,19 @@ export default function ScreenSharing() {
         </div>
         
         <div className="flex gap-3">
+          {/* Cleanup Expired Meetings Button - Admin/Manager Only */}
+          {(currentUser?.role === 'admin' || currentUser?.role === 'manager') && (
+            <Button
+              variant="outline"
+              onClick={() => cleanupExpiredMeetingsMutation.mutate()}
+              disabled={cleanupExpiredMeetingsMutation.isPending}
+              className="flex items-center gap-2 border-red-500 text-red-600 hover:bg-red-50"
+            >
+              <Trash2 className="w-4 h-4" />
+              {cleanupExpiredMeetingsMutation.isPending ? 'Cleaning...' : 'Cleanup Expired Meetings'}
+            </Button>
+          )}
+          
           <Dialog open={isStartNowDialogOpen} onOpenChange={setIsStartNowDialogOpen}>
             <DialogTrigger asChild>
               <Button variant="default" className="flex items-center gap-2 bg-green-600 hover:bg-green-700">
