@@ -88,12 +88,6 @@ export default function ImageGallery() {
 
   const imagesQuery = useQuery({
     queryKey: ['/api/images'],
-    onSuccess: (data) => {
-      console.log('Image gallery data received:', data);
-      if (data && data.length > 0) {
-        console.log('Sample image:', data[0]);
-      }
-    }
   });
 
   const projectsQuery = useQuery({
