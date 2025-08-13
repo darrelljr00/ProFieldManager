@@ -32,7 +32,8 @@ import {
   Clock,
   UserPlus,
   Bell,
-  Zap
+  Zap,
+  Camera
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { apiRequest } from '@/lib/queryClient';
@@ -112,6 +113,8 @@ export default function ScreenSharing() {
   const [chatMessage, setChatMessage] = useState('');
   const [participants, setParticipants] = useState<MeetingParticipant[]>([]);
   const [chatMessages, setChatMessages] = useState<MeetingMessage[]>([]);
+  const [hasMediaAccess, setHasMediaAccess] = useState(false);
+  const [mediaPermissionDenied, setMediaPermissionDenied] = useState(false);
   
   // WebRTC refs
   const localVideoRef = useRef<HTMLVideoElement>(null);
@@ -379,28 +382,77 @@ export default function ScreenSharing() {
   // WebRTC initialization
   const initializeWebRTC = async () => {
     try {
-      // Get user media
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: isVideoEnabled,
-        audio: isAudioEnabled,
-      });
-      
-      localStream.current = stream;
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = stream;
+      // Check if mediaDevices API is available
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('WebRTC not supported in this browser');
       }
 
-      // Initialize peer connection
+      // Try to get user media with graceful fallbacks
+      let stream: MediaStream | null = null;
+      
+      try {
+        // First try with both video and audio
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: isVideoEnabled,
+          audio: isAudioEnabled,
+        });
+      } catch (error: any) {
+        console.warn('Failed to get both video and audio, trying audio only:', error);
+        
+        try {
+          // If video fails, try audio only
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: false,
+            audio: isAudioEnabled,
+          });
+          
+          toast({
+            title: 'Camera Access Denied',
+            description: 'Using audio only. Please allow camera access in browser settings for video.',
+            variant: 'default',
+          });
+        } catch (audioError: any) {
+          console.warn('Failed to get audio, proceeding without media:', audioError);
+          
+          if (audioError.name === 'NotAllowedError') {
+            setMediaPermissionDenied(true);
+          }
+          
+          toast({
+            title: 'Media Access Limited',
+            description: 'Could not access camera or microphone. You can still join the meeting to chat and view shared content.',
+            variant: 'default',
+          });
+        }
+      }
+      
+      // Set up local stream if we got one
+      if (stream) {
+        localStream.current = stream;
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = stream;
+        }
+        setHasMediaAccess(true);
+        setMediaPermissionDenied(false);
+      } else {
+        setHasMediaAccess(false);
+      }
+
+      // Initialize peer connection regardless of media access
       peerConnection.current = new RTCPeerConnection({
         iceServers: [
           { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' },
+          { urls: 'stun:stun2.l.google.com:19302' },
         ],
       });
 
-      // Add local stream tracks
-      stream.getTracks().forEach(track => {
-        peerConnection.current?.addTrack(track, stream);
-      });
+      // Add local stream tracks if available
+      if (stream) {
+        stream.getTracks().forEach(track => {
+          peerConnection.current?.addTrack(track, stream);
+        });
+      }
 
       // Handle remote stream
       peerConnection.current.ontrack = (event) => {
@@ -410,13 +462,88 @@ export default function ScreenSharing() {
         }
       };
 
-    } catch (error) {
+      // Handle connection state changes
+      peerConnection.current.onconnectionstatechange = () => {
+        const state = peerConnection.current?.connectionState;
+        console.log('WebRTC connection state:', state);
+        
+        if (state === 'failed' || state === 'disconnected') {
+          toast({
+            title: 'Connection Issue',
+            description: 'WebRTC connection lost. Trying to reconnect...',
+            variant: 'destructive',
+          });
+        }
+      };
+
+    } catch (error: any) {
       console.error('Failed to initialize WebRTC:', error);
+      
+      let errorMessage = 'Failed to access camera/microphone';
+      if (error.name === 'NotAllowedError') {
+        setMediaPermissionDenied(true);
+        errorMessage = 'Camera/microphone access denied. Please allow permissions and refresh.';
+      } else if (error.name === 'NotFoundError') {
+        errorMessage = 'No camera or microphone found. You can still join for chat.';
+      } else if (error.name === 'NotSupportedError') {
+        errorMessage = 'WebRTC not supported in this browser.';
+      }
+      
       toast({
-        title: 'Error',
-        description: 'Failed to access camera/microphone',
+        title: 'WebRTC Setup Error',
+        description: errorMessage,
         variant: 'destructive',
       });
+    }
+  };
+
+  // Manual permission request
+  const requestMediaPermissions = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true,
+      });
+      
+      // Set up the stream
+      localStream.current = stream;
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = stream;
+      }
+      
+      // Update states
+      setHasMediaAccess(true);
+      setMediaPermissionDenied(false);
+      setIsVideoEnabled(true);
+      setIsAudioEnabled(true);
+      
+      toast({
+        title: 'Success',
+        description: 'Camera and microphone access granted!',
+      });
+      
+      // Re-initialize WebRTC with media
+      if (isInMeeting) {
+        initializeWebRTC();
+      }
+      
+    } catch (error: any) {
+      console.error('Permission request failed:', error);
+      
+      if (error.name === 'NotAllowedError') {
+        setMediaPermissionDenied(true);
+        toast({
+          title: 'Permission Denied',
+          description: 'Please allow camera and microphone access in your browser settings.',
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'Error',
+          description: 'Failed to access camera or microphone.',
+          variant: 'destructive',
+        });
+      }
     }
   };
 
@@ -625,12 +752,24 @@ export default function ScreenSharing() {
   if (isInMeeting && selectedMeeting) {
     return (
       <div className="flex flex-col h-screen bg-gray-900">
+        {/* Media Status Banner */}
+        {!hasMediaAccess && (
+          <div className="bg-yellow-600 text-white px-4 py-2 text-sm text-center">
+            <span className="font-medium">Media Access Required:</span> 
+            {mediaPermissionDenied 
+              ? " Camera/microphone access was denied. Click 'Enable Media' to grant permissions."
+              : " Click 'Enable Media' to access camera and microphone for full meeting experience."
+            }
+          </div>
+        )}
+
         {/* Meeting Header */}
         <div className="flex justify-between items-center p-4 bg-gray-800 border-b border-gray-700">
           <div>
             <h1 className="text-white text-xl font-semibold">{selectedMeeting.title}</h1>
             <p className="text-gray-300 text-sm">
               Meeting ID: {selectedMeeting.id} • {participants.length} participants
+              {hasMediaAccess && <span className="text-green-400 ml-2">• Media Connected</span>}
             </p>
           </div>
           
@@ -639,6 +778,7 @@ export default function ScreenSharing() {
               onClick={toggleVideo}
               variant={isVideoEnabled ? "default" : "destructive"}
               size="sm"
+              disabled={!hasMediaAccess}
             >
               {isVideoEnabled ? <Video className="w-4 h-4" /> : <VideoOff className="w-4 h-4" />}
             </Button>
@@ -647,9 +787,23 @@ export default function ScreenSharing() {
               onClick={toggleAudio}
               variant={isAudioEnabled ? "default" : "destructive"}
               size="sm"
+              disabled={!hasMediaAccess}
             >
               {isAudioEnabled ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
             </Button>
+            
+            {/* Media permission request button */}
+            {!hasMediaAccess && (
+              <Button
+                onClick={requestMediaPermissions}
+                variant="outline"
+                size="sm"
+                className="bg-yellow-50 border-yellow-200 text-yellow-800 hover:bg-yellow-100"
+              >
+                <Camera className="w-4 h-4 mr-1" />
+                Enable Media
+              </Button>
+            )}
             
             <Button
               onClick={toggleScreenShare}
@@ -680,6 +834,17 @@ export default function ScreenSharing() {
               className="w-full h-full object-cover"
             />
             
+            {/* No video placeholder for remote */}
+            {!hasMediaAccess && (
+              <div className="absolute inset-0 flex items-center justify-center bg-gray-800 text-gray-400">
+                <div className="text-center">
+                  <Users className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg">Waiting for participants</p>
+                  <p className="text-sm">Enable media to join with camera and microphone</p>
+                </div>
+              </div>
+            )}
+            
             {/* Local video/screen share */}
             <div className="absolute bottom-4 right-4 w-48 h-32 bg-gray-800 rounded-lg overflow-hidden">
               {isScreenSharing ? (
@@ -690,7 +855,7 @@ export default function ScreenSharing() {
                   muted
                   className="w-full h-full object-cover"
                 />
-              ) : (
+              ) : hasMediaAccess ? (
                 <video
                   ref={localVideoRef}
                   autoPlay
@@ -698,6 +863,13 @@ export default function ScreenSharing() {
                   muted
                   className="w-full h-full object-cover"
                 />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-gray-700 text-gray-400">
+                  <div className="text-center">
+                    <Camera className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-xs">No Camera</p>
+                  </div>
+                </div>
               )}
             </div>
           </div>
