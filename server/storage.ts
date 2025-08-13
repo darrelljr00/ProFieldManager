@@ -4694,11 +4694,16 @@ export class DatabaseStorage implements IStorage {
       const userInfo = await this.getUser(userId);
       if (!userInfo) return [];
 
-      // Get images filtered by organization for proper multi-tenant isolation
+      // Get images filtered by organization and exclude deleted images
       const imageResults = await db
         .select()
         .from(images)
-        .where(eq(images.organizationId, userInfo.organizationId))
+        .where(
+          and(
+            eq(images.organizationId, userInfo.organizationId),
+            eq(images.isDeleted, false)
+          )
+        )
         .orderBy(desc(images.createdAt));
 
       // Add correct URL paths for organization-based file structure and map date field
@@ -4745,8 +4750,15 @@ export class DatabaseStorage implements IStorage {
       const userInfo = await this.getUser(userId);
       if (!userInfo) return false;
 
+      // Soft delete the image
       const result = await db
-        .delete(images)
+        .update(images)
+        .set({ 
+          isDeleted: true,
+          deletedAt: new Date(),
+          deletedBy: userId,
+          updatedAt: new Date()
+        })
         .where(
           and(
             eq(images.id, imageId),
@@ -4757,6 +4769,119 @@ export class DatabaseStorage implements IStorage {
       return result.rowCount > 0;
     } catch (error) {
       console.error('Error deleting image:', error);
+      return false;
+    }
+  }
+
+  // Trash bin methods for images
+  async getDeletedImages(userId: number): Promise<any[]> {
+    try {
+      const userInfo = await this.getUser(userId);
+      if (!userInfo) return [];
+
+      // Get deleted images for the organization
+      const deletedImageResults = await db
+        .select({
+          id: images.id,
+          filename: images.filename,
+          originalName: images.originalName,
+          mimeType: images.mimeType,
+          size: images.size,
+          description: images.description,
+          cloudinaryUrl: images.cloudinaryUrl,
+          deletedAt: images.deletedAt,
+          deletedBy: images.deletedBy,
+          createdAt: images.createdAt,
+          organizationId: images.organizationId,
+          userId: images.userId,
+          projectId: images.projectId,
+          deletedByUser: {
+            firstName: users.firstName,
+            lastName: users.lastName,
+            email: users.email
+          }
+        })
+        .from(images)
+        .leftJoin(users, eq(images.deletedBy, users.id))
+        .where(
+          and(
+            eq(images.organizationId, userInfo.organizationId),
+            eq(images.isDeleted, true)
+          )
+        )
+        .orderBy(desc(images.deletedAt));
+
+      // Add correct URL paths and format data
+      return deletedImageResults.map(image => {
+        let imageUrl;
+        if (image.cloudinaryUrl) {
+          imageUrl = image.cloudinaryUrl;
+        } else {
+          imageUrl = `/uploads/org-${userInfo.organizationId}/image_gallery/${image.filename}`;
+        }
+
+        return {
+          ...image,
+          url: imageUrl,
+          deletedByName: image.deletedByUser?.firstName && image.deletedByUser?.lastName
+            ? `${image.deletedByUser.firstName} ${image.deletedByUser.lastName}`
+            : image.deletedByUser?.email || 'Unknown User'
+        };
+      });
+    } catch (error) {
+      console.error('Error fetching deleted images:', error);
+      return [];
+    }
+  }
+
+  async restoreImage(imageId: number, userId: number): Promise<boolean> {
+    try {
+      const userInfo = await this.getUser(userId);
+      if (!userInfo) return false;
+
+      // Restore image by clearing soft delete flags
+      const result = await db
+        .update(images)
+        .set({ 
+          isDeleted: false,
+          deletedAt: null,
+          deletedBy: null,
+          updatedAt: new Date()
+        })
+        .where(
+          and(
+            eq(images.id, imageId),
+            eq(images.organizationId, userInfo.organizationId),
+            eq(images.isDeleted, true)
+          )
+        );
+      
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error('Error restoring image:', error);
+      return false;
+    }
+  }
+
+  async permanentlyDeleteImage(imageId: number, userId: number): Promise<boolean> {
+    try {
+      const userInfo = await this.getUser(userId);
+      if (!userInfo) return false;
+
+      // Permanently delete the image record
+      const result = await db
+        .delete(images)
+        .where(
+          and(
+            eq(images.id, imageId),
+            eq(images.organizationId, userInfo.organizationId),
+            eq(images.isDeleted, true)
+          )
+        );
+      
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error('Error permanently deleting image:', error);
       return false;
     }
   }

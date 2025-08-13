@@ -1043,6 +1043,9 @@ export const images = pgTable("images", {
   annotations: jsonb("annotations").default('[]'),
   annotatedImageUrl: text("annotated_image_url"),
   cloudinaryUrl: text("cloudinary_url"), // URL for images stored in Cloudinary
+  isDeleted: boolean("is_deleted").default(false).notNull(), // Soft delete flag
+  deletedAt: timestamp("deleted_at"), // When the image was deleted
+  deletedBy: integer("deleted_by").references(() => users.id), // Who deleted the image
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

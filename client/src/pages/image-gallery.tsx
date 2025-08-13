@@ -37,7 +37,9 @@ import {
   Crop,
   Filter,
   Layers,
-  Image as ImageIcon
+  Image as ImageIcon,
+  RotateCcw,
+  AlertTriangle
 } from "lucide-react";
 import { ImageAnnotation } from "@/components/image-annotation";
 import { PhotoEditor } from "@/components/photo-editor";
@@ -58,6 +60,8 @@ interface ImageFile {
   projectName?: string;
   annotations?: any[];
   url?: string;
+  deletedAt?: string;
+  deletedByName?: string;
 }
 
 export default function ImageGallery() {
@@ -76,6 +80,7 @@ export default function ImageGallery() {
   const [isCollageOpen, setIsCollageOpen] = useState(false);
   const [editingImage, setEditingImage] = useState<ImageFile | null>(null);
   const [showEditOptions, setShowEditOptions] = useState<number | null>(null);
+  const [currentView, setCurrentView] = useState<"gallery" | "trash">("gallery");
   
   const { toast } = useToast();
   const { user } = useAuth();
@@ -93,6 +98,11 @@ export default function ImageGallery() {
 
   const projectsQuery = useQuery({
     queryKey: ['/api/projects'],
+  });
+
+  const trashedImagesQuery = useQuery({
+    queryKey: ['/api/images/trash'],
+    enabled: currentView === 'trash',
   });
 
   const uploadMutation = useMutation({
@@ -166,7 +176,50 @@ export default function ImageGallery() {
     },
   });
 
-  const images = (imagesQuery.data as ImageFile[]) || [];
+  const restoreMutation = useMutation({
+    mutationFn: async (imageId: number) => {
+      return await apiRequest('PATCH', `/api/images/${imageId}/restore`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/images/trash'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/images'] });
+      toast({
+        title: "Success",
+        description: "Image restored successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to restore image",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const permanentDeleteMutation = useMutation({
+    mutationFn: async (imageId: number) => {
+      return await apiRequest('DELETE', `/api/images/${imageId}/permanent`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/images/trash'] });
+      toast({
+        title: "Success",
+        description: "Image permanently deleted",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to permanently delete image",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const images = currentView === 'gallery' 
+    ? ((imagesQuery.data as ImageFile[]) || [])
+    : ((trashedImagesQuery.data as ImageFile[]) || []);
   
   const filteredImages = Array.isArray(images) ? images.filter((image: ImageFile) => {
     const matchesSearch = image.originalName.toLowerCase().includes(searchTerm.toLowerCase());
@@ -420,10 +473,38 @@ export default function ImageGallery() {
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Image Gallery</h1>
-          <p className="text-muted-foreground">View and annotate project images</p>
+          <h1 className="text-3xl font-bold tracking-tight">
+            {currentView === 'gallery' ? 'Image Gallery' : 'Trash Bin'}
+          </h1>
+          <p className="text-muted-foreground">
+            {currentView === 'gallery' 
+              ? 'View and annotate project images' 
+              : 'Restore or permanently delete images'}
+          </p>
         </div>
         <div className="flex gap-2">
+          {/* View Toggle */}
+          <div className="flex items-center border rounded-md">
+            <Button
+              variant={currentView === 'gallery' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setCurrentView('gallery')}
+              className="rounded-r-none"
+            >
+              <ImageIcon className="h-4 w-4 mr-2" />
+              Gallery
+            </Button>
+            <Button
+              variant={currentView === 'trash' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setCurrentView('trash')}
+              className="rounded-l-none border-l"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Trash ({trashedImagesQuery.data?.length || 0})
+            </Button>
+          </div>
+          
           {selectionMode && (
             <>
               <Button 
@@ -628,11 +709,15 @@ export default function ImageGallery() {
       </Card>
 
       {/* Images Display */}
-      {imagesQuery.isLoading ? (
-        <div className="text-center py-8">Loading images...</div>
+      {(currentView === 'gallery' ? imagesQuery.isLoading : trashedImagesQuery.isLoading) ? (
+        <div className="text-center py-8">
+          Loading {currentView === 'gallery' ? 'images' : 'deleted images'}...
+        </div>
       ) : filteredImages.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">
-          No images found. Upload some images to get started.
+          {currentView === 'gallery' 
+            ? 'No images found. Upload some images to get started.' 
+            : 'No deleted images found. Deleted images will appear here.'}
         </div>
       ) : (
         <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" : "space-y-4"}>
@@ -663,7 +748,7 @@ export default function ImageGallery() {
                     )}
                     
                     {/* Edit Options Overlay */}
-                    {!selectionMode && showEditOptions === image.id && (
+                    {!selectionMode && showEditOptions === image.id && currentView === 'gallery' && (
                       <div className="absolute inset-0 bg-black/50 flex items-center justify-center gap-2 z-10">
                         <Button
                           size="sm"
@@ -709,6 +794,36 @@ export default function ImageGallery() {
                           title="Delete"
                         >
                           <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                    
+                    {/* Trash Bin Actions Overlay */}
+                    {!selectionMode && showEditOptions === image.id && currentView === 'trash' && (
+                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center gap-2 z-10">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="h-8 w-8 p-0"
+                          onClick={() => restoreMutation.mutate(image.id)}
+                          disabled={restoreMutation.isPending}
+                          title="Restore Image"
+                        >
+                          <RotateCcw className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          className="h-8 w-8 p-0"
+                          onClick={() => {
+                            if (confirm('Are you sure you want to permanently delete this image? This action cannot be undone.')) {
+                              permanentDeleteMutation.mutate(image.id);
+                            }
+                          }}
+                          disabled={permanentDeleteMutation.isPending}
+                          title="Permanently Delete"
+                        >
+                          <AlertTriangle className="h-4 w-4" />
                         </Button>
                       </div>
                     )}
@@ -773,14 +888,43 @@ export default function ImageGallery() {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <Button size="sm" variant="outline" onClick={() => handleAnnotate(image)}>
-                        Annotate
-                      </Button>
-                      <Button size="sm" variant="outline" asChild>
-                        <a href={getImageUrl(image)} download={image.originalName}>
-                          <Download className="h-3 w-3" />
-                        </a>
-                      </Button>
+                      {currentView === 'gallery' ? (
+                        <>
+                          <Button size="sm" variant="outline" onClick={() => handleAnnotate(image)}>
+                            Annotate
+                          </Button>
+                          <Button size="sm" variant="outline" asChild>
+                            <a href={getImageUrl(image)} download={image.originalName}>
+                              <Download className="h-3 w-3" />
+                            </a>
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            onClick={() => restoreMutation.mutate(image.id)}
+                            disabled={restoreMutation.isPending}
+                          >
+                            <RotateCcw className="h-3 w-3 mr-1" />
+                            Restore
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="destructive" 
+                            onClick={() => {
+                              if (confirm('Are you sure you want to permanently delete this image? This action cannot be undone.')) {
+                                permanentDeleteMutation.mutate(image.id);
+                              }
+                            }}
+                            disabled={permanentDeleteMutation.isPending}
+                          >
+                            <AlertTriangle className="h-3 w-3 mr-1" />
+                            Delete
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </div>
                 </CardContent>

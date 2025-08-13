@@ -2870,13 +2870,99 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.warn('File not found on disk:', filePath);
       }
 
-      // Delete from database
-      await storage.deleteImage(imageId);
+      // Delete from database (soft delete)
+      const deleted = await storage.deleteImage(imageId, userId);
       
-      res.json({ message: 'Image deleted successfully' });
+      if (deleted) {
+        res.json({ message: 'Image moved to trash successfully' });
+      } else {
+        res.status(400).json({ message: 'Failed to delete image' });
+      }
     } catch (error: any) {
       console.error('Error deleting image:', error);
       res.status(500).json({ message: 'Failed to delete image' });
+    }
+  });
+
+  // Trash bin routes for images
+  app.get("/api/images/trash", requireAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const deletedImages = await storage.getDeletedImages(userId);
+      res.json(deletedImages);
+    } catch (error: any) {
+      console.error('Error fetching deleted images:', error);
+      res.status(500).json({ message: 'Failed to fetch deleted images' });
+    }
+  });
+
+  // Restore image from trash
+  app.patch("/api/images/:id/restore", requireAuth, async (req, res) => {
+    try {
+      const imageId = parseInt(req.params.id);
+      const userId = req.user!.id;
+
+      const restored = await storage.restoreImage(imageId, userId);
+      
+      if (restored) {
+        res.json({ message: 'Image restored successfully' });
+      } else {
+        res.status(404).json({ message: 'Image not found or cannot be restored' });
+      }
+    } catch (error: any) {
+      console.error('Error restoring image:', error);
+      res.status(500).json({ message: 'Failed to restore image' });
+    }
+  });
+
+  // Permanently delete image
+  app.delete("/api/images/:id/permanent", requireAuth, async (req, res) => {
+    try {
+      const imageId = parseInt(req.params.id);
+      const userId = req.user!.id;
+      const user = getAuthenticatedUser(req);
+      
+      // Get image data first to delete the physical file
+      const image = await storage.getImageById(imageId);
+      if (!image) {
+        return res.status(404).json({ message: 'Image not found' });
+      }
+
+      // Check if user has access to this image
+      if (image.userId !== userId && image.organizationId !== user.organizationId) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+
+      // Delete the physical file if it's local (not Cloudinary)
+      if (!image.cloudinaryUrl) {
+        const filePath = `./uploads/org-${image.organizationId}/image_gallery/${image.filename}`;
+        try {
+          await fs.promises.unlink(filePath);
+        } catch (fileError) {
+          console.warn('File not found on disk:', filePath);
+        }
+      } else if (image.cloudinaryUrl) {
+        // Delete from Cloudinary if it's stored there
+        const publicId = image.cloudinaryUrl.split('/').pop()?.split('.')[0];
+        if (publicId) {
+          try {
+            await CloudinaryService.deleteImage(publicId);
+          } catch (cloudinaryError) {
+            console.warn('Failed to delete from Cloudinary:', cloudinaryError);
+          }
+        }
+      }
+
+      const deleted = await storage.permanentlyDeleteImage(imageId, userId);
+      
+      if (deleted) {
+        res.json({ message: 'Image permanently deleted successfully' });
+      } else {
+        res.status(404).json({ message: 'Image not found or cannot be deleted' });
+      }
+    } catch (error: any) {
+      console.error('Error permanently deleting image:', error);
+      res.status(500).json({ message: 'Failed to permanently delete image' });
     }
   });
 
