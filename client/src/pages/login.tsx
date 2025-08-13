@@ -89,11 +89,35 @@ export default function LoginPage() {
 
   const loginMutation = useMutation({
     mutationFn: async (data: LoginData) => {
+      console.log('🔑 Attempting login for:', data.username);
+      
+      // Clear any existing auth state before attempting login
+      localStorage.removeItem('auth_token');
+      queryClient.clear();
+      
       const loginDataWithGps = { ...data, gpsData };
-      const response = await apiRequest("POST", "/api/auth/login", loginDataWithGps);
-      return response.json();
+      
+      try {
+        const response = await apiRequest("POST", "/api/auth/login", loginDataWithGps);
+        console.log('📡 Login response received:', response.status);
+        
+        if (!response.ok) {
+          const errorData = await response.text();
+          console.error('❌ Login failed with status:', response.status, errorData);
+          throw new Error(`Network error: ${response.status} - ${errorData}`);
+        }
+        
+        const result = await response.json();
+        console.log('✅ Login data parsed successfully');
+        return result;
+      } catch (fetchError: any) {
+        console.error('💥 Network fetch error:', fetchError);
+        throw new Error(`Network error when attempting to fetch resource: ${fetchError.message}`);
+      }
     },
     onSuccess: (response) => {
+      console.log('🎉 Login success handler triggered');
+      
       // Store token in localStorage for custom domain authentication
       if (response.token) {
         localStorage.setItem('auth_token', response.token);
@@ -109,9 +133,15 @@ export default function LoginPage() {
       setLocation("/dashboard");
     },
     onError: (error: any) => {
+      console.error('🚨 Login error handler triggered:', error);
+      
+      // Clear any potentially corrupted auth state
+      localStorage.removeItem('auth_token');
+      queryClient.clear();
+      
       toast({
         title: "Login Failed",
-        description: error.message || "Invalid credentials",
+        description: error.message || "Network error when attempting to fetch resource",
         variant: "destructive",
       });
     },
@@ -196,6 +226,34 @@ export default function LoginPage() {
       toast({
         title: "Seeding Failed",
         description: error.message || "Failed to seed database",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const clearCache = () => {
+    try {
+      // Clear all localStorage
+      localStorage.clear();
+      
+      // Clear all React Query cache
+      queryClient.clear();
+      
+      // Clear session storage
+      sessionStorage.clear();
+      
+      // Force reload to clear any remaining state
+      window.location.reload();
+      
+      toast({
+        title: "Cache Cleared",
+        description: "All cached data has been cleared. Please try logging in again.",
+      });
+    } catch (error) {
+      console.error('Error clearing cache:', error);
+      toast({
+        title: "Cache Clear Failed",
+        description: "Please manually refresh the page",
         variant: "destructive",
       });
     }
@@ -471,6 +529,15 @@ export default function LoginPage() {
               >
                 <AlertCircle className="h-4 w-4 mr-2" />
                 Setup Demo Data
+              </Button>
+
+              <Button 
+                variant="destructive" 
+                className="w-full" 
+                onClick={clearCache}
+              >
+                <AlertCircle className="h-4 w-4 mr-2" />
+                Clear Cache & Fix Login Issues
               </Button>
             </div>
 
