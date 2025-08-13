@@ -4701,7 +4701,7 @@ export class DatabaseStorage implements IStorage {
         .where(
           and(
             eq(images.organizationId, userInfo.organizationId),
-            eq(images.isDeleted, false)
+            isNull(images.deletedAt)
           )
         )
         .orderBy(desc(images.createdAt));
