@@ -33,6 +33,7 @@ import ImageGallery from "@/pages/image-gallery";
 import Users from "@/pages/users";
 import AdminSettings from "@/pages/admin-settings";
 import SaasAdmin from "@/pages/saas-admin";
+import CallManager from "@/pages/saas-admin/call-manager";
 import SmsPage from "@/pages/sms";
 import Reviews from "@/pages/reviews";
 import Settings from "@/pages/settings";
@@ -192,6 +193,7 @@ function AuthenticatedApp() {
           <Route path="/parts-supplies" component={PartsSupplies} />
           {isAdmin && <Route path="/admin-settings" component={AdminSettings} />}
           {isAdmin && <Route path="/saas-admin" component={SaasAdmin} />}
+          {isAdmin && <Route path="/call-manager" component={CallManager} />}
           {isAdmin && <Route path="/file-security" component={FileSecurity} />}
           {isAdmin && <Route path="/frontend-management" component={FrontendManagement} />}
           <Route path="/settings" component={Settings} />
