@@ -450,26 +450,39 @@ export function Sidebar() {
     if (!user) return false;
     
     // Admin users have access to everything
-    if (user.role === 'admin') return true;
+    if (user.role === 'admin') {
+      console.log(`✅ ADMIN ACCESS GRANTED for ${item.name} - user role: ${user.role}`);
+      return true;
+    }
     
     // Debug: log permission checks and user object structure for debugging auth issue
-    if (item.name === 'Parts & Supplies' || item.name === 'My Schedule') {
+    if (item.name === 'SaaS Admin' || item.name === 'Call Manager') {
       console.log(`🔍 SIDEBAR DEBUG - User object for ${item.name}:`, {
         username: user.username,
         role: user.role,
         permission: item.permission,
         permissionValue: (user as any)[item.permission],
-        hasCanAccessPartsSupplies: (user as any).canAccessPartsSupplies,
-        hasCanAccessMySchedule: (user as any).canAccessMySchedule,
-        hasCanAccessParts: (user as any).canAccessParts,
-        hasCanAccessSchedule: (user as any).canAccessSchedule,
-        allUserKeys: Object.keys(user).filter(key => key.includes('Access')).slice(0, 10)
+        hasCanAccessSaasAdmin: (user as any).canAccessSaasAdmin,
+        can_access_saas_admin: (user as any).can_access_saas_admin,
+        allUserKeys: Object.keys(user).filter(key => key.includes('Access') || key.includes('saas')).slice(0, 15),
+        fullUserObject: JSON.stringify(user, null, 2)
       });
     }
     
     console.log(`Checking permission for ${item.name}: ${item.permission} = ${(user as any)[item.permission]}`);
     
-    return (user as any)[item.permission] === true;
+    // Check the specific permission - handle both camelCase and snake_case
+    const hasAccess = (user as any)[item.permission];
+    
+    // If camelCase doesn't work, try snake_case conversion as fallback
+    if (hasAccess === undefined && item.permission) {
+      const snakeCasePermission = item.permission.replace(/([A-Z])/g, '_$1').toLowerCase();
+      const snakeCaseAccess = (user as any)[snakeCasePermission];
+      console.log(`🔄 PERMISSION FALLBACK: ${item.permission} -> ${snakeCasePermission} = ${snakeCaseAccess}`);
+      return snakeCaseAccess === true;
+    }
+    
+    return hasAccess === true;
   };
 
   // Get ordered navigation items with permission and search filtering

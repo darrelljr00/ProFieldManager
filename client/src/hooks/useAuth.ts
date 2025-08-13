@@ -70,11 +70,14 @@ export function useAuth() {
       console.log('🔍 USEAUTH: Falling back to cookie-based auth');
       const response = await apiRequest("GET", "/api/auth/me");
       console.log('🔍 USEAUTH: Cookie auth response:', response);
+      console.log('🔍 USEAUTH: User field names:', response?.user ? Object.keys(response.user).filter(k => k.includes('Access') || k.includes('saas')).slice(0, 10) : 'no user');
       return response;
     },
     retry: false,
     staleTime: 0, // Always check for fresh auth data
     gcTime: 0, // Don't cache auth data - updated from cacheTime to gcTime for TanStack Query v5
+
+
   });
 
   const logout = async () => {

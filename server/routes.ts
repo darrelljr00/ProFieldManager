@@ -1549,6 +1549,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log('🔍 DEBUG AUTH/ME - Raw user permissions for', user.username, ':', {
       can_access_parts_supplies: user.can_access_parts_supplies,
       can_access_my_schedule: user.can_access_my_schedule,
+      can_access_saas_admin: user.can_access_saas_admin,
       role: user.role,
       organizationId: user.organizationId
     });
@@ -1594,7 +1595,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Debug logging for transformed permissions
     console.log('🔄 DEBUG AUTH/ME - Transformed permissions:', {
       canAccessPartsSupplies: transformedUser.canAccessPartsSupplies,
-      canAccessMySchedule: transformedUser.canAccessMySchedule
+      canAccessMySchedule: transformedUser.canAccessMySchedule,
+      canAccessSaasAdmin: transformedUser.canAccessSaasAdmin
     });
     
     res.json({ user: transformedUser });
