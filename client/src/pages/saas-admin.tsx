@@ -1539,6 +1539,21 @@ export default function SaasAdminPage() {
         </TabsContent>
 
         <TabsContent value="call-manager" className="space-y-6">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center">
+                <Phone className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold mb-2">Call Manager Administration</h3>
+                <p className="text-muted-foreground mb-4">
+                  Manage phone numbers, call settings, and billing for all organizations from the dedicated Call Manager admin page.
+                </p>
+                <a href="/saas-admin/call-manager" className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors">
+                  <Phone className="h-4 w-4" />
+                  Open Call Manager Admin
+                </a>
+              </div>
+            </CardContent>
+          </Card>
           <div className="grid gap-6">
             {/* Phone Number Provisioning */}
             <Card>
