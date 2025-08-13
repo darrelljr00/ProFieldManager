@@ -16857,6 +16857,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // SaaS Admin Call Manager routes
+  app.get("/api/saas-admin/call-manager/organizations", requireAdmin, async (req, res) => {
+    try {
+      const organizations = await storage.getOrganizationsWithCallManager();
+      res.json(organizations);
+    } catch (error: any) {
+      console.error("Error fetching Call Manager organizations:", error);
+      res.status(500).json({ message: "Failed to fetch organizations" });
+    }
+  });
+
+  app.get("/api/saas-admin/call-manager/phone-numbers/:orgId", requireAdmin, async (req, res) => {
+    try {
+      const orgId = parseInt(req.params.orgId);
+      const phoneNumbers = await storage.getPhoneNumbersByOrganization(orgId);
+      res.json(phoneNumbers);
+    } catch (error: any) {
+      console.error("Error fetching phone numbers:", error);
+      res.status(500).json({ message: "Failed to fetch phone numbers" });
+    }
+  });
+
+  app.post("/api/saas-admin/call-manager/provision-phone", requireAdmin, async (req, res) => {
+    try {
+      const phoneData = req.body;
+      
+      // In a real implementation, this would call Twilio API to provision a phone number
+      // For now, we'll just store the data in our database
+      const phoneNumber = await storage.createPhoneNumber({
+        ...phoneData,
+        providerSid: `PN${Date.now()}`, // Mock provider SID
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+
+      res.status(201).json(phoneNumber);
+    } catch (error: any) {
+      console.error("Error provisioning phone number:", error);
+      res.status(500).json({ message: "Failed to provision phone number" });
+    }
+  });
+
+  app.put("/api/saas-admin/call-manager/phone-numbers/:id", requireAdmin, async (req, res) => {
+    try {
+      const phoneId = parseInt(req.params.id);
+      const updates = req.body;
+      
+      const phoneNumber = await storage.updatePhoneNumber(phoneId, {
+        ...updates,
+        updatedAt: new Date()
+      });
+
+      if (!phoneNumber) {
+        return res.status(404).json({ message: "Phone number not found" });
+      }
+
+      res.json(phoneNumber);
+    } catch (error: any) {
+      console.error("Error updating phone number:", error);
+      res.status(500).json({ message: "Failed to update phone number" });
+    }
+  });
+
+  app.delete("/api/saas-admin/call-manager/phone-numbers/:id/release", requireAdmin, async (req, res) => {
+    try {
+      const phoneId = parseInt(req.params.id);
+      
+      // In a real implementation, this would call Twilio API to release the phone number
+      const success = await storage.deletePhoneNumber(phoneId);
+
+      if (!success) {
+        return res.status(404).json({ message: "Phone number not found" });
+      }
+
+      res.json({ message: "Phone number released successfully" });
+    } catch (error: any) {
+      console.error("Error releasing phone number:", error);
+      res.status(500).json({ message: "Failed to release phone number" });
+    }
+  });
+
   // Add broadcast functions to the app for use in routes  
   (app as any).broadcastToWebUsers = broadcastToWebUsers;
   (app as any).broadcastToUser = broadcastToUser;

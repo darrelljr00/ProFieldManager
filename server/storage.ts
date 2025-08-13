@@ -15,7 +15,7 @@ import {
   vehicleMaintenanceIntervals, vehicleMaintenanceRecords, vehicleJobAssignments, timeClockTaskTriggers,
   taskTriggers, taskTriggerInstances, taskTriggerSettings, frontendPages, frontendSliders, frontendComponents,
   frontendIcons, frontendBoxes, frontendCategories, tutorials, tutorialProgress, tutorialCategories, leadSettings,
-  meetings, meetingParticipants, meetingMessages, meetingRecordings
+  meetings, meetingParticipants, meetingMessages, meetingRecordings, phoneNumbers
 } from "@shared/schema";
 import { marketResearchCompetitors } from "@shared/schema";
 import type { GasCard, InsertGasCard, GasCardAssignment, InsertGasCardAssignment, GasCardUsage, InsertGasCardUsage, GasCardProvider, InsertGasCardProvider } from "@shared/schema";
@@ -577,6 +577,13 @@ export interface IStorage {
   getMeetingRecordings(meetingId: number, organizationId: number): Promise<MeetingRecording[]>;
   createMeetingRecording(recordingData: InsertMeetingRecording): Promise<MeetingRecording>;
   updateMeetingStatus(id: number, organizationId: number, status: string): Promise<Meeting>;
+
+  // Call Manager methods
+  getOrganizationsWithCallManager(): Promise<any[]>;
+  getPhoneNumbersByOrganization(organizationId: number): Promise<any[]>;
+  createPhoneNumber(phoneData: any): Promise<any>;
+  updatePhoneNumber(id: number, updates: any): Promise<any>;
+  deletePhoneNumber(id: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -10311,6 +10318,94 @@ export class DatabaseStorage implements IStorage {
       return expiredMeetings.length;
     } catch (error) {
       console.error('Error cleaning up expired meetings:', error);
+      throw error;
+    }
+  }
+
+  // Call Manager methods
+  async getOrganizationsWithCallManager(): Promise<any[]> {
+    try {
+      const result = await db
+        .select({
+          id: organizations.id,
+          name: organizations.name,
+          email: organizations.email,
+          subscriptionPlan: organizations.subscriptionPlan,
+          canAccessCallManager: organizations.canAccessCallManager,
+          phoneNumbersCount: count(phoneNumbers.id)
+        })
+        .from(organizations)
+        .leftJoin(phoneNumbers, eq(organizations.id, phoneNumbers.organizationId))
+        .where(eq(organizations.canAccessCallManager, true))
+        .groupBy(organizations.id, organizations.name, organizations.email, organizations.subscriptionPlan, organizations.canAccessCallManager)
+        .orderBy(organizations.name);
+
+      // Get phone numbers for each organization
+      const orgsWithPhones = await Promise.all(
+        result.map(async (org) => {
+          const phones = await this.getPhoneNumbersByOrganization(org.id);
+          return {
+            ...org,
+            phoneNumbers: phones
+          };
+        })
+      );
+
+      return orgsWithPhones;
+    } catch (error) {
+      console.error('Error fetching organizations with Call Manager:', error);
+      throw error;
+    }
+  }
+
+  async getPhoneNumbersByOrganization(organizationId: number): Promise<any[]> {
+    try {
+      return await db
+        .select()
+        .from(phoneNumbers)
+        .where(eq(phoneNumbers.organizationId, organizationId))
+        .orderBy(phoneNumbers.phoneNumber);
+    } catch (error) {
+      console.error('Error fetching phone numbers for organization:', error);
+      throw error;
+    }
+  }
+
+  async createPhoneNumber(phoneData: any): Promise<any> {
+    try {
+      const [phoneNumber] = await db
+        .insert(phoneNumbers)
+        .values(phoneData)
+        .returning();
+      return phoneNumber;
+    } catch (error) {
+      console.error('Error creating phone number:', error);
+      throw error;
+    }
+  }
+
+  async updatePhoneNumber(id: number, updates: any): Promise<any> {
+    try {
+      const [phoneNumber] = await db
+        .update(phoneNumbers)
+        .set(updates)
+        .where(eq(phoneNumbers.id, id))
+        .returning();
+      return phoneNumber;
+    } catch (error) {
+      console.error('Error updating phone number:', error);
+      throw error;
+    }
+  }
+
+  async deletePhoneNumber(id: number): Promise<boolean> {
+    try {
+      const result = await db
+        .delete(phoneNumbers)
+        .where(eq(phoneNumbers.id, id));
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error('Error deleting phone number:', error);
       throw error;
     }
   }

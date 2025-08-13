@@ -110,6 +110,7 @@ export const subscriptionPlans = pgTable("subscription_plans", {
   hasPaymentProcessing: boolean("has_payment_processing").default(false),
   hasScreenSharing: boolean("has_screen_sharing").default(true),
   hasMeetings: boolean("has_meetings").default(true),
+  hasCallManager: boolean("has_call_manager").default(false),
   
   isActive: boolean("is_active").default(true),
   isPopular: boolean("is_popular").default(false),
@@ -236,6 +237,7 @@ export const users = pgTable("users", {
   canAccessPartsSupplies: boolean("can_access_parts_supplies").default(true),
   canAccessMySchedule: boolean("can_access_my_schedule").default(true),
   canAccessFrontEnd: boolean("can_access_front_end").default(false),
+  canAccessCallManager: boolean("can_access_call_manager").default(false),
   // HR-specific permissions
   canViewHREmployees: boolean("can_view_hr_employees").default(false),
   canEditHREmployees: boolean("can_edit_hr_employees").default(false),
@@ -2564,6 +2566,337 @@ export const frontendBoxes = pgTable("frontend_boxes", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Call Manager System - Phone Number Provisioning and Call Management
+export const phoneNumbers = pgTable("phone_numbers", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  phoneNumber: text("phone_number").notNull().unique(), // E.164 format: +1234567890
+  friendlyName: text("friendly_name"), // User-friendly name for the number
+  areaCode: text("area_code"),
+  country: text("country").default("US"),
+  numberType: text("number_type").default("local"), // local, toll-free, mobile
+  
+  // Provider Information
+  provider: text("provider").default("twilio"), // twilio, vonage, etc.
+  providerSid: text("provider_sid"), // Provider's unique identifier
+  providerAccountSid: text("provider_account_sid"),
+  
+  // Configuration
+  isActive: boolean("is_active").default(true),
+  isCallEnabled: boolean("is_call_enabled").default(true),
+  isSmsEnabled: boolean("is_sms_enabled").default(true),
+  isRecordingEnabled: boolean("is_recording_enabled").default(false),
+  
+  // Webhooks and Routing
+  voiceUrl: text("voice_url"), // Webhook URL for incoming calls
+  voiceMethod: text("voice_method").default("POST"),
+  smsUrl: text("sms_url"), // Webhook URL for incoming SMS
+  smsMethod: text("sms_method").default("POST"),
+  statusCallbackUrl: text("status_callback_url"),
+  
+  // Features
+  voicemailEnabled: boolean("voicemail_enabled").default(true),
+  callForwardingEnabled: boolean("call_forwarding_enabled").default(false),
+  callForwardingNumber: text("call_forwarding_number"),
+  
+  // Business Hours and Routing
+  businessHours: jsonb("business_hours").default('{"enabled": false}'), // {enabled: true, schedule: {...}}
+  afterHoursAction: text("after_hours_action").default("voicemail"), // voicemail, forward, disconnect
+  afterHoursNumber: text("after_hours_number"),
+  
+  // Pricing and Limits
+  monthlyCost: decimal("monthly_cost", { precision: 10, scale: 4 }).default("0"),
+  usageCost: decimal("usage_cost", { precision: 10, scale: 4 }).default("0"), // Per minute/message cost
+  
+  // Metadata
+  assignedTo: integer("assigned_to").references(() => users.id), // Primary user responsible
+  department: text("department"), // sales, support, etc.
+  purpose: text("purpose"), // main, support, emergency, etc.
+  
+  purchasedAt: timestamp("purchased_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const callRecords = pgTable("call_records", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  phoneNumberId: integer("phone_number_id").references(() => phoneNumbers.id),
+  
+  // Call Identification
+  callSid: text("call_sid").notNull().unique(), // Provider's call ID
+  parentCallSid: text("parent_call_sid"), // For transfers/conferences
+  
+  // Call Participants
+  fromNumber: text("from_number").notNull(),
+  toNumber: text("to_number").notNull(),
+  fromFormatted: text("from_formatted"), // Formatted display number
+  toFormatted: text("to_formatted"),
+  
+  // Call Direction and Type
+  direction: text("direction").notNull(), // inbound, outbound
+  callType: text("call_type").default("voice"), // voice, conference, transfer
+  
+  // Call Status and Timing
+  status: text("status").notNull(), // queued, ringing, in-progress, completed, busy, failed, no-answer, canceled
+  startTime: timestamp("start_time"),
+  answerTime: timestamp("answer_time"),
+  endTime: timestamp("end_time"),
+  duration: integer("duration").default(0), // Total call duration in seconds
+  billableDuration: integer("billable_duration").default(0), // Charged duration
+  
+  // Call Quality and Details
+  callQuality: text("call_quality"), // excellent, good, fair, poor
+  price: decimal("price", { precision: 10, scale: 4 }).default("0"),
+  priceUnit: text("price_unit").default("USD"),
+  
+  // User Assignment
+  handledBy: integer("handled_by").references(() => users.id),
+  assignedTo: integer("assigned_to").references(() => users.id),
+  
+  // Call Notes and Context
+  purpose: text("purpose"), // sales, support, follow-up, etc.
+  notes: text("notes"),
+  tags: text("tags").array(),
+  priority: text("priority").default("normal"), // low, normal, high, urgent
+  
+  // Customer/Lead Context
+  customerId: integer("customer_id").references(() => customers.id),
+  leadId: integer("lead_id").references(() => leads.id),
+  projectId: integer("project_id").references(() => projects.id),
+  
+  // Call Features Used
+  wasRecorded: boolean("was_recorded").default(false),
+  wasTransferred: boolean("was_transferred").default(false),
+  wasConference: boolean("was_conference").default(false),
+  hadVoicemail: boolean("had_voicemail").default(false),
+  
+  // Error Handling
+  errorCode: text("error_code"),
+  errorMessage: text("error_message"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const callRecordings = pgTable("call_recordings", {
+  id: serial("id").primaryKey(),
+  callRecordId: integer("call_record_id").notNull().references(() => callRecords.id, { onDelete: "cascade" }),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  
+  // Recording Details
+  recordingSid: text("recording_sid").notNull().unique(), // Provider's recording ID
+  recordingUrl: text("recording_url").notNull(),
+  recordingDuration: integer("recording_duration").default(0), // Duration in seconds
+  recordingSize: integer("recording_size").default(0), // File size in bytes
+  
+  // Recording Configuration
+  recordingFormat: text("recording_format").default("mp3"), // mp3, wav, etc.
+  recordingChannels: text("recording_channels").default("mono"), // mono, dual
+  recordingSource: text("recording_source").default("DialVerb"), // How recording was initiated
+  
+  // Access Control
+  isTranscribed: boolean("is_transcribed").default(false),
+  transcriptionStatus: text("transcription_status").default("pending"), // pending, completed, failed
+  isEncrypted: boolean("is_encrypted").default(false),
+  encryptionKey: text("encryption_key"),
+  
+  // Storage and Retention
+  localFilePath: text("local_file_path"), // Local backup path
+  cloudinaryUrl: text("cloudinary_url"), // Cloud storage URL
+  retentionPeriod: integer("retention_period").default(90), // Days to retain
+  expiresAt: timestamp("expires_at"),
+  
+  // Compliance and Legal
+  consentGiven: boolean("consent_given").default(false),
+  consentTimestamp: timestamp("consent_timestamp"),
+  legalHold: boolean("legal_hold").default(false),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const callTranscripts = pgTable("call_transcripts", {
+  id: serial("id").primaryKey(),
+  callRecordId: integer("call_record_id").notNull().references(() => callRecords.id, { onDelete: "cascade" }),
+  callRecordingId: integer("call_recording_id").references(() => callRecordings.id),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  
+  // Transcription Content
+  fullTranscript: text("full_transcript"), // Complete transcript text
+  structuredTranscript: jsonb("structured_transcript"), // Timestamped segments with speakers
+  
+  // Transcription Details
+  transcriptionProvider: text("transcription_provider").default("auto"), // auto, whisper, google, aws
+  language: text("language").default("en-US"),
+  confidence: decimal("confidence", { precision: 5, scale: 4 }), // Overall confidence score
+  
+  // Analysis and Insights
+  sentiment: text("sentiment"), // positive, negative, neutral
+  sentimentScore: decimal("sentiment_score", { precision: 5, scale: 4 }),
+  keyTopics: text("key_topics").array(),
+  actionItems: text("action_items").array(),
+  
+  // Speaker Identification
+  speakerCount: integer("speaker_count").default(2),
+  speakerMapping: jsonb("speaker_mapping"), // Map speaker labels to actual people
+  
+  // Processing Status
+  status: text("status").default("pending"), // pending, processing, completed, failed
+  processingStartTime: timestamp("processing_start_time"),
+  processingEndTime: timestamp("processing_end_time"),
+  errorMessage: text("error_message"),
+  
+  // Search and Indexing
+  searchableText: text("searchable_text"), // Processed text for full-text search
+  keywords: text("keywords").array(),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const callTransfers = pgTable("call_transfers", {
+  id: serial("id").primaryKey(),
+  originalCallId: integer("original_call_id").notNull().references(() => callRecords.id),
+  transferredCallId: integer("transferred_call_id").references(() => callRecords.id),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  
+  // Transfer Details
+  transferType: text("transfer_type").notNull(), // warm, cold, conference
+  transferredFrom: integer("transferred_from").notNull().references(() => users.id),
+  transferredTo: integer("transferred_to").references(() => users.id),
+  transferredToNumber: text("transferred_to_number"), // External number if not internal user
+  
+  // Transfer Status
+  status: text("status").default("pending"), // pending, accepted, declined, completed, failed
+  transferTime: timestamp("transfer_time").defaultNow(),
+  acceptTime: timestamp("accept_time"),
+  completeTime: timestamp("complete_time"),
+  
+  // Transfer Context
+  reason: text("reason"), // customer_request, expertise_needed, escalation, etc.
+  notes: text("notes"),
+  customerConsent: boolean("customer_consent").default(false),
+  
+  // Call Quality
+  transferDuration: integer("transfer_duration").default(0), // Time in transfer state
+  wasSuccessful: boolean("was_successful").default(false),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const voicemails = pgTable("voicemails", {
+  id: serial("id").primaryKey(),
+  callRecordId: integer("call_record_id").references(() => callRecords.id),
+  phoneNumberId: integer("phone_number_id").references(() => phoneNumbers.id),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  
+  // Voicemail Details
+  voicemailSid: text("voicemail_sid").unique(), // Provider's voicemail ID
+  fromNumber: text("from_number").notNull(),
+  fromFormatted: text("from_formatted"),
+  
+  // Recording Details
+  recordingUrl: text("recording_url"),
+  recordingDuration: integer("recording_duration").default(0),
+  recordingSize: integer("recording_size").default(0),
+  
+  // Transcription
+  transcriptionText: text("transcription_text"),
+  transcriptionConfidence: decimal("transcription_confidence", { precision: 5, scale: 4 }),
+  
+  // Message Status
+  status: text("status").default("new"), // new, listened, saved, deleted
+  priority: text("priority").default("normal"), // low, normal, high, urgent
+  isUrgent: boolean("is_urgent").default(false),
+  
+  // Assignment and Handling
+  assignedTo: integer("assigned_to").references(() => users.id),
+  listenedBy: integer("listened_by").references(() => users.id),
+  listenedAt: timestamp("listened_at"),
+  
+  // Customer Context
+  customerId: integer("customer_id").references(() => customers.id),
+  leadId: integer("lead_id").references(() => leads.id),
+  
+  // Follow-up Actions
+  needsFollowup: boolean("needs_followup").default(false),
+  followupNotes: text("followup_notes"),
+  followupDate: timestamp("followup_date"),
+  
+  receivedAt: timestamp("received_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const callQueues = pgTable("call_queues", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  
+  // Queue Configuration
+  name: text("name").notNull(),
+  description: text("description"),
+  phoneNumberIds: integer("phone_number_ids").array(), // Phone numbers that route to this queue
+  
+  // Queue Behavior
+  queueStrategy: text("queue_strategy").default("round_robin"), // round_robin, longest_idle, skills_based
+  maxWaitTime: integer("max_wait_time").default(300), // Maximum wait time in seconds
+  maxQueueSize: integer("max_queue_size").default(50),
+  
+  // Agent Assignment
+  availableAgents: integer("available_agents").array(), // User IDs of available agents
+  skillRequirements: text("skill_requirements").array(),
+  priority: integer("priority").default(1), // Queue priority level
+  
+  // Queue Messages and Music
+  welcomeMessage: text("welcome_message"),
+  holdMusicUrl: text("hold_music_url"),
+  estimatedWaitMessage: text("estimated_wait_message"),
+  queueFullMessage: text("queue_full_message"),
+  
+  // Business Hours
+  businessHours: jsonb("business_hours").default('{"enabled": false}'),
+  afterHoursAction: text("after_hours_action").default("voicemail"),
+  afterHoursMessage: text("after_hours_message"),
+  
+  // Statistics and Monitoring
+  currentQueueSize: integer("current_queue_size").default(0),
+  averageWaitTime: integer("average_wait_time").default(0),
+  averageHandleTime: integer("average_handle_time").default(0),
+  
+  isActive: boolean("is_active").default(true),
+  createdBy: integer("created_by").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const callQueueEntries = pgTable("call_queue_entries", {
+  id: serial("id").primaryKey(),
+  queueId: integer("queue_id").notNull().references(() => callQueues.id, { onDelete: "cascade" }),
+  callRecordId: integer("call_record_id").notNull().references(() => callRecords.id),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  
+  // Queue Position and Timing
+  queuePosition: integer("queue_position").notNull(),
+  enteredAt: timestamp("entered_at").defaultNow(),
+  exitedAt: timestamp("exited_at"),
+  waitTime: integer("wait_time").default(0), // Time waited in seconds
+  
+  // Exit Reason
+  exitReason: text("exit_reason"), // answered, abandoned, transferred, timeout, queue_full
+  answeredBy: integer("answered_by").references(() => users.id),
+  
+  // Caller Information
+  callerNumber: text("caller_number").notNull(),
+  callerName: text("caller_name"),
+  callbackNumber: text("callback_number"),
+  
+  // Priority and Skills
+  priority: integer("priority").default(1),
+  requiredSkills: text("required_skills").array(),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Frontend Management Insert Schemas
 export const insertFrontendCategorySchema = createInsertSchema(frontendCategories, {
   name: z.string().min(1, "Category name is required"),
@@ -2693,6 +3026,108 @@ export type FormSubmission = typeof formSubmissions.$inferSelect;
 export type InsertFormSubmission = typeof formSubmissions.$inferInsert;
 export type FormTemplate = typeof formTemplates.$inferSelect;
 export type InsertFormTemplate = typeof formTemplates.$inferInsert;
+
+// Call Manager Insert Schemas
+export const insertPhoneNumberSchema = createInsertSchema(phoneNumbers, {
+  phoneNumber: z.string().min(1, "Phone number is required"),
+  organizationId: z.number(),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  purchasedAt: true,
+});
+
+export const insertCallRecordSchema = createInsertSchema(callRecords, {
+  callSid: z.string().min(1, "Call SID is required"),
+  fromNumber: z.string().min(1, "From number is required"),
+  toNumber: z.string().min(1, "To number is required"),
+  direction: z.enum(["inbound", "outbound"]),
+  status: z.string().min(1, "Status is required"),
+  organizationId: z.number(),
+}).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertCallRecordingSchema = createInsertSchema(callRecordings, {
+  callRecordId: z.number(),
+  recordingSid: z.string().min(1, "Recording SID is required"),
+  recordingUrl: z.string().url("Invalid recording URL"),
+  organizationId: z.number(),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCallTranscriptSchema = createInsertSchema(callTranscripts, {
+  callRecordId: z.number(),
+  organizationId: z.number(),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCallTransferSchema = createInsertSchema(callTransfers, {
+  originalCallId: z.number(),
+  transferredFrom: z.number(),
+  transferType: z.enum(["warm", "cold", "conference"]),
+  organizationId: z.number(),
+}).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertVoicemailSchema = createInsertSchema(voicemails, {
+  fromNumber: z.string().min(1, "From number is required"),
+  organizationId: z.number(),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  receivedAt: true,
+});
+
+export const insertCallQueueSchema = createInsertSchema(callQueues, {
+  name: z.string().min(1, "Queue name is required"),
+  organizationId: z.number(),
+  createdBy: z.number(),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCallQueueEntrySchema = createInsertSchema(callQueueEntries, {
+  queueId: z.number(),
+  callRecordId: z.number(),
+  queuePosition: z.number(),
+  callerNumber: z.string().min(1, "Caller number is required"),
+  organizationId: z.number(),
+}).omit({
+  id: true,
+  createdAt: true,
+});
+
+// Call Manager Types
+export type PhoneNumber = typeof phoneNumbers.$inferSelect;
+export type InsertPhoneNumber = z.infer<typeof insertPhoneNumberSchema>;
+export type CallRecord = typeof callRecords.$inferSelect;
+export type InsertCallRecord = z.infer<typeof insertCallRecordSchema>;
+export type CallRecording = typeof callRecordings.$inferSelect;
+export type InsertCallRecording = z.infer<typeof insertCallRecordingSchema>;
+export type CallTranscript = typeof callTranscripts.$inferSelect;
+export type InsertCallTranscript = z.infer<typeof insertCallTranscriptSchema>;
+export type CallTransfer = typeof callTransfers.$inferSelect;
+export type InsertCallTransfer = z.infer<typeof insertCallTransferSchema>;
+export type Voicemail = typeof voicemails.$inferSelect;
+export type InsertVoicemail = z.infer<typeof insertVoicemailSchema>;
+export type CallQueue = typeof callQueues.$inferSelect;
+export type InsertCallQueue = z.infer<typeof insertCallQueueSchema>;
+export type CallQueueEntry = typeof callQueueEntries.$inferSelect;
+export type InsertCallQueueEntry = z.infer<typeof insertCallQueueEntrySchema>;
 
 // Departments
 export const departments = pgTable("departments", {
