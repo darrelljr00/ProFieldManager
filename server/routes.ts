@@ -9064,17 +9064,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Image management routes
-  app.get('/api/images', requireAuth, async (req, res) => {
-    try {
-      const userId = req.user!.id;
-      const images = await storage.getImages(userId);
-      res.json(images);
-    } catch (error: any) {
-      console.error('Error fetching images:', error);
-      res.status(500).json({ message: 'Failed to fetch images' });
-    }
-  });
+  // Image management routes (duplicate removed - using route at line 2768)
 
   app.post('/api/images/annotations', requireAuth, async (req, res) => {
     try {
