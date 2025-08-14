@@ -11532,37 +11532,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/call-manager/logs", requireAuth, async (req, res) => {
     try {
       const user = getAuthenticatedUser(req);
+      const { phoneNumberId } = req.query;
       
-      // Mock call logs for now - replace with actual database query
-      const callLogs = [
-        {
-          id: "1",
-          phoneNumber: "+15551234567",
-          direction: "outbound",
-          status: "completed",
-          duration: 185,
-          timestamp: new Date(Date.now() - 3600000).toISOString(),
-          contactName: "John Smith",
-          notes: "Discussed project requirements"
-        },
-        {
-          id: "2", 
-          phoneNumber: "+15559876543",
-          direction: "inbound",
-          status: "missed",
-          timestamp: new Date(Date.now() - 7200000).toISOString(),
-          contactName: "Sarah Johnson"
-        },
-        {
-          id: "3",
-          phoneNumber: "+15555555555",
-          direction: "outbound", 
-          status: "completed",
-          duration: 92,
-          timestamp: new Date(Date.now() - 10800000).toISOString(),
-          contactName: "Mike Wilson"
-        }
-      ];
+      // Get call records from database using the new storage layer
+      const callRecords = await storage.getCallRecords(
+        user.organizationId,
+        phoneNumberId ? parseInt(phoneNumberId as string) : undefined
+      );
+      
+      // Transform database records to match frontend expectations
+      const callLogs = callRecords.map(record => ({
+        id: record.id.toString(),
+        phoneNumber: record.fromNumber || record.toNumber,
+        direction: record.direction,
+        status: record.status,
+        duration: record.duration || 0,
+        timestamp: record.createdAt,
+        contactName: record.contactName || 'Unknown',
+        notes: record.notes || ''
+      }));
       
       res.json(callLogs);
     } catch (error) {
@@ -11571,38 +11559,177 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get phone numbers for organization
+  app.get("/api/call-manager/phone-numbers", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const phoneNumbers = await storage.getPhoneNumbers(user.organizationId);
+      res.json(phoneNumbers);
+    } catch (error) {
+      console.error("Error fetching phone numbers:", error);
+      res.status(500).json({ message: "Failed to fetch phone numbers" });
+    }
+  });
+
+  // Create a new phone number
+  app.post("/api/call-manager/phone-numbers", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const phoneData = {
+        ...req.body,
+        organizationId: user.organizationId,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      
+      const phoneNumber = await storage.createPhoneNumber(phoneData);
+      res.status(201).json(phoneNumber);
+    } catch (error) {
+      console.error("Error creating phone number:", error);
+      res.status(500).json({ message: "Failed to create phone number" });
+    }
+  });
+
+  // Update phone number
+  app.put("/api/call-manager/phone-numbers/:id", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const phoneId = parseInt(req.params.id);
+      const updates = {
+        ...req.body,
+        updatedAt: new Date()
+      };
+      
+      const phoneNumber = await storage.updatePhoneNumber(phoneId, user.organizationId, updates);
+      res.json(phoneNumber);
+    } catch (error) {
+      console.error("Error updating phone number:", error);
+      res.status(500).json({ message: "Failed to update phone number" });
+    }
+  });
+
+  // Delete phone number
+  app.delete("/api/call-manager/phone-numbers/:id", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const phoneId = parseInt(req.params.id);
+      
+      const success = await storage.deletePhoneNumber(phoneId, user.organizationId);
+      if (success) {
+        res.json({ message: "Phone number deleted successfully" });
+      } else {
+        res.status(404).json({ message: "Phone number not found" });
+      }
+    } catch (error) {
+      console.error("Error deleting phone number:", error);
+      res.status(500).json({ message: "Failed to delete phone number" });
+    }
+  });
+
+  // Get voicemails
+  app.get("/api/call-manager/voicemails", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { phoneNumberId } = req.query;
+      
+      const voicemails = await storage.getVoicemails(
+        user.organizationId,
+        phoneNumberId ? parseInt(phoneNumberId as string) : undefined
+      );
+      
+      res.json(voicemails);
+    } catch (error) {
+      console.error("Error fetching voicemails:", error);
+      res.status(500).json({ message: "Failed to fetch voicemails" });
+    }
+  });
+
+  // Get call recordings
+  app.get("/api/call-manager/recordings", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { callRecordId } = req.query;
+      
+      const recordings = await storage.getCallRecordings(
+        user.organizationId,
+        callRecordId ? parseInt(callRecordId as string) : undefined
+      );
+      
+      res.json(recordings);
+    } catch (error) {
+      console.error("Error fetching call recordings:", error);
+      res.status(500).json({ message: "Failed to fetch call recordings" });
+    }
+  });
+
+  // Get organization Twilio settings
+  app.get("/api/call-manager/settings", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const settings = await storage.getOrganizationTwilioSettings(user.organizationId);
+      
+      // Don't expose sensitive credentials in response
+      if (settings) {
+        const safeSettings = {
+          ...settings,
+          accountSid: settings.accountSid ? '***' + settings.accountSid.slice(-4) : null,
+          authToken: settings.authToken ? '***' + settings.authToken.slice(-4) : null
+        };
+        res.json(safeSettings);
+      } else {
+        res.json(null);
+      }
+    } catch (error) {
+      console.error("Error fetching Twilio settings:", error);
+      res.status(500).json({ message: "Failed to fetch Twilio settings" });
+    }
+  });
+
+  // Update organization Twilio settings
+  app.put("/api/call-manager/settings", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const settingsData = {
+        ...req.body,
+        organizationId: user.organizationId,
+        updatedAt: new Date()
+      };
+      
+      // Check if settings exist
+      const existingSettings = await storage.getOrganizationTwilioSettings(user.organizationId);
+      
+      let settings;
+      if (existingSettings) {
+        settings = await storage.updateOrganizationTwilioSettings(user.organizationId, settingsData);
+      } else {
+        settingsData.createdAt = new Date();
+        settings = await storage.createOrganizationTwilioSettings(settingsData);
+      }
+      
+      res.json({ message: "Twilio settings updated successfully" });
+    } catch (error) {
+      console.error("Error updating Twilio settings:", error);
+      res.status(500).json({ message: "Failed to update Twilio settings" });
+    }
+  });
+
   // Get contacts
   app.get("/api/call-manager/contacts", requireAuth, async (req, res) => {
     try {
       const user = getAuthenticatedUser(req);
       
-      // Mock contacts for now - replace with actual database query
-      const contacts = [
-        {
-          id: "1",
-          name: "John Smith",
-          phoneNumber: "+15551234567",
-          email: "john@example.com",
-          company: "ABC Construction",
-          tags: ["VIP", "Customer"]
-        },
-        {
-          id: "2",
-          name: "Sarah Johnson", 
-          phoneNumber: "+15559876543",
-          email: "sarah@example.com",
-          company: "Johnson Enterprises",
-          tags: ["Lead"]
-        },
-        {
-          id: "3",
-          name: "Mike Wilson",
-          phoneNumber: "+15555555555",
-          email: "mike@example.com",
-          company: "Wilson Corp",
-          tags: ["Vendor"]
-        }
-      ];
+      // Get customers from database as contacts
+      const customers = await storage.getCustomers(user.organizationId);
+      
+      // Transform customers to contact format
+      const contacts = customers.map(customer => ({
+        id: customer.id.toString(),
+        name: customer.name,
+        phoneNumber: customer.phone,
+        email: customer.email,
+        company: customer.name, // Use customer name as company for now
+        tags: ["Customer"]
+      })).filter(contact => contact.phoneNumber); // Only include contacts with phone numbers
       
       res.json(contacts);
     } catch (error) {

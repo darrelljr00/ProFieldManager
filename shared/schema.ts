@@ -2897,6 +2897,100 @@ export const callQueueEntries = pgTable("call_queue_entries", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Organization-specific Twilio settings for multi-tenant call manager
+export const organizationTwilioSettings = pgTable("organization_twilio_settings", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }).unique(),
+  
+  // Twilio Account Configuration
+  accountSid: text("account_sid"), // Organization's Twilio Account SID
+  authToken: text("auth_token"), // Organization's Twilio Auth Token (encrypted)
+  isEnabled: boolean("is_enabled").default(false),
+  
+  // Default Phone Number Settings
+  defaultPhoneNumberId: integer("default_phone_number_id").references(() => phoneNumbers.id),
+  
+  // Webhook Configuration
+  baseWebhookUrl: text("base_webhook_url"), // Base URL for this organization's webhooks
+  voiceWebhookUrl: text("voice_webhook_url"),
+  smsWebhookUrl: text("sms_webhook_url"),
+  statusCallbackUrl: text("status_callback_url"),
+  
+  // Call Features Configuration
+  callRecordingEnabled: boolean("call_recording_enabled").default(false),
+  callTranscriptionEnabled: boolean("call_transcription_enabled").default(false),
+  voicemailEnabled: boolean("voicemail_enabled").default(true),
+  conferenceEnabled: boolean("conference_enabled").default(false),
+  callQueueEnabled: boolean("call_queue_enabled").default(false),
+  
+  // Business Rules
+  maxConcurrentCalls: integer("max_concurrent_calls").default(5),
+  allowInternationalCalls: boolean("allow_international_calls").default(false),
+  allowOutboundCalls: boolean("allow_outbound_calls").default(true),
+  requireCallerConsent: boolean("require_caller_consent").default(false),
+  
+  // Cost Management
+  monthlyCallLimit: integer("monthly_call_limit").default(1000),
+  currentMonthUsage: integer("current_month_usage").default(0),
+  callCostLimit: decimal("call_cost_limit", { precision: 10, scale: 2 }).default("100.00"),
+  currentMonthCost: decimal("current_month_cost", { precision: 10, scale: 2 }).default("0.00"),
+  
+  // Compliance and Legal
+  dataRetentionDays: integer("data_retention_days").default(90),
+  requireCallConsent: boolean("require_call_consent").default(false),
+  consentMessage: text("consent_message"),
+  
+  // Status and Health
+  lastConnectionTest: timestamp("last_connection_test"),
+  connectionStatus: text("connection_status").default("untested"), // untested, connected, failed, suspended
+  lastError: text("last_error"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Organization Call Manager Analytics
+export const organizationCallAnalytics = pgTable("organization_call_analytics", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  
+  // Time Period
+  periodStart: timestamp("period_start").notNull(),
+  periodEnd: timestamp("period_end").notNull(),
+  periodType: text("period_type").default("daily"), // daily, weekly, monthly
+  
+  // Call Volume Metrics
+  totalCalls: integer("total_calls").default(0),
+  inboundCalls: integer("inbound_calls").default(0),
+  outboundCalls: integer("outbound_calls").default(0),
+  answeredCalls: integer("answered_calls").default(0),
+  missedCalls: integer("missed_calls").default(0),
+  
+  // Call Duration Metrics
+  totalCallDuration: integer("total_call_duration").default(0), // Total seconds
+  averageCallDuration: integer("average_call_duration").default(0),
+  longestCall: integer("longest_call").default(0),
+  
+  // Quality Metrics
+  callAnswerRate: decimal("call_answer_rate", { precision: 5, scale: 2 }).default("0.00"), // Percentage
+  averageWaitTime: integer("average_wait_time").default(0),
+  customerSatisfactionScore: decimal("customer_satisfaction_score", { precision: 3, scale: 2 }).default("0.00"),
+  
+  // Cost Tracking
+  totalCost: decimal("total_cost", { precision: 10, scale: 2 }).default("0.00"),
+  costPerCall: decimal("cost_per_call", { precision: 8, scale: 4 }).default("0.00"),
+  costPerMinute: decimal("cost_per_minute", { precision: 8, scale: 4 }).default("0.00"),
+  
+  // Feature Usage
+  recordingsCount: integer("recordings_count").default(0),
+  transcriptionsCount: integer("transcriptions_count").default(0),
+  transfersCount: integer("transfers_count").default(0),
+  voicemailsCount: integer("voicemails_count").default(0),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Frontend Management Insert Schemas
 export const insertFrontendCategorySchema = createInsertSchema(frontendCategories, {
   name: z.string().min(1, "Category name is required"),
@@ -4360,3 +4454,29 @@ export type InsertMeeting = z.infer<typeof insertMeetingSchema>;
 export type InsertMeetingParticipant = z.infer<typeof insertMeetingParticipantSchema>;
 export type InsertMeetingMessage = z.infer<typeof insertMeetingMessageSchema>;
 export type InsertMeetingRecording = z.infer<typeof insertMeetingRecordingSchema>;
+
+// Organization-specific Call Manager Insert Schemas
+export const insertOrganizationTwilioSettingsSchema = createInsertSchema(organizationTwilioSettings, {
+  organizationId: z.number(),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertOrganizationCallAnalyticsSchema = createInsertSchema(organizationCallAnalytics, {
+  organizationId: z.number(),
+  periodStart: z.string().transform((str) => new Date(str)),
+  periodEnd: z.string().transform((str) => new Date(str)),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Organization-specific Call Manager Types  
+export type OrganizationTwilioSettings = typeof organizationTwilioSettings.$inferSelect;
+export type InsertOrganizationTwilioSettings = z.infer<typeof insertOrganizationTwilioSettingsSchema>;
+
+export type OrganizationCallAnalytics = typeof organizationCallAnalytics.$inferSelect;
+export type InsertOrganizationCallAnalytics = z.infer<typeof insertOrganizationCallAnalyticsSchema>;

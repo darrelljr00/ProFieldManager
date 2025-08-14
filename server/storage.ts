@@ -15,7 +15,9 @@ import {
   vehicleMaintenanceIntervals, vehicleMaintenanceRecords, vehicleJobAssignments, timeClockTaskTriggers,
   taskTriggers, taskTriggerInstances, taskTriggerSettings, frontendPages, frontendSliders, frontendComponents,
   frontendIcons, frontendBoxes, frontendCategories, tutorials, tutorialProgress, tutorialCategories, leadSettings,
-  meetings, meetingParticipants, meetingMessages, meetingRecordings, phoneNumbers
+  meetings, meetingParticipants, meetingMessages, meetingRecordings, phoneNumbers,
+  callRecords, callRecordings, callTranscripts, voicemails, callQueues, 
+  organizationTwilioSettings, organizationCallAnalytics
 } from "@shared/schema";
 import { marketResearchCompetitors } from "@shared/schema";
 import type { GasCard, InsertGasCard, GasCardAssignment, InsertGasCardAssignment, GasCardUsage, InsertGasCardUsage, GasCardProvider, InsertGasCardProvider } from "@shared/schema";
@@ -579,11 +581,46 @@ export interface IStorage {
   updateMeetingStatus(id: number, organizationId: number, status: string): Promise<Meeting>;
 
   // Call Manager methods
-  getOrganizationsWithCallManager(): Promise<any[]>;
-  getPhoneNumbersByOrganization(organizationId: number): Promise<any[]>;
+  getPhoneNumbers(organizationId: number): Promise<any[]>;
+  getPhoneNumber(id: number, organizationId: number): Promise<any>;
   createPhoneNumber(phoneData: any): Promise<any>;
-  updatePhoneNumber(id: number, updates: any): Promise<any>;
-  deletePhoneNumber(id: number): Promise<boolean>;
+  updatePhoneNumber(id: number, organizationId: number, updates: any): Promise<any>;
+  deletePhoneNumber(id: number, organizationId: number): Promise<boolean>;
+  
+  // Call Record methods
+  getCallRecords(organizationId: number, phoneNumberId?: number): Promise<any[]>;
+  getCallRecord(id: number, organizationId: number): Promise<any>;
+  createCallRecord(callData: any): Promise<any>;
+  updateCallRecord(id: number, organizationId: number, updates: any): Promise<any>;
+  
+  // Call Recording methods
+  getCallRecordings(organizationId: number, callRecordId?: number): Promise<any[]>;
+  createCallRecording(recordingData: any): Promise<any>;
+  
+  // Voicemail methods
+  getVoicemails(organizationId: number, phoneNumberId?: number): Promise<any[]>;
+  createVoicemail(voicemailData: any): Promise<any>;
+  updateVoicemail(id: number, organizationId: number, updates: any): Promise<any>;
+  deleteVoicemail(id: number, organizationId: number): Promise<boolean>;
+  
+  // Call Queue methods
+  getCallQueues(organizationId: number): Promise<any[]>;
+  createCallQueue(queueData: any): Promise<any>;
+  updateCallQueue(id: number, organizationId: number, updates: any): Promise<any>;
+  deleteCallQueue(id: number, organizationId: number): Promise<boolean>;
+  
+  // Organization Twilio Settings methods
+  getOrganizationTwilioSettings(organizationId: number): Promise<any>;
+  createOrganizationTwilioSettings(settingsData: any): Promise<any>;
+  updateOrganizationTwilioSettings(organizationId: number, updates: any): Promise<any>;
+  
+  // Organization Call Analytics methods
+  getOrganizationCallAnalytics(organizationId: number, periodStart?: Date, periodEnd?: Date): Promise<any[]>;
+  createOrganizationCallAnalytics(analyticsData: any): Promise<any>;
+  updateOrganizationCallAnalytics(id: number, organizationId: number, updates: any): Promise<any>;
+
+
+
 }
 
 export class DatabaseStorage implements IStorage {
@@ -10406,6 +10443,404 @@ export class DatabaseStorage implements IStorage {
       return result.rowCount > 0;
     } catch (error) {
       console.error('Error deleting phone number:', error);
+      throw error;
+    }
+  }
+
+  // ===============================
+  // Call Manager Implementation
+  // ===============================
+
+  // Phone Number methods
+  async getPhoneNumbers(organizationId: number): Promise<any[]> {
+    try {
+      const results = await db
+        .select()
+        .from(phoneNumbers)
+        .where(eq(phoneNumbers.organizationId, organizationId))
+        .orderBy(desc(phoneNumbers.createdAt));
+      return results;
+    } catch (error) {
+      console.error('Error fetching phone numbers:', error);
+      return [];
+    }
+  }
+
+  async getPhoneNumber(id: number, organizationId: number): Promise<any> {
+    try {
+      const [phoneNumber] = await db
+        .select()
+        .from(phoneNumbers)
+        .where(and(
+          eq(phoneNumbers.id, id),
+          eq(phoneNumbers.organizationId, organizationId)
+        ));
+      return phoneNumber;
+    } catch (error) {
+      console.error('Error fetching phone number:', error);
+      return undefined;
+    }
+  }
+
+  async createPhoneNumber(phoneData: any): Promise<any> {
+    try {
+      const [phoneNumber] = await db
+        .insert(phoneNumbers)
+        .values(phoneData)
+        .returning();
+      return phoneNumber;
+    } catch (error) {
+      console.error('Error creating phone number:', error);
+      throw error;
+    }
+  }
+
+  async updatePhoneNumber(id: number, organizationId: number, updates: any): Promise<any> {
+    try {
+      const [phoneNumber] = await db
+        .update(phoneNumbers)
+        .set(updates)
+        .where(and(
+          eq(phoneNumbers.id, id),
+          eq(phoneNumbers.organizationId, organizationId)
+        ))
+        .returning();
+      return phoneNumber;
+    } catch (error) {
+      console.error('Error updating phone number:', error);
+      throw error;
+    }
+  }
+
+  async deletePhoneNumber(id: number, organizationId: number): Promise<boolean> {
+    try {
+      const result = await db
+        .delete(phoneNumbers)
+        .where(and(
+          eq(phoneNumbers.id, id),
+          eq(phoneNumbers.organizationId, organizationId)
+        ));
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error('Error deleting phone number:', error);
+      throw error;
+    }
+  }
+
+  // Call Record methods
+  async getCallRecords(organizationId: number, phoneNumberId?: number): Promise<any[]> {
+    try {
+      let query = db
+        .select()
+        .from(callRecords)
+        .where(eq(callRecords.organizationId, organizationId));
+
+      if (phoneNumberId) {
+        query = query.where(eq(callRecords.phoneNumberId, phoneNumberId));
+      }
+
+      const results = await query.orderBy(desc(callRecords.createdAt));
+      return results;
+    } catch (error) {
+      console.error('Error fetching call records:', error);
+      return [];
+    }
+  }
+
+  async getCallRecord(id: number, organizationId: number): Promise<any> {
+    try {
+      const [callRecord] = await db
+        .select()
+        .from(callRecords)
+        .where(and(
+          eq(callRecords.id, id),
+          eq(callRecords.organizationId, organizationId)
+        ));
+      return callRecord;
+    } catch (error) {
+      console.error('Error fetching call record:', error);
+      return undefined;
+    }
+  }
+
+  async createCallRecord(callData: any): Promise<any> {
+    try {
+      const [callRecord] = await db
+        .insert(callRecords)
+        .values(callData)
+        .returning();
+      return callRecord;
+    } catch (error) {
+      console.error('Error creating call record:', error);
+      throw error;
+    }
+  }
+
+  async updateCallRecord(id: number, organizationId: number, updates: any): Promise<any> {
+    try {
+      const [callRecord] = await db
+        .update(callRecords)
+        .set(updates)
+        .where(and(
+          eq(callRecords.id, id),
+          eq(callRecords.organizationId, organizationId)
+        ))
+        .returning();
+      return callRecord;
+    } catch (error) {
+      console.error('Error updating call record:', error);
+      throw error;
+    }
+  }
+
+  // Call Recording methods
+  async getCallRecordings(organizationId: number, callRecordId?: number): Promise<any[]> {
+    try {
+      let query = db
+        .select()
+        .from(callRecordings)
+        .where(eq(callRecordings.organizationId, organizationId));
+
+      if (callRecordId) {
+        query = query.where(eq(callRecordings.callRecordId, callRecordId));
+      }
+
+      const results = await query.orderBy(desc(callRecordings.createdAt));
+      return results;
+    } catch (error) {
+      console.error('Error fetching call recordings:', error);
+      return [];
+    }
+  }
+
+  async createCallRecording(recordingData: any): Promise<any> {
+    try {
+      const [recording] = await db
+        .insert(callRecordings)
+        .values(recordingData)
+        .returning();
+      return recording;
+    } catch (error) {
+      console.error('Error creating call recording:', error);
+      throw error;
+    }
+  }
+
+  // Voicemail methods
+  async getVoicemails(organizationId: number, phoneNumberId?: number): Promise<any[]> {
+    try {
+      let query = db
+        .select()
+        .from(voicemails)
+        .where(eq(voicemails.organizationId, organizationId));
+
+      if (phoneNumberId) {
+        query = query.where(eq(voicemails.phoneNumberId, phoneNumberId));
+      }
+
+      const results = await query.orderBy(desc(voicemails.createdAt));
+      return results;
+    } catch (error) {
+      console.error('Error fetching voicemails:', error);
+      return [];
+    }
+  }
+
+  async createVoicemail(voicemailData: any): Promise<any> {
+    try {
+      const [voicemail] = await db
+        .insert(voicemails)
+        .values(voicemailData)
+        .returning();
+      return voicemail;
+    } catch (error) {
+      console.error('Error creating voicemail:', error);
+      throw error;
+    }
+  }
+
+  async updateVoicemail(id: number, organizationId: number, updates: any): Promise<any> {
+    try {
+      const [voicemail] = await db
+        .update(voicemails)
+        .set(updates)
+        .where(and(
+          eq(voicemails.id, id),
+          eq(voicemails.organizationId, organizationId)
+        ))
+        .returning();
+      return voicemail;
+    } catch (error) {
+      console.error('Error updating voicemail:', error);
+      throw error;
+    }
+  }
+
+  async deleteVoicemail(id: number, organizationId: number): Promise<boolean> {
+    try {
+      const result = await db
+        .delete(voicemails)
+        .where(and(
+          eq(voicemails.id, id),
+          eq(voicemails.organizationId, organizationId)
+        ));
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error('Error deleting voicemail:', error);
+      throw error;
+    }
+  }
+
+  // Call Queue methods
+  async getCallQueues(organizationId: number): Promise<any[]> {
+    try {
+      const results = await db
+        .select()
+        .from(callQueues)
+        .where(eq(callQueues.organizationId, organizationId))
+        .orderBy(desc(callQueues.createdAt));
+      return results;
+    } catch (error) {
+      console.error('Error fetching call queues:', error);
+      return [];
+    }
+  }
+
+  async createCallQueue(queueData: any): Promise<any> {
+    try {
+      const [queue] = await db
+        .insert(callQueues)
+        .values(queueData)
+        .returning();
+      return queue;
+    } catch (error) {
+      console.error('Error creating call queue:', error);
+      throw error;
+    }
+  }
+
+  async updateCallQueue(id: number, organizationId: number, updates: any): Promise<any> {
+    try {
+      const [queue] = await db
+        .update(callQueues)
+        .set(updates)
+        .where(and(
+          eq(callQueues.id, id),
+          eq(callQueues.organizationId, organizationId)
+        ))
+        .returning();
+      return queue;
+    } catch (error) {
+      console.error('Error updating call queue:', error);
+      throw error;
+    }
+  }
+
+  async deleteCallQueue(id: number, organizationId: number): Promise<boolean> {
+    try {
+      const result = await db
+        .delete(callQueues)
+        .where(and(
+          eq(callQueues.id, id),
+          eq(callQueues.organizationId, organizationId)
+        ));
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error('Error deleting call queue:', error);
+      throw error;
+    }
+  }
+
+  // Organization Twilio Settings methods
+  async getOrganizationTwilioSettings(organizationId: number): Promise<any> {
+    try {
+      const [settings] = await db
+        .select()
+        .from(organizationTwilioSettings)
+        .where(eq(organizationTwilioSettings.organizationId, organizationId));
+      return settings;
+    } catch (error) {
+      console.error('Error fetching organization Twilio settings:', error);
+      return undefined;
+    }
+  }
+
+  async createOrganizationTwilioSettings(settingsData: any): Promise<any> {
+    try {
+      const [settings] = await db
+        .insert(organizationTwilioSettings)
+        .values(settingsData)
+        .returning();
+      return settings;
+    } catch (error) {
+      console.error('Error creating organization Twilio settings:', error);
+      throw error;
+    }
+  }
+
+  async updateOrganizationTwilioSettings(organizationId: number, updates: any): Promise<any> {
+    try {
+      const [settings] = await db
+        .update(organizationTwilioSettings)
+        .set(updates)
+        .where(eq(organizationTwilioSettings.organizationId, organizationId))
+        .returning();
+      return settings;
+    } catch (error) {
+      console.error('Error updating organization Twilio settings:', error);
+      throw error;
+    }
+  }
+
+  // Organization Call Analytics methods
+  async getOrganizationCallAnalytics(organizationId: number, periodStart?: Date, periodEnd?: Date): Promise<any[]> {
+    try {
+      let query = db
+        .select()
+        .from(organizationCallAnalytics)
+        .where(eq(organizationCallAnalytics.organizationId, organizationId));
+
+      if (periodStart && periodEnd) {
+        query = query.where(and(
+          gte(organizationCallAnalytics.periodStart, periodStart),
+          lte(organizationCallAnalytics.periodEnd, periodEnd)
+        ));
+      }
+
+      const results = await query.orderBy(desc(organizationCallAnalytics.createdAt));
+      return results;
+    } catch (error) {
+      console.error('Error fetching organization call analytics:', error);
+      return [];
+    }
+  }
+
+  async createOrganizationCallAnalytics(analyticsData: any): Promise<any> {
+    try {
+      const [analytics] = await db
+        .insert(organizationCallAnalytics)
+        .values(analyticsData)
+        .returning();
+      return analytics;
+    } catch (error) {
+      console.error('Error creating organization call analytics:', error);
+      throw error;
+    }
+  }
+
+  async updateOrganizationCallAnalytics(id: number, organizationId: number, updates: any): Promise<any> {
+    try {
+      const [analytics] = await db
+        .update(organizationCallAnalytics)
+        .set(updates)
+        .where(and(
+          eq(organizationCallAnalytics.id, id),
+          eq(organizationCallAnalytics.organizationId, organizationId)
+        ))
+        .returning();
+      return analytics;
+    } catch (error) {
+      console.error('Error updating organization call analytics:', error);
       throw error;
     }
   }
