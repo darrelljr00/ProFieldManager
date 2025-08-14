@@ -75,7 +75,7 @@ const subscriptionPlans = [
   }
 ];
 
-export default function LandingPage() {
+export default function FeaturesPage() {
   const [selectedPlan, setSelectedPlan] = useState("professional");
   const { toast } = useToast();
 

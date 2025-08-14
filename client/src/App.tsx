@@ -54,7 +54,8 @@ import MarketResearch from "@/pages/market-research";
 import TaskGroups from "@/pages/task-groups";
 import Login from "@/pages/login";
 import SimpleLogin from "@/pages/simple-login";
-import Landing from "@/pages/landing";
+import HomePage from "@/pages/home";
+import FeaturesPage from "@/pages/features";
 import NotFound from "@/pages/not-found";
 import { DeletedJobs } from "@/pages/deleted-jobs";
 import { CancelledJobs } from "@/pages/cancelled-jobs";
@@ -131,7 +132,7 @@ function AuthenticatedApp() {
   
   return (
     <div className="flex h-screen w-screen bg-gray-50 fixed inset-0">
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <Sidebar />
       
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Mobile Header */}
@@ -254,8 +255,9 @@ function Router() {
         </div>
       }>
         <Switch>
-          <Route path="/" component={Landing} />
-          <Route path="/signup" component={Landing} />
+          <Route path="/" component={HomePage} />
+          <Route path="/features" component={FeaturesPage} />
+          <Route path="/signup" component={FeaturesPage} />
           <Route path="/login" component={SimpleLogin} />
           <Route path="/login-full" component={Login} />
           <Route component={SimpleLogin} />
