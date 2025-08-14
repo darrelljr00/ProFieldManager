@@ -101,54 +101,14 @@ export default function LoginPage() {
         const response = await apiRequest("POST", "/api/auth/login", loginDataWithGps);
         console.log('📡 Login response received:', response.status);
         
-        if (!response.ok) {
-          const errorData = await response.text();
-          console.error('❌ Login failed with status:', response.status, errorData);
-          throw new Error(`Network error: ${response.status} - ${errorData}`);
-        }
-        
         const result = await response.json();
         console.log('✅ Login data parsed successfully');
         return result;
       } catch (fetchError: any) {
         console.error('💥 Network fetch error:', fetchError);
-        throw new Error(`Network error when attempting to fetch resource: ${fetchError.message}`);
+        throw fetchError;
       }
-    },
-    onSuccess: (response) => {
-      console.log('🎉 Login success handler triggered');
-      
-      // Store token in localStorage for custom domain authentication
-      if (response.token) {
-        localStorage.setItem('auth_token', response.token);
-        console.log('🔑 Auth token stored in localStorage for custom domain');
-      }
-      
-      // Invalidate auth queries to refresh user state
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
-      toast({
-        title: "Login Successful",
-        description: `Welcome back, ${response.user.firstName || response.user.username}!`,
-      });
-      
-      // Check for intended destination or redirect to dashboard
-      const intendedDestination = localStorage.getItem('intended_destination');
-      localStorage.removeItem('intended_destination');
-      setLocation(intendedDestination || "/dashboard");
-    },
-    onError: (error: any) => {
-      console.error('🚨 Login error handler triggered:', error);
-      
-      // Clear any potentially corrupted auth state
-      localStorage.removeItem('auth_token');
-      queryClient.clear();
-      
-      toast({
-        title: "Login Failed",
-        description: error.message || "Network error when attempting to fetch resource",
-        variant: "destructive",
-      });
-    },
+    }
   });
 
   const registerMutation = useMutation({
@@ -202,7 +162,42 @@ export default function LoginPage() {
     
     // Add small delay for mobile touch feedback
     setTimeout(() => {
-      loginMutation.mutate(loginData);
+      loginMutation.mutate(loginData, {
+        onSuccess: (response) => {
+          console.log('🎉 Login success handler triggered');
+          
+          // Store token in localStorage for custom domain authentication
+          if (response.token) {
+            localStorage.setItem('auth_token', response.token);
+            console.log('🔑 Auth token stored in localStorage for custom domain');
+          }
+          
+          // Invalidate auth queries to refresh user state
+          queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+          toast({
+            title: "Login Successful",
+            description: `Welcome back, ${response.user.firstName || response.user.username}!`,
+          });
+          
+          // Check for intended destination or redirect to dashboard
+          const intendedDestination = localStorage.getItem('intended_destination');
+          localStorage.removeItem('intended_destination');
+          setLocation(intendedDestination || "/dashboard");
+        },
+        onError: (error: any) => {
+          console.error('🚨 Login error handler triggered:', error);
+          
+          // Clear any potentially corrupted auth state
+          localStorage.removeItem('auth_token');
+          queryClient.clear();
+          
+          toast({
+            title: "Login Failed",
+            description: error.message || "Network error when attempting to fetch resource",
+            variant: "destructive",
+          });
+        },
+      });
     }, 100);
   };
 
