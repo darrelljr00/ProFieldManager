@@ -1151,6 +1151,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin endpoint: Get all notifications for organization (Admin/Manager only)
+  app.get('/api/admin/notifications', requireManagerOrAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const limit = parseInt(req.query.limit as string) || 100;
+      
+      const notifications = await NotificationService.getAllOrganizationNotifications(
+        user.organizationId, 
+        limit
+      );
+      
+      res.json(notifications);
+    } catch (error: any) {
+      console.error('Error fetching organization notifications:', error);
+      res.status(500).json({ message: 'Failed to fetch notifications' });
+    }
+  });
+
+  // Admin endpoint: Mark notification as viewed by admin
+  app.patch('/api/admin/notifications/:id/view', requireManagerOrAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const notificationId = parseInt(req.params.id);
+      
+      await NotificationService.markAdminViewed(notificationId, user.id);
+      
+      res.json({ message: 'Notification marked as viewed by admin' });
+    } catch (error: any) {
+      console.error('Error marking notification as admin viewed:', error);
+      res.status(500).json({ message: 'Failed to mark notification as admin viewed' });
+    }
+  });
+
+  // Admin endpoint: Get notification read statistics
+  app.get('/api/admin/notifications/stats', requireManagerOrAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      const stats = await NotificationService.getOrganizationNotificationStats(
+        user.organizationId
+      );
+      
+      res.json(stats);
+    } catch (error: any) {
+      console.error('Error fetching notification stats:', error);
+      res.status(500).json({ message: 'Failed to fetch notification statistics' });
+    }
+  });
+
   // Get comprehensive notification settings
   app.get('/api/notification-settings', requireAuth, async (req, res) => {
     try {

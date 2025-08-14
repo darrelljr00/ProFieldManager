@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { 
   Bell, 
   BellOff, 
@@ -20,12 +22,16 @@ import {
   FileText,
   AlertCircle,
   Clock,
-  MessageSquare
+  MessageSquare,
+  Eye,
+  BarChart3,
+  Shield
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Notification {
   id: number;
@@ -105,6 +111,8 @@ const getPriorityColor = (priority: string) => {
 export default function NotificationsPage() {
   const [activeTab, setActiveTab] = useState('all');
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const isAdminOrManager = user?.role === 'admin' || user?.role === 'manager';
 
   // Fetch notifications
   const { data: notifications = [], isLoading: notificationsLoading } = useQuery<Notification[]>({
@@ -123,12 +131,28 @@ export default function NotificationsPage() {
     queryKey: ['/api/notification-settings'],
   });
 
+  // Admin queries (only if admin or manager)
+  const { data: adminNotifications = [], isLoading: adminLoading } = useQuery({
+    queryKey: ['/api/admin/notifications'],
+    enabled: isAdminOrManager && activeTab === 'admin',
+    refetchInterval: 30000,
+  });
+
+  const { data: notificationStats } = useQuery({
+    queryKey: ['/api/admin/notifications/stats'],
+    enabled: isAdminOrManager && activeTab === 'admin',
+    refetchInterval: 60000,
+  });
+
   // Mark as read mutation
   const markAsReadMutation = useMutation({
     mutationFn: async (notificationId: number) => {
-      return apiRequest(`/api/notifications/${notificationId}/read`, {
+      const response = await fetch(`/api/notifications/${notificationId}/read`, {
         method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' }
       });
+      if (!response.ok) throw new Error('Failed to mark as read');
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
@@ -139,9 +163,12 @@ export default function NotificationsPage() {
   // Mark all as read mutation
   const markAllAsReadMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest('/api/notifications/read-all', {
+      const response = await fetch('/api/notifications/read-all', {
         method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' }
       });
+      if (!response.ok) throw new Error('Failed to mark all as read');
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
@@ -156,10 +183,13 @@ export default function NotificationsPage() {
   // Update notification settings mutation
   const updateSettingsMutation = useMutation({
     mutationFn: async (settings: Partial<NotificationSettings>) => {
-      return apiRequest('/api/notification-settings', {
+      const response = await fetch('/api/notification-settings', {
         method: 'PUT',
-        body: JSON.stringify(settings),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settings)
       });
+      if (!response.ok) throw new Error('Failed to update settings');
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/notification-settings'] });
@@ -167,6 +197,22 @@ export default function NotificationsPage() {
         title: "Success",
         description: "Notification settings updated",
       });
+    },
+  });
+
+  // Admin view notification mutation
+  const markAdminViewedMutation = useMutation({
+    mutationFn: async (notificationId: number) => {
+      const response = await fetch(`/api/admin/notifications/${notificationId}/view`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (!response.ok) throw new Error('Failed to mark as admin viewed');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/notifications/stats'] });
     },
   });
 
@@ -185,6 +231,10 @@ export default function NotificationsPage() {
         [setting]: value,
       });
     }
+  };
+
+  const handleMarkAdminViewed = (notificationId: number) => {
+    markAdminViewedMutation.mutate(notificationId);
   };
 
   // Filter notifications based on active tab
@@ -238,7 +288,7 @@ export default function NotificationsPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className={cn("grid w-full", isAdminOrManager ? "grid-cols-6" : "grid-cols-5")}>
           <TabsTrigger value="all">All</TabsTrigger>
           <TabsTrigger value="unread" className="relative">
             Unread
@@ -250,6 +300,12 @@ export default function NotificationsPage() {
           </TabsTrigger>
           <TabsTrigger value="user">Personal</TabsTrigger>
           <TabsTrigger value="team">Team</TabsTrigger>
+          {isAdminOrManager && (
+            <TabsTrigger value="admin" className="relative">
+              <Shield className="w-4 h-4 mr-1" />
+              Admin
+            </TabsTrigger>
+          )}
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
@@ -288,6 +344,18 @@ export default function NotificationsPage() {
             markAsReadPending={markAsReadMutation.isPending}
           />
         </TabsContent>
+
+        {isAdminOrManager && (
+          <TabsContent value="admin" className="space-y-6">
+            <AdminNotificationPanel
+              notifications={adminNotifications}
+              stats={notificationStats}
+              loading={adminLoading}
+              onMarkAdminViewed={handleMarkAdminViewed}
+              markViewedPending={markAdminViewedMutation.isPending}
+            />
+          </TabsContent>
+        )}
 
         <TabsContent value="settings" className="space-y-6">
           <NotificationSettings 
@@ -486,25 +554,253 @@ function NotificationSettings({ settings, loading, onSettingChange, updatePendin
             </CardHeader>
             <CardContent className="space-y-4">
               {group.settings.map((setting) => (
-                <div key={setting.key} className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <div className="text-sm font-medium">{setting.label}</div>
+                <div key={setting.key} className="flex items-center justify-between py-2">
+                  <div className="space-y-1 flex-1">
+                    <Label htmlFor={setting.key} className="text-sm font-medium cursor-pointer">
+                      {setting.label}
+                    </Label>
                     <div className="text-xs text-gray-600">{setting.description}</div>
                   </div>
-                  <Button
-                    onClick={() => onSettingChange(setting.key as keyof NotificationSettings, !settings[setting.key as keyof NotificationSettings])}
-                    disabled={updatePending}
-                    variant={settings[setting.key as keyof NotificationSettings] ? "default" : "outline"}
-                    size="sm"
-                  >
-                    {settings[setting.key as keyof NotificationSettings] ? "Enabled" : "Disabled"}
-                  </Button>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xs text-gray-500">
+                      {settings[setting.key as keyof NotificationSettings] ? "On" : "Off"}
+                    </span>
+                    <Switch
+                      id={setting.key}
+                      checked={settings[setting.key as keyof NotificationSettings] || false}
+                      onCheckedChange={(checked) => 
+                        onSettingChange(setting.key as keyof NotificationSettings, checked)
+                      }
+                      disabled={updatePending}
+                    />
+                  </div>
                 </div>
               ))}
             </CardContent>
           </Card>
         );
       })}
+    </div>
+  );
+}
+
+interface AdminNotificationPanelProps {
+  notifications: any[];
+  stats?: {
+    total: number;
+    unread: number;
+    adminViewed: number;
+    urgentUnread: number;
+    readPercentage: number;
+  };
+  loading: boolean;
+  onMarkAdminViewed: (id: number) => void;
+  markViewedPending: boolean;
+}
+
+function AdminNotificationPanel({ 
+  notifications, 
+  stats, 
+  loading, 
+  onMarkAdminViewed, 
+  markViewedPending 
+}: AdminNotificationPanelProps) {
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Statistics Cards */}
+      {stats && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <Bell className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{stats.total}</p>
+                  <p className="text-sm text-gray-600">Total Notifications</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-red-100 rounded-lg">
+                  <Circle className="w-5 h-5 text-red-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{stats.unread}</p>
+                  <p className="text-sm text-gray-600">Unread</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <Eye className="w-5 h-5 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{stats.adminViewed}</p>
+                  <p className="text-sm text-gray-600">Read by Users</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-orange-100 rounded-lg">
+                  <AlertCircle className="w-5 h-5 text-orange-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{stats.urgentUnread}</p>
+                  <p className="text-sm text-gray-600">Urgent Unread</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-purple-100 rounded-lg">
+                  <BarChart3 className="w-5 h-5 text-purple-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{stats.readPercentage}%</p>
+                  <p className="text-sm text-gray-600">Read Rate</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Notifications List */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="w-5 h-5" />
+            Organization Notifications
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {notifications.length === 0 ? (
+            <div className="p-12 text-center">
+              <BellOff className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No notifications</h3>
+              <p className="text-gray-600">Your team is all caught up!</p>
+            </div>
+          ) : (
+            <ScrollArea className="h-[600px]">
+              {notifications.map((notification, index) => {
+                const IconComponent = getNotificationIcon(notification.type);
+                const priorityColor = getPriorityColor(notification.priority);
+                
+                return (
+                  <div key={notification.id}>
+                    <div className={cn(
+                      "p-4 hover:bg-gray-50 transition-colors",
+                      !notification.isRead && "bg-blue-50"
+                    )}>
+                      <div className="flex items-start gap-3">
+                        <div className={cn(
+                          "p-2 rounded-full text-white",
+                          priorityColor
+                        )}>
+                          <IconComponent className="w-4 h-4" />
+                        </div>
+                        
+                        <div className="flex-1 space-y-1">
+                          <div className="flex items-start justify-between">
+                            <h4 className={cn(
+                              "text-sm font-medium",
+                              !notification.isRead && "font-semibold"
+                            )}>
+                              {notification.title}
+                            </h4>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="text-xs">
+                                {notification.category === 'user_based' ? 'Personal' : 'Team'}
+                              </Badge>
+                              {notification.adminViewedBy && (
+                                <Badge variant="secondary" className="text-xs">
+                                  <Eye className="w-3 h-3 mr-1" />
+                                  Admin Viewed
+                                </Badge>
+                              )}
+                              {!notification.adminViewedBy && (
+                                <Button
+                                  onClick={() => onMarkAdminViewed(notification.id)}
+                                  disabled={markViewedPending}
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 px-2"
+                                >
+                                  <Eye className="w-3 h-3 mr-1" />
+                                  Mark Viewed
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <p className="text-sm text-gray-600">
+                            {notification.message}
+                          </p>
+                          
+                          <div className="flex items-center justify-between text-xs text-gray-500">
+                            <div className="flex items-center gap-4">
+                              <div className="flex items-center gap-1">
+                                <User className="w-3 h-3" />
+                                <span>{notification.firstName} {notification.lastName}</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                <span>{format(new Date(notification.createdAt), 'MMM d, h:mm a')}</span>
+                              </div>
+                              {!notification.isRead && (
+                                <div className="flex items-center gap-1">
+                                  <Circle className="w-2 h-2 fill-blue-600 text-blue-600" />
+                                  <span>Unread</span>
+                                </div>
+                              )}
+                            </div>
+                            {notification.adminViewedAt && (
+                              <div className="flex items-center gap-1 text-green-600">
+                                <Eye className="w-3 h-3" />
+                                <span>Viewed {format(new Date(notification.adminViewedAt), 'MMM d, h:mm a')}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    {index < notifications.length - 1 && <Separator />}
+                  </div>
+                );
+              })}
+            </ScrollArea>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

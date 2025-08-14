@@ -285,6 +285,94 @@ export class NotificationService {
       )
       .returning();
   }
+
+  // Admin methods for notification tracking
+
+  // Get all notifications for organization (Admin/Manager only)
+  static async getAllOrganizationNotifications(organizationId: number, limit: number = 100) {
+    return await db
+      .select({
+        id: notifications.id,
+        type: notifications.type,
+        title: notifications.title,
+        message: notifications.message,
+        priority: notifications.priority,
+        category: notifications.category,
+        isRead: notifications.isRead,
+        readAt: notifications.readAt,
+        adminViewedBy: notifications.adminViewedBy,
+        adminViewedAt: notifications.adminViewedAt,
+        createdAt: notifications.createdAt,
+        userId: notifications.userId,
+        username: users.username,
+        firstName: users.firstName,
+        lastName: users.lastName
+      })
+      .from(notifications)
+      .leftJoin(users, eq(notifications.userId, users.id))
+      .where(eq(notifications.organizationId, organizationId))
+      .orderBy(desc(notifications.createdAt))
+      .limit(limit);
+  }
+
+  // Mark notification as viewed by admin/manager
+  static async markAdminViewed(notificationId: number, adminId: number): Promise<void> {
+    await db
+      .update(notifications)
+      .set({
+        adminViewedBy: adminId,
+        adminViewedAt: new Date(),
+      })
+      .where(eq(notifications.id, notificationId));
+  }
+
+  // Get notification statistics for organization
+  static async getOrganizationNotificationStats(organizationId: number) {
+    const [totalNotifications] = await db
+      .select({ count: notifications.id })
+      .from(notifications)
+      .where(eq(notifications.organizationId, organizationId));
+
+    const [unreadNotifications] = await db
+      .select({ count: notifications.id })
+      .from(notifications)
+      .where(
+        and(
+          eq(notifications.organizationId, organizationId),
+          eq(notifications.isRead, false)
+        )
+      );
+
+    const [adminViewedNotifications] = await db
+      .select({ count: notifications.id })
+      .from(notifications)
+      .where(
+        and(
+          eq(notifications.organizationId, organizationId),
+          eq(notifications.isRead, true)
+        )
+      );
+
+    const [urgentUnread] = await db
+      .select({ count: notifications.id })
+      .from(notifications)
+      .where(
+        and(
+          eq(notifications.organizationId, organizationId),
+          eq(notifications.isRead, false),
+          eq(notifications.priority, 'urgent')
+        )
+      );
+
+    return {
+      total: totalNotifications?.count || 0,
+      unread: unreadNotifications?.count || 0,
+      adminViewed: adminViewedNotifications?.count || 0,
+      urgentUnread: urgentUnread?.count || 0,
+      readPercentage: totalNotifications?.count ? 
+        Math.round(((totalNotifications.count - (unreadNotifications?.count || 0)) / totalNotifications.count) * 100) : 0
+    };
+  }
 }
 
 // Helper functions for creating specific notification types

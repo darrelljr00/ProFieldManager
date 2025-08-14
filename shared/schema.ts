@@ -3907,6 +3907,10 @@ export const notifications = pgTable("notifications", {
   isActioned: boolean("is_actioned").default(false), // for notifications that require action
   actionedAt: timestamp("actioned_at"),
   
+  // Admin read tracking
+  adminViewedBy: integer("admin_viewed_by").references(() => users.id), // which admin/manager viewed this notification's read status
+  adminViewedAt: timestamp("admin_viewed_at"), // when admin viewed the read status
+  
   // Delivery tracking
   deliveredVia: text("delivered_via").array(), // ['in_app', 'email', 'sms', 'push']
   emailSent: boolean("email_sent").default(false),
