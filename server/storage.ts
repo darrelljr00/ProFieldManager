@@ -987,6 +987,38 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  // Update organization Twilio settings
+  async updateOrganizationTwilioSettings(organizationId: number, settings: any): Promise<void> {
+    try {
+      await db.update(organizations)
+        .set({
+          twilioAccountSid: settings.accountSid,
+          twilioAuthToken: settings.authToken,
+          twilioWebhookUrl: settings.webhookUrl,
+          twilioStatusCallbackUrl: settings.statusCallbackUrl,
+          twilioIsConfigured: settings.isConfigured,
+          updatedAt: new Date()
+        })
+        .where(eq(organizations.id, organizationId));
+    } catch (error) {
+      console.error('Error updating organization Twilio settings:', error);
+      throw error;
+    }
+  }
+
+  // Get phone number by ID
+  async getPhoneNumberById(phoneId: number): Promise<any> {
+    try {
+      const [phoneNumber] = await db.select()
+        .from(callManagerPhoneNumbers)
+        .where(eq(callManagerPhoneNumbers.id, phoneId));
+      return phoneNumber;
+    } catch (error) {
+      console.error('Error getting phone number by ID:', error);
+      throw error;
+    }
+  }
+
   async getOrganizationUsage(organizationId: number): Promise<any> {
     try {
       // Get user count

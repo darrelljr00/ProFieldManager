@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Phone, Plus, Settings, Edit, Trash2, Building2, Users, ChevronDown } from "lucide-react";
+import { Phone, Plus, Settings, Edit, Trash2, Building2, Users, ChevronDown, PhoneCall, TestTube } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
@@ -42,6 +42,15 @@ interface Organization {
   phone?: string;
   plan?: { name: string; hasCallManager: boolean };
   phoneNumbers?: PhoneNumber[];
+  twilioSettings?: TwilioSettings;
+}
+
+interface TwilioSettings {
+  accountSid?: string;
+  authToken?: string;
+  isConfigured: boolean;
+  webhookUrl?: string;
+  statusCallbackUrl?: string;
 }
 
 export default function SaasCallManagerPage() {
@@ -50,6 +59,8 @@ export default function SaasCallManagerPage() {
   const [selectedOrg, setSelectedOrg] = useState<number | null>(null);
   const [showAddPhoneDialog, setShowAddPhoneDialog] = useState(false);
   const [editingPhone, setEditingPhone] = useState<PhoneNumber | null>(null);
+  const [showTwilioSettings, setShowTwilioSettings] = useState(false);
+  const [selectedOrgForSettings, setSelectedOrgForSettings] = useState<Organization | null>(null);
 
   // Fetch all organizations with Call Manager access
   const { data: organizations = [], isLoading: orgsLoading } = useQuery({
@@ -127,6 +138,42 @@ export default function SaasCallManagerPage() {
     },
   });
 
+  // Update Twilio settings mutation
+  const updateTwilioSettingsMutation = useMutation({
+    mutationFn: async ({ orgId, settings }: { orgId: number; settings: TwilioSettings }) => {
+      return apiRequest(`/api/saas-admin/call-manager/twilio-settings/${orgId}`, "PUT", settings);
+    },
+    onSuccess: () => {
+      toast({ title: "Twilio settings updated successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/saas-admin/call-manager/organizations"] });
+      setShowTwilioSettings(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to update Twilio settings",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Test call mutation
+  const testCallMutation = useMutation({
+    mutationFn: async ({ phoneId, testNumber }: { phoneId: number; testNumber: string }) => {
+      return apiRequest(`/api/saas-admin/call-manager/test-call`, "POST", { phoneId, testNumber });
+    },
+    onSuccess: () => {
+      toast({ title: "Test call initiated successfully" });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Test call failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const selectedOrgData = (organizations as Organization[]).find((org: Organization) => org.id === selectedOrg);
 
   return (
@@ -186,6 +233,17 @@ export default function SaasCallManagerPage() {
                           <Badge variant="outline">
                             {org.phoneNumbers?.length || 0} numbers
                           </Badge>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedOrgForSettings(org);
+                              setShowTwilioSettings(true);
+                            }}
+                          >
+                            <Settings className="h-4 w-4" />
+                          </Button>
                           <ChevronDown className="h-4 w-4 text-muted-foreground" />
                         </div>
                       </div>
@@ -259,6 +317,7 @@ export default function SaasCallManagerPage() {
                       phone={phone}
                       onEdit={setEditingPhone}
                       onRelease={(phoneId) => releasePhoneMutation.mutate(phoneId)}
+                      onTestCall={(phoneId, testNumber) => testCallMutation.mutate({ phoneId, testNumber })}
                     />
                   ))
                 )}
@@ -278,7 +337,7 @@ export default function SaasCallManagerPage() {
         </TabsContent>
 
         <TabsContent value="analytics" className="space-y-6">
-          <CallManagerAnalytics organizations={organizations} />
+          <CallManagerAnalytics organizations={organizations as Organization[]} />
         </TabsContent>
       </Tabs>
 
@@ -294,6 +353,25 @@ export default function SaasCallManagerPage() {
               phone={editingPhone}
               onSubmit={(data) => updatePhoneMutation.mutate({ id: editingPhone.id, ...data })}
               isLoading={updatePhoneMutation.isPending}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Twilio Settings Dialog */}
+      <Dialog open={showTwilioSettings} onOpenChange={setShowTwilioSettings}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Twilio Settings - {selectedOrgForSettings?.name}</DialogTitle>
+            <DialogDescription>
+              Configure Twilio integration for this organization
+            </DialogDescription>
+          </DialogHeader>
+          {selectedOrgForSettings && (
+            <TwilioSettingsForm
+              organization={selectedOrgForSettings}
+              onSubmit={(settings) => updateTwilioSettingsMutation.mutate({ orgId: selectedOrgForSettings.id, settings })}
+              isLoading={updateTwilioSettingsMutation.isPending}
             />
           )}
         </DialogContent>
@@ -424,15 +502,105 @@ function PhoneNumberForm({
   );
 }
 
+// Twilio Settings Form Component
+function TwilioSettingsForm({
+  organization,
+  onSubmit,
+  isLoading,
+}: {
+  organization: Organization;
+  onSubmit: (settings: TwilioSettings) => void;
+  isLoading: boolean;
+}) {
+  const [formData, setFormData] = useState<TwilioSettings>({
+    accountSid: organization.twilioSettings?.accountSid || "",
+    authToken: organization.twilioSettings?.authToken || "",
+    webhookUrl: organization.twilioSettings?.webhookUrl || "",
+    statusCallbackUrl: organization.twilioSettings?.statusCallbackUrl || "",
+    isConfigured: organization.twilioSettings?.isConfigured || false,
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit(formData);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="accountSid">Account SID</Label>
+        <Input
+          id="accountSid"
+          type="password"
+          value={formData.accountSid}
+          onChange={(e) => setFormData({ ...formData, accountSid: e.target.value })}
+          placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+          required
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="authToken">Auth Token</Label>
+        <Input
+          id="authToken"
+          type="password"
+          value={formData.authToken}
+          onChange={(e) => setFormData({ ...formData, authToken: e.target.value })}
+          placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+          required
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="webhookUrl">Webhook URL (Optional)</Label>
+        <Input
+          id="webhookUrl"
+          value={formData.webhookUrl}
+          onChange={(e) => setFormData({ ...formData, webhookUrl: e.target.value })}
+          placeholder="https://your-domain.com/webhooks/twilio"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="statusCallbackUrl">Status Callback URL (Optional)</Label>
+        <Input
+          id="statusCallbackUrl"
+          value={formData.statusCallbackUrl}
+          onChange={(e) => setFormData({ ...formData, statusCallbackUrl: e.target.value })}
+          placeholder="https://your-domain.com/callbacks/twilio"
+        />
+      </div>
+
+      <div className="flex justify-end gap-2 pt-4">
+        <Button type="submit" disabled={isLoading}>
+          {isLoading ? "Saving..." : "Save Settings"}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
 function PhoneNumberCard({
   phone,
   onEdit,
   onRelease,
+  onTestCall,
 }: {
   phone: PhoneNumber;
   onEdit: (phone: PhoneNumber) => void;
   onRelease: (phoneId: number) => void;
+  onTestCall?: (phoneId: number, testNumber: string) => void;
 }) {
+  const [showTestDialog, setShowTestDialog] = useState(false);
+  const [testNumber, setTestNumber] = useState("");
+
+  const handleTestCall = () => {
+    if (testNumber && onTestCall) {
+      onTestCall(phone.id, testNumber);
+      setShowTestDialog(false);
+      setTestNumber("");
+    }
+  };
   return (
     <Card>
       <CardContent className="p-6">

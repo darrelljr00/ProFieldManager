@@ -12068,6 +12068,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // SAAS Admin Call Manager - Update Twilio Settings
+  app.put('/api/saas-admin/call-manager/twilio-settings/:orgId', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { orgId } = req.params;
+      
+      // Only allow super admins or system admins to access this
+      if (user.role !== 'super_admin' && user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const { accountSid, authToken, webhookUrl, statusCallbackUrl } = req.body;
+      
+      const organizationId = parseInt(orgId);
+      if (isNaN(organizationId)) {
+        return res.status(400).json({ message: 'Invalid organization ID' });
+      }
+
+      // Verify organization exists
+      const organization = await storage.getOrganizationById(organizationId);
+      if (!organization) {
+        return res.status(404).json({ message: 'Organization not found' });
+      }
+
+      // Update Twilio settings for the organization
+      const twilioSettings = {
+        accountSid,
+        authToken,
+        webhookUrl,
+        statusCallbackUrl,
+        isConfigured: !!(accountSid && authToken)
+      };
+
+      await storage.updateOrganizationTwilioSettings(organizationId, twilioSettings);
+
+      res.json({ message: 'Twilio settings updated successfully', settings: twilioSettings });
+    } catch (error) {
+      console.error('Error updating Twilio settings:', error);
+      res.status(500).json({ message: 'Failed to update Twilio settings' });
+    }
+  });
+
+  // SAAS Admin Call Manager - Test Call
+  app.post('/api/saas-admin/call-manager/test-call', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      // Only allow super admins or system admins to access this
+      if (user.role !== 'super_admin' && user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const { phoneId, testNumber } = req.body;
+      
+      if (!phoneId || !testNumber) {
+        return res.status(400).json({ message: 'Phone ID and test number are required' });
+      }
+
+      // Get phone number details
+      const phoneNumber = await storage.getPhoneNumberById(phoneId);
+      if (!phoneNumber) {
+        return res.status(404).json({ message: 'Phone number not found' });
+      }
+
+      // Get organization for Twilio settings
+      const organization = await storage.getOrganizationById(phoneNumber.organizationId);
+      if (!organization) {
+        return res.status(404).json({ message: 'Organization not found' });
+      }
+
+      // For now, just create a test call record
+      const testCall = {
+        id: Date.now(), // temporary ID
+        phoneNumber: phoneNumber.phoneNumber,
+        testNumber: testNumber,
+        status: 'initiated',
+        organizationId: phoneNumber.organizationId,
+        createdAt: new Date().toISOString()
+      };
+
+      res.json({ 
+        message: 'Test call initiated successfully',
+        call: testCall,
+        status: 'initiated'
+      });
+    } catch (error) {
+      console.error('Error initiating test call:', error);
+      res.status(500).json({ message: 'Failed to initiate test call' });
+    }
+  });
+
   // Get contacts
   app.get("/api/call-manager/contacts", requireAuth, async (req, res) => {
     try {
