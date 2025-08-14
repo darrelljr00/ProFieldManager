@@ -130,7 +130,11 @@ export default function LoginPage() {
         title: "Login Successful",
         description: `Welcome back, ${response.user.firstName || response.user.username}!`,
       });
-      setLocation("/dashboard");
+      
+      // Check for intended destination or redirect to dashboard
+      const intendedDestination = localStorage.getItem('intended_destination');
+      localStorage.removeItem('intended_destination');
+      setLocation(intendedDestination || "/dashboard");
     },
     onError: (error: any) => {
       console.error('🚨 Login error handler triggered:', error);
