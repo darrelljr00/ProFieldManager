@@ -68,6 +68,7 @@ export interface IStorage {
   createInvoice(invoiceData: any): Promise<any>;
   createUploadedInvoice(invoiceData: any): Promise<any>;
   updateInvoice(id: number, updates: any): Promise<any>;
+  updateInvoiceStatus(invoiceId: number, status: string, paymentMethod?: string, paidAt?: Date): Promise<any>;
   deleteInvoice(id: number): Promise<void>;
   getInvoiceStats(organizationId: number): Promise<any>;
   
@@ -1106,6 +1107,32 @@ export class DatabaseStorage implements IStorage {
       .set(updates)
       .where(eq(invoices.id, id))
       .returning();
+    return invoice;
+  }
+
+  async updateInvoiceStatus(invoiceId: number, status: string, paymentMethod?: string, paidAt?: Date): Promise<any> {
+    const updateData: any = {
+      status,
+      updatedAt: new Date()
+    };
+
+    if (status === 'paid') {
+      updateData.paidAt = paidAt || new Date();
+      if (paymentMethod) {
+        updateData.paymentMethod = paymentMethod;
+      }
+    } else if (status === 'draft' || status === 'sent' || status === 'overdue' || status === 'cancelled') {
+      // For non-paid statuses, clear payment fields
+      updateData.paidAt = null;
+      updateData.paymentMethod = null;
+    }
+
+    const [invoice] = await db
+      .update(invoices)
+      .set(updateData)
+      .where(eq(invoices.id, invoiceId))
+      .returning();
+    
     return invoice;
   }
 

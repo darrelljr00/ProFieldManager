@@ -10,7 +10,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Eye, Download, MoreHorizontal, Send, CheckCircle, ArrowRight } from "lucide-react";
+import { Eye, Download, MoreHorizontal, Send, CheckCircle, ArrowRight, Clock, X, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -76,23 +76,29 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll }: Invoi
     },
   });
 
-  const markPaidMutation = useMutation({
-    mutationFn: (invoiceId: number) => apiRequest("POST", `/api/invoices/${invoiceId}/mark-paid`, {
-      method: "manual",
-      notes: "Marked as paid manually"
-    }),
-    onSuccess: () => {
+  const updateStatusMutation = useMutation({
+    mutationFn: ({ invoiceId, status, paymentMethod }: { invoiceId: number; status: string; paymentMethod?: string }) => 
+      apiRequest("PATCH", `/api/invoices/${invoiceId}/status`, {
+        status,
+        paymentMethod,
+        paidAt: status === 'paid' ? new Date().toISOString() : undefined
+      }),
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      const statusText = variables.status === 'paid' ? 'paid' : 
+                        variables.status === 'overdue' ? 'overdue' : 
+                        variables.status === 'sent' ? 'sent' :
+                        variables.status === 'cancelled' ? 'cancelled' : 'updated';
       toast({
         title: "Success",
-        description: "Invoice marked as paid",
+        description: `Invoice marked as ${statusText}`,
       });
     },
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to mark invoice as paid",
+        description: error.message || "Failed to update invoice status",
         variant: "destructive",
       });
     },
@@ -240,13 +246,62 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll }: Invoi
                                   Send Invoice
                                 </DropdownMenuItem>
                               )}
-                              {(invoice.status === 'sent' || invoice.status === 'overdue') && (
+                              
+                              {/* Mark as Paid */}
+                              {(invoice.status === 'sent' || invoice.status === 'overdue' || invoice.status === 'draft') && (
                                 <DropdownMenuItem 
-                                  onClick={() => markPaidMutation.mutate(invoice.id)}
-                                  disabled={markPaidMutation.isPending}
+                                  onClick={() => updateStatusMutation.mutate({
+                                    invoiceId: invoice.id,
+                                    status: 'paid',
+                                    paymentMethod: 'manual'
+                                  })}
+                                  disabled={updateStatusMutation.isPending}
                                 >
                                   <CheckCircle className="w-4 h-4 mr-2" />
                                   Mark as Paid
+                                </DropdownMenuItem>
+                              )}
+                              
+                              {/* Mark as Overdue */}
+                              {invoice.status === 'sent' && (
+                                <DropdownMenuItem 
+                                  onClick={() => updateStatusMutation.mutate({
+                                    invoiceId: invoice.id,
+                                    status: 'overdue'
+                                  })}
+                                  disabled={updateStatusMutation.isPending}
+                                >
+                                  <AlertTriangle className="w-4 h-4 mr-2" />
+                                  Mark as Late
+                                </DropdownMenuItem>
+                              )}
+                              
+                              {/* Mark as Unpaid (back to sent) */}
+                              {invoice.status === 'paid' && (
+                                <DropdownMenuItem 
+                                  onClick={() => updateStatusMutation.mutate({
+                                    invoiceId: invoice.id,
+                                    status: 'sent'
+                                  })}
+                                  disabled={updateStatusMutation.isPending}
+                                >
+                                  <Clock className="w-4 h-4 mr-2" />
+                                  Mark as Unpaid
+                                </DropdownMenuItem>
+                              )}
+                              
+                              {/* Cancel Invoice */}
+                              {(invoice.status !== 'cancelled' && invoice.status !== 'paid') && (
+                                <DropdownMenuItem 
+                                  onClick={() => updateStatusMutation.mutate({
+                                    invoiceId: invoice.id,
+                                    status: 'cancelled'
+                                  })}
+                                  disabled={updateStatusMutation.isPending}
+                                  className="text-red-600 hover:text-red-700"
+                                >
+                                  <X className="w-4 h-4 mr-2" />
+                                  Cancel Invoice
                                 </DropdownMenuItem>
                               )}
                             </DropdownMenuContent>

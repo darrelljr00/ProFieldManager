@@ -2084,6 +2084,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update invoice payment status
+  app.patch("/api/invoices/:id/status", requireAuth, async (req, res) => {
+    try {
+      const invoiceId = parseInt(req.params.id);
+      const { status, paymentMethod, paidAt } = req.body;
+
+      // Validate status
+      const validStatuses = ['draft', 'sent', 'paid', 'overdue', 'cancelled'];
+      if (!validStatuses.includes(status)) {
+        return res.status(400).json({ 
+          message: "Invalid status. Must be one of: " + validStatuses.join(', ') 
+        });
+      }
+
+      // Parse paidAt date if provided
+      let paidAtDate = undefined;
+      if (paidAt) {
+        paidAtDate = new Date(paidAt);
+        if (isNaN(paidAtDate.getTime())) {
+          return res.status(400).json({ message: "Invalid paidAt date format" });
+        }
+      }
+
+      const invoice = await storage.updateInvoiceStatus(
+        invoiceId, 
+        status, 
+        paymentMethod, 
+        paidAtDate
+      );
+
+      if (!invoice) {
+        return res.status(404).json({ message: "Invoice not found" });
+      }
+
+      // Broadcast status update to organization users
+      const user = getAuthenticatedUser(req);
+      (app as any).broadcastToWebUsers('invoice_status_updated', {
+        invoice,
+        updatedBy: user.username,
+        newStatus: status
+      }, user.id, user.organizationId);
+
+      res.json(invoice);
+    } catch (error: any) {
+      console.error("Error updating invoice status:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Payment routes
   app.get("/api/payments", async (req, res) => {
     try {
