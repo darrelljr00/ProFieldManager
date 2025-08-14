@@ -239,12 +239,22 @@ function Router() {
   }
 
   if (isAuthenticated) {
-    // Ensure we redirect to dashboard if user is on login page
+    // Ensure we redirect to dashboard if user is on login page or root page
     const currentPath = window.location.pathname;
-    if (currentPath === '/login' || currentPath === '/login-full' || currentPath === '/signup') {
+    if (currentPath === '/login' || currentPath === '/login-full' || currentPath === '/signup' || currentPath === '/') {
       const intendedDestination = localStorage.getItem('intended_destination');
       localStorage.removeItem('intended_destination');
-      window.history.replaceState({}, '', intendedDestination || '/dashboard');
+      
+      // If we're on the root path and there's no intended destination, go to dashboard
+      const redirectPath = intendedDestination || '/dashboard';
+      if (currentPath !== redirectPath) {
+        window.history.replaceState({}, '', redirectPath);
+        return (
+          <div className="min-h-screen flex items-center justify-center bg-gray-50">
+            <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+          </div>
+        );
+      }
     }
     return <AuthenticatedApp />;
   }

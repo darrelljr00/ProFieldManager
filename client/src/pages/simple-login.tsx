@@ -39,7 +39,7 @@ export default function SimpleLogin() {
       return storedDestination;
     }
     
-    return '/'; // Default to dashboard
+    return '/dashboard'; // Default to dashboard
   };
 
   // Check if device is mobile and request GPS on component mount
@@ -130,7 +130,7 @@ export default function SimpleLogin() {
       // Force redirect to dashboard if destination is login page
       if (destination === '/login' || destination === '/login-full' || destination === '/signup') {
         console.log('🏠 Redirecting to dashboard');
-        setLocation('/');
+        setLocation('/dashboard');
       } else {
         console.log('🎯 Redirecting to intended destination:', destination);
         setLocation(destination);
@@ -140,7 +140,7 @@ export default function SimpleLogin() {
       setTimeout(() => {
         if (window.location.pathname === '/login' || window.location.pathname === '/login-full') {
           console.log('🔄 Fallback redirect to dashboard');
-          window.location.href = '/';
+          window.location.href = '/dashboard';
         }
       }, 100);
     },
