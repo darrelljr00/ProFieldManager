@@ -21,17 +21,6 @@ interface AuthData {
 export function useAuth() {
   const queryClient = useQueryClient();
 
-  // Force clear auth cache to test fresh data fetch
-  React.useEffect(() => {
-    console.log('🔍 USEAUTH: Force clearing auth cache to get updated permissions');
-    queryClient.removeQueries({ queryKey: ["/api/auth/me"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
-    
-    // Also clear navigation cache to ensure fresh navigation rendering
-    queryClient.removeQueries({ queryKey: ["/api/navigation-order"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/navigation-order"] });
-  }, []);
-
   const { data, isLoading, error, refetch } = useQuery<AuthData>({
     queryKey: ["/api/auth/me"],
     queryFn: async () => {
@@ -70,14 +59,11 @@ export function useAuth() {
       console.log('🔍 USEAUTH: Falling back to cookie-based auth');
       const response = await apiRequest("GET", "/api/auth/me");
       console.log('🔍 USEAUTH: Cookie auth response:', response);
-      console.log('🔍 USEAUTH: User field names:', response?.user ? Object.keys(response.user).filter(k => k.includes('Access') || k.includes('saas')).slice(0, 10) : 'no user');
       return response;
     },
     retry: false,
-    staleTime: 0, // Always check for fresh auth data
-    gcTime: 0, // Don't cache auth data - updated from cacheTime to gcTime for TanStack Query v5
-
-
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+    gcTime: 1000 * 60 * 10, // Keep in cache for 10 minutes
   });
 
   const logout = async () => {
