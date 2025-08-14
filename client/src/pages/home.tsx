@@ -37,6 +37,33 @@ const heroSlides = [
     image: "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2126&q=80",
     cta: "Try Invoicing",
     badge: "Fast Payments"
+  },
+  {
+    id: 4,
+    title: "Construction Project Management",
+    subtitle: "Coordinate Your Crews & Equipment",
+    description: "Manage construction projects from start to finish. Coordinate multiple work crews, track equipment, monitor safety compliance, and keep projects on schedule and budget.",
+    image: "https://images.unsplash.com/photo-1541888946425-d81bb19240f5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80",
+    cta: "Manage Projects",
+    badge: "Project Control"
+  },
+  {
+    id: 5,
+    title: "HVAC Service Excellence",
+    subtitle: "Optimize Your HVAC Operations",
+    description: "Streamline HVAC service calls, maintenance schedules, and emergency repairs. Track technician locations, manage equipment inventory, and deliver exceptional customer service.",
+    image: "https://images.unsplash.com/photo-1621905251918-48416bd8575a?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2069&q=80",
+    cta: "Optimize HVAC",
+    badge: "Service Ready"
+  },
+  {
+    id: 6,
+    title: "Centralized Call Management",
+    subtitle: "Professional Customer Communication",
+    description: "Manage all customer communications from one central hub. Route calls efficiently, track customer interactions, and ensure no service request goes unanswered with our integrated call management system.",
+    image: "https://images.unsplash.com/photo-1556761175-b413da4baf72?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2074&q=80",
+    cta: "Manage Calls",
+    badge: "Always Connected"
   }
 ];
 
