@@ -11891,6 +11891,183 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==================== SAAS Admin Call Manager Routes ====================
+  
+  // Get all organizations with call manager access
+  app.get("/api/saas-admin/call-manager/organizations", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      // Only allow super admins or system admins to access this
+      if (user.role !== 'super_admin' && user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      // Get all organizations
+      const organizations = await storage.getAllOrganizations();
+      
+      // Get phone numbers for each organization
+      const orgsWithPhones = await Promise.all(
+        organizations.map(async (org) => {
+          const phoneNumbers = await storage.getPhoneNumbers(org.id);
+          return {
+            ...org,
+            phoneNumbers
+          };
+        })
+      );
+      
+      res.json(orgsWithPhones);
+    } catch (error) {
+      console.error("Error fetching organizations:", error);
+      res.status(500).json({ message: "Failed to fetch organizations" });
+    }
+  });
+
+  // Get phone numbers for a specific organization (SAAS admin)
+  app.get("/api/saas-admin/call-manager/phone-numbers/:orgId", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const orgId = parseInt(req.params.orgId);
+      
+      // Only allow super admins or system admins to access this
+      if (user.role !== 'super_admin' && user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const phoneNumbers = await storage.getPhoneNumbers(orgId);
+      res.json(phoneNumbers);
+    } catch (error) {
+      console.error("Error fetching phone numbers:", error);
+      res.status(500).json({ message: "Failed to fetch phone numbers" });
+    }
+  });
+
+  // Provision new phone number for organization (SAAS admin)
+  app.post("/api/saas-admin/call-manager/provision-phone", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      // Only allow super admins or system admins to access this
+      if (user.role !== 'super_admin' && user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const phoneData = {
+        ...req.body,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      
+      const phoneNumber = await storage.createPhoneNumber(phoneData);
+      res.status(201).json(phoneNumber);
+    } catch (error) {
+      console.error("Error provisioning phone number:", error);
+      res.status(500).json({ message: "Failed to provision phone number" });
+    }
+  });
+
+  // Update phone number for organization (SAAS admin)
+  app.put("/api/saas-admin/call-manager/phone-numbers/:id", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const phoneId = parseInt(req.params.id);
+      
+      // Only allow super admins or system admins to access this
+      if (user.role !== 'super_admin' && user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const updates = {
+        ...req.body,
+        updatedAt: new Date()
+      };
+      
+      // For SAAS admin, allow cross-organization updates
+      const phoneNumber = await storage.updatePhoneNumber(phoneId, null, updates);
+      res.json(phoneNumber);
+    } catch (error) {
+      console.error("Error updating phone number:", error);
+      res.status(500).json({ message: "Failed to update phone number" });
+    }
+  });
+
+  // Release phone number (SAAS admin)
+  app.delete("/api/saas-admin/call-manager/phone-numbers/:id/release", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const phoneId = parseInt(req.params.id);
+      
+      // Only allow super admins or system admins to access this
+      if (user.role !== 'super_admin' && user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      // For SAAS admin, allow cross-organization deletions
+      const success = await storage.deletePhoneNumber(phoneId, null);
+      if (success) {
+        res.json({ message: "Phone number released successfully" });
+      } else {
+        res.status(404).json({ message: "Phone number not found" });
+      }
+    } catch (error) {
+      console.error("Error releasing phone number:", error);
+      res.status(500).json({ message: "Failed to release phone number" });
+    }
+  });
+
+  // Get call manager analytics across all organizations (SAAS admin)
+  app.get("/api/saas-admin/call-manager/analytics", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      // Only allow super admins or system admins to access this
+      if (user.role !== 'super_admin' && user.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const { period = 'daily', startDate, endDate } = req.query;
+      const periodStart = startDate ? new Date(startDate as string) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const periodEnd = endDate ? new Date(endDate as string) : new Date();
+      
+      // Get all organizations
+      const organizations = await storage.getAllOrganizations();
+      
+      // Get analytics for each organization
+      const orgAnalytics = await Promise.all(
+        organizations.map(async (org) => {
+          const analytics = await storage.getOrganizationCallAnalytics(org.id, periodStart, periodEnd);
+          const callRecords = await storage.getCallRecords(org.id);
+          const phoneNumbers = await storage.getPhoneNumbers(org.id);
+          
+          return {
+            organizationId: org.id,
+            organizationName: org.name,
+            phoneNumbers: phoneNumbers.length,
+            totalCalls: callRecords.length,
+            recentCalls: callRecords.filter(call => 
+              new Date(call.createdAt) >= periodStart && new Date(call.createdAt) <= periodEnd
+            ).length,
+            analytics: analytics[0] || null
+          };
+        })
+      );
+      
+      res.json({
+        period,
+        startDate: periodStart.toISOString(),
+        endDate: periodEnd.toISOString(),
+        organizations: orgAnalytics,
+        totalOrganizations: organizations.length,
+        totalPhoneNumbers: orgAnalytics.reduce((sum, org) => sum + org.phoneNumbers, 0),
+        totalCalls: orgAnalytics.reduce((sum, org) => sum + org.totalCalls, 0)
+      });
+    } catch (error) {
+      console.error("Error fetching call manager analytics:", error);
+      res.status(500).json({ message: "Failed to fetch analytics" });
+    }
+  });
+
   // Get contacts
   app.get("/api/call-manager/contacts", requireAuth, async (req, res) => {
     try {
