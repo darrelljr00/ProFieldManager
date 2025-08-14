@@ -59,6 +59,15 @@ export default function SaasCallManagerPage() {
   // Fetch phone numbers for selected organization
   const { data: phoneNumbers = [], isLoading: phonesLoading } = useQuery({
     queryKey: ["/api/saas-admin/call-manager/phone-numbers", selectedOrg],
+    queryFn: () => selectedOrg ? fetch(`/api/saas-admin/call-manager/phone-numbers/${selectedOrg}`, {
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    }).then(res => {
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+      return res.json();
+    }) : [],
     enabled: !!selectedOrg,
   });
 
