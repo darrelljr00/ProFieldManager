@@ -11713,6 +11713,184 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==================== Twilio Organization API Routes ====================
+  
+  // Get organization Twilio account info
+  app.get("/api/twilio/account", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const settings = await storage.getOrganizationTwilioSettings(user.organizationId);
+      
+      if (!settings || !settings.accountSid || !settings.authToken) {
+        return res.json({
+          configured: false,
+          message: "Twilio account not configured for this organization"
+        });
+      }
+      
+      // Return safe account info (no sensitive data)
+      res.json({
+        configured: true,
+        accountSid: '***' + settings.accountSid.slice(-4),
+        friendlyName: settings.friendlyName || 'Organization Account',
+        status: 'active' // Would query Twilio API in real implementation
+      });
+    } catch (error) {
+      console.error("Error fetching Twilio account:", error);
+      res.status(500).json({ message: "Failed to fetch Twilio account" });
+    }
+  });
+
+  // Get organization phone numbers
+  app.get("/api/twilio/phone-numbers", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const phoneNumbers = await storage.getPhoneNumbers(user.organizationId);
+      
+      // Transform to match frontend expectations
+      const twilioNumbers = phoneNumbers.map(phone => ({
+        sid: phone.twilioSid || `PN${phone.id}`,
+        phoneNumber: phone.phoneNumber,
+        friendlyName: phone.friendlyName || phone.phoneNumber,
+        capabilities: {
+          voice: phone.voiceEnabled || true,
+          sms: phone.smsEnabled || true,
+          mms: phone.mmsEnabled || false,
+          fax: false
+        },
+        status: phone.status || 'active',
+        dateCreated: phone.createdAt,
+        dateUpdated: phone.updatedAt
+      }));
+      
+      res.json(twilioNumbers);
+    } catch (error) {
+      console.error("Error fetching phone numbers:", error);
+      res.status(500).json({ message: "Failed to fetch phone numbers" });
+    }
+  });
+
+  // Get organization call logs (Twilio format)
+  app.get("/api/twilio/call-logs", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { phoneNumberId, limit = 50 } = req.query;
+      
+      let callRecords = await storage.getCallRecords(
+        user.organizationId,
+        phoneNumberId ? parseInt(phoneNumberId as string) : undefined
+      );
+      
+      // Limit results
+      callRecords = callRecords.slice(0, parseInt(limit as string));
+      
+      // Transform to Twilio call log format
+      const twilioCallLogs = callRecords.map(record => ({
+        sid: record.twilioCallSid || `CA${record.id}`,
+        accountSid: record.accountSid || 'ACxxxx',
+        to: record.toNumber,
+        from: record.fromNumber,
+        phoneNumberSid: record.phoneNumberSid,
+        status: record.status,
+        startTime: record.startTime,
+        endTime: record.endTime,
+        duration: record.duration ? record.duration.toString() : '0',
+        price: record.price || '0.00',
+        direction: record.direction,
+        answeredBy: record.answeredBy,
+        forwardedFrom: record.forwardedFrom,
+        callerName: record.contactName,
+        uri: `/api/twilio/call-logs/${record.id}`,
+        subresourceUris: {
+          recordings: `/api/twilio/call-logs/${record.id}/recordings`
+        }
+      }));
+      
+      res.json({
+        calls: twilioCallLogs,
+        page: 0,
+        pageSize: parseInt(limit as string),
+        total: twilioCallLogs.length
+      });
+    } catch (error) {
+      console.error("Error fetching call logs:", error);
+      res.status(500).json({ message: "Failed to fetch call logs" });
+    }
+  });
+
+  // Get organization usage statistics
+  app.get("/api/twilio/usage-stats", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { period = 'daily', startDate, endDate } = req.query;
+      
+      // Get call analytics for the organization
+      const periodStart = startDate ? new Date(startDate as string) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const periodEnd = endDate ? new Date(endDate as string) : new Date();
+      
+      const analytics = await storage.getOrganizationCallAnalytics(
+        user.organizationId,
+        periodStart,
+        periodEnd
+      );
+      
+      // If no analytics exist, create basic stats from call records
+      if (analytics.length === 0) {
+        const callRecords = await storage.getCallRecords(user.organizationId);
+        const recentCalls = callRecords.filter(call => 
+          new Date(call.createdAt) >= periodStart && new Date(call.createdAt) <= periodEnd
+        );
+        
+        const totalCalls = recentCalls.length;
+        const totalDuration = recentCalls.reduce((sum, call) => sum + (call.duration || 0), 0);
+        const averageDuration = totalCalls > 0 ? totalDuration / totalCalls : 0;
+        const inboundCalls = recentCalls.filter(call => call.direction === 'inbound').length;
+        const outboundCalls = recentCalls.filter(call => call.direction === 'outbound').length;
+        const completedCalls = recentCalls.filter(call => call.status === 'completed').length;
+        const missedCalls = recentCalls.filter(call => call.status === 'no-answer' || call.status === 'missed').length;
+        
+        res.json({
+          period,
+          startDate: periodStart.toISOString(),
+          endDate: periodEnd.toISOString(),
+          totalCalls,
+          inboundCalls,
+          outboundCalls,
+          completedCalls,
+          missedCalls,
+          totalDuration,
+          averageDuration: Math.round(averageDuration),
+          totalCost: '0.00', // Would calculate from actual usage
+          usage: [
+            { category: 'calls', count: totalCalls, duration: totalDuration, cost: '0.00' },
+            { category: 'sms', count: 0, duration: 0, cost: '0.00' },
+            { category: 'recordings', count: 0, duration: 0, cost: '0.00' }
+          ]
+        });
+      } else {
+        // Return existing analytics
+        const latest = analytics[0];
+        res.json({
+          period,
+          startDate: latest.periodStart,
+          endDate: latest.periodEnd,
+          totalCalls: latest.totalCalls || 0,
+          inboundCalls: latest.inboundCalls || 0,
+          outboundCalls: latest.outboundCalls || 0,
+          completedCalls: latest.completedCalls || 0,
+          missedCalls: latest.missedCalls || 0,
+          totalDuration: latest.totalDuration || 0,
+          averageDuration: latest.averageDuration || 0,
+          totalCost: latest.totalCost || '0.00',
+          usage: latest.usage || []
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching usage stats:", error);
+      res.status(500).json({ message: "Failed to fetch usage statistics" });
+    }
+  });
+
   // Get contacts
   app.get("/api/call-manager/contacts", requireAuth, async (req, res) => {
     try {
