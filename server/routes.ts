@@ -12357,6 +12357,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get organization's Twilio settings
       const twilioSettings = await storage.getOrganizationTwilioSettings(user.organizationId);
       
+      console.log(`🔍 DEBUG: Twilio settings for org ${user.organizationId}:`, {
+        exists: !!twilioSettings,
+        accountSidExists: !!twilioSettings?.accountSid,
+        authTokenExists: !!twilioSettings?.authToken,
+        accountSid: twilioSettings?.accountSid ? `${twilioSettings.accountSid.substring(0, 6)}...` : 'MISSING',
+        authTokenLength: twilioSettings?.authToken?.length || 0,
+        isActive: twilioSettings?.isActive,
+        settingsKeys: twilioSettings ? Object.keys(twilioSettings) : []
+      });
+      
       if (!twilioSettings || !twilioSettings.accountSid || !twilioSettings.authToken) {
         console.log(`❌ No Twilio credentials configured for organization ${user.organizationId}`);
         return res.status(400).json({ 
