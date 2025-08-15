@@ -991,8 +991,18 @@ export class DatabaseStorage implements IStorage {
   // Update organization Twilio settings
   async updateOrganizationTwilioSettings(organizationId: number, settings: any): Promise<void> {
     try {
+      console.log('🔧 TWILIO SETTINGS DEBUG:', {
+        organizationId,
+        settings,
+        accountSid: settings.accountSid,
+        authToken: settings.authToken ? 'PRESENT' : 'NULL',
+        webhookUrl: settings.webhookUrl,
+        statusCallbackUrl: settings.statusCallbackUrl,
+        isConfigured: settings.isConfigured
+      });
+
       // Use raw SQL for now to avoid schema mismatch issues
-      await db.execute(sql`
+      const result = await db.execute(sql`
         INSERT INTO organization_twilio_settings (
           organization_id, 
           account_sid, 
@@ -1020,8 +1030,16 @@ export class DatabaseStorage implements IStorage {
           is_active = ${settings.isConfigured || false},
           updated_at = NOW()
       `);
+      
+      console.log('✅ TWILIO SETTINGS UPDATED:', result);
     } catch (error) {
-      console.error('Error updating organization Twilio settings:', error);
+      console.error('❌ TWILIO SETTINGS ERROR:', error);
+      console.error('Error details:', {
+        message: error.message,
+        code: error.code,
+        detail: error.detail,
+        hint: error.hint
+      });
       throw error;
     }
   }
