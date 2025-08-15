@@ -1,0 +1,44 @@
+Firefox can’t establish a connection to the server at wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws. Network.js:227:18
+Current user: 
+Object { id: 5, username: "sales@texaspowerwash.net", email: "sales@texaspowerwash.net", role: "admin", firstName: "Darrell", lastName: "Johnson", organizationId: 2, can_access_dashboard: true, can_access_calendar: true, can_access_time_clock: true, … }
+Console.js:61:15
+User permissions: 
+Object { canAccessHR: false, canAccessUserManagement: undefined, canAccessSaasAdmin: true, canAccessAdminSettings: false, canAccessReports: true }
+Console.js:61:15
+🔌 Creating WebSocket connection to: wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws for user: sales@texaspowerwash.net Console.js:61:15
+Starting GPS tracking for user: sales@texaspowerwash.net Console.js:61:15
+The connection to wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws was interrupted while the page was loading. Network.js:227:18
+WebSocket error: 
+error { target: WebSocket, isTrusted: true, srcElement: WebSocket, eventPhase: 0, bubbles: false, cancelable: false, returnValue: true, defaultPrevented: false, composed: false, timeStamp: 15837, … }
+Console.js:61:15
+WebSocket error details: 
+Object { readyState: 3, url: "wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws", protocol: "", extensions: "" }
+Console.js:61:15
+WebSocket disconnected Console.js:61:15
+WebSocket connected Console.js:61:15
+🌐 API Request: 
+Object { method: "POST", originalUrl: "/api/gps-tracking/update", fullUrl: "/api/gps-tracking/update", isCustomDomain: false, hasAuthHeader: false, hasFormData: false, formDataEntries: undefined }
+Console.js:61:15
+WebSocket authenticated successfully Console.js:61:15
+📡 API Response: 
+Object { originalUrl: "/api/gps-tracking/update", fullUrl: "/api/gps-tracking/update", status: 200, statusText: "OK", ok: true, headers: {…} }
+Console.js:61:15
+Cookie warnings 2
+🌐 Query Request: 
+Object { originalUrl: "/api/internal-messages", fullUrl: "/api/internal-messages", isCustomDomain: false, hasAuthHeader: false }
+Console.js:61:15
+🌐 API Request: 
+Object { method: "POST", originalUrl: "/api/gps-tracking/update", fullUrl: "/api/gps-tracking/update", isCustomDomain: false, hasAuthHeader: false, hasFormData: false, formDataEntries: undefined }
+Console.js:61:15
+🌐 Query Request: 
+Object { originalUrl: "/api/internal-messages", fullUrl: "/api/internal-messages", isCustomDomain: false, hasAuthHeader: false }
+Console.js:61:15
+📡 API Response: 
+Object { originalUrl: "/api/gps-tracking/update", fullUrl: "/api/gps-tracking/update", status: 200, statusText: "OK", ok: true, headers: {…} }
+Console.js:61:15
+🌐 Query Request: 
+Object { originalUrl: "/api/internal-messages", fullUrl: "/api/internal-messages", isCustomDomain: false, hasAuthHeader: false }
+Console.js:61:15
+🌐 Query Request: 
+Object { originalUrl: "/api/internal-messages", fullUrl: "/api/internal-messages", isCustomDomain: false, hasAuthHeader: false }
+Console.js:61:15

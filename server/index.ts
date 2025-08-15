@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import cookieParser from "cookie-parser";
 import { registerRoutes } from "./routes";
+import { registerTwilioAdminRoutes } from "./twilio-admin";
 import { setupVite, serveStatic, log } from "./vite";
 import { storage } from "./storage";
 
@@ -82,6 +83,9 @@ app.use((req, res, next) => {
 
 (async () => {
   const server = await registerRoutes(app);
+  
+  // Register clean Twilio admin routes
+  registerTwilioAdminRoutes(app);
 
 
 
