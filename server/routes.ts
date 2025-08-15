@@ -660,10 +660,13 @@ const invoiceUpload = multer({
 export async function registerRoutes(app: Express): Promise<Server> {
   // URGENT FIX: Direct File Manager upload route (Cloudinary-based) - MOVED TO TOP FOR PRIORITY
   app.post('/api/files/upload', requireAuth, upload.single('file'), async (req, res) => {
-    console.log('🔄 DIRECT FILE MANAGER UPLOAD REQUEST RECEIVED');
+    console.log('🔄🔄🔄 DIRECT ROUTE HIT - UPLOAD REQUEST RECEIVED 🔄🔄🔄');
     console.log('🔄 Raw request body keys:', Object.keys(req.body));
     console.log('🔄 Raw request body values:', req.body);
-    console.log('Has file?', !!req.file);
+    console.log('🔄 Has file?', !!req.file);
+    console.log('🔄 Request method:', req.method);
+    console.log('🔄 Request path:', req.path);
+    console.log('🔄 Request URL:', req.url);
 
     try {
       if (!req.file) {
