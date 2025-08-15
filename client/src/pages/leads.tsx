@@ -43,14 +43,18 @@ interface LatLng {
   lng: number;
 }
 
-function loadGoogleMapsScript(): Promise<void> {
+function loadGoogleMapsScript(apiKey: string): Promise<void> {
   return new Promise((resolve, reject) => {
     if (window.google && window.google.maps && window.google.maps.visualization) {
       resolve();
       return;
     }
 
-    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'AIzaSyCy9lgjvkKV3vS_U1IIcmxJUC8q8yJaASI';
+    if (!apiKey) {
+      reject(new Error('Google Maps API key not configured'));
+      return;
+    }
+
     const script = document.createElement('script');
     script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=visualization`;
     script.async = true;
@@ -106,6 +110,12 @@ export default function Leads() {
 
   const { data: leads = [], isLoading } = useQuery<Lead[]>({
     queryKey: ["/api/leads"],
+  });
+
+  // Fetch integration settings to get Google Maps API key
+  const { data: integrationSettings } = useQuery({
+    queryKey: ["/api/settings/integrations"],
+    queryFn: () => apiRequest("GET", "/api/settings/integrations"),
   });
 
   // WebSocket connection for real-time heatmap updates
@@ -183,9 +193,19 @@ export default function Leads() {
 
   // Analytics: Load Google Maps and geocode addresses when switching to analytics tab
   useEffect(() => {
-    if (activeTab === "analytics" && leads.length > 0) {
-      loadGoogleMapsScript()
+    if (activeTab === "analytics" && leads.length > 0 && integrationSettings) {
+      const apiKey = integrationSettings.googleMapsApiKey;
+      
+      if (!apiKey) {
+        console.error("Google Maps API key not configured");
+        setMapError("Google Maps API key not configured - using address list visualization");
+        setIsMapLoaded(false);
+        return;
+      }
+
+      loadGoogleMapsScript(apiKey)
         .then(() => {
+          console.log("🗺️ Google Maps loaded successfully for heatmap");
           setIsMapLoaded(true);
           setMapError(null);
           geocodeLeadAddresses();
@@ -204,7 +224,7 @@ export default function Leads() {
           console.log("📍 Lead addresses for visualization:", addresses);
         });
     }
-  }, [activeTab, leads]);
+  }, [activeTab, leads, integrationSettings]);
 
   // Auto-refresh heatmap when leads data changes (including from WebSocket updates)
   useEffect(() => {
