@@ -85,7 +85,7 @@ export default function SaasCallManagerPage() {
   // Provision new phone number mutation
   const provisionPhoneMutation = useMutation({
     mutationFn: async (data: any) => {
-      return apiRequest(`/api/saas-admin/call-manager/provision-phone`, "POST", data);
+      return apiRequest("POST", `/api/saas-admin/call-manager/provision-phone`, data);
     },
     onSuccess: () => {
       toast({ title: "Phone number provisioned successfully" });
@@ -104,7 +104,7 @@ export default function SaasCallManagerPage() {
   // Update phone number mutation
   const updatePhoneMutation = useMutation({
     mutationFn: async ({ id, ...data }: any) => {
-      return apiRequest(`/api/saas-admin/call-manager/phone-numbers/${id}`, "PUT", data);
+      return apiRequest("PUT", `/api/saas-admin/call-manager/phone-numbers/${id}`, data);
     },
     onSuccess: () => {
       toast({ title: "Phone number updated successfully" });
@@ -123,7 +123,7 @@ export default function SaasCallManagerPage() {
   // Release phone number mutation
   const releasePhoneMutation = useMutation({
     mutationFn: async (phoneId: number) => {
-      return apiRequest(`/api/saas-admin/call-manager/phone-numbers/${phoneId}/release`, "DELETE");
+      return apiRequest("DELETE", `/api/saas-admin/call-manager/phone-numbers/${phoneId}/release`);
     },
     onSuccess: () => {
       toast({ title: "Phone number released successfully" });
@@ -141,7 +141,7 @@ export default function SaasCallManagerPage() {
   // Update Twilio settings mutation
   const updateTwilioSettingsMutation = useMutation({
     mutationFn: async ({ orgId, settings }: { orgId: number; settings: TwilioSettings }) => {
-      return apiRequest(`/api/saas-admin/call-manager/twilio-settings/${orgId}`, "PUT", settings);
+      return apiRequest("PUT", `/api/saas-admin/call-manager/twilio-settings/${orgId}`, settings);
     },
     onSuccess: () => {
       toast({ title: "Twilio settings updated successfully" });
@@ -160,7 +160,7 @@ export default function SaasCallManagerPage() {
   // Test call mutation
   const testCallMutation = useMutation({
     mutationFn: async ({ phoneId, testNumber }: { phoneId: number; testNumber: string }) => {
-      return apiRequest(`/api/saas-admin/call-manager/test-call`, "POST", { phoneId, testNumber });
+      return apiRequest("POST", `/api/saas-admin/call-manager/test-call`, { phoneId, testNumber });
     },
     onSuccess: () => {
       toast({ title: "Test call initiated successfully" });
