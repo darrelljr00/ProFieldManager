@@ -1,0 +1,21 @@
+Warning: Cannot update a component (`AuthenticatedApp`) while rendering a different component (`ForwardRef`). To locate the bad setState() call inside `ForwardRef`, follow the stack trace as described in https://reactjs.org/link/setstate-in-render
+Link<@https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=0636afbc:205:18
+div
+div
+li
+SortableNavItem@https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/src/components/sidebar.tsx:90:25
+ul
+SortableContext@https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@dnd-kit_sortable.js?v=0636afbc:266:7
+DndContext2@https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-AUXFV7YD.js?v=0636afbc:2530:7
+nav
+div
+div
+Sidebar@https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/src/components/sidebar.tsx:325:45
+div
+AuthenticatedApp@https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/src/App.tsx?v=o-0zd3pgag-fi3zVCjlzE:87:23
+Router@https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/src/App.tsx?v=o-0zd3pgag-fi3zVCjlzE:475:20
+Provider@https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=0636afbc:38:47
+TooltipProvider@https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=0636afbc:69:7
+QueryClientProvider@https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=0636afbc:2804:27
+ErrorBoundary@https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/src/components/error-boundary.tsx:20:5
+App

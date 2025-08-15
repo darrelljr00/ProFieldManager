@@ -15,6 +15,12 @@ const upload = multer({
   },
 });
 
+// Test route to verify router is working
+router.get('/api/files/test', (req, res) => {
+  console.log('🎯 TEST ROUTE HIT - fileUploadRouter is working!');
+  res.json({ message: 'fileUploadRouter is working correctly' });
+});
+
 // Cloudinary-based file upload for File Manager (permanent cloud storage)
 router.post('/api/files/upload', requireAuth, upload.single('file'), async (req, res) => {
   console.log('🔄 CLOUDINARY FILE MANAGER UPLOAD REQUEST RECEIVED');
