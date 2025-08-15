@@ -79,8 +79,7 @@ router.post('/api/files/upload', requireAuth, upload.single('file'), async (req,
     const cloudinaryResult = await CloudinaryService.uploadImage(uploadBuffer, {
       folder: cloudinaryFolder,
       filename: req.file.originalname,
-      organizationId: user.organizationId,
-      resourceType: req.file.mimetype.startsWith('video/') ? 'video' : 'auto'
+      organizationId: user.organizationId
     });
 
     console.log('✅ Cloudinary upload successful:', cloudinaryResult.secureUrl);
@@ -100,7 +99,7 @@ router.post('/api/files/upload', requireAuth, upload.single('file'), async (req,
       organizationId: user.organizationId,
       uploadedBy: user.id,
       description: description || `File uploaded via File Manager`,
-      tags: tags && typeof tags === 'string' ? tags : Array.isArray(tags) ? tags.join(',') : '',
+      tags: tags ? (Array.isArray(tags) ? tags : [tags]) : [],
       folderId: folderId ? parseInt(folderId) : null,
       useS3: false, // Not using S3, using Cloudinary
       fileUrl: cloudinaryResult.secureUrl,
