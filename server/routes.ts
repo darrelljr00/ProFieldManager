@@ -72,7 +72,7 @@ import { s3Service } from "./s3Service";
 import { fileManager } from "./fileManager";
 import { CloudinaryService } from "./cloudinary";
 import { generateQuoteHTML, generateQuoteWordContent } from "./quoteGenerator";
-import fileUploadRouter from "./routes/fileUpload";
+// Removed fileUploadRouter import - using direct route instead
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { ObjectPermission } from "./objectAcl";
 import { NotificationService, setBroadcastFunction } from "./notificationService";
@@ -14900,7 +14900,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Add market research routes
   app.use(marketResearchRouter);
-  app.use(fileUploadRouter);
+  // REMOVED fileUploadRouter to fix upload conflicts
 
   // URGENT FIX: Direct File Manager upload route (Cloudinary-based)
   app.post('/api/files/upload', requireAuth, upload.single('file'), async (req, res) => {
