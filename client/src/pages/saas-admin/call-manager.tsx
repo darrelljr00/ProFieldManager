@@ -89,6 +89,7 @@ export default function SaasCallManagerPage() {
     },
     onSuccess: () => {
       toast({ title: "Phone number provisioned successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/saas-admin/call-manager/phone-numbers", selectedOrg] });
       queryClient.invalidateQueries({ queryKey: ["/api/saas-admin/call-manager/phone-numbers"] });
       setShowAddPhoneDialog(false);
     },
@@ -108,6 +109,7 @@ export default function SaasCallManagerPage() {
     },
     onSuccess: () => {
       toast({ title: "Phone number updated successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/saas-admin/call-manager/phone-numbers", selectedOrg] });
       queryClient.invalidateQueries({ queryKey: ["/api/saas-admin/call-manager/phone-numbers"] });
       setEditingPhone(null);
     },
@@ -127,6 +129,7 @@ export default function SaasCallManagerPage() {
     },
     onSuccess: () => {
       toast({ title: "Phone number released successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/saas-admin/call-manager/phone-numbers", selectedOrg] });
       queryClient.invalidateQueries({ queryKey: ["/api/saas-admin/call-manager/phone-numbers"] });
     },
     onError: (error: any) => {
