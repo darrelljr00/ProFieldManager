@@ -2905,7 +2905,7 @@ export const organizationTwilioSettings = pgTable("organization_twilio_settings"
   // Twilio Account Configuration
   accountSid: text("account_sid"), // Organization's Twilio Account SID
   authToken: text("auth_token"), // Organization's Twilio Auth Token (encrypted)
-  isEnabled: boolean("is_enabled").default(false),
+  isActive: boolean("is_active").default(false),
   
   // Default Phone Number Settings
   defaultPhoneNumberId: integer("default_phone_number_id").references(() => phoneNumbers.id),
