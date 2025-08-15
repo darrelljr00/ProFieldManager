@@ -17902,15 +17902,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const phoneId = parseInt(req.params.id);
       const updates = req.body;
       
-      const phoneNumber = await storage.updatePhoneNumber(phoneId, {
+      console.log('📞 Updating phone number:', phoneId, 'with data:', updates);
+      
+      // First, get the phone number to verify it exists and get the organization ID
+      const existingPhone = await storage.getPhoneNumber(phoneId, updates.organizationId || 0);
+      
+      if (!existingPhone) {
+        console.log('❌ Phone number not found:', phoneId);
+        return res.status(404).json({ message: "Phone number not found" });
+      }
+      
+      console.log('📞 Found existing phone number:', existingPhone);
+      
+      const phoneNumber = await storage.updatePhoneNumber(phoneId, existingPhone.organizationId, {
         ...updates,
         updatedAt: new Date()
       });
 
       if (!phoneNumber) {
+        console.log('❌ Failed to update phone number:', phoneId);
         return res.status(404).json({ message: "Phone number not found" });
       }
 
+      console.log('✅ Phone number updated successfully:', phoneNumber);
       res.json(phoneNumber);
     } catch (error: any) {
       console.error("Error updating phone number:", error);
