@@ -96,6 +96,7 @@ router.post('/api/files/upload', requireAuth, upload.single('file'), async (req,
       filePath: cloudinaryResult.secureUrl!, // Cloudinary URL for permanent storage
       fileSize: cloudinaryResult.bytes || req.file.size,
       mimeType: cloudinaryResult.format ? `${fileType}/${cloudinaryResult.format}` : req.file.mimetype,
+      fileType: fileType, // Ensure fileType is included
       organizationId: user.organizationId,
       uploadedBy: user.id,
       description: description || `File uploaded via File Manager`,
