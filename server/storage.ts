@@ -2601,6 +2601,22 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createFile(fileData: any): Promise<any> {
+    console.log('🔍 DATABASE CREATEFILE - Raw fileData:', fileData);
+    console.log('🔍 DATABASE CREATEFILE - Tags field details:', {
+      tags: fileData.tags,
+      tagsType: typeof fileData.tags,
+      isArray: Array.isArray(fileData.tags),
+      tagsStringified: JSON.stringify(fileData.tags)
+    });
+    
+    // Ensure tags is an array
+    if (fileData.tags !== undefined && !Array.isArray(fileData.tags)) {
+      console.log('🔧 Converting tags to array:', fileData.tags);
+      fileData.tags = fileData.tags ? [fileData.tags] : [];
+    }
+    
+    console.log('🔍 DATABASE CREATEFILE - Final fileData before insert:', fileData);
+    
     const [file] = await db
       .insert(fileManager)
       .values(fileData)
