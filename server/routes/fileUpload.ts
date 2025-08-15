@@ -43,6 +43,10 @@ router.post('/api/files/upload', requireAuth, upload.single('file'), async (req,
       folderId
     });
 
+    // Convert tags to array early to avoid issues
+    const processedTags = tags ? (Array.isArray(tags) ? tags : [tags]) : [];
+    console.log('📋 Processed tags:', { original: tags, processed: processedTags, isArray: Array.isArray(processedTags) });
+
     // BYPASS Cloudinary check for custom domain compatibility
     // Skip this check as Cloudinary is properly configured but may not be detected from custom domains
     console.log('🔧 BYPASSING Cloudinary configuration check for custom domain compatibility');
@@ -100,7 +104,7 @@ router.post('/api/files/upload', requireAuth, upload.single('file'), async (req,
       organizationId: user.organizationId,
       uploadedBy: user.id,
       description: description || `File uploaded via File Manager`,
-      tags: tags ? (Array.isArray(tags) ? tags : [tags]) : [],
+      tags: processedTags,
       folderId: folderId ? parseInt(folderId) : null,
       useS3: false, // Not using S3, using Cloudinary
       fileUrl: cloudinaryResult.secureUrl,
