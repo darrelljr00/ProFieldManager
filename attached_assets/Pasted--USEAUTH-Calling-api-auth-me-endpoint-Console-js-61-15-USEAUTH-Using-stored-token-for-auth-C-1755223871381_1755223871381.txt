@@ -1,0 +1,44 @@
+🔍 USEAUTH: Calling /api/auth/me endpoint Console.js:61:15
+🔍 USEAUTH: Using stored token for auth Console.js:61:15
+Cookie warnings 2
+🔍 USEAUTH: Auth success with stored token: 
+Object { user: {…} }
+Console.js:61:15
+Router state: 
+Object { isAuthenticated: true, isLoading: false, hasError: false }
+Console.js:61:15
+Router state: 
+Object { isAuthenticated: true, isLoading: false, hasError: false }
+Console.js:61:15
+🌐 Query Request: 
+Object { originalUrl: "/api/internal-messages", fullUrl: "/api/internal-messages", isCustomDomain: false, hasAuthHeader: false }
+Console.js:61:15
+🌐 Query Request: 
+Object { originalUrl: "/api/navigation-order", fullUrl: "/api/navigation-order", isCustomDomain: false, hasAuthHeader: false }
+Console.js:61:15
+Current user: 
+Object { id: 5, username: "sales@texaspowerwash.net", email: "sales@texaspowerwash.net", role: "admin", firstName: "Darrell", lastName: "Johnson", organizationId: 2, can_access_dashboard: true, can_access_calendar: true, can_access_time_clock: true, … }
+Console.js:61:15
+User permissions: 
+Object { canAccessHR: false, canAccessUserManagement: undefined, canAccessSaasAdmin: true, canAccessAdminSettings: false, canAccessReports: true }
+Console.js:61:15
+🌐 Query Request: 
+Object { originalUrl: "/api/saas-admin/call-manager/organizations", fullUrl: "/api/saas-admin/call-manager/organizations", isCustomDomain: false, hasAuthHeader: false }
+Console.js:61:15
+🌐 Query Request: 
+Object { originalUrl: "/api/settings/sounds", fullUrl: "/api/settings/sounds", isCustomDomain: false, hasAuthHeader: false }
+Console.js:61:15
+🔌 Creating WebSocket connection to: wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws for user: sales@texaspowerwash.net Console.js:61:15
+Starting GPS tracking for user: sales@texaspowerwash.net Console.js:61:15
+Firefox can’t establish a connection to the server at wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws. Network.js:227:18
+Current user: 
+Object { id: 5, username: "sales@texaspowerwash.net", email: "sales@texaspowerwash.net", role: "admin", firstName: "Darrell", lastName: "Johnson", organizationId: 2, can_access_dashboard: true, can_access_calendar: true, can_access_time_clock: true, … }
+Console.js:61:15
+User permissions: 
+Object { canAccessHR: false, canAccessUserManagement: undefined, canAccessSaasAdmin: true, canAccessAdminSettings: false, canAccessReports: true }
+Console.js:61:15
+🔌 Creating WebSocket connection to: wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws for user: sales@texaspowerwash.net Console.js:61:15
+Starting GPS tracking for user: sales@texaspowerwash.net Console.js:61:15
+The connection to wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws was interrupted while the page was loading. Network.js:227:18
+WebSocket error: 
+error { target: WebSocket, isTrusted: true, srcElement: WebSocket, eventPhase: 0, bubbles: false, cancelable: false, returnValue: true, defaultPrevented: false, composed: false, timeStamp: 13563, … }

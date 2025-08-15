@@ -12209,10 +12209,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isConfigured: !!(accountSid && authToken)
       });
 
-      const { sql } = await import('drizzle-orm');
-      const { db } = await import('./db');
+      // Use raw SQL with connection from pool
+      const { Pool } = require('@neondatabase/serverless');
+      const pool = new Pool({ connectionString: process.env.DATABASE_URL });
       
-      await db.execute(sql`
+      const query = `
         INSERT INTO organization_twilio_settings (
           organization_id, 
           account_sid, 
@@ -12222,24 +12223,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
           is_active, 
           updated_at
         )
-        VALUES (
-          ${organizationId}, 
-          ${accountSid || null}, 
-          ${authToken || null}, 
-          ${webhookUrl || null}, 
-          ${statusCallbackUrl || null}, 
-          ${!!(accountSid && authToken)}, 
-          NOW()
-        )
+        VALUES ($1, $2, $3, $4, $5, $6, NOW())
         ON CONFLICT (organization_id) 
         DO UPDATE SET 
-          account_sid = ${accountSid || null},
-          auth_token = ${authToken || null},
-          voice_url = ${webhookUrl || null},
-          status_callback_url = ${statusCallbackUrl || null},
-          is_active = ${!!(accountSid && authToken)},
+          account_sid = $2,
+          auth_token = $3,
+          voice_url = $4,
+          status_callback_url = $5,
+          is_active = $6,
           updated_at = NOW()
-      `);
+        RETURNING *;
+      `;
+      
+      const values = [
+        organizationId,
+        accountSid || null,
+        authToken || null,
+        webhookUrl || null,
+        statusCallbackUrl || null,
+        !!(accountSid && authToken)
+      ];
+      
+      console.log('🔧 Executing SQL:', { query, values: values.map((v, i) => i === 2 && v ? 'HIDDEN' : v) });
+      const result = await pool.query(query, values);
+      console.log('✅ TWILIO SETTINGS SQL SUCCESS:', result.rows[0]);
 
       res.json({ message: 'Twilio settings updated successfully', settings: twilioSettings });
     } catch (error) {
