@@ -35,6 +35,13 @@ router.post('/api/files/upload', requireAuth, upload.single('file'), async (req,
 
     const user = req.user!;
     const { projectId, description, tags, folderId } = req.body;
+    
+    console.log('📋 Request body details:', {
+      projectId,
+      description,
+      tags: { value: tags, type: typeof tags, isArray: Array.isArray(tags) },
+      folderId
+    });
 
     // BYPASS Cloudinary check for custom domain compatibility
     // Skip this check as Cloudinary is properly configured but may not be detected from custom domains
@@ -93,7 +100,7 @@ router.post('/api/files/upload', requireAuth, upload.single('file'), async (req,
       organizationId: user.organizationId,
       uploadedBy: user.id,
       description: description || `File uploaded via File Manager`,
-      tags: tags || '',
+      tags: tags && typeof tags === 'string' ? tags : Array.isArray(tags) ? tags.join(',') : '',
       folderId: folderId ? parseInt(folderId) : null,
       useS3: false, // Not using S3, using Cloudinary
       fileUrl: cloudinaryResult.secureUrl,
