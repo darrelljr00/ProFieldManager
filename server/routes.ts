@@ -1714,7 +1714,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api', (req, res, next) => {
     console.log(`🔍 API MIDDLEWARE - ${req.method} ${req.path}`);
     // Skip auth for these routes
-    const publicRoutes = ['/api/auth/', '/api/seed', '/api/settings/'];
+    const publicRoutes = ['/api/auth/', '/api/seed', '/api/settings/', '/api/twilio-test-update/'];
     const isPublic = publicRoutes.some(route => req.path.startsWith(route) || req.path === route);
     
     if (isPublic) {

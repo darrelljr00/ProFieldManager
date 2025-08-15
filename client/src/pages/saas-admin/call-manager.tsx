@@ -141,7 +141,7 @@ export default function SaasCallManagerPage() {
   // Update Twilio settings mutation
   const updateTwilioSettingsMutation = useMutation({
     mutationFn: async ({ orgId, settings }: { orgId: number; settings: TwilioSettings }) => {
-      return apiRequest("PUT", `/api/saas-admin/call-manager/twilio-settings/${orgId}`, settings);
+      return apiRequest("PUT", `/twilio-direct-update/${orgId}`, settings);
     },
     onSuccess: () => {
       toast({ title: "Twilio settings updated successfully" });

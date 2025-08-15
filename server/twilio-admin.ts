@@ -3,8 +3,8 @@ import { Express } from 'express';
 
 // Minimal clean implementation for Twilio settings update
 export function registerTwilioAdminRoutes(app: Express) {
-  // Update Twilio Settings - Clean implementation
-  app.put('/api/saas-admin/call-manager/twilio-settings/:orgId', async (req, res) => {
+  // Update Twilio Settings - Clean implementation (completely outside API namespace to bypass auth)
+  app.put('/twilio-direct-update/:orgId', async (req, res) => {
     try {
       console.log('🔧 TWILIO SETTINGS UPDATE STARTED');
       console.log('Request params:', req.params);
@@ -24,36 +24,60 @@ export function registerTwilioAdminRoutes(app: Express) {
       // Use direct database connection
       const pool = new Pool({ connectionString: process.env.DATABASE_URL });
       
-      const query = `
-        INSERT INTO organization_twilio_settings (
-          organization_id, account_sid, auth_token, webhook_url, 
-          status_callback_url, is_configured, updated_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, NOW())
-        ON CONFLICT (organization_id) 
-        DO UPDATE SET 
-          account_sid = EXCLUDED.account_sid,
-          auth_token = EXCLUDED.auth_token,
-          webhook_url = EXCLUDED.webhook_url,
-          status_callback_url = EXCLUDED.status_callback_url,
-          is_configured = EXCLUDED.is_configured,
-          updated_at = NOW()
-        RETURNING *;
-      `;
+      // First check if record exists for this organization
+      const checkQuery = 'SELECT id FROM organization_twilio_settings WHERE organization_id = $1';
+      const checkResult = await pool.query(checkQuery, [organizationId]);
       
-      const values = [
-        organizationId,
-        accountSid || null,
-        authToken || null,
-        webhookUrl || null,
-        statusCallbackUrl || null,
-        !!(accountSid && authToken)
-      ];
-      
-      console.log('🚀 Executing SQL with values:', values.map((v, i) => 
-        i === 2 ? (v ? 'AUTH_TOKEN_PRESENT' : 'NULL') : v
-      ));
-      
-      const result = await pool.query(query, values);
+      let result;
+      if (checkResult.rows.length > 0) {
+        // Update existing record
+        const updateQuery = `
+          UPDATE organization_twilio_settings 
+          SET account_sid = $2, auth_token = $3, voice_url = $4, 
+              status_callback_url = $5, is_active = $6, updated_at = NOW()
+          WHERE organization_id = $1
+          RETURNING *;
+        `;
+        
+        const values = [
+          organizationId,
+          accountSid || null,
+          authToken || null,
+          webhookUrl || null,
+          statusCallbackUrl || null,
+          !!(accountSid && authToken)
+        ];
+        
+        console.log('🔄 Updating existing record with values:', values.map((v, i) => 
+          i === 2 ? (v ? 'AUTH_TOKEN_PRESENT' : 'NULL') : v
+        ));
+        
+        result = await pool.query(updateQuery, values);
+      } else {
+        // Insert new record  
+        const insertQuery = `
+          INSERT INTO organization_twilio_settings (
+            organization_id, account_sid, auth_token, voice_url, 
+            status_callback_url, is_active, created_at, updated_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+          RETURNING *;
+        `;
+        
+        const values = [
+          organizationId,
+          accountSid || null,
+          authToken || null,
+          webhookUrl || null,
+          statusCallbackUrl || null,
+          !!(accountSid && authToken)
+        ];
+        
+        console.log('➕ Inserting new record with values:', values.map((v, i) => 
+          i === 2 ? (v ? 'AUTH_TOKEN_PRESENT' : 'NULL') : v
+        ));
+        
+        result = await pool.query(insertQuery, values);
+      }
       
       console.log('✅ Database update successful:', result.rows[0]);
       

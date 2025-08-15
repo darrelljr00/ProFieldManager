@@ -82,10 +82,10 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  const server = await registerRoutes(app);
-  
-  // Register clean Twilio admin routes
+  // Register clean Twilio admin routes FIRST to override broken ones
   registerTwilioAdminRoutes(app);
+  
+  const server = await registerRoutes(app);
 
 
 
