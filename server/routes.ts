@@ -12199,7 +12199,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isConfigured: !!(accountSid && authToken)
       };
 
-      await storage.updateOrganizationTwilioSettings(organizationId, twilioSettings);
+      // Direct database update to bypass storage compilation errors
+      console.log('🔧 DIRECT TWILIO SETTINGS UPDATE:', {
+        organizationId,
+        accountSid: accountSid || 'NULL',
+        authToken: authToken ? 'PRESENT' : 'NULL',
+        webhookUrl: webhookUrl || 'NULL',
+        statusCallbackUrl: statusCallbackUrl || 'NULL',
+        isConfigured: !!(accountSid && authToken)
+      });
+
+      const { sql } = await import('drizzle-orm');
+      const { db } = await import('./db');
+      
+      await db.execute(sql`
+        INSERT INTO organization_twilio_settings (
+          organization_id, 
+          account_sid, 
+          auth_token, 
+          voice_url, 
+          status_callback_url, 
+          is_active, 
+          updated_at
+        )
+        VALUES (
+          ${organizationId}, 
+          ${accountSid || null}, 
+          ${authToken || null}, 
+          ${webhookUrl || null}, 
+          ${statusCallbackUrl || null}, 
+          ${!!(accountSid && authToken)}, 
+          NOW()
+        )
+        ON CONFLICT (organization_id) 
+        DO UPDATE SET 
+          account_sid = ${accountSid || null},
+          auth_token = ${authToken || null},
+          voice_url = ${webhookUrl || null},
+          status_callback_url = ${statusCallbackUrl || null},
+          is_active = ${!!(accountSid && authToken)},
+          updated_at = NOW()
+      `);
 
       res.json({ message: 'Twilio settings updated successfully', settings: twilioSettings });
     } catch (error) {

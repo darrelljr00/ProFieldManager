@@ -1,0 +1,94 @@
+UT
+https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/saas-admin/call-manager/twilio-settings/2
+[HTTP/1.1 500 Internal Server Error 137ms]
+
+	
+PUT
+	https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/saas-admin/call-manager/twilio-settings/2
+Status
+500
+Internal Server Error
+VersionHTTP/1.1
+Transferred797 B (46 B size)
+Referrer Policystrict-origin-when-cross-origin
+Request PriorityHighest
+DNS ResolutionDNS over HTTPS
+
+	
+Access-Control-Allow-Credentials
+	true
+Access-Control-Allow-Headers
+	Origin, X-Requested-With, Content-Type, Accept, Authorization, Cookie
+Access-Control-Allow-Methods
+	GET, POST, PUT, DELETE, PATCH, OPTIONS
+Access-Control-Allow-Origin
+	https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev
+Access-Control-Expose-Headers
+	Set-Cookie
+Content-Length
+	46
+Content-Type
+	application/json; charset=utf-8
+Date
+	Fri, 15 Aug 2025 01:13:56 GMT
+Etag
+	W/"2e-IO5S22GP6RfJfnG7NU7ZVOvvue8"
+Replit-Cluster
+	riker
+X-Powered-By
+	Express
+X-Robots-Tag
+	none, noindex, noarchive, nofollow, nositelinkssearchbox, noimageindex
+X-Robots-Tag
+	none, noindex, noarchive, nofollow, nositelinkssearchbox, noimageindex
+	
+Accept
+	*/*
+Accept-Encoding
+	gzip, deflate, br, zstd
+Accept-Language
+	en-US,en;q=0.5
+Connection
+	keep-alive
+Content-Length
+	158
+Content-Type
+	application/json
+Cookie
+	auth_token=606ac2ef3801698792dc89f79bd4854d106b247c49d48c5816e372e186090ef6
+DNT
+	1
+Host
+	d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev
+Origin
+	https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev
+Priority
+	u=0
+Referer
+	https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/saas-admin/call-manager
+Sec-Fetch-Dest
+	empty
+Sec-Fetch-Mode
+	cors
+Sec-Fetch-Site
+	same-origin
+User-Agent
+	Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:141.0) Gecko/20100101 Firefox/141.0
+📡 API Response: 
+Object { originalUrl: "/api/saas-admin/call-manager/twilio-settings/2", fullUrl: "/api/saas-admin/call-manager/twilio-settings/2", status: 500, statusText: "Internal Server Error", ok: false, headers: {…} }
+Console.js:61:15
+❌ HTTP Error Response: 
+Object { status: 500, statusText: "Internal Server Error", url: "https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/saas-admin/call-manager/twilio-settings/2", headers: {…}, body: '{"message":"Failed to update Twilio settings"}' }
+Console.js:61:15
+🌐 API Request: 
+Object { method: "PUT", originalUrl: "/api/saas-admin/call-manager/twilio-settings/2", fullUrl: "/api/saas-admin/call-manager/twilio-settings/2", isCustomDomain: false, hasAuthHeader: false, hasFormData: false, formDataEntries: undefined }
+Console.js:61:15
+XHRPUT
+https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/saas-admin/call-manager/twilio-settings/2
+[HTTP/1.1 500 Internal Server Error 146ms]
+
+📡 API Response: 
+Object { originalUrl: "/api/saas-admin/call-manager/twilio-settings/2", fullUrl: "/api/saas-admin/call-manager/twilio-settings/2", status: 500, statusText: "Internal Server Error", ok: false, headers: {…} }
+Console.js:61:15
+❌ HTTP Error Response: 
+Object { status: 500, statusText: "Internal Server Error", url: "https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/saas-admin/call-manager/twilio-settings/2", headers: {…}, body: '{"message":"Failed to update Twilio settings"}' }

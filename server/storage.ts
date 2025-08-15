@@ -13,7 +13,7 @@ import {
   navigationOrder, backupSettings, backupJobs, partsSupplies, partsCategories, inventoryTransactions, stockAlerts,
   filePermissions, folderPermissions, defaultPermissions, userDashboardSettings, dashboardProfiles, vehicles,
   vehicleMaintenanceIntervals, vehicleMaintenanceRecords, vehicleJobAssignments, timeClockTaskTriggers,
-  taskTriggers, taskTriggerInstances, taskTriggerSettings, frontendPages, frontendSliders, frontendComponents,
+  taskTriggers, taskTriggerInstances, frontendPages, frontendSliders, frontendComponents,
   frontendIcons, frontendBoxes, frontendCategories, tutorials, tutorialProgress, tutorialCategories, leadSettings,
   meetings, meetingParticipants, meetingMessages, meetingRecordings, phoneNumbers,
   callRecords, callRecordings, callTranscripts, voicemails, callQueues, 
@@ -24,7 +24,7 @@ import type { GasCard, InsertGasCard, GasCardAssignment, InsertGasCardAssignment
 import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull, isNull, exists, ne, not, notInArray, lt, ilike, count, sum, avg, max, min } from "drizzle-orm";
 import type { 
   User, Customer, Invoice, Quote, Project, Task, 
-  Expense, ExpenseCategory, ExpenseReport, GasCard,
+  Expense, ExpenseCategory, ExpenseReport,
   Lead, CalendarJob, Message, Organization, Department,
   Employee, TimeOffRequest, PerformanceReview, DisciplinaryAction,
   NavigationOrder, InsertNavigationOrder, BackupSettings, BackupJob,
