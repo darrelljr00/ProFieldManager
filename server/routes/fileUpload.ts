@@ -122,8 +122,10 @@ router.post('/api/files/upload', requireAuth, upload.single('file'), async (req,
         cloudinaryUrl: cloudinaryResult.secureUrl, // Add Cloudinary URL for project files
       });
     } else {
-      // Regular file manager upload
-      savedFile = await storage.uploadFile(fileData);
+      // Regular file manager upload - exclude fields not in fileManager schema
+      const { useS3, fileUrl, ...cleanFileData } = fileData;
+      console.log('📝 Cleaned file data for fileManager:', cleanFileData);
+      savedFile = await storage.uploadFile(cleanFileData);
     }
 
     console.log('✅ File saved to database with Cloudinary URL:', savedFile);
