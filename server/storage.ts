@@ -991,16 +991,35 @@ export class DatabaseStorage implements IStorage {
   // Update organization Twilio settings
   async updateOrganizationTwilioSettings(organizationId: number, settings: any): Promise<void> {
     try {
-      await db.update(organizations)
-        .set({
-          twilioAccountSid: settings.accountSid,
-          twilioAuthToken: settings.authToken,
-          twilioWebhookUrl: settings.webhookUrl,
-          twilioStatusCallbackUrl: settings.statusCallbackUrl,
-          twilioIsConfigured: settings.isConfigured,
-          updatedAt: new Date()
-        })
-        .where(eq(organizations.id, organizationId));
+      // Use raw SQL for now to avoid schema mismatch issues
+      await db.execute(sql`
+        INSERT INTO organization_twilio_settings (
+          organization_id, 
+          account_sid, 
+          auth_token, 
+          voice_url, 
+          status_callback_url, 
+          is_active, 
+          updated_at
+        )
+        VALUES (
+          ${organizationId}, 
+          ${settings.accountSid || null}, 
+          ${settings.authToken || null}, 
+          ${settings.webhookUrl || null}, 
+          ${settings.statusCallbackUrl || null}, 
+          ${settings.isConfigured || false}, 
+          NOW()
+        )
+        ON CONFLICT (organization_id) 
+        DO UPDATE SET 
+          account_sid = ${settings.accountSid || null},
+          auth_token = ${settings.authToken || null},
+          voice_url = ${settings.webhookUrl || null},
+          status_callback_url = ${settings.statusCallbackUrl || null},
+          is_active = ${settings.isConfigured || false},
+          updated_at = NOW()
+      `);
     } catch (error) {
       console.error('Error updating organization Twilio settings:', error);
       throw error;
