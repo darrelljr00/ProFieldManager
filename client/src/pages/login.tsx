@@ -174,15 +174,31 @@ export default function LoginPage() {
           
           // Invalidate auth queries to refresh user state
           queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+          
+          // Clear any previous auth cache to force fresh authentication
+          queryClient.clear();
+          
           toast({
             title: "Login Successful",
             description: `Welcome back, ${response.user.firstName || response.user.username}!`,
           });
           
-          // Check for intended destination or redirect to dashboard
-          const intendedDestination = localStorage.getItem('intended_destination');
-          localStorage.removeItem('intended_destination');
-          setLocation(intendedDestination || "/dashboard");
+          // Small delay to ensure token is stored and auth state is updated
+          setTimeout(() => {
+            // Check for intended destination or redirect to dashboard
+            const intendedDestination = localStorage.getItem('intended_destination');
+            localStorage.removeItem('intended_destination');
+            const redirectPath = intendedDestination || "/dashboard";
+            
+            console.log('🎯 CUSTOM DOMAIN LOGIN: Redirecting to:', redirectPath);
+            
+            // Force page reload for custom domain to ensure proper authentication
+            if (window.location.hostname === 'profieldmanager.com') {
+              window.location.href = redirectPath;
+            } else {
+              setLocation(redirectPath);
+            }
+          }, 200);
         },
         onError: (error: any) => {
           console.error('🚨 Login error handler triggered:', error);
