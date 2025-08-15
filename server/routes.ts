@@ -5297,7 +5297,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         receiptUrl,
         receiptData,
         notes: expenseData.notes || null,
-        tags: expenseData.tags ? expenseData.tags.split(',').map((tag: string) => tag.trim()) : [],
+        tags: expenseData.tags && typeof expenseData.tags === 'string' ? expenseData.tags.split(',').map((tag: string) => tag.trim()) : [],
       });
       
       console.log("Expense created successfully:", expense);
@@ -5362,7 +5362,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         expenseDate: expenseData.expenseDate ? new Date(expenseData.expenseDate) : undefined,
         projectId: expenseData.projectId ? parseInt(expenseData.projectId) : null,
         notes: expenseData.notes || undefined,
-        tags: expenseData.tags ? expenseData.tags.split(',').map((tag: string) => tag.trim()) : undefined,
+        tags: expenseData.tags && typeof expenseData.tags === 'string' ? expenseData.tags.split(',').map((tag: string) => tag.trim()) : undefined,
       };
 
       // Only update receipt fields if a new file was uploaded
@@ -5872,7 +5872,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         expenseDate: new Date(expenseData.expenseDate),
         receiptUrl,
         receiptData,
-        tags: expenseData.tags ? expenseData.tags.split(',').map((tag: string) => tag.trim()) : [],
+        tags: expenseData.tags && typeof expenseData.tags === 'string' ? expenseData.tags.split(',').map((tag: string) => tag.trim()) : [],
       };
 
       // Prepare line items data
