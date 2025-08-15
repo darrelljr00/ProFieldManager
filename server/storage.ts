@@ -10850,10 +10850,17 @@ export class DatabaseStorage implements IStorage {
   // Organization Twilio Settings methods
   async getOrganizationTwilioSettings(organizationId: number): Promise<any> {
     try {
+      console.log(`🔍 STORAGE: Getting Twilio settings for org ${organizationId}`);
       const [settings] = await db
         .select()
         .from(organizationTwilioSettings)
         .where(eq(organizationTwilioSettings.organizationId, organizationId));
+      console.log(`🔍 STORAGE: Found settings:`, {
+        exists: !!settings,
+        accountSidExists: !!settings?.accountSid,
+        authTokenExists: !!settings?.authToken,
+        settingsKeys: settings ? Object.keys(settings) : []
+      });
       return settings;
     } catch (error) {
       console.error('Error fetching organization Twilio settings:', error);
