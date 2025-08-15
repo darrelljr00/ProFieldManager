@@ -658,6 +658,112 @@ const invoiceUpload = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // URGENT FIX: Direct File Manager upload route (Cloudinary-based) - MOVED TO TOP FOR PRIORITY
+  app.post('/api/files/upload', requireAuth, upload.single('file'), async (req, res) => {
+    console.log('🔄 DIRECT FILE MANAGER UPLOAD REQUEST RECEIVED');
+    console.log('🔄 Raw request body keys:', Object.keys(req.body));
+    console.log('🔄 Raw request body values:', req.body);
+    console.log('Has file?', !!req.file);
+
+    try {
+      if (!req.file) {
+        console.log('❌ No file in request');
+        return res.status(400).json({ message: 'No file provided' });
+      }
+
+      const user = req.user!;
+      const { projectId, description, tags, folderId } = req.body;
+      
+      console.log('📋 Request body details:', {
+        projectId,
+        description,
+        tags: { value: tags, type: typeof tags, isArray: Array.isArray(tags) },
+        folderId
+      });
+
+      // Convert tags to array early to avoid issues
+      const processedTags = tags ? (Array.isArray(tags) ? tags : [tags]) : [];
+      console.log('📋 Processed tags:', { original: tags, processed: processedTags, isArray: Array.isArray(processedTags) });
+
+      // Read file for Cloudinary upload
+      const uploadBuffer = await fs.readFile(req.file.path);
+      console.log('📁 File read successfully, size:', uploadBuffer.length);
+
+      // Determine file type
+      let fileType = 'other';
+      if (req.file.mimetype.startsWith('image/')) {
+        fileType = 'image';
+      } else if (req.file.mimetype.startsWith('video/')) {
+        fileType = 'video';
+      } else if (req.file.mimetype.includes('pdf') || req.file.mimetype.includes('document')) {
+        fileType = 'document';
+      }
+
+      // Upload to Cloudinary
+      const cloudinaryResult = await CloudinaryService.uploadImage(
+        uploadBuffer,
+        {
+          folder: `file-manager-${fileType}s`,
+          filename: req.file.originalname,
+          organizationId: user.organizationId,
+          quality: 80,
+          maxWidth: 2000,
+          maxHeight: 2000
+        }
+      );
+
+      // Check if Cloudinary upload was successful
+      if (!cloudinaryResult.success) {
+        console.error('❌ Cloudinary upload failed:', cloudinaryResult.error);
+        return res.status(500).json({ 
+          message: 'File upload failed',
+          error: cloudinaryResult.error || 'Cloudinary upload error'
+        });
+      }
+
+      console.log('☁️ Cloudinary upload successful:', cloudinaryResult.publicId);
+
+      // Prepare data for file manager
+      const fileData = {
+        fileName: req.file.originalname,
+        originalName: req.file.originalname,
+        filePath: cloudinaryResult.secureUrl,
+        fileSize: req.file.size,
+        mimeType: req.file.mimetype,
+        fileType: fileType,
+        organizationId: user.organizationId,
+        uploadedBy: user.id,
+        description: description || `File uploaded via File Manager`,
+        tags: processedTags,
+        folderId: folderId ? parseInt(folderId) : null,
+        useS3: false,
+        fileUrl: cloudinaryResult.secureUrl,
+      };
+
+      console.log('💾 Creating file record with data:', fileData);
+
+      // Create file record
+      const file = await storage.createFile(fileData);
+
+      console.log('✅ File upload completed successfully');
+
+      res.json({
+        message: 'File uploaded successfully',
+        file: file,
+        cloudinaryUrl: cloudinaryResult.secureUrl,
+        publicId: cloudinaryResult.publicId
+      });
+
+    } catch (error) {
+      console.error('❌ Direct file upload error:', error);
+      console.error('❌ Error stack trace:', error instanceof Error ? error.stack : 'No stack trace');
+      res.status(500).json({ 
+        message: 'File upload failed',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   // Global request logger
   app.use((req, res, next) => {
     if (req.path.startsWith('/api/invoices')) {
@@ -14898,115 +15004,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Add market research routes
-  app.use(marketResearchRouter);
   // REMOVED fileUploadRouter to fix upload conflicts
-
-  // URGENT FIX: Direct File Manager upload route (Cloudinary-based)
-  app.post('/api/files/upload', requireAuth, upload.single('file'), async (req, res) => {
-    console.log('🔄 DIRECT FILE MANAGER UPLOAD REQUEST RECEIVED');
-    console.log('🔄 Raw request body keys:', Object.keys(req.body));
-    console.log('🔄 Raw request body values:', req.body);
-    console.log('Has file?', !!req.file);
-
-    try {
-      if (!req.file) {
-        console.log('❌ No file in request');
-        return res.status(400).json({ message: 'No file provided' });
-      }
-
-      const user = req.user!;
-      const { projectId, description, tags, folderId } = req.body;
-      
-      console.log('📋 Request body details:', {
-        projectId,
-        description,
-        tags: { value: tags, type: typeof tags, isArray: Array.isArray(tags) },
-        folderId
-      });
-
-      // Convert tags to array early to avoid issues
-      const processedTags = tags ? (Array.isArray(tags) ? tags : [tags]) : [];
-      console.log('📋 Processed tags:', { original: tags, processed: processedTags, isArray: Array.isArray(processedTags) });
-
-      // Read file for Cloudinary upload
-      const uploadBuffer = await fs.readFile(req.file.path);
-      console.log('📁 File read successfully, size:', uploadBuffer.length);
-
-      // Determine file type
-      let fileType = 'other';
-      if (req.file.mimetype.startsWith('image/')) {
-        fileType = 'image';
-      } else if (req.file.mimetype.startsWith('video/')) {
-        fileType = 'video';
-      } else if (req.file.mimetype.includes('pdf') || req.file.mimetype.includes('document')) {
-        fileType = 'document';
-      }
-
-      // Upload to Cloudinary
-      const cloudinaryResult = await CloudinaryService.uploadImage(
-        uploadBuffer,
-        {
-          folder: `file-manager-${fileType}s`,
-          filename: req.file.originalname,
-          organizationId: user.organizationId,
-          quality: 80,
-          maxWidth: 2000,
-          maxHeight: 2000
-        }
-      );
-
-      // Check if Cloudinary upload was successful
-      if (!cloudinaryResult.success) {
-        console.error('❌ Cloudinary upload failed:', cloudinaryResult.error);
-        return res.status(500).json({ 
-          message: 'File upload failed',
-          error: cloudinaryResult.error || 'Cloudinary upload error'
-        });
-      }
-
-      console.log('☁️ Cloudinary upload successful:', cloudinaryResult.publicId);
-
-      // Prepare data for file manager
-      const fileData = {
-        fileName: req.file.originalname,
-        originalName: req.file.originalname,
-        filePath: cloudinaryResult.secureUrl,
-        fileSize: req.file.size,
-        mimeType: req.file.mimetype,
-        fileType: fileType,
-        organizationId: user.organizationId,
-        uploadedBy: user.id,
-        description: description || `File uploaded via File Manager`,
-        tags: processedTags,
-        folderId: folderId ? parseInt(folderId) : null,
-        useS3: false,
-        fileUrl: cloudinaryResult.secureUrl,
-      };
-
-      console.log('💾 Creating file record with data:', fileData);
-
-      // Create file record
-      const file = await storage.createFile(fileData);
-
-      console.log('✅ File upload completed successfully');
-
-      res.json({
-        message: 'File uploaded successfully',
-        file: file,
-        cloudinaryUrl: cloudinaryResult.secureUrl,
-        publicId: cloudinaryResult.publicId
-      });
-
-    } catch (error) {
-      console.error('❌ Direct file upload error:', error);
-      console.error('❌ Error stack trace:', error instanceof Error ? error.stack : 'No stack trace');
-      res.status(500).json({ 
-        message: 'File upload failed',
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
-    }
-  });
+  // NOTE: Direct File Manager upload route moved to top of registerRoutes for priority
 
   // File migration and S3 routes
   app.get('/api/files/s3-status', requireAuth, async (req, res) => {
