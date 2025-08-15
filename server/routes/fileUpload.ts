@@ -18,6 +18,8 @@ const upload = multer({
 // Cloudinary-based file upload for File Manager (permanent cloud storage)
 router.post('/api/files/upload', requireAuth, upload.single('file'), async (req, res) => {
   console.log('🔄 CLOUDINARY FILE MANAGER UPLOAD REQUEST RECEIVED');
+  console.log('🔄 Raw request body keys:', Object.keys(req.body));
+  console.log('🔄 Raw request body values:', req.body);
   console.log('Has file?', !!req.file);
   console.log('File details:', req.file ? { 
     originalname: req.file.originalname, 
