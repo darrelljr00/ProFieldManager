@@ -12352,26 +12352,109 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Phone number is required" });
       }
       
-      // Mock call initiation - replace with actual Twilio or VoIP integration
-      const call = {
-        id: nanoid(),
-        phoneNumber,
-        contactName: contactId ? "Contact Name" : undefined,
-        status: "connecting",
-        startTime: new Date().toISOString(),
-        duration: 0,
-        isMuted: false,
-        isOnHold: false
-      };
+      console.log(`📞 Attempting to initiate call to ${phoneNumber} for user ${user.username}`);
       
-      // In a real implementation, you would:
-      // 1. Use Twilio Voice API to initiate the call
-      // 2. Store call details in database
-      // 3. Set up webhooks for call status updates
+      // Get organization's Twilio settings
+      const twilioSettings = await storage.getOrganizationTwilioSettings(user.organizationId);
       
-      console.log(`📞 Initiating call to ${phoneNumber} for user ${user.username}`);
+      if (!twilioSettings || !twilioSettings.accountSid || !twilioSettings.authToken) {
+        console.log(`❌ No Twilio credentials configured for organization ${user.organizationId}`);
+        return res.status(400).json({ 
+          message: "Twilio credentials not configured for your organization. Please contact your administrator to set up calling functionality.",
+          requiresSetup: true
+        });
+      }
+
+      // Get organization's phone numbers to find an appropriate "from" number
+      const orgPhoneNumbers = await storage.getPhoneNumbersByOrganization(user.organizationId);
+      const availableFromNumber = orgPhoneNumbers.find(pn => pn.isActive && pn.isCallEnabled);
       
-      res.json({ call });
+      if (!availableFromNumber) {
+        console.log(`❌ No active phone numbers configured for organization ${user.organizationId}`);
+        return res.status(400).json({ 
+          message: "No active phone numbers configured for your organization. Please add a phone number first.",
+          requiresPhoneSetup: true
+        });
+      }
+
+      // Create organization-specific Twilio client
+      const { TwilioService } = await import("./twilio");
+      const orgTwilioClient = TwilioService.createOrganizationClient(
+        twilioSettings.accountSid, 
+        twilioSettings.authToken
+      );
+
+      if (!orgTwilioClient) {
+        console.log(`❌ Failed to create Twilio client for organization ${user.organizationId}`);
+        return res.status(500).json({ 
+          message: "Failed to initialize calling service. Please check your Twilio configuration.",
+          configError: true
+        });
+      }
+
+      try {
+        // Make the actual call using organization's Twilio client
+        const callRecord = await TwilioService.makeCallWithOrganizationClient(
+          orgTwilioClient,
+          availableFromNumber.phoneNumber,
+          phoneNumber,
+          twilioSettings.statusCallbackUrl
+        );
+
+        console.log(`✅ Call initiated successfully: ${callRecord.sid}`);
+
+        // Store call record in database
+        const callData = {
+          organizationId: user.organizationId,
+          phoneNumberId: availableFromNumber.id,
+          callSid: callRecord.sid,
+          fromNumber: callRecord.from,
+          toNumber: callRecord.to,
+          direction: 'outbound',
+          status: callRecord.status,
+          startTime: new Date(callRecord.dateCreated),
+          handledBy: user.id,
+          assignedTo: user.id,
+          purpose: contactId ? 'customer_contact' : 'general',
+          customerId: contactId ? parseInt(contactId) : null
+        };
+
+        // Save to database (optional - for call logging)
+        try {
+          await storage.createCallRecord(callData);
+        } catch (dbError) {
+          console.warn('Failed to save call record to database:', dbError);
+          // Don't fail the call if database save fails
+        }
+
+        // Return call information for frontend
+        const call = {
+          id: callRecord.sid,
+          phoneNumber: phoneNumber,
+          contactName: contactId ? "Contact Name" : undefined,
+          status: "connecting",
+          startTime: callRecord.dateCreated,
+          duration: 0,
+          isMuted: false,
+          isOnHold: false,
+          twilioSid: callRecord.sid,
+          fromNumber: callRecord.from
+        };
+        
+        res.json({ 
+          call,
+          success: true,
+          message: `Call initiated to ${phoneNumber}` 
+        });
+
+      } catch (twilioError: any) {
+        console.error(`❌ Twilio call failed:`, twilioError);
+        return res.status(500).json({ 
+          message: `Failed to place call: ${twilioError.message || 'Unknown error'}`,
+          twilioError: true
+        });
+      }
+      
     } catch (error) {
       console.error("Error making call:", error);
       res.status(500).json({ message: "Failed to initiate call" });

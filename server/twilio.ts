@@ -73,6 +73,21 @@ export class TwilioService {
     this.isConfigured = !!twilioClient;
   }
 
+  // Create organization-specific Twilio client
+  static createOrganizationClient(accountSid: string, authToken: string): twilio.Twilio | null {
+    try {
+      if (!accountSid || !authToken || 
+          accountSid === 'ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' || 
+          authToken === 'your_auth_token_here') {
+        return null;
+      }
+      return twilio(accountSid, authToken);
+    } catch (error) {
+      console.error('Failed to create organization Twilio client:', error);
+      return null;
+    }
+  }
+
   // Check if Twilio is properly configured
   isReady(): boolean {
     return this.isConfigured;
@@ -335,6 +350,35 @@ export class TwilioService {
       };
     } catch (error) {
       console.error('Error making call:', error);
+      throw new Error('Failed to initiate call');
+    }
+  }
+
+  // Make an outbound call with organization-specific client
+  static async makeCallWithOrganizationClient(
+    client: twilio.Twilio,
+    from: string, 
+    to: string, 
+    callbackUrl?: string
+  ): Promise<CallRecord> {
+    try {
+      const call = await client.calls.create({
+        from,
+        to,
+        url: callbackUrl || 'https://handler.twilio.com/twiml/EHxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+      });
+
+      return {
+        sid: call.sid,
+        from: call.from,
+        to: call.to,
+        status: call.status,
+        direction: call.direction,
+        dateCreated: call.dateCreated?.toISOString() || '',
+        dateUpdated: call.dateUpdated?.toISOString() || ''
+      };
+    } catch (error) {
+      console.error('Error making call with organization client:', error);
       throw new Error('Failed to initiate call');
     }
   }
