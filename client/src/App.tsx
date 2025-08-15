@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -216,19 +216,41 @@ function Router() {
   const authHook = useAuth();
   const isAuthenticated = authHook?.isAuthenticated ?? false;
   const isLoading = authHook?.isLoading ?? false;
-  const error = false; // Remove error property as it doesn't exist in useAuth
+  const [location, setLocation] = useLocation();
 
-  console.log('Router state:', { isAuthenticated, isLoading, hasError: !!error });
+  console.log('Router state:', { isAuthenticated, isLoading, currentPath: location });
 
   // Store intended destination for protected routes when user is not authenticated
   useEffect(() => {
-    if (!isLoading && !isAuthenticated && error) {
+    if (!isLoading && !isAuthenticated) {
       const currentPath = window.location.pathname;
-      if (currentPath !== '/login' && currentPath !== '/' && currentPath !== '/signup') {
+      if (currentPath !== '/login' && currentPath !== '/' && currentPath !== '/signup' && currentPath !== '/login-full') {
         localStorage.setItem('intended_destination', currentPath);
       }
     }
-  }, [isAuthenticated, isLoading, error]);
+  }, [isAuthenticated, isLoading]);
+
+  // Handle redirect after successful authentication
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      const currentPath = window.location.pathname;
+      console.log('🔄 Authentication detected, current path:', currentPath);
+      
+      if (currentPath === '/login' || currentPath === '/login-full' || currentPath === '/signup' || currentPath === '/') {
+        const intendedDestination = localStorage.getItem('intended_destination');
+        localStorage.removeItem('intended_destination');
+        
+        const redirectPath = intendedDestination || '/dashboard';
+        console.log('🎯 Redirecting authenticated user to:', redirectPath);
+        
+        // Use both setLocation and window.location for reliability
+        setLocation(redirectPath);
+        if (window.location.pathname !== redirectPath) {
+          window.history.replaceState({}, '', redirectPath);
+        }
+      }
+    }
+  }, [isAuthenticated, isLoading, setLocation]);
 
   if (isLoading) {
     return (
@@ -239,23 +261,6 @@ function Router() {
   }
 
   if (isAuthenticated) {
-    // Ensure we redirect to dashboard if user is on login page or root page
-    const currentPath = window.location.pathname;
-    if (currentPath === '/login' || currentPath === '/login-full' || currentPath === '/signup' || currentPath === '/') {
-      const intendedDestination = localStorage.getItem('intended_destination');
-      localStorage.removeItem('intended_destination');
-      
-      // If we're on the root path and there's no intended destination, go to dashboard
-      const redirectPath = intendedDestination || '/dashboard';
-      if (currentPath !== redirectPath) {
-        window.history.replaceState({}, '', redirectPath);
-        return (
-          <div className="min-h-screen flex items-center justify-center bg-gray-50">
-            <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
-          </div>
-        );
-      }
-    }
     return <AuthenticatedApp />;
   }
 
