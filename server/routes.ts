@@ -14944,14 +14944,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Upload to Cloudinary
-      const cloudinaryResult = await CloudinaryService.uploadBuffer(
+      const cloudinaryResult = await CloudinaryService.uploadImage(
         uploadBuffer,
         {
           folder: `file-manager-${fileType}s`,
-          public_id: `${Date.now()}-${req.file.originalname.replace(/[^a-zA-Z0-9]/g, '_')}`,
-          resource_type: fileType === 'video' ? 'video' : 'auto'
+          filename: req.file.originalname,
+          organizationId: user.organizationId,
+          quality: 80,
+          maxWidth: 2000,
+          maxHeight: 2000
         }
       );
+
+      // Check if Cloudinary upload was successful
+      if (!cloudinaryResult.success) {
+        console.error('❌ Cloudinary upload failed:', cloudinaryResult.error);
+        return res.status(500).json({ 
+          message: 'File upload failed',
+          error: cloudinaryResult.error || 'Cloudinary upload error'
+        });
+      }
 
       console.log('☁️ Cloudinary upload successful:', cloudinaryResult.publicId);
 
