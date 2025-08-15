@@ -12209,8 +12209,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isConfigured: !!(accountSid && authToken)
       });
 
-      // Use raw SQL with connection from pool
-      const { Pool } = require('@neondatabase/serverless');
+      // Use raw SQL with connection from pool  
+      const { Pool } = await import('@neondatabase/serverless');
       const pool = new Pool({ connectionString: process.env.DATABASE_URL });
       
       const query = `
