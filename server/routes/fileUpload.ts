@@ -110,13 +110,15 @@ router.post('/api/files/upload', requireAuth, upload.single('file'), async (req,
     // Create file record based on upload type
     let savedFile;
     if (projectId) {
-      // If uploading to a project, use project file table
+      // If uploading to a project, use project file table (exclude fields not in projectFiles schema)
+      const { tags, folderId, useS3, ...projectFileData } = fileData;
       savedFile = await storage.uploadProjectFile({
-        ...fileData,
+        ...projectFileData,
         projectId: parseInt(projectId),
         uploadedById: user.id,
         taskId: null,
         fileType,
+        cloudinaryUrl: cloudinaryResult.secureUrl, // Add Cloudinary URL for project files
       });
     } else {
       // Regular file manager upload
@@ -145,6 +147,8 @@ router.post('/api/files/upload', requireAuth, upload.single('file'), async (req,
 
   } catch (error) {
     console.error('❌ Cloudinary file manager upload error:', error);
+    console.error('❌ Error stack trace:', error instanceof Error ? error.stack : 'No stack trace');
+    console.error('❌ Full error object:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
     res.status(500).json({ 
       message: 'File upload failed',
       error: error instanceof Error ? error.message : 'Unknown error'
