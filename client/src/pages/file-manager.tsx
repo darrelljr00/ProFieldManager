@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -632,6 +632,53 @@ export default function FileManager() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
+  // Component to handle secure thumbnail loading
+  const ThumbnailImage = ({ fileId, alt }: { fileId: number; alt: string }) => {
+    const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
+
+    useEffect(() => {
+      let objectUrl: string | null = null;
+
+      const loadThumbnail = async () => {
+        try {
+          const response = await apiRequest("GET", `/api/files/${fileId}/thumbnail`);
+          if (response.ok) {
+            const blob = await response.blob();
+            objectUrl = URL.createObjectURL(blob);
+            setThumbnailUrl(objectUrl);
+          }
+        } catch (error) {
+          console.log("Failed to load thumbnail for file", fileId);
+        }
+      };
+
+      loadThumbnail();
+
+      // Cleanup function to revoke the object URL
+      return () => {
+        if (objectUrl) {
+          URL.revokeObjectURL(objectUrl);
+        }
+      };
+    }, [fileId]);
+
+    if (!thumbnailUrl) {
+      return (
+        <div className="w-16 h-16 bg-gray-100 rounded flex items-center justify-center">
+          <Image className="h-8 w-8 text-gray-400" />
+        </div>
+      );
+    }
+
+    return (
+      <img
+        src={thumbnailUrl}
+        alt={alt}
+        className="w-full h-full object-cover rounded"
+      />
+    );
+  };
+
   const getSignatureStatusBadge = (status: string) => {
     switch (status) {
       case 'pending':
@@ -1109,20 +1156,9 @@ export default function FileManager() {
                   <CardContent className="p-4">
                     {/* Image thumbnail preview */}
                     {file.fileType === 'image' && (
-                      <div className="mb-3">
-                        <img 
-                          src={`/api/files/${file.id}/thumbnail`}
-                          alt={file.originalName}
-                          className="w-full h-32 object-cover rounded border"
-                          onError={(e) => {
-                            // Fallback to file icon if image fails to load
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = 'none';
-                            target.nextElementSibling?.classList.remove('hidden');
-                          }}
-                        />
-                        <div className="hidden flex items-center justify-center w-full h-32 bg-gray-100 rounded border">
-                          <Image className="h-8 w-8 text-gray-400" />
+                      <div className="mb-3 flex justify-center">
+                        <div className="w-full h-32 flex items-center justify-center bg-gray-50 rounded border">
+                          <ThumbnailImage fileId={file.id} alt={file.originalName} />
                         </div>
                       </div>
                     )}
