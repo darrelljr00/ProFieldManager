@@ -1111,7 +1111,7 @@ export default function FileManager() {
                     {file.fileType === 'image' && (
                       <div className="mb-3">
                         <img 
-                          src={`/${file.filePath}`}
+                          src={`/api/files/${file.id}/thumbnail`}
                           alt={file.originalName}
                           className="w-full h-32 object-cover rounded border"
                           onError={(e) => {

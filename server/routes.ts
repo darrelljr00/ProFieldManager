@@ -13208,6 +13208,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get file thumbnail/preview for images
+  app.get("/api/files/:id/thumbnail", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { id } = req.params;
+      
+      const file = await storage.getFile(parseInt(id), user.organizationId);
+      if (!file) {
+        return res.status(404).json({ message: "File not found" });
+      }
+
+      // Only serve thumbnails for image files
+      if (file.fileType !== 'image') {
+        return res.status(400).json({ message: "File is not an image" });
+      }
+
+      // Check if file exists
+      const fs = require('fs');
+      const path = require('path');
+      const filePath = path.resolve(file.filePath);
+      
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ message: "File not found on disk" });
+      }
+
+      // Set appropriate headers for image serving
+      res.setHeader('Content-Type', file.mimeType);
+      res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
+      
+      // Stream the image file
+      const fileStream = fs.createReadStream(filePath);
+      fileStream.pipe(res);
+      
+      fileStream.on('error', (error: any) => {
+        console.error("Error streaming file:", error);
+        if (!res.headersSent) {
+          res.status(500).json({ message: "Failed to stream file" });
+        }
+      });
+    } catch (error: any) {
+      console.error("Error serving thumbnail:", error);
+      res.status(500).json({ message: "Failed to serve thumbnail" });
+    }
+  });
+
   // Folder management routes
   app.get("/api/folders", requireAuth, async (req, res) => {
     try {
