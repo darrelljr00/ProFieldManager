@@ -13225,11 +13225,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Check if file exists
-      const fs = require('fs');
-      const path = require('path');
       const filePath = path.resolve(file.filePath);
       
-      if (!fs.existsSync(filePath)) {
+      if (!fsSync.existsSync(filePath)) {
         return res.status(404).json({ message: "File not found on disk" });
       }
 
@@ -13238,7 +13236,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
       
       // Stream the image file
-      const fileStream = fs.createReadStream(filePath);
+      const fileStream = fsSync.createReadStream(filePath);
       fileStream.pipe(res);
       
       fileStream.on('error', (error: any) => {
