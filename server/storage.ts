@@ -3831,8 +3831,71 @@ export class DatabaseStorage implements IStorage {
 
   async getGasCardAssignments(): Promise<GasCardAssignment[]> {
     try {
-      const result = await db.select().from(gasCardAssignments).orderBy(gasCardAssignments.createdAt);
-      return result;
+      const result = await db.select({
+        id: gasCardAssignments.id,
+        cardId: gasCardAssignments.cardId,
+        assignedToUserId: gasCardAssignments.assignedToUserId,
+        assignedBy: gasCardAssignments.assignedBy,
+        assignedDate: gasCardAssignments.assignedDate,
+        expectedReturnDate: gasCardAssignments.expectedReturnDate,
+        returnedDate: gasCardAssignments.returnedDate,
+        purpose: gasCardAssignments.purpose,
+        notes: gasCardAssignments.notes,
+        status: gasCardAssignments.status,
+        createdAt: gasCardAssignments.createdAt,
+        updatedAt: gasCardAssignments.updatedAt,
+        // Gas card details
+        gasCardId: gasCards.id,
+        gasCardName: gasCards.cardName,
+        gasCardNumber: gasCards.cardNumber,
+        gasCardProvider: gasCards.provider,
+        gasCardStatus: gasCards.status,
+        // Assigned to user details
+        assignedToUserUsername: users.username,
+        assignedToUserFirstName: users.firstName,
+        assignedToUserLastName: users.lastName,
+      })
+      .from(gasCardAssignments)
+      .leftJoin(gasCards, eq(gasCardAssignments.cardId, gasCards.id))
+      .leftJoin(users, eq(gasCardAssignments.assignedToUserId, users.id))
+      .orderBy(gasCardAssignments.createdAt);
+
+      // Now get assigned by user details separately and merge
+      const assignments = [];
+      for (const assignment of result) {
+        let assignedByUser = null;
+        if (assignment.assignedBy) {
+          const [assignedBy] = await db.select({
+            id: users.id,
+            username: users.username,
+            firstName: users.firstName,
+            lastName: users.lastName
+          })
+          .from(users)
+          .where(eq(users.id, assignment.assignedBy));
+          assignedByUser = assignedBy;
+        }
+
+        assignments.push({
+          ...assignment,
+          gasCard: assignment.gasCardId ? {
+            id: assignment.gasCardId,
+            cardName: assignment.gasCardName,
+            cardNumber: assignment.gasCardNumber,
+            provider: assignment.gasCardProvider,
+            status: assignment.gasCardStatus
+          } : null,
+          assignedToUser: assignment.assignedToUserId ? {
+            id: assignment.assignedToUserId,
+            username: assignment.assignedToUserUsername,
+            firstName: assignment.assignedToUserFirstName,
+            lastName: assignment.assignedToUserLastName
+          } : null,
+          assignedByUser
+        });
+      }
+
+      return assignments as any;
     } catch (error) {
       console.error('Error fetching gas card assignments:', error);
       return [];
@@ -3841,11 +3904,72 @@ export class DatabaseStorage implements IStorage {
 
   async getActiveGasCardAssignments(): Promise<GasCardAssignment[]> {
     try {
-      const result = await db.select()
-        .from(gasCardAssignments)
-        .where(isNull(gasCardAssignments.returnedDate))
-        .orderBy(gasCardAssignments.assignedDate);
-      return result;
+      const result = await db.select({
+        id: gasCardAssignments.id,
+        cardId: gasCardAssignments.cardId,
+        assignedToUserId: gasCardAssignments.assignedToUserId,
+        assignedBy: gasCardAssignments.assignedBy,
+        assignedDate: gasCardAssignments.assignedDate,
+        expectedReturnDate: gasCardAssignments.expectedReturnDate,
+        returnedDate: gasCardAssignments.returnedDate,
+        purpose: gasCardAssignments.purpose,
+        notes: gasCardAssignments.notes,
+        status: gasCardAssignments.status,
+        createdAt: gasCardAssignments.createdAt,
+        updatedAt: gasCardAssignments.updatedAt,
+        // Gas card details
+        gasCardId: gasCards.id,
+        gasCardName: gasCards.cardName,
+        gasCardNumber: gasCards.cardNumber,
+        gasCardProvider: gasCards.provider,
+        gasCardStatus: gasCards.status,
+        // Assigned to user details
+        assignedToUserUsername: users.username,
+        assignedToUserFirstName: users.firstName,
+        assignedToUserLastName: users.lastName,
+      })
+      .from(gasCardAssignments)
+      .leftJoin(gasCards, eq(gasCardAssignments.cardId, gasCards.id))
+      .leftJoin(users, eq(gasCardAssignments.assignedToUserId, users.id))
+      .where(isNull(gasCardAssignments.returnedDate))
+      .orderBy(gasCardAssignments.assignedDate);
+
+      // Now get assigned by user details separately and merge
+      const assignments = [];
+      for (const assignment of result) {
+        let assignedByUser = null;
+        if (assignment.assignedBy) {
+          const [assignedBy] = await db.select({
+            id: users.id,
+            username: users.username,
+            firstName: users.firstName,
+            lastName: users.lastName
+          })
+          .from(users)
+          .where(eq(users.id, assignment.assignedBy));
+          assignedByUser = assignedBy;
+        }
+
+        assignments.push({
+          ...assignment,
+          gasCard: assignment.gasCardId ? {
+            id: assignment.gasCardId,
+            cardName: assignment.gasCardName,
+            cardNumber: assignment.gasCardNumber,
+            provider: assignment.gasCardProvider,
+            status: assignment.gasCardStatus
+          } : null,
+          assignedToUser: assignment.assignedToUserId ? {
+            id: assignment.assignedToUserId,
+            username: assignment.assignedToUserUsername,
+            firstName: assignment.assignedToUserFirstName,
+            lastName: assignment.assignedToUserLastName
+          } : null,
+          assignedByUser
+        });
+      }
+
+      return assignments as any;
     } catch (error) {
       console.error('Error fetching active gas card assignments:', error);
       return [];
