@@ -1338,19 +1338,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = getAuthenticatedUser(req);
       const updates = req.body;
       
+      console.log('🔧 NOTIFICATION UPDATE DEBUG:', {
+        userId: user.id,
+        organizationId: user.organizationId,
+        updates: updates,
+        updateKeys: Object.keys(updates)
+      });
+      
+      // First, ensure settings exist by getting them
+      const existingSettings = await NotificationService.getNotificationSettings(
+        user.id, 
+        user.organizationId
+      );
+      
+      console.log('🔍 Existing settings found:', existingSettings ? 'YES' : 'NO');
+      
+      // Add updatedAt timestamp to updates
+      const updatesWithTimestamp = {
+        ...updates,
+        updatedAt: new Date()
+      };
+      
       const [updatedSettings] = await NotificationService.updateNotificationSettings(
         user.id, 
         user.organizationId, 
-        updates
+        updatesWithTimestamp
       );
+      
+      console.log('✅ Settings updated successfully:', !!updatedSettings);
       
       res.json({
         message: 'Notification settings updated successfully',
         settings: updatedSettings
       });
     } catch (error: any) {
-      console.error('Error updating notification settings:', error);
-      res.status(500).json({ message: 'Failed to update notification settings' });
+      console.error('❌ Error updating notification settings:', {
+        message: error.message,
+        stack: error.stack,
+        code: error.code,
+        detail: error.detail
+      });
+      res.status(500).json({ 
+        message: 'Failed to update notification settings',
+        error: error.message
+      });
     }
   });
 
