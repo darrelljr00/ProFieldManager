@@ -13200,8 +13200,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         downloadCount: file.downloadCount + 1
       });
 
-      // Send file
-      res.download(file.filePath, file.originalName);
+      // Check if file is stored in Cloudinary
+      if (file.filePath.includes('cloudinary.com')) {
+        try {
+          // Fetch the file from Cloudinary and proxy it
+          const fetch = (await import('node-fetch')).default;
+          const response = await fetch(file.filePath);
+          
+          if (!response.ok) {
+            return res.status(404).json({ message: "File not found" });
+          }
+          
+          // Set appropriate headers for download
+          res.setHeader('Content-Type', file.mimeType || 'application/octet-stream');
+          res.setHeader('Content-Disposition', `attachment; filename="${file.originalName}"`);
+          res.setHeader('Content-Length', response.headers.get('content-length') || '');
+          
+          // Stream the response
+          response.body?.pipe(res);
+          
+        } catch (fetchError) {
+          console.error('Error fetching Cloudinary file:', fetchError);
+          return res.status(500).json({ message: "Error downloading file" });
+        }
+      } else {
+        // Handle local file system (legacy files)
+        res.download(file.filePath, file.originalName);
+      }
     } catch (error: any) {
       console.error("Error downloading file:", error);
       res.status(500).json({ message: "Failed to download file" });
@@ -13224,27 +13249,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "File is not an image" });
       }
 
-      // Check if file exists
-      const filePath = path.resolve(file.filePath);
-      
-      if (!fsSync.existsSync(filePath)) {
-        return res.status(404).json({ message: "File not found on disk" });
-      }
-
-      // Set appropriate headers for image serving
-      res.setHeader('Content-Type', file.mimeType);
-      res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
-      
-      // Stream the image file
-      const fileStream = fsSync.createReadStream(filePath);
-      fileStream.pipe(res);
-      
-      fileStream.on('error', (error: any) => {
-        console.error("Error streaming file:", error);
-        if (!res.headersSent) {
-          res.status(500).json({ message: "Failed to stream file" });
+      // Check if file is stored in Cloudinary
+      if (file.filePath.includes('cloudinary.com')) {
+        // Generate Cloudinary thumbnail URL
+        const thumbnailUrl = file.filePath.replace('/upload/', '/upload/w_200,h_200,c_fill/');
+        
+        try {
+          // Fetch the image from Cloudinary and proxy it
+          const fetch = (await import('node-fetch')).default;
+          const response = await fetch(thumbnailUrl);
+          
+          if (!response.ok) {
+            return res.status(404).json({ message: "Thumbnail not found" });
+          }
+          
+          // Set appropriate headers
+          res.setHeader('Content-Type', response.headers.get('content-type') || file.mimeType);
+          res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
+          
+          // Stream the response
+          response.body?.pipe(res);
+          
+        } catch (fetchError) {
+          console.error('Error fetching Cloudinary image:', fetchError);
+          return res.status(500).json({ message: "Error fetching thumbnail" });
         }
-      });
+      } else {
+        // Handle local file system (legacy files)
+        const filePath = path.resolve(file.filePath);
+        
+        if (!fsSync.existsSync(filePath)) {
+          return res.status(404).json({ message: "File not found on disk" });
+        }
+
+        // Set appropriate headers for image serving
+        res.setHeader('Content-Type', file.mimeType);
+        res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
+        
+        // Stream the image file
+        const fileStream = fsSync.createReadStream(filePath);
+        fileStream.pipe(res);
+        
+        fileStream.on('error', (error: any) => {
+          console.error("Error streaming file:", error);
+          if (!res.headersSent) {
+            res.status(500).json({ message: "Failed to stream file" });
+          }
+        });
+      }
     } catch (error: any) {
       console.error("Error serving thumbnail:", error);
       res.status(500).json({ message: "Failed to serve thumbnail" });

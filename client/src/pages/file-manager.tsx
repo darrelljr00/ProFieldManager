@@ -41,6 +41,7 @@ import SignatureDialog from "@/components/signature-dialog";
 import { DocumentFieldEditor } from "@/components/document-field-editor";
 import { FilePermissionsDialog } from "@/components/permissions/FilePermissionsDialog";
 import { FolderPermissionsDialog } from "@/components/permissions/FolderPermissionsDialog";
+import { ThumbnailImage } from "@/components/ThumbnailImage";
 
 interface FileItem {
   id: number;
@@ -149,7 +150,7 @@ export default function FileManager() {
     // File type filtering
     let matchesFileType = true;
     if (fileTypeFilter !== "all") {
-      const fileExtension = file.filename?.split('.').pop()?.toLowerCase();
+      const fileExtension = file.fileName?.split('.').pop()?.toLowerCase();
       switch (fileTypeFilter) {
         case "image":
           matchesFileType = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp'].includes(fileExtension || '');
@@ -550,12 +551,15 @@ export default function FileManager() {
   const handleDocuSign = () => {
     if (!selectedFile) return;
 
-    docusignMutation.mutate({
-      fileId: selectedFile.id,
-      recipientEmail: docusignEmail,
-      recipientName: docusignName,
-      subject: docusignSubject || undefined,
-    });
+    // TODO: Implement DocuSign functionality
+    console.log('DocuSign functionality needs to be implemented');
+    
+    // docusignMutation.mutate({
+    //   fileId: selectedFile.id,
+    //   recipientEmail: docusignEmail,
+    //   recipientName: docusignName,
+    //   subject: docusignSubject || undefined,
+    // });
   };
 
   const handleCreateTextFile = () => {
@@ -632,52 +636,7 @@ export default function FileManager() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
-  // Component to handle secure thumbnail loading
-  const ThumbnailImage = ({ fileId, alt }: { fileId: number; alt: string }) => {
-    const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
 
-    useEffect(() => {
-      let objectUrl: string | null = null;
-
-      const loadThumbnail = async () => {
-        try {
-          const response = await apiRequest("GET", `/api/files/${fileId}/thumbnail`);
-          if (response.ok) {
-            const blob = await response.blob();
-            objectUrl = URL.createObjectURL(blob);
-            setThumbnailUrl(objectUrl);
-          }
-        } catch (error) {
-          console.log("Failed to load thumbnail for file", fileId);
-        }
-      };
-
-      loadThumbnail();
-
-      // Cleanup function to revoke the object URL
-      return () => {
-        if (objectUrl) {
-          URL.revokeObjectURL(objectUrl);
-        }
-      };
-    }, [fileId]);
-
-    if (!thumbnailUrl) {
-      return (
-        <div className="w-16 h-16 bg-gray-100 rounded flex items-center justify-center">
-          <Image className="h-8 w-8 text-gray-400" />
-        </div>
-      );
-    }
-
-    return (
-      <img
-        src={thumbnailUrl}
-        alt={alt}
-        className="w-full h-full object-cover rounded"
-      />
-    );
-  };
 
   const getSignatureStatusBadge = (status: string) => {
     switch (status) {
@@ -1158,7 +1117,11 @@ export default function FileManager() {
                     {file.fileType === 'image' && (
                       <div className="mb-3 flex justify-center">
                         <div className="w-full h-32 flex items-center justify-center bg-gray-50 rounded border">
-                          <ThumbnailImage fileId={file.id} alt={file.originalName} />
+                          <ThumbnailImage 
+                            fileId={file.id} 
+                            fileName={file.originalName}
+                            className="w-full h-full object-cover rounded"
+                          />
                         </div>
                       </div>
                     )}
