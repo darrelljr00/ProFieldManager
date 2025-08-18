@@ -73,8 +73,7 @@ import { fileManager } from "./fileManager";
 import { CloudinaryService } from "./cloudinary";
 import { generateQuoteHTML, generateQuoteWordContent } from "./quoteGenerator";
 // Removed fileUploadRouter import - using direct route instead
-import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
-import { ObjectPermission } from "./objectAcl";
+// Object storage imports already imported at top - removed duplicates
 import { NotificationService, setBroadcastFunction } from "./notificationService";
 
 // Extend Express Request type to include user
