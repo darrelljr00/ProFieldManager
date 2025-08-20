@@ -81,6 +81,7 @@ export default function ImageGallery() {
   const [editingImage, setEditingImage] = useState<ImageFile | null>(null);
   const [showEditOptions, setShowEditOptions] = useState<number | null>(null);
   const [currentView, setCurrentView] = useState<"gallery" | "trash">("gallery");
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   
   const { toast } = useToast();
   const { user } = useAuth();
@@ -317,10 +318,12 @@ export default function ImageGallery() {
       });
       return;
     }
+    setBulkDeleteDialogOpen(true);
+  };
 
-    if (confirm(`Are you sure you want to delete ${selectedImages.length} selected image(s)? This will move them to trash.`)) {
-      bulkDeleteMutation.mutate(selectedImages.map(image => image.id));
-    }
+  const confirmBulkDelete = () => {
+    setBulkDeleteDialogOpen(false);
+    bulkDeleteMutation.mutate(selectedImages.map(image => image.id));
   };
 
   const getProjectNameForSharing = () => {
@@ -1126,6 +1129,79 @@ export default function ImageGallery() {
           });
         }}
       />
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <Dialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="h-5 w-5" />
+              Confirm Deletion
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">
+                You are about to delete <strong className="text-foreground">{selectedImages.length}</strong> selected image{selectedImages.length !== 1 ? 's' : ''}:
+              </p>
+              
+              {/* Show preview of selected images */}
+              <div className="max-h-32 overflow-y-auto border rounded-md p-2">
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                  {selectedImages.slice(0, 8).map((image) => (
+                    <div key={image.id} className="relative">
+                      <img
+                        src={getImageUrl(image)}
+                        alt={image.originalName}
+                        className="w-full aspect-square object-cover rounded border"
+                      />
+                    </div>
+                  ))}
+                  {selectedImages.length > 8 && (
+                    <div className="w-full aspect-square bg-muted rounded border flex items-center justify-center text-xs text-muted-foreground">
+                      +{selectedImages.length - 8} more
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-md p-3">
+              <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                <strong>Note:</strong> These images will be moved to the trash. You can restore them later from the Trash section if needed.
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setBulkDeleteDialogOpen(false)}
+              disabled={bulkDeleteMutation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmBulkDelete}
+              disabled={bulkDeleteMutation.isPending}
+              className="min-w-[120px]"
+            >
+              {bulkDeleteMutation.isPending ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Deleting...
+                </div>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete {selectedImages.length} Image{selectedImages.length !== 1 ? 's' : ''}
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
