@@ -329,6 +329,14 @@ export default function ImageGallery() {
   // Bulk download mutation for selected images
   const bulkDownloadMutation = useMutation({
     mutationFn: async (imageIds: number[]) => {
+      console.log('🔍 Starting bulk download for images:', imageIds);
+      console.log('🔍 API Config Debug:', {
+        hostname: window.location.hostname,
+        isCustomDomain: window.location.hostname === 'profieldmanager.com',
+        hasAuthToken: !!localStorage.getItem('auth_token'),
+        authToken: localStorage.getItem('auth_token') ? 'Present' : 'Missing'
+      });
+      
       const response = await apiRequest('POST', '/api/images/bulk-download', { imageIds });
 
       // Get the zip file as blob
