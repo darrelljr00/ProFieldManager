@@ -284,6 +284,76 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
     setShareDialogOpen(true);
   };
 
+  // Bulk delete mutation
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async (fileIds: number[]) => {
+      // Add authentication token for custom domain support
+      const token = localStorage.getItem('auth_token');
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const results = await Promise.allSettled(
+        fileIds.map(async (fileId) => {
+          const response = await fetch(`/api/images/${fileId}`, {
+            method: 'DELETE',
+            headers,
+            credentials: 'include',
+          });
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || `Failed to delete image ${fileId}`);
+          }
+          return response.json();
+        })
+      );
+
+      const failed = results.filter(result => result.status === 'rejected');
+      if (failed.length > 0) {
+        const errors = failed.map((result: any) => result.reason.message).join(', ');
+        throw new Error(`Failed to delete ${failed.length} image(s): ${errors}`);
+      }
+
+      return results.length;
+    },
+    onSuccess: (deletedCount) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/images"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId, "files"] });
+      setSelectedFiles([]);
+      setSelectionMode(false);
+      toast({
+        title: "Success",
+        description: `${deletedCount} image(s) moved to trash successfully`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Delete Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleBulkDelete = () => {
+    if (selectedFiles.length === 0) {
+      toast({
+        title: "No images selected",
+        description: "Please select at least one image to delete",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (confirm(`Are you sure you want to delete ${selectedFiles.length} selected image(s)? This will move them to trash.`)) {
+      bulkDeleteMutation.mutate(selectedFiles.map(file => file.id));
+    }
+  };
+
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -657,6 +727,15 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
                   >
                     <Share2 className="h-4 w-4 mr-2" />
                     Share ({selectedFiles.length})
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={handleBulkDelete}
+                    disabled={selectedFiles.length === 0 || bulkDeleteMutation.isPending}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    {bulkDeleteMutation.isPending ? 'Deleting...' : `Delete (${selectedFiles.length})`}
                   </Button>
                 </>
               )}
