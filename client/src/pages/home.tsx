@@ -129,6 +129,7 @@ const testimonials = [
 export default function HomePage() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Auto-advance slides
   useEffect(() => {
@@ -140,6 +141,31 @@ export default function HomePage() {
 
     return () => clearInterval(timer);
   }, [isAutoPlaying]);
+
+  // Close mobile menu when clicking outside or on escape
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (mobileMenuOpen && !(event.target as Element)?.closest('header')) {
+        setMobileMenuOpen(false);
+      }
+    };
+
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setMobileMenuOpen(false);
+      }
+    };
+
+    if (mobileMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleEscapeKey);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscapeKey);
+    };
+  }, [mobileMenuOpen]);
 
   const nextSlide = () => {
     setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
@@ -177,11 +203,56 @@ export default function HomePage() {
             </Button>
           </nav>
           <div className="md:hidden">
-            <Button variant="ghost" className="text-white">
+            <Button 
+              variant="ghost" 
+              className="text-white" 
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
               <Menu className="h-6 w-6" />
             </Button>
           </div>
         </div>
+        
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden absolute top-full left-0 right-0 bg-white/95 backdrop-blur-md border-b border-gray-200 z-40">
+            <div className="container mx-auto px-4 py-6 space-y-4">
+              <Link 
+                href="/" 
+                className="block text-slate-900 hover:text-blue-600 transition-colors text-lg font-medium"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Home
+              </Link>
+              <Link 
+                href="/features" 
+                className="block text-slate-900 hover:text-blue-600 transition-colors text-lg font-medium"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Features
+              </Link>
+              <Link 
+                href="/features#pricing" 
+                className="block text-slate-900 hover:text-blue-600 transition-colors text-lg font-medium"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Pricing
+              </Link>
+              <div className="pt-4 border-t border-gray-200 space-y-3">
+                <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="outline" className="w-full border-slate-900 text-slate-900 hover:bg-slate-900 hover:text-white">
+                    Login
+                  </Button>
+                </Link>
+                <Link href="/features#signup" onClick={() => setMobileMenuOpen(false)}>
+                  <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+                    Get Started
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Hero Slider Section */}
