@@ -3220,12 +3220,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Handle CORS preflight for bulk download (custom domain support)
+  app.options("/api/images/bulk-download", (req, res) => {
+    const isCustomDomain = req.headers.origin?.includes('profieldmanager.com');
+    
+    if (isCustomDomain && req.headers.origin) {
+      res.header('Access-Control-Allow-Origin', req.headers.origin);
+      res.header('Access-Control-Allow-Credentials', 'true');
+      res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cookie');
+      res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    }
+    
+    res.sendStatus(200);
+  });
+
   // Bulk download images
   app.post("/api/images/bulk-download", requireAuth, async (req, res) => {
     try {
       const { imageIds } = req.body;
       const userId = req.user!.id;
       const user = getAuthenticatedUser(req);
+
+      console.log('🔍 BULK DOWNLOAD DEBUG:', {
+        url: req.url,
+        method: req.method,
+        origin: req.headers.origin,
+        authorization: req.headers.authorization ? 'Present' : 'Missing',
+        userId,
+        organizationId: user.organizationId,
+        imageIdsCount: imageIds?.length || 0
+      });
 
       if (!Array.isArray(imageIds) || imageIds.length === 0) {
         return res.status(400).json({ message: 'Image IDs array is required' });
