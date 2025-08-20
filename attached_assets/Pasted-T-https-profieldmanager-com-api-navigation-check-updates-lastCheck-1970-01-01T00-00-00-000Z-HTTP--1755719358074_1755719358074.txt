@@ -1,0 +1,45 @@
+T
+https://profieldmanager.com/api/navigation/check-updates?lastCheck=1970-01-01T00:00:00.000Z
+[HTTP/3 401  47ms]
+
+XHRGET
+https://profieldmanager.com/api/navigation/check-updates?lastCheck=1970-01-01T00:00:00.000Z
+[HTTP/3 401  83ms]
+
+🖼️ Image Gallery - Query State: 
+Object { isLoading: false, isError: false, error: null, data: (34) […], dataLength: 34, status: "success", fetchStatus: "idle" }
+index-YOSE8l9F.js:1331:28196
+🔍 USEAUTH: Calling /api/auth/me endpoint index-YOSE8l9F.js:958:59835
+🔍 USEAUTH: Using stored token for auth index-YOSE8l9F.js:958:59944
+🌐 Custom domain detected - routing API calls to Replit backend index-YOSE8l9F.js:48:43143
+🌐 CUSTOM DOMAIN API ROUTING: 
+Object { originalEndpoint: "/api/auth/me", cleanEndpoint: "/api/auth/me", baseUrl: "https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev", finalUrl: "https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/auth/me", timestamp: "2025-08-20T19:48:57.401Z" }
+index-YOSE8l9F.js:48:43414
+🖼️ Image Gallery - Query State: 
+Object { isLoading: false, isError: false, error: null, data: (34) […], dataLength: 34, status: "success", fetchStatus: "idle" }
+index-YOSE8l9F.js:1331:28196
+🖼️ Image Gallery - Query State: 
+Object { isLoading: false, isError: false, error: null, data: (34) […], dataLength: 34, status: "success", fetchStatus: "idle" }
+index-YOSE8l9F.js:1331:28196
+🔍 USEAUTH: Auth success with stored token: 
+Object { user: {…} }
+index-YOSE8l9F.js:958:60174
+🖼️ Image Gallery - Query State: 
+Object { isLoading: false, isError: false, error: null, data: (34) […], dataLength: 34, status: "success", fetchStatus: "idle" }
+index-YOSE8l9F.js:1331:28196
+🖼️ Image Gallery - Query State: 
+Object { isLoading: false, isError: false, error: null, data: (34) […], dataLength: 34, status: "success", fetchStatus: "idle" }
+index-YOSE8l9F.js:1331:28196
+🖼️ Image Gallery - Query State: 
+Object { isLoading: false, isError: false, error: null, data: (34) […], dataLength: 34, status: "success", fetchStatus: "idle" }
+index-YOSE8l9F.js:1331:28196
+XHRGET
+https://profieldmanager.com/api/navigation/check-updates?lastCheck=1970-01-01T00:00:00.000Z
+[HTTP/3 401  63ms]
+
+XHRGET
+https://profieldmanager.com/api/navigation/check-updates?lastCheck=1970-01-01T00:00:00.000Z
+[HTTP/3 401  41ms]
+
+​
+

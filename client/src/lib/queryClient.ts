@@ -109,7 +109,7 @@ export const getQueryFn: <T>(options: {
     
     const res = await fetch(fullUrl, {
       headers,
-      credentials: isCustomDomain() ? "omit" : "include", // Don't send cookies for cross-origin requests
+      credentials: "include", // Always include credentials for authentication
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
