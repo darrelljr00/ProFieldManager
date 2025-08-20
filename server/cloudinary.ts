@@ -307,6 +307,41 @@ export class CloudinaryService {
   }
 
   /**
+   * Extract public ID from Cloudinary URL
+   * @param cloudinaryUrl - Full Cloudinary URL
+   */
+  static extractPublicIdFromUrl(cloudinaryUrl: string): string | null {
+    try {
+      // Example URL: https://res.cloudinary.com/dcx5v8cuk/image/upload/v1755111835/org-2/image-gallery/filename.png
+      // Public ID: org-2/image-gallery/filename
+      
+      const url = new URL(cloudinaryUrl);
+      const pathParts = url.pathname.split('/');
+      
+      // Find the version part (starts with 'v' followed by numbers)
+      const versionIndex = pathParts.findIndex(part => /^v\d+$/.test(part));
+      
+      if (versionIndex === -1 || versionIndex + 1 >= pathParts.length) {
+        console.warn('Could not extract public ID from URL:', cloudinaryUrl);
+        return null;
+      }
+      
+      // Everything after version is the public ID (without file extension)
+      const publicIdParts = pathParts.slice(versionIndex + 1);
+      const publicIdWithExtension = publicIdParts.join('/');
+      
+      // Remove file extension from the last part
+      const publicId = publicIdWithExtension.replace(/\.[^/.]+$/, '');
+      
+      console.log('📍 Extracted public ID:', publicId, 'from URL:', cloudinaryUrl);
+      return publicId;
+    } catch (error) {
+      console.error('Error extracting public ID from URL:', error);
+      return null;
+    }
+  }
+
+  /**
    * Check if Cloudinary is properly configured
    */
   static isConfigured(): boolean {

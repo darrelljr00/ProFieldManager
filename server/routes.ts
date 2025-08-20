@@ -3106,14 +3106,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: 'Access denied' });
       }
 
-      // Delete the file
-      // fs already imported as fsSync
-      const filePath = `./uploads/org-${image.organizationId}/image_gallery/${image.filename}`;
-      
-      try {
-        await fs.promises.unlink(filePath);
-      } catch (fileError) {
-        console.warn('File not found on disk:', filePath);
+      // Delete from Cloudinary if cloudinaryUrl exists
+      if (image.cloudinaryUrl) {
+        try {
+          // Extract the public_id from the Cloudinary URL
+          const publicId = CloudinaryService.extractPublicIdFromUrl(image.cloudinaryUrl);
+          if (publicId) {
+            const cloudinaryResult = await CloudinaryService.deleteImage(publicId);
+            if (!cloudinaryResult.success) {
+              console.warn('Failed to delete from Cloudinary:', cloudinaryResult.error);
+            }
+          }
+        } catch (cloudinaryError) {
+          console.warn('Cloudinary deletion error:', cloudinaryError);
+        }
       }
 
       // Delete from database (soft delete)
