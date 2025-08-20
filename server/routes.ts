@@ -72,6 +72,8 @@ import { s3Service } from "./s3Service";
 import { fileManager } from "./fileManager";
 import { CloudinaryService } from "./cloudinary";
 import { generateQuoteHTML, generateQuoteWordContent } from "./quoteGenerator";
+import archiver from 'archiver';
+import fetch from 'node-fetch';
 // Removed fileUploadRouter import - using direct route instead
 // Object storage imports already imported at top - removed duplicates
 import { NotificationService, setBroadcastFunction } from "./notificationService";
@@ -3215,6 +3217,109 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error('Error permanently deleting image:', error);
       res.status(500).json({ message: 'Failed to permanently delete image' });
+    }
+  });
+
+  // Bulk download images
+  app.post("/api/images/bulk-download", requireAuth, async (req, res) => {
+    try {
+      const { imageIds } = req.body;
+      const userId = req.user!.id;
+      const user = getAuthenticatedUser(req);
+
+      if (!Array.isArray(imageIds) || imageIds.length === 0) {
+        return res.status(400).json({ message: 'Image IDs array is required' });
+      }
+
+      console.log(`Starting bulk download for ${imageIds.length} images for user ${userId}`);
+
+      // Fetch all image records
+      const images = await Promise.all(
+        imageIds.map(async (imageId: number) => {
+          const image = await storage.getImageById(imageId);
+          if (!image || (image.userId !== userId && image.organizationId !== user.organizationId)) {
+            return null; // Skip unauthorized images
+          }
+          return image;
+        })
+      );
+
+      // Filter out null results (unauthorized/not found images)
+      const validImages = images.filter(img => img !== null);
+
+      if (validImages.length === 0) {
+        return res.status(404).json({ message: 'No valid images found or access denied' });
+      }
+
+      console.log(`Found ${validImages.length} valid images to download`);
+
+      // Set response headers for zip download
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader('Content-Disposition', `attachment; filename="images_${new Date().toISOString().split('T')[0]}.zip"`);
+
+      // Create zip archive
+      const archive = archiver('zip', { zlib: { level: 9 } });
+
+      // Handle archive errors
+      archive.on('error', (err) => {
+        console.error('Archive error:', err);
+        if (!res.headersSent) {
+          res.status(500).json({ message: 'Failed to create archive' });
+        }
+      });
+
+      // Pipe archive to response
+      archive.pipe(res);
+
+      // Add images to archive
+      for (const image of validImages) {
+        try {
+          let imageBuffer: Buffer;
+          
+          if (image.cloudinaryUrl) {
+            // Download from Cloudinary
+            console.log(`Downloading from Cloudinary: ${image.cloudinaryUrl}`);
+            const response = await fetch(image.cloudinaryUrl);
+            if (!response.ok) {
+              console.warn(`Failed to download image from Cloudinary: ${image.cloudinaryUrl}`);
+              continue;
+            }
+            imageBuffer = Buffer.from(await response.arrayBuffer());
+          } else {
+            // Read from local file system
+            const filePath = `./uploads/org-${image.organizationId}/image_gallery/${image.filename}`;
+            try {
+              imageBuffer = await fs.readFile(filePath);
+            } catch (fileError) {
+              console.warn(`Local file not found: ${filePath}`);
+              continue;
+            }
+          }
+
+          // Get file extension from original name or mime type
+          const extension = path.extname(image.originalName) || 
+                          (image.mimeType === 'image/jpeg' ? '.jpg' : 
+                           image.mimeType === 'image/png' ? '.png' : '.jpg');
+          
+          // Clean filename for zip archive
+          const safeFilename = image.originalName.replace(/[^a-zA-Z0-9._-]/g, '_') || `image_${image.id}${extension}`;
+          
+          archive.append(imageBuffer, { name: safeFilename });
+          console.log(`Added to archive: ${safeFilename}`);
+        } catch (imageError) {
+          console.warn(`Failed to process image ${image.id}:`, imageError);
+          continue;
+        }
+      }
+
+      // Finalize the archive
+      await archive.finalize();
+      console.log(`Bulk download completed for user ${userId}`);
+    } catch (error: any) {
+      console.error('Error in bulk download:', error);
+      if (!res.headersSent) {
+        res.status(500).json({ message: 'Failed to download images' });
+      }
     }
   });
 

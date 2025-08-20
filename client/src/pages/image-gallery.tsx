@@ -326,6 +326,64 @@ export default function ImageGallery() {
     bulkDeleteMutation.mutate(selectedImages.map(image => image.id));
   };
 
+  // Bulk download mutation for selected images
+  const bulkDownloadMutation = useMutation({
+    mutationFn: async (imageIds: number[]) => {
+      const response = await fetch('/api/images/bulk-download', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ imageIds }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to prepare download');
+      }
+
+      // Get the zip file as blob
+      const blob = await response.blob();
+      return blob;
+    },
+    onSuccess: (blob) => {
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `images_${new Date().toISOString().split('T')[0]}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Success",
+        description: `${selectedImages.length} images downloaded successfully`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Download Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleBulkDownload = () => {
+    if (selectedImages.length === 0) {
+      toast({
+        title: "No images selected",
+        description: "Please select at least one image to download",
+        variant: "destructive",
+      });
+      return;
+    }
+    bulkDownloadMutation.mutate(selectedImages.map(image => image.id));
+  };
+
   const getProjectNameForSharing = () => {
     if (selectedImages.length > 0 && selectedImages[0].projectName) {
       return selectedImages[0].projectName;
@@ -594,6 +652,15 @@ export default function ImageGallery() {
               >
                 <Share2 className="h-4 w-4 mr-2" />
                 Share Selected ({selectedImages.length})
+              </Button>
+              <Button 
+                onClick={handleBulkDownload}
+                disabled={selectedImages.length === 0 || bulkDownloadMutation.isPending}
+                size="sm"
+                variant="outline"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                {bulkDownloadMutation.isPending ? 'Preparing...' : `Download (${selectedImages.length})`}
               </Button>
               <Button 
                 onClick={handleBulkDelete}
