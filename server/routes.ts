@@ -3296,6 +3296,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       archive.pipe(res);
 
       // Add images to archive
+      let addedCount = 0;
       for (const image of validImages) {
         try {
           let imageBuffer: Buffer;
@@ -3322,6 +3323,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           }
 
+          // Ensure we have a valid buffer
+          if (!imageBuffer || imageBuffer.length === 0) {
+            console.warn(`Empty buffer for image ${image.id}`);
+            continue;
+          }
+
           // Get file extension from original name or mime type
           const extension = path.extname(image.originalName) || 
                           (image.mimeType === 'image/jpeg' ? '.jpg' : 
@@ -3332,16 +3339,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           console.log(`Attempting to add to archive: ${safeFilename}, buffer size: ${imageBuffer.length}`);
           archive.append(imageBuffer, { name: safeFilename });
-          console.log(`Successfully added to archive: ${safeFilename}`);
+          addedCount++;
+          console.log(`Successfully added to archive: ${safeFilename} (${addedCount}/${validImages.length})`);
         } catch (imageError) {
-          console.warn(`Failed to process image ${image.id}:`, imageError);
+          console.error(`Failed to process image ${image.id}:`, imageError);
           continue;
         }
       }
 
-      // Finalize the archive
-      await archive.finalize();
-      console.log(`Bulk download completed for user ${userId}`);
+      console.log(`Total images added to archive: ${addedCount}`);
+      
+      // Check if we have any images in the archive
+      if (addedCount === 0) {
+        console.error('No images were successfully added to archive');
+        if (!res.headersSent) {
+          return res.status(500).json({ message: 'Failed to add any images to archive' });
+        }
+      }
+
+      // Finalize the archive (this must be called for the zip to be properly created)
+      console.log('Finalizing archive...');
+      archive.finalize();
+      console.log(`Bulk download completed for user ${userId} with ${addedCount} images`);
     } catch (error: any) {
       console.error('Error in bulk download:', error);
       if (!res.headersSent) {
