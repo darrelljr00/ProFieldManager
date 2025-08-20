@@ -73,7 +73,7 @@ import { fileManager } from "./fileManager";
 import { CloudinaryService } from "./cloudinary";
 import { generateQuoteHTML, generateQuoteWordContent } from "./quoteGenerator";
 import archiver from 'archiver';
-import fetch from 'node-fetch';
+// Using global fetch API available in Node.js 18+
 // Removed fileUploadRouter import - using direct route instead
 // Object storage imports already imported at top - removed duplicates
 import { NotificationService, setBroadcastFunction } from "./notificationService";
@@ -3305,10 +3305,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.log(`Downloading from Cloudinary: ${image.cloudinaryUrl}`);
             const response = await fetch(image.cloudinaryUrl);
             if (!response.ok) {
-              console.warn(`Failed to download image from Cloudinary: ${image.cloudinaryUrl}`);
+              console.warn(`Failed to download image from Cloudinary: ${image.cloudinaryUrl} - Status: ${response.status}`);
               continue;
             }
-            imageBuffer = Buffer.from(await response.arrayBuffer());
+            const arrayBuffer = await response.arrayBuffer();
+            imageBuffer = Buffer.from(arrayBuffer);
+            console.log(`Successfully downloaded image ${image.id}, buffer size: ${imageBuffer.length} bytes`);
           } else {
             // Read from local file system
             const filePath = `./uploads/org-${image.organizationId}/image_gallery/${image.filename}`;
@@ -3328,8 +3330,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Clean filename for zip archive
           const safeFilename = image.originalName.replace(/[^a-zA-Z0-9._-]/g, '_') || `image_${image.id}${extension}`;
           
+          console.log(`Attempting to add to archive: ${safeFilename}, buffer size: ${imageBuffer.length}`);
           archive.append(imageBuffer, { name: safeFilename });
-          console.log(`Added to archive: ${safeFilename}`);
+          console.log(`Successfully added to archive: ${safeFilename}`);
         } catch (imageError) {
           console.warn(`Failed to process image ${image.id}:`, imageError);
           continue;
