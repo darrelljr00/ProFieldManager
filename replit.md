@@ -6,6 +6,12 @@ Pro Field Manager is a comprehensive SaaS field service management platform desi
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes (August 2025)
+- **Mobile Navigation Fixed**: Added hamburger menu functionality with dropdown navigation for Login and Get Started buttons on landing page
+- **Custom Domain Authentication Resolved**: Fixed cross-origin authentication issues for profieldmanager.com domain using Bearer token authentication
+- **CORS Configuration Enhanced**: Improved CORS headers to support cross-site requests from custom domain to Replit backend
+- **Debug Logging Reduced**: Cleaned up verbose authentication debug logging after resolving custom domain issues
+
 ## System Architecture
 
 ### Frontend Architecture
