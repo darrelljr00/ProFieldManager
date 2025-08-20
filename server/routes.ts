@@ -3301,6 +3301,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
           let imageBuffer: Buffer;
           
+          console.log(`Processing image ${image.id}: cloudinaryUrl=${image.cloudinaryUrl}, filename=${image.filename}`);
+          
           if (image.cloudinaryUrl) {
             // Download from Cloudinary
             console.log(`Downloading from Cloudinary: ${image.cloudinaryUrl}`);
@@ -3315,10 +3317,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           } else {
             // Read from local file system
             const filePath = `./uploads/org-${image.organizationId}/image_gallery/${image.filename}`;
+            console.log(`Attempting to read local file: ${filePath}`);
             try {
               imageBuffer = await fs.readFile(filePath);
+              console.log(`Successfully read local file ${image.id}, buffer size: ${imageBuffer.length} bytes`);
             } catch (fileError) {
               console.warn(`Local file not found: ${filePath}`);
+              // If no local file and no cloudinaryUrl, this image can't be downloaded
               continue;
             }
           }
