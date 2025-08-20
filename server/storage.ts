@@ -4952,6 +4952,7 @@ export class DatabaseStorage implements IStorage {
           description: images.description,
           annotations: images.annotations,
           annotatedImageUrl: images.annotatedImageUrl,
+          cloudinaryUrl: images.cloudinaryUrl,
           createdAt: images.createdAt,
           updatedAt: images.updatedAt,
           userId: images.userId,
