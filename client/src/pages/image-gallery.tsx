@@ -329,19 +329,7 @@ export default function ImageGallery() {
   // Bulk download mutation for selected images
   const bulkDownloadMutation = useMutation({
     mutationFn: async (imageIds: number[]) => {
-      const response = await fetch('/api/images/bulk-download', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({ imageIds }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to prepare download');
-      }
+      const response = await apiRequest('POST', '/api/images/bulk-download', { imageIds });
 
       // Get the zip file as blob
       const blob = await response.blob();
