@@ -222,6 +222,49 @@ export default function ImageGallery() {
     },
   });
 
+  // Bulk delete mutation for gallery images
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async (imageIds: number[]) => {
+      const results = await Promise.allSettled(
+        imageIds.map(async (imageId) => {
+          const response = await fetch(`/api/images/${imageId}`, {
+            method: 'DELETE',
+            credentials: 'include',
+          });
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || `Failed to delete image ${imageId}`);
+          }
+          return response.json();
+        })
+      );
+
+      const failed = results.filter(result => result.status === 'rejected');
+      if (failed.length > 0) {
+        const errors = failed.map((result: any) => result.reason.message).join(', ');
+        throw new Error(`Failed to delete ${failed.length} image(s): ${errors}`);
+      }
+
+      return results.length;
+    },
+    onSuccess: (deletedCount) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/images'] });
+      setSelectedImages([]);
+      setSelectionMode(false);
+      toast({
+        title: "Success",
+        description: `${deletedCount} image(s) moved to trash successfully`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Delete Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const images = currentView === 'gallery' 
     ? ((imagesQuery.data as ImageFile[]) || [])
     : ((trashedImagesQuery.data as ImageFile[]) || []);
@@ -263,6 +306,21 @@ export default function ImageGallery() {
       return;
     }
     setShareDialogOpen(true);
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedImages.length === 0) {
+      toast({
+        title: "No images selected",
+        description: "Please select at least one image to delete",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (confirm(`Are you sure you want to delete ${selectedImages.length} selected image(s)? This will move them to trash.`)) {
+      bulkDeleteMutation.mutate(selectedImages.map(image => image.id));
+    }
   };
 
   const getProjectNameForSharing = () => {
@@ -533,6 +591,15 @@ export default function ImageGallery() {
               >
                 <Share2 className="h-4 w-4 mr-2" />
                 Share Selected ({selectedImages.length})
+              </Button>
+              <Button 
+                onClick={handleBulkDelete}
+                disabled={selectedImages.length === 0 || bulkDeleteMutation.isPending}
+                size="sm"
+                variant="destructive"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                {bulkDeleteMutation.isPending ? 'Deleting...' : `Delete (${selectedImages.length})`}
               </Button>
               <Button 
                 onClick={handleCreateCollage}
