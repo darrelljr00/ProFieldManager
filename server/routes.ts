@@ -669,6 +669,157 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // Live Streaming API Routes
+  // Get active streams for the organization
+  app.get('/api/streams/active', requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const activeStreams = await storage.getActiveStreamsByOrganization(user.organizationId);
+      res.json(activeStreams);
+    } catch (error) {
+      console.error('Error fetching active streams:', error);
+      res.status(500).json({ message: 'Failed to fetch streams' });
+    }
+  });
+
+  // Start a new stream
+  app.post('/api/streams/start', requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const { title } = req.body;
+
+      if (!title?.trim()) {
+        return res.status(400).json({ message: 'Stream title is required' });
+      }
+
+      const streamSession = await storage.createStreamSession({
+        title: title.trim(),
+        streamerId: user.id,
+        organizationId: user.organizationId
+      });
+
+      res.status(201).json(streamSession);
+    } catch (error) {
+      console.error('Error starting stream:', error);
+      res.status(500).json({ message: 'Failed to start stream' });
+    }
+  });
+
+  // End a stream
+  app.post('/api/streams/end', requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      
+      const updatedStream = await storage.endStreamSession(user.id);
+      
+      if (!updatedStream) {
+        return res.status(404).json({ message: 'No active stream found' });
+      }
+
+      res.json(updatedStream);
+    } catch (error) {
+      console.error('Error ending stream:', error);
+      res.status(500).json({ message: 'Failed to end stream' });
+    }
+  });
+
+  // Get viewers for current user's stream
+  app.get('/api/streams/viewers', requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const viewers = await storage.getStreamViewers(user.id);
+      res.json(viewers);
+    } catch (error) {
+      console.error('Error fetching stream viewers:', error);
+      res.status(500).json({ message: 'Failed to fetch viewers' });
+    }
+  });
+
+  // Join a stream as a viewer
+  app.post('/api/streams/:streamId/join', requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const { streamId } = req.params;
+
+      const viewer = await storage.joinStream(streamId, user.id);
+      res.status(201).json(viewer);
+    } catch (error) {
+      console.error('Error joining stream:', error);
+      res.status(500).json({ message: 'Failed to join stream' });
+    }
+  });
+
+  // Leave a stream
+  app.post('/api/streams/:streamId/leave', requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const { streamId } = req.params;
+
+      await storage.leaveStream(streamId, user.id);
+      res.json({ message: 'Left stream successfully' });
+    } catch (error) {
+      console.error('Error leaving stream:', error);
+      res.status(500).json({ message: 'Failed to leave stream' });
+    }
+  });
+
+  // Upload stream recording - create video upload config first
+  const uploadVideo = multer({
+    dest: 'uploads/',
+    limits: {
+      fileSize: 500 * 1024 * 1024 // 500MB limit for video recordings
+    },
+    fileFilter: (req, file, cb) => {
+      if (file.mimetype.startsWith('video/')) {
+        cb(null, true);
+      } else {
+        cb(new Error('Only video files are allowed'), false);
+      }
+    }
+  });
+
+  app.post('/api/streams/upload-recording', requireAuth, uploadVideo.single('recording'), async (req, res) => {
+    try {
+      const user = req.user!;
+      const { title } = req.body;
+
+      if (!req.file) {
+        return res.status(400).json({ message: 'No recording file provided' });
+      }
+
+      // Upload to cloud storage (Cloudinary)
+      const uploadBuffer = await fs.readFile(req.file.path);
+      
+      const cloudinaryResult = await CloudinaryService.uploadVideo(
+        uploadBuffer,
+        {
+          folder: 'stream-recordings',
+          filename: `${title}-${Date.now()}`,
+          organizationId: user.organizationId,
+          resource_type: 'video'
+        }
+      );
+
+      // Update the stream session with recording URL
+      await storage.updateStreamRecording(user.id, cloudinaryResult.secure_url);
+
+      // Clean up temp file
+      try {
+        await fs.unlink(req.file.path);
+      } catch (cleanupError) {
+        console.warn('Failed to clean up temp file:', cleanupError);
+      }
+
+      res.json({ 
+        message: 'Recording uploaded successfully',
+        recordingUrl: cloudinaryResult.secure_url 
+      });
+    } catch (error) {
+      console.error('Error uploading recording:', error);
+      res.status(500).json({ message: 'Failed to upload recording' });
+    }
+  });
+
   // URGENT FIX: Direct File Manager upload route (Cloudinary-based) - MOVED TO TOP FOR PRIORITY
   app.post('/api/files/upload', (req, res, next) => {
     console.log('🔥🔥🔥 UPLOAD ROUTE INTERCEPTED - BEFORE ALL MIDDLEWARE 🔥🔥🔥');

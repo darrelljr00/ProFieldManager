@@ -1,4 +1,5 @@
 import { pgTable, text, serial, integer, boolean, timestamp, decimal, uuid, varchar, jsonb, date, time, pgEnum } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -4484,3 +4485,48 @@ export type InsertOrganizationTwilioSettings = z.infer<typeof insertOrganization
 
 export type OrganizationCallAnalytics = typeof organizationCallAnalytics.$inferSelect;
 export type InsertOrganizationCallAnalytics = z.infer<typeof insertOrganizationCallAnalyticsSchema>;
+
+// Live Streaming tables
+export const streamSessions = pgTable("stream_sessions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: varchar("title").notNull(),
+  streamerId: integer("streamer_id").references(() => users.id),
+  organizationId: integer("organization_id").references(() => organizations.id),
+  status: varchar("status").notNull().default("active"), // active, ended
+  startedAt: timestamp("started_at").defaultNow(),
+  endedAt: timestamp("ended_at"),
+  recordingUrl: varchar("recording_url"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const streamViewers = pgTable("stream_viewers", {
+  id: serial("id").primaryKey(),
+  streamId: varchar("stream_id").references(() => streamSessions.id),
+  userId: integer("user_id").references(() => users.id),
+  joinedAt: timestamp("joined_at").defaultNow(),
+  leftAt: timestamp("left_at"),
+  isActive: boolean("is_active").default(true),
+});
+
+// Stream schema validation
+export const insertStreamSessionSchema = createInsertSchema(streamSessions, {
+  title: z.string().min(1, "Stream title is required"),
+}).omit({
+  id: true,
+  streamerId: true,
+  organizationId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertStreamViewerSchema = createInsertSchema(streamViewers).omit({
+  id: true,
+  joinedAt: true,
+});
+
+// Stream Types
+export type StreamSession = typeof streamSessions.$inferSelect;
+export type InsertStreamSession = z.infer<typeof insertStreamSessionSchema>;
+export type StreamViewer = typeof streamViewers.$inferSelect;
+export type InsertStreamViewer = z.infer<typeof insertStreamViewerSchema>;

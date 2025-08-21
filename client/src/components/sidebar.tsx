@@ -42,7 +42,8 @@ import {
   BookOpen,
   HelpCircle,
   Building,
-  Phone
+  Phone,
+  Video
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -392,6 +393,7 @@ export function Sidebar() {
       permission: "canAccessInternalMessages",
       unreadCount: unreadCount
     },
+    { name: "Live Stream", href: "/live-stream", icon: Video, requiresAuth: true, permission: "canAccessLiveStream" },
     { name: "Notifications", href: "/notifications", icon: Bell, requiresAuth: true, permission: "canAccessNotifications" },
     { name: "Image Gallery", href: "/image-gallery", icon: ImageIcon, requiresAuth: true, permission: "canAccessImageGallery" },
     { name: "SMS", href: "/sms", icon: Smartphone, requiresAuth: true, permission: "canAccessSMS" },

@@ -52,6 +52,7 @@ import FileSecurity from "@/pages/file-security";
 import PartsSupplies from "@/pages/parts-supplies";
 import MarketResearch from "@/pages/market-research";
 import TaskGroups from "@/pages/task-groups";
+import LiveStream from "@/pages/live-stream";
 import Login from "@/pages/login";
 import SimpleLogin from "@/pages/simple-login";
 import HomePage from "@/pages/home";
@@ -174,6 +175,7 @@ function AuthenticatedApp() {
           <Route path="/customers" component={Customers} />
           <Route path="/payments" component={Payments} />
           <Route path="/internal-messages" component={InternalMessages} />
+          <Route path="/live-stream" component={LiveStream} />
           <Route path="/image-gallery" component={ImageGallery} />
           <Route path="/sms" component={SmsPage} />
           <Route path="/reviews" component={Reviews} />
