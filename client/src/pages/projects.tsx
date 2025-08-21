@@ -533,7 +533,7 @@ export default function Jobs() {
 
 
   const createJobMutation = useMutation({
-    mutationFn: (data: any) => apiRequest("/api/projects", "POST", data),
+    mutationFn: (data: any) => apiRequest("POST", "/api/projects", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
       setCreateDialogOpen(false);
