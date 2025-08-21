@@ -56,6 +56,7 @@ import Login from "@/pages/login";
 import SimpleLogin from "@/pages/simple-login";
 import HomePage from "@/pages/home";
 import FeaturesPage from "@/pages/features";
+import AuthDebug from "@/pages/auth-debug";
 import NotFound from "@/pages/not-found";
 import { DeletedJobs } from "@/pages/deleted-jobs";
 import { CancelledJobs } from "@/pages/cancelled-jobs";
@@ -277,6 +278,7 @@ function Router() {
           <Route path="/signup" component={FeaturesPage} />
           <Route path="/login" component={SimpleLogin} />
           <Route path="/login-full" component={Login} />
+          <Route path="/auth-debug" component={AuthDebug} />
           <Route component={SimpleLogin} />
         </Switch>
       </Suspense>

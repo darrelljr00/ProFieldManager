@@ -89,12 +89,10 @@ export const getAuthHeaders = (): Record<string, string> => {
     'Content-Type': 'application/json'
   };
   
-  // For custom domain, always use Bearer token from localStorage
-  if (isCustomDomain()) {
-    const token = localStorage.getItem('auth_token');
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
+  // Always check localStorage first for Bearer token (works on both domains)
+  const token = localStorage.getItem('auth_token');
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
   }
   
   return headers;

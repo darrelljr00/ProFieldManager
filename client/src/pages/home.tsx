@@ -130,6 +130,14 @@ export default function HomePage() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isCustomDomain, setIsCustomDomain] = useState(false);
+
+  // Detect if accessing via custom domain
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setIsCustomDomain(window.location.hostname === 'profieldmanager.com');
+    }
+  }, []);
 
   // Auto-advance slides
   useEffect(() => {
@@ -254,6 +262,28 @@ export default function HomePage() {
           </div>
         )}
       </header>
+
+      {/* Custom Domain Authentication Banner */}
+      {isCustomDomain && (
+        <div className="relative z-30 bg-blue-600 text-white py-3 px-4">
+          <div className="container mx-auto text-center">
+            <p className="text-sm md:text-base">
+              <strong>Welcome to Pro Field Manager!</strong> You're accessing via profieldmanager.com. 
+              <Link href="/login" className="ml-2 underline font-semibold hover:text-blue-200">
+                Click here to log in
+              </Link>
+              {" "}or{" "}
+              <Link href="/features#signup" className="underline font-semibold hover:text-blue-200">
+                start your free trial
+              </Link>
+              {" • "}
+              <Link href="/auth-debug" className="underline text-blue-100 hover:text-white">
+                Need help? Check connection status
+              </Link>
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Hero Slider Section */}
       <section className="relative h-screen overflow-hidden">

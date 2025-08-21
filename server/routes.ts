@@ -659,6 +659,16 @@ const invoiceUpload = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Health check endpoint - no auth required
+  app.get("/api/health", (req, res) => {
+    res.json({ 
+      status: "ok", 
+      timestamp: new Date().toISOString(),
+      server: "Pro Field Manager API",
+      version: "1.0.0"
+    });
+  });
+
   // URGENT FIX: Direct File Manager upload route (Cloudinary-based) - MOVED TO TOP FOR PRIORITY
   app.post('/api/files/upload', (req, res, next) => {
     console.log('🔥🔥🔥 UPLOAD ROUTE INTERCEPTED - BEFORE ALL MIDDLEWARE 🔥🔥🔥');
