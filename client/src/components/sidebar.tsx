@@ -597,9 +597,9 @@ export function Sidebar() {
         isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
         isCollapsed ? "w-16" : "w-64"
       )}>
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col h-full overflow-y-auto">
           {/* Header */}
-          <div className="p-4 border-b border-border">
+          <div className="p-4 border-b border-border flex-shrink-0">
             <div className="flex items-center justify-between">
               {!isCollapsed && (
                 <h2 className="text-lg font-semibold text-foreground">
@@ -618,7 +618,7 @@ export function Sidebar() {
           </div>
 
           {/* User info */}
-          <div className="p-4 border-b border-border">
+          <div className="p-4 border-b border-border flex-shrink-0">
             <div className="flex items-center space-x-3">
               <Avatar className="h-8 w-8">
                 <AvatarFallback className="bg-primary text-primary-foreground text-sm">
@@ -640,7 +640,7 @@ export function Sidebar() {
 
           {/* Search Bar */}
           {!isCollapsed && (
-            <div className="p-4 border-b border-border">
+            <div className="p-4 border-b border-border flex-shrink-0">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
@@ -655,7 +655,7 @@ export function Sidebar() {
           )}
 
           {/* Navigation */}
-          <nav className="flex-1 overflow-y-auto px-2 py-4">
+          <nav className="flex-1 px-2 py-4">
             <DndContext
               sensors={sensors}
               collisionDetection={closestCenter}
@@ -690,7 +690,7 @@ export function Sidebar() {
           </nav>
 
           {/* Footer */}
-          <div className="p-4 border-t border-border">
+          <div className="p-4 border-t border-border flex-shrink-0">
             <Button
               variant="ghost"
               size="sm"
