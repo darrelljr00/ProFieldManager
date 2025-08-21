@@ -405,6 +405,7 @@ export const userPermissions = pgTable("user_permissions", {
 export const projects = pgTable("projects", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
   name: text("name").notNull(),
   description: text("description"),
   status: text("status").notNull().default("active"), // active, completed, on-hold, cancelled, deleted

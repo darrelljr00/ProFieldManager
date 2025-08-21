@@ -4292,6 +4292,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const projectData = {
         ...otherData,
         userId,
+        organizationId: req.user!.organizationId,
         budget: validatedBudget,
         startDate: startDate ? new Date(startDate) : null,
         endDate: endDate ? new Date(endDate) : null,
