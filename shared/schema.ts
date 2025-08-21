@@ -239,6 +239,7 @@ export const users = pgTable("users", {
   canAccessMySchedule: boolean("can_access_my_schedule").default(true),
   canAccessFrontEnd: boolean("can_access_front_end").default(false),
   canAccessCallManager: boolean("can_access_call_manager").default(false),
+  canAccessLiveStream: boolean("can_access_live_stream").default(true),
   // HR-specific permissions
   canViewHREmployees: boolean("can_view_hr_employees").default(false),
   canEditHREmployees: boolean("can_edit_hr_employees").default(false),

@@ -108,6 +108,7 @@ type User = {
   canAccessMarketResearch?: boolean;
   canAccessHR?: boolean;
   canAccessUsers?: boolean;
+  canAccessLiveStream?: boolean;
   canAccessSaasAdmin?: boolean;
   canAccessAdminSettings?: boolean;
   canAccessReports?: boolean;
@@ -1556,6 +1557,7 @@ export default function UsersPage() {
                         <TableHead>My Schedule</TableHead>
                         <TableHead>Tutorials</TableHead>
                         <TableHead>Front End</TableHead>
+                        <TableHead>Live Stream</TableHead>
                         <TableHead>HR</TableHead>
                         <TableHead>User Mgmt</TableHead>
                         <TableHead>SaaS Admin</TableHead>
@@ -1877,6 +1879,19 @@ export default function UsersPage() {
                                 updateUserPermissionsMutation.mutate({
                                   userId: user.id,
                                   permissions: { canAccessFrontEnd: checked }
+                                })
+                              }
+                              disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
+                            />
+                          </TableCell>
+                          {/* Live Stream */}
+                          <TableCell>
+                            <Switch
+                              checked={user.canAccessLiveStream === true}
+                              onCheckedChange={(checked) => 
+                                updateUserPermissionsMutation.mutate({
+                                  userId: user.id,
+                                  permissions: { canAccessLiveStream: checked }
                                 })
                               }
                               disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}

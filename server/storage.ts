@@ -757,6 +757,7 @@ export class DatabaseStorage implements IStorage {
     if (updates.canAccessGpsTracking !== undefined) updateData.canAccessGpsTracking = updates.canAccessGpsTracking;
     if (updates.canAccessMobileTest !== undefined) updateData.canAccessMobileTest = updates.canAccessMobileTest;
     if (updates.canAccessJobs !== undefined) updateData.canAccessJobs = updates.canAccessJobs;
+    if (updates.canAccessLiveStream !== undefined) updateData.canAccessLiveStream = updates.canAccessLiveStream;
     
     // HR-specific permissions
     if (updates.canViewHREmployees !== undefined) updateData.canViewHREmployees = updates.canViewHREmployees;
