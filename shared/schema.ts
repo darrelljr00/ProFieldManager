@@ -4509,6 +4509,55 @@ export const streamViewers = pgTable("stream_viewers", {
   isActive: boolean("is_active").default(true),
 });
 
+export const streamInvitations = pgTable("stream_invitations", {
+  id: serial("id").primaryKey(),
+  streamId: varchar("stream_id").notNull().references(() => streamSessions.id, { onDelete: "cascade" }),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  invitedById: integer("invited_by_id").notNull().references(() => users.id),
+  invitedUserId: integer("invited_user_id").notNull().references(() => users.id),
+  
+  // Invitation details
+  message: text("message"),
+  role: text("role").notNull().default("viewer"), // viewer, moderator, co-host
+  
+  // Status tracking
+  status: text("status").notNull().default("pending"), // pending, accepted, declined, expired
+  sentAt: timestamp("sent_at").defaultNow().notNull(),
+  respondedAt: timestamp("responded_at"),
+  expiresAt: timestamp("expires_at"),
+  
+  // Notification settings
+  notificationSent: boolean("notification_sent").default(false),
+  emailSent: boolean("email_sent").default(false),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const streamNotifications = pgTable("stream_notifications", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  streamId: varchar("stream_id").references(() => streamSessions.id, { onDelete: "cascade" }),
+  invitationId: integer("invitation_id").references(() => streamInvitations.id, { onDelete: "cascade" }),
+  
+  userId: integer("user_id").notNull().references(() => users.id),
+  type: text("type").notNull(), // stream_started, stream_ended, invitation_received, viewer_joined
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  
+  // Delivery tracking
+  isRead: boolean("is_read").default(false),
+  readAt: timestamp("read_at"),
+  deliveredViaWebSocket: boolean("delivered_via_websocket").default(false),
+  deliveredViaEmail: boolean("delivered_via_email").default(false),
+  
+  // Metadata
+  metadata: jsonb("metadata"), // Additional notification data
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Stream schema validation
 export const insertStreamSessionSchema = createInsertSchema(streamSessions, {
   title: z.string().min(1, "Stream title is required"),
@@ -4525,8 +4574,43 @@ export const insertStreamViewerSchema = createInsertSchema(streamViewers).omit({
   joinedAt: true,
 });
 
+// Stream invitation schemas
+export const insertStreamInvitationSchema = createInsertSchema(streamInvitations, {
+  message: z.string().optional(),
+  role: z.enum(['viewer', 'moderator', 'co-host']).default('viewer'),
+  expiresAt: z.string().optional(),
+}).omit({
+  id: true,
+  status: true,
+  sentAt: true,
+  respondedAt: true,
+  notificationSent: true,
+  emailSent: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertStreamNotificationSchema = createInsertSchema(streamNotifications, {
+  type: z.enum(['stream_started', 'stream_ended', 'invitation_received', 'viewer_joined']),
+  title: z.string().min(1),
+  message: z.string().min(1),
+  metadata: z.record(z.any()).optional(),
+}).omit({
+  id: true,
+  isRead: true,
+  readAt: true,
+  deliveredViaWebSocket: true,
+  deliveredViaEmail: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Stream Types
 export type StreamSession = typeof streamSessions.$inferSelect;
 export type InsertStreamSession = z.infer<typeof insertStreamSessionSchema>;
 export type StreamViewer = typeof streamViewers.$inferSelect;
 export type InsertStreamViewer = z.infer<typeof insertStreamViewerSchema>;
+export type StreamInvitation = typeof streamInvitations.$inferSelect;
+export type InsertStreamInvitation = z.infer<typeof insertStreamInvitationSchema>;
+export type StreamNotification = typeof streamNotifications.$inferSelect;
+export type InsertStreamNotification = z.infer<typeof insertStreamNotificationSchema>;

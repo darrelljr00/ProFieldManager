@@ -17,7 +17,8 @@ import {
   frontendIcons, frontendBoxes, frontendCategories, tutorials, tutorialProgress, tutorialCategories, leadSettings,
   meetings, meetingParticipants, meetingMessages, meetingRecordings, phoneNumbers,
   callRecords, callRecordings, callTranscripts, voicemails, callQueues, 
-  organizationTwilioSettings, organizationCallAnalytics
+  organizationTwilioSettings, organizationCallAnalytics,
+  streamSessions, streamViewers, streamInvitations, streamNotifications
 } from "@shared/schema";
 import { marketResearchCompetitors } from "@shared/schema";
 import type { GasCard, InsertGasCard, GasCardAssignment, InsertGasCardAssignment, GasCardUsage, InsertGasCardUsage, GasCardProvider, InsertGasCardProvider } from "@shared/schema";
@@ -29,7 +30,9 @@ import type {
   Employee, TimeOffRequest, PerformanceReview, DisciplinaryAction,
   NavigationOrder, InsertNavigationOrder, BackupSettings, BackupJob,
   Meeting, MeetingParticipant, MeetingMessage, MeetingRecording,
-  InsertMeeting, InsertMeetingParticipant, InsertMeetingMessage, InsertMeetingRecording
+  InsertMeeting, InsertMeetingParticipant, InsertMeetingMessage, InsertMeetingRecording,
+  StreamSession, StreamViewer, StreamInvitation, StreamNotification,
+  InsertStreamInvitation, InsertStreamNotification
 } from "@shared/schema";
 
 export interface IStorage {
@@ -620,7 +623,28 @@ export interface IStorage {
   createOrganizationCallAnalytics(analyticsData: any): Promise<any>;
   updateOrganizationCallAnalytics(id: number, organizationId: number, updates: any): Promise<any>;
 
-
+  // Streaming methods
+  getActiveStreams(organizationId: number): Promise<StreamSession[]>;
+  getStreamSession(streamId: string, organizationId: number): Promise<StreamSession | undefined>;
+  createStreamSession(streamData: any): Promise<StreamSession>;
+  updateStreamSession(streamId: string, organizationId: number, updates: any): Promise<StreamSession>;
+  endStreamSession(streamId: string, organizationId: number): Promise<StreamSession>;
+  getStreamViewers(streamId: string): Promise<StreamViewer[]>;
+  addStreamViewer(streamId: string, userId: number): Promise<StreamViewer>;
+  removeStreamViewer(streamId: string, userId: number): Promise<boolean>;
+  
+  // Stream invitation methods
+  createStreamInvitation(invitationData: InsertStreamInvitation): Promise<StreamInvitation>;
+  getStreamInvitations(streamId: string, organizationId: number): Promise<StreamInvitation[]>;
+  getUserStreamInvitations(userId: number, organizationId: number): Promise<StreamInvitation[]>;
+  updateStreamInvitation(invitationId: number, updates: any): Promise<StreamInvitation>;
+  respondToStreamInvitation(invitationId: number, status: 'accepted' | 'declined'): Promise<StreamInvitation>;
+  
+  // Stream notification methods
+  createStreamNotification(notificationData: InsertStreamNotification): Promise<StreamNotification>;
+  getUserStreamNotifications(userId: number, organizationId: number): Promise<StreamNotification[]>;
+  markStreamNotificationAsRead(notificationId: number): Promise<StreamNotification>;
+  markStreamNotificationAsDelivered(notificationId: number, deliveryType: 'websocket' | 'email'): Promise<StreamNotification>;
 
 }
 
@@ -11085,6 +11109,302 @@ export class DatabaseStorage implements IStorage {
       return analytics;
     } catch (error) {
       console.error('Error updating organization call analytics:', error);
+      throw error;
+    }
+  }
+
+  // Streaming method implementations
+  async getActiveStreams(organizationId: number): Promise<StreamSession[]> {
+    try {
+      return await db
+        .select()
+        .from(streamSessions)
+        .where(and(
+          eq(streamSessions.organizationId, organizationId),
+          eq(streamSessions.status, "active")
+        ))
+        .orderBy(desc(streamSessions.startedAt));
+    } catch (error) {
+      console.error('Error fetching active streams:', error);
+      throw error;
+    }
+  }
+
+  async getStreamSession(streamId: string, organizationId: number): Promise<StreamSession | undefined> {
+    try {
+      const [session] = await db
+        .select()
+        .from(streamSessions)
+        .where(and(
+          eq(streamSessions.id, streamId),
+          eq(streamSessions.organizationId, organizationId)
+        ));
+      return session;
+    } catch (error) {
+      console.error('Error fetching stream session:', error);
+      throw error;
+    }
+  }
+
+  async createStreamSession(streamData: any): Promise<StreamSession> {
+    try {
+      const [session] = await db
+        .insert(streamSessions)
+        .values(streamData)
+        .returning();
+      return session;
+    } catch (error) {
+      console.error('Error creating stream session:', error);
+      throw error;
+    }
+  }
+
+  async updateStreamSession(streamId: string, organizationId: number, updates: any): Promise<StreamSession> {
+    try {
+      const [session] = await db
+        .update(streamSessions)
+        .set({
+          ...updates,
+          updatedAt: new Date()
+        })
+        .where(and(
+          eq(streamSessions.id, streamId),
+          eq(streamSessions.organizationId, organizationId)
+        ))
+        .returning();
+      return session;
+    } catch (error) {
+      console.error('Error updating stream session:', error);
+      throw error;
+    }
+  }
+
+  async endStreamSession(streamId: string, organizationId: number): Promise<StreamSession> {
+    try {
+      const [session] = await db
+        .update(streamSessions)
+        .set({
+          status: "ended",
+          endedAt: new Date(),
+          updatedAt: new Date()
+        })
+        .where(and(
+          eq(streamSessions.id, streamId),
+          eq(streamSessions.organizationId, organizationId)
+        ))
+        .returning();
+      return session;
+    } catch (error) {
+      console.error('Error ending stream session:', error);
+      throw error;
+    }
+  }
+
+  async getStreamViewers(streamId: string): Promise<StreamViewer[]> {
+    try {
+      return await db
+        .select()
+        .from(streamViewers)
+        .where(eq(streamViewers.streamId, streamId))
+        .orderBy(desc(streamViewers.joinedAt));
+    } catch (error) {
+      console.error('Error fetching stream viewers:', error);
+      throw error;
+    }
+  }
+
+  async addStreamViewer(streamId: string, userId: number): Promise<StreamViewer> {
+    try {
+      const [viewer] = await db
+        .insert(streamViewers)
+        .values({
+          streamId,
+          userId,
+          isActive: true
+        })
+        .returning();
+      return viewer;
+    } catch (error) {
+      console.error('Error adding stream viewer:', error);
+      throw error;
+    }
+  }
+
+  async removeStreamViewer(streamId: string, userId: number): Promise<boolean> {
+    try {
+      await db
+        .update(streamViewers)
+        .set({
+          leftAt: new Date(),
+          isActive: false
+        })
+        .where(and(
+          eq(streamViewers.streamId, streamId),
+          eq(streamViewers.userId, userId),
+          eq(streamViewers.isActive, true)
+        ));
+      return true;
+    } catch (error) {
+      console.error('Error removing stream viewer:', error);
+      throw error;
+    }
+  }
+
+  // Stream invitation methods
+  async createStreamInvitation(invitationData: InsertStreamInvitation): Promise<StreamInvitation> {
+    try {
+      const [invitation] = await db
+        .insert(streamInvitations)
+        .values({
+          ...invitationData,
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+        })
+        .returning();
+      return invitation;
+    } catch (error) {
+      console.error('Error creating stream invitation:', error);
+      throw error;
+    }
+  }
+
+  async getStreamInvitations(streamId: string, organizationId: number): Promise<StreamInvitation[]> {
+    try {
+      return await db
+        .select()
+        .from(streamInvitations)
+        .where(and(
+          eq(streamInvitations.streamId, streamId),
+          eq(streamInvitations.organizationId, organizationId)
+        ))
+        .orderBy(desc(streamInvitations.sentAt));
+    } catch (error) {
+      console.error('Error fetching stream invitations:', error);
+      throw error;
+    }
+  }
+
+  async getUserStreamInvitations(userId: number, organizationId: number): Promise<StreamInvitation[]> {
+    try {
+      return await db
+        .select()
+        .from(streamInvitations)
+        .where(and(
+          eq(streamInvitations.invitedUserId, userId),
+          eq(streamInvitations.organizationId, organizationId),
+          eq(streamInvitations.status, "pending"),
+          or(
+            isNull(streamInvitations.expiresAt),
+            gt(streamInvitations.expiresAt, new Date())
+          )
+        ))
+        .orderBy(desc(streamInvitations.sentAt));
+    } catch (error) {
+      console.error('Error fetching user stream invitations:', error);
+      throw error;
+    }
+  }
+
+  async updateStreamInvitation(invitationId: number, updates: any): Promise<StreamInvitation> {
+    try {
+      const [invitation] = await db
+        .update(streamInvitations)
+        .set({
+          ...updates,
+          updatedAt: new Date()
+        })
+        .where(eq(streamInvitations.id, invitationId))
+        .returning();
+      return invitation;
+    } catch (error) {
+      console.error('Error updating stream invitation:', error);
+      throw error;
+    }
+  }
+
+  async respondToStreamInvitation(invitationId: number, status: 'accepted' | 'declined'): Promise<StreamInvitation> {
+    try {
+      const [invitation] = await db
+        .update(streamInvitations)
+        .set({
+          status,
+          respondedAt: new Date(),
+          updatedAt: new Date()
+        })
+        .where(eq(streamInvitations.id, invitationId))
+        .returning();
+      return invitation;
+    } catch (error) {
+      console.error('Error responding to stream invitation:', error);
+      throw error;
+    }
+  }
+
+  // Stream notification methods
+  async createStreamNotification(notificationData: InsertStreamNotification): Promise<StreamNotification> {
+    try {
+      const [notification] = await db
+        .insert(streamNotifications)
+        .values(notificationData)
+        .returning();
+      return notification;
+    } catch (error) {
+      console.error('Error creating stream notification:', error);
+      throw error;
+    }
+  }
+
+  async getUserStreamNotifications(userId: number, organizationId: number): Promise<StreamNotification[]> {
+    try {
+      return await db
+        .select()
+        .from(streamNotifications)
+        .where(and(
+          eq(streamNotifications.userId, userId),
+          eq(streamNotifications.organizationId, organizationId)
+        ))
+        .orderBy(desc(streamNotifications.createdAt))
+        .limit(50);
+    } catch (error) {
+      console.error('Error fetching user stream notifications:', error);
+      throw error;
+    }
+  }
+
+  async markStreamNotificationAsRead(notificationId: number): Promise<StreamNotification> {
+    try {
+      const [notification] = await db
+        .update(streamNotifications)
+        .set({
+          isRead: true,
+          readAt: new Date(),
+          updatedAt: new Date()
+        })
+        .where(eq(streamNotifications.id, notificationId))
+        .returning();
+      return notification;
+    } catch (error) {
+      console.error('Error marking stream notification as read:', error);
+      throw error;
+    }
+  }
+
+  async markStreamNotificationAsDelivered(notificationId: number, deliveryType: 'websocket' | 'email'): Promise<StreamNotification> {
+    try {
+      const updateData: any = { updatedAt: new Date() };
+      if (deliveryType === 'websocket') {
+        updateData.deliveredViaWebSocket = true;
+      } else if (deliveryType === 'email') {
+        updateData.deliveredViaEmail = true;
+      }
+
+      const [notification] = await db
+        .update(streamNotifications)
+        .set(updateData)
+        .where(eq(streamNotifications.id, notificationId))
+        .returning();
+      return notification;
+    } catch (error) {
+      console.error('Error marking stream notification as delivered:', error);
       throw error;
     }
   }
