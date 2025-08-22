@@ -1516,9 +1516,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log('🔍 Existing settings found:', existingSettings ? 'YES' : 'NO');
       
-      // Add updatedAt timestamp to updates
+      // Clean the updates object - remove read-only fields and add proper timestamp
+      const {
+        id, userId, organizationId, createdAt, updatedAt, 
+        ...cleanUpdates
+      } = updates;
+      
       const updatesWithTimestamp = {
-        ...updates,
+        ...cleanUpdates,
         updatedAt: new Date()
       };
       

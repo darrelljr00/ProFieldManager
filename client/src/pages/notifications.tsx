@@ -201,13 +201,7 @@ export default function NotificationsPage() {
   // Update notification settings mutation
   const updateSettingsMutation = useMutation({
     mutationFn: async (settings: Partial<NotificationSettings>) => {
-      const response = await fetch('/api/notification-settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(settings)
-      });
-      if (!response.ok) throw new Error('Failed to update settings');
-      return response.json();
+      return await apiRequest('PUT', '/api/notification-settings', settings);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/notification-settings'] });
@@ -215,6 +209,14 @@ export default function NotificationsPage() {
         title: "Success",
         description: "Notification settings updated",
       });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: "Failed to update notification settings. Please try again.",
+        variant: "destructive",
+      });
+      console.error('Settings update error:', error);
     },
   });
 
