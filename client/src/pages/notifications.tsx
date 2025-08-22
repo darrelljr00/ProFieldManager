@@ -52,24 +52,42 @@ interface NotificationSettings {
   id?: number;
   userId: number;
   organizationId: number;
-  jobAssignmentInApp: boolean;
-  jobAssignmentEmail: boolean;
-  jobAssignmentSms: boolean;
-  taskCompletionInApp: boolean;
-  taskCompletionEmail: boolean;
-  taskCompletionSms: boolean;
-  taskTriggerInApp: boolean;
-  taskTriggerEmail: boolean;
-  taskTriggerSms: boolean;
-  leadAssignmentInApp: boolean;
-  leadAssignmentEmail: boolean;
-  leadAssignmentSms: boolean;
-  invoicePaymentInApp: boolean;
-  invoicePaymentEmail: boolean;
-  invoicePaymentSms: boolean;
-  teamUpdatesInApp: boolean;
-  teamUpdatesEmail: boolean;
-  teamUpdatessSms: boolean;
+  // Job notifications
+  jobAssignedInApp: boolean;
+  jobAssignedEmail: boolean;
+  jobAssignedSms: boolean;
+  jobCompletedInApp: boolean;
+  jobCompletedEmail: boolean;
+  jobCompletedSms: boolean;
+  // Task notifications
+  taskAssignedInApp: boolean;
+  taskAssignedEmail: boolean;
+  taskAssignedSms: boolean;
+  taskCompletedInApp: boolean;
+  taskCompletedEmail: boolean;
+  taskCompletedSms: boolean;
+  taskTriggeredInApp: boolean;
+  taskTriggeredEmail: boolean;
+  taskTriggeredSms: boolean;
+  // Lead notifications
+  leadNewInApp: boolean;
+  leadNewEmail: boolean;
+  leadNewSms: boolean;
+  // Invoice notifications
+  invoicePaidInApp: boolean;
+  invoicePaidEmail: boolean;
+  invoicePaidSms: boolean;
+  // System notifications
+  stockAlertInApp: boolean;
+  stockAlertEmail: boolean;
+  stockAlertSms: boolean;
+  scheduleReminderInApp: boolean;
+  scheduleReminderEmail: boolean;
+  scheduleReminderSms: boolean;
+  // Global settings
+  globalInApp: boolean;
+  globalEmail: boolean;
+  globalSms: boolean;
 }
 
 const getNotificationIcon = (type: string) => {
@@ -132,13 +150,13 @@ export default function NotificationsPage() {
   });
 
   // Admin queries (only if admin or manager)
-  const { data: adminNotifications = [], isLoading: adminLoading } = useQuery({
+  const { data: adminNotifications = [], isLoading: adminLoading } = useQuery<any[]>({
     queryKey: ['/api/admin/notifications'],
     enabled: isAdminOrManager && activeTab === 'admin',
     refetchInterval: 30000,
   });
 
-  const { data: notificationStats } = useQuery({
+  const { data: notificationStats = { total: 0, unread: 0, adminViewed: 0, urgentUnread: 0, readPercentage: 0 } } = useQuery<{ total: number; unread: number; adminViewed: number; urgentUnread: number; readPercentage: number }>({
     queryKey: ['/api/admin/notifications/stats'],
     enabled: isAdminOrManager && activeTab === 'admin',
     refetchInterval: 60000,
@@ -496,45 +514,69 @@ function NotificationSettings({ settings, loading, onSettingChange, updatePendin
 
   const settingGroups = [
     {
-      title: "Job & Task Management",
+      title: "Job Management",
       icon: Calendar,
       settings: [
-        { key: 'jobAssignmentInApp', label: 'Job assignments (In-app)', description: 'When you are assigned to a new job' },
-        { key: 'jobAssignmentEmail', label: 'Job assignments (Email)', description: 'Email notifications for job assignments' },
-        { key: 'jobAssignmentSms', label: 'Job assignments (SMS)', description: 'SMS notifications for job assignments' },
-        { key: 'taskCompletionInApp', label: 'Task completions (In-app)', description: 'When tasks are completed' },
-        { key: 'taskCompletionEmail', label: 'Task completions (Email)', description: 'Email notifications for task completions' },
-        { key: 'taskCompletionSms', label: 'Task completions (SMS)', description: 'SMS notifications for task completions' },
-        { key: 'taskTriggerInApp', label: 'Task triggers (In-app)', description: 'When task triggers are activated' },
-        { key: 'taskTriggerEmail', label: 'Task triggers (Email)', description: 'Email notifications for task triggers' },
-        { key: 'taskTriggerSms', label: 'Task triggers (SMS)', description: 'SMS notifications for task triggers' },
+        { key: 'jobAssignedInApp', label: 'Job assignments (In-app)', description: 'When you are assigned to a new job' },
+        { key: 'jobAssignedEmail', label: 'Job assignments (Email)', description: 'Email notifications for job assignments' },
+        { key: 'jobAssignedSms', label: 'Job assignments (SMS)', description: 'SMS notifications for job assignments' },
+        { key: 'jobCompletedInApp', label: 'Job completions (In-app)', description: 'When jobs are completed' },
+        { key: 'jobCompletedEmail', label: 'Job completions (Email)', description: 'Email notifications for job completions' },
+        { key: 'jobCompletedSms', label: 'Job completions (SMS)', description: 'SMS notifications for job completions' },
+      ]
+    },
+    {
+      title: "Task Management", 
+      icon: CheckCheck,
+      settings: [
+        { key: 'taskAssignedInApp', label: 'Task assignments (In-app)', description: 'When tasks are assigned to you' },
+        { key: 'taskAssignedEmail', label: 'Task assignments (Email)', description: 'Email notifications for task assignments' },
+        { key: 'taskAssignedSms', label: 'Task assignments (SMS)', description: 'SMS notifications for task assignments' },
+        { key: 'taskCompletedInApp', label: 'Task completions (In-app)', description: 'When tasks are completed' },
+        { key: 'taskCompletedEmail', label: 'Task completions (Email)', description: 'Email notifications for task completions' },
+        { key: 'taskCompletedSms', label: 'Task completions (SMS)', description: 'SMS notifications for task completions' },
+        { key: 'taskTriggeredInApp', label: 'Task triggers (In-app)', description: 'When task triggers are activated' },
+        { key: 'taskTriggeredEmail', label: 'Task triggers (Email)', description: 'Email notifications for task triggers' },
+        { key: 'taskTriggeredSms', label: 'Task triggers (SMS)', description: 'SMS notifications for task triggers' },
       ]
     },
     {
       title: "Sales & Leads",
       icon: User,
       settings: [
-        { key: 'leadAssignmentInApp', label: 'Lead assignments (In-app)', description: 'When leads are assigned to you' },
-        { key: 'leadAssignmentEmail', label: 'Lead assignments (Email)', description: 'Email notifications for lead assignments' },
-        { key: 'leadAssignmentSms', label: 'Lead assignments (SMS)', description: 'SMS notifications for lead assignments' },
+        { key: 'leadNewInApp', label: 'New leads (In-app)', description: 'When new leads are created' },
+        { key: 'leadNewEmail', label: 'New leads (Email)', description: 'Email notifications for new leads' },
+        { key: 'leadNewSms', label: 'New leads (SMS)', description: 'SMS notifications for new leads' },
       ]
     },
     {
       title: "Financial",
       icon: DollarSign,
       settings: [
-        { key: 'invoicePaymentInApp', label: 'Invoice payments (In-app)', description: 'When invoices are paid' },
-        { key: 'invoicePaymentEmail', label: 'Invoice payments (Email)', description: 'Email notifications for invoice payments' },
-        { key: 'invoicePaymentSms', label: 'Invoice payments (SMS)', description: 'SMS notifications for invoice payments' },
+        { key: 'invoicePaidInApp', label: 'Invoice payments (In-app)', description: 'When invoices are paid' },
+        { key: 'invoicePaidEmail', label: 'Invoice payments (Email)', description: 'Email notifications for invoice payments' },
+        { key: 'invoicePaidSms', label: 'Invoice payments (SMS)', description: 'SMS notifications for invoice payments' },
       ]
     },
     {
-      title: "Team Updates",
-      icon: Users,
+      title: "System Notifications",
+      icon: AlertCircle,
       settings: [
-        { key: 'teamUpdatesInApp', label: 'Team updates (In-app)', description: 'General team and organization updates' },
-        { key: 'teamUpdatesEmail', label: 'Team updates (Email)', description: 'Email notifications for team updates' },
-        { key: 'teamUpdatessSms', label: 'Team updates (SMS)', description: 'SMS notifications for team updates' },
+        { key: 'stockAlertInApp', label: 'Stock alerts (In-app)', description: 'When inventory is running low' },
+        { key: 'stockAlertEmail', label: 'Stock alerts (Email)', description: 'Email notifications for stock alerts' },
+        { key: 'stockAlertSms', label: 'Stock alerts (SMS)', description: 'SMS notifications for stock alerts' },
+        { key: 'scheduleReminderInApp', label: 'Schedule reminders (In-app)', description: 'Reminders for upcoming appointments' },
+        { key: 'scheduleReminderEmail', label: 'Schedule reminders (Email)', description: 'Email reminders for schedule' },
+        { key: 'scheduleReminderSms', label: 'Schedule reminders (SMS)', description: 'SMS reminders for schedule' },
+      ]
+    },
+    {
+      title: "Global Settings",
+      icon: Settings,
+      settings: [
+        { key: 'globalInApp', label: 'All in-app notifications', description: 'Master toggle for all in-app notifications' },
+        { key: 'globalEmail', label: 'All email notifications', description: 'Master toggle for all email notifications' },
+        { key: 'globalSms', label: 'All SMS notifications', description: 'Master toggle for all SMS notifications' },
       ]
     }
   ];
@@ -567,7 +609,7 @@ function NotificationSettings({ settings, loading, onSettingChange, updatePendin
                     </span>
                     <Switch
                       id={setting.key}
-                      checked={settings[setting.key as keyof NotificationSettings] || false}
+                      checked={Boolean(settings[setting.key as keyof NotificationSettings])}
                       onCheckedChange={(checked) => 
                         onSettingChange(setting.key as keyof NotificationSettings, checked)
                       }
