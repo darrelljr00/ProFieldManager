@@ -129,15 +129,41 @@ export const authenticateUser = async (credentials: { username: string; password
     console.log('🔐 LOGIN RESPONSE:', {
       status: response.status,
       ok: response.ok,
-      headers: Object.fromEntries(response.headers.entries())
+      statusText: response.statusText,
+      headers: Object.fromEntries(response.headers.entries()),
+      url: response.url
     });
     
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Login failed: ${errorText}`);
+      let errorText = '';
+      let errorData = null;
+      
+      try {
+        errorText = await response.text();
+        console.log('🚨 ERROR RESPONSE TEXT:', errorText);
+        
+        try {
+          errorData = JSON.parse(errorText);
+          console.log('🚨 ERROR RESPONSE JSON:', errorData);
+        } catch (jsonError) {
+          console.log('🚨 ERROR RESPONSE NOT JSON:', jsonError);
+        }
+      } catch (textError) {
+        console.error('🚨 FAILED TO READ ERROR RESPONSE:', textError);
+        errorText = `HTTP ${response.status} ${response.statusText}`;
+      }
+      
+      throw new Error(errorData?.message || errorText || `Login failed with status ${response.status}`);
     }
     
-    const data = await response.json();
+    let data;
+    try {
+      data = await response.json();
+      console.log('✅ LOGIN SUCCESS DATA:', data);
+    } catch (jsonError) {
+      console.error('🚨 FAILED TO PARSE SUCCESS RESPONSE:', jsonError);
+      throw new Error('Login response was not valid JSON');
+    }
     
     // For custom domain, store token in localStorage
     if (isCustomDomain() && data.token) {
