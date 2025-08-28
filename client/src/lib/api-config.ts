@@ -152,19 +152,6 @@ export const authenticateUser = async (credentials: { username: string; password
     throw error;
   }
 };
-export const getAuthHeaders = (): Record<string, string> => {
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json'
-  };
-  
-  // Always check localStorage first for Bearer token (works on both domains)
-  const token = localStorage.getItem('auth_token');
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-  
-  return headers;
-};
 
 /**
  * Debug information about current API configuration
