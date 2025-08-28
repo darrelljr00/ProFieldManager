@@ -13,6 +13,7 @@ Preferred communication style: Simple, everyday language.
 - **Custom Domain Authentication Resolved**: Fixed cross-origin authentication issues for profieldmanager.com domain using Bearer token authentication
 - **CORS Configuration Enhanced**: Improved CORS headers to support cross-site requests from custom domain to Replit backend
 - **Build Process Optimized**: Created automated build script to properly handle frontend asset deployment
+- **Share Photo Links Fixed**: Resolved foreign key constraint violation when sharing images without project associations by allowing nullable projectId in database schema and converting zero values to null in both frontend and backend validation
 
 ## System Architecture
 

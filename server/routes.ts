@@ -9760,7 +9760,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const linkData = {
         shareToken,
-        projectId,
+        projectId: projectId && projectId > 0 ? projectId : null,
         imageIds: JSON.stringify(imageIds),
         createdBy: userId,
         recipientEmail,
