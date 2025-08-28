@@ -32,6 +32,10 @@ app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', origin);
   } else if (!origin) {
     res.header('Access-Control-Allow-Origin', '*');
+  } else {
+    // For debugging: Allow all origins temporarily and log unauthorized origins
+    console.log('🚨 Unauthorized origin detected:', origin);
+    res.header('Access-Control-Allow-Origin', origin); // Temporary fix for custom domain
   }
   
   res.header('Access-Control-Allow-Credentials', 'true');

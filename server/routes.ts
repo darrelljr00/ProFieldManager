@@ -1777,8 +1777,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       hasBody: !!req.body,
       bodyKeys: Object.keys(req.body || {}),
       userAgent: req.headers['user-agent']?.substring(0, 50),
-      referer: req.headers.referer
+      referer: req.headers.referer,
+      method: req.method,
+      contentType: req.headers['content-type'],
+      acceptHeader: req.headers.accept
     });
+    
+    // Ensure CORS headers are set for custom domain
+    const isCustomDomain = req.headers.origin?.includes('profieldmanager.com');
+    if (isCustomDomain && req.headers.origin) {
+      res.header('Access-Control-Allow-Origin', req.headers.origin);
+      res.header('Access-Control-Allow-Credentials', 'true');
+      res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cookie');
+    }
     
     try {
       const validatedData = loginSchema.parse(req.body);
@@ -1885,6 +1896,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Logout error:", error);
       res.status(500).json({ message: "Logout failed" });
     }
+  });
+
+  // Debug endpoint to test network connectivity and CORS
+  app.get("/api/debug/ping", async (req, res) => {
+    console.log('🏓 PING received from:', {
+      origin: req.headers.origin,
+      host: req.headers.host,
+      userAgent: req.headers['user-agent']?.substring(0, 50),
+      isCustomDomain: req.headers.origin?.includes('profieldmanager.com')
+    });
+    
+    const isCustomDomain = req.headers.origin?.includes('profieldmanager.com');
+    if (isCustomDomain && req.headers.origin) {
+      res.header('Access-Control-Allow-Origin', req.headers.origin);
+      res.header('Access-Control-Allow-Credentials', 'true');
+    }
+    
+    res.json({ 
+      message: "Pong! Server is reachable",
+      timestamp: new Date().toISOString(),
+      origin: req.headers.origin,
+      isCustomDomain: isCustomDomain
+    });
   });
 
   // Debug endpoint to test user data transformation
