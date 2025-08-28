@@ -1220,7 +1220,7 @@ export const fileAccessLogs = pgTable("file_access_logs", {
 export const sharedPhotoLinks = pgTable("shared_photo_links", {
   id: serial("id").primaryKey(),
   shareToken: text("share_token").notNull().unique(),
-  projectId: integer("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  projectId: integer("project_id").references(() => projects.id, { onDelete: "cascade" }),
   imageIds: jsonb("image_ids").notNull(), // Array of image IDs to share
   createdBy: integer("created_by").notNull().references(() => users.id),
   recipientEmail: text("recipient_email"),
@@ -1800,7 +1800,7 @@ export const insertImageAnnotationSchema = z.object({
 
 export const insertSharedPhotoLinkSchema = z.object({
   shareToken: z.string(),
-  projectId: z.number(),
+  projectId: z.number().nullable(),
   imageIds: z.union([z.array(z.number()), z.string()]), // Can be array or JSON string
   createdBy: z.number(),
   recipientEmail: z.string().email().optional(),
