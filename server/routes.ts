@@ -9775,9 +9775,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = insertSharedPhotoLinkSchema.parse(linkData);
       const link = await storage.createSharedPhotoLink(validatedData);
 
+      // Use custom domain for share URLs
+      const customDomain = 'profieldmanager.com';
+      const shareUrl = `https://${customDomain}/shared/${shareToken}`;
+      
       res.json({
         ...link,
-        shareUrl: `${req.protocol}://${req.get('host')}/shared/${shareToken}`
+        shareUrl
       });
     } catch (error: any) {
       console.error('Error creating shared photo link:', error);
@@ -9793,9 +9797,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user!.id;
       const links = await storage.getSharedPhotoLinks(userId);
       
+      // Use custom domain for share URLs
+      const customDomain = 'profieldmanager.com';
       const linksWithUrls = links.map(link => ({
         ...link,
-        shareUrl: `${req.protocol}://${req.get('host')}/shared/${link.shareToken}`
+        shareUrl: `https://${customDomain}/shared/${link.shareToken}`
       }));
       
       res.json(linksWithUrls);
