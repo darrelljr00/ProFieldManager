@@ -76,17 +76,37 @@ export function SharePhotosDialog({
         throw new Error('Some selected images are missing IDs');
       }
       
-      return apiRequest('POST', '/api/shared-photo-links', {
+      const response = await apiRequest('POST', '/api/shared-photo-links', {
         projectId: projectId && projectId > 0 ? projectId : null,
         imageIds,
         ...data,
       });
+      return await response.json();
     },
     onSuccess: (data) => {
       console.log('✅ Share link creation response:', data);
-      const shareUrl = data.shareUrl || `https://profieldmanager.com/shared/${data.shareToken}`;
-      console.log('🔗 Share URL set to:', shareUrl);
-      setShareUrl(shareUrl);
+      console.log('✅ Response fields:', Object.keys(data));
+      
+      // Extract shareUrl with multiple fallback options
+      let finalShareUrl = '';
+      if (data.shareUrl) {
+        finalShareUrl = data.shareUrl;
+        console.log('🔗 Using shareUrl from response:', finalShareUrl);
+      } else if (data.shareToken) {
+        finalShareUrl = `https://profieldmanager.com/shared/${data.shareToken}`;
+        console.log('🔗 Generated shareUrl from token:', finalShareUrl);
+      } else {
+        console.error('❌ No shareUrl or shareToken found in response');
+        toast({
+          title: "Warning",
+          description: "Share link created but URL could not be generated",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      console.log('🔗 Final share URL set to:', finalShareUrl);
+      setShareUrl(finalShareUrl);
       setIsShared(true);
       queryClient.invalidateQueries({ queryKey: ['/api/shared-photo-links'] });
       toast({
