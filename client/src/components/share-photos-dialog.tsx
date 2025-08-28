@@ -83,7 +83,10 @@ export function SharePhotosDialog({
       });
     },
     onSuccess: (data) => {
-      setShareUrl(data.shareUrl);
+      console.log('✅ Share link creation response:', data);
+      const shareUrl = data.shareUrl || `https://profieldmanager.com/shared/${data.shareToken}`;
+      console.log('🔗 Share URL set to:', shareUrl);
+      setShareUrl(shareUrl);
       setIsShared(true);
       queryClient.invalidateQueries({ queryKey: ['/api/shared-photo-links'] });
       toast({
@@ -303,14 +306,24 @@ export function SharePhotosDialog({
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
-                  <Input value={shareUrl} readOnly className="flex-1" />
-                  <Button size="sm" variant="outline" onClick={copyToClipboard}>
+                  <Input 
+                    value={shareUrl || "Generating URL..."} 
+                    readOnly 
+                    className="flex-1" 
+                    placeholder={shareUrl ? "" : "Share URL will appear here"}
+                  />
+                  <Button size="sm" variant="outline" onClick={copyToClipboard} disabled={!shareUrl}>
                     <Copy className="h-4 w-4" />
                   </Button>
-                  <Button size="sm" variant="outline" onClick={openShareLink}>
+                  <Button size="sm" variant="outline" onClick={openShareLink} disabled={!shareUrl}>
                     <ExternalLink className="h-4 w-4" />
                   </Button>
                 </div>
+                {!shareUrl && (
+                  <div className="text-sm text-amber-600 bg-amber-50 p-2 rounded">
+                    Debug: shareUrl is empty or undefined
+                  </div>
+                )}
 
                 <div className="flex gap-2 text-sm text-muted-foreground">
                   <Badge variant="secondary" className="flex items-center gap-1">
