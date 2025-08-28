@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
+import { authenticateUser } from "@/lib/api-config";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -95,19 +96,49 @@ export default function LoginPage() {
       localStorage.removeItem('auth_token');
       queryClient.clear();
       
-      const loginDataWithGps = { ...data, gpsData };
-      
       try {
-        const response = await apiRequest("POST", "/api/auth/login", loginDataWithGps);
-        console.log('📡 Login response received:', response.status);
-        
-        const result = await response.json();
-        console.log('✅ Login data parsed successfully');
+        // Use enhanced authentication function for custom domain compatibility
+        const result = await authenticateUser({
+          username: data.username,
+          password: data.password
+        });
+        console.log('✅ Login successful with enhanced auth');
         return result;
       } catch (fetchError: any) {
-        console.error('💥 Network fetch error:', fetchError);
+        console.error('💥 Authentication error:', fetchError);
         throw fetchError;
       }
+    },
+    onSuccess: (response) => {
+      // Store token in localStorage for custom domain authentication
+      if (response.token) {
+        localStorage.setItem('auth_token', response.token);
+        console.log('🔑 Auth token stored in localStorage for custom domain');
+      }
+      
+      // Invalidate auth queries to refresh user state
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      toast({
+        title: "Login Successful",
+        description: `Welcome back, ${response.user.firstName || response.user.username}!`,
+      });
+      
+      // Check for intended destination and redirect appropriately
+      const intendedDestination = localStorage.getItem('intended_destination');
+      if (intendedDestination && intendedDestination !== '/login') {
+        localStorage.removeItem('intended_destination');
+        setLocation(intendedDestination);
+      } else {
+        setLocation("/dashboard");
+      }
+    },
+    onError: (error: any) => {
+      console.error('🚨 Login failed:', error);
+      toast({
+        title: "Login Failed",
+        description: error.message || "Invalid credentials. Please check your username and password.",
+        variant: "destructive",
+      });
     }
   });
 

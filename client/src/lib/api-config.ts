@@ -85,6 +85,74 @@ export const isCustomDomain = (): boolean => {
  * @returns Headers object with authentication
  */
 export const getAuthHeaders = (): Record<string, string> => {
+  const headers: Record<string, string> = {};
+  
+  // For custom domain, use Bearer token from localStorage
+  if (isCustomDomain()) {
+    const token = localStorage.getItem('auth_token');
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+  }
+  
+  return headers;
+};
+
+/**
+ * Enhanced login function specifically for custom domain compatibility
+ * @param credentials - Login credentials
+ * @returns Promise with authentication result
+ */
+export const authenticateUser = async (credentials: { username: string; password: string }) => {
+  const loginUrl = buildApiUrl('/api/auth/login');
+  
+  console.log('🔐 AUTHENTICATION ATTEMPT:', {
+    isCustomDomain: isCustomDomain(),
+    loginUrl,
+    timestamp: new Date().toISOString()
+  });
+  
+  try {
+    const response = await fetch(loginUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(isCustomDomain() ? {
+          'Accept': 'application/json',
+          'Cache-Control': 'no-cache'
+        } : {})
+      },
+      body: JSON.stringify(credentials),
+      credentials: 'include'
+    });
+    
+    console.log('🔐 LOGIN RESPONSE:', {
+      status: response.status,
+      ok: response.ok,
+      headers: Object.fromEntries(response.headers.entries())
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Login failed: ${errorText}`);
+    }
+    
+    const data = await response.json();
+    
+    // For custom domain, store token in localStorage
+    if (isCustomDomain() && data.token) {
+      localStorage.setItem('auth_token', data.token);
+      console.log('🔐 Token stored for custom domain authentication');
+    }
+    
+    return data;
+    
+  } catch (error) {
+    console.error('🚨 AUTHENTICATION ERROR:', error);
+    throw error;
+  }
+};
+export const getAuthHeaders = (): Record<string, string> => {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json'
   };
