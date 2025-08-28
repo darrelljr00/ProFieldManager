@@ -9735,8 +9735,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user!.id;
       const { projectId, imageIds, recipientEmail, recipientName, expiresInHours = 168, maxAccess, message } = req.body;
 
-      if (!projectId || !imageIds || !Array.isArray(imageIds) || imageIds.length === 0) {
-        return res.status(400).json({ message: 'Project ID and image IDs are required' });
+      console.log('🔗 Share link request received:', {
+        userId,
+        projectId,
+        imageIds,
+        imageIdsType: typeof imageIds,
+        imageIdsLength: Array.isArray(imageIds) ? imageIds.length : 'not array',
+        requestBody: JSON.stringify(req.body)
+      });
+
+      if (!imageIds || !Array.isArray(imageIds) || imageIds.length === 0) {
+        console.log('❌ Share link validation failed:', {
+          hasProjectId: !!projectId,
+          hasImageIds: !!imageIds,
+          isImageIdsArray: Array.isArray(imageIds),
+          imageIdsLength: Array.isArray(imageIds) ? imageIds.length : 'not array'
+        });
+        return res.status(400).json({ message: 'Image IDs are required' });
       }
 
       const shareToken = nanoid(32);

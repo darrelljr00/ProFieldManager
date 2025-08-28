@@ -28,7 +28,7 @@ type ShareFormData = z.infer<typeof shareFormSchema>;
 interface SharePhotosDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  projectId?: number;
+  projectId?: number | null;
   selectedImages: any[];
   projectName: string;
   onSuccess?: () => void;
@@ -51,13 +51,31 @@ export function SharePhotosDialog({
     resolver: zodResolver(shareFormSchema),
     defaultValues: {
       expiresInHours: 168, // 1 week default
-      message: `Here are the project photos for ${projectName}. This link will expire automatically for security.`,
+      message: projectId ? `Here are the project photos for ${projectName}. This link will expire automatically for security.` : `Here are the shared photos. This link will expire automatically for security.`,
     },
   });
 
   const createShareLinkMutation = useMutation({
     mutationFn: async (data: ShareFormData) => {
       const imageIds = selectedImages.map(img => img.id);
+      
+      console.log('🔗 Creating share link with data:', {
+        projectId,
+        imageIds,
+        selectedImagesCount: selectedImages.length,
+        formData: data
+      });
+      
+      // Note: projectId can be null for general image sharing
+      
+      if (!selectedImages || selectedImages.length === 0) {
+        throw new Error('At least one image must be selected');
+      }
+      
+      if (imageIds.some(id => !id)) {
+        throw new Error('Some selected images are missing IDs');
+      }
+      
       return apiRequest('POST', '/api/shared-photo-links', {
         projectId,
         imageIds,
