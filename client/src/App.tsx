@@ -60,6 +60,7 @@ import HomePage from "@/pages/home";
 import FeaturesPage from "@/pages/features";
 import AuthDebug from "@/pages/auth-debug";
 import NotFound from "@/pages/not-found";
+import SharedPhotosViewer from "@/pages/shared-photos";
 import { DeletedJobs } from "@/pages/deleted-jobs";
 import { CancelledJobs } from "@/pages/cancelled-jobs";
 import FrontendManagement from "@/pages/frontend-management";
@@ -283,6 +284,7 @@ function Router() {
           <Route path="/login" component={SimpleLogin} />
           <Route path="/login-full" component={Login} />
           <Route path="/auth-debug" component={AuthDebug} />
+          <Route path="/shared/:token" component={SharedPhotosViewer} />
           <Route component={SimpleLogin} />
         </Switch>
       </Suspense>

@@ -214,6 +214,7 @@ export interface IStorage {
   createImage(imageData: any): Promise<any>;
   getImages(userId: number): Promise<any[]>;
   getImageById(imageId: number): Promise<any>;
+  getImagesByIds(imageIds: number[]): Promise<any[]>;
   saveImageAnnotations(imageId: number, userId: number, annotations: any, annotatedImageUrl: string): Promise<void>;
   deleteImage(imageId: number, userId: number): Promise<boolean>;
   deleteImage(id: number): Promise<void>;
@@ -5046,6 +5047,38 @@ export class DatabaseStorage implements IStorage {
       });
     } catch (error) {
       console.error('Error fetching images:', error);
+      return [];
+    }
+  }
+
+  async getImagesByIds(imageIds: number[]): Promise<any[]> {
+    try {
+      if (!imageIds || imageIds.length === 0) {
+        return [];
+      }
+
+      const imageResults = await db
+        .select()
+        .from(images)
+        .where(
+          and(
+            inArray(images.id, imageIds),
+            isNull(images.deletedAt)
+          )
+        )
+        .orderBy(desc(images.createdAt));
+
+      console.log('📸 SHARED PHOTOS DEBUG: Found images for IDs:', {
+        requestedIds: imageIds,
+        foundCount: imageResults.length
+      });
+
+      return imageResults.map(image => ({
+        ...image,
+        uploadDate: image.createdAt // Map createdAt to uploadDate for frontend compatibility
+      }));
+    } catch (error) {
+      console.error('Error fetching images by IDs:', error);
       return [];
     }
   }

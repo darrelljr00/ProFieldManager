@@ -9814,32 +9814,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/shared/:token', async (req, res) => {
     try {
       const { token } = req.params;
+      console.log('🔗 Shared photo link accessed:', token);
+      
       const link = await storage.getSharedPhotoLink(token);
 
       if (!link) {
+        console.log('❌ Shared link not found:', token);
         return res.status(404).json({ message: 'Shared link not found or expired' });
       }
 
+      console.log('✅ Shared link found:', {
+        id: link.id,
+        imageCount: link.imageIds ? JSON.parse(link.imageIds).length : 0,
+        expiresAt: link.expiresAt,
+        accessCount: link.accessCount,
+        isActive: link.isActive
+      });
+
       // Check if link has expired
       if (new Date() > new Date(link.expiresAt)) {
+        console.log('⏰ Shared link expired:', token);
         return res.status(410).json({ message: 'Shared link has expired' });
       }
 
       // Check access limits
       if (link.maxAccess && link.accessCount >= link.maxAccess) {
+        console.log('🚫 Access limit reached for link:', token);
         return res.status(429).json({ message: 'Access limit exceeded for this link' });
+      }
+
+      // Check if link is active
+      if (!link.isActive) {
+        console.log('❌ Shared link is deactivated:', token);
+        return res.status(410).json({ message: 'Shared link has been deactivated' });
       }
 
       // Update access count
       await storage.updateSharedPhotoLinkAccess(token);
 
+      // Get the actual image data
+      const imageIds = JSON.parse(link.imageIds);
+      const images = await storage.getImagesByIds(imageIds);
+      
+      // Get creator information
+      const creator = await storage.getUser(link.createdBy);
+      
+      // Get project information if applicable
+      let projectName = null;
+      if (link.projectId) {
+        const project = await storage.getProjectById(link.projectId);
+        projectName = project?.name || null;
+      }
+
+      console.log('📸 Returning shared photos:', {
+        imageCount: images.length,
+        projectName,
+        createdBy: creator?.username
+      });
+
       res.json({
-        project: link.project,
-        images: link.images,
-        message: link.message,
+        id: link.id,
+        shareToken: link.shareToken,
+        projectId: link.projectId,
+        projectName,
+        imageIds,
+        images: images.map(img => ({
+          id: img.id,
+          filename: img.filename,
+          originalName: img.originalName,
+          cloudinaryUrl: img.cloudinaryUrl,
+          size: img.size,
+          mimeType: img.mimeType,
+          uploadDate: img.createdAt
+        })),
+        createdBy: link.createdBy,
+        createdByName: creator ? `${creator.firstName || ''} ${creator.lastName || ''}`.trim() || creator.username : 'Unknown',
         recipientName: link.recipientName,
-        accessCount: link.accessCount + 1,
-        maxAccess: link.maxAccess
+        recipientEmail: link.recipientEmail,
+        expiresAt: link.expiresAt,
+        accessCount: link.accessCount + 1, // Include the current access
+        maxAccess: link.maxAccess,
+        message: link.message,
+        isActive: link.isActive,
+        createdAt: link.createdAt
       });
     } catch (error: any) {
       console.error('Error accessing shared photo link:', error);
