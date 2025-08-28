@@ -77,7 +77,7 @@ export function SharePhotosDialog({
       }
       
       return apiRequest('POST', '/api/shared-photo-links', {
-        projectId,
+        projectId: projectId && projectId > 0 ? projectId : null,
         imageIds,
         ...data,
       });
