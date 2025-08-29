@@ -41,11 +41,38 @@ export default function SharedPhotosViewer() {
   const [selectedImage, setSelectedImage] = useState<SharedPhoto | null>(null);
   const token = params?.token;
 
+  console.log('🔗 SharedPhotosViewer - Route params:', { params: params || null, token, currentPath: window.location.pathname });
+
   const { data: sharedData, isLoading, error } = useQuery({
-    queryKey: [`/shared/${token}`],
+    queryKey: [`/api/shared/${token}`],
     enabled: !!token,
     retry: false,
   });
+
+  console.log('🔗 SharedPhotosViewer - Query state:', { 
+    isLoading, 
+    error, 
+    hasData: !!sharedData, 
+    dataType: typeof sharedData,
+    token 
+  });
+
+  // Add early return if token is missing
+  if (!token) {
+    console.error('🔗 SharedPhotosViewer - No token found in URL');
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Card className="w-full max-w-md mx-4">
+          <CardHeader className="text-center">
+            <CardTitle className="text-red-600">Invalid Link</CardTitle>
+          </CardHeader>
+          <CardContent className="text-center">
+            <p className="text-gray-600">This shared link appears to be invalid.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (

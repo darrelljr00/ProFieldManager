@@ -9811,7 +9811,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/shared/:token', async (req, res) => {
+  app.get('/api/shared/:token', async (req, res) => {
     try {
       const { token } = req.params;
       console.log('🔗 Shared photo link accessed:', token);
