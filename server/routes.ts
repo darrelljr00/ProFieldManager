@@ -2062,8 +2062,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api', (req, res, next) => {
     console.log(`🔍 API MIDDLEWARE - ${req.method} ${req.path}`);
     // Skip auth for these routes
-    const publicRoutes = ['/api/auth/', '/api/seed', '/api/settings/', '/api/twilio-test-update/'];
-    const isPublic = publicRoutes.some(route => req.path.startsWith(route) || req.path === route);
+    const publicRoutes = ['/api/auth/', '/api/seed', '/api/settings/', '/api/twilio-test-update/', '/api/shared/'];
+    const sharedPhotoRoute = req.path.match(/^\/shared\/[^\/]+$/); // Match /shared/{token} (after /api prefix is stripped)
+    const isPublic = publicRoutes.some(route => req.path.startsWith(route) || req.path === route) || sharedPhotoRoute;
+    
+    console.log(`🔍 AUTH DEBUG - Path: ${req.path}, SharedPhotoRoute: ${!!sharedPhotoRoute}, IsPublic: ${isPublic}`);
     
     if (isPublic) {
       console.log(`🔓 PUBLIC ROUTE - Skipping auth for ${req.path}`);
@@ -13836,7 +13839,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/shared/:token", async (req, res) => {
+  app.get("/api/shared-files/:token", async (req, res) => {
     try {
       const { token } = req.params;
       const share = await storage.getFileShare(token);
