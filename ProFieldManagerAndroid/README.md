@@ -4,6 +4,11 @@ This is a complete Android Studio project for the Pro Field Manager application,
 
 ## Features
 
+✅ **16 KB Page Alignment Compliance** 
+- Updated for Google Play's November 2025 requirement
+- All native libraries built with 16 KB page alignment
+- Compatible with Android 15+ devices
+
 ✅ **WebView Integration**
 - Displays your web app (profieldmanager.com) in a native Android container
 - Full JavaScript support with native interface communication
