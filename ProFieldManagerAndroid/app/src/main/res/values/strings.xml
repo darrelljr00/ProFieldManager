@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">Pro Field Manager</string>
+    <string name="camera_permission_required">Camera permission is required to take photos</string>
+    <string name="location_permission_required">Location permission is required for GPS tracking</string>
+    <string name="storage_permission_required">Storage permission is required to access files</string>
+    <string name="permission_denied">Permission denied</string>
+    <string name="photo_capture_failed">Photo capture failed</string>
+    <string name="location_not_available">Location not available</string>
+    <string name="gps_service_running">GPS tracking is active</string>
+</resources>
