@@ -9828,7 +9828,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log('✅ Shared link found:', {
         id: link.id,
-        imageCount: link.imageIds ? JSON.parse(link.imageIds).length : 0,
         expiresAt: link.expiresAt,
         accessCount: link.accessCount,
         isActive: link.isActive
@@ -9855,8 +9854,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update access count
       await storage.updateSharedPhotoLinkAccess(token);
 
-      // Get the actual image data
-      const imageIds = JSON.parse(link.imageIds);
+      // Get the actual image data - handle both string and already-parsed JSON
+      let imageIds;
+      
+      console.log('🔍 Image IDs type and value:', typeof link.imageIds, link.imageIds);
+      
+      if (Array.isArray(link.imageIds)) {
+        // Already parsed as array
+        imageIds = link.imageIds;
+        console.log('✅ Image IDs already parsed as array');
+      } else if (typeof link.imageIds === 'string') {
+        try {
+          // Try to parse normally first
+          imageIds = JSON.parse(link.imageIds);
+          console.log('✅ Successfully parsed JSON string');
+        } catch (error) {
+          console.log('🔧 Attempting to fix malformed JSON string:', link.imageIds);
+          // Handle cases where JSON might have been double-encoded
+          let cleanedJson = link.imageIds;
+          
+          // Remove extra quotes if present
+          if (cleanedJson.startsWith('"""') && cleanedJson.endsWith('"""')) {
+            cleanedJson = cleanedJson.slice(3, -3);
+          } else if (cleanedJson.startsWith('"') && cleanedJson.endsWith('"')) {
+            cleanedJson = cleanedJson.slice(1, -1);
+          }
+          
+          try {
+            imageIds = JSON.parse(cleanedJson);
+            console.log('✅ Fixed malformed JSON, parsed successfully');
+          } catch (secondError) {
+            console.error('❌ Could not parse JSON even after cleaning:', cleanedJson);
+            return res.status(500).json({ message: 'Invalid shared link data' });
+          }
+        }
+      } else {
+        console.error('❌ Unexpected imageIds type:', typeof link.imageIds);
+        return res.status(500).json({ message: 'Invalid shared link data format' });
+      }
+      
       const images = await storage.getImagesByIds(imageIds);
       
       // Get creator information
