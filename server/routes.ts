@@ -2058,6 +2058,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // CUSTOM DOMAIN ROUTING FIX: Handle custom domain requests to shared photo links
+  // This middleware must be BEFORE all other routing to intercept custom domain routing issues
+  app.use((req, res, next) => {
+    const isCustomDomain = req.headers.host?.includes('profieldmanager.com');
+    const isSharedPhotoPath = req.path.match(/^\/shared\/[^\/]+$/);
+    const userAgent = req.get('User-Agent') || '';
+    const acceptHeader = req.get('Accept') || '';
+    
+    // Only handle custom domain shared photo requests
+    if (isCustomDomain && isSharedPhotoPath) {
+      const token = req.path.replace('/shared/', '');
+      
+      console.log(`🌐 CUSTOM DOMAIN SHARED PHOTO REQUEST`);
+      console.log(`🌐 Host: ${req.headers.host}`);
+      console.log(`🌐 Path: ${req.path}`);
+      console.log(`🌐 Token: ${token}`);
+      console.log(`🌐 User-Agent: ${userAgent.substring(0, 100)}...`);
+      console.log(`🌐 Accept: ${acceptHeader}`);
+      
+      // Detect if this is a browser request (should get React app)
+      const isBrowserRequest = (
+        acceptHeader.includes('text/html') ||
+        userAgent.includes('Mozilla') ||
+        userAgent.includes('Chrome') ||
+        userAgent.includes('Safari') ||
+        userAgent.includes('Firefox') ||
+        userAgent.includes('Edge') ||
+        !acceptHeader.includes('application/json')
+      );
+      
+      if (isBrowserRequest) {
+        console.log(`🌐 CUSTOM DOMAIN BROWSER REQUEST - Serving React app for /shared/${token}`);
+        // Force the request to be handled by Vite middleware (React app)
+        // Remove any potential routing conflicts by continuing to Vite
+        return next();
+      } else {
+        console.log(`🌐 CUSTOM DOMAIN API REQUEST - Redirecting to API endpoint for /shared/${token}`);
+        // This is an API request from the React app, redirect to the API endpoint
+        return res.redirect(307, `/api/shared/${token}`);
+      }
+    }
+    
+    // For non-custom domain or non-shared photo requests, continue normally
+    return next();
+  });
+
   // Apply authentication middleware to protected routes only
   app.use('/api', (req, res, next) => {
     console.log(`🔍 API MIDDLEWARE - ${req.method} ${req.path}`);
@@ -9817,7 +9863,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/shared/:token', async (req, res) => {
     try {
       const { token } = req.params;
+      const userAgent = req.get('User-Agent') || '';
+      const acceptHeader = req.get('Accept') || '';
+      const isCustomDomain = req.headers.host?.includes('profieldmanager.com');
+      
       console.log('🔗 Shared photo link accessed:', token);
+      console.log('🔗 Host:', req.headers.host);
+      console.log('🔗 Accept:', acceptHeader);
+      console.log('🔗 User-Agent:', userAgent.substring(0, 50) + '...');
+      
+      // CUSTOM DOMAIN BROWSER REQUEST FIX
+      // If this is a browser request from custom domain, redirect to the non-API route
+      // so Vite can serve the React app
+      const isBrowserRequest = (
+        acceptHeader.includes('text/html') ||
+        userAgent.includes('Mozilla') ||
+        userAgent.includes('Chrome') ||
+        userAgent.includes('Safari') ||
+        userAgent.includes('Firefox') ||
+        userAgent.includes('Edge') ||
+        !acceptHeader.includes('application/json')
+      );
+      
+      if (isCustomDomain && isBrowserRequest) {
+        console.log('🌐 CUSTOM DOMAIN BROWSER REQUEST - Redirecting to React app route');
+        // Use 301 redirect to the React app route (without /api prefix)
+        return res.redirect(301, `/shared/${token}`);
+      }
       
       const link = await storage.getSharedPhotoLink(token);
 

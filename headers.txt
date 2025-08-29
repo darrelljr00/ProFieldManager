@@ -1,0 +1,17 @@
+HTTP/2 404 
+access-control-allow-credentials: true
+access-control-allow-headers: Origin, X-Requested-With, Content-Type, Accept, Authorization, Cookie
+access-control-allow-methods: GET, POST, PUT, DELETE, PATCH, OPTIONS
+access-control-allow-origin: *
+access-control-expose-headers: Set-Cookie
+content-length: 46
+content-type: application/json; charset=utf-8
+date: Fri, 29 Aug 2025 09:39:52 GMT
+etag: W/"2e-7uyW95hYJLYRHXpN0HiJGXQ6iyg"
+server: Google Frontend
+strict-transport-security: max-age=63072000; includeSubDomains
+x-cloud-trace-context: 495b3df5a1096c8b764107228e13ad06
+x-powered-by: Express
+via: 1.1 google
+alt-svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+
