@@ -11,196 +11,183 @@ This is a complete Android Studio project for the Pro Field Manager application,
 
 ✅ **WebView Integration**
 - Displays your web app (profieldmanager.com) in a native Android container
-- Full JavaScript support with native interface communication
+- Full JavaScript interface for native functionality
+- Support for file uploads and camera access
 
-✅ **Native Camera Support**
-- Direct camera access for photo capture
-- Integration with web app file upload workflows
-- Custom camera activity with preview
+✅ **Native Camera Functionality**
+- Access device camera through WebView file inputs
+- Capture photos with native camera interface
+- Automatic file handling and upload integration
+
+✅ **GPS/Location Services**
+- Background GPS tracking
+- Location data accessible via JavaScript interface
+- Foreground service with notification
 
 ✅ **File System Access**
-- Native file picker for document and media selection
-- Multiple file selection support
-- Secure file sharing between app and web interface
+- Native file picker for document selection
+- Support for multiple file types
+- Proper Android scoped storage handling
 
-✅ **GPS & Location Services**
-- Background GPS tracking service
-- Real-time location updates
-- Location data sharing with web app
-
-✅ **Comprehensive Permissions**
-- Camera access
-- Location tracking (foreground & background)
-- File system read/write
-- Notifications
-- Phone state access
-
-✅ **Modern Android Architecture**
-- Target SDK 34 (Android 14)
-- Jetpack Compose support
-- Material Design 3 theming
-- Kotlin-first development
+✅ **Permissions Management**
+- Runtime permission requests for camera, location, storage
+- User-friendly permission explanations
+- Graceful handling of denied permissions
 
 ## Project Structure
 
 ```
 ProFieldManagerAndroid/
 ├── app/
-│   ├── build.gradle                 # App-level dependencies and configuration
-│   ├── proguard-rules.pro          # Code obfuscation rules
-│   └── src/main/
-│       ├── AndroidManifest.xml     # App permissions and components
-│       ├── java/com/profieldmanager/
-│       │   ├── MainActivity.kt      # Main WebView activity
-│       │   ├── WebAppInterface.kt   # JavaScript ↔ Android bridge
-│       │   ├── camera/
-│       │   │   └── CameraActivity.kt # Native camera functionality
-│       │   ├── filepicker/
-│       │   │   └── FilePickerActivity.kt # File selection
-│       │   └── gps/
-│       │       ├── GPSManager.kt    # Location management
-│       │       └── GPSService.kt    # Background location service
-│       └── res/                     # UI layouts, strings, icons, themes
-├── build.gradle                     # Project-level configuration
-├── settings.gradle                  # Module settings
-├── gradle.properties               # Global Gradle settings
-└── gradlew / gradlew.bat           # Gradle wrapper scripts
+│   ├── src/main/
+│   │   ├── java/com/profieldmanager/
+│   │   │   ├── MainActivity.kt              # Main WebView activity
+│   │   │   ├── WebAppInterface.kt           # JavaScript bridge
+│   │   │   ├── camera/
+│   │   │   │   └── CameraActivity.kt        # Native camera
+│   │   │   ├── filepicker/
+│   │   │   │   └── FilePickerActivity.kt    # File selection
+│   │   │   └── gps/
+│   │   │       ├── GPSManager.kt            # GPS functionality
+│   │   │       └── GPSService.kt            # Background service
+│   │   ├── res/                             # Android resources
+│   │   ├── cpp/                             # Native libraries (16KB aligned)
+│   │   └── AndroidManifest.xml              # App permissions & components
+│   └── build.gradle                         # App-level Gradle config
+├── gradle/
+│   └── wrapper/
+│       ├── gradle-wrapper.jar               # Gradle wrapper binary
+│       └── gradle-wrapper.properties        # Wrapper configuration
+├── gradlew                                  # Unix Gradle wrapper
+├── gradlew.bat                              # Windows Gradle wrapper
+├── build.gradle                             # Project-level Gradle config
+├── settings.gradle                          # Project settings
+├── gradle.properties                        # Gradle properties
+└── build_apk.sh                            # Build script
 ```
 
-## Setup Instructions
+## Quick Start
 
-### 1. Prerequisites
-- **Android Studio**: Latest version (Hedgehog or newer)
-- **Java Development Kit**: JDK 17 or higher
-- **Android SDK**: API level 34 (Android 14)
+1. **Open in Android Studio:**
+   - Download and extract the project
+   - Open Android Studio
+   - Choose "Open an existing project"
+   - Select the `ProFieldManagerAndroid` folder
 
-### 2. Import Project
-1. Open Android Studio
-2. Select "Import Project" or "Open an existing Android Studio project"
-3. Navigate to the `ProFieldManagerAndroid` folder
-4. Click "OK" to import
+2. **Build APK via Script:**
+   ```bash
+   ./build_apk.sh
+   ```
 
-### 3. Sync and Build
-1. Android Studio will automatically start syncing Gradle
-2. Wait for "Gradle Sync" to complete (check bottom status bar)
-3. Once synced, build the project: **Build → Make Project**
+3. **Build APK via Android Studio:**
+   - Click "Build" menu → "Build Bundle(s) / APK(s)" → "Build APK(s)"
+   - APK will be generated in `app/build/outputs/apk/debug/`
 
-### 4. Generate APK
-1. Go to **Build → Build Bundle(s) / APK(s) → Build APK(s)**
-2. Wait for build to complete
-3. Click "locate" in the notification to find your APK file
-4. APK will be in: `app/build/outputs/apk/debug/app-debug.apk`
+4. **Install APK:**
+   ```bash
+   adb install app/build/outputs/apk/debug/app-debug.apk
+   ```
 
-### 5. Install and Test
-- Install APK on device: `adb install app-debug.apk`
-- Or drag & drop APK onto Android emulator
+## Configuration
 
-## Web App Integration
+### Web App URL
+Update the web app URL in `MainActivity.kt`:
+```kotlin
+val webUrl = "https://profieldmanager.com" // Your web app URL
+```
 
-The Android app loads your web application from `https://profieldmanager.com`. To change this:
+### App Information
+Update app details in `app/build.gradle`:
+```gradle
+android {
+    defaultConfig {
+        applicationId "com.profieldmanager"        // Your package name
+        versionCode 1                              // Version number
+        versionName "1.0"                         // Version string
+    }
+}
+```
 
-1. Open `MainActivity.kt`
-2. Find the line: `val webUrl = "https://profieldmanager.com"`
-3. Update to your desired URL
-4. Rebuild the APK
+### App Name & Branding
+Update in `app/src/main/res/values/strings.xml`:
+```xml
+<string name="app_name">Pro Field Manager</string>
+```
 
-## JavaScript ↔ Native Communication
+## Requirements
 
-Your web app can access native Android features through the `AndroidInterface` object:
+- **Android Studio**: 4.2+ (recommended: latest stable)
+- **Gradle**: 8.7+ (included in wrapper)
+- **Android SDK**: API 24+ (Android 7.0) minimum
+- **Target SDK**: API 35 (Android 15) for Google Play compliance
+- **NDK**: 26.3.11579264 for 16 KB page alignment
+
+## Key Features Implementation
+
+### 1. WebView JavaScript Interface
+The app provides native functionality to your web app through `WebAppInterface.kt`:
 
 ```javascript
-// Take a photo
+// Access native camera
 AndroidInterface.openCamera();
 
-// Get current GPS location
+// Get GPS location
 const location = JSON.parse(AndroidInterface.getCurrentLocation());
 
-// Show Android toast notification
+// Show native toast
 AndroidInterface.showToast("Hello from web app!");
-
-// Get device information
-const deviceInfo = JSON.parse(AndroidInterface.getDeviceInfo());
-
-// Vibrate device
-AndroidInterface.vibrate(200); // 200ms
-
-// Check network status
-const isOnline = AndroidInterface.isNetworkAvailable();
 ```
 
-## Permissions
+### 2. Camera Integration
+When your web app triggers file input with camera capture:
+```html
+<input type="file" accept="image/*" capture="camera">
+```
+The app automatically launches the native camera interface.
 
-The app requests these permissions automatically:
-- **Camera**: Photo capture functionality
-- **Location**: GPS tracking (fine & coarse location)
-- **Storage**: File access for uploads/downloads
-- **Notifications**: Push notification support
-- **Phone State**: Device identification
-- **Internet**: Web app communication
+### 3. GPS Tracking
+Background GPS service provides continuous location updates accessible via:
+```javascript
+const location = JSON.parse(AndroidInterface.getCurrentLocation());
+console.log(location.latitude, location.longitude);
+```
 
-## Customization
+## Google Play Store Compliance
 
-### App Name & Icon
-- **Name**: Modify `app/src/main/res/values/strings.xml`
-- **Icon**: Replace files in `app/src/main/res/mipmap-*` folders
-
-### Theme & Colors
-- **Colors**: Edit `app/src/main/res/values/colors.xml`
-- **Theme**: Modify `app/src/main/res/values/themes.xml`
-
-### App Package & ID
-1. Change `applicationId` in `app/build.gradle`
-2. Rename package folders under `src/main/java/`
-3. Update import statements in Kotlin files
-
-## Building for Release
-
-### 1. Generate Signed APK
-1. **Build → Generate Signed Bundle / APK**
-2. Choose "APK" → Click "Next"
-3. Create new keystore or use existing
-4. Select "release" build type
-5. Click "Finish"
-
-### 2. Release Checklist
-- [ ] Update `versionCode` and `versionName` in `build.gradle`
-- [ ] Test on multiple devices/screen sizes
-- [ ] Verify all permissions work correctly
-- [ ] Test camera, GPS, and file picker functionality
-- [ ] Confirm web app loads properly
-- [ ] Test offline behavior
+✅ **16 KB Page Alignment**: All native libraries built with `-Wl,-z,max-page-size=16384`
+✅ **Target SDK 35**: Updated for Android 15 compatibility  
+✅ **Privacy**: Proper permission declarations and runtime requests
+✅ **Security**: HTTPS support, secure WebView settings
 
 ## Troubleshooting
 
-### Gradle Sync Issues
-```bash
-./gradlew clean
-./gradlew build --refresh-dependencies
-```
+### Build Issues
+- Ensure you have Android Studio with SDK Platform 35 installed
+- Run `./gradlew clean` before rebuilding
+- Check that NDK version 26.3.11579264 is installed
 
-### Build Failures
-- Check Android SDK is properly installed
-- Verify JDK version compatibility
-- Update Android Studio and build tools
+### Runtime Issues
+- Verify all permissions are granted in Android Settings
+- Check WebView console logs via Chrome DevTools (`chrome://inspect`)
+- Ensure your web app URL is accessible and HTTPS enabled
 
-### Permission Errors
-- Ensure target device has Android 6.0+ for runtime permissions
-- Test permission flows on different Android versions
+### Google Play Upload Issues
+- Verify 16 KB page alignment fix is applied
+- Use Android Studio's "Generate Signed Bundle" for release builds
+- Test on physical Android 15+ device before submission
 
-## Syncing with Replit Changes
+## Development Notes
 
-When you update your web app code in Replit, the Android app will automatically show the latest version since it loads the web app directly from your live URL.
-
-For updating native Android functionality:
-1. Make changes to the Android code
-2. Rebuild the APK: **Build → Build APK(s)**
-3. Install updated APK on devices
+- The project uses Kotlin for all Android code
+- Native libraries include 16 KB page alignment for Google Play compliance
+- WebView is configured for full web app compatibility
+- Background services properly handle Android battery optimization
+- All permissions follow Android 13+ privacy guidelines
 
 ## Support
 
-For Android-specific issues:
-- Check Android Studio's "Build" panel for detailed error messages
-- Review device logs: **View → Tool Windows → Logcat**
-- Test on Android emulator before physical device
-
-The Android app is designed to be a robust native container for your existing Pro Field Manager web application with full access to device capabilities.
+For issues specific to the Android wrapper, check:
+1. Android Studio build logs
+2. Device logcat output: `adb logcat -s ProFieldManager`
+3. WebView console via Chrome DevTools
+4. Android app permissions in device settings

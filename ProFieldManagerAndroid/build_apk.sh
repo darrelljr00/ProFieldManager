@@ -1,16 +1,16 @@
 #!/bin/bash
 
-echo "🔧 Pro Field Manager - Android APK Build Script"
-echo "================================================"
+# Pro Field Manager - Android APK Build Script
+# Includes 16 KB page alignment for Google Play compliance
 
-# Check if we're in the right directory
-if [ ! -f "build.gradle" ]; then
-    echo "❌ Error: Must run from ProFieldManagerAndroid root directory"
+echo "🚀 Pro Field Manager - Android APK Builder"
+echo "============================================="
+
+# Check if Android SDK is available
+if ! command -v gradle &> /dev/null && ! [ -f "./gradlew" ]; then
+    echo "❌ Gradle not found. Please install Android Studio or Gradle."
     exit 1
 fi
-
-# Make gradlew executable
-chmod +x gradlew
 
 echo "🧹 Cleaning previous builds..."
 ./gradlew clean
@@ -21,10 +21,7 @@ echo "📦 Building debug APK with 16 KB page alignment..."
 if [ $? -eq 0 ]; then
     echo "✅ APK build successful!"
     echo ""
-    echo "📱 APK Location:"
-    echo "   app/build/outputs/apk/debug/app-debug.apk"
-    echo ""
-    echo "📋 Installation Instructions:"
+    echo "📱 Install Instructions:"
     echo "   1. Connect Android device via USB (with USB debugging enabled)"
     echo "   2. Run: adb install app/build/outputs/apk/debug/app-debug.apk"
     echo "   3. Or drag & drop APK onto Android emulator"
@@ -38,6 +35,6 @@ if [ $? -eq 0 ]; then
     echo "   Compatible with Android 15+ devices (starting Nov 1, 2025)"
 else
     echo "❌ APK build failed!"
-    echo "Check the error messages above for details."
+    echo "Check the build output above for errors."
     exit 1
 fi

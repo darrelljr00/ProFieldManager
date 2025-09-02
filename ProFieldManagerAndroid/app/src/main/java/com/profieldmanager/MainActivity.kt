@@ -38,6 +38,15 @@ class MainActivity : ComponentActivity() {
         Manifest.permission.WRITE_EXTERNAL_STORAGE
     )
 
+    // Load native library
+    companion object {
+        init {
+            System.loadLibrary("native-lib")
+        }
+    }
+
+    external fun stringFromJNI(): String
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -178,6 +187,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
         if (webView.canGoBack()) {
             webView.goBack()
