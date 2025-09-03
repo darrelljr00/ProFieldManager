@@ -39,7 +39,7 @@ interface SharedPhotoLinkData {
 export default function SharedPhotosViewer() {
   const [, params] = useRoute("/shared/:token");
   const [selectedImage, setSelectedImage] = useState<SharedPhoto | null>(null);
-  const token = params?.token || null;
+  const token = params?.token;
 
   console.log('🔗 SharedPhotosViewer - Route params:', { params: params || null, token, currentPath: window.location.pathname });
 
@@ -134,6 +134,25 @@ export default function SharedPhotosViewer() {
               <ExternalLink className="h-4 w-4 mr-2" />
               Visit Pro Field Manager
             </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Validate that we have the correct data structure for shared photo links
+  if (!sharedData.shareToken || !sharedData.images || !Array.isArray(sharedData.images)) {
+    console.error('🔗 Invalid shared photo data structure:', sharedData);
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Card className="w-full max-w-md mx-4">
+          <CardHeader className="text-center">
+            <CardTitle className="text-red-600">Invalid Shared Link</CardTitle>
+          </CardHeader>
+          <CardContent className="text-center">
+            <p className="text-gray-600">
+              This does not appear to be a valid shared photo link. Please check the URL and try again.
+            </p>
           </CardContent>
         </Card>
       </div>
