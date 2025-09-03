@@ -60,6 +60,7 @@ interface ImageFile {
   projectName?: string;
   annotations?: any[];
   url?: string;
+  cloudinaryUrl?: string;
   deletedAt?: string;
   deletedByName?: string;
 }
@@ -568,7 +569,13 @@ export default function ImageGallery() {
   };
 
   const getImageUrl = (image: ImageFile) => {
-    // Always use the URL from the backend response which includes correct organization path
+    // First priority: Use cloudinaryUrl if available (for images stored in Cloudinary)
+    if (image.cloudinaryUrl && image.cloudinaryUrl.includes('cloudinary.com')) {
+      console.log('Using Cloudinary URL for image:', image.originalName, image.cloudinaryUrl);
+      return image.cloudinaryUrl;
+    }
+    
+    // Second priority: Use the URL from the backend response which includes correct organization path
     if (image.url) {
       return image.url;
     }
@@ -585,7 +592,7 @@ export default function ImageGallery() {
     }
     
     // Last resort fallback
-    console.error('Image missing both URL and filename properties, or user not loaded');
+    console.error('Image missing cloudinaryUrl, URL and filename properties, or user not loaded');
     return '';
   };
 
