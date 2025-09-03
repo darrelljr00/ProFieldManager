@@ -41,6 +41,35 @@ export default function SharedPhotosViewer() {
   const [selectedImage, setSelectedImage] = useState<SharedPhoto | null>(null);
   const token = params?.token;
 
+  // Image URL helper function with fallback logic
+  const getImageUrl = (image: SharedPhoto) => {
+    // First priority: Use cloudinaryUrl if available (for images stored in Cloudinary)
+    if (image.cloudinaryUrl && image.cloudinaryUrl.includes('cloudinary.com')) {
+      console.log('Using Cloudinary URL for image:', image.originalName, image.cloudinaryUrl);
+      return image.cloudinaryUrl;
+    }
+    
+    // Second priority: Use the URL from the backend response which includes correct organization path
+    if ((image as any).url) {
+      return (image as any).url;
+    }
+    
+    // Enhanced fallback - try to construct organization-based path from filename
+    if (image.filename) {
+      // If filename contains gallery prefix, use organization-based path
+      if (image.filename.includes('gallery-')) {
+        console.warn('Image missing URL property, constructing fallback path');
+        return `/uploads/image_gallery/${image.filename}`;
+      }
+      // If it's a generic filename, try the standard path
+      return `/uploads/${image.filename}`;
+    }
+    
+    // Last resort fallback
+    console.error('Image missing cloudinaryUrl, URL and filename properties');
+    return '';
+  };
+
   console.log('🔗 SharedPhotosViewer - Route params:', { params: params || null, token, currentPath: window.location.pathname });
 
   // Workaround for custom domain authentication issue - route shared photo requests to Replit API
@@ -205,7 +234,7 @@ export default function SharedPhotosViewer() {
         <Button
           onClick={() => {
             const link = document.createElement('a');
-            link.href = selectedImage.cloudinaryUrl;
+            link.href = getImageUrl(selectedImage);
             link.download = selectedImage.originalName;
             link.target = '_blank';
             document.body.appendChild(link);
@@ -221,7 +250,7 @@ export default function SharedPhotosViewer() {
         </Button>
 
         <img
-          src={selectedImage.cloudinaryUrl}
+          src={getImageUrl(selectedImage)}
           alt={selectedImage.originalName}
           className="max-w-full max-h-full object-contain"
         />
@@ -294,7 +323,7 @@ export default function SharedPhotosViewer() {
             <Card key={image.id} className="overflow-hidden hover:shadow-lg transition-shadow">
               <div className="aspect-square relative group cursor-pointer">
                 <img
-                  src={image.cloudinaryUrl}
+                  src={getImageUrl(image)}
                   alt={image.originalName}
                   className="w-full h-full object-cover"
                   onClick={() => setSelectedImage(image)}
@@ -318,7 +347,7 @@ export default function SharedPhotosViewer() {
                       onClick={(e) => {
                         e.stopPropagation();
                         const link = document.createElement('a');
-                        link.href = image.cloudinaryUrl;
+                        link.href = getImageUrl(image);
                         link.download = image.originalName;
                         link.target = '_blank';
                         document.body.appendChild(link);
