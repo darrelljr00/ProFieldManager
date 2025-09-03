@@ -696,7 +696,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     }
     
-    // For non-custom domain or non-shared photo requests, continue normally
+    // For Replit domain and non-shared photo requests, continue normally
+    // This allows the React app to handle /shared/:token routes on the Replit domain
     return next();
   });
 
@@ -712,19 +713,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('🔓 User-Agent:', userAgent.substring(0, 50) + '...');
       console.log('🔓 Accept:', acceptHeader);
       
-      // Check if this is a browser request (not an API call)
-      const isBrowserRequest = (
-        acceptHeader.includes('text/html') ||
-        (userAgent.includes('Mozilla') && !acceptHeader.includes('application/json'))
-      );
-      
-      // For browser requests on custom domain, serve the HTML viewer
-      if (isBrowserRequest && isCustomDomain) {
-        console.log('🌐 BROWSER REQUEST - Serving HTML viewer for custom domain');
-        const path = require('path');
-        const viewerPath = path.join(__dirname, 'public', 'shared-photo-viewer.html');
-        return res.sendFile(viewerPath);
-      }
+      // NOTE: Removed browser request detection logic for /api/shared/:token
+      // This endpoint should ONLY return JSON data, never serve HTML
+      // The custom domain middleware above handles serving HTML for browser requests
       
       // For API requests or Replit domain, return JSON data
       console.log('📡 API REQUEST - Returning JSON data');
