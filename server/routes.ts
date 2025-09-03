@@ -2089,9 +2089,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
       
       if (isBrowserRequest) {
-        console.log(`🌐 CUSTOM DOMAIN BROWSER REQUEST - Serving React app for /shared/${token}`);
-        // Force the request to be handled by Vite middleware (React app)
-        // Remove any potential routing conflicts by continuing to Vite
+        console.log(`🌐 CUSTOM DOMAIN BROWSER REQUEST - Forcing React app route for /shared/${token}`);
+        // Force the request to be treated as root route for React SPA routing
+        req.url = '/';
+        req.path = '/';
         return next();
       } else {
         console.log(`🌐 CUSTOM DOMAIN API REQUEST - Redirecting to API endpoint for /shared/${token}`);
@@ -2104,15 +2105,177 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return next();
   });
 
+  // CRITICAL: Public shared photo endpoint - NO AUTHENTICATION
+  // This route MUST remain accessible without authentication for shared photo links
+  app.get('/api/shared/:token', (req, res, next) => {
+    // Skip all authentication for this specific route
+    console.log('🔓 PUBLIC SHARED PHOTO ROUTE - Bypassing all authentication');
+    next();
+  }, async (req, res) => {
+    try {
+      const { token } = req.params;
+      const userAgent = req.get('User-Agent') || '';
+      const acceptHeader = req.get('Accept') || '';
+      const isCustomDomain = req.headers.host?.includes('profieldmanager.com');
+      
+      console.log('🔗 Shared photo link accessed:', token);
+      console.log('🔗 Host:', req.headers.host);
+      console.log('🔗 Accept:', acceptHeader);
+      console.log('🔗 User-Agent:', userAgent.substring(0, 50) + '...');
+      
+      // CUSTOM DOMAIN BROWSER REQUEST FIX
+      // If this is a browser request from custom domain, redirect to the non-API route
+      // so Vite can serve the React app
+      const isBrowserRequest = (
+        acceptHeader.includes('text/html') ||
+        userAgent.includes('Mozilla') ||
+        userAgent.includes('Chrome') ||
+        userAgent.includes('Safari') ||
+        userAgent.includes('Firefox') ||
+        userAgent.includes('Edge') ||
+        !acceptHeader.includes('application/json')
+      );
+      
+      if (isCustomDomain && isBrowserRequest) {
+        console.log('🌐 CUSTOM DOMAIN BROWSER REQUEST - Redirecting to React app route');
+        // Use 301 redirect to the React app route (without /api prefix)
+        return res.redirect(301, `/shared/${token}`);
+      }
+      
+      const link = await storage.getSharedPhotoLink(token);
+
+      if (!link) {
+        console.log('❌ Shared link not found:', token);
+        return res.status(404).json({ message: 'Shared link not found or expired' });
+      }
+
+      console.log('✅ Shared link found:', {
+        id: link.id,
+        expiresAt: link.expiresAt,
+        accessCount: link.accessCount,
+        isActive: link.isActive
+      });
+
+      // Check if link has expired
+      if (new Date() > new Date(link.expiresAt)) {
+        console.log('⏰ Shared link expired:', token);
+        return res.status(410).json({ message: 'Shared link has expired' });
+      }
+
+      // Check access limits
+      if (link.maxAccess && link.accessCount >= link.maxAccess) {
+        console.log('🚫 Access limit reached for link:', token);
+        return res.status(429).json({ message: 'Access limit exceeded for this link' });
+      }
+
+      // Check if link is active
+      if (!link.isActive) {
+        console.log('❌ Shared link is deactivated:', token);
+        return res.status(410).json({ message: 'Shared link has been deactivated' });
+      }
+
+      // Update access count
+      await storage.updateSharedPhotoLinkAccess(token);
+
+      // Get the actual image data - handle both string and already-parsed JSON
+      let imageIds;
+      
+      console.log('🔍 Image IDs type and value:', typeof link.imageIds, link.imageIds);
+      
+      if (Array.isArray(link.imageIds)) {
+        // Already parsed as array
+        imageIds = link.imageIds;
+        console.log('✅ Image IDs already parsed as array');
+      } else if (typeof link.imageIds === 'string') {
+        try {
+          // Try to parse normally first
+          imageIds = JSON.parse(link.imageIds);
+          console.log('✅ Successfully parsed JSON string');
+        } catch (error) {
+          console.log('🔧 Attempting to fix malformed JSON string:', link.imageIds);
+          // Handle cases where JSON might have been double-encoded
+          let cleanedJson = link.imageIds;
+          
+          // Remove extra quotes if present
+          if (cleanedJson.startsWith('"""') && cleanedJson.endsWith('"""')) {
+            cleanedJson = cleanedJson.slice(3, -3);
+          } else if (cleanedJson.startsWith('"') && cleanedJson.endsWith('"')) {
+            cleanedJson = cleanedJson.slice(1, -1);
+          }
+          
+          try {
+            imageIds = JSON.parse(cleanedJson);
+            console.log('✅ Fixed malformed JSON, parsed successfully');
+          } catch (secondError) {
+            console.error('❌ Could not parse JSON even after cleaning:', cleanedJson);
+            return res.status(500).json({ message: 'Invalid shared link data' });
+          }
+        }
+      } else {
+        console.error('❌ Unexpected imageIds type:', typeof link.imageIds);
+        return res.status(500).json({ message: 'Invalid shared link data format' });
+      }
+      
+      const images = await storage.getImagesByIds(imageIds);
+      
+      // Get creator information
+      const creator = await storage.getUser(link.createdBy);
+      
+      // Get project information if applicable
+      let projectName = null;
+      if (link.projectId) {
+        const project = await storage.getProjectById(link.projectId);
+        projectName = project?.name || null;
+      }
+
+      console.log('📸 Returning shared photos:', {
+        imageCount: images.length,
+        projectName,
+        createdBy: creator?.username
+      });
+
+      res.json({
+        id: link.id,
+        shareToken: link.shareToken,
+        projectId: link.projectId,
+        projectName,
+        imageIds,
+        images: images.map(img => ({
+          id: img.id,
+          filename: img.filename,
+          originalName: img.originalName,
+          cloudinaryUrl: img.cloudinaryUrl,
+          size: img.size,
+          mimeType: img.mimeType,
+          uploadDate: img.createdAt
+        })),
+        createdBy: link.createdBy,
+        createdByName: creator ? `${creator.firstName || ''} ${creator.lastName || ''}`.trim() || creator.username : 'Unknown',
+        recipientName: link.recipientName,
+        recipientEmail: link.recipientEmail,
+        expiresAt: link.expiresAt,
+        accessCount: link.accessCount + 1, // Include the current access
+        maxAccess: link.maxAccess,
+        message: link.message,
+        isActive: link.isActive,
+        createdAt: link.createdAt
+      });
+    } catch (error: any) {
+      console.error('Error accessing shared photo link:', error);
+      res.status(500).json({ message: 'Failed to access shared link' });
+    }
+  });
+
   // Apply authentication middleware to protected routes only
   app.use('/api', (req, res, next) => {
     console.log(`🔍 API MIDDLEWARE - ${req.method} ${req.path}`);
     // Skip auth for these routes
-    const publicRoutes = ['/api/auth/', '/api/seed', '/api/settings/', '/api/twilio-test-update/', '/api/shared/'];
-    const sharedPhotoRoute = req.path.match(/^\/shared\/[^\/]+$/); // Match /shared/{token} (after /api prefix is stripped)
-    const isPublic = publicRoutes.some(route => req.path.startsWith(route) || req.path === route) || sharedPhotoRoute;
+    const publicRoutes = ['/auth/', '/seed', '/settings/', '/twilio-test-update/', '/shared/'];
+    const sharedPhotoRoute = req.path.match(/^\/shared\/[^\/]+$/); // Match /shared/{token}
+    const isSharedRoute = req.path.startsWith('/shared/'); // Also check for startsWith to catch all shared routes
+    const isPublic = publicRoutes.some(route => req.path.startsWith(route) || req.path === route) || sharedPhotoRoute || isSharedRoute;
     
-    console.log(`🔍 AUTH DEBUG - Path: ${req.path}, SharedPhotoRoute: ${!!sharedPhotoRoute}, IsPublic: ${isPublic}`);
+    console.log(`🔍 AUTH DEBUG - Path: ${req.path}, SharedPhotoRoute: ${!!sharedPhotoRoute}, IsSharedRoute: ${isSharedRoute}, IsPublic: ${isPublic}`);
     
     if (isPublic) {
       console.log(`🔓 PUBLIC ROUTE - Skipping auth for ${req.path}`);
@@ -9857,161 +10020,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error('Error fetching shared photo links:', error);
       res.status(500).json({ message: 'Failed to fetch shared photo links' });
-    }
-  });
-
-  app.get('/api/shared/:token', async (req, res) => {
-    try {
-      const { token } = req.params;
-      const userAgent = req.get('User-Agent') || '';
-      const acceptHeader = req.get('Accept') || '';
-      const isCustomDomain = req.headers.host?.includes('profieldmanager.com');
-      
-      console.log('🔗 Shared photo link accessed:', token);
-      console.log('🔗 Host:', req.headers.host);
-      console.log('🔗 Accept:', acceptHeader);
-      console.log('🔗 User-Agent:', userAgent.substring(0, 50) + '...');
-      
-      // CUSTOM DOMAIN BROWSER REQUEST FIX
-      // If this is a browser request from custom domain, redirect to the non-API route
-      // so Vite can serve the React app
-      const isBrowserRequest = (
-        acceptHeader.includes('text/html') ||
-        userAgent.includes('Mozilla') ||
-        userAgent.includes('Chrome') ||
-        userAgent.includes('Safari') ||
-        userAgent.includes('Firefox') ||
-        userAgent.includes('Edge') ||
-        !acceptHeader.includes('application/json')
-      );
-      
-      if (isCustomDomain && isBrowserRequest) {
-        console.log('🌐 CUSTOM DOMAIN BROWSER REQUEST - Redirecting to React app route');
-        // Use 301 redirect to the React app route (without /api prefix)
-        return res.redirect(301, `/shared/${token}`);
-      }
-      
-      const link = await storage.getSharedPhotoLink(token);
-
-      if (!link) {
-        console.log('❌ Shared link not found:', token);
-        return res.status(404).json({ message: 'Shared link not found or expired' });
-      }
-
-      console.log('✅ Shared link found:', {
-        id: link.id,
-        expiresAt: link.expiresAt,
-        accessCount: link.accessCount,
-        isActive: link.isActive
-      });
-
-      // Check if link has expired
-      if (new Date() > new Date(link.expiresAt)) {
-        console.log('⏰ Shared link expired:', token);
-        return res.status(410).json({ message: 'Shared link has expired' });
-      }
-
-      // Check access limits
-      if (link.maxAccess && link.accessCount >= link.maxAccess) {
-        console.log('🚫 Access limit reached for link:', token);
-        return res.status(429).json({ message: 'Access limit exceeded for this link' });
-      }
-
-      // Check if link is active
-      if (!link.isActive) {
-        console.log('❌ Shared link is deactivated:', token);
-        return res.status(410).json({ message: 'Shared link has been deactivated' });
-      }
-
-      // Update access count
-      await storage.updateSharedPhotoLinkAccess(token);
-
-      // Get the actual image data - handle both string and already-parsed JSON
-      let imageIds;
-      
-      console.log('🔍 Image IDs type and value:', typeof link.imageIds, link.imageIds);
-      
-      if (Array.isArray(link.imageIds)) {
-        // Already parsed as array
-        imageIds = link.imageIds;
-        console.log('✅ Image IDs already parsed as array');
-      } else if (typeof link.imageIds === 'string') {
-        try {
-          // Try to parse normally first
-          imageIds = JSON.parse(link.imageIds);
-          console.log('✅ Successfully parsed JSON string');
-        } catch (error) {
-          console.log('🔧 Attempting to fix malformed JSON string:', link.imageIds);
-          // Handle cases where JSON might have been double-encoded
-          let cleanedJson = link.imageIds;
-          
-          // Remove extra quotes if present
-          if (cleanedJson.startsWith('"""') && cleanedJson.endsWith('"""')) {
-            cleanedJson = cleanedJson.slice(3, -3);
-          } else if (cleanedJson.startsWith('"') && cleanedJson.endsWith('"')) {
-            cleanedJson = cleanedJson.slice(1, -1);
-          }
-          
-          try {
-            imageIds = JSON.parse(cleanedJson);
-            console.log('✅ Fixed malformed JSON, parsed successfully');
-          } catch (secondError) {
-            console.error('❌ Could not parse JSON even after cleaning:', cleanedJson);
-            return res.status(500).json({ message: 'Invalid shared link data' });
-          }
-        }
-      } else {
-        console.error('❌ Unexpected imageIds type:', typeof link.imageIds);
-        return res.status(500).json({ message: 'Invalid shared link data format' });
-      }
-      
-      const images = await storage.getImagesByIds(imageIds);
-      
-      // Get creator information
-      const creator = await storage.getUser(link.createdBy);
-      
-      // Get project information if applicable
-      let projectName = null;
-      if (link.projectId) {
-        const project = await storage.getProjectById(link.projectId);
-        projectName = project?.name || null;
-      }
-
-      console.log('📸 Returning shared photos:', {
-        imageCount: images.length,
-        projectName,
-        createdBy: creator?.username
-      });
-
-      res.json({
-        id: link.id,
-        shareToken: link.shareToken,
-        projectId: link.projectId,
-        projectName,
-        imageIds,
-        images: images.map(img => ({
-          id: img.id,
-          filename: img.filename,
-          originalName: img.originalName,
-          cloudinaryUrl: img.cloudinaryUrl,
-          size: img.size,
-          mimeType: img.mimeType,
-          uploadDate: img.createdAt
-        })),
-        createdBy: link.createdBy,
-        createdByName: creator ? `${creator.firstName || ''} ${creator.lastName || ''}`.trim() || creator.username : 'Unknown',
-        recipientName: link.recipientName,
-        recipientEmail: link.recipientEmail,
-        expiresAt: link.expiresAt,
-        accessCount: link.accessCount + 1, // Include the current access
-        maxAccess: link.maxAccess,
-        message: link.message,
-        isActive: link.isActive,
-        createdAt: link.createdAt
-      });
-    } catch (error: any) {
-      console.error('Error accessing shared photo link:', error);
-      res.status(500).json({ message: 'Failed to access shared link' });
     }
   });
 
