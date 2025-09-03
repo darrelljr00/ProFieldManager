@@ -659,11 +659,75 @@ const invoiceUpload = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // CRITICAL: Custom domain middleware MUST be FIRST to handle routing correctly
+  app.use((req, res, next) => {
+    const isCustomDomain = req.headers.host?.includes('profieldmanager.com');
+    const isSharedPhotoPath = req.path.match(/^\/shared\/[^\/]+$/);
+    const userAgent = req.get('User-Agent') || '';
+    const acceptHeader = req.get('Accept') || '';
+    
+    // Only handle custom domain shared photo requests
+    if (isCustomDomain && isSharedPhotoPath) {
+      const token = req.path.replace('/shared/', '');
+      
+      console.log(`🌐 CUSTOM DOMAIN SHARED PHOTO REQUEST`);
+      console.log(`🌐 Host: ${req.headers.host}`);
+      console.log(`🌐 Path: ${req.path}`);
+      console.log(`🌐 Token: ${token}`);
+      console.log(`🌐 User-Agent: ${userAgent.substring(0, 100)}...`);
+      console.log(`🌐 Accept: ${acceptHeader}`);
+      
+      // Check if this is an API request (explicitly asking for JSON)
+      const isApiRequest = (
+        acceptHeader.includes('application/json') &&
+        !acceptHeader.includes('text/html')
+      );
+      
+      if (isApiRequest) {
+        console.log(`🌐 CUSTOM DOMAIN API REQUEST - Redirecting to API endpoint for /shared/${token}`);
+        // This is an API request from the React app, redirect to the API endpoint
+        return res.redirect(307, `/api/shared/${token}`);
+      } else {
+        console.log(`🌐 CUSTOM DOMAIN BROWSER REQUEST - Serving shared photo viewer for /shared/${token}`);
+        // This is a browser request - serve the static HTML viewer
+        const path = require('path');
+        const viewerPath = path.join(__dirname, 'public', 'shared-photo-viewer.html');
+        return res.sendFile(viewerPath);
+      }
+    }
+    
+    // For non-custom domain or non-shared photo requests, continue normally
+    return next();
+  });
+
   // CRITICAL: Public shared photo route - MUST be first before any auth middleware
   app.get('/api/shared/:token', async (req, res) => {
     try {
       const { token } = req.params;
+      const userAgent = req.get('User-Agent') || '';
+      const acceptHeader = req.get('Accept') || '';
+      const isCustomDomain = req.headers.host?.includes('profieldmanager.com');
+      
       console.log('🔓 SHARED PHOTO ROUTE ACCESS:', token, 'Host:', req.headers.host);
+      console.log('🔓 User-Agent:', userAgent.substring(0, 50) + '...');
+      console.log('🔓 Accept:', acceptHeader);
+      
+      // Check if this is a browser request (not an API call)
+      const isBrowserRequest = (
+        acceptHeader.includes('text/html') ||
+        (userAgent.includes('Mozilla') && !acceptHeader.includes('application/json'))
+      );
+      
+      // For browser requests on custom domain, serve the HTML viewer
+      if (isBrowserRequest && isCustomDomain) {
+        console.log('🌐 BROWSER REQUEST - Serving HTML viewer for custom domain');
+        const path = require('path');
+        const viewerPath = path.join(__dirname, 'public', 'shared-photo-viewer.html');
+        return res.sendFile(viewerPath);
+      }
+      
+      // For API requests or Replit domain, return JSON data
+      console.log('📡 API REQUEST - Returning JSON data');
       
       const link = await storage.getSharedPhotoLink(token);
       if (!link) {
@@ -2157,52 +2221,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // CUSTOM DOMAIN ROUTING FIX: Handle custom domain requests to shared photo links
-  // This middleware must be BEFORE all other routing to intercept custom domain routing issues
-  app.use((req, res, next) => {
-    const isCustomDomain = req.headers.host?.includes('profieldmanager.com');
-    const isSharedPhotoPath = req.path.match(/^\/shared\/[^\/]+$/);
-    const userAgent = req.get('User-Agent') || '';
-    const acceptHeader = req.get('Accept') || '';
-    
-    // Only handle custom domain shared photo requests
-    if (isCustomDomain && isSharedPhotoPath) {
-      const token = req.path.replace('/shared/', '');
-      
-      console.log(`🌐 CUSTOM DOMAIN SHARED PHOTO REQUEST`);
-      console.log(`🌐 Host: ${req.headers.host}`);
-      console.log(`🌐 Path: ${req.path}`);
-      console.log(`🌐 Token: ${token}`);
-      console.log(`🌐 User-Agent: ${userAgent.substring(0, 100)}...`);
-      console.log(`🌐 Accept: ${acceptHeader}`);
-      
-      // Detect if this is a browser request (should get React app)
-      const isBrowserRequest = (
-        acceptHeader.includes('text/html') ||
-        userAgent.includes('Mozilla') ||
-        userAgent.includes('Chrome') ||
-        userAgent.includes('Safari') ||
-        userAgent.includes('Firefox') ||
-        userAgent.includes('Edge') ||
-        !acceptHeader.includes('application/json')
-      );
-      
-      if (isBrowserRequest) {
-        console.log(`🌐 CUSTOM DOMAIN BROWSER REQUEST - Serving React app for /shared/${token}`);
-        // Set content type to HTML and serve index.html for React SPA
-        res.set('Content-Type', 'text/html');
-        // Skip to Vite middleware to serve the React app
-        return next();
-      } else {
-        console.log(`🌐 CUSTOM DOMAIN API REQUEST - Redirecting to API endpoint for /shared/${token}`);
-        // This is an API request from the React app, redirect to the API endpoint
-        return res.redirect(307, `/api/shared/${token}`);
-      }
-    }
-    
-    // For non-custom domain or non-shared photo requests, continue normally
-    return next();
-  });
+
 
   // PUBLIC TEST ROUTE - NO AUTHENTICATION REQUIRED
   app.get('/api/public-shared/:token', async (req, res) => {
@@ -2246,19 +2265,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Handle shared photo viewer route for React SPA (non-API route)
-  app.get('/shared/:token', (req, res, next) => {
-    const isCustomDomain = req.headers.host?.includes('profieldmanager.com');
-    
-    if (isCustomDomain) {
-      console.log(`🌐 SHARED PHOTO ROUTE - Custom domain request for ${req.path}`);
-      // Force this to be handled by Vite middleware for React app
-      req.url = '/';
-      req.path = '/';
-    }
-    
-    next();
-  });
+
 
 
 

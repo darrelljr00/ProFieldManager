@@ -39,7 +39,7 @@ interface SharedPhotoLinkData {
 export default function SharedPhotosViewer() {
   const [, params] = useRoute("/shared/:token");
   const [selectedImage, setSelectedImage] = useState<SharedPhoto | null>(null);
-  const token = params?.token;
+  const token = params?.token || null;
 
   console.log('🔗 SharedPhotosViewer - Route params:', { params: params || null, token, currentPath: window.location.pathname });
 
