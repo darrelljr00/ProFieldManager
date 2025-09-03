@@ -43,8 +43,39 @@ export default function SharedPhotosViewer() {
 
   console.log('🔗 SharedPhotosViewer - Route params:', { params: params || null, token, currentPath: window.location.pathname });
 
+  // Workaround for custom domain authentication issue - route shared photo requests to Replit API
+  const getSharedPhotoUrl = (token: string) => {
+    const isCustomDomain = window.location.hostname === 'profieldmanager.com';
+    if (isCustomDomain) {
+      // Route to Replit API directly to bypass custom domain authentication issues
+      return `https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/shared/${token}`;
+    }
+    return `/api/shared/${token}`;
+  };
+
   const { data: sharedData, isLoading, error } = useQuery({
-    queryKey: [`/api/shared/${token}`],
+    queryKey: [`shared-photos-${token}`],
+    queryFn: async () => {
+      if (!token) throw new Error('No token provided');
+      
+      const url = getSharedPhotoUrl(token);
+      console.log('📸 Fetching shared photos from:', url);
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'SharedPhotoViewer/1.0'
+        },
+        credentials: 'omit' // Don't send credentials for shared photo requests
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch shared photos: ${response.status} ${response.statusText}`);
+      }
+      
+      return response.json();
+    },
     enabled: !!token,
     retry: false,
   });
