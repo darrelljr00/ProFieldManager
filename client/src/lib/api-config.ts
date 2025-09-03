@@ -7,10 +7,10 @@
  */
 
 export const API_CONFIG = {
-  // Custom domain configuration - routes API calls to Replit backend
+  // Custom domain configuration - uses relative URLs (same domain)
   customDomain: {
     hostname: 'profieldmanager.com',
-    apiBaseUrl: 'https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev'
+    apiBaseUrl: '' // Use relative URLs for same-origin requests
   },
   // Replit domain uses relative URLs
   replitDomain: {
@@ -30,9 +30,9 @@ export const getApiBaseUrl = (): string => {
   
   const hostname = window.location.hostname;
   
-  // Use Replit backend when accessing via custom domain
+  // Use same-origin requests for custom domain (API served by same server)
   if (hostname === API_CONFIG.customDomain.hostname) {
-    console.log('🌐 Custom domain detected - routing API calls to Replit backend');
+    console.log('🌐 Custom domain detected - using same-origin API requests');
     return API_CONFIG.customDomain.apiBaseUrl;
   }
   
@@ -87,12 +87,13 @@ export const isCustomDomain = (): boolean => {
 export const getAuthHeaders = (): Record<string, string> => {
   const headers: Record<string, string> = {};
   
-  // For custom domain, use Bearer token from localStorage
+  // For custom domain, try Bearer token first, fall back to cookie auth
   if (isCustomDomain()) {
     const token = localStorage.getItem('auth_token');
     if (token) {
       headers.Authorization = `Bearer ${token}`;
     }
+    // If no Bearer token, rely on cookie authentication (same-origin)
   }
   
   return headers;
