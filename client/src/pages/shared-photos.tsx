@@ -41,70 +41,10 @@ export default function SharedPhotosViewer() {
   const [selectedImage, setSelectedImage] = useState<SharedPhoto | null>(null);
   const token = params?.token;
 
-  // Image URL helper function with fallback logic
-  const getImageUrl = (image: SharedPhoto) => {
-    // First priority: Use cloudinaryUrl if available (for images stored in Cloudinary)
-    if (image.cloudinaryUrl && image.cloudinaryUrl.includes('cloudinary.com')) {
-      console.log('Using Cloudinary URL for image:', image.originalName, image.cloudinaryUrl);
-      return image.cloudinaryUrl;
-    }
-    
-    // Second priority: Use the URL from the backend response which includes correct organization path
-    if ((image as any).url) {
-      return (image as any).url;
-    }
-    
-    // Enhanced fallback - try to construct organization-based path from filename
-    if (image.filename) {
-      // If filename contains gallery prefix, use organization-based path
-      if (image.filename.includes('gallery-')) {
-        console.warn('Image missing URL property, constructing fallback path');
-        return `/uploads/image_gallery/${image.filename}`;
-      }
-      // If it's a generic filename, try the standard path
-      return `/uploads/${image.filename}`;
-    }
-    
-    // Last resort fallback
-    console.error('Image missing cloudinaryUrl, URL and filename properties');
-    return '';
-  };
-
   console.log('🔗 SharedPhotosViewer - Route params:', { params: params || null, token, currentPath: window.location.pathname });
 
-  // Workaround for custom domain authentication issue - route shared photo requests to Replit API
-  const getSharedPhotoUrl = (token: string) => {
-    const isCustomDomain = window.location.hostname === 'profieldmanager.com';
-    if (isCustomDomain) {
-      // Route to Replit API directly to bypass custom domain authentication issues
-      return `https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/shared/${token}`;
-    }
-    return `/api/shared/${token}`;
-  };
-
   const { data: sharedData, isLoading, error } = useQuery({
-    queryKey: [`shared-photos-${token}`],
-    queryFn: async () => {
-      if (!token) throw new Error('No token provided');
-      
-      const url = getSharedPhotoUrl(token);
-      console.log('📸 Fetching shared photos from:', url);
-      
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'SharedPhotoViewer/1.0'
-        },
-        credentials: 'omit' // Don't send credentials for shared photo requests
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch shared photos: ${response.status} ${response.statusText}`);
-      }
-      
-      return response.json();
-    },
+    queryKey: [`/api/shared/${token}`],
     enabled: !!token,
     retry: false,
   });
@@ -169,25 +109,6 @@ export default function SharedPhotosViewer() {
     );
   }
 
-  // Validate that we have the correct data structure for shared photo links
-  if (!sharedData.shareToken || !sharedData.images || !Array.isArray(sharedData.images)) {
-    console.error('🔗 Invalid shared photo data structure:', sharedData);
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Card className="w-full max-w-md mx-4">
-          <CardHeader className="text-center">
-            <CardTitle className="text-red-600">Invalid Shared Link</CardTitle>
-          </CardHeader>
-          <CardContent className="text-center">
-            <p className="text-gray-600">
-              This does not appear to be a valid shared photo link. Please check the URL and try again.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   const linkData = sharedData as SharedPhotoLinkData;
   const isExpired = new Date() > new Date(linkData.expiresAt);
   const isAccessLimitReached = linkData.maxAccess && linkData.accessCount >= linkData.maxAccess;
@@ -234,7 +155,7 @@ export default function SharedPhotosViewer() {
         <Button
           onClick={() => {
             const link = document.createElement('a');
-            link.href = getImageUrl(selectedImage);
+            link.href = selectedImage.cloudinaryUrl;
             link.download = selectedImage.originalName;
             link.target = '_blank';
             document.body.appendChild(link);
@@ -250,7 +171,7 @@ export default function SharedPhotosViewer() {
         </Button>
 
         <img
-          src={getImageUrl(selectedImage)}
+          src={selectedImage.cloudinaryUrl}
           alt={selectedImage.originalName}
           className="max-w-full max-h-full object-contain"
         />
@@ -323,7 +244,7 @@ export default function SharedPhotosViewer() {
             <Card key={image.id} className="overflow-hidden hover:shadow-lg transition-shadow">
               <div className="aspect-square relative group cursor-pointer">
                 <img
-                  src={getImageUrl(image)}
+                  src={image.cloudinaryUrl}
                   alt={image.originalName}
                   className="w-full h-full object-cover"
                   onClick={() => setSelectedImage(image)}
@@ -347,7 +268,7 @@ export default function SharedPhotosViewer() {
                       onClick={(e) => {
                         e.stopPropagation();
                         const link = document.createElement('a');
-                        link.href = getImageUrl(image);
+                        link.href = image.cloudinaryUrl;
                         link.download = image.originalName;
                         link.target = '_blank';
                         document.body.appendChild(link);
