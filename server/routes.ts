@@ -1795,12 +1795,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = loginSchema.parse(req.body);
       console.log('✅ Login data validated for user:', validatedData.username);
       
-      // Find user by username
-      const user = await storage.getUserByUsername(validatedData.username);
+      // Find user by username OR email (support both login methods)
+      let user = await storage.getUserByUsername(validatedData.username);
       if (!user) {
-        console.log('❌ User not found:', validatedData.username);
+        // If not found by username, try finding by email
+        user = await storage.getUserByEmail(validatedData.username);
+      }
+      
+      if (!user) {
+        console.log('❌ User not found by username or email:', validatedData.username);
         return res.status(401).json({ message: "Invalid credentials" });
       }
+      
+      console.log('✅ User found:', user.username, 'Email:', user.email);
 
       // Verify password
       const isValidPassword = await AuthService.verifyPassword(
