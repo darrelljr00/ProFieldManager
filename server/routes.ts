@@ -1807,7 +1807,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid credentials" });
       }
       
-      console.log('✅ User found:', user.username, 'Email:', user.email);
+      console.log('✅ User found:', user.username, 'Email:', user.email, 'ID:', user.id, 'Role:', user.role);
+      console.log('🔑 Password verification - Hash length:', user.password?.length, 'Input length:', validatedData.password?.length);
 
       // Verify password
       const isValidPassword = await AuthService.verifyPassword(
@@ -1815,12 +1816,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         user.password
       );
       
+      console.log('🔑 Password verification result:', isValidPassword);
+      
       if (!isValidPassword) {
         console.log('❌ Invalid password for user:', validatedData.username);
         return res.status(401).json({ message: "Invalid credentials" });
       }
 
-      if (!user.isActive) {
+      // Check active status (handle both camelCase and snake_case)
+      const isActive = user.isActive ?? user.is_active ?? true;
+      console.log('👤 User active status check:', { isActive: user.isActive, is_active: user.is_active, computed: isActive });
+      
+      if (!isActive) {
         console.log('❌ User account deactivated:', validatedData.username);
         return res.status(401).json({ message: "Account is deactivated" });
       }
