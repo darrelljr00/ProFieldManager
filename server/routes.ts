@@ -1768,6 +1768,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // DEBUGGING: Test endpoint to verify custom domain routing
+  app.get("/api/debug/connection", (req, res) => {
+    console.log('🔍 CONNECTION DEBUG REQUEST RECEIVED:', {
+      origin: req.headers.origin,
+      host: req.headers.host,
+      userAgent: req.headers['user-agent']?.substring(0, 50),
+      timestamp: new Date().toISOString()
+    });
+    
+    res.json({
+      message: "Connection test successful",
+      origin: req.headers.origin,
+      host: req.headers.host,
+      timestamp: new Date().toISOString(),
+      isCustomDomain: req.headers.host?.includes('profieldmanager.com')
+    });
+  });
+
   app.post("/api/auth/login", async (req, res) => {
     console.log('🌍 CRITICAL REQUEST: Login attempt received');
     console.log('🔐 Login debug:', {

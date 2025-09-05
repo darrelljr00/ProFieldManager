@@ -1,0 +1,139 @@
+Cookie warnings 2
+❌ HTTP Error Response: 
+Object { status: 401, statusText: "", url: "https://profieldmanager.com/api/auth/login", headers: {…}, body: '{"message":"Invalid credentials"}' }
+index-Bc2VSOGn.js:48:45339
+🌐 Custom domain detected - using same-origin API requests index-Bc2VSOGn.js:48:43064
+🌐 CUSTOM DOMAIN API ROUTING: 
+Object { originalEndpoint: "/api/auth/login", cleanEndpoint: "/api/auth/login", baseUrl: "", finalUrl: "/api/auth/login", timestamp: "2025-09-05T04:28:38.426Z" }
+index-Bc2VSOGn.js:48:43329
+🌐 API Request: 
+Object { method: "POST", originalUrl: "/api/auth/login", fullUrl: "/api/auth/login", isCustomDomain: true, hasAuthHeader: false, hasFormData: false, formDataEntries: undefined }
+index-Bc2VSOGn.js:48:45685
+📡 API Response: 
+Object { originalUrl: "/api/auth/login", fullUrl: "/api/auth/login", status: 401, statusText: "", ok: false, headers: {…} }
+index-Bc2VSOGn.js:48:46074
+❌ HTTP Error Response: 
+Object { status: 401, statusText: "", url: "https://profieldmanager.com/api/auth/login", headers: {…}, body: '{"message":"Invalid credentials"}' }
+index-Bc2VSOGn.js:48:45339
+🌐 Custom domain detected - using same-origin API requests index-Bc2VSOGn.js:48:43064
+🌐 CUSTOM DOMAIN API ROUTING: 
+Object { originalEndpoint: "/api/auth/login", cleanEndpoint: "/api/auth/login", baseUrl: "", finalUrl: "/api/auth/login", timestamp: "2025-09-05T04:28:38.608Z" }
+index-Bc2VSOGn.js:48:43329
+🌐 API Request: 
+Object { method: "POST", originalUrl: "/api/auth/login", fullUrl: "/api/auth/login", isCustomDomain: true, hasAuthHeader: false, hasFormData: false, formDataEntries: undefined }
+index-Bc2VSOGn.js:48:45685
+📡 API Response: 
+Object { originalUrl: "/api/auth/login", fullUrl: "/api/auth/login", status: 401, statusText: "", ok: false, headers: {…} }
+index-Bc2VSOGn.js:48:46074
+❌ HTTP Error Response: 
+Object { status: 401, statusText: "", url: "https://profieldmanager.com/api/auth/login", headers: {…}, body: '{"message":"Invalid credentials"}' }
+index-Bc2VSOGn.js:48:45339
+🌐 Custom domain detected - using same-origin API requests index-Bc2VSOGn.js:48:43064
+🌐 CUSTOM DOMAIN API ROUTING: 
+Object { originalEndpoint: "/api/auth/login", cleanEndpoint: "/api/auth/login", baseUrl: "", finalUrl: "/api/auth/login", timestamp: "2025-09-05T04:28:38.786Z" }
+index-Bc2VSOGn.js:48:43329
+🌐 API Request: 
+Object { method: "POST", originalUrl: "/api/auth/login", fullUrl: "/api/auth/login", isCustomDomain: true, hasAuthHeader: false, hasFormData: false, formDataEntries: undefined }
+index-Bc2VSOGn.js:48:45685
+📡 API Response: 
+Object { originalUrl: "/api/auth/login", fullUrl: "/api/auth/login", status: 401, statusText: "", ok: false, headers: {…} }
+index-Bc2VSOGn.js:48:46074
+❌ HTTP Error Response: 
+Object { status: 401, statusText: "", url: "https://profieldmanager.com/api/auth/login", headers: {…}, body: '{"message":"Invalid credentials"}' }
+index-Bc2VSOGn.js:48:45339
+🌐 Custom domain detected - using same-origin API requests index-Bc2VSOGn.js:48:43064
+🌐 CUSTOM DOMAIN API ROUTING: 
+Object { originalEndpoint: "/api/auth/login", cleanEndpoint: "/api/auth/login", baseUrl: "", finalUrl: "/api/auth/login", timestamp: "2025-09-05T04:28:38.952Z" }
+index-Bc2VSOGn.js:48:43329
+🌐 API Request: 
+Object { method: "POST", originalUrl: "/api/auth/login", fullUrl: "/api/auth/login", isCustomDomain: true, hasAuthHeader: false, hasFormData: false, formDataEntries: undefined }
+index-Bc2VSOGn.js:48:45685
+📡 API Response: 
+Object { originalUrl: "/api/auth/login", fullUrl: "/api/auth/login", status: 401, statusText: "", ok: false, headers: {…} }
+index-Bc2VSOGn.js:48:46074
+❌ HTTP Error Response: 
+Object { status: 401, statusText: "", url: "https://profieldmanager.com/api/auth/login", headers: {…}, body: '{"message":"Invalid credentials"}' }
+index-Bc2VSOGn.js:48:45339
+🌐 Custom domain detected - using same-origin API requests index-Bc2VSOGn.js:48:43064
+🌐 CUSTOM DOMAIN API ROUTING: 
+Object { originalEndpoint: "/api/auth/login", cleanEndpoint: "/api/auth/login", baseUrl: "", finalUrl: "/api/auth/login", timestamp: "2025-09-05T04:28:39.113Z" }
+index-Bc2VSOGn.js:48:43329
+🌐 API Request: 
+Object { method: "POST", originalUrl: "/api/auth/login", fullUrl: "/api/auth/login", isCustomDomain: true, hasAuthHeader: false, hasFormData: false, formDataEntries: undefined }
+index-Bc2VSOGn.js:48:45685
+📡 API Response: 
+Object { originalUrl: "/api/auth/login", fullUrl: "/api/auth/login", status: 401, statusText: "", ok: false, headers: {…} }
+index-Bc2VSOGn.js:48:46074
+❌ HTTP Error Response: 
+Object { status: 401, statusText: "", url: "https://profieldmanager.com/api/auth/login", headers: {…}, body: '{"message":"Invalid credentials"}' }
+index-Bc2VSOGn.js:48:45339
+🌐 Custom domain detected - using same-origin API requests index-Bc2VSOGn.js:48:43064
+🌐 CUSTOM DOMAIN API ROUTING: 
+Object { originalEndpoint: "/api/auth/login", cleanEndpoint: "/api/auth/login", baseUrl: "", finalUrl: "/api/auth/login", timestamp: "2025-09-05T04:28:39.306Z" }
+index-Bc2VSOGn.js:48:43329
+🌐 API Request: 
+Object { method: "POST", originalUrl: "/api/auth/login", fullUrl: "/api/auth/login", isCustomDomain: true, hasAuthHeader: false, hasFormData: false, formDataEntries: undefined }
+index-Bc2VSOGn.js:48:45685
+📡 API Response: 
+Object { originalUrl: "/api/auth/login", fullUrl: "/api/auth/login", status: 401, statusText: "", ok: false, headers: {…} }
+index-Bc2VSOGn.js:48:46074
+❌ HTTP Error Response: 
+Object { status: 401, statusText: "", url: "https://profieldmanager.com/api/auth/login", headers: {…}, body: '{"message":"Invalid credentials"}' }
+index-Bc2VSOGn.js:48:45339
+🌐 Custom domain detected - using same-origin API requests index-Bc2VSOGn.js:48:43064
+🌐 CUSTOM DOMAIN API ROUTING: 
+Object { originalEndpoint: "/api/auth/login", cleanEndpoint: "/api/auth/login", baseUrl: "", finalUrl: "/api/auth/login", timestamp: "2025-09-05T04:28:39.476Z" }
+index-Bc2VSOGn.js:48:43329
+🌐 API Request: 
+Object { method: "POST", originalUrl: "/api/auth/login", fullUrl: "/api/auth/login", isCustomDomain: true, hasAuthHeader: false, hasFormData: false, formDataEntries: undefined }
+index-Bc2VSOGn.js:48:45685
+📡 API Response: 
+Object { originalUrl: "/api/auth/login", fullUrl: "/api/auth/login", status: 401, statusText: "", ok: false, headers: {…} }
+index-Bc2VSOGn.js:48:46074
+❌ HTTP Error Response: 
+Object { status: 401, statusText: "", url: "https://profieldmanager.com/api/auth/login", headers: {…}, body: '{"message":"Invalid credentials"}' }
+index-Bc2VSOGn.js:48:45339
+🌐 Custom domain detected - using same-origin API requests index-Bc2VSOGn.js:48:43064
+🌐 CUSTOM DOMAIN API ROUTING: 
+Object { originalEndpoint: "/api/auth/login", cleanEndpoint: "/api/auth/login", baseUrl: "", finalUrl: "/api/auth/login", timestamp: "2025-09-05T04:59:38.797Z" }
+index-Bc2VSOGn.js:48:43329
+🌐 API Request: 
+Object { method: "POST", originalUrl: "/api/auth/login", fullUrl: "/api/auth/login", isCustomDomain: true, hasAuthHeader: false, hasFormData: false, formDataEntries: undefined }
+index-Bc2VSOGn.js:48:45685
+📡 API Response: 
+Object { originalUrl: "/api/auth/login", fullUrl: "/api/auth/login", status: 401, statusText: "", ok: false, headers: {…} }
+index-Bc2VSOGn.js:48:46074
+❌ HTTP Error Response: 
+Object { status: 401, statusText: "", url: "https://profieldmanager.com/api/auth/login", headers: {…}, body: '{"message":"Invalid credentials"}' }
+index-Bc2VSOGn.js:48:45339
+🌐 Custom domain detected - using same-origin API requests index-Bc2VSOGn.js:48:43064
+🌐 CUSTOM DOMAIN API ROUTING: 
+Object { originalEndpoint: "/api/auth/login", cleanEndpoint: "/api/auth/login", baseUrl: "", finalUrl: "/api/auth/login", timestamp: "2025-09-05T04:59:39.776Z" }
+index-Bc2VSOGn.js:48:43329
+🌐 API Request: 
+Object { method: "POST", originalUrl: "/api/auth/login", fullUrl: "/api/auth/login", isCustomDomain: true, hasAuthHeader: false, hasFormData: false, formDataEntries: undefined }
+index-Bc2VSOGn.js:48:45685
+📡 API Response: 
+Object { originalUrl: "/api/auth/login", fullUrl: "/api/auth/login", status: 401, statusText: "", ok: false, headers: {…} }
+index-Bc2VSOGn.js:48:46074
+❌ HTTP Error Response: 
+Object { status: 401, statusText: "", url: "https://profieldmanager.com/api/auth/login", headers: {…}, body: '{"message":"Invalid credentials"}' }
+index-Bc2VSOGn.js:48:45339
+    W9 https://profieldmanager.com/assets/index-Bc2VSOGn.js:48
+🌐 Custom domain detected - using same-origin API requests index-Bc2VSOGn.js:48:43064
+🌐 CUSTOM DOMAIN API ROUTING: 
+Object { originalEndpoint: "/api/auth/login", cleanEndpoint: "/api/auth/login", baseUrl: "", finalUrl: "/api/auth/login", timestamp: "2025-09-05T04:59:49.762Z" }
+index-Bc2VSOGn.js:48:43329
+🌐 API Request: 
+Object { method: "POST", originalUrl: "/api/auth/login", fullUrl: "/api/auth/login", isCustomDomain: true, hasAuthHeader: false, hasFormData: false, formDataEntries: undefined }
+index-Bc2VSOGn.js:48:45685
+📡 API Response: 
+Object { originalUrl: "/api/auth/login", fullUrl: "/api/auth/login", status: 401, statusText: "", ok: false, headers: {…} }
+index-Bc2VSOGn.js:48:46074
+❌ HTTP Error Response: 
+Object { status: 401, statusText: "", url: "https://profieldmanager.com/api/auth/login", headers: {…}, body: '{"message":"Invalid credentials"}' }
+index-Bc2VSOGn.js:48:45339
+    W9 https://profieldmanager.com/assets/index-Bc2VSOGn.js:48
+
+​
+
