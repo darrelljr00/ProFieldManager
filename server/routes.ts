@@ -1841,9 +1841,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid credentials" });
       }
 
-      // Check active status (handle both camelCase and snake_case)
-      const isActive = user.isActive ?? user.is_active ?? true;
-      console.log('👤 User active status check:', { isActive: user.isActive, is_active: user.is_active, computed: isActive });
+      // Check active status
+      const isActive = user.isActive ?? true;
+      console.log('👤 User active status check:', { isActive: user.isActive, computed: isActive });
       
       if (!isActive) {
         console.log('❌ User account deactivated:', validatedData.username);
@@ -1965,8 +1965,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ 
       reqUser: user, 
       freshUser: freshUser,
-      hasPartsAccess: freshUser?.can_access_parts_supplies,
-      hasScheduleAccess: freshUser?.can_access_my_schedule
+      hasPartsAccess: freshUser?.canAccessPartsSupplies,
+      hasScheduleAccess: freshUser?.canAccessMySchedule
     });
   });
 
@@ -1976,9 +1976,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     // Debug logging for critical permissions
     console.log('🔍 DEBUG AUTH/ME - Raw user permissions for', user.username, ':', {
-      can_access_parts_supplies: user.can_access_parts_supplies,
-      can_access_my_schedule: user.can_access_my_schedule,
-      can_access_saas_admin: user.can_access_saas_admin,
+      canAccessPartsSupplies: user.canAccessPartsSupplies,
+      canAccessMySchedule: user.canAccessMySchedule,
+      canAccessSaasAdmin: user.canAccessSaasAdmin,
       role: user.role,
       organizationId: user.organizationId
     });
@@ -1987,31 +1987,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     const transformedUser = {
       ...user,
-      // Transform all permission fields from snake_case to camelCase
-      canAccessDashboard: user.can_access_dashboard,
-      canAccessCalendar: user.can_access_calendar,
-      canAccessTimeClock: user.can_access_time_clock,
-      canAccessJobs: user.can_access_jobs,
-      canAccessMyTasks: user.can_access_my_tasks,
-      canAccessLeads: user.can_access_leads,
-      canAccessExpenses: user.can_access_expenses,
-      canAccessQuotes: user.can_access_quotes,
-      canAccessInvoices: user.can_access_invoices,
-      canAccessCustomers: user.can_access_customers,
-      canAccessPayments: user.can_access_payments,
-      canAccessFileManager: user.can_access_file_manager,
-      canAccessPartsSupplies: user.can_access_parts_supplies,
-      canAccessFormBuilder: user.can_access_form_builder,
-      canAccessInspections: user.can_access_inspections,
-      canAccessInternalMessages: user.can_access_internal_messages,
-      canAccessTeamMessages: user.can_access_team_messages,
-      canAccessImageGallery: user.can_access_image_gallery,
-      canAccessSMS: user.can_access_sms,
-      canAccessMessages: user.can_access_messages,
-      canAccessGpsTracking: user.can_access_gps_tracking,
-      canAccessWeather: user.can_access_weather,
-      canAccessReviews: user.can_access_reviews,
-      canAccessMarketResearch: user.can_access_market_research,
+      // User already has camelCase properties from Drizzle ORM
+      canAccessDashboard: user.canAccessDashboard || false,
+      canAccessCalendar: user.canAccessCalendar || false,
+      canAccessTimeClock: user.canAccessTimeClock || false,
+      canAccessJobs: user.canAccessJobs || false,
+      canAccessMyTasks: user.canAccessMyTasks || false,
+      canAccessLeads: user.canAccessLeads || false,
+      canAccessExpenses: user.canAccessExpenses || false,
+      canAccessQuotes: user.canAccessQuotes || false,
+      canAccessInvoices: user.canAccessInvoices || false,
+      canAccessCustomers: user.canAccessCustomers || false,
+      canAccessPayments: user.canAccessPayments || false,
+      canAccessFileManager: user.canAccessFileManager || false,
+      canAccessPartsSupplies: user.canAccessPartsSupplies || false,
+      canAccessFormBuilder: user.canAccessFormBuilder || false,
+      canAccessInspections: user.canAccessInspections || false,
+      canAccessInternalMessages: user.canAccessInternalMessages || false,
+      canAccessTeamMessages: user.canAccessTeamMessages || false,
+      canAccessImageGallery: user.canAccessImageGallery || false,
+      canAccessSMS: user.canAccessSMS || false,
+      canAccessMessages: user.canAccessMessages || false,
+      canAccessGpsTracking: user.canAccessGpsTracking || false,
+      canAccessWeather: user.canAccessWeather || false,
+      canAccessReviews: user.canAccessReviews || false,
+      canAccessMarketResearch: user.canAccessMarketResearch || false,
       canAccessHR: user.can_access_hr,
       canAccessUsers: user.can_access_users,
       canAccessSaasAdmin: user.can_access_saas_admin,
