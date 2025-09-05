@@ -1953,6 +1953,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // Debug endpoint to test production login process
+  app.post("/api/debug/test-login", async (req, res) => {
+    try {
+      const { username, password } = req.body;
+      console.log('🔬 DEBUG LOGIN TEST - Testing user:', username);
+      
+      // Find user by username OR email
+      let user = await storage.getUserByUsername(username);
+      if (!user) {
+        user = await storage.getUserByEmail(username);
+      }
+      
+      console.log('🔬 DEBUG LOGIN TEST - User found:', !!user, user ? `ID: ${user.id}, Active: ${user.isActive}` : 'Not found');
+      
+      if (!user) {
+        return res.json({ success: false, step: 'user_lookup', message: 'User not found' });
+      }
+      
+      // Test password verification
+      const isValidPassword = await AuthService.verifyPassword(password, user.password);
+      console.log('🔬 DEBUG LOGIN TEST - Password valid:', isValidPassword);
+      
+      res.json({ 
+        success: isValidPassword,
+        step: isValidPassword ? 'complete' : 'password_verification',
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          isActive: user.isActive,
+          organizationId: user.organizationId
+        }
+      });
+    } catch (error) {
+      console.error('🔬 DEBUG LOGIN TEST - Error:', error);
+      res.status(500).json({ success: false, step: 'error', message: error.message });
+    }
+  });
+
   // Debug endpoint to test user data transformation
   app.get("/api/debug/user", requireAuth, async (req, res) => {
     const user = req.user;

@@ -1,0 +1,148 @@
+🌐 CUSTOM DOMAIN API ROUTING: Object
+index-Bc2VSOGn.js:48 🌐 API Request: Object
+api/auth/me:1   Failed to load resource: the server responded with a status of 401 ()
+index-Bc2VSOGn.js:48 📡 API Response: Object
+index-Bc2VSOGn.js:48  ❌ HTTP Error Response: Object
+W9 @ index-Bc2VSOGn.js:48
+index-Bc2VSOGn.js:1510 Router state: Object
+index-Bc2VSOGn.js:1510 Router state: Object
+index-Bc2VSOGn.js:48 🌐 Custom domain detected - using same-origin API requests
+index-Bc2VSOGn.js:48 🌐 CUSTOM DOMAIN API ROUTING: Object
+index-Bc2VSOGn.js:48 🌐 API Request: Object
+login:1   Failed to load resource: the server responded with a status of 401 ()
+index-Bc2VSOGn.js:48 📡 API Response: Object
+index-Bc2VSOGn.js:48  ❌ HTTP Error Response: Object
+W9 @ index-Bc2VSOGn.js:48
+index-Bc2VSOGn.js:48 🌐 Custom domain detected - using same-origin API requests
+index-Bc2VSOGn.js:48 🌐 CUSTOM DOMAIN API ROUTING: Object
+index-Bc2VSOGn.js:48 🌐 API Request: Object
+login:1   Failed to load resource: the server responded with a status of 401 ()
+index-Bc2VSOGn.js:48 📡 API Response: Object
+index-Bc2VSOGn.js:48  ❌ HTTP Error Response: Object
+W9 @ index-Bc2VSOGn.js:48
+index-Bc2VSOGn.js:48 🌐 Custom domain detected - using same-origin API requests
+index-Bc2VSOGn.js:48 🌐 CUSTOM DOMAIN API ROUTING: Object
+index-Bc2VSOGn.js:48 🌐 API Request: Object
+login:1   Failed to load resource: the server responded with a status of 401 ()
+index-Bc2VSOGn.js:48 📡 API Response: Object
+index-Bc2VSOGn.js:48  ❌ HTTP Error Response: Object
+W9 @ index-Bc2VSOGn.js:48
+index-Bc2VSOGn.js:48 🌐 Custom domain detected - using same-origin API requests
+index-Bc2VSOGn.js:48 🌐 CUSTOM DOMAIN API ROUTING: Object
+index-Bc2VSOGn.js:48 🌐 API Request: Object
+login:1   Failed to load resource: the server responded with a status of 401 ()
+index-Bc2VSOGn.js:48 📡 API Response: Object
+index-Bc2VSOGn.js:48  ❌ HTTP Error Response: Object
+W9 @ index-Bc2VSOGn.js:48
+index-Bc2VSOGn.js:48 🌐 Custom domain detected - using same-origin API requests
+index-Bc2VSOGn.js:48 🌐 CUSTOM DOMAIN API ROUTING: Object
+index-Bc2VSOGn.js:48 🌐 API Request: Object
+login:1   Failed to load resource: the server responded with a status of 401 ()
+index-Bc2VSOGn.js:48 📡 API Response: Object
+index-Bc2VSOGn.js:48  ❌ HTTP Error Response: Object
+W9 @ index-Bc2VSOGn.js:48
+index-Bc2VSOGn.js:48 🌐 Custom domain detected - using same-origin API requests
+index-Bc2VSOGn.js:48 🌐 CUSTOM DOMAIN API ROUTING: Object
+index-Bc2VSOGn.js:48 🌐 API Request: Object
+login:1   Failed to load resource: the server responded with a status of 401 ()
+index-Bc2VSOGn.js:48 📡 API Response: Object
+index-Bc2VSOGn.js:48  ❌ HTTP Error Response: Object
+W9 @ index-Bc2VSOGn.js:48
+index-Bc2VSOGn.js:48 🌐 Custom domain detected - using same-origin API requests
+index-Bc2VSOGn.js:48 🌐 CUSTOM DOMAIN API ROUTING: Object
+index-Bc2VSOGn.js:48 🌐 API Request: Object
+login:1   Failed to load resource: the server responded with a status of 401 ()
+index-Bc2VSOGn.js:48 📡 API Response: Object
+index-Bc2VSOGn.js:48  ❌ HTTP Error Response: Object
+W9 @ index-Bc2VSOGn.js:48
+index-Bc2VSOGn.js:48 🌐 Custom domain detected - using same-origin API requests
+index-Bc2VSOGn.js:48 🌐 CUSTOM DOMAIN API ROUTING: Object
+index-Bc2VSOGn.js:48 🌐 API Request: Object
+login:1   Failed to load resource: the server responded with a status of 401 ()
+index-Bc2VSOGn.js:48 📡 API Response: Object
+index-Bc2VSOGn.js:48  ❌ HTTP Error Response: Object
+W9 @ index-Bc2VSOGn.js:48
+index-Bc2VSOGn.js:48 🌐 Custom domain detected - using same-origin API requests
+index-Bc2VSOGn.js:48 🌐 CUSTOM DOMAIN API ROUTING: Object
+index-Bc2VSOGn.js:48 🌐 API Request: Object
+login:1   Failed to load resource: the server responded with a status of 401 ()
+index-Bc2VSOGn.js:48 📡 API Response: Object
+index-Bc2VSOGn.js:48  ❌ HTTP Error Response: Object
+W9 @ index-Bc2VSOGn.js:48
+index-Bc2VSOGn.js:48 🌐 Custom domain detected - using same-origin API requests
+index-Bc2VSOGn.js:48 🌐 CUSTOM DOMAIN API ROUTING: Object
+index-Bc2VSOGn.js:48 🌐 API Request: Object
+api/auth/login:1   Failed to load resource: the server responded with a status of 401 ()
+index-Bc2VSOGn.js:48 📡 API Response: Object
+index-Bc2VSOGn.js:48  ❌ HTTP Error Response: Object
+W9 @ index-Bc2VSOGn.js:48
+index-Bc2VSOGn.js:48 🌐 Custom domain detected - using same-origin API requests
+index-Bc2VSOGn.js:48 🌐 CUSTOM DOMAIN API ROUTING: Object
+index-Bc2VSOGn.js:48 🌐 API Request: Object
+api/auth/login:1   Failed to load resource: the server responded with a status of 401 ()
+index-Bc2VSOGn.js:48 📡 API Response: Object
+index-Bc2VSOGn.js:48  ❌ HTTP Error Response: Object
+W9 @ index-Bc2VSOGn.js:48
+index-Bc2VSOGn.js:48 🌐 Custom domain detected - using same-origin API requests
+index-Bc2VSOGn.js:48 🌐 CUSTOM DOMAIN API ROUTING: Object
+index-Bc2VSOGn.js:48 🌐 API Request: Object
+api/auth/login:1   Failed to load resource: the server responded with a status of 401 ()
+index-Bc2VSOGn.js:48 📡 API Response: Object
+index-Bc2VSOGn.js:48  ❌ HTTP Error Response: Object
+W9 @ index-Bc2VSOGn.js:48
+[NEW] Explain Console errors by using Copilot in Edge: click
+         
+         to explain an error. 
+        Learn more
+        Don't show again
+index-Bc2VSOGn.js:48 🌐 Custom domain detected - using same-origin API requests
+index-Bc2VSOGn.js:48 🌐 CUSTOM DOMAIN API ROUTING: {originalEndpoint: '/api/auth/login', cleanEndpoint: '/api/auth/login', baseUrl: '', finalUrl: '/api/auth/login', timestamp: '2025-09-05T23:50:05.108Z'}
+index-Bc2VSOGn.js:48 🌐 API Request: {method: 'POST', originalUrl: '/api/auth/login', fullUrl: '/api/auth/login', isCustomDomain: true, hasAuthHeader: false, …}
+index-Bc2VSOGn.js:48   POST https://profieldmanager.com/api/auth/login 401 (Unauthorized)
+Se @ index-Bc2VSOGn.js:48
+mutationFn @ index-Bc2VSOGn.js:1378
+fn @ index-Bc2VSOGn.js:48
+y @ index-Bc2VSOGn.js:48
+start @ index-Bc2VSOGn.js:48
+execute @ index-Bc2VSOGn.js:48
+await in execute
+mutate @ index-Bc2VSOGn.js:48
+(anonymous) @ index-Bc2VSOGn.js:48
+b @ index-Bc2VSOGn.js:1378
+Mre @ index-Bc2VSOGn.js:37
+Ire @ index-Bc2VSOGn.js:37
+Fre @ index-Bc2VSOGn.js:37
+aO @ index-Bc2VSOGn.js:37
+mq @ index-Bc2VSOGn.js:37
+(anonymous) @ index-Bc2VSOGn.js:37
+qT @ index-Bc2VSOGn.js:40
+FB @ index-Bc2VSOGn.js:37
+ZS @ index-Bc2VSOGn.js:37
+gT @ index-Bc2VSOGn.js:37
+Jre @ index-Bc2VSOGn.js:37
+index-Bc2VSOGn.js:48 📡 API Response: {originalUrl: '/api/auth/login', fullUrl: '/api/auth/login', status: 401, statusText: '', ok: false, …}
+index-Bc2VSOGn.js:48  ❌ HTTP Error Response: {status: 401, statusText: '', url: 'https://profieldmanager.com/api/auth/login', headers: {…}, body: '{"message":"Invalid credentials"}'}
+W9 @ index-Bc2VSOGn.js:48
+await in W9
+Se @ index-Bc2VSOGn.js:48
+await in Se
+mutationFn @ index-Bc2VSOGn.js:1378
+fn @ index-Bc2VSOGn.js:48
+y @ index-Bc2VSOGn.js:48
+start @ index-Bc2VSOGn.js:48
+execute @ index-Bc2VSOGn.js:48
+await in execute
+mutate @ index-Bc2VSOGn.js:48
+(anonymous) @ index-Bc2VSOGn.js:48
+b @ index-Bc2VSOGn.js:1378
+Mre @ index-Bc2VSOGn.js:37
+Ire @ index-Bc2VSOGn.js:37
+Fre @ index-Bc2VSOGn.js:37
+aO @ index-Bc2VSOGn.js:37
+mq @ index-Bc2VSOGn.js:37
+(anonymous) @ index-Bc2VSOGn.js:37
+qT @ index-Bc2VSOGn.js:40
+FB @ index-Bc2VSOGn.js:37
+ZS @ index-Bc2VSOGn.js:37
+gT @ index-Bc2VSOGn.js:37
+Jre @ index-Bc2VSOGn.js:37
