@@ -1953,6 +1953,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // Temporary debug page for testing login
+  app.get("/debug-login", async (req, res) => {
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head><title>Debug Login Test</title></head>
+      <body style="font-family: Arial; padding: 20px;">
+        <h2>🔬 Debug Login Test</h2>
+        <form id="debugForm">
+          <p><strong>Username:</strong> <input type="text" id="username" value="sales@texaspowerwash.net" style="width: 300px;"></p>
+          <p><strong>Password:</strong> <input type="password" id="password" style="width: 300px;"></p>
+          <p><button type="submit">Test Login</button></p>
+        </form>
+        <div id="result" style="margin-top: 20px; padding: 10px; background: #f0f0f0;"></div>
+        
+        <script>
+          document.getElementById('debugForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+              const response = await fetch('/api/debug/test-login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+              });
+              
+              const result = await response.json();
+              document.getElementById('result').innerHTML = '<pre>' + JSON.stringify(result, null, 2) + '</pre>';
+            } catch (error) {
+              document.getElementById('result').innerHTML = 'Error: ' + error.message;
+            }
+          });
+        </script>
+      </body>
+      </html>
+    `);
+  });
+
   // Debug endpoint to test production login process
   app.post("/api/debug/test-login", async (req, res) => {
     try {
