@@ -1,0 +1,40 @@
+❌ HTTP Error Response: 
+Object { status: 401, statusText: "", url: "https://profieldmanager.com/api/auth/login", headers: {…}, body: '{"message":"Invalid credentials"}' }
+index-Bc2VSOGn.js:48:45339
+🌐 Custom domain detected - using same-origin API requests index-Bc2VSOGn.js:48:43064
+🌐 CUSTOM DOMAIN API ROUTING: 
+Object { originalEndpoint: "/api/auth/login", cleanEndpoint: "/api/auth/login", baseUrl: "", finalUrl: "/api/auth/login", timestamp: "2025-09-05T23:59:27.877Z" }
+index-Bc2VSOGn.js:48:43329
+🌐 API Request: 
+Object { method: "POST", originalUrl: "/api/auth/login", fullUrl: "/api/auth/login", isCustomDomain: true, hasAuthHeader: false, hasFormData: false, formDataEntries: undefined }
+index-Bc2VSOGn.js:48:45685
+XHRPOST
+https://profieldmanager.com/api/auth/login
+[HTTP/3 401  106ms]
+
+📡 API Response: 
+Object { originalUrl: "/api/auth/login", fullUrl: "/api/auth/login", status: 401, statusText: "", ok: false, headers: {…} }
+index-Bc2VSOGn.js:48:46074
+❌ HTTP Error Response: 
+Object { status: 401, statusText: "", url: "https://profieldmanager.com/api/auth/login", headers: {…}, body: '{"message":"Invalid credentials"}' }
+index-Bc2VSOGn.js:48:45339
+🌐 Custom domain detected - using same-origin API requests index-Bc2VSOGn.js:48:43064
+🌐 CUSTOM DOMAIN API ROUTING: 
+Object { originalEndpoint: "/api/auth/login", cleanEndpoint: "/api/auth/login", baseUrl: "", finalUrl: "/api/auth/login", timestamp: "2025-09-05T23:59:28.297Z" }
+index-Bc2VSOGn.js:48:43329
+🌐 API Request: 
+Object { method: "POST", originalUrl: "/api/auth/login", fullUrl: "/api/auth/login", isCustomDomain: true, hasAuthHeader: false, hasFormData: false, formDataEntries: undefined }
+index-Bc2VSOGn.js:48:45685
+XHRPOST
+https://profieldmanager.com/api/auth/login
+[HTTP/3 401  104ms]
+
+📡 API Response: 
+Object { originalUrl: "/api/auth/login", fullUrl: "/api/auth/login", status: 401, statusText: "", ok: false, headers: {…} }
+index-Bc2VSOGn.js:48:46074
+❌ HTTP Error Response: 
+Object { status: 401, statusText: "", url: "https://profieldmanager.com/api/auth/login", headers: {…}, body: '{"message":"Invalid credentials"}' }
+index-Bc2VSOGn.js:48:45339
+🌐 Custom domain detected - using same-origin API requests index-Bc2VSOGn.js:48:43064
+🌐 CUSTOM DOMAIN API ROUTING: 
+Object { originalEndpoint: "/api/auth/login", cleanEndpoint: "/api/auth/login", baseUrl: "", finalUrl: "/api/auth/login", timestamp: "2025-09-05T23:59:29.294Z" }
