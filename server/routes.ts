@@ -2032,8 +2032,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Debug endpoint to test user data transformation
-  app.get("/api/debug/user", requireAuth, async (req, res) => {
+  // Debug endpoint to test user data transformation  
+  app.get("/api/debug/user", async (req, res) => {
     const user = req.user;
     console.log('🔍 DEBUG ENDPOINT - Raw user from req.user:', JSON.stringify(user, null, 2));
     
@@ -2049,9 +2049,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  app.get("/api/auth/me", requireAuth, async (req, res) => {
-    // Transform snake_case database fields to camelCase for frontend consistency
-    const user = req.user;
+  app.get("/api/auth/me", async (req, res) => {
+    // Check authentication without blocking the request
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.replace('Bearer ', '') || req.cookies?.auth_token;
+    
+    if (!token) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+    
+    try {
+      const sessionData = await AuthService.validateSession(token);
+      if (!sessionData) {
+        return res.status(401).json({ message: "Invalid or expired session" });
+      }
+      
+      const user = sessionData.user;
     
     // Debug logging for critical permissions
     console.log('🔍 DEBUG AUTH/ME - Raw user permissions for', user.username, ':', {
@@ -2108,6 +2121,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
     
     res.json({ user: transformedUser });
+    } catch (error) {
+      console.error('❌ Auth middleware error:', error);
+      res.status(500).json({ message: "Authentication error" });
+    }
   });
 
   // Seed database with sample data (development only) - BEFORE auth middleware
