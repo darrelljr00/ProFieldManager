@@ -2032,6 +2032,106 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Create missing production user
+  app.post("/api/debug/create-production-user", async (req, res) => {
+    try {
+      console.log('🔧 PRODUCTION FIX - Creating missing user account');
+      
+      // Check if user already exists
+      const existingUser = await storage.getUserByUsername('sales@texaspowerwash.net');
+      if (existingUser) {
+        return res.json({ success: false, message: 'User already exists', user: existingUser });
+      }
+      
+      // Hash the password - use provided password or default
+      const password = req.body.password || 'defaultpassword';
+      const hashedPassword = await AuthService.hashPassword(password);
+      
+      // Create the user with the same details as development
+      const userData = {
+        username: 'sales@texaspowerwash.net',
+        email: 'sales@texaspowerwash.net', 
+        password: hashedPassword,
+        firstName: 'Sales',
+        lastName: 'Team',
+        role: 'admin',
+        organizationId: 2, // Assuming organization 2 exists
+        isActive: true,
+        // Add all the permissions
+        canAccessDashboard: true,
+        canAccessCalendar: true,
+        canAccessTimeClock: true,
+        canAccessJobs: true,
+        canAccessMyTasks: true,
+        canAccessLeads: true,
+        canAccessExpenses: true,
+        canAccessQuotes: true,
+        canAccessInvoices: true,
+        canAccessCustomers: true,
+        canAccessPayments: true,
+        canAccessFileManager: true,
+        canAccessPartsSupplies: true,
+        canAccessMySchedule: true,
+        canAccessTutorials: true,
+        canAccessFormBuilder: true,
+        canAccessInspections: true,
+        canAccessInternalMessages: true,
+        canAccessTeamMessages: true,
+        canAccessImageGallery: true,
+        canAccessSMS: true,
+        canAccessMessages: true,
+        canAccessGpsTracking: true,
+        canAccessWeather: true,
+        canAccessReviews: true,
+        canAccessMarketResearch: true,
+        canAccessHR: true,
+        canAccessUsers: true,
+        canAccessSaasAdmin: true,
+        canAccessAdminSettings: true,
+        canAccessReports: true
+      };
+      
+      // Create organization first if it doesn't exist
+      try {
+        const org = await storage.getOrganization(2);
+        if (!org) {
+          console.log('🔧 Creating organization 2');
+          await storage.createOrganization({
+            id: 2,
+            name: 'Texas Power Wash',
+            email: 'sales@texaspowerwash.net',
+            subscriptionPlan: 'professional',
+            maxUsers: 10,
+            isActive: true
+          });
+        }
+      } catch (orgError) {
+        console.log('🔧 Organization creation skipped:', orgError.message);
+      }
+      
+      // Create the user
+      const newUser = await storage.createUser(userData);
+      
+      console.log('✅ PRODUCTION FIX - User created successfully:', newUser.username);
+      
+      res.json({ 
+        success: true, 
+        message: 'User created successfully',
+        user: {
+          id: newUser.id,
+          username: newUser.username,
+          email: newUser.email,
+          role: newUser.role,
+          organizationId: newUser.organizationId
+        }
+      });
+      
+    } catch (error) {
+      console.error('❌ PRODUCTION FIX - User creation error:', error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
   // Production database debug endpoint 
   app.get("/api/debug/production-users", async (req, res) => {
     try {
