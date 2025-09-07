@@ -1703,6 +1703,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Authentication routes (public)
+  
+  // BYPASS INTERCEPTED ENDPOINT - New login route that works
+  app.post("/api/login-v2", async (req, res) => {
+    console.log('🎯 NEW LOGIN ENDPOINT HIT - BYPASSING INTERCEPTION!');
+    console.log('🔐 Fresh login attempt:', {
+      timestamp: new Date().toISOString(),
+      username: req.body?.username,
+      hasPassword: !!req.body?.password,
+      origin: req.headers.origin,
+      host: req.headers.host
+    });
+
+    try {
+      const { username, password } = req.body;
+
+      if (!username || !password) {
+        return res.status(400).json({ message: "Username and password are required" });
+      }
+
+      const user = await storage.getUserByUsername(username);
+      if (!user) {
+        console.log('❌ User not found:', username);
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      console.log('✅ User found:', { id: user.id, username: user.username });
+      
+      const isValid = await bcrypt.compare(password, user.password);
+      console.log('🔐 Password check result:', isValid);
+      
+      if (!isValid) {
+        console.log('❌ Password mismatch for user:', username);
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      console.log('🎉 LOGIN SUCCESS for:', username);
+      
+      // Generate JWT token
+      const token = jwt.sign(
+        { userId: user.id, username: user.username, organizationId: user.organizationId },
+        JWT_SECRET,
+        { expiresIn: "7d" }
+      );
+
+      res.json({
+        message: "Login successful",
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          organizationId: user.organizationId,
+          role: user.role,
+        },
+        token,
+      });
+      
+    } catch (error) {
+      console.error('🚨 Login error:', error);
+      res.status(500).json({ message: "Login failed" });
+    }
+  });
+
   app.post("/api/auth/register", async (req, res) => {
     try {
       const validatedData = registerSchema.parse(req.body);
@@ -1785,6 +1849,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       isCustomDomain: req.headers.host?.includes('profieldmanager.com')
     });
   });
+
 
   app.post("/api/auth/login", async (req, res) => {
     console.log('🚨🚨🚨 LOGIN ENDPOINT HIT!!! 🚨🚨🚨');
