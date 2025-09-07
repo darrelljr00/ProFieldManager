@@ -2032,6 +2032,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Production database debug endpoint 
+  app.get("/api/debug/production-users", async (req, res) => {
+    try {
+      console.log('🔍 PRODUCTION DEBUG - Checking production database users');
+      
+      // Get all users from production database
+      const allUsers = await db.select({
+        id: users.id,
+        username: users.username,
+        email: users.email,
+        isActive: users.isActive,
+        organizationId: users.organizationId
+      }).from(users).limit(10);
+      
+      console.log('🔍 PRODUCTION DEBUG - Found users:', allUsers.length);
+      allUsers.forEach(user => {
+        console.log(`  - ID: ${user.id}, Username: ${user.username}, Email: ${user.email}, Active: ${user.isActive}, Org: ${user.organizationId}`);
+      });
+      
+      // Try specific user lookup
+      const targetUser = await storage.getUserByUsername('sales@texaspowerwash.net');
+      const targetByEmail = await storage.getUserByEmail('sales@texaspowerwash.net');
+      
+      console.log('🔍 PRODUCTION DEBUG - Target user by username:', !!targetUser);
+      console.log('🔍 PRODUCTION DEBUG - Target user by email:', !!targetByEmail);
+      
+      res.json({
+        totalUsers: allUsers.length,
+        users: allUsers,
+        targetUserByUsername: !!targetUser,
+        targetUserByEmail: !!targetByEmail,
+        targetUser: targetUser || targetByEmail,
+        searchTerm: 'sales@texaspowerwash.net'
+      });
+    } catch (error) {
+      console.error('🔍 PRODUCTION DEBUG - Database error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Debug endpoint to test user data transformation  
   app.get("/api/debug/user", async (req, res) => {
     const user = req.user;
