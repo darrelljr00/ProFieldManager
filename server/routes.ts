@@ -2869,11 +2869,100 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // DEBUG endpoint outside API scope to bypass authentication completely
+  app.post("/debug-password-test", async (req, res) => {
+    try {
+      console.log('🔐 PASSWORD DEBUG - Testing password verification (NO AUTH)');
+      
+      const { email, password } = req.body;
+      if (!email || !password) {
+        return res.status(400).json({ error: 'Email and password required' });
+      }
+
+      // Look up user directly in database
+      const user = await db.select().from(users).where(eq(users.email, email)).limit(1);
+      if (user.length === 0) {
+        console.log('❌ Password debug - User not found:', email);
+        return res.json({ 
+          success: false, 
+          error: 'User not found',
+          email: email,
+          userFound: false
+        });
+      }
+
+      const foundUser = user[0];
+      console.log('✅ Password debug - User found:', {
+        id: foundUser.id,
+        email: foundUser.email,
+        username: foundUser.username,
+        hasPassword: !!foundUser.password,
+        passwordLength: foundUser.password?.length,
+        isActive: foundUser.isActive,
+        organization: foundUser.organizationId
+      });
+
+      // Test password verification with both bcrypt methods
+      let bcryptCompareResult = false;
+      let authServiceResult = false;
+      let bcryptError = null;
+      let authError = null;
+
+      try {
+        const bcrypt = require('bcryptjs');
+        bcryptCompareResult = await bcrypt.compare(password, foundUser.password);
+        console.log('🔑 Direct bcrypt.compare result:', bcryptCompareResult);
+      } catch (error) {
+        bcryptError = error.message;
+        console.error('❌ Direct bcrypt error:', error);
+      }
+
+      try {
+        authServiceResult = await AuthService.verifyPassword(password, foundUser.password);
+        console.log('🔑 AuthService.verifyPassword result:', authServiceResult);
+      } catch (error) {
+        authError = error.message;
+        console.error('❌ AuthService error:', error);
+      }
+
+      return res.json({
+        success: true,
+        userFound: true,
+        user: {
+          id: foundUser.id,
+          email: foundUser.email,
+          username: foundUser.username,
+          isActive: foundUser.isActive,
+          organization: foundUser.organizationId,
+          hasPassword: !!foundUser.password,
+          passwordLength: foundUser.password?.length
+        },
+        passwordTest: {
+          inputPassword: password,
+          inputLength: password.length,
+          storedHashLength: foundUser.password?.length,
+          bcryptCompare: bcryptCompareResult,
+          authServiceVerify: authServiceResult,
+          match: bcryptCompareResult || authServiceResult,
+          bcryptError: bcryptError,
+          authServiceError: authError
+        }
+      });
+
+    } catch (error) {
+      console.error('❌ Password debug error:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: error.message 
+      });
+    }
+  });
+
   // Apply authentication middleware to protected routes only
   app.use('/api', (req, res, next) => {
     console.log(`🔍 API MIDDLEWARE - ${req.method} ${req.path}`);
     // Skip auth for these routes
-    const publicRoutes = ['/auth/', '/seed', '/settings/', '/twilio-test-update/', '/shared/', '/api/debug/'];
+    const publicRoutes = ['/auth/', '/seed', '/settings/', '/twilio-test-update/', '/shared/', '/debug/'];
     const sharedPhotoRoute = req.path.match(/^\/shared\/[^\/]+$/); // Match /shared/{token}
     const isSharedRoute = req.path.startsWith('/shared/'); // Also check for startsWith to catch all shared routes
     const isPublic = publicRoutes.some(route => req.path.startsWith(route) || req.path === route) || sharedPhotoRoute || isSharedRoute;
