@@ -1787,6 +1787,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/auth/login", async (req, res) => {
+    console.log('🚨🚨🚨 LOGIN ENDPOINT HIT!!! 🚨🚨🚨');
+    console.log('🚨🚨🚨 PRODUCTION LOGIN DEBUG 🚨🚨🚨');
     console.log('🌍 CRITICAL REQUEST: Login attempt received');
     console.log('🔐 Login debug:', {
       origin: req.headers.origin,
