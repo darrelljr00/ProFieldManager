@@ -2424,6 +2424,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Debug endpoint for password verification testing
+  app.post("/api/debug/test-password", async (req, res) => {
+    try {
+      console.log('🔐 PASSWORD DEBUG - Testing password verification');
+      
+      const { email, password } = req.body;
+      if (!email || !password) {
+        return res.status(400).json({ error: 'Email and password required' });
+      }
+
+      // Look up user directly in database
+      const user = await db.select().from(users).where(eq(users.email, email)).limit(1);
+      if (user.length === 0) {
+        console.log('❌ Password debug - User not found:', email);
+        return res.json({ 
+          success: false, 
+          error: 'User not found',
+          email: email,
+          userFound: false
+        });
+      }
+
+      const foundUser = user[0];
+      console.log('✅ Password debug - User found:', {
+        id: foundUser.id,
+        email: foundUser.email,
+        username: foundUser.username,
+        hasPassword: !!foundUser.password,
+        passwordLength: foundUser.password?.length,
+        isActive: foundUser.isActive,
+        organization: foundUser.organizationId
+      });
+
+      // Test password verification with both bcrypt methods
+      let bcryptCompareResult = false;
+      let authServiceResult = false;
+
+      try {
+        const bcrypt = require('bcryptjs');
+        bcryptCompareResult = await bcrypt.compare(password, foundUser.password);
+        console.log('🔑 Direct bcrypt.compare result:', bcryptCompareResult);
+      } catch (bcryptError) {
+        console.error('❌ Direct bcrypt error:', bcryptError);
+      }
+
+      try {
+        authServiceResult = await AuthService.verifyPassword(password, foundUser.password);
+        console.log('🔑 AuthService.verifyPassword result:', authServiceResult);
+      } catch (authError) {
+        console.error('❌ AuthService error:', authError);
+      }
+
+      return res.json({
+        success: true,
+        userFound: true,
+        user: {
+          id: foundUser.id,
+          email: foundUser.email,
+          username: foundUser.username,
+          isActive: foundUser.isActive,
+          organization: foundUser.organizationId,
+          hasPassword: !!foundUser.password,
+          passwordLength: foundUser.password?.length
+        },
+        passwordTest: {
+          inputPassword: password,
+          inputLength: password.length,
+          storedHashLength: foundUser.password?.length,
+          bcryptCompare: bcryptCompareResult,
+          authServiceVerify: authServiceResult,
+          match: bcryptCompareResult || authServiceResult
+        }
+      });
+
+    } catch (error) {
+      console.error('❌ Password debug error:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: error.message 
+      });
+    }
+  });
+
   // Debug endpoint to test user data transformation  
   app.get("/api/debug/user", async (req, res) => {
     const user = req.user;
