@@ -55,8 +55,8 @@ import { db } from "./db";
 import { 
   users, customers, invoices, quotes, projects, tasks, 
   expenses, expenseCategories, expenseReports, gasCards, 
-  gasCardAssignments, leads, calendarJobs, messages,
-  images, settings, organizations, userSessions, vendors,
+  gasCardAssignments, leads, calendarJobs, messages, internalMessages,
+  images, settings, organizations, userSessions, vendors, vehicles,
   soundSettings, userDashboardSettings, dashboardProfiles,
   schedules, scheduleAssignments, scheduleComments, timeClock,
   lateArrivals, notifications, notificationSettings,
