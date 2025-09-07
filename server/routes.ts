@@ -2284,6 +2284,146 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Database export endpoint - extracts all data from development database
+  app.get("/api/debug/export-database", async (req, res) => {
+    try {
+      console.log('📤 DATABASE EXPORT - Starting full database export...');
+      
+      const exportData = {
+        timestamp: new Date().toISOString(),
+        version: "1.0",
+        data: {}
+      };
+      
+      // Export in dependency order: organizations first, then users, etc.
+      const tables = [
+        { name: 'organizations', table: organizations },
+        { name: 'users', table: users },
+        { name: 'projects', table: projects },
+        { name: 'customers', table: customers },
+        { name: 'quotes', table: quotes },
+        { name: 'invoices', table: invoices },
+        { name: 'expenses', table: expenses },
+        { name: 'tasks', table: tasks },
+        { name: 'leads', table: leads },
+        { name: 'internalMessages', table: internalMessages },
+        { name: 'vehicles', table: vehicles }
+      ];
+      
+      for (const { name, table } of tables) {
+        try {
+          console.log(`📤 Exporting ${name}...`);
+          const records = await db.select().from(table);
+          exportData.data[name] = records;
+          console.log(`✅ Exported ${records.length} records from ${name}`);
+        } catch (error) {
+          console.error(`❌ Error exporting ${name}:`, error);
+          exportData.data[name] = [];
+        }
+      }
+      
+      const totalRecords = Object.values(exportData.data).reduce((sum, records) => sum + records.length, 0);
+      console.log(`📤 DATABASE EXPORT - Complete! Total records: ${totalRecords}`);
+      
+      res.json(exportData);
+      
+    } catch (error) {
+      console.error('❌ DATABASE EXPORT - Fatal error:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: error.message,
+        message: 'Database export failed'
+      });
+    }
+  });
+
+  // Database import endpoint - imports data to production database  
+  app.post("/api/debug/import-database", async (req, res) => {
+    try {
+      console.log('📥 DATABASE IMPORT - Starting full database import...');
+      
+      const importData = req.body;
+      if (!importData.data) {
+        return res.status(400).json({ success: false, error: 'Invalid import data format' });
+      }
+      
+      const importResults = {
+        organizations: 0,
+        users: 0,
+        projects: 0,
+        customers: 0,
+        quotes: 0,
+        invoices: 0,
+        expenses: 0,
+        tasks: 0,
+        leads: 0,
+        internalMessages: 0,
+        vehicles: 0,
+        errors: []
+      };
+      
+      // Import in dependency order
+      const importOrder = [
+        { name: 'organizations', table: organizations },
+        { name: 'users', table: users },
+        { name: 'projects', table: projects },
+        { name: 'customers', table: customers },
+        { name: 'quotes', table: quotes },
+        { name: 'invoices', table: invoices },
+        { name: 'expenses', table: expenses },
+        { name: 'tasks', table: tasks },
+        { name: 'leads', table: leads },
+        { name: 'internalMessages', table: internalMessages },
+        { name: 'vehicles', table: vehicles }
+      ];
+      
+      for (const { name, table } of importOrder) {
+        try {
+          const records = importData.data[name] || [];
+          if (records.length > 0) {
+            console.log(`📥 Importing ${records.length} records to ${name}...`);
+            
+            for (const record of records) {
+              try {
+                await db.insert(table).values(record);
+                importResults[name]++;
+              } catch (insertError) {
+                console.error(`❌ Error inserting record in ${name}:`, insertError);
+                importResults.errors.push(`${name}: ${insertError.message}`);
+              }
+            }
+            
+            console.log(`✅ Imported ${importResults[name]} records to ${name}`);
+          } else {
+            console.log(`⚠️ No data to import for ${name}`);
+          }
+        } catch (error) {
+          console.error(`❌ Error importing ${name}:`, error);
+          importResults.errors.push(`${name}: ${error.message}`);
+        }
+      }
+      
+      const totalImported = Object.values(importResults).reduce((sum, val) => 
+        typeof val === 'number' ? sum + val : sum, 0);
+      
+      console.log(`📥 DATABASE IMPORT - Complete! Total imported: ${totalImported}`);
+      
+      res.json({
+        success: true,
+        message: 'Database import completed successfully',
+        results: importResults
+      });
+      
+    } catch (error) {
+      console.error('❌ DATABASE IMPORT - Fatal error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message,
+        message: 'Database import failed'
+      });
+    }
+  });
+
   // Debug endpoint to test user data transformation  
   app.get("/api/debug/user", async (req, res) => {
     const user = req.user;
