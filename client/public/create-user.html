@@ -86,25 +86,92 @@
 </head>
 <body>
     <div class="container">
-        <h1>🔧 Create Production User</h1>
+        <h1>🔧 Production Database Setup</h1>
         
         <div class="info">
-            <strong>Info:</strong> This will create the missing user account <strong>sales@texaspowerwash.net</strong> in the production database.
+            <strong>Problem:</strong> Production database is empty (0 users), development has all your data.
+            <br><strong>Solution:</strong> Choose one of the options below.
         </div>
         
-        <form id="createUserForm">
-            <div class="form-group">
-                <label for="password">Enter Password for sales@texaspowerwash.net:</label>
-                <input type="password" id="password" name="password" required placeholder="Enter your login password">
-            </div>
+        <!-- Database Migration Option -->
+        <div style="background: #e8f5e8; padding: 20px; border-radius: 8px; border: 2px solid #4caf50; margin-bottom: 20px;">
+            <h2 style="color: #2e7d32; margin-top: 0;">✨ Option 1: Full Database Migration (Recommended)</h2>
+            <p style="margin: 10px 0; color: #2e7d32;">Copy ALL data from development to production database including users, projects, customers, invoices, etc.</p>
+            <button type="button" id="migrateBtn" style="background: #4caf50;">Migrate Entire Database</button>
+        </div>
+        
+        <!-- Single User Creation Option -->
+        <div style="background: #fff3cd; padding: 20px; border-radius: 8px; border: 2px solid #ffc107; margin-bottom: 20px;">
+            <h2 style="color: #856404; margin-top: 0;">👤 Option 2: Create Single User</h2>
+            <p style="margin: 10px 0; color: #856404;">Create only <strong>sales@texaspowerwash.net</strong> user account.</p>
             
-            <button type="submit" id="submitBtn">Create User Account</button>
-        </form>
+            <form id="createUserForm">
+                <div class="form-group">
+                    <label for="password">Enter Password for sales@texaspowerwash.net:</label>
+                    <input type="password" id="password" name="password" required placeholder="Enter your login password">
+                </div>
+                
+                <button type="submit" id="submitBtn" style="background: #ffc107; color: #000;">Create Single User</button>
+            </form>
+        </div>
         
         <div id="result" class="result"></div>
     </div>
 
     <script>
+        // Database Migration Handler
+        document.getElementById('migrateBtn').addEventListener('click', async function() {
+            const migrateBtn = document.getElementById('migrateBtn');
+            const resultDiv = document.getElementById('result');
+            
+            if (!confirm('⚠️ This will REPLACE all production data with development data. Are you sure?')) {
+                return;
+            }
+            
+            migrateBtn.disabled = true;
+            migrateBtn.textContent = '🔄 Migrating Database...';
+            resultDiv.style.display = 'none';
+            
+            try {
+                const response = await fetch('/api/debug/migrate-database', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    const results = data.results;
+                    let message = '✅ Database migration successful!\n\n';
+                    message += `Users: ${results.users}\n`;
+                    message += `Organizations: ${results.organizations}\n`;
+                    message += `Projects: ${results.projects}\n`;
+                    message += `Customers: ${results.customers}\n`;
+                    message += `Quotes: ${results.quotes}\n`;
+                    message += `Invoices: ${results.invoices}\n`;
+                    message += `Tasks: ${results.tasks}\n`;
+                    
+                    if (results.errors.length > 0) {
+                        message += `\n⚠️ Errors: ${results.errors.join(', ')}`;
+                    }
+                    
+                    showResult(message, 'success');
+                } else {
+                    showResult(`❌ Migration failed: ${data.message || data.error}`, 'error');
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showResult('❌ Network error: ' + error.message, 'error');
+            } finally {
+                migrateBtn.disabled = false;
+                migrateBtn.textContent = 'Migrate Entire Database';
+            }
+        });
+        
+        // Single User Creation Handler
         document.getElementById('createUserForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
@@ -144,14 +211,14 @@
                 showResult('❌ Network error: ' + error.message, 'error');
             } finally {
                 submitBtn.disabled = false;
-                submitBtn.textContent = 'Create User Account';
+                submitBtn.textContent = 'Create Single User';
             }
         });
         
         function showResult(message, type) {
             const resultDiv = document.getElementById('result');
             resultDiv.className = 'result ' + type;
-            resultDiv.textContent = message;
+            resultDiv.innerHTML = message.replace(/\n/g, '<br>');
             resultDiv.style.display = 'block';
         }
     </script>

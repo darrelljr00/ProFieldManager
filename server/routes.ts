@@ -2032,6 +2032,118 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Migrate all data from development to production database
+  app.post("/api/debug/migrate-database", async (req, res) => {
+    try {
+      console.log('🔧 DATABASE MIGRATION - Starting full data migration to production');
+      
+      const migrationResults = {
+        users: 0,
+        organizations: 0,
+        projects: 0,
+        customers: 0,
+        quotes: 0,
+        invoices: 0,
+        expenses: 0,
+        tasks: 0,
+        leads: 0,
+        internalMessages: 0,
+        vehicles: 0,
+        errors: []
+      };
+      
+      const { asc } = await import('drizzle-orm');
+      const {
+        organizations,
+        users,
+        projects,
+        customers,
+        quotes,
+        invoices,
+        expenses,
+        tasks,
+        leads,
+        internalMessages,
+        vehicles
+      } = await import('@shared/schema');
+      
+      // Migrate organizations first (dependency)
+      try {
+        console.log(`🔄 Migrating organizations...`);
+        const orgData = await db.select().from(organizations);
+        if (orgData.length > 0) {
+          await db.delete(organizations);
+          await db.insert(organizations).values(orgData);
+          migrationResults.organizations = orgData.length;
+          console.log(`✅ Migrated ${orgData.length} organizations`);
+        }
+      } catch (error) {
+        migrationResults.errors.push(`organizations: ${error.message}`);
+      }
+      
+      // Migrate users
+      try {
+        console.log(`🔄 Migrating users...`);
+        const userData = await db.select().from(users);
+        if (userData.length > 0) {
+          await db.delete(users);
+          await db.insert(users).values(userData);
+          migrationResults.users = userData.length;
+          console.log(`✅ Migrated ${userData.length} users`);
+        }
+      } catch (error) {
+        migrationResults.errors.push(`users: ${error.message}`);
+      }
+      
+      // Migrate other core tables
+      const tables = [
+        { name: 'projects', table: projects, key: 'projects' },
+        { name: 'customers', table: customers, key: 'customers' },
+        { name: 'quotes', table: quotes, key: 'quotes' },
+        { name: 'invoices', table: invoices, key: 'invoices' },
+        { name: 'expenses', table: expenses, key: 'expenses' },
+        { name: 'tasks', table: tasks, key: 'tasks' },
+        { name: 'leads', table: leads, key: 'leads' },
+        { name: 'internalMessages', table: internalMessages, key: 'internalMessages' },
+        { name: 'vehicles', table: vehicles, key: 'vehicles' }
+      ];
+      
+      for (const { name, table, key } of tables) {
+        try {
+          console.log(`🔄 Migrating ${name}...`);
+          const data = await db.select().from(table);
+          if (data.length > 0) {
+            await db.delete(table);
+            await db.insert(table).values(data);
+            migrationResults[key] = data.length;
+            console.log(`✅ Migrated ${data.length} ${name}`);
+          } else {
+            console.log(`⚠️ No data found in ${name}`);
+          }
+        } catch (error) {
+          console.error(`❌ Error migrating ${name}:`, error);
+          migrationResults.errors.push(`${name}: ${error.message}`);
+        }
+      }
+      
+      console.log('✅ DATABASE MIGRATION - Complete!', migrationResults);
+      
+      res.json({ 
+        success: true, 
+        message: 'Database migration completed successfully',
+        results: migrationResults
+      });
+      
+    } catch (error) {
+      console.error('❌ DATABASE MIGRATION - Fatal error:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: error.message,
+        message: 'Database migration failed'
+      });
+    }
+  });
+
   // Create missing production user
   app.post("/api/debug/create-production-user", async (req, res) => {
     try {
