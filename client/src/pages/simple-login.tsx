@@ -89,16 +89,10 @@ export default function SimpleLogin() {
     mutationFn: async (data: LoginData) => {
       const loginDataWithGps = { ...data, gpsData };
       
-      // Use custom authentication function for custom domain compatibility
-      if (window.location.hostname === 'profieldmanager.com') {
-        console.log('🌐 CUSTOM DOMAIN LOGIN - Using fallback authentication');
-        const { authenticateUser } = await import('../lib/api-config');
-        return authenticateUser(loginDataWithGps);
-      }
-      
-      // Use regular API request for Replit domain
-      const response = await apiRequest("POST", "/api/auth/login", loginDataWithGps);
-      return response.json();
+      // Always use the enhanced authentication function for cross-domain compatibility
+      console.log('🔐 Using enhanced authentication for domain:', window.location.hostname);
+      const { authenticateUser } = await import('../lib/api-config');
+      return authenticateUser(loginDataWithGps);
     },
     onSuccess: async (response) => {
       // Store token in localStorage for cross-domain access
