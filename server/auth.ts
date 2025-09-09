@@ -120,12 +120,16 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
     console.log('🔍 Auth Debug:', {
       url: req.url,
       method: req.method,
+      path: req.path,
       isCustomDomain,
+      host: req.headers.host,
+      origin: req.headers.origin,
       tokenSource: authHeader ? 'Authorization Header' : (req.cookies?.auth_token ? 'Cookie' : 'NONE')
     });
   }
 
   if (!token) {
+    console.log('❌ AUTHENTICATION FAILED - No token provided');
     return res.status(401).json({ message: "Authentication required" });
   }
 

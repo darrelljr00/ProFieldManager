@@ -1847,9 +1847,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // DEBUGGING: Test POST endpoint to check if POST requests are routed correctly
+  app.post("/api/debug/test-post", (req, res) => {
+    console.log('🔍 POST DEBUG REQUEST RECEIVED:', {
+      origin: req.headers.origin,
+      host: req.headers.host,
+      method: req.method,
+      path: req.path,
+      body: req.body,
+      timestamp: new Date().toISOString()
+    });
+    
+    res.json({
+      message: "POST test successful",
+      origin: req.headers.origin,
+      host: req.headers.host,
+      receivedBody: req.body,
+      timestamp: new Date().toISOString()
+    });
+  });
+
 
   app.post("/api/auth/login", async (req, res) => {
     console.log('🚨🚨🚨 LOGIN ENDPOINT HIT!!! 🚨🚨🚨');
+    console.log('🌐 LOGIN REQUEST DETAILS:', {
+      host: req.headers.host,
+      origin: req.headers.origin,
+      userAgent: req.headers['user-agent']?.substring(0, 50),
+      contentType: req.headers['content-type'],
+      method: req.method,
+      path: req.path,
+      url: req.url
+    });
     console.log('🚨🚨🚨 PRODUCTION LOGIN DEBUG 🚨🚨🚨');
     console.log('🌍 CRITICAL REQUEST: Login attempt received');
     console.log('🔐 Login debug:', {
