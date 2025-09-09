@@ -142,27 +142,41 @@ export const authenticateUser = async (credentials: { username: string; password
         headers: Object.fromEntries(response.headers.entries())
       });
       
+      console.log('🔐 Custom domain response status:', response.status, response.ok);
+      
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('🚨 CUSTOM DOMAIN LOGIN ERROR:', errorText);
-        throw new Error(`Login failed: ${response.status} - Invalid credentials`);
+        console.error('🚨 CUSTOM DOMAIN LOGIN ERROR:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorText,
+          responseHeaders: Object.fromEntries(response.headers.entries())
+        });
+        throw new Error(`Login failed - Invalid credentials`);
       }
       
       const data = await response.json();
       console.log('✅ CUSTOM DOMAIN LOGIN SUCCESS:', data);
       
-      // Store authentication data
+      // Store authentication data for custom domain
       if (data.token) {
         localStorage.setItem('auth_token', data.token);
         localStorage.setItem('user_data', JSON.stringify(data.user));
-        console.log('🔐 Auth data stored for custom domain');
+        console.log('🔐 Custom domain auth data stored successfully');
+      } else {
+        console.warn('⚠️ No token received in response:', data);
       }
       
       return data;
       
     } catch (error) {
-      console.error('🚨 CUSTOM DOMAIN AUTH ERROR:', error);
-      throw new Error('Invalid credentials');
+      console.error('🚨 CUSTOM DOMAIN AUTH ERROR:', {
+        errorMessage: error.message,
+        errorType: error.name,
+        stack: error.stack
+      });
+      // Preserve the original error message
+      throw error;
     }
   }
   
