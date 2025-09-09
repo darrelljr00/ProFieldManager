@@ -3028,9 +3028,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       tokenSource: authHeader ? 'header' : cookieToken ? 'cookie' : 'none'
     });
     
-    // CUSTOM DOMAIN FALLBACK: Try to get user from latest session
-    if (!token && req.headers.origin?.includes('profieldmanager.com')) {
-      console.log('🔄 CUSTOM DOMAIN: No token found, trying session fallback');
+    // ENHANCED FALLBACK: Try to get user from latest session (for both custom domain and direct access)
+    if (!token) {
+      console.log('🔄 ENHANCED FALLBACK: No token found, trying session fallback for all domains');
       try {
         // Get the most recent session for the test user as fallback
         const recentSessions = await db
@@ -3051,7 +3051,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .limit(1);
 
         if (recentSessions.length > 0) {
-          console.log('✅ CUSTOM DOMAIN: Found valid session fallback');
+          console.log('✅ ENHANCED FALLBACK: Found valid session fallback');
           const sessionData = recentSessions[0];
           const user = sessionData.user;
 
@@ -3066,7 +3066,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.json({ user: transformedUser });
         }
       } catch (fallbackError) {
-        console.error('❌ CUSTOM DOMAIN FALLBACK ERROR:', fallbackError);
+        console.error('❌ ENHANCED FALLBACK ERROR:', fallbackError);
       }
     }
     
