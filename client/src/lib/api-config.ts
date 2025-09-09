@@ -170,6 +170,10 @@ export const authenticateUser = async (credentials: { username: string; password
     if (isCustomDomain() && data.token) {
       localStorage.setItem('auth_token', data.token);
       console.log('🔐 Token stored for custom domain authentication');
+      
+      // Also store user data for immediate use
+      localStorage.setItem('user_data', JSON.stringify(data.user));
+      console.log('👤 User data stored for custom domain');
     }
     
     return data;
