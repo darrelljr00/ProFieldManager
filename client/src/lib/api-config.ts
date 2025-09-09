@@ -105,23 +105,94 @@ export const getAuthHeaders = (): Record<string, string> => {
  * @returns Promise with authentication result
  */
 export const authenticateUser = async (credentials: { username: string; password: string }) => {
-  const loginUrl = buildApiUrl('/api/auth/login');
-  
   console.log('🔐 AUTHENTICATION ATTEMPT:', {
     isCustomDomain: isCustomDomain(),
-    loginUrl,
     timestamp: new Date().toISOString()
   });
+  
+  // If on custom domain, fallback to Replit domain API for authentication
+  if (isCustomDomain()) {
+    console.log('🌐 CUSTOM DOMAIN DETECTED - Using Replit API fallback for authentication');
+    
+    try {
+      const fallbackUrl = `${API_CONFIG.customDomain.apiBaseUrl}/api/auth/login`;
+      
+      console.log('🔄 FALLBACK LOGIN URL:', fallbackUrl);
+      
+      const response = await fetch(fallbackUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Cache-Control': 'no-cache'
+        },
+        body: JSON.stringify(credentials),
+        credentials: 'include'
+      });
+      
+      console.log('🔐 FALLBACK LOGIN RESPONSE:', {
+        status: response.status,
+        ok: response.ok,
+        statusText: response.statusText,
+        url: response.url
+      });
+      
+      if (!response.ok) {
+        let errorText = '';
+        let errorData = null;
+        
+        try {
+          errorText = await response.text();
+          console.log('🚨 FALLBACK ERROR RESPONSE TEXT:', errorText);
+          
+          try {
+            errorData = JSON.parse(errorText);
+            console.log('🚨 FALLBACK ERROR RESPONSE JSON:', errorData);
+          } catch (jsonError) {
+            console.log('🚨 FALLBACK ERROR RESPONSE NOT JSON:', jsonError);
+          }
+        } catch (textError) {
+          console.error('🚨 FAILED TO READ FALLBACK ERROR RESPONSE:', textError);
+          errorText = `HTTP ${response.status} ${response.statusText}`;
+        }
+        
+        throw new Error(errorData?.message || errorText || `Login failed with status ${response.status}`);
+      }
+      
+      let data;
+      try {
+        data = await response.json();
+        console.log('✅ FALLBACK LOGIN SUCCESS DATA:', data);
+      } catch (jsonError) {
+        console.error('🚨 FAILED TO PARSE FALLBACK SUCCESS RESPONSE:', jsonError);
+        throw new Error('Login response was not valid JSON');
+      }
+      
+      // Store token and user data for custom domain use
+      if (data.token) {
+        localStorage.setItem('auth_token', data.token);
+        console.log('🔐 Token stored for custom domain authentication');
+        
+        localStorage.setItem('user_data', JSON.stringify(data.user));
+        console.log('👤 User data stored for custom domain');
+      }
+      
+      return data;
+      
+    } catch (error) {
+      console.error('🚨 FALLBACK AUTHENTICATION ERROR:', error);
+      throw error;
+    }
+  }
+  
+  // Original logic for Replit domain
+  const loginUrl = buildApiUrl('/api/auth/login');
   
   try {
     const response = await fetch(loginUrl, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        ...(isCustomDomain() ? {
-          'Accept': 'application/json',
-          'Cache-Control': 'no-cache'
-        } : {})
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify(credentials),
       credentials: 'include'
@@ -131,7 +202,6 @@ export const authenticateUser = async (credentials: { username: string; password
       status: response.status,
       ok: response.ok,
       statusText: response.statusText,
-      headers: Object.fromEntries(response.headers.entries()),
       url: response.url
     });
     
@@ -164,16 +234,6 @@ export const authenticateUser = async (credentials: { username: string; password
     } catch (jsonError) {
       console.error('🚨 FAILED TO PARSE SUCCESS RESPONSE:', jsonError);
       throw new Error('Login response was not valid JSON');
-    }
-    
-    // For custom domain, store token in localStorage
-    if (isCustomDomain() && data.token) {
-      localStorage.setItem('auth_token', data.token);
-      console.log('🔐 Token stored for custom domain authentication');
-      
-      // Also store user data for immediate use
-      localStorage.setItem('user_data', JSON.stringify(data.user));
-      console.log('👤 User data stored for custom domain');
     }
     
     return data;

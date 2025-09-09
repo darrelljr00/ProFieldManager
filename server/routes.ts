@@ -1882,6 +1882,95 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 
+  // CUSTOM DOMAIN WORKAROUND: Also accept GET requests for login with URL params
+  app.get("/api/auth/login-get", async (req, res) => {
+    console.log('🔄 GET LOGIN WORKAROUND ENDPOINT HIT - Custom domain fallback');
+    console.log('🌐 GET LOGIN REQUEST DETAILS:', {
+      host: req.headers.host,
+      origin: req.headers.origin,
+      query: req.query,
+      method: req.method,
+      path: req.path
+    });
+
+    try {
+      const { username, password } = req.query;
+      
+      if (!username || !password) {
+        return res.status(400).json({ message: "Username and password are required" });
+      }
+
+      // Decode URL parameters
+      const decodedUsername = decodeURIComponent(username as string);
+      const decodedPassword = decodeURIComponent(password as string);
+
+      console.log('🔐 GET Login attempt for user:', decodedUsername);
+
+      // Find user by username OR email
+      let user = await storage.getUserByUsername(decodedUsername);
+      if (!user) {
+        user = await storage.getUserByEmail(decodedUsername);
+      }
+      
+      if (!user) {
+        console.log('❌ GET Login - User not found:', decodedUsername);
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+      
+      console.log('✅ GET Login - User found:', user.username);
+
+      // Verify password using AuthService
+      const isValidPassword = await AuthService.verifyPassword(decodedPassword, user.password);
+      
+      if (!isValidPassword) {
+        console.log('❌ GET Login - Invalid password for user:', decodedUsername);
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      // Check active status
+      const isActive = user.isActive ?? true;
+      if (!isActive) {
+        console.log('❌ GET Login - Inactive user:', decodedUsername);
+        return res.status(401).json({ message: "Account is inactive" });
+      }
+
+      // Create session using AuthService
+      const session = await AuthService.createSession(
+        user.id,
+        req.headers['user-agent'],
+        req.ip
+      );
+
+      console.log('✅ GET Login successful for user:', decodedUsername);
+
+      // Set auth cookie
+      const isCustomDomain = req.headers.host?.includes('profieldmanager.com');
+      res.cookie('auth_token', session.token, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        domain: isCustomDomain ? '.profieldmanager.com' : undefined
+      });
+
+      res.json({
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role
+        },
+        token: session.token
+      });
+
+    } catch (error) {
+      console.error('🚨 GET Login error:', error);
+      res.status(500).json({ message: "Login failed" });
+    }
+  });
+
   app.post("/api/auth/login", async (req, res) => {
     console.log('🚨🚨🚨 ACTUAL LOGIN ENDPOINT HIT!!! 🚨🚨🚨');
     console.log('🌐 ACTUAL LOGIN REQUEST DETAILS:', {
