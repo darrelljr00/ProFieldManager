@@ -123,20 +123,18 @@ export const authenticateUser = async (credentials: { username: string; password
     });
     
     try {
-      // Route to Replit domain since custom domain API is broken
-      const fallbackUrl = `${API_CONFIG.customDomain.apiBaseUrl}/api/auth/login`;
+      // Use GET-based login fallback since POST returns HTML instead of JSON from custom domain
+      const fallbackUrl = `${API_CONFIG.customDomain.apiBaseUrl}/api/auth/login-fallback?username=${encodeURIComponent(credentials.username)}&password=${encodeURIComponent(credentials.password)}`;
       
-      console.log('🔄 CROSS-ORIGIN LOGIN URL:', fallbackUrl);
+      console.log('🔄 GET-BASED LOGIN URL:', fallbackUrl);
       
       const response = await fetch(fallbackUrl, {
-        method: 'POST',
+        method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
           'Accept': 'application/json',
           'Cache-Control': 'no-cache',
           'Origin': window.location.origin
         },
-        body: JSON.stringify(credentials),
         credentials: 'include',
         mode: 'cors'
       });
