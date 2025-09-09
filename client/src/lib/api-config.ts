@@ -192,29 +192,39 @@ export const authenticateUser = async (credentials: { username: string; password
       const data = await response.json();
       console.log('✅ CUSTOM DOMAIN LOGIN SUCCESS:', data);
       
-      // Store authentication data for custom domain
-      if (data.token) {
+      // ALWAYS store authentication data regardless of domain detection
+      if (data.token && data.user) {
         localStorage.setItem('auth_token', data.token);
         localStorage.setItem('user_data', JSON.stringify(data.user));
-        console.log('🔐 Custom domain auth data stored successfully');
+        console.log('🔐 UNIVERSAL AUTH DATA STORED:', {
+          hasToken: !!data.token,
+          hasUser: !!data.user,
+          tokenLength: data.token.length,
+          userName: data.user.username
+        });
         
         // Immediately verify stored data
         const verifyToken = localStorage.getItem('auth_token');
         const verifyUser = localStorage.getItem('user_data');
-        console.log('🔍 IMMEDIATE VERIFICATION:', {
+        console.log('🔍 STORAGE VERIFICATION:', {
           tokenStored: !!verifyToken,
           userStored: !!verifyUser,
-          tokenLength: verifyToken?.length,
+          tokenMatch: verifyToken === data.token,
           userParseable: (() => {
             try {
-              return !!JSON.parse(verifyUser || '');
+              const parsed = JSON.parse(verifyUser || '');
+              return parsed.username === data.user.username;
             } catch {
               return false;
             }
           })()
         });
       } else {
-        console.warn('⚠️ No token received in response:', data);
+        console.error('⚠️ MISSING AUTH DATA:', { 
+          hasToken: !!data.token, 
+          hasUser: !!data.user,
+          fullResponse: data 
+        });
       }
       
       return data;
@@ -251,6 +261,14 @@ export const authenticateUser = async (credentials: { username: string; password
     
     const data = await response.json();
     console.log('✅ REPLIT LOGIN SUCCESS:', data);
+    
+    // Also store token for Replit domain to ensure consistency
+    if (data.token && data.user) {
+      localStorage.setItem('auth_token', data.token);
+      localStorage.setItem('user_data', JSON.stringify(data.user));
+      console.log('🔐 REPLIT DOMAIN AUTH DATA STORED');
+    }
+    
     return data;
     
   } catch (error) {

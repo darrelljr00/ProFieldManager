@@ -26,51 +26,21 @@ export function useAuth() {
     queryFn: async () => {
       console.log('🔍 USEAUTH: Calling /api/auth/me endpoint');
       
-      // Check if we're on custom domain and have stored data
+      // Check for stored authentication data
       const storedToken = localStorage.getItem('auth_token');
       const storedUser = localStorage.getItem('user_data');
       
-      console.log('🔍 USEAUTH: Initial check:', {
+      console.log('🔍 USEAUTH: Authentication check:', {
         isCustomDomain: isCustomDomain(),
         hasStoredToken: !!storedToken,
         hasStoredUser: !!storedUser,
         tokenLength: storedToken?.length
       });
       
-      // For custom domain with complete stored data, use it directly
-      if (isCustomDomain() && storedToken && storedUser) {
-        try {
-          const userData = JSON.parse(storedUser);
-          console.log('🔍 USEAUTH: Using stored data for custom domain:', userData);
-          // Still verify token is valid with server
-          const response = await fetch(buildApiUrl('/api/auth/me'), {
-            headers: {
-              'Authorization': `Bearer ${storedToken}`,
-              'Content-Type': 'application/json'
-            },
-            credentials: 'include'
-          });
-          
-          if (response.ok) {
-            const serverResult = await response.json();
-            console.log('🔍 USEAUTH: Server verified stored token, using stored data');
-            return { user: userData };
-          } else {
-            console.log('🔍 USEAUTH: Server rejected stored token, clearing storage');
-            localStorage.removeItem('auth_token');
-            localStorage.removeItem('user_data');
-          }
-        } catch (err) {
-          console.error('🚨 USEAUTH: Error with stored data:', err);
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('user_data');
-        }
-      }
-      
-      // Try token-based auth for custom domain or if we have a token
+      // ALWAYS try token-based auth first if we have a stored token
       if (storedToken) {
         try {
-          console.log('🔍 USEAUTH: Trying token-based auth');
+          console.log('🔍 USEAUTH: Attempting token-based authentication');
           const response = await fetch(buildApiUrl('/api/auth/me'), {
             headers: {
               'Authorization': `Bearer ${storedToken}`,
@@ -81,15 +51,37 @@ export function useAuth() {
           
           if (response.ok) {
             const result = await response.json();
-            console.log('🔍 USEAUTH: Token auth success:', result);
+            console.log('✅ USEAUTH: Token authentication successful:', result);
+            
+            // If we have stored user data, verify it matches server response
+            if (storedUser) {
+              try {
+                const userData = JSON.parse(storedUser);
+                if (userData.id === result.user?.id) {
+                  console.log('🔍 USEAUTH: Stored user data matches server response');
+                  return { user: userData };
+                }
+              } catch (err) {
+                console.warn('⚠️ USEAUTH: Error parsing stored user data:', err);
+              }
+            }
+            
+            // Store/update user data if server response is valid
+            if (result.user) {
+              localStorage.setItem('user_data', JSON.stringify(result.user));
+              console.log('🔐 USEAUTH: Updated stored user data');
+            }
+            
             return result;
           } else if (response.status === 401) {
-            console.log('🔍 USEAUTH: Token invalid, removing');
+            console.log('🔍 USEAUTH: Stored token is invalid, clearing storage');
             localStorage.removeItem('auth_token');
             localStorage.removeItem('user_data');
+          } else {
+            console.warn('⚠️ USEAUTH: Unexpected response status:', response.status);
           }
         } catch (err) {
-          console.error('🚨 USEAUTH: Token auth failed:', err);
+          console.error('🚨 USEAUTH: Token authentication error:', err);
           localStorage.removeItem('auth_token');
           localStorage.removeItem('user_data');
         }

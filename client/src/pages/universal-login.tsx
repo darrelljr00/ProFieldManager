@@ -40,15 +40,22 @@ export default function UniversalLogin() {
 
       console.log('✅ AUTHENTICATION SUCCESS:', result);
 
-      // For custom domain, verify token storage
-      if (isCustomDomain()) {
-        const storedToken = localStorage.getItem('auth_token');
-        const storedUser = localStorage.getItem('user_data');
-        console.log('🔐 POST-LOGIN TOKEN CHECK:', {
-          hasToken: !!storedToken,
-          hasUserData: !!storedUser,
-          tokenLength: storedToken?.length
-        });
+      // ALWAYS verify token storage regardless of domain
+      const storedToken = localStorage.getItem('auth_token');
+      const storedUser = localStorage.getItem('user_data');
+      console.log('🔐 POST-LOGIN VERIFICATION:', {
+        hasToken: !!storedToken,
+        hasUserData: !!storedUser,
+        tokenLength: storedToken?.length,
+        resultHasToken: !!result?.token,
+        resultHasUser: !!result?.user
+      });
+
+      // Ensure token is stored from result if not already
+      if (result?.token && result?.user && !storedToken) {
+        console.log('🔧 BACKUP TOKEN STORAGE');
+        localStorage.setItem('auth_token', result.token);
+        localStorage.setItem('user_data', JSON.stringify(result.user));
       }
 
       // Clear queries to force refresh with new auth
@@ -59,14 +66,13 @@ export default function UniversalLogin() {
         description: "Welcome to Pro Field Manager!",
       });
 
-      // For custom domain, force page reload to ensure authentication state
-      if (isCustomDomain()) {
-        console.log('🔄 CUSTOM DOMAIN: Forcing page reload after login');
+      // Always force page reload after login to ensure clean authentication state
+      console.log('🔄 FORCING PAGE RELOAD FOR CLEAN AUTH STATE');
+      
+      // Small delay to ensure token storage completes
+      setTimeout(() => {
         window.location.href = '/dashboard';
-      } else {
-        // Navigate to dashboard
-        setLocation('/dashboard');
-      }
+      }, 100);
 
     } catch (error) {
       console.error('🚨 LOGIN ERROR:', error);
