@@ -936,11 +936,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Global request logger
+  // Global request logger with CUSTOM DOMAIN DEBUGGING
   app.use((req, res, next) => {
     if (req.path.startsWith('/api/invoices')) {
       console.log(`🌍 INVOICE REQUEST - ${req.method} ${req.path} from ${req.ip}`);
     }
+    
+    // CRITICAL: Log ALL POST requests to auth/login for debugging
+    if (req.method === 'POST' && req.path === '/api/auth/login') {
+      console.log('🔥🔥🔥 GLOBAL MIDDLEWARE - DETECTED LOGIN POST REQUEST 🔥🔥🔥');
+      console.log('🔥 Request details:', {
+        method: req.method,
+        path: req.path,
+        url: req.url,
+        host: req.headers.host,
+        origin: req.headers.origin,
+        contentType: req.headers['content-type']
+      });
+    }
+    
     next();
   });
   
@@ -1869,8 +1883,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
   app.post("/api/auth/login", async (req, res) => {
-    console.log('🚨🚨🚨 LOGIN ENDPOINT HIT!!! 🚨🚨🚨');
-    console.log('🌐 LOGIN REQUEST DETAILS:', {
+    console.log('🚨🚨🚨 ACTUAL LOGIN ENDPOINT HIT!!! 🚨🚨🚨');
+    console.log('🌐 ACTUAL LOGIN REQUEST DETAILS:', {
       host: req.headers.host,
       origin: req.headers.origin,
       userAgent: req.headers['user-agent']?.substring(0, 50),
