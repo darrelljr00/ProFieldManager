@@ -40,6 +40,17 @@ export default function UniversalLogin() {
 
       console.log('✅ AUTHENTICATION SUCCESS:', result);
 
+      // For custom domain, verify token storage
+      if (isCustomDomain()) {
+        const storedToken = localStorage.getItem('auth_token');
+        const storedUser = localStorage.getItem('user_data');
+        console.log('🔐 POST-LOGIN TOKEN CHECK:', {
+          hasToken: !!storedToken,
+          hasUserData: !!storedUser,
+          tokenLength: storedToken?.length
+        });
+      }
+
       // Clear queries to force refresh with new auth
       queryClient.clear();
 
@@ -48,8 +59,14 @@ export default function UniversalLogin() {
         description: "Welcome to Pro Field Manager!",
       });
 
-      // Navigate to dashboard
-      setLocation('/dashboard');
+      // For custom domain, force page reload to ensure authentication state
+      if (isCustomDomain()) {
+        console.log('🔄 CUSTOM DOMAIN: Forcing page reload after login');
+        window.location.href = '/dashboard';
+      } else {
+        // Navigate to dashboard
+        setLocation('/dashboard');
+      }
 
     } catch (error) {
       console.error('🚨 LOGIN ERROR:', error);

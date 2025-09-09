@@ -77,7 +77,13 @@ export const isCustomDomain = (): boolean => {
     return false;
   }
   
-  return window.location.hostname === API_CONFIG.customDomain.hostname;
+  const isCustom = window.location.hostname === API_CONFIG.customDomain.hostname;
+  console.log('🔍 CUSTOM DOMAIN CHECK:', {
+    hostname: window.location.hostname,
+    expectedCustomDomain: API_CONFIG.customDomain.hostname,
+    isCustomDomain: isCustom
+  });
+  return isCustom;
 };
 
 /**
@@ -90,10 +96,17 @@ export const getAuthHeaders = (): Record<string, string> => {
   // For custom domain, try Bearer token first, fall back to cookie auth
   if (isCustomDomain()) {
     const token = localStorage.getItem('auth_token');
+    console.log('🔐 CUSTOM DOMAIN AUTH HEADERS:', {
+      hasToken: !!token,
+      tokenLength: token?.length,
+      isCustomDomain: true
+    });
     if (token) {
       headers.Authorization = `Bearer ${token}`;
     }
     // If no Bearer token, rely on cookie authentication (same-origin)
+  } else {
+    console.log('🔐 REPLIT DOMAIN AUTH HEADERS: Using cookie auth');
   }
   
   return headers;

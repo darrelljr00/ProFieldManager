@@ -51,6 +51,7 @@ export async function apiRequest(
     fullUrl,
     isCustomDomain: isCustomDomain(),
     hasAuthHeader: !!headers.Authorization,
+    authHeaderValue: headers.Authorization ? `${headers.Authorization.substring(0, 20)}...` : 'none',
     hasFormData: data instanceof FormData,
     formDataEntries: data instanceof FormData ? Array.from(data.entries()).map(([key, value]) => ({
       key,
