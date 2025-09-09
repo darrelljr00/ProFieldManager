@@ -2997,19 +2997,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get("/api/auth/me", async (req, res) => {
+    // ENHANCED DEBUGGING FOR CUSTOM DOMAIN AUTH
+    console.log('🔍 AUTH/ME DEBUG:', {
+      origin: req.headers.origin,
+      host: req.headers.host,
+      cookies: req.cookies,
+      authHeader: req.headers.authorization ? 'present' : 'missing',
+      isCustomDomain: req.headers.origin?.includes('profieldmanager.com'),
+      cookieCount: Object.keys(req.cookies || {}).length,
+      timestamp: new Date().toISOString()
+    });
+
     // Check authentication without blocking the request
     const authHeader = req.headers.authorization;
-    const token = authHeader?.replace('Bearer ', '') || req.cookies?.auth_token;
+    const cookieToken = req.cookies?.auth_token;
+    const token = authHeader?.replace('Bearer ', '') || cookieToken;
+    
+    console.log('🔑 TOKEN EXTRACTION:', {
+      hasAuthHeader: !!authHeader,
+      hasCookieToken: !!cookieToken,
+      finalToken: token ? `${token.substring(0, 8)}...` : 'none',
+      tokenSource: authHeader ? 'header' : cookieToken ? 'cookie' : 'none'
+    });
     
     if (!token) {
+      console.log('❌ AUTH/ME: No token found');
       return res.status(401).json({ message: "Authentication required" });
     }
     
     try {
+      console.log('🔍 VALIDATING SESSION TOKEN:', token.substring(0, 8) + '...');
       const sessionData = await AuthService.validateSession(token);
       if (!sessionData) {
+        console.log('❌ AUTH/ME: Session validation failed');
         return res.status(401).json({ message: "Invalid or expired session" });
       }
+      console.log('✅ AUTH/ME: Session validated for user:', sessionData.user.username);
       
       const user = sessionData.user;
     
