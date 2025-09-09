@@ -8008,19 +8008,19 @@ export class DatabaseStorage implements IStorage {
   // Market Research Competitors methods
   async getMarketResearchCompetitors(organizationId: number, businessNiche?: string): Promise<any[]> {
     try {
-      let query = db
-        .select()
-        .from(marketResearchCompetitors)
-        .where(
-          and(
-            eq(marketResearchCompetitors.organizationId, organizationId),
-            eq(marketResearchCompetitors.isActive, true)
-          )
-        );
+      const conditions = [
+        eq(marketResearchCompetitors.organizationId, organizationId),
+        eq(marketResearchCompetitors.isActive, true)
+      ];
 
       if (businessNiche) {
-        query = query.where(eq(marketResearchCompetitors.businessNiche, businessNiche));
+        conditions.push(eq(marketResearchCompetitors.businessNiche, businessNiche));
       }
+
+      const query = db
+        .select()
+        .from(marketResearchCompetitors)
+        .where(and(...conditions));
 
       return await query.orderBy(marketResearchCompetitors.name);
     } catch (error) {
