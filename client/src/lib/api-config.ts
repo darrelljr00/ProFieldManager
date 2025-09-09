@@ -7,10 +7,10 @@
  */
 
 export const API_CONFIG = {
-  // Custom domain configuration - uses relative URLs (same domain)
+  // Custom domain configuration - routes API calls to Replit backend
   customDomain: {
     hostname: 'profieldmanager.com',
-    apiBaseUrl: '' // Use relative URLs for same-origin requests
+    apiBaseUrl: 'https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev'
   },
   // Replit domain uses relative URLs
   replitDomain: {
