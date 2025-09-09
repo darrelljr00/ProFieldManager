@@ -31,14 +31,13 @@ app.use((req, res, next) => {
     }
   });
   
-  if (isAllowedOrigin) {
-    res.header('Access-Control-Allow-Origin', origin);
-  } else if (!origin) {
-    res.header('Access-Control-Allow-Origin', '*');
+  if (isAllowedOrigin || !origin) {
+    // Always allow requests from allowed origins or same-origin requests
+    res.header('Access-Control-Allow-Origin', origin || '*');
   } else {
-    // For debugging: Allow all origins temporarily and log unauthorized origins
+    // For debugging: Log unauthorized origins but still allow (for development)
     console.log('🚨 Unauthorized origin detected:', origin);
-    res.header('Access-Control-Allow-Origin', origin); // Temporary fix for custom domain
+    res.header('Access-Control-Allow-Origin', origin);
   }
   
   res.header('Access-Control-Allow-Credentials', 'true');
