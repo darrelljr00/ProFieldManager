@@ -3028,6 +3028,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       tokenSource: authHeader ? 'header' : cookieToken ? 'cookie' : 'none'
     });
     
+    console.log('🔍 BEFORE FALLBACK CHECK - Token value:', token, 'Is falsy:', !token);
+    
     // ENHANCED FALLBACK: Try to get user from latest session (for both custom domain and direct access)
     if (!token) {
       console.log('🔄 ENHANCED FALLBACK: No token found, trying session fallback for all domains');
@@ -3050,6 +3052,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .orderBy(desc(userSessions.createdAt))
           .limit(1);
 
+        console.log('🔍 DATABASE QUERY RESULT: Found', recentSessions.length, 'sessions');
+        
         if (recentSessions.length > 0) {
           console.log('✅ ENHANCED FALLBACK: Found valid session fallback');
           const sessionData = recentSessions[0];
@@ -3063,7 +3067,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             hasScheduleAccess: user?.canAccessMySchedule
           };
 
+          console.log('🎯 ENHANCED FALLBACK SUCCESS: Returning user', user.username);
           return res.json({ user: transformedUser });
+        } else {
+          console.log('❌ ENHANCED FALLBACK: No valid sessions found for user');
         }
       } catch (fallbackError) {
         console.error('❌ ENHANCED FALLBACK ERROR:', fallbackError);
