@@ -58,6 +58,7 @@ import Login from "@/pages/login";
 import SimpleLogin from "@/pages/simple-login";
 import DirectLogin from "@/pages/direct-login";
 import CustomDomainLogin from "@/pages/custom-domain-login";
+import UniversalLogin from "@/pages/universal-login";
 import HomePage from "@/pages/home";
 import FeaturesPage from "@/pages/features";
 import AuthDebug from "@/pages/auth-debug";
@@ -283,7 +284,7 @@ function Router() {
           <Route path="/" component={HomePage} />
           <Route path="/features" component={FeaturesPage} />
           <Route path="/signup" component={FeaturesPage} />
-          <Route path="/login" component={CustomDomainLogin} />
+          <Route path="/login" component={UniversalLogin} />
           <Route path="/login-simple" component={SimpleLogin} />
           <Route path="/login-full" component={Login} />
           <Route path="/auth-debug" component={AuthDebug} />
