@@ -2189,6 +2189,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 
+  // JSONP login endpoint for cross-origin authentication
+  app.get("/api/auth/jsonp-login", async (req, res) => {
+    try {
+      const { username, password, callback } = req.query;
+      
+      if (!username || !password || !callback) {
+        const errorResponse = `${callback}({success: false, message: "Missing required parameters"});`;
+        return res.set('Content-Type', 'application/javascript').send(errorResponse);
+      }
+      
+      console.log('🔄 JSONP LOGIN:', { username, callback });
+      
+      const user = await storage.authenticateUser(String(username), String(password));
+      if (!user) {
+        const errorResponse = `${callback}({success: false, message: "Invalid credentials"});`;
+        return res.set('Content-Type', 'application/javascript').send(errorResponse);
+      }
+      
+      const token = jwt.sign(
+        { 
+          userId: user.id, 
+          username: user.username,
+          organizationId: user.organizationId,
+          role: user.role
+        },
+        JWT_SECRET,
+        { expiresIn: '24h' }
+      );
+      
+      const successResponse = `${callback}({success: true, token: "${token}", user: ${JSON.stringify(user)}});`;
+      return res.set('Content-Type', 'application/javascript').send(successResponse);
+      
+    } catch (error) {
+      console.error('🚨 JSONP LOGIN ERROR:', error);
+      const { callback } = req.query;
+      const errorResponse = `${callback || 'callback'}({success: false, message: "Authentication error"});`;
+      return res.set('Content-Type', 'application/javascript').send(errorResponse);
+    }
+  });
+
   // CUSTOM DOMAIN WORKAROUND: GET-based login endpoint since POST doesn't work from custom domain
   app.get("/api/auth/login-fallback", async (req, res) => {
     console.log('🌐 CUSTOM DOMAIN LOGIN FALLBACK ENDPOINT HIT!');
@@ -2198,17 +2238,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       query: req.query,
       hasUsername: !!req.query.username,
       hasPassword: !!req.query.password,
+      isPopup: !!req.query.popup,
       timestamp: new Date().toISOString()
     });
 
     try {
-      const { username, password } = req.query;
+      const { username, password, popup } = req.query;
       
       if (!username || !password) {
+        if (popup === 'true') {
+          // Return HTML for popup that posts error message
+          return res.send(`
+            <!DOCTYPE html>
+            <html>
+            <head><title>Authentication Error</title></head>
+            <body>
+              <script>
+                if (window.opener) {
+                  window.opener.postMessage({
+                    type: 'auth_error',
+                    message: 'Username and password are required'
+                  }, '*');
+                  window.close();
+                } else {
+                  document.body.innerHTML = '<h2>Authentication Error</h2><p>Username and password are required</p>';
+                }
+              </script>
+            </body>
+            </html>
+          `);
+        }
         return res.status(400).json({ message: "Username and password are required" });
       }
 
-      console.log('🔐 GET Login fallback attempt for user:', username);
+      console.log('🔐 GET Login fallback attempt for user:', username, 'popup:', popup);
 
       // Find user by username OR email
       let user = await storage.getUserByUsername(username as string);
@@ -2257,15 +2320,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
         domain: isCustomDomain ? '.profieldmanager.com' : undefined
       });
 
+      const userData = {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        organizationId: user.organizationId,
+        userType: user.userType
+      };
+
+      if (popup === 'true') {
+        // Return HTML for popup that posts success message
+        return res.send(`
+          <!DOCTYPE html>
+          <html>
+          <head><title>Authentication Successful</title></head>
+          <body>
+            <script>
+              if (window.opener) {
+                window.opener.postMessage({
+                  type: 'auth_success',
+                  token: '${session.token}',
+                  user: ${JSON.stringify(userData)}
+                }, '*');
+                window.close();
+              } else {
+                // Fallback: redirect with params
+                window.location.href = '/?success=true&token=${encodeURIComponent(session.token)}&user=${encodeURIComponent(JSON.stringify(userData))}';
+              }
+            </script>
+          </body>
+          </html>
+        `);
+      }
+
       res.json({
-        user: {
-          id: user.id,
-          username: user.username,
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          role: user.role
-        },
+        user: userData,
         token: session.token
       });
 
