@@ -2367,6 +2367,104 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // CUSTOM DOMAIN DEBUG: Test endpoint accessible from profieldmanager.com
+  app.get("/api/debug/custom-domain-test", async (req, res) => {
+    const { username, password } = req.query;
+    
+    console.log('🌐 CUSTOM DOMAIN DEBUG TEST - Request received:', {
+      host: req.headers.host,
+      origin: req.headers.origin,
+      userAgent: req.headers['user-agent'],
+      hasUsername: !!username,
+      hasPassword: !!password,
+      timestamp: new Date().toISOString()
+    });
+
+    if (!username || !password) {
+      return res.json({
+        success: false,
+        message: 'Username and password required',
+        debug: {
+          host: req.headers.host,
+          isCustomDomain: req.headers.host?.includes('profieldmanager.com'),
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
+
+    try {
+      // Find user by username OR email
+      let user = await storage.getUserByUsername(username as string);
+      if (!user) {
+        user = await storage.getUserByEmail(username as string);
+      }
+      
+      if (!user) {
+        return res.json({
+          success: false,
+          step: 'user_lookup',
+          message: 'User not found',
+          debug: { searchedFor: username }
+        });
+      }
+      
+      // Test password verification
+      const isValidPassword = await AuthService.verifyPassword(password as string, user.password);
+      
+      if (!isValidPassword) {
+        return res.json({
+          success: false,
+          step: 'password_verification',
+          message: 'Invalid password',
+          debug: { userId: user.id }
+        });
+      }
+
+      // Create session
+      const session = await AuthService.createSession(
+        user.id,
+        req.headers['user-agent'],
+        req.ip
+      );
+
+      // Set auth cookie
+      const isCustomDomain = req.headers.host?.includes('profieldmanager.com');
+      res.cookie('auth_token', session.token, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        domain: isCustomDomain ? '.profieldmanager.com' : undefined
+      });
+
+      res.json({ 
+        success: true,
+        step: 'complete',
+        message: 'Authentication successful!',
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          role: user.role
+        },
+        token: session.token,
+        debug: {
+          isCustomDomain,
+          cookieDomain: isCustomDomain ? '.profieldmanager.com' : 'default',
+          sessionCreated: true
+        }
+      });
+    } catch (error) {
+      console.error('🚨 CUSTOM DOMAIN DEBUG ERROR:', error);
+      res.json({ 
+        success: false, 
+        step: 'error', 
+        message: error.message,
+        debug: { errorType: error.name }
+      });
+    }
+  });
+
   // Debug endpoint to test production login process
   app.post("/api/debug/test-login", async (req, res) => {
     try {
