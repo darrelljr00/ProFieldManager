@@ -104,29 +104,36 @@ export const getAuthHeaders = (): Record<string, string> => {
  * @param credentials - Login credentials
  * @returns Promise with authentication result
  */
-export const authenticateUser = async (credentials: { username: string; password: string }) => {
+export const authenticateUser = async (credentials: { username: string; password: string; gpsData?: any }) => {
   console.log('🔐 AUTHENTICATION ATTEMPT:', {
     isCustomDomain: isCustomDomain(),
+    credentialsKeys: Object.keys(credentials),
     timestamp: new Date().toISOString()
   });
   
-  // If on custom domain, fallback to Replit domain API for authentication
+  // If on custom domain, use GET-based fallback since POST doesn't work
   if (isCustomDomain()) {
-    console.log('🌐 CUSTOM DOMAIN DETECTED - Using Replit API fallback for authentication');
+    console.log('🌐 CUSTOM DOMAIN DETECTED - Using GET-based login fallback');
+    console.log('🔐 CREDENTIALS:', { 
+      hasUsername: !!credentials.username, 
+      hasPassword: !!credentials.password,
+      hasGpsData: !!credentials.gpsData,
+      usernameLength: credentials.username?.length || 0,
+      passwordLength: credentials.password?.length || 0
+    });
     
     try {
-      const fallbackUrl = `${API_CONFIG.customDomain.apiBaseUrl}/api/auth/login`;
+      // Use same-origin GET request since GET works from custom domain
+      const fallbackUrl = `/api/auth/login-fallback?username=${encodeURIComponent(credentials.username)}&password=${encodeURIComponent(credentials.password)}`;
       
-      console.log('🔄 FALLBACK LOGIN URL:', fallbackUrl);
+      console.log('🔄 GET FALLBACK LOGIN URL:', fallbackUrl);
       
       const response = await fetch(fallbackUrl, {
-        method: 'POST',
+        method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
           'Accept': 'application/json',
           'Cache-Control': 'no-cache'
         },
-        body: JSON.stringify(credentials),
         credentials: 'include'
       });
       

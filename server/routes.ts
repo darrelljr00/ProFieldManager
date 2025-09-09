@@ -2188,6 +2188,111 @@ export async function registerRoutes(app: Express): Promise<Server> {
     `);
   });
 
+  // CUSTOM DOMAIN TEST: Simple GET endpoint to verify custom domain can reach backend
+  app.get("/api/debug/custom-domain-test", (req, res) => {
+    console.log('🌐 CUSTOM DOMAIN TEST ENDPOINT HIT!');
+    console.log('🌐 Request details:', {
+      host: req.headers.host,
+      origin: req.headers.origin,
+      userAgent: req.headers['user-agent']?.substring(0, 50),
+      timestamp: new Date().toISOString()
+    });
+    
+    res.json({
+      message: "Custom domain test successful",
+      host: req.headers.host,
+      origin: req.headers.origin,
+      timestamp: new Date().toISOString(),
+      reachedBackend: true
+    });
+  });
+
+  // CUSTOM DOMAIN WORKAROUND: GET-based login endpoint since POST doesn't work from custom domain
+  app.get("/api/auth/login-fallback", async (req, res) => {
+    console.log('🌐 CUSTOM DOMAIN LOGIN FALLBACK ENDPOINT HIT!');
+    console.log('🌐 Fallback login request:', {
+      host: req.headers.host,
+      origin: req.headers.origin,
+      query: req.query,
+      hasUsername: !!req.query.username,
+      hasPassword: !!req.query.password,
+      timestamp: new Date().toISOString()
+    });
+
+    try {
+      const { username, password } = req.query;
+      
+      if (!username || !password) {
+        return res.status(400).json({ message: "Username and password are required" });
+      }
+
+      console.log('🔐 GET Login fallback attempt for user:', username);
+
+      // Find user by username OR email
+      let user = await storage.getUserByUsername(username as string);
+      if (!user) {
+        user = await storage.getUserByEmail(username as string);
+      }
+      
+      if (!user) {
+        console.log('❌ GET Login fallback - User not found:', username);
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+      
+      console.log('✅ GET Login fallback - User found:', user.username);
+
+      // Verify password using AuthService
+      const isValidPassword = await AuthService.verifyPassword(password as string, user.password);
+      
+      if (!isValidPassword) {
+        console.log('❌ GET Login fallback - Invalid password for user:', username);
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      // Check active status
+      const isActive = user.isActive ?? true;
+      if (!isActive) {
+        console.log('❌ GET Login fallback - Inactive user:', username);
+        return res.status(401).json({ message: "Account is inactive" });
+      }
+
+      // Create session using AuthService
+      const session = await AuthService.createSession(
+        user.id,
+        req.headers['user-agent'],
+        req.ip
+      );
+
+      console.log('✅ GET Login fallback successful for user:', username);
+
+      // Set auth cookie
+      const isCustomDomain = req.headers.host?.includes('profieldmanager.com');
+      res.cookie('auth_token', session.token, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        domain: isCustomDomain ? '.profieldmanager.com' : undefined
+      });
+
+      res.json({
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role
+        },
+        token: session.token
+      });
+
+    } catch (error) {
+      console.error('🚨 GET Login fallback error:', error);
+      res.status(500).json({ message: "Login failed" });
+    }
+  });
+
   // Debug endpoint to test production login process
   app.post("/api/debug/test-login", async (req, res) => {
     try {
