@@ -14,61 +14,109 @@ export default function DirectLogin() {
     setLoading(true);
 
     try {
-      console.log('🔐 DIRECT LOGIN: Starting authentication process');
+      console.log('🔐 DIRECT LOGIN: Starting cross-origin authentication');
 
-      // Create form data for direct submission
-      const formData = new FormData();
-      formData.append('username', username);
-      formData.append('password', password);
+      // Create an iframe to handle cross-origin authentication
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.style.width = '1px';
+      iframe.style.height = '1px';
+      document.body.appendChild(iframe);
 
-      // Create a hidden form that submits to the backend directly
-      const form = document.createElement('form');
-      form.method = 'POST';
-      form.action = 'https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/auth/login';
-      form.target = '_blank';
-      form.style.display = 'none';
+      // Build the authentication URL with credentials
+      const authUrl = `https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/auth/login-fallback?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
+      
+      console.log('🔐 DIRECT LOGIN: Using iframe authentication URL:', authUrl);
 
-      // Add form fields
-      const usernameField = document.createElement('input');
-      usernameField.type = 'hidden';
-      usernameField.name = 'username';
-      usernameField.value = username;
-      form.appendChild(usernameField);
+      // Set up message listener for iframe response
+      const messageHandler = (event: MessageEvent) => {
+        if (event.origin !== 'https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev') {
+          return;
+        }
 
-      const passwordField = document.createElement('input');
-      passwordField.type = 'hidden';
-      passwordField.name = 'password';
-      passwordField.value = password;
-      form.appendChild(passwordField);
+        console.log('📨 IFRAME RESPONSE:', event.data);
 
-      document.body.appendChild(form);
-      form.submit();
-      document.body.removeChild(form);
+        if (event.data.type === 'auth_success') {
+          // Store the authentication data
+          localStorage.setItem('auth_token', event.data.token);
+          localStorage.setItem('user_data', JSON.stringify(event.data.user));
 
-      // For now, simulate successful login
-      setTimeout(() => {
-        // Store fake token for demo
-        localStorage.setItem('auth_token', 'demo-token-' + Date.now());
-        localStorage.setItem('user_data', JSON.stringify({
-          id: 5,
-          username: username,
-          role: 'admin',
-          organizationId: 2
-        }));
+          toast({
+            title: "Login Successful",
+            description: "Welcome to Pro Field Manager!",
+          });
 
-        toast({
-          title: "Login Successful",
-          description: "Authentication completed successfully",
+          window.removeEventListener('message', messageHandler);
+          document.body.removeChild(iframe);
+          setLocation('/dashboard');
+        } else if (event.data.type === 'auth_error') {
+          toast({
+            title: "Login Failed",
+            description: event.data.message || "Invalid credentials",
+            variant: "destructive",
+          });
+
+          window.removeEventListener('message', messageHandler);
+          document.body.removeChild(iframe);
+        }
+      };
+
+      window.addEventListener('message', messageHandler);
+
+      // Set timeout
+      const timeout = setTimeout(() => {
+        window.removeEventListener('message', messageHandler);
+        document.body.removeChild(iframe);
+        
+        // Fallback: Direct authentication attempt
+        console.log('🔐 IFRAME TIMEOUT - Attempting direct fetch');
+        
+        fetch(authUrl, {
+          method: 'GET',
+          mode: 'cors',
+          credentials: 'include'
+        }).then(async (response) => {
+          if (response.ok) {
+            const data = await response.json();
+            console.log('✅ DIRECT FETCH SUCCESS:', data);
+            
+            if (data.token && data.user) {
+              localStorage.setItem('auth_token', data.token);
+              localStorage.setItem('user_data', JSON.stringify(data.user));
+              
+              toast({
+                title: "Login Successful",
+                description: "Welcome to Pro Field Manager!",
+              });
+              
+              setLocation('/dashboard');
+              return;
+            }
+          }
+          
+          toast({
+            title: "Login Failed",
+            description: "Please check your credentials and try again",
+            variant: "destructive",
+          });
+        }).catch((error) => {
+          console.error('🚨 DIRECT FETCH ERROR:', error);
+          toast({
+            title: "Login Failed", 
+            description: "Network error - please try again",
+            variant: "destructive",
+          });
         });
+      }, 5000);
 
-        setLocation('/dashboard');
-      }, 2000);
+      // Load the authentication URL in the iframe
+      iframe.src = authUrl;
 
     } catch (error) {
       console.error('🚨 DIRECT LOGIN ERROR:', error);
       toast({
         title: "Login Failed",
-        description: "Authentication failed. Please try again.",
+        description: "Authentication error - please try again",
         variant: "destructive",
       });
     } finally {
