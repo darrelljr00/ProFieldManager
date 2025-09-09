@@ -77,12 +77,33 @@ export const isCustomDomain = (): boolean => {
     return false;
   }
   
-  const isCustom = window.location.hostname === API_CONFIG.customDomain.hostname;
-  console.log('🔍 CUSTOM DOMAIN CHECK:', {
-    hostname: window.location.hostname,
+  // Check multiple indicators for custom domain access
+  const hostname = window.location.hostname;
+  const href = window.location.href;
+  const origin = window.location.origin;
+  
+  // Direct hostname match
+  const directMatch = hostname === API_CONFIG.customDomain.hostname;
+  
+  // Check if URL contains custom domain
+  const urlContainsCustomDomain = href.includes(API_CONFIG.customDomain.hostname);
+  
+  // Check if we're making requests to custom domain (for proxied scenarios)
+  const originContainsCustomDomain = origin.includes(API_CONFIG.customDomain.hostname);
+  
+  const isCustom = directMatch || urlContainsCustomDomain || originContainsCustomDomain;
+  
+  console.log('🔍 ENHANCED CUSTOM DOMAIN CHECK:', {
+    hostname,
+    href,
+    origin,
     expectedCustomDomain: API_CONFIG.customDomain.hostname,
-    isCustomDomain: isCustom
+    directMatch,
+    urlContainsCustomDomain,
+    originContainsCustomDomain,
+    finalResult: isCustom
   });
+  
   return isCustom;
 };
 
@@ -176,6 +197,22 @@ export const authenticateUser = async (credentials: { username: string; password
         localStorage.setItem('auth_token', data.token);
         localStorage.setItem('user_data', JSON.stringify(data.user));
         console.log('🔐 Custom domain auth data stored successfully');
+        
+        // Immediately verify stored data
+        const verifyToken = localStorage.getItem('auth_token');
+        const verifyUser = localStorage.getItem('user_data');
+        console.log('🔍 IMMEDIATE VERIFICATION:', {
+          tokenStored: !!verifyToken,
+          userStored: !!verifyUser,
+          tokenLength: verifyToken?.length,
+          userParseable: (() => {
+            try {
+              return !!JSON.parse(verifyUser || '');
+            } catch {
+              return false;
+            }
+          })()
+        });
       } else {
         console.warn('⚠️ No token received in response:', data);
       }
