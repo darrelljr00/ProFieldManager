@@ -90,8 +90,9 @@ export function useAuth() {
       // Fall back to cookie-based auth (for Replit domain)
       console.log('🔍 USEAUTH: Falling back to cookie-based auth');
       const response = await apiRequest("GET", "/api/auth/me");
-      console.log('🔍 USEAUTH: Cookie auth response:', response);
-      return response;
+      const parsedResponse = await response.json();
+      console.log('🔍 USEAUTH: Cookie auth response:', parsedResponse);
+      return parsedResponse;
     },
     retry: false,
     staleTime: 0, // Don't cache auth state to ensure fresh checks
