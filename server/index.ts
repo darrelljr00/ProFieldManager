@@ -7,6 +7,9 @@ import { storage } from "./storage";
 
 const app = express();
 
+// Enable trust proxy for Replit infrastructure
+app.set('trust proxy', 1);
+
 // CORS configuration to support custom domain profieldmanager.com
 app.use((req, res, next) => {
   const origin = req.headers.origin;
