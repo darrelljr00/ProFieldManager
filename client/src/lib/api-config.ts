@@ -133,10 +133,12 @@ export const authenticateUser = async (credentials: { username: string; password
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'Cache-Control': 'no-cache'
+          'Cache-Control': 'no-cache',
+          'Origin': window.location.origin
         },
         body: JSON.stringify(credentials),
-        credentials: 'include'
+        credentials: 'include',
+        mode: 'cors'
       });
       
       console.log('🔐 FALLBACK LOGIN RESPONSE:', {
