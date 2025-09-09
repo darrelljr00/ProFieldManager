@@ -2207,6 +2207,94 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // CUSTOM DOMAIN LOGIN TEST: Test authentication for custom domain users
+  app.post("/api/debug/custom-domain-login", async (req, res) => {
+    console.log('🚨 CUSTOM DOMAIN LOGIN TEST ENDPOINT HIT!');
+    console.log('🌐 Login test request:', {
+      host: req.headers.host,
+      origin: req.headers.origin,
+      userAgent: req.headers['user-agent']?.substring(0, 50),
+      hasBody: !!req.body,
+      bodyKeys: req.body ? Object.keys(req.body) : [],
+      timestamp: new Date().toISOString()
+    });
+
+    try {
+      const { username, password } = req.body;
+      
+      if (!username || !password) {
+        return res.status(400).json({ 
+          success: false,
+          message: "Username and password are required",
+          debug: {
+            receivedBody: req.body,
+            hasUsername: !!username,
+            hasPassword: !!password
+          }
+        });
+      }
+
+      // Find user
+      let user = await storage.getUserByUsername(username);
+      if (!user) {
+        user = await storage.getUserByEmail(username);
+      }
+      
+      if (!user) {
+        return res.status(401).json({ 
+          success: false,
+          message: "User not found",
+          debug: { username }
+        });
+      }
+      
+      // Verify password
+      const isValidPassword = await AuthService.verifyPassword(password, user.password);
+      
+      if (!isValidPassword) {
+        return res.status(401).json({ 
+          success: false,
+          message: "Invalid password",
+          debug: { username }
+        });
+      }
+
+      // Create session
+      const session = await AuthService.createSession(
+        user.id,
+        req.headers['user-agent'],
+        req.ip
+      );
+
+      res.json({
+        success: true,
+        message: "Login successful",
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role
+        },
+        token: session.token,
+        debug: {
+          origin: req.headers.origin,
+          host: req.headers.host,
+          timestamp: new Date().toISOString()
+        }
+      });
+
+    } catch (error) {
+      console.error('🚨 Custom domain login test error:', error);
+      res.status(500).json({ 
+        success: false,
+        message: "Login test failed",
+        error: error.message 
+      });
+    }
+  });
+
   // CUSTOM DOMAIN WORKAROUND: GET-based login endpoint since POST doesn't work from custom domain
   app.get("/api/auth/login-fallback", async (req, res) => {
     console.log('🌐 CUSTOM DOMAIN LOGIN FALLBACK ENDPOINT HIT!');
