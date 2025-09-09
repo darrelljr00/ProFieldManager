@@ -105,100 +105,76 @@ export const getAuthHeaders = (): Record<string, string> => {
  * @returns Promise with authentication result
  */
 export const authenticateUser = async (credentials: { username: string; password: string; gpsData?: any }) => {
-  console.log('🔐 AUTHENTICATION ATTEMPT:', {
+  console.log('🔐 SIMPLIFIED AUTHENTICATION:', {
     isCustomDomain: isCustomDomain(),
-    credentialsKeys: Object.keys(credentials),
+    hasCredentials: !!credentials.username && !!credentials.password,
     timestamp: new Date().toISOString()
   });
   
-  // If on custom domain, route to Replit backend since custom domain API doesn't work
+  // For custom domain, use same-origin GET request to our login endpoint
   if (isCustomDomain()) {
-    console.log('🌐 CUSTOM DOMAIN DETECTED - Routing to Replit backend');
-    console.log('🔐 CREDENTIALS:', { 
-      hasUsername: !!credentials.username, 
-      hasPassword: !!credentials.password,
-      hasGpsData: !!credentials.gpsData,
-      usernameLength: credentials.username?.length || 0,
-      passwordLength: credentials.password?.length || 0
+    console.log('🌐 CUSTOM DOMAIN: Using same-origin authentication');
+    
+    // Create URL parameters for GET request
+    const params = new URLSearchParams({
+      username: credentials.username,
+      password: credentials.password
     });
     
+    if (credentials.gpsData) {
+      if (credentials.gpsData.latitude) params.append('latitude', credentials.gpsData.latitude.toString());
+      if (credentials.gpsData.longitude) params.append('longitude', credentials.gpsData.longitude.toString());
+      if (credentials.gpsData.accuracy) params.append('accuracy', credentials.gpsData.accuracy.toString());
+    }
+    
+    const loginUrl = `/api/auth/login-fallback?${params.toString()}`;
+    console.log('🔐 CUSTOM DOMAIN LOGIN URL:', loginUrl);
+    
     try {
-      // Use GET-based login fallback since POST returns HTML instead of JSON from custom domain
-      const fallbackUrl = `${API_CONFIG.customDomain.apiBaseUrl}/api/auth/login-fallback?username=${encodeURIComponent(credentials.username)}&password=${encodeURIComponent(credentials.password)}`;
-      
-      console.log('🔄 GET-BASED LOGIN URL:', fallbackUrl);
-      
-      const response = await fetch(fallbackUrl, {
+      const response = await fetch(loginUrl, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
-          'Cache-Control': 'no-cache',
-          'Origin': window.location.origin
+          'Cache-Control': 'no-cache'
         },
-        credentials: 'include',
-        mode: 'cors'
+        credentials: 'same-origin'
       });
       
-      console.log('🔐 FALLBACK LOGIN RESPONSE:', {
+      console.log('🔐 CUSTOM DOMAIN RESPONSE:', {
         status: response.status,
         ok: response.ok,
-        statusText: response.statusText,
-        url: response.url
+        headers: Object.fromEntries(response.headers.entries())
       });
       
       if (!response.ok) {
-        let errorText = '';
-        let errorData = null;
-        
-        try {
-          errorText = await response.text();
-          console.log('🚨 FALLBACK ERROR RESPONSE TEXT:', errorText);
-          
-          try {
-            errorData = JSON.parse(errorText);
-            console.log('🚨 FALLBACK ERROR RESPONSE JSON:', errorData);
-          } catch (jsonError) {
-            console.log('🚨 FALLBACK ERROR RESPONSE NOT JSON:', jsonError);
-          }
-        } catch (textError) {
-          console.error('🚨 FAILED TO READ FALLBACK ERROR RESPONSE:', textError);
-          errorText = `HTTP ${response.status} ${response.statusText}`;
-        }
-        
-        throw new Error(errorData?.message || errorText || `Login failed with status ${response.status}`);
+        const errorText = await response.text();
+        console.error('🚨 CUSTOM DOMAIN LOGIN ERROR:', errorText);
+        throw new Error(`Login failed: ${response.status} - Invalid credentials`);
       }
       
-      let data;
-      try {
-        data = await response.json();
-        console.log('✅ FALLBACK LOGIN SUCCESS DATA:', data);
-      } catch (jsonError) {
-        console.error('🚨 FAILED TO PARSE FALLBACK SUCCESS RESPONSE:', jsonError);
-        throw new Error('Login response was not valid JSON');
-      }
+      const data = await response.json();
+      console.log('✅ CUSTOM DOMAIN LOGIN SUCCESS:', data);
       
-      // Store token and user data for custom domain use
+      // Store authentication data
       if (data.token) {
         localStorage.setItem('auth_token', data.token);
-        console.log('🔐 Token stored for custom domain authentication');
-        
         localStorage.setItem('user_data', JSON.stringify(data.user));
-        console.log('👤 User data stored for custom domain');
+        console.log('🔐 Auth data stored for custom domain');
       }
       
       return data;
       
     } catch (error) {
-      console.error('🚨 FALLBACK AUTHENTICATION ERROR:', error);
-      throw error;
+      console.error('🚨 CUSTOM DOMAIN AUTH ERROR:', error);
+      throw new Error('Invalid credentials');
     }
   }
   
-  // Original logic for Replit domain
-  const loginUrl = buildApiUrl('/api/auth/login');
+  // For Replit domain, use regular POST
+  console.log('🔧 REPLIT DOMAIN: Using regular POST authentication');
   
   try {
-    const response = await fetch(loginUrl, {
+    const response = await fetch('/api/auth/login', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -207,49 +183,19 @@ export const authenticateUser = async (credentials: { username: string; password
       credentials: 'include'
     });
     
-    console.log('🔐 LOGIN RESPONSE:', {
-      status: response.status,
-      ok: response.ok,
-      statusText: response.statusText,
-      url: response.url
-    });
-    
     if (!response.ok) {
-      let errorText = '';
-      let errorData = null;
-      
-      try {
-        errorText = await response.text();
-        console.log('🚨 ERROR RESPONSE TEXT:', errorText);
-        
-        try {
-          errorData = JSON.parse(errorText);
-          console.log('🚨 ERROR RESPONSE JSON:', errorData);
-        } catch (jsonError) {
-          console.log('🚨 ERROR RESPONSE NOT JSON:', jsonError);
-        }
-      } catch (textError) {
-        console.error('🚨 FAILED TO READ ERROR RESPONSE:', textError);
-        errorText = `HTTP ${response.status} ${response.statusText}`;
-      }
-      
-      throw new Error(errorData?.message || errorText || `Login failed with status ${response.status}`);
+      const errorText = await response.text();
+      console.error('🚨 REPLIT LOGIN ERROR:', errorText);
+      throw new Error('Invalid credentials');
     }
     
-    let data;
-    try {
-      data = await response.json();
-      console.log('✅ LOGIN SUCCESS DATA:', data);
-    } catch (jsonError) {
-      console.error('🚨 FAILED TO PARSE SUCCESS RESPONSE:', jsonError);
-      throw new Error('Login response was not valid JSON');
-    }
-    
+    const data = await response.json();
+    console.log('✅ REPLIT LOGIN SUCCESS:', data);
     return data;
     
   } catch (error) {
-    console.error('🚨 AUTHENTICATION ERROR:', error);
-    throw error;
+    console.error('🚨 REPLIT AUTH ERROR:', error);
+    throw new Error('Invalid credentials');
   }
 };
 
