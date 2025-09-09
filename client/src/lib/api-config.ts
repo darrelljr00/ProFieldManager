@@ -111,33 +111,29 @@ export const authenticateUser = async (credentials: { username: string; password
     timestamp: new Date().toISOString()
   });
   
-  // For custom domain, use same-origin GET request to our login endpoint
+  // For custom domain, authenticate directly with Replit server
   if (isCustomDomain()) {
-    console.log('🌐 CUSTOM DOMAIN: Using same-origin authentication');
+    console.log('🌐 CUSTOM DOMAIN: Using direct Replit server authentication');
     
-    // Create URL parameters for GET request
-    const params = new URLSearchParams({
-      username: credentials.username,
-      password: credentials.password
-    });
+    // Direct connection to Replit server
+    const replitServerUrl = 'https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev';
+    const loginUrl = `${replitServerUrl}/api/auth/login`;
     
-    if (credentials.gpsData) {
-      if (credentials.gpsData.latitude) params.append('latitude', credentials.gpsData.latitude.toString());
-      if (credentials.gpsData.longitude) params.append('longitude', credentials.gpsData.longitude.toString());
-      if (credentials.gpsData.accuracy) params.append('accuracy', credentials.gpsData.accuracy.toString());
-    }
-    
-    const loginUrl = `/api/auth/login-fallback?${params.toString()}`;
-    console.log('🔐 CUSTOM DOMAIN LOGIN URL:', loginUrl);
+    console.log('🔐 CUSTOM DOMAIN -> REPLIT SERVER:', loginUrl);
     
     try {
       const response = await fetch(loginUrl, {
-        method: 'GET',
+        method: 'POST',
         headers: {
-          'Accept': 'application/json',
-          'Cache-Control': 'no-cache'
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
-        credentials: 'same-origin'
+        credentials: 'include',
+        body: JSON.stringify({
+          username: credentials.username,
+          password: credentials.password,
+          gpsData: credentials.gpsData
+        })
       });
       
       console.log('🔐 CUSTOM DOMAIN RESPONSE:', {
