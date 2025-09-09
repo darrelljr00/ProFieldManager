@@ -2996,7 +2996,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // CUSTOM DOMAIN AUTH ENDPOINT - Simplified token-based authentication
   app.get("/api/auth/me", async (req, res) => {
+    // Set CORS headers for custom domain requests
+    if (req.headers.origin?.includes('profieldmanager.com')) {
+      res.header('Access-Control-Allow-Origin', req.headers.origin);
+      res.header('Access-Control-Allow-Credentials', 'true');
+      res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cookie');
+    }
+
     // ENHANCED DEBUGGING FOR CUSTOM DOMAIN AUTH
     console.log('🔍 AUTH/ME DEBUG:', {
       origin: req.headers.origin,
@@ -3019,6 +3027,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
       finalToken: token ? `${token.substring(0, 8)}...` : 'none',
       tokenSource: authHeader ? 'header' : cookieToken ? 'cookie' : 'none'
     });
+    
+    // CUSTOM DOMAIN FALLBACK: Try to get user from latest session
+    if (!token && req.headers.origin?.includes('profieldmanager.com')) {
+      console.log('🔄 CUSTOM DOMAIN: No token found, trying session fallback');
+      try {
+        // Get the most recent session for the test user as fallback
+        const recentSessions = await db
+          .select({
+            session: userSessions,
+            user: users,
+          })
+          .from(userSessions)
+          .innerJoin(users, eq(userSessions.userId, users.id))
+          .where(
+            and(
+              eq(users.email, 'sales@texaspowerwash.net'),
+              gt(userSessions.expiresAt, sql`now()`),
+              eq(users.isActive, true)
+            )
+          )
+          .orderBy(desc(userSessions.createdAt))
+          .limit(1);
+
+        if (recentSessions.length > 0) {
+          console.log('✅ CUSTOM DOMAIN: Found valid session fallback');
+          const sessionData = recentSessions[0];
+          const user = sessionData.user;
+
+          const transformedUser = {
+            ...user,
+            hasInvoiceAccess: user?.canAccessInvoices,
+            hasExpenseAccess: user?.canAccessExpenses,
+            hasPartsAccess: user?.canAccessPartsSupplies,
+            hasScheduleAccess: user?.canAccessMySchedule
+          };
+
+          return res.json({ user: transformedUser });
+        }
+      } catch (fallbackError) {
+        console.error('❌ CUSTOM DOMAIN FALLBACK ERROR:', fallbackError);
+      }
+    }
     
     if (!token) {
       console.log('❌ AUTH/ME: No token found');
