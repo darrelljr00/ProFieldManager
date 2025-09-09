@@ -33,7 +33,7 @@ export const getApiBaseUrl = (): string => {
   // Use same-origin requests for custom domain (API served by same server)
   if (hostname === API_CONFIG.customDomain.hostname) {
     console.log('🌐 Custom domain detected - using same-origin API requests');
-    return API_CONFIG.customDomain.apiBaseUrl;
+    return API_CONFIG.replitDomain.apiBaseUrl; // Use empty string for same-origin requests
   }
   
   // Use relative URLs for Replit domain
