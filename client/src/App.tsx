@@ -56,6 +56,7 @@ import LiveStream from "@/pages/live-stream";
 import LiveStreamEnhanced from "@/pages/live-stream-enhanced";
 import Login from "@/pages/login";
 import SimpleLogin from "@/pages/simple-login";
+import DirectLogin from "@/pages/direct-login";
 import HomePage from "@/pages/home";
 import FeaturesPage from "@/pages/features";
 import AuthDebug from "@/pages/auth-debug";
@@ -281,11 +282,12 @@ function Router() {
           <Route path="/" component={HomePage} />
           <Route path="/features" component={FeaturesPage} />
           <Route path="/signup" component={FeaturesPage} />
-          <Route path="/login" component={SimpleLogin} />
+          <Route path="/login" component={DirectLogin} />
+          <Route path="/login-simple" component={SimpleLogin} />
           <Route path="/login-full" component={Login} />
           <Route path="/auth-debug" component={AuthDebug} />
           <Route path="/shared/:token" component={SharedPhotosViewer} />
-          <Route component={SimpleLogin} />
+          <Route component={DirectLogin} />
         </Switch>
       </Suspense>
     </div>
