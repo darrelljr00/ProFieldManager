@@ -111,9 +111,9 @@ export const authenticateUser = async (credentials: { username: string; password
     timestamp: new Date().toISOString()
   });
   
-  // If on custom domain, use GET-based fallback since POST doesn't work
+  // If on custom domain, route to Replit backend since custom domain API doesn't work
   if (isCustomDomain()) {
-    console.log('🌐 CUSTOM DOMAIN DETECTED - Using GET-based login fallback');
+    console.log('🌐 CUSTOM DOMAIN DETECTED - Routing to Replit backend');
     console.log('🔐 CREDENTIALS:', { 
       hasUsername: !!credentials.username, 
       hasPassword: !!credentials.password,
@@ -123,17 +123,19 @@ export const authenticateUser = async (credentials: { username: string; password
     });
     
     try {
-      // Use same-origin GET request since GET works from custom domain
-      const fallbackUrl = `/api/auth/login-fallback?username=${encodeURIComponent(credentials.username)}&password=${encodeURIComponent(credentials.password)}`;
+      // Route to Replit domain since custom domain API is broken
+      const fallbackUrl = `${API_CONFIG.customDomain.apiBaseUrl}/api/auth/login`;
       
-      console.log('🔄 GET FALLBACK LOGIN URL:', fallbackUrl);
+      console.log('🔄 CROSS-ORIGIN LOGIN URL:', fallbackUrl);
       
       const response = await fetch(fallbackUrl, {
-        method: 'GET',
+        method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           'Accept': 'application/json',
           'Cache-Control': 'no-cache'
         },
+        body: JSON.stringify(credentials),
         credentials: 'include'
       });
       
