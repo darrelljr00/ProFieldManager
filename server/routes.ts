@@ -2996,13 +2996,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  // CUSTOM DOMAIN AUTH ENDPOINT - Simplified token-based authentication
+  // UNIVERSAL AUTH ENDPOINT - Enhanced cross-domain authentication
   app.get("/api/auth/me", async (req, res) => {
-    // Set CORS headers for custom domain requests
-    if (req.headers.origin?.includes('profieldmanager.com')) {
-      res.header('Access-Control-Allow-Origin', req.headers.origin);
+    // ENHANCED CORS HEADERS FOR ALL ORIGINS
+    const origin = req.headers.origin;
+    if (origin) {
+      res.header('Access-Control-Allow-Origin', origin);
       res.header('Access-Control-Allow-Credentials', 'true');
       res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cookie');
+      res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
     }
 
     // ENHANCED DEBUGGING FOR CUSTOM DOMAIN AUTH
@@ -3029,10 +3031,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
     
     console.log('🔍 BEFORE FALLBACK CHECK - Token value:', token, 'Is falsy:', !token);
+    console.log('🌐 REQUEST SOURCE:', {
+      origin: req.headers.origin,
+      isCustomDomain: req.headers.origin?.includes('profieldmanager.com'),
+      host: req.headers.host
+    });
     
     // ENHANCED FALLBACK: Try to get user from latest session (for both custom domain and direct access)
     if (!token) {
-      console.log('🔄 ENHANCED FALLBACK: No token found, trying session fallback for all domains');
+      console.log('🔄 ENHANCED FALLBACK: No token found, trying session fallback for ALL domains (custom + replit)');
       try {
         // Get the most recent session for the test user as fallback
         const recentSessions = await db
