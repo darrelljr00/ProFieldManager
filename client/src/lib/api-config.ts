@@ -273,6 +273,35 @@ export const authenticateUser = async (credentials: { username: string; password
     
   } catch (error) {
     console.error('🚨 REPLIT AUTH ERROR:', error);
+    
+    // FALLBACK: Try login-fallback endpoint as last resort
+    console.log('🔄 ATTEMPTING LOGIN-FALLBACK AS FINAL FALLBACK');
+    try {
+      const fallbackResponse = await fetch('/api/auth/login-fallback?' + new URLSearchParams({
+        username: credentials.username,
+        password: credentials.password
+      }), {
+        method: 'GET',
+        credentials: 'include'
+      });
+      
+      if (fallbackResponse.ok) {
+        const fallbackData = await fallbackResponse.json();
+        console.log('✅ LOGIN-FALLBACK SUCCESS:', fallbackData);
+        
+        // CRITICAL: Store the token from fallback response
+        if (fallbackData.token && fallbackData.user) {
+          localStorage.setItem('auth_token', fallbackData.token);
+          localStorage.setItem('user_data', JSON.stringify(fallbackData.user));
+          console.log('🔐 FALLBACK TOKEN STORED SUCCESSFULLY');
+        }
+        
+        return fallbackData;
+      }
+    } catch (fallbackError) {
+      console.error('🚨 LOGIN-FALLBACK ALSO FAILED:', fallbackError);
+    }
+    
     throw new Error('Invalid credentials');
   }
 };
