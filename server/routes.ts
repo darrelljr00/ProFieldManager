@@ -1801,14 +1801,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         req.ip
       );
 
-      // Cookie settings for custom domain support
-      const isCustomDomain = req.headers.origin === 'https://profieldmanager.com' || req.headers.origin === 'https://www.profieldmanager.com';
-      
+      // Cookie settings for cross-domain authentication
       res.cookie('auth_token', session.token, { 
         httpOnly: true, 
-        secure: true, // Always secure for production domains
-        sameSite: isCustomDomain ? 'none' : 'lax', // Allow cross-origin for custom domain
-        domain: isCustomDomain ? '.profieldmanager.com' : undefined, // Set domain for custom domain
+        secure: true, // Always secure for HTTPS
+        sameSite: 'none', // Allow cross-origin for all domains
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
       });
 
@@ -1938,12 +1935,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.header('Access-Control-Allow-Credentials', 'true');
       }
       
-      // Fix: Don't set domain for custom domain - let browser handle it
+      // Cookie settings for cross-domain authentication
       res.cookie('auth_token', session.token, { 
         httpOnly: true, 
         secure: true, // Always secure for HTTPS
-        sameSite: isCustomDomain ? 'none' : 'lax', // Allow cross-origin for custom domain
-        // domain: undefined, // Let browser set domain automatically
+        sameSite: 'none', // Allow cross-origin for all domains
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
       });
 
@@ -1983,11 +1979,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (token) {
         await AuthService.invalidateSession(token);
       }
-      // Clear cookie with proper domain handling for custom domain
-      const isCustomDomain = req.headers.origin === 'https://profieldmanager.com' || req.headers.origin === 'https://www.profieldmanager.com';
-      
+      // Clear cookie for cross-domain authentication
       res.clearCookie('auth_token', {
-        domain: isCustomDomain ? '.profieldmanager.com' : undefined,
+        httpOnly: true,
+        secure: true,
+        sameSite: 'none',
         path: '/'
       });
       res.json({ message: "Logged out successfully" });
@@ -5221,14 +5217,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           req.ip
         );
         
-        // Cookie settings for custom domain support
-        const isCustomDomain = req.headers.origin === 'https://profieldmanager.com' || req.headers.origin === 'https://www.profieldmanager.com';
-        
+        // Cookie settings for cross-domain authentication
         res.cookie('auth_token', session.token, { 
           httpOnly: true, 
-          secure: true, // Always secure for production domains
-          sameSite: isCustomDomain ? 'none' : 'lax', // Allow cross-origin for custom domain
-          domain: isCustomDomain ? '.profieldmanager.com' : undefined, // Set domain for custom domain
+          secure: true, // Always secure for HTTPS
+          sameSite: 'none', // Allow cross-origin for all domains
           maxAge: 24 * 60 * 60 * 1000
         });
       }
