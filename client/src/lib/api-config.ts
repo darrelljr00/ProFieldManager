@@ -82,6 +82,14 @@ export const isCustomDomain = (): boolean => {
   const href = window.location.href;
   const origin = window.location.origin;
   
+  // CRITICAL FIX: Clear localStorage flags FIRST when we're clearly on Replit domain
+  if (hostname.includes('replit.dev') || hostname.includes('repl.co')) {
+    console.log('🧹 CLEARING STALE CUSTOM DOMAIN FLAGS - We are on Replit domain');
+    localStorage.removeItem('accessed_from_custom_domain');
+    localStorage.removeItem('custom_domain_session');
+    localStorage.removeItem('auth_token'); // Clear any stale auth tokens
+  }
+  
   // Direct hostname match
   const directMatch = hostname === API_CONFIG.customDomain.hostname;
   
