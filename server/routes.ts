@@ -3030,9 +3030,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // UNIVERSAL AUTH ENDPOINT - Enhanced cross-domain authentication
   app.get("/api/auth/me", async (req, res) => {
-    // ENHANCED CORS HEADERS FOR ALL ORIGINS
+    // SECURE CORS HEADERS - Only allow specific origins in production
     const origin = req.headers.origin;
-    if (origin) {
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    const allowedOrigins = ['https://profieldmanager.com', 'https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev'];
+    
+    if (origin && (isDevelopment || allowedOrigins.includes(origin))) {
       res.header('Access-Control-Allow-Origin', origin);
       res.header('Access-Control-Allow-Credentials', 'true');
       res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cookie');
@@ -3069,9 +3072,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       host: req.headers.host
     });
     
-    // ENHANCED FALLBACK: Try to get user from latest session (for both custom domain and direct access)
-    if (!token) {
-      console.log('🔄 ENHANCED FALLBACK: No token found, trying session fallback for ALL domains (custom + replit)');
+    // ENHANCED FALLBACK: Try to get user from latest session (DEVELOPMENT ONLY for security)
+    if (!token && process.env.NODE_ENV === 'development') {
+      console.log('🔄 ENHANCED FALLBACK: No token found, trying session fallback (DEVELOPMENT MODE ONLY)');
       try {
         // Get the most recent session for the test user as fallback
         const recentSessions = await db
@@ -3108,17 +3111,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           console.log('🎯 ENHANCED FALLBACK SUCCESS: Returning user', user.username);
           
-          // For custom domain requests, include the session token to enable localStorage storage
-          const isCustomDomain = req.headers.origin?.includes('profieldmanager.com');
-          if (isCustomDomain) {
-            console.log('🔐 CUSTOM DOMAIN: Including token for localStorage storage');
-            return res.json({ 
-              user: transformedUser, 
-              token: sessionData.session.token 
-            });
-          }
-          
-          return res.json({ user: transformedUser });
+          // CRITICAL FIX: Always include the session token for ALL domains to enable proper authentication
+          console.log('🔐 AUTHENTICATION FIX: Including token for localStorage storage on ALL domains');
+          return res.json({ 
+            user: transformedUser, 
+            token: sessionData.session.token 
+          });
         } else {
           console.log('❌ ENHANCED FALLBACK: No valid sessions found for user');
         }

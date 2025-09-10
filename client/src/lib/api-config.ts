@@ -82,12 +82,12 @@ export const isCustomDomain = (): boolean => {
   const href = window.location.href;
   const origin = window.location.origin;
   
-  // CRITICAL FIX: Clear localStorage flags FIRST when we're clearly on Replit domain
+  // Clear only domain-specific flags when on Replit domain (preserve auth tokens)
   if (hostname.includes('replit.dev') || hostname.includes('repl.co')) {
     console.log('🧹 CLEARING STALE CUSTOM DOMAIN FLAGS - We are on Replit domain');
     localStorage.removeItem('accessed_from_custom_domain');
     localStorage.removeItem('custom_domain_session');
-    localStorage.removeItem('auth_token'); // Clear any stale auth tokens
+    // CRITICAL FIX: Do NOT clear auth_token - it's needed for API authentication
   }
   
   // Direct hostname match
@@ -142,22 +142,20 @@ export const isCustomDomain = (): boolean => {
 export const getAuthHeaders = (): Record<string, string> => {
   const headers: Record<string, string> = {};
   
-  // For custom domain, ALWAYS use Bearer token for cross-origin requests
-  if (isCustomDomain()) {
-    const token = localStorage.getItem('auth_token');
-    console.log('🔐 CUSTOM DOMAIN AUTH HEADERS:', {
-      hasToken: !!token,
-      tokenLength: token?.length,
-      isCustomDomain: true
+  // CRITICAL FIX: Always check for stored token first, regardless of domain
+  const token = localStorage.getItem('auth_token');
+  
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+    console.log('✅ AUTH HEADERS: Using Bearer token authentication', {
+      hasToken: true,
+      tokenLength: token.length,
+      isCustomDomain: isCustomDomain()
     });
-    if (token) {
-      headers.Authorization = `Bearer ${token}`;
-      console.log('✅ CUSTOM DOMAIN: Using Bearer token authentication');
-    } else {
-      console.log('⚠️ CUSTOM DOMAIN: No token found in localStorage');
-    }
   } else {
-    console.log('🔐 REPLIT DOMAIN AUTH HEADERS: Using cookie auth');
+    console.log('🔐 AUTH HEADERS: No token found, falling back to cookie auth', {
+      isCustomDomain: isCustomDomain()
+    });
   }
   
   return headers;

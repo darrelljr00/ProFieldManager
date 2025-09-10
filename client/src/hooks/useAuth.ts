@@ -102,9 +102,9 @@ export function useAuth() {
         if (parsedResponse && parsedResponse.user) {
           console.log('✅ USEAUTH: Valid user data received, authentication successful');
           
-          // Store user data and create token if on custom domain without stored token
-          if (isCustomDomain() && !storedToken && parsedResponse.token) {
-            console.log('🔐 USEAUTH: Storing session data for custom domain');
+          // CRITICAL FIX: Always store token when available (regardless of domain)
+          if (parsedResponse.token) {
+            console.log('🔐 USEAUTH: Storing authentication token for all domains');
             localStorage.setItem('auth_token', parsedResponse.token);
             localStorage.setItem('user_data', JSON.stringify(parsedResponse.user));
           }
