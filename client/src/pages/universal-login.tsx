@@ -116,9 +116,17 @@ export default function UniversalLogin() {
         description: "Welcome to Pro Field Manager!",
       });
 
-      // Direct redirect to dashboard - authentication is complete
+      // Custom domain handling - ensure user stays on their preferred domain
       console.log('🚀 LOGIN COMPLETE - REDIRECTING TO DASHBOARD');
-      window.location.href = '/dashboard';
+      
+      if (isCustomDomain()) {
+        console.log('🌐 CUSTOM DOMAIN: Staying on custom domain for dashboard');
+        // For custom domain, use location.replace to avoid history issues
+        window.location.replace('/dashboard');
+      } else {
+        console.log('🔗 REPLIT DOMAIN: Standard redirect to dashboard');
+        window.location.href = '/dashboard';
+      }
 
     } catch (error) {
       console.error('🚨 LOGIN ERROR:', error);
