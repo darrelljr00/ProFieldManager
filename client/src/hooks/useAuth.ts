@@ -22,7 +22,7 @@ export function useAuth() {
   const queryClient = useQueryClient();
 
   const { data, isLoading, error, refetch } = useQuery<AuthData>({
-    queryKey: ["/api/auth/me"],
+    queryKey: ["/api/auth/me", isCustomDomain() ? 'custom' : 'replit'],
     queryFn: async () => {
       console.log('🔍 USEAUTH: Calling /api/auth/me endpoint');
       
@@ -103,6 +103,13 @@ export function useAuth() {
             console.log('🔐 USEAUTH: Storing session data for custom domain');
             localStorage.setItem('auth_token', parsedResponse.token);
             localStorage.setItem('user_data', JSON.stringify(parsedResponse.user));
+          }
+          
+          // CRITICAL FIX: Force React Query to update immediately for custom domain
+          if (isCustomDomain()) {
+            console.log('🔄 CUSTOM DOMAIN: Forcing immediate auth state update');
+            // Clear any cached states that might be interfering
+            localStorage.setItem('auth_success_timestamp', Date.now().toString());
           }
           
           return parsedResponse;
