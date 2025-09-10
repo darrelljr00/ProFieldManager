@@ -97,6 +97,14 @@ export function useAuth() {
         // Validate response has user data
         if (parsedResponse && parsedResponse.user) {
           console.log('✅ USEAUTH: Valid user data received, authentication successful');
+          
+          // Store user data and create token if on custom domain without stored token
+          if (isCustomDomain() && !storedToken && parsedResponse.token) {
+            console.log('🔐 USEAUTH: Storing session data for custom domain');
+            localStorage.setItem('auth_token', parsedResponse.token);
+            localStorage.setItem('user_data', JSON.stringify(parsedResponse.user));
+          }
+          
           return parsedResponse;
         } else {
           console.log('❌ USEAUTH: No user data in response:', parsedResponse);
@@ -104,6 +112,14 @@ export function useAuth() {
         }
       } catch (authError) {
         console.error('❌ USEAUTH: Authentication failed:', authError);
+        
+        // On custom domain, clear any stale tokens when auth fails
+        if (isCustomDomain()) {
+          console.log('🧹 USEAUTH: Clearing stale auth data on custom domain');
+          localStorage.removeItem('auth_token');
+          localStorage.removeItem('user_data');
+        }
+        
         throw authError;
       }
     },

@@ -2067,19 +2067,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.header('Access-Control-Allow-Credentials', 'true');
       }
       
-      // Cookie settings for cross-domain authentication
-      res.cookie('auth_token', session.token, { 
+      // Enhanced cookie configuration for custom domain support
+      const cookieConfig = {
         httpOnly: true, 
         secure: true, // Always secure for HTTPS
-        sameSite: 'none', // Allow cross-origin for all domains
-        maxAge: 24 * 60 * 60 * 1000 // 24 hours
-      });
-
-      console.log('🍪 Cookie set with settings:', {
+        sameSite: isCustomDomain ? 'none' as const : 'lax' as const, // Dynamic based on domain
+        maxAge: validatedData.rememberMe ? 30 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000, // 30 days or 24 hours
+        path: '/',
+        domain: undefined // Let browser handle domain automatically
+      };
+      
+      console.log('🍪 Enhanced cookie configuration:', {
+        ...cookieConfig,
         isCustomDomain,
-        secure: true,
-        sameSite: isCustomDomain ? 'none' : 'lax'
+        origin: req.headers.origin,
+        host: req.headers.host
       });
+      
+      res.cookie('auth_token', session.token, cookieConfig);
 
       const response = {
         user: {
@@ -3075,7 +3080,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           };
 
           console.log('🎯 ENHANCED FALLBACK SUCCESS: Returning user', user.username);
-          return res.json({ user: transformedUser });
+          
+          // For custom domain requests, include the session token to enable localStorage storage
+          const isCustomDomain = req.headers.origin?.includes('profieldmanager.com');
+          const response = { user: transformedUser };
+          if (isCustomDomain) {
+            response.token = sessionData.session.token;
+            console.log('🔐 CUSTOM DOMAIN: Including token for localStorage storage');
+          }
+          
+          return res.json(response);
         } else {
           console.log('❌ ENHANCED FALLBACK: No valid sessions found for user');
         }
@@ -3154,7 +3168,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       canAccessSaasAdmin: transformedUser.canAccessSaasAdmin
     });
     
-    res.json({ user: transformedUser });
+    // For custom domain requests, include the session token to enable localStorage storage
+    const isCustomDomain = req.headers.origin?.includes('profieldmanager.com');
+    const response = { user: transformedUser };
+    if (isCustomDomain) {
+      response.token = token;
+      console.log('🔐 CUSTOM DOMAIN: Including validated token for localStorage storage');
+    }
+    
+    res.json(response);
     } catch (error) {
       console.error('❌ Auth middleware error:', error);
       res.status(500).json({ message: "Authentication error" });
