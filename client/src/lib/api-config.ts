@@ -192,15 +192,17 @@ export const authenticateUser = async (credentials: { username: string; password
       const data = await response.json();
       console.log('✅ CUSTOM DOMAIN LOGIN SUCCESS:', data);
       
+      // For custom domain, ensure we return the authentication data WITHOUT redirecting
       // ALWAYS store authentication data regardless of domain detection
       if (data.token && data.user) {
         localStorage.setItem('auth_token', data.token);
         localStorage.setItem('user_data', JSON.stringify(data.user));
-        console.log('🔐 UNIVERSAL AUTH DATA STORED:', {
+        console.log('🔐 CUSTOM DOMAIN AUTH STORED - STAYING ON CUSTOM DOMAIN:', {
           hasToken: !!data.token,
           hasUser: !!data.user,
           tokenLength: data.token.length,
-          userName: data.user.username
+          userName: data.user.username,
+          currentDomain: window.location.hostname
         });
         
         // Immediately verify stored data

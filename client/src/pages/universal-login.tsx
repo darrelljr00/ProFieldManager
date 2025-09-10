@@ -47,9 +47,14 @@ export default function UniversalLogin() {
                 description: "You're already logged in. Redirecting to dashboard...",
               });
               
-              // Redirect to dashboard
+              // Redirect to dashboard while preserving custom domain
               setTimeout(() => {
-                window.location.href = '/dashboard';
+                if (isCustomDomain()) {
+                  console.log('🌐 CUSTOM DOMAIN: Keeping user on custom domain for dashboard');
+                  window.location.href = '/dashboard';
+                } else {
+                  window.location.href = '/dashboard';
+                }
               }, 1000);
               
               return;
