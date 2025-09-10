@@ -130,6 +130,52 @@ export class ObjectStorageService {
     }
   }
 
+  // Gets the upload URL for a public object (accessible without authentication).
+  async getPublicObjectUploadURL(): Promise<string> {
+    const result = await this.getPublicObjectUploadURLWithPath();
+    return result.uploadURL;
+  }
+
+  // Gets the upload URL and public URL for a public object
+  async getPublicObjectUploadURLWithPath(): Promise<{
+    uploadURL: string;
+    publicURL: string;
+    objectPath: string;
+  }> {
+    const publicPaths = this.getPublicObjectSearchPaths();
+    if (!publicPaths || publicPaths.length === 0) {
+      throw new Error(
+        "PUBLIC_OBJECT_SEARCH_PATHS not set. Create a bucket in 'Object Storage' " +
+          "tool and set PUBLIC_OBJECT_SEARCH_PATHS env var."
+      );
+    }
+    
+    // Use the first public path for uploads
+    const publicPath = publicPaths[0];
+    const uniqueFileName = `uploads/${randomUUID()}`;
+    const fullPath = `${publicPath}/${uniqueFileName}`;
+    
+    // Parse the full path to get bucket and object names
+    const { bucketName, objectName } = parseObjectPath(fullPath);
+    
+    // Generate signed upload URL for PUT
+    const uploadURL = await signObjectURL({
+      bucketName,
+      objectName,
+      method: "PUT",
+      ttlSec: 900,
+    });
+    
+    // Generate stable public URL for GET (no signature needed for public objects)
+    const publicURL = `https://storage.googleapis.com/${bucketName}/${objectName}`;
+    
+    return {
+      uploadURL,
+      publicURL,
+      objectPath: fullPath
+    };
+  }
+
   // Gets the upload URL for an object entity.
   async getObjectEntityUploadURL(): Promise<string> {
     const privateObjectDir = this.getPrivateObjectDir();

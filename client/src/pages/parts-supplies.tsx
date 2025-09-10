@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -64,23 +64,31 @@ export default function PartsSuppliesPage() {
   
   // Image upload state
   const [uploadedImageUrl, setUploadedImageUrl] = useState("");
+  const lastUploadMetaRef = useRef<{publicURL: string; objectPath: string} | null>(null);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Image upload handlers
+  // Image upload handlers (using public storage for parts inventory)
   const handleGetUploadParameters = async () => {
     try {
-      console.log('🔄 Getting upload parameters...');
-      const response = await apiRequest('POST', '/api/objects/upload');
+      console.log('🔄 Getting public upload parameters for parts inventory...');
+      const response = await apiRequest('POST', '/api/objects/upload-public');
       const result = await response.json();
-      console.log('✅ Upload parameters received:', result);
+      console.log('✅ Public upload parameters received:', result);
+      
+      // Store the public URL and object path for use in onComplete
+      lastUploadMetaRef.current = {
+        publicURL: result.publicURL,
+        objectPath: result.objectPath
+      };
+      
       return {
         method: 'PUT' as const,
         url: result.uploadURL,
       };
     } catch (error) {
-      console.error('❌ Failed to get upload parameters:', error);
+      console.error('❌ Failed to get public upload parameters:', error);
       toast({
         title: "Upload Error",
         description: "Failed to get upload URL. Please try again.",
@@ -277,8 +285,19 @@ export default function PartsSuppliesPage() {
 
   const handleUploadComplete = async (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
     if (result.successful && result.successful.length > 0) {
-      const uploadedFile = result.successful[0];
-      const imageUrl = uploadedFile.uploadURL;
+      // Use the stored publicURL from handleGetUploadParameters
+      const imageUrl = lastUploadMetaRef.current?.publicURL;
+      if (!imageUrl) {
+        console.error('❌ No public URL found in upload metadata');
+        toast({
+          title: "Upload Error", 
+          description: "Failed to get public image URL",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      console.log('📁 Upload completed, using stored public URL:', imageUrl);
       setUploadedImageUrl(imageUrl);
       
       // If we're editing a part, immediately update the part's image in the database

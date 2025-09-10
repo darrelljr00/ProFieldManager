@@ -13578,7 +13578,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get upload URL for object storage
+  // Get upload URL for object storage (private)
   app.post("/api/objects/upload", requireAuth, async (req, res) => {
     try {
       console.log('🔄 Getting upload URL for user:', req.user?.username);
@@ -13589,6 +13589,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("❌ Error generating upload URL:", error);
       res.status(500).json({ error: "Failed to generate upload URL" });
+    }
+  });
+
+  // Get upload URL for public object storage (parts inventory images)
+  app.post("/api/objects/upload-public", requireAuth, async (req, res) => {
+    try {
+      console.log('🔄 Getting public upload URL for user:', req.user?.username);
+      const objectStorageService = new ObjectStorageService();
+      const result = await objectStorageService.getPublicObjectUploadURLWithPath();
+      console.log('✅ Generated public upload URL and public path successfully');
+      res.json({ 
+        uploadURL: result.uploadURL,
+        publicURL: result.publicURL,
+        objectPath: result.objectPath
+      });
+    } catch (error) {
+      console.error("❌ Error generating public upload URL:", error);
+      res.status(500).json({ error: "Failed to generate public upload URL" });
     }
   });
 
