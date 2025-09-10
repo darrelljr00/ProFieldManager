@@ -30,9 +30,9 @@ export const getApiBaseUrl = (): string => {
   
   const hostname = window.location.hostname;
   
-  // CRITICAL FIX: For custom domain, route API calls to Replit backend
-  if (hostname === API_CONFIG.customDomain.hostname) {
-    console.log('🌐 Custom domain detected - routing API to Replit backend');
+  // CRITICAL FIX: For custom domain, ALWAYS route API calls to Replit backend
+  if (hostname === API_CONFIG.customDomain.hostname || isCustomDomain()) {
+    console.log('🌐 Custom domain detected - routing ALL API calls to Replit backend:', API_CONFIG.customDomain.apiBaseUrl);
     return API_CONFIG.customDomain.apiBaseUrl; // Route to Replit backend
   }
   
