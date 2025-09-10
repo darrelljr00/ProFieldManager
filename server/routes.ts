@@ -2361,9 +2361,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         `);
       }
 
+      // Check if request came from custom domain
+      const isFromCustomDomain = req.headers.origin?.includes('profieldmanager.com') || req.headers.host?.includes('profieldmanager.com');
+      
       res.json({
         user: userData,
-        token: session.token
+        token: session.token,
+        isCustomDomain: isFromCustomDomain // Tell frontend it came from custom domain
       });
 
     } catch (error) {

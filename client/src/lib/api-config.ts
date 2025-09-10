@@ -91,7 +91,17 @@ export const isCustomDomain = (): boolean => {
   // Check if we're making requests to custom domain (for proxied scenarios)
   const originContainsCustomDomain = origin.includes(API_CONFIG.customDomain.hostname);
   
-  const isCustom = directMatch || urlContainsCustomDomain || originContainsCustomDomain;
+  // NEW: Check if we have a stored flag indicating custom domain access
+  // This handles proxy/iframe scenarios where JS context doesn't show real domain
+  const hasCustomDomainFlag = localStorage.getItem('accessed_from_custom_domain') === 'true';
+  
+  // NEW: Check document referrer for proxy scenarios
+  const referrerFromCustomDomain = document.referrer.includes(API_CONFIG.customDomain.hostname);
+  
+  // NEW: Check if we're receiving login requests from custom domain
+  const hasCustomDomainSession = localStorage.getItem('custom_domain_session') === 'true';
+  
+  const isCustom = directMatch || urlContainsCustomDomain || originContainsCustomDomain || hasCustomDomainFlag || referrerFromCustomDomain || hasCustomDomainSession;
   
   console.log('🔍 ENHANCED CUSTOM DOMAIN CHECK:', {
     hostname,
@@ -101,8 +111,18 @@ export const isCustomDomain = (): boolean => {
     directMatch,
     urlContainsCustomDomain,
     originContainsCustomDomain,
+    hasCustomDomainFlag,
+    referrerFromCustomDomain,
+    hasCustomDomainSession,
+    documentReferrer: document.referrer,
     finalResult: isCustom
   });
+  
+  // If we detect custom domain access, store the flag for future requests
+  if (isCustom && !hasCustomDomainFlag) {
+    localStorage.setItem('accessed_from_custom_domain', 'true');
+    console.log('🏷️ MARKED AS CUSTOM DOMAIN ACCESS');
+  }
   
   return isCustom;
 };
@@ -298,6 +318,13 @@ export const authenticateUser = async (credentials: { username: string; password
           localStorage.setItem('auth_token', fallbackData.token);
           localStorage.setItem('user_data', JSON.stringify(fallbackData.user));
           console.log('🔐 FALLBACK TOKEN STORED SUCCESSFULLY');
+          
+          // If server indicates this was a custom domain request, set the flag
+          if (fallbackData.isCustomDomain) {
+            localStorage.setItem('custom_domain_session', 'true');
+            localStorage.setItem('accessed_from_custom_domain', 'true');
+            console.log('🏷️ CUSTOM DOMAIN SESSION FLAG SET FROM SERVER RESPONSE');
+          }
         }
         
         return fallbackData;
