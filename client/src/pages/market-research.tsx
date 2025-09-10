@@ -99,6 +99,16 @@ const competitorFormSchema = z.object({
 
 type CompetitorFormData = z.infer<typeof competitorFormSchema>;
 
+// New research form schema
+const newResearchFormSchema = z.object({
+  title: z.string().min(1, "Research title is required"),
+  businessNiche: z.string().min(1, "Business niche is required"),
+  location: z.string().min(1, "Location is required"),
+  description: z.string().optional(),
+});
+
+type NewResearchFormData = z.infer<typeof newResearchFormSchema>;
+
 // Market research data interface for dynamic data
 interface LocalDemandData {
   keyword: string;
@@ -116,6 +126,7 @@ export default function MarketResearch() {
   const [location, setLocation] = useState("Texas");
   const [editingCompetitor, setEditingCompetitor] = useState<CompetitorData | null>(null);
   const [showCompetitorDialog, setShowCompetitorDialog] = useState(false);
+  const [showNewResearchDialog, setShowNewResearchDialog] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -141,6 +152,17 @@ export default function MarketResearch() {
       strengths: [],
       weaknesses: [],
       notes: "",
+    },
+  });
+
+  // New research form
+  const newResearchForm = useForm<NewResearchFormData>({
+    resolver: zodResolver(newResearchFormSchema),
+    defaultValues: {
+      title: "",
+      businessNiche: businessNiche,
+      location: location,
+      description: "",
     },
   });
 
@@ -277,6 +299,34 @@ export default function MarketResearch() {
     }
   };
 
+  // New research form handler
+  const onSubmitNewResearch = (data: NewResearchFormData) => {
+    // Update the global research parameters
+    setBusinessNiche(data.businessNiche);
+    setLocation(data.location);
+    
+    // Reset and close dialog
+    setShowNewResearchDialog(false);
+    newResearchForm.reset();
+    
+    // Invalidate all related queries with new parameters to ensure data consistency
+    queryClient.invalidateQueries({ 
+      queryKey: ['/api/market-research/demand', data.businessNiche, data.location] 
+    });
+    queryClient.invalidateQueries({ 
+      queryKey: ['/api/market-research/competitors', data.businessNiche, data.location] 
+    });
+    queryClient.invalidateQueries({ 
+      queryKey: ['/api/market-research-competitors'] 
+    });
+    
+    // Show success message
+    toast({ 
+      title: "Success", 
+      description: `New research "${data.title}" started for ${data.businessNiche} in ${data.location}` 
+    });
+  };
+
   const getSocialIcon = (platform: string) => {
     switch (platform) {
       case 'facebook': return <Facebook className="h-4 w-4" />;
@@ -406,7 +456,7 @@ export default function MarketResearch() {
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh Data
           </Button>
-          <Button>
+          <Button onClick={() => setShowNewResearchDialog(true)} data-testid="button-new-research">
             <Plus className="h-4 w-4 mr-2" />
             New Research
           </Button>
@@ -907,6 +957,103 @@ export default function MarketResearch() {
               </DialogContent>
             </Dialog>
           </div>
+
+          {/* New Research Dialog */}
+          <Dialog open={showNewResearchDialog} onOpenChange={setShowNewResearchDialog}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Start New Market Research</DialogTitle>
+              </DialogHeader>
+              <Form {...newResearchForm}>
+                <form onSubmit={newResearchForm.handleSubmit(onSubmitNewResearch)} className="space-y-4">
+                  <FormField
+                    control={newResearchForm.control}
+                    name="title"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Research Title</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g., Q4 2024 Market Analysis" data-testid="input-research-title" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={newResearchForm.control}
+                    name="businessNiche"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Business Niche</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger data-testid="select-business-niche">
+                              <SelectValue placeholder="Select business type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="pressure washing">Pressure Washing</SelectItem>
+                            <SelectItem value="fleet washing">Fleet Washing</SelectItem>
+                            <SelectItem value="roof cleaning">Roof Cleaning</SelectItem>
+                            <SelectItem value="commercial cleaning">Commercial Cleaning</SelectItem>
+                            <SelectItem value="residential cleaning">Residential Cleaning</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={newResearchForm.control}
+                    name="location"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Target Location</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g., Texas, Austin, Dallas" data-testid="input-location" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={newResearchForm.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Description (Optional)</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            placeholder="Brief description of this research project..."
+                            rows={3}
+                            data-testid="textarea-description"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="flex justify-end gap-2">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={() => setShowNewResearchDialog(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button type="submit" data-testid="button-start-research">
+                      Start Research
+                    </Button>
+                  </div>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
 
           {competitorsLoading ? (
             <div className="flex items-center justify-center py-8">
