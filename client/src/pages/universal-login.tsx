@@ -66,46 +66,9 @@ export default function UniversalLogin() {
         description: "Welcome to Pro Field Manager!",
       });
 
-      // CRITICAL: Ensure token is captured from any source
-      if (!storedToken && result) {
-        console.log('🚨 NO TOKEN STORED - ATTEMPTING EMERGENCY CAPTURE');
-        
-        // Try multiple methods to capture token
-        if (result.token) {
-          localStorage.setItem('auth_token', result.token);
-          localStorage.setItem('user_data', JSON.stringify(result.user));
-          console.log('✅ EMERGENCY TOKEN STORAGE - SUCCESS');
-        } else {
-          // Last resort: Try login-fallback directly
-          console.log('🆘 LAST RESORT: Direct login-fallback call');
-          try {
-            const fallbackUrl = `/api/auth/login-fallback?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
-            const fallbackResponse = await fetch(fallbackUrl, {
-              method: 'GET',
-              credentials: 'include'
-            });
-            
-            if (fallbackResponse.ok) {
-              const fallbackData = await fallbackResponse.json();
-              if (fallbackData.token && fallbackData.user) {
-                localStorage.setItem('auth_token', fallbackData.token);
-                localStorage.setItem('user_data', JSON.stringify(fallbackData.user));
-                console.log('✅ LAST RESORT TOKEN STORAGE - SUCCESS');
-              }
-            }
-          } catch (err) {
-            console.error('❌ LAST RESORT FAILED:', err);
-          }
-        }
-      }
-
-      // Always force page reload after login to ensure clean authentication state
-      console.log('🔄 FORCING PAGE RELOAD FOR CLEAN AUTH STATE');
-      
-      // Small delay to ensure token storage completes
-      setTimeout(() => {
-        window.location.href = '/dashboard';
-      }, 200);
+      // Direct redirect to dashboard - authentication is complete
+      console.log('🚀 LOGIN COMPLETE - REDIRECTING TO DASHBOARD');
+      window.location.href = '/dashboard';
 
     } catch (error) {
       console.error('🚨 LOGIN ERROR:', error);
