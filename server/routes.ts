@@ -3083,13 +3083,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // For custom domain requests, include the session token to enable localStorage storage
           const isCustomDomain = req.headers.origin?.includes('profieldmanager.com');
-          const response = { user: transformedUser };
           if (isCustomDomain) {
-            response.token = sessionData.session.token;
             console.log('🔐 CUSTOM DOMAIN: Including token for localStorage storage');
+            return res.json({ 
+              user: transformedUser, 
+              token: sessionData.session.token 
+            });
           }
           
-          return res.json(response);
+          return res.json({ user: transformedUser });
         } else {
           console.log('❌ ENHANCED FALLBACK: No valid sessions found for user');
         }
@@ -3170,13 +3172,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     // For custom domain requests, include the session token to enable localStorage storage
     const isCustomDomain = req.headers.origin?.includes('profieldmanager.com');
-    const response = { user: transformedUser };
     if (isCustomDomain) {
-      response.token = token;
       console.log('🔐 CUSTOM DOMAIN: Including validated token for localStorage storage');
+      return res.json({ 
+        user: transformedUser, 
+        token: token 
+      });
     }
     
-    res.json(response);
+    res.json({ user: transformedUser });
     } catch (error) {
       console.error('❌ Auth middleware error:', error);
       res.status(500).json({ message: "Authentication error" });
