@@ -113,25 +113,27 @@ export default function UniversalLogin() {
         localStorage.setItem('user_data', JSON.stringify(result.user));
       }
 
-      // Clear queries to force refresh with new auth
-      queryClient.clear();
+      // Force immediate auth state refresh
+      console.log('🔄 FORCING AUTH STATE REFRESH AFTER LOGIN');
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/auth/me"] });
 
       toast({
         title: "Login Successful",
         description: "Welcome to Pro Field Manager!",
       });
 
-      // Custom domain handling - ensure user stays on their preferred domain
+      // Give the auth state a moment to update before redirecting
       console.log('🚀 LOGIN COMPLETE - REDIRECTING TO DASHBOARD');
-      
-      if (isCustomDomain()) {
-        console.log('🌐 CUSTOM DOMAIN: Staying on custom domain for dashboard');
-        // For custom domain, use location.replace to avoid history issues
-        window.location.replace('/dashboard');
-      } else {
-        console.log('🔗 REPLIT DOMAIN: Standard redirect to dashboard');
-        window.location.href = '/dashboard';
-      }
+      setTimeout(() => {
+        if (isCustomDomain()) {
+          console.log('🌐 CUSTOM DOMAIN: Staying on custom domain for dashboard');
+          window.location.replace('/dashboard');
+        } else {
+          console.log('🔗 REPLIT DOMAIN: Standard redirect to dashboard');
+          window.location.href = '/dashboard';
+        }
+      }, 100);
 
     } catch (error) {
       console.error('🚨 LOGIN ERROR:', error);
