@@ -30,10 +30,10 @@ export const getApiBaseUrl = (): string => {
   
   const hostname = window.location.hostname;
   
-  // Use same-origin requests for custom domain (API served by same server)
+  // CRITICAL FIX: For custom domain, route API calls to Replit backend
   if (hostname === API_CONFIG.customDomain.hostname) {
-    console.log('🌐 Custom domain detected - using same-origin API requests');
-    return API_CONFIG.replitDomain.apiBaseUrl; // Use empty string for same-origin requests
+    console.log('🌐 Custom domain detected - routing API to Replit backend');
+    return API_CONFIG.customDomain.apiBaseUrl; // Route to Replit backend
   }
   
   // Use relative URLs for Replit domain
@@ -114,7 +114,7 @@ export const isCustomDomain = (): boolean => {
 export const getAuthHeaders = (): Record<string, string> => {
   const headers: Record<string, string> = {};
   
-  // For custom domain, try Bearer token first, fall back to cookie auth
+  // For custom domain, ALWAYS use Bearer token for cross-origin requests
   if (isCustomDomain()) {
     const token = localStorage.getItem('auth_token');
     console.log('🔐 CUSTOM DOMAIN AUTH HEADERS:', {
@@ -124,8 +124,10 @@ export const getAuthHeaders = (): Record<string, string> => {
     });
     if (token) {
       headers.Authorization = `Bearer ${token}`;
+      console.log('✅ CUSTOM DOMAIN: Using Bearer token authentication');
+    } else {
+      console.log('⚠️ CUSTOM DOMAIN: No token found in localStorage');
     }
-    // If no Bearer token, rely on cookie authentication (same-origin)
   } else {
     console.log('🔐 REPLIT DOMAIN AUTH HEADERS: Using cookie auth');
   }
