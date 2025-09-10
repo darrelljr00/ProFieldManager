@@ -2315,14 +2315,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log('✅ GET Login fallback successful for user:', username);
 
-      // Set auth cookie
-      const isCustomDomain = req.headers.host?.includes('profieldmanager.com');
+      // Set auth cookie - CRITICAL: For cross-domain authentication
+      const isCustomDomainRequest = req.headers.origin?.includes('profieldmanager.com');
       res.cookie('auth_token', session.token, {
         httpOnly: true,
         secure: true,
-        sameSite: 'lax',
+        sameSite: isCustomDomainRequest ? 'none' : 'lax', // 'none' for cross-domain requests
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-        domain: isCustomDomain ? '.profieldmanager.com' : undefined
+        domain: undefined // Let browser handle domain automatically for cross-origin
       });
 
       const userData = {
