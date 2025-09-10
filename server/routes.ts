@@ -13652,7 +13652,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.status(200).json({
         success: true,
-        objectPath: objectPath,
         part: updatedPart
       });
     } catch (error) {
