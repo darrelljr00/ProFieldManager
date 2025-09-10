@@ -12,8 +12,58 @@ export default function UniversalLogin() {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
 
-  // Auto-login for demo purposes
+  // Cross-domain authentication detection for custom domain
   useEffect(() => {
+    const checkCrossDomainAuth = async () => {
+      if (isCustomDomain()) {
+        console.log('🌐 CUSTOM DOMAIN DETECTED - Checking for existing authentication');
+        
+        try {
+          // Try to check authentication status via the Replit backend
+          const authCheckUrl = `${import.meta.env.VITE_API_BASE_URL || 'https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev'}/api/auth/me`;
+          const response = await fetch(authCheckUrl, {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+              'Origin': window.location.origin,
+              'Accept': 'application/json',
+            }
+          });
+
+          if (response.ok) {
+            const authData = await response.json();
+            if (authData.user && authData.token) {
+              console.log('✅ CROSS-DOMAIN AUTH SUCCESS - User already authenticated');
+              
+              // Store authentication data for custom domain
+              localStorage.setItem('auth_token', authData.token);
+              localStorage.setItem('user_data', JSON.stringify(authData.user));
+              
+              // Clear queries and redirect to dashboard
+              queryClient.clear();
+              
+              toast({
+                title: "Welcome Back!",
+                description: "You're already logged in. Redirecting to dashboard...",
+              });
+              
+              // Redirect to dashboard
+              setTimeout(() => {
+                window.location.href = '/dashboard';
+              }, 1000);
+              
+              return;
+            }
+          }
+        } catch (error) {
+          console.log('🔍 CROSS-DOMAIN AUTH CHECK FAILED - User needs to login', error);
+        }
+      }
+    };
+
+    checkCrossDomainAuth();
+
+    // Auto-login for demo purposes
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('auto') === 'true') {
       handleLogin();
