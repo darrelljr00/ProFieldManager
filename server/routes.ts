@@ -2376,6 +2376,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // CUSTOM DOMAIN INITIALIZATION: Set custom domain flags from profieldmanager.com
+  app.get("/api/init/custom-domain", async (req, res) => {
+    console.log('🏷️ CUSTOM DOMAIN INIT REQUEST:', {
+      host: req.headers.host,
+      origin: req.headers.origin,
+      userAgent: req.headers['user-agent'],
+      timestamp: new Date().toISOString()
+    });
+
+    // Set CORS for profieldmanager.com
+    if (req.headers.origin && req.headers.origin.includes('profieldmanager.com')) {
+      res.header('Access-Control-Allow-Origin', req.headers.origin);
+      res.header('Access-Control-Allow-Credentials', 'true');
+    }
+
+    res.json({
+      success: true,
+      isCustomDomain: true,
+      message: 'Custom domain flags should be set in localStorage',
+      timestamp: new Date().toISOString()
+    });
+  });
+
   // CUSTOM DOMAIN DEBUG: Test endpoint accessible from profieldmanager.com
   app.get("/api/debug/custom-domain-test", async (req, res) => {
     const { username, password } = req.query;

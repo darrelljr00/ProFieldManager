@@ -297,6 +297,33 @@ function Router() {
 }
 
 function App() {
+  // Initialize custom domain detection on app startup
+  useEffect(() => {
+    const initCustomDomain = async () => {
+      // Check if we're being loaded from a custom domain context
+      try {
+        const response = await fetch('/api/init/custom-domain', {
+          method: 'GET',
+          credentials: 'include'
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.isCustomDomain) {
+            console.log('🏷️ CUSTOM DOMAIN DETECTED - Setting flags from server response');
+            localStorage.setItem('custom_domain_session', 'true');
+            localStorage.setItem('accessed_from_custom_domain', 'true');
+          }
+        }
+      } catch (error) {
+        // Silently fail - this is just an initialization check
+        console.log('🔍 Custom domain init check failed (expected for Replit domain):', error.message);
+      }
+    };
+    
+    initCustomDomain();
+  }, []);
+
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
