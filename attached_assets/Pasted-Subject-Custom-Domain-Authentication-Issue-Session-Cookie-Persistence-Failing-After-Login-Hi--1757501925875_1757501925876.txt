@@ -1,0 +1,72 @@
+Subject: 🔒 Custom Domain Authentication Issue – Session/Cookie Persistence Failing After Login
+
+Hi Replit Support,
+
+I'm encountering an authentication/session issue when using a custom domain with my Replit-hosted app. Here's a breakdown of the problem:
+
+✅ Working as Expected on Replit Domain (*.replit.dev)
+
+Authentication flow completes successfully
+
+Auth cookies are set properly
+
+API /auth/me returns user data
+
+Dashboard loads correctly
+
+❌ Issue on Custom Domain (https://profieldmanager.com)
+
+User logs in using correct credentials
+
+"✅ Login Successful" message appears
+
+But then user is redirected back to login page
+
+Inspecting dev tools → /api/auth/me fails with 401 Unauthorized
+
+It appears cookies/session aren't persisting across requests
+
+🔍 Technical Setup
+
+Authentication: Token-based (stored via cookie)
+
+Cookie config:
+
+sameSite: 'none',
+secure: true,
+httpOnly: true,
+domain: undefined // Allow browser to handle domain automatically
+
+
+CORS: Configured to allow cross-origin requests between frontend (profieldmanager.com) and backend (Replit)
+
+Trust proxy: Enabled
+
+🔧 What I’ve Confirmed:
+
+The login works perfectly on the Replit preview URL
+
+Logs confirm:
+✅ SESSION VALIDATION SUCCESS for sales@texaspowerwash.net
+🔑 TOKEN EXTRACTION: { hasCookieToken: true, tokenSource: 'cookie' }
+
+The problem only occurs on the custom domain after login – cookies don’t persist, and the session validation fails
+
+❓My Questions:
+
+Does Replit’s proxy automatically rewrite/set Set-Cookie headers for custom domains?
+
+Is there a recommended authentication strategy for custom domain setups? (e.g., JWT instead of cookies?)
+
+Are there known issues or additional configurations needed for session persistence on custom domains?
+
+Should I explicitly set the cookie domain to .profieldmanager.com instead of leaving it undefined?
+
+Please guide me on how to configure the system to maintain the session/cookie properly on the custom domain.
+
+Thanks for your time and support.
+
+Best regards,
+Farid Reza
+MaxTech BD
+📧 sales@maxtechbd.com
