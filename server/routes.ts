@@ -13618,21 +13618,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const partId = parseInt(req.params.id);
-      const userId = req.user!.id.toString();
-      const objectStorageService = new ObjectStorageService();
+      const imageURL = req.body.imageURL;
       
-      // Normalize the object URL and set ACL policy
-      const objectPath = await objectStorageService.trySetObjectEntityAclPolicy(
-        req.body.imageURL,
-        {
-          owner: userId,
-          visibility: "private", // Parts images should be private to organization
-        }
-      );
+      // For public URLs (from /api/objects/upload-public), use them directly
+      // For private URLs, normalize and set ACL (legacy support)
+      let finalImageUrl = imageURL;
+      
+      if (imageURL.startsWith("https://storage.googleapis.com/")) {
+        // This is already a public URL, use it directly
+        console.log('✅ Using public image URL directly:', imageURL);
+        finalImageUrl = imageURL;
+      } else {
+        // Legacy private object handling
+        const userId = req.user!.id.toString();
+        const objectStorageService = new ObjectStorageService();
+        finalImageUrl = await objectStorageService.trySetObjectEntityAclPolicy(
+          imageURL,
+          {
+            owner: userId,
+            visibility: "private",
+          }
+        );
+      }
 
       // Update the parts/supplies record with the image URL
       const updatedPart = await storage.updatePartSupply(partId, {
-        imageUrl: objectPath,
+        imageUrl: finalImageUrl,
       });
 
       if (!updatedPart) {
