@@ -13620,15 +13620,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const partId = parseInt(req.params.id);
       const imageURL = req.body.imageURL;
       
+      console.log('🔍 Processing image URL for part:', partId);
+      console.log('🔍 Received imageURL:', imageURL);
+      console.log('🔍 URL type check:', imageURL.startsWith("https://storage.googleapis.com/"));
+      
       // For public URLs (from /api/objects/upload-public), use them directly
-      // For private URLs, normalize and set ACL (legacy support)
       let finalImageUrl = imageURL;
       
-      if (imageURL.startsWith("https://storage.googleapis.com/")) {
+      if (imageURL && imageURL.startsWith("https://storage.googleapis.com/")) {
         // This is already a public URL, use it directly
         console.log('✅ Using public image URL directly:', imageURL);
         finalImageUrl = imageURL;
       } else {
+        console.log('🔄 Processing as legacy private URL:', imageURL);
         // Legacy private object handling
         const userId = req.user!.id.toString();
         const objectStorageService = new ObjectStorageService();
