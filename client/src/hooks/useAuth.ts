@@ -23,6 +23,10 @@ export function useAuth() {
 
   const { data, isLoading, error, refetch } = useQuery<AuthData>({
     queryKey: ["/api/auth/me", isCustomDomain() ? 'custom' : 'replit'],
+    staleTime: isCustomDomain() ? 0 : 5 * 60 * 1000, // Force refresh for custom domain
+    gcTime: isCustomDomain() ? 0 : 5 * 60 * 1000, // No caching for custom domain
+    refetchOnMount: isCustomDomain() ? 'always' : true, // Always refetch for custom domain
+    refetchOnWindowFocus: isCustomDomain() ? 'always' : true, // Always refetch for custom domain
     queryFn: async () => {
       console.log('🔍 USEAUTH: Calling /api/auth/me endpoint');
       
@@ -110,6 +114,10 @@ export function useAuth() {
             console.log('🔄 CUSTOM DOMAIN: Forcing immediate auth state update');
             // Clear any cached states that might be interfering
             localStorage.setItem('auth_success_timestamp', Date.now().toString());
+            
+            // Force immediate cache invalidation and re-render
+            queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+            queryClient.setQueryData(["/api/auth/me", 'custom'], parsedResponse);
           }
           
           return parsedResponse;
@@ -130,11 +138,7 @@ export function useAuth() {
         throw authError;
       }
     },
-    retry: false,
-    staleTime: 0, // Don't cache auth state to ensure fresh checks
-    gcTime: 1000 * 60 * 5, // Keep in cache for 5 minutes
-    refetchOnWindowFocus: true, // Refetch when window regains focus
-    refetchOnMount: true, // Always refetch on mount
+    retry: false
   });
 
   const logout = async () => {
