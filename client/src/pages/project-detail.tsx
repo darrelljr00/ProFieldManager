@@ -554,6 +554,26 @@ export default function ProjectDetail() {
               </Link>
             </Button>
             <Button 
+              onClick={() => {
+                const partNumber = prompt("Enter part number for Smart Capture:");
+                if (partNumber) {
+                  createSmartCaptureItemMutation.mutate({
+                    partNumber: partNumber,
+                    location: "Job Site",
+                    masterPrice: "0.00",
+                    quantity: 1,
+                    notes: ""
+                  });
+                }
+              }}
+              disabled={createSmartCaptureItemMutation.isPending}
+              className="bg-purple-600 hover:bg-purple-700"
+              data-testid="button-smart-capture"
+            >
+              <Camera className="h-4 w-4 mr-2" />
+              Smart Capture
+            </Button>
+            <Button 
               onClick={() => setSignatureDialogOpen(true)}
               className="bg-blue-600 hover:bg-blue-700"
             >
@@ -819,12 +839,14 @@ export default function ProjectDetail() {
             <div className="flex gap-2">
               <Button 
                 onClick={() => {
-                  const itemName = prompt("Enter item name:");
-                  if (itemName) {
+                  const partNumber = prompt("Enter part number:");
+                  if (partNumber) {
                     createSmartCaptureItemMutation.mutate({
-                      name: itemName,
-                      description: "",
-                      status: "active"
+                      partNumber: partNumber,
+                      location: "Job Site",
+                      masterPrice: "0.00",
+                      quantity: 1,
+                      notes: ""
                     });
                   }
                 }}
@@ -849,17 +871,16 @@ export default function ProjectDetail() {
                 <Card key={item.id} data-testid={`card-smart-capture-item-${item.id}`}>
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">{item.name}</CardTitle>
-                      <Badge 
-                        variant={item.status === 'active' ? 'default' : 'secondary'}
-                        className="text-xs"
-                      >
-                        {item.status}
+                      <CardTitle className="text-lg">
+                        {item.partNumber || item.vehicleNumber || item.inventoryNumber || `Item #${item.id}`}
+                      </CardTitle>
+                      <Badge variant="default" className="text-xs">
+                        Qty: {item.quantity}
                       </Badge>
                     </div>
-                    {item.description && (
-                      <CardDescription>{item.description}</CardDescription>
-                    )}
+                    <CardDescription>
+                      Location: {item.location} | Price: ${item.masterPrice}
+                    </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2 text-sm text-muted-foreground">
@@ -871,6 +892,11 @@ export default function ProjectDetail() {
                         <Clock className="h-4 w-4" />
                         <span>Added {new Date(item.createdAt).toLocaleDateString()}</span>
                       </div>
+                      {item.notes && (
+                        <div className="text-sm">
+                          <strong>Notes:</strong> {item.notes}
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
