@@ -471,6 +471,9 @@ export default function Jobs() {
     zipCode: ""
   });
   
+  // State for Smart Capture feature
+  const [enableSmartCapture, setEnableSmartCapture] = useState(false);
+  
   // Search and filter states for completed jobs
   const [searchQuery, setSearchQuery] = useState("");
   const [dateFilter, setDateFilter] = useState("");
@@ -740,6 +743,8 @@ export default function Jobs() {
       selectedWaivers: includeWaivers ? selectedWaivers : [],
       // Job sharing settings
       shareWithTeam: formData.get("shareWithTeam") === "true",
+      // Smart Capture settings
+      enableSmartCapture,
     };
   createJobMutation.mutate(data);
   };
@@ -1589,6 +1594,49 @@ export default function Jobs() {
                     )}
                   </div>
                 )}
+              </div>
+
+              {/* Smart Capture Settings */}
+              <div className="space-y-4 p-4 border rounded-lg bg-green-50 dark:bg-green-900/20">
+                <h4 className="font-semibold text-sm text-green-800 dark:text-green-200">Smart Capture</h4>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Enable Smart Capture for this job</Label>
+                  <div className="flex items-center space-x-6">
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        id="smartCaptureEnabled"
+                        name="enableSmartCapture"
+                        checked={enableSmartCapture}
+                        onChange={() => setEnableSmartCapture(true)}
+                        className="w-4 h-4"
+                        data-testid="radio-smart-capture-enabled"
+                      />
+                      <Label htmlFor="smartCaptureEnabled" className="text-sm">
+                        <span className="font-medium">Yes, enable Smart Capture</span>
+                        <span className="text-gray-600 block text-xs">Technicians can type, scan, or photograph items they're cleaning, repairing, or installing</span>
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        id="smartCaptureDisabled"
+                        name="enableSmartCapture"
+                        checked={!enableSmartCapture}
+                        onChange={() => setEnableSmartCapture(false)}
+                        className="w-4 h-4"
+                        data-testid="radio-smart-capture-disabled"
+                      />
+                      <Label htmlFor="smartCaptureDisabled" className="text-sm">
+                        <span className="font-medium">No Smart Capture</span>
+                        <span className="text-gray-600 block text-xs">Standard job without item tracking</span>
+                      </Label>
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-500 mt-2">
+                    Smart Capture allows real-time tracking of items being worked on at this job site
+                  </div>
+                </div>
               </div>
 
               {/* Job Sharing Settings */}
