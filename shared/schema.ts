@@ -4647,6 +4647,7 @@ export const smartCaptureItems = pgTable("smart_capture_items", {
   masterPrice: decimal("master_price", { precision: 10, scale: 2 }).notNull(),
   location: text("location").notNull(),
   quantity: integer("quantity").notNull().default(1),
+  description: text("description"),
   notes: text("notes"),
   
   // Optional references to existing data
@@ -4677,6 +4678,7 @@ export const insertSmartCaptureItemSchema = createInsertSchema(smartCaptureItems
   masterPrice: z.string().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, "Master price must be a positive number"),
   location: z.string().min(1, "Location is required"),
   quantity: z.number().int().min(1, "Quantity must be at least 1").default(1),
+  description: z.string().optional(),
   notes: z.string().optional(),
 }).omit({
   id: true,

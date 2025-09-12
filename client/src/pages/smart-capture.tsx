@@ -183,6 +183,7 @@ export default function SmartCapturePage() {
       masterPrice: item.masterPrice?.toString() || "0",
       location: item.location || "",
       quantity: item.quantity || 1,
+      description: item.description || "",
       notes: item.notes || ""
     });
     setIsEditItemDialogOpen(true);
@@ -509,6 +510,20 @@ export default function SmartCapturePage() {
 
                         <FormField
                           control={smartCaptureItemForm.control}
+                          name="description"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Description</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Brief description of the item..." {...field} data-testid="input-description" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={smartCaptureItemForm.control}
                           name="notes"
                           render={({ field }) => (
                             <FormItem>
@@ -721,6 +736,20 @@ export default function SmartCapturePage() {
                   )}
                 />
               </div>
+
+              <FormField
+                control={editSmartCaptureItemForm.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Brief description of the item..." {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <FormField
                 control={editSmartCaptureItemForm.control}
