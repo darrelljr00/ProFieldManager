@@ -4636,6 +4636,7 @@ export const smartCaptureItems = pgTable("smart_capture_items", {
   id: serial("id").primaryKey(),
   listId: integer("list_id").references(() => smartCaptureLists.id).notNull(),
   organizationId: integer("organization_id").references(() => organizations.id).notNull(),
+  projectId: integer("project_id").references(() => projects.id), // Optional: link to specific job/project
   
   // Core item identification fields
   partNumber: text("part_number"),
@@ -4681,6 +4682,7 @@ export const insertSmartCaptureItemSchema = createInsertSchema(smartCaptureItems
   id: true,
   listId: true,
   organizationId: true,
+  projectId: true,
   derivedPartId: true,
   derivedVehicleId: true,
   createdAt: true,
