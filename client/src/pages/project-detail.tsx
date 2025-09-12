@@ -512,18 +512,42 @@ export default function ProjectDetail() {
               </div>
             )}
             
-            {/* Job Completion Button */}
-            {project.status !== 'completed' && (
+            {/* Action Buttons */}
+            <div className="flex gap-2">
               <Button 
-                onClick={() => completeJobMutation.mutate()}
-                disabled={completeJobMutation.isPending}
-                className="bg-green-600 hover:bg-green-700 text-white"
+                onClick={() => {
+                  const partNumber = prompt("Enter part number for Smart Capture:");
+                  if (partNumber) {
+                    createSmartCaptureItemMutation.mutate({
+                      partNumber: partNumber,
+                      location: "Job Site",
+                      masterPrice: "0.00",
+                      quantity: 1,
+                      notes: ""
+                    });
+                  }
+                }}
+                disabled={createSmartCaptureItemMutation.isPending}
+                className="bg-purple-600 hover:bg-purple-700 text-white"
                 size="sm"
+                data-testid="button-smart-capture"
               >
-                <CheckCircle className="h-4 w-4 mr-2" />
-                {completeJobMutation.isPending ? "Completing..." : "Mark Job Complete"}
+                <Camera className="h-4 w-4 mr-2" />
+                Smart Capture
               </Button>
-            )}
+              
+              {project.status !== 'completed' && (
+                <Button 
+                  onClick={() => completeJobMutation.mutate()}
+                  disabled={completeJobMutation.isPending}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                  size="sm"
+                >
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  {completeJobMutation.isPending ? "Completing..." : "Mark Job Complete"}
+                </Button>
+              )}
+            </div>
             
             {project.status === 'completed' && (
               <Badge className="bg-green-100 text-green-800 border-green-200">
@@ -552,26 +576,6 @@ export default function ProjectDetail() {
                 <CheckCircle className="h-4 w-4 mr-2" />
                 Manage Tasks
               </Link>
-            </Button>
-            <Button 
-              onClick={() => {
-                const partNumber = prompt("Enter part number for Smart Capture:");
-                if (partNumber) {
-                  createSmartCaptureItemMutation.mutate({
-                    partNumber: partNumber,
-                    location: "Job Site",
-                    masterPrice: "0.00",
-                    quantity: 1,
-                    notes: ""
-                  });
-                }
-              }}
-              disabled={createSmartCaptureItemMutation.isPending}
-              className="bg-purple-600 hover:bg-purple-700"
-              data-testid="button-smart-capture"
-            >
-              <Camera className="h-4 w-4 mr-2" />
-              Smart Capture
             </Button>
             <Button 
               onClick={() => setSignatureDialogOpen(true)}
