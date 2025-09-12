@@ -523,6 +523,13 @@ export default function Jobs() {
     enabled: !!selectedProject,
   });
 
+  // Fetch smart capture data when viewing details
+  const { data: smartCaptureData = [] } = useQuery({
+    queryKey: ["/api/projects", selectedProject?.id, "smart-capture"],
+    queryFn: () => selectedProject ? apiRequest("GET", `/api/projects/${selectedProject.id}/smart-capture`).then(res => res.json()) : [],
+    enabled: !!selectedProject,
+  });
+
   // Fetch waiver documents from file manager
   const { data: waiverDocuments = [] } = useQuery({
     queryKey: ["/api/files", "waivers"],
@@ -678,6 +685,8 @@ export default function Jobs() {
       return apiRequest("POST", `/api/projects/${selectedProject.id}/smart-capture`, data);
     },
     onSuccess: () => {
+      // Invalidate smart capture data to refresh the list
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", selectedProject?.id, "smart-capture"] });
       toast({
         title: "Smart Capture Item Created",
         description: "Item has been captured successfully",
@@ -2218,6 +2227,59 @@ export default function Jobs() {
                       <Camera className="h-4 w-4 mr-2" />
                       Smart Capture
                     </Button>
+                  </div>
+                </div>
+                
+                {/* Smart Capture Data Display */}
+                <div className="mb-4">
+                  <div className="space-y-3">
+                    {/* Assigned Technicians */}
+                    <div className="bg-gray-50 border rounded-lg p-3">
+                      <h5 className="text-sm font-semibold text-gray-700 mb-2">Assigned Technicians</h5>
+                      <div className="flex flex-wrap gap-1">
+                        {selectedProject.users && selectedProject.users.length > 0 ? (
+                          selectedProject.users.map(({ user }) => (
+                            <Badge key={user.id} variant="outline" className="text-xs">
+                              {user.firstName} {user.lastName}
+                              <span className="ml-1 text-xs text-gray-400">({user.role})</span>
+                            </Badge>
+                          ))
+                        ) : (
+                          <p className="text-xs text-gray-500">No technicians assigned</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Smart Capture Items */}
+                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                      <h5 className="text-sm font-semibold text-purple-700 mb-2">Smart Capture Items</h5>
+                      {smartCaptureData.length > 0 ? (
+                        <div className="space-y-2 max-h-40 overflow-y-auto">
+                          {smartCaptureData.map((item: any) => (
+                            <div key={item.id} className="bg-white border border-purple-100 rounded p-2">
+                              <div className="flex justify-between items-start">
+                                <div className="flex-1">
+                                  <p className="text-sm font-medium text-purple-900">{item.partNumber}</p>
+                                  <p className="text-xs text-gray-600">Location: {item.location}</p>
+                                  <p className="text-xs text-gray-600">Quantity: {item.quantity}</p>
+                                  {item.notes && (
+                                    <p className="text-xs text-gray-500 mt-1">{item.notes}</p>
+                                  )}
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-xs font-medium text-green-600">${item.masterPrice}</p>
+                                  <p className="text-xs text-gray-400">
+                                    {new Date(item.createdAt).toLocaleDateString()}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-purple-600">No smart capture items yet</p>
+                      )}
+                    </div>
                   </div>
                 </div>
                 
