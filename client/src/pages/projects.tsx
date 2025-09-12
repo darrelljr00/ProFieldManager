@@ -672,7 +672,7 @@ export default function Jobs() {
   const handleJobSiteAddressSelect = (addressKey: string) => {
     setSelectedJobSiteAddress(addressKey);
     
-    if (addressKey) {
+    if (addressKey && addressKey !== "new-address") {
       const selectedAddress = jobSiteAddresses.find((addr: any) => 
         `${addr.address}-${addr.city}-${addr.state}` === addressKey
       );
@@ -1643,7 +1643,7 @@ export default function Jobs() {
                       <SelectValue placeholder="Select existing address or enter new" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Enter new address</SelectItem>
+                      <SelectItem value="new-address">Enter new address</SelectItem>
                       {jobSiteAddresses.map((addr: any) => (
                         <SelectItem 
                           key={`${addr.address}-${addr.city}-${addr.state}`}
