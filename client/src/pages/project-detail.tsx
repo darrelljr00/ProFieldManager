@@ -38,10 +38,11 @@ import {
   UserMinus,
   MapPin,
   Smartphone,
-  FileSignature
+  FileSignature,
+  Camera
 } from "lucide-react";
 import { Link } from "wouter";
-import type { Project, Customer, User, Task, ProjectFile, TimeEntry } from "@shared/schema";
+import type { Project, Customer, User, Task, ProjectFile, TimeEntry, SmartCaptureItem } from "@shared/schema";
 import { DirectionsButton } from "@/components/google-maps";
 import { MediaGallery } from "@/components/media-gallery";
 import { DocuSignSignatureDialog } from "@/components/docusign-signature-dialog";
@@ -156,6 +157,11 @@ export default function ProjectDetail() {
 
   const { data: users = [] } = useQuery<User[]>({
     queryKey: ["/api/admin/users"],
+  });
+
+  const { data: smartCaptureItems = [] } = useQuery<SmartCaptureItem[]>({
+    queryKey: ["/api/projects", projectId, "smart-capture"],
+    enabled: !!projectId,
   });
 
   const createTaskMutation = useMutation({
@@ -274,6 +280,17 @@ export default function ProjectDetail() {
       toast({
         title: "Success",
         description: "Team member added successfully",
+      });
+    },
+  });
+
+  const createSmartCaptureItemMutation = useMutation({
+    mutationFn: (data: any) => apiRequest("POST", `/api/projects/${projectId}/smart-capture`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId, "smart-capture"] });
+      toast({
+        title: "Success",
+        description: "Smart Capture item added successfully",
       });
     },
   });
@@ -525,6 +542,7 @@ export default function ProjectDetail() {
             <TabsTrigger value="team">Team Members</TabsTrigger>
             <TabsTrigger value="contact">Contact Info</TabsTrigger>
             <TabsTrigger value="files">Files</TabsTrigger>
+            <TabsTrigger value="smart-capture">Smart Capture</TabsTrigger>
             <TabsTrigger value="time">Time Tracking</TabsTrigger>
           </TabsList>
           
@@ -793,6 +811,72 @@ export default function ProjectDetail() {
             }))} 
             projectId={Number(projectId)} 
           />
+        </TabsContent>
+
+        <TabsContent value="smart-capture" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-semibold">Smart Capture Items</h2>
+            <div className="flex gap-2">
+              <Button 
+                onClick={() => {
+                  const itemName = prompt("Enter item name:");
+                  if (itemName) {
+                    createSmartCaptureItemMutation.mutate({
+                      name: itemName,
+                      description: "",
+                      status: "active"
+                    });
+                  }
+                }}
+                disabled={createSmartCaptureItemMutation.isPending}
+                data-testid="button-add-smart-capture-item"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Item
+              </Button>
+            </div>
+          </div>
+
+          {smartCaptureItems.length === 0 ? (
+            <Card>
+              <CardContent className="p-6 text-center text-muted-foreground">
+                No Smart Capture items for this job yet. Add items that technicians are cleaning, repairing, or installing at this job site.
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {smartCaptureItems.map((item) => (
+                <Card key={item.id} data-testid={`card-smart-capture-item-${item.id}`}>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg">{item.name}</CardTitle>
+                      <Badge 
+                        variant={item.status === 'active' ? 'default' : 'secondary'}
+                        className="text-xs"
+                      >
+                        {item.status}
+                      </Badge>
+                    </div>
+                    {item.description && (
+                      <CardDescription>{item.description}</CardDescription>
+                    )}
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-2">
+                        <Camera className="h-4 w-4" />
+                        <span>Smart Capture Item</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4" />
+                        <span>Added {new Date(item.createdAt).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="team" className="space-y-4">
