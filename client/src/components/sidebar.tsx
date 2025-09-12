@@ -43,7 +43,8 @@ import {
   HelpCircle,
   Building,
   Phone,
-  Video
+  Video,
+  Scan
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -383,6 +384,7 @@ export function Sidebar() {
     { name: "Payments", href: "/payments", icon: CreditCard, requiresAuth: true, permission: "canAccessPayments" },
     { name: "File Manager", href: "/file-manager", icon: FolderOpen, requiresAuth: true, permission: "canAccessFileManager" },
     { name: "Parts & Supplies", href: "/parts-supplies", icon: Box, requiresAuth: true, permission: "canAccessPartsSupplies" },
+    { name: "Smart Capture", href: "/smart-capture", icon: Scan, requiresAuth: true, permission: "canAccessPartsSupplies" },
     { name: "Form Builder", href: "/form-builder", icon: ClipboardList, requiresAuth: true, permission: "canAccessFormBuilder" },
     { name: "Inspections", href: "/inspections", icon: CheckSquare, requiresAuth: true, permission: "canAccessInspections" },
     { 

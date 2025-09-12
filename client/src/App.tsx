@@ -52,6 +52,7 @@ import FileSecurity from "@/pages/file-security";
 import PartsSupplies from "@/pages/parts-supplies";
 import MarketResearch from "@/pages/market-research";
 import TaskGroups from "@/pages/task-groups";
+import SmartCapture from "@/pages/smart-capture";
 import LiveStream from "@/pages/live-stream";
 import LiveStreamEnhanced from "@/pages/live-stream-enhanced";
 import Login from "@/pages/login";
@@ -202,6 +203,7 @@ function AuthenticatedApp() {
           <Route path="/mobile-test" component={MobileTest} />
           <Route path="/users" component={Users} />
           <Route path="/parts-supplies" component={PartsSupplies} />
+          <Route path="/smart-capture" component={SmartCapture} />
           {isAdmin && <Route path="/admin-settings" component={AdminSettings} />}
           {isAdmin && <Route path="/saas-admin" component={SaasAdmin} />}
           {isAdmin && <Route path="/saas-admin/call-manager" component={SaasCallManagerPage} />}
