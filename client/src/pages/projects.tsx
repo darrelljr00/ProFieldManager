@@ -473,6 +473,8 @@ export default function Jobs() {
   
   // State for Smart Capture feature
   const [enableSmartCapture, setEnableSmartCapture] = useState(false);
+  const [editSmartCaptureDialogOpen, setEditSmartCaptureDialogOpen] = useState(false);
+  const [editingSmartCaptureItem, setEditingSmartCaptureItem] = useState<any>(null);
   
   // Search and filter states for completed jobs
   const [searchQuery, setSearchQuery] = useState("");
@@ -678,7 +680,7 @@ export default function Jobs() {
     },
   });
 
-  // Smart Capture mutation
+  // Smart Capture mutations
   const createSmartCaptureItemMutation = useMutation({
     mutationFn: (data: any) => {
       if (!selectedProject?.id) throw new Error("No project selected");
@@ -696,6 +698,48 @@ export default function Jobs() {
       toast({
         title: "Error",
         description: "Failed to create smart capture item",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateSmartCaptureItemMutation = useMutation({
+    mutationFn: ({ itemId, data }: { itemId: number; data: any }) => {
+      if (!selectedProject?.id) throw new Error("No project selected");
+      return apiRequest("PUT", `/api/projects/${selectedProject.id}/smart-capture/${itemId}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", selectedProject?.id, "smart-capture"] });
+      toast({
+        title: "Smart Capture Item Updated",
+        description: "Item has been updated successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to update smart capture item",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteSmartCaptureItemMutation = useMutation({
+    mutationFn: (itemId: number) => {
+      if (!selectedProject?.id) throw new Error("No project selected");
+      return apiRequest("DELETE", `/api/projects/${selectedProject.id}/smart-capture/${itemId}`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", selectedProject?.id, "smart-capture"] });
+      toast({
+        title: "Smart Capture Item Deleted",
+        description: "Item has been deleted successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to delete smart capture item",
         variant: "destructive",
       });
     },
@@ -2253,6 +2297,31 @@ export default function Jobs() {
                                 <p className="text-xs text-gray-400">
                                   {new Date(item.createdAt).toLocaleDateString()}
                                 </p>
+                                <div className="flex gap-1 mt-2 justify-end">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-6 px-2 text-xs"
+                                    onClick={() => {
+                                      setEditingSmartCaptureItem(item);
+                                      setEditSmartCaptureDialogOpen(true);
+                                    }}
+                                  >
+                                    Edit
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-6 px-2 text-xs text-red-600 hover:text-red-700"
+                                    onClick={() => {
+                                      if (confirm("Are you sure you want to delete this item?")) {
+                                        deleteSmartCaptureItemMutation.mutate(item.id);
+                                      }
+                                    }}
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -2491,6 +2560,104 @@ export default function Jobs() {
         </DialogContent>
       </Dialog>
 
+      {/* Edit Smart Capture Item Dialog */}
+      <Dialog open={editSmartCaptureDialogOpen} onOpenChange={setEditSmartCaptureDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Smart Capture Item</DialogTitle>
+            <DialogDescription>
+              Update the details of this smart capture item.
+            </DialogDescription>
+          </DialogHeader>
+          {editingSmartCaptureItem && (
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              const formData = new FormData(e.target as HTMLFormElement);
+              const data = {
+                partNumber: formData.get('partNumber') as string,
+                location: formData.get('location') as string,
+                masterPrice: formData.get('masterPrice') as string,
+                quantity: parseInt(formData.get('quantity') as string),
+                notes: formData.get('notes') as string
+              };
+              updateSmartCaptureItemMutation.mutate({ 
+                itemId: editingSmartCaptureItem.id, 
+                data 
+              });
+              setEditSmartCaptureDialogOpen(false);
+              setEditingSmartCaptureItem(null);
+            }} className="space-y-4">
+              <div>
+                <Label htmlFor="edit-part-number">Part Number *</Label>
+                <Input 
+                  id="edit-part-number" 
+                  name="partNumber" 
+                  defaultValue={editingSmartCaptureItem.partNumber}
+                  required 
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="edit-location">Location</Label>
+                <Input 
+                  id="edit-location" 
+                  name="location" 
+                  defaultValue={editingSmartCaptureItem.location}
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="edit-quantity">Quantity</Label>
+                <Input 
+                  id="edit-quantity" 
+                  name="quantity" 
+                  type="number"
+                  min="1"
+                  defaultValue={editingSmartCaptureItem.quantity}
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="edit-price">Price</Label>
+                <Input 
+                  id="edit-price" 
+                  name="masterPrice" 
+                  defaultValue={editingSmartCaptureItem.masterPrice}
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="edit-notes">Notes</Label>
+                <Textarea 
+                  id="edit-notes" 
+                  name="notes" 
+                  rows={3}
+                  defaultValue={editingSmartCaptureItem.notes}
+                />
+              </div>
+              
+              <div className="flex justify-end gap-2">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => {
+                    setEditSmartCaptureDialogOpen(false);
+                    setEditingSmartCaptureItem(null);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit"
+                  disabled={updateSmartCaptureItemMutation.isPending}
+                >
+                  {updateSmartCaptureItemMutation.isPending ? "Updating..." : "Update Item"}
+                </Button>
+              </div>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
 
       </div>
     </div>
