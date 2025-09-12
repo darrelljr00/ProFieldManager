@@ -4663,6 +4663,8 @@ export const insertSmartCaptureListSchema = createInsertSchema(smartCaptureLists
   status: z.enum(["draft", "active", "archived"]).default("draft"),
 }).omit({
   id: true,
+  organizationId: true,
+  createdBy: true,
   createdAt: true,
   updatedAt: true,
 });

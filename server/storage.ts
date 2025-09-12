@@ -18,7 +18,8 @@ import {
   meetings, meetingParticipants, meetingMessages, meetingRecordings, phoneNumbers,
   callRecords, callRecordings, callTranscripts, voicemails, callQueues, 
   organizationTwilioSettings, organizationCallAnalytics,
-  streamSessions, streamViewers, streamInvitations, streamNotifications
+  streamSessions, streamViewers, streamInvitations, streamNotifications,
+  smartCaptureLists, smartCaptureItems
 } from "@shared/schema";
 import { marketResearchCompetitors } from "@shared/schema";
 import type { GasCard, InsertGasCard, GasCardAssignment, InsertGasCardAssignment, GasCardUsage, InsertGasCardUsage, GasCardProvider, InsertGasCardProvider } from "@shared/schema";
@@ -32,7 +33,8 @@ import type {
   Meeting, MeetingParticipant, MeetingMessage, MeetingRecording,
   InsertMeeting, InsertMeetingParticipant, InsertMeetingMessage, InsertMeetingRecording,
   StreamSession, StreamViewer, StreamInvitation, StreamNotification,
-  InsertStreamInvitation, InsertStreamNotification
+  InsertStreamInvitation, InsertStreamNotification,
+  SmartCaptureList, SmartCaptureItem, InsertSmartCaptureList, InsertSmartCaptureItem
 } from "@shared/schema";
 
 export interface IStorage {
@@ -455,6 +457,18 @@ export interface IStorage {
   createStockAlert(alertData: any): Promise<any>;
   acknowledgeStockAlert(alertId: number, userId: number): Promise<any>;
   checkAndCreateLowStockAlerts(organizationId: number): Promise<any[]>;
+  
+  // Smart Capture methods
+  getSmartCaptureLists(organizationId: number): Promise<SmartCaptureList[]>;
+  getSmartCaptureList(id: number, organizationId: number): Promise<SmartCaptureList | undefined>;
+  createSmartCaptureList(listData: InsertSmartCaptureList, organizationId: number, userId: number): Promise<SmartCaptureList>;
+  updateSmartCaptureList(id: number, organizationId: number, updates: Partial<InsertSmartCaptureList>): Promise<SmartCaptureList>;
+  deleteSmartCaptureList(id: number, organizationId: number): Promise<boolean>;
+  getSmartCaptureItems(listId: number, organizationId: number): Promise<SmartCaptureItem[]>;
+  createSmartCaptureItem(listId: number, organizationId: number, itemData: InsertSmartCaptureItem): Promise<SmartCaptureItem>;
+  updateSmartCaptureItem(itemId: number, organizationId: number, updates: Partial<InsertSmartCaptureItem>): Promise<SmartCaptureItem>;
+  deleteSmartCaptureItem(itemId: number, organizationId: number): Promise<boolean>;
+  createSmartCaptureItemsBulk(listId: number, organizationId: number, items: InsertSmartCaptureItem[]): Promise<SmartCaptureItem[]>;
   
   // Market Research Competitors methods
   getMarketResearchCompetitors(organizationId: number, businessNiche?: string): Promise<any[]>;
@@ -8002,6 +8016,236 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error checking and creating low stock alerts:', error);
       return [];
+    }
+  }
+
+  // Smart Capture methods
+  async getSmartCaptureLists(organizationId: number): Promise<SmartCaptureList[]> {
+    try {
+      return await db
+        .select()
+        .from(smartCaptureLists)
+        .where(eq(smartCaptureLists.organizationId, organizationId))
+        .orderBy(desc(smartCaptureLists.createdAt));
+    } catch (error) {
+      console.error('Error fetching smart capture lists:', error);
+      return [];
+    }
+  }
+
+  async getSmartCaptureList(id: number, organizationId: number): Promise<SmartCaptureList | undefined> {
+    try {
+      const [list] = await db
+        .select()
+        .from(smartCaptureLists)
+        .where(and(
+          eq(smartCaptureLists.id, id),
+          eq(smartCaptureLists.organizationId, organizationId)
+        ));
+      return list;
+    } catch (error) {
+      console.error('Error fetching smart capture list:', error);
+      return null;
+    }
+  }
+
+  async createSmartCaptureList(listData: InsertSmartCaptureList, organizationId: number, userId: number): Promise<SmartCaptureList> {
+    try {
+      const [list] = await db
+        .insert(smartCaptureLists)
+        .values({
+          ...listData,
+          organizationId,
+          createdBy: userId,
+        })
+        .returning();
+      return list;
+    } catch (error) {
+      console.error('Error creating smart capture list:', error);
+      throw new Error('Failed to create smart capture list');
+    }
+  }
+
+  async updateSmartCaptureList(id: number, organizationId: number, updates: Partial<InsertSmartCaptureList>): Promise<SmartCaptureList> {
+    try {
+      const [list] = await db
+        .update(smartCaptureLists)
+        .set({
+          ...updates,
+          updatedAt: new Date(),
+        })
+        .where(and(
+          eq(smartCaptureLists.id, id),
+          eq(smartCaptureLists.organizationId, organizationId)
+        ))
+        .returning();
+      return list;
+    } catch (error) {
+      console.error('Error updating smart capture list:', error);
+      throw new Error('Failed to update smart capture list');
+    }
+  }
+
+  async deleteSmartCaptureList(id: number, organizationId: number): Promise<boolean> {
+    try {
+      // First delete all items in the list
+      await db
+        .delete(smartCaptureItems)
+        .where(and(
+          eq(smartCaptureItems.listId, id),
+          eq(smartCaptureItems.organizationId, organizationId)
+        ));
+
+      // Then delete the list itself
+      const result = await db
+        .delete(smartCaptureLists)
+        .where(and(
+          eq(smartCaptureLists.id, id),
+          eq(smartCaptureLists.organizationId, organizationId)
+        ));
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error('Error deleting smart capture list:', error);
+      return false;
+    }
+  }
+
+  async getSmartCaptureItems(listId: number, organizationId: number): Promise<SmartCaptureItem[]> {
+    try {
+      return await db
+        .select()
+        .from(smartCaptureItems)
+        .where(and(
+          eq(smartCaptureItems.listId, listId),
+          eq(smartCaptureItems.organizationId, organizationId)
+        ))
+        .orderBy(asc(smartCaptureItems.createdAt));
+    } catch (error) {
+      console.error('Error fetching smart capture items:', error);
+      return [];
+    }
+  }
+
+  async createSmartCaptureItem(listId: number, organizationId: number, itemData: InsertSmartCaptureItem): Promise<SmartCaptureItem> {
+    try {
+      // SECURITY: Verify the list belongs to this organization before creating items
+      const list = await db
+        .select()
+        .from(smartCaptureLists)
+        .where(and(
+          eq(smartCaptureLists.id, listId),
+          eq(smartCaptureLists.organizationId, organizationId)
+        ))
+        .limit(1);
+
+      if (list.length === 0) {
+        throw new Error('List not found or access denied');
+      }
+
+      // SECURITY: Override any client-supplied listId/organizationId with server values
+      const { listId: _, organizationId: __, ...safeItemData } = itemData as any;
+      
+      const [item] = await db
+        .insert(smartCaptureItems)
+        .values({
+          ...safeItemData,
+          listId,
+          organizationId,
+        })
+        .returning();
+      return item;
+    } catch (error) {
+      console.error('Error creating smart capture item:', error);
+      throw new Error('Failed to create smart capture item');
+    }
+  }
+
+  async updateSmartCaptureItem(itemId: number, organizationId: number, updates: Partial<InsertSmartCaptureItem>): Promise<SmartCaptureItem> {
+    try {
+      // SECURITY: Strip listId and organizationId from updates to prevent cross-tenant moves
+      const { listId, organizationId: _, ...safeUpdates } = updates as any;
+      
+      // SECURITY: Verify the item's list belongs to this organization
+      const [item] = await db
+        .update(smartCaptureItems)
+        .set({
+          ...safeUpdates,
+          updatedAt: new Date(),
+        })
+        .from(smartCaptureItems)
+        .innerJoin(smartCaptureLists, eq(smartCaptureItems.listId, smartCaptureLists.id))
+        .where(and(
+          eq(smartCaptureItems.id, itemId),
+          eq(smartCaptureLists.organizationId, organizationId)
+        ))
+        .returning();
+        
+      if (!item) {
+        throw new Error('Item not found or access denied');
+      }
+      return item;
+    } catch (error) {
+      console.error('Error updating smart capture item:', error);
+      throw new Error('Failed to update smart capture item');
+    }
+  }
+
+  async deleteSmartCaptureItem(itemId: number, organizationId: number): Promise<boolean> {
+    try {
+      // SECURITY: Verify the item's list belongs to this organization using join
+      const result = await db
+        .delete(smartCaptureItems)
+        .where(and(
+          eq(smartCaptureItems.id, itemId),
+          exists(
+            db.select()
+              .from(smartCaptureLists)
+              .where(and(
+                eq(smartCaptureLists.id, smartCaptureItems.listId),
+                eq(smartCaptureLists.organizationId, organizationId)
+              ))
+          )
+        ));
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error('Error deleting smart capture item:', error);
+      return false;
+    }
+  }
+
+  async createSmartCaptureItemsBulk(listId: number, organizationId: number, items: InsertSmartCaptureItem[]): Promise<SmartCaptureItem[]> {
+    try {
+      // SECURITY: Verify the list belongs to this organization before bulk creating items
+      const list = await db
+        .select()
+        .from(smartCaptureLists)
+        .where(and(
+          eq(smartCaptureLists.id, listId),
+          eq(smartCaptureLists.organizationId, organizationId)
+        ))
+        .limit(1);
+
+      if (list.length === 0) {
+        throw new Error('List not found or access denied');
+      }
+
+      // SECURITY: Override any client-supplied listId/organizationId with server values
+      const itemsWithMeta = items.map(item => {
+        const { listId: _, organizationId: __, ...safeItemData } = item as any;
+        return {
+          ...safeItemData,
+          listId,
+          organizationId,
+        };
+      });
+      
+      return await db
+        .insert(smartCaptureItems)
+        .values(itemsWithMeta)
+        .returning();
+    } catch (error) {
+      console.error('Error creating bulk smart capture items:', error);
+      throw new Error('Failed to create smart capture items');
     }
   }
 

@@ -30,6 +30,8 @@ import {
   insertMeetingParticipantSchema,
   insertMeetingMessageSchema,
   insertMeetingRecordingSchema,
+  insertSmartCaptureListSchema,
+  insertSmartCaptureItemSchema,
   loginSchema,
   registerSchema,
   changePasswordSchema,
@@ -45,7 +47,11 @@ import {
   type Meeting,
   type MeetingParticipant,
   type MeetingMessage,
-  type MeetingRecording
+  type MeetingRecording,
+  type SmartCaptureList,
+  type SmartCaptureItem,
+  type InsertSmartCaptureList,
+  type InsertSmartCaptureItem
 } from "@shared/schema";
 import { AuthService, requireAuth, requireAdmin, requireManagerOrAdmin, requireTaskDelegationPermission } from "./auth";
 import { ZodError } from "zod";
@@ -20212,6 +20218,200 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error fetching usage stats:", error);
       res.status(500).json({ message: "Failed to fetch usage statistics" });
+    }
+  });
+
+  // Smart Capture API Routes
+  
+  // Get all Smart Capture lists for organization
+  app.get("/api/smart-capture/lists", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const lists = await storage.getSmartCaptureLists(user.organizationId);
+      res.json(lists);
+    } catch (error: any) {
+      console.error("Error fetching smart capture lists:", error);
+      res.status(500).json({ message: "Failed to fetch smart capture lists" });
+    }
+  });
+
+  // Get specific Smart Capture list with items
+  app.get("/api/smart-capture/lists/:id", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const listId = parseInt(req.params.id);
+      
+      const list = await storage.getSmartCaptureList(listId, user.organizationId);
+      if (!list) {
+        return res.status(404).json({ message: "Smart capture list not found" });
+      }
+      
+      const items = await storage.getSmartCaptureItems(listId, user.organizationId);
+      res.json({ ...list, items });
+    } catch (error: any) {
+      console.error("Error fetching smart capture list:", error);
+      res.status(500).json({ message: "Failed to fetch smart capture list" });
+    }
+  });
+
+  // Create new Smart Capture list
+  app.post("/api/smart-capture/lists", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      // SECURITY: Strip any client-supplied organizationId and use authenticated user's org
+      const { organizationId: _, ...requestData } = req.body;
+      
+      // Create allowlist schema to ensure only client fields are validated
+      const requestSchema = insertSmartCaptureListSchema.pick({ name: true, description: true, status: true });
+      const listData = requestSchema.parse(requestData);
+      
+      // Pass server-side fields as separate parameters to storage method
+      const list = await storage.createSmartCaptureList(listData, user.organizationId, user.id);
+      res.status(201).json(list);
+    } catch (error: any) {
+      console.error("Error creating smart capture list:", error);
+      if (error instanceof ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create smart capture list" });
+    }
+  });
+
+  // Update Smart Capture list
+  app.put("/api/smart-capture/lists/:id", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const listId = parseInt(req.params.id);
+      
+      // SECURITY: Strip any client-supplied organizationId 
+      const { organizationId: _, ...requestData } = req.body;
+      
+      const updateData = insertSmartCaptureListSchema.partial().parse(requestData);
+      const list = await storage.updateSmartCaptureList(listId, user.organizationId, updateData);
+      
+      if (!list) {
+        return res.status(404).json({ message: "Smart capture list not found" });
+      }
+      
+      res.json(list);
+    } catch (error: any) {
+      console.error("Error updating smart capture list:", error);
+      if (error instanceof ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to update smart capture list" });
+    }
+  });
+
+  // Delete Smart Capture list
+  app.delete("/api/smart-capture/lists/:id", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const listId = parseInt(req.params.id);
+      
+      const success = await storage.deleteSmartCaptureList(listId, user.organizationId);
+      if (!success) {
+        return res.status(404).json({ message: "Smart capture list not found" });
+      }
+      
+      res.json({ message: "Smart capture list deleted successfully" });
+    } catch (error: any) {
+      console.error("Error deleting smart capture list:", error);
+      res.status(500).json({ message: "Failed to delete smart capture list" });
+    }
+  });
+
+  // Create item in Smart Capture list
+  app.post("/api/smart-capture/lists/:id/items", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const listId = parseInt(req.params.id);
+      
+      // SECURITY: Strip any client-supplied listId/organizationId and use server values
+      const { listId: _, organizationId: __, ...requestData } = req.body;
+      
+      const itemData = insertSmartCaptureItemSchema.parse(requestData);
+      const item = await storage.createSmartCaptureItem(listId, user.organizationId, itemData);
+      
+      res.status(201).json(item);
+    } catch (error: any) {
+      console.error("Error creating smart capture item:", error);
+      if (error instanceof ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create smart capture item" });
+    }
+  });
+
+  // Bulk create items in Smart Capture list
+  app.post("/api/smart-capture/lists/:id/items/bulk", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const listId = parseInt(req.params.id);
+      
+      if (!Array.isArray(req.body.items)) {
+        return res.status(400).json({ message: "Items must be an array" });
+      }
+      
+      // SECURITY: Strip any client-supplied listId/organizationId from each item
+      const items = req.body.items.map((item: any) => {
+        const { listId: _, organizationId: __, ...itemData } = item;
+        return insertSmartCaptureItemSchema.parse(itemData);
+      });
+      
+      const createdItems = await storage.createSmartCaptureItemsBulk(listId, user.organizationId, items);
+      res.status(201).json(createdItems);
+    } catch (error: any) {
+      console.error("Error bulk creating smart capture items:", error);
+      if (error instanceof ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create smart capture items" });
+    }
+  });
+
+  // Update Smart Capture item
+  app.put("/api/smart-capture/items/:id", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const itemId = parseInt(req.params.id);
+      
+      // SECURITY: Strip any client-supplied listId/organizationId 
+      const { listId: _, organizationId: __, ...requestData } = req.body;
+      
+      const updateData = insertSmartCaptureItemSchema.partial().parse(requestData);
+      const item = await storage.updateSmartCaptureItem(itemId, user.organizationId, updateData);
+      
+      if (!item) {
+        return res.status(404).json({ message: "Smart capture item not found" });
+      }
+      
+      res.json(item);
+    } catch (error: any) {
+      console.error("Error updating smart capture item:", error);
+      if (error instanceof ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to update smart capture item" });
+    }
+  });
+
+  // Delete Smart Capture item
+  app.delete("/api/smart-capture/items/:id", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const itemId = parseInt(req.params.id);
+      
+      const success = await storage.deleteSmartCaptureItem(itemId, user.organizationId);
+      if (!success) {
+        return res.status(404).json({ message: "Smart capture item not found" });
+      }
+      
+      res.json({ message: "Smart capture item deleted successfully" });
+    } catch (error: any) {
+      console.error("Error deleting smart capture item:", error);
+      res.status(500).json({ message: "Failed to delete smart capture item" });
     }
   });
 

@@ -58,7 +58,48 @@ export class AuthService {
     const [sessionWithUser] = await db
       .select({
         session: userSessions,
-        user: users,
+        user: {
+          id: users.id,
+          username: users.username,
+          email: users.email,
+          organizationId: users.organizationId,
+          role: users.role,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          isActive: users.isActive,
+          // Include all permission fields
+          canAccessDashboard: users.canAccessDashboard,
+          canAccessCalendar: users.canAccessCalendar,
+          canAccessTimeClock: users.canAccessTimeClock,
+          canAccessJobs: users.canAccessJobs,
+          canAccessMyTasks: users.canAccessMyTasks,
+          canAccessLeads: users.canAccessLeads,
+          canAccessExpenses: users.canAccessExpenses,
+          canAccessQuotes: users.canAccessQuotes,
+          canAccessInvoices: users.canAccessInvoices,
+          canAccessCustomers: users.canAccessCustomers,
+          canAccessPayments: users.canAccessPayments,
+          canAccessFileManager: users.canAccessFileManager,
+          canAccessPartsSupplies: users.canAccessPartsSupplies,
+          canAccessMySchedule: users.canAccessMySchedule,
+          canAccessTutorials: users.canAccessTutorials,
+          canAccessFormBuilder: users.canAccessFormBuilder,
+          canAccessInspections: users.canAccessInspections,
+          canAccessInternalMessages: users.canAccessInternalMessages,
+          canAccessTeamMessages: users.canAccessTeamMessages,
+          canAccessImageGallery: users.canAccessImageGallery,
+          canAccessSMS: users.canAccessSMS,
+          canAccessMessages: users.canAccessMessages,
+          canAccessGpsTracking: users.canAccessGpsTracking,
+          canAccessWeather: users.canAccessWeather,
+          canAccessReviews: users.canAccessReviews,
+          canAccessMarketResearch: users.canAccessMarketResearch,
+          canAccessHR: users.canAccessHR,
+          canAccessUsers: users.canAccessUsers,
+          canAccessSaasAdmin: users.canAccessSaasAdmin,
+          canAccessAdminSettings: users.canAccessAdminSettings,
+          canAccessReports: users.canAccessReports,
+        },
       })
       .from(userSessions)
       .innerJoin(users, eq(userSessions.userId, users.id))
@@ -141,6 +182,11 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
       }
 
       console.log('✅ SESSION VALIDATION SUCCESS for:', sessionData.user.username);
+      
+      // DEBUG: Log the actual sessionData.user object to see what fields are available
+      console.log('🔍 SESSION DATA USER OBJECT:', JSON.stringify(sessionData.user, null, 2));
+      console.log('🔍 USER ID:', sessionData.user.id);
+      console.log('🔍 USER ORG ID:', sessionData.user.organizationId);
 
       // Attach user to request - include all permission fields from database
       req.user = {
