@@ -537,6 +537,34 @@ export default function ProjectDetail() {
         </div>
       </div>
 
+      {/* Smart Capture Button - positioned above tabs */}
+      <div className="mb-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold">Project Files and Media</h3>
+          <Button 
+            onClick={() => {
+              const partNumber = prompt("Enter part number for Smart Capture:");
+              if (partNumber) {
+                createSmartCaptureItemMutation.mutate({
+                  partNumber: partNumber,
+                  location: "Job Site",
+                  masterPrice: "0.00",
+                  quantity: 1,
+                  notes: ""
+                });
+              }
+            }}
+            disabled={createSmartCaptureItemMutation.isPending}
+            className="bg-purple-600 hover:bg-purple-700 text-white"
+            size="sm"
+            data-testid="button-smart-capture"
+          >
+            <Camera className="h-4 w-4 mr-2" />
+            Smart Capture
+          </Button>
+        </div>
+      </div>
+
       <Tabs defaultValue="tasks" className="space-y-4">
         <div className="flex justify-between items-center">
           <TabsList>
@@ -731,31 +759,6 @@ export default function ProjectDetail() {
         </TabsContent>
 
         <TabsContent value="files" className="space-y-4">
-          {/* Smart Capture Button */}
-          <div className="mb-4">
-            <Button 
-              onClick={() => {
-                const partNumber = prompt("Enter part number for Smart Capture:");
-                if (partNumber) {
-                  createSmartCaptureItemMutation.mutate({
-                    partNumber: partNumber,
-                    location: "Job Site",
-                    masterPrice: "0.00",
-                    quantity: 1,
-                    notes: ""
-                  });
-                }
-              }}
-              disabled={createSmartCaptureItemMutation.isPending}
-              className="bg-purple-600 hover:bg-purple-700 text-white"
-              size="sm"
-              data-testid="button-smart-capture"
-            >
-              <Camera className="h-4 w-4 mr-2" />
-              Smart Capture
-            </Button>
-          </div>
-
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold">Project Files</h2>
             <div className="flex gap-2">
