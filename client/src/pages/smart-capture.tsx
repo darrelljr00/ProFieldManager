@@ -24,6 +24,11 @@ import {
   type SmartCaptureItem
 } from "@shared/schema";
 
+// Type for Smart Capture list with items (as returned by the API)
+type SmartCaptureListWithItems = SmartCaptureList & {
+  items: SmartCaptureItem[];
+};
+
 // Using shared schemas from @shared/schema.ts to ensure backend/frontend consistency
 
 export default function SmartCapturePage() {
@@ -41,7 +46,7 @@ export default function SmartCapturePage() {
   });
 
   // Fetch Smart Capture items for selected list
-  const { data: selectedListWithItems, isLoading: itemsLoading, error: itemsError } = useQuery({
+  const { data: selectedListWithItems, isLoading: itemsLoading, error: itemsError } = useQuery<SmartCaptureListWithItems>({
     queryKey: ['/api/smart-capture/lists', selectedSmartCaptureList?.id],
     enabled: !!selectedSmartCaptureList?.id
   });
