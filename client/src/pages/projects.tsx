@@ -671,6 +671,27 @@ export default function Jobs() {
     },
   });
 
+  // Smart Capture mutation
+  const createSmartCaptureItemMutation = useMutation({
+    mutationFn: (data: any) => {
+      if (!selectedProject?.id) throw new Error("No project selected");
+      return apiRequest("POST", `/api/projects/${selectedProject.id}/smart-capture`, data);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Smart Capture Item Created",
+        description: "Item has been captured successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to create smart capture item",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Handle job site address selection
   const handleJobSiteAddressSelect = (addressKey: string) => {
     setSelectedJobSiteAddress(addressKey);
@@ -2165,6 +2186,37 @@ export default function Jobs() {
                     >
                       <Camera className="h-3 w-3 mr-1" />
                       Photo
+                    </Button>
+                  </div>
+                </div>
+                
+                {/* Smart Capture Button */}
+                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h4 className="text-sm font-semibold text-purple-900 mb-1">Smart Capture</h4>
+                      <p className="text-xs text-purple-700">Capture items being cleaned, repaired, or installed at this job site</p>
+                    </div>
+                    <Button 
+                      onClick={() => {
+                        const partNumber = prompt("Enter part number for Smart Capture:");
+                        if (partNumber) {
+                          createSmartCaptureItemMutation.mutate({
+                            partNumber: partNumber,
+                            location: "Job Site",
+                            masterPrice: "0.00",
+                            quantity: 1,
+                            notes: ""
+                          });
+                        }
+                      }}
+                      disabled={createSmartCaptureItemMutation.isPending}
+                      className="bg-purple-600 hover:bg-purple-700 text-white"
+                      size="sm"
+                      data-testid="button-smart-capture"
+                    >
+                      <Camera className="h-4 w-4 mr-2" />
+                      Smart Capture
                     </Button>
                   </div>
                 </div>
