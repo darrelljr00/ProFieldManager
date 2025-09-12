@@ -41,10 +41,13 @@ export default function SmartCapturePage() {
   });
 
   // Fetch Smart Capture items for selected list
-  const { data: smartCaptureItems = [], isLoading: itemsLoading, error: itemsError } = useQuery({
-    queryKey: ['/api/smart-capture/lists', selectedSmartCaptureList?.id, 'items'],
+  const { data: selectedListWithItems, isLoading: itemsLoading, error: itemsError } = useQuery({
+    queryKey: ['/api/smart-capture/lists', selectedSmartCaptureList?.id],
     enabled: !!selectedSmartCaptureList?.id
   });
+
+  // Extract items from the selected list response
+  const smartCaptureItems = selectedListWithItems?.items || [];
 
   // Smart Capture mutations
   const createSmartCaptureListMutation = useMutation({
@@ -69,7 +72,8 @@ export default function SmartCapturePage() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/smart-capture/lists', selectedSmartCaptureList?.id, 'items'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/smart-capture/lists', selectedSmartCaptureList?.id] });
+      queryClient.invalidateQueries({ queryKey: ['/api/smart-capture/lists'] });
       setIsAddItemDialogOpen(false);
       smartCaptureItemForm.reset();
       toast({ title: "Success", description: "Item added to Smart Capture list successfully" });
