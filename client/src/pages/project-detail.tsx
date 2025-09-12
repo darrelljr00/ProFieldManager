@@ -537,10 +537,13 @@ export default function ProjectDetail() {
         </div>
       </div>
 
-      {/* Smart Capture Button - positioned above tabs */}
-      <div className="mb-6">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">Project Files and Media</h3>
+      {/* Smart Capture Button - prominently positioned */}
+      <div className="bg-purple-50 border-2 border-purple-300 rounded-lg p-6 mb-6 shadow-lg">
+        <div className="flex justify-between items-center">
+          <div>
+            <h3 className="text-xl font-bold text-purple-900 mb-2">Smart Capture</h3>
+            <p className="text-sm text-purple-700">Capture items being cleaned, repaired, or installed at this job site</p>
+          </div>
           <Button 
             onClick={() => {
               const partNumber = prompt("Enter part number for Smart Capture:");
@@ -555,12 +558,12 @@ export default function ProjectDetail() {
               }
             }}
             disabled={createSmartCaptureItemMutation.isPending}
-            className="bg-purple-600 hover:bg-purple-700 text-white"
-            size="sm"
+            className="bg-purple-600 hover:bg-purple-700 text-white text-lg px-6 py-3"
+            size="lg"
             data-testid="button-smart-capture"
           >
-            <Camera className="h-4 w-4 mr-2" />
-            Smart Capture
+            <Camera className="h-6 w-6 mr-3" />
+            Start Smart Capture
           </Button>
         </div>
       </div>

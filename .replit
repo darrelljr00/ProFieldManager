@@ -36,12 +36,12 @@ localPort = 5000
 externalPort = 80
 
 [[ports]]
-localPort = 38503
-externalPort = 3000
+localPort = 38499
+externalPort = 3001
 
 [[ports]]
-localPort = 44729
-externalPort = 3002
+localPort = 38503
+externalPort = 3000
 
 [agent]
 integrations = ["javascript_websocket==1.0.0", "javascript_sendgrid==1.0.0"]
