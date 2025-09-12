@@ -4616,3 +4616,79 @@ export type StreamInvitation = typeof streamInvitations.$inferSelect;
 export type InsertStreamInvitation = z.infer<typeof insertStreamInvitationSchema>;
 export type StreamNotification = typeof streamNotifications.$inferSelect;
 export type InsertStreamNotification = z.infer<typeof insertStreamNotificationSchema>;
+
+// Smart Capture Inventory Lists - allows creation of custom inventory lists
+export const smartCaptureLists = pgTable("smart_capture_lists", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").references(() => organizations.id).notNull(),
+  
+  name: text("name").notNull(),
+  description: text("description"),
+  status: text("status").notNull().default("draft"), // draft, active, archived
+  
+  createdBy: integer("created_by").references(() => users.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Smart Capture Items - individual inventory items in lists
+export const smartCaptureItems = pgTable("smart_capture_items", {
+  id: serial("id").primaryKey(),
+  listId: integer("list_id").references(() => smartCaptureLists.id).notNull(),
+  organizationId: integer("organization_id").references(() => organizations.id).notNull(),
+  
+  // Core item identification fields
+  partNumber: text("part_number"),
+  vehicleNumber: text("vehicle_number"), 
+  inventoryNumber: text("inventory_number"),
+  
+  // Pricing and inventory details
+  masterPrice: decimal("master_price", { precision: 10, scale: 2 }).notNull(),
+  location: text("location").notNull(),
+  quantity: integer("quantity").notNull().default(1),
+  notes: text("notes"),
+  
+  // Optional references to existing data
+  derivedPartId: integer("derived_part_id").references(() => partsSupplies.id),
+  derivedVehicleId: integer("derived_vehicle_id").references(() => vehicles.id),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Smart Capture insert schemas
+export const insertSmartCaptureListSchema = createInsertSchema(smartCaptureLists, {
+  name: z.string().min(1, "List name is required"),
+  description: z.string().optional(),
+  status: z.enum(["draft", "active", "archived"]).default("draft"),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertSmartCaptureItemSchema = createInsertSchema(smartCaptureItems, {
+  partNumber: z.string().optional(),
+  vehicleNumber: z.string().optional(),
+  inventoryNumber: z.string().optional(),
+  masterPrice: z.string().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, "Master price must be a positive number"),
+  location: z.string().min(1, "Location is required"),
+  quantity: z.number().int().min(1, "Quantity must be at least 1").default(1),
+  notes: z.string().optional(),
+}).omit({
+  id: true,
+  listId: true,
+  organizationId: true,
+  derivedPartId: true,
+  derivedVehicleId: true,
+  createdAt: true,
+  updatedAt: true,
+}).refine((data) => data.partNumber || data.vehicleNumber || data.inventoryNumber, {
+  message: "At least one of part number, vehicle number, or inventory number is required",
+});
+
+// Smart Capture types
+export type SmartCaptureList = typeof smartCaptureLists.$inferSelect;
+export type InsertSmartCaptureList = z.infer<typeof insertSmartCaptureListSchema>;
+export type SmartCaptureItem = typeof smartCaptureItems.$inferSelect;
+export type InsertSmartCaptureItem = z.infer<typeof insertSmartCaptureItemSchema>;
