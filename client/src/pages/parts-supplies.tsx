@@ -1297,6 +1297,7 @@ export default function PartsSuppliesPage() {
               </Badge>
             )}
           </TabsTrigger>
+          <TabsTrigger value="smart-capture">Smart Capture</TabsTrigger>
         </TabsList>
 
         <TabsContent value="inventory" className="space-y-4">
