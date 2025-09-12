@@ -17,7 +17,7 @@ import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Plus, Package, AlertTriangle, TrendingDown, MoreHorizontal, Edit, Trash2, Eye, Search, Filter, X, Upload, Image as ImageIcon } from "lucide-react";
-import { insertPartsSuppliesSchema } from "@shared/schema";
+import { insertPartsSuppliesSchema, insertSmartCaptureListSchema, insertSmartCaptureItemSchema } from "@shared/schema";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import type { UploadResult } from "@uppy/core";
 
@@ -48,12 +48,39 @@ const createPartSchema = z.object({
 
 type CreatePartFormData = z.infer<typeof createPartSchema>;
 
+// Smart Capture schemas (defined directly to avoid ZodEffects issues)
+const createSmartCaptureListSchema = z.object({
+  name: z.string().min(1, "List name is required"),
+  description: z.string().optional(),
+  status: z.enum(["draft", "active", "archived"]).default("draft")
+});
+
+const createSmartCaptureItemSchema = z.object({
+  partNumber: z.string().optional(),
+  vehicleNumber: z.string().optional(),
+  inventoryNumber: z.string().optional(),
+  description: z.string().optional(),
+  quantity: z.number().min(1, "Quantity must be at least 1").default(1),
+  unitPrice: z.string().optional(),
+  location: z.string().min(1, "Location is required"),
+  notes: z.string().optional()
+});
+
+type CreateSmartCaptureListData = z.infer<typeof createSmartCaptureListSchema>;
+type CreateSmartCaptureItemData = z.infer<typeof createSmartCaptureItemSchema>;
+
 export default function PartsSuppliesPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedPart, setSelectedPart] = useState<any>(null);
   const [editingPart, setEditingPart] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("inventory");
+  
+  // Smart Capture states
+  const [isCreateListDialogOpen, setIsCreateListDialogOpen] = useState(false);
+  const [isAddItemDialogOpen, setIsAddItemDialogOpen] = useState(false);
+  const [selectedSmartCaptureList, setSelectedSmartCaptureList] = useState<any>(null);
+  const [editingSmartCaptureItem, setEditingSmartCaptureItem] = useState<any>(null);
   
   // Search and Filter states
   const [searchTerm, setSearchTerm] = useState("");
@@ -166,6 +193,17 @@ export default function PartsSuppliesPage() {
     queryKey: ['/api/stock-alerts']
   });
 
+  // Fetch Smart Capture lists
+  const { data: smartCaptureLists = [], isLoading: smartCaptureLoading } = useQuery({
+    queryKey: ['/api/smart-capture/lists']
+  });
+
+  // Fetch Smart Capture items for selected list
+  const { data: smartCaptureItems = [] } = useQuery({
+    queryKey: ['/api/smart-capture/lists', selectedSmartCaptureList?.id, 'items'],
+    enabled: !!selectedSmartCaptureList?.id
+  });
+
   // Create part mutation
   const createPartMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -224,6 +262,39 @@ export default function PartsSuppliesPage() {
     }
   });
 
+  // Smart Capture mutations
+  const createSmartCaptureListMutation = useMutation({
+    mutationFn: async (data: CreateSmartCaptureListData) => {
+      const response = await apiRequest('POST', '/api/smart-capture/lists', data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/smart-capture/lists'] });
+      setIsCreateListDialogOpen(false);
+      smartCaptureListForm.reset();
+      toast({ title: "Success", description: "Smart Capture list created successfully" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message || "Failed to create Smart Capture list", variant: "destructive" });
+    }
+  });
+
+  const createSmartCaptureItemMutation = useMutation({
+    mutationFn: async (data: CreateSmartCaptureItemData & { listId: number }) => {
+      const response = await apiRequest('POST', `/api/smart-capture/lists/${data.listId}/items`, data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/smart-capture/lists', selectedSmartCaptureList?.id, 'items'] });
+      setIsAddItemDialogOpen(false);
+      smartCaptureItemForm.reset();
+      toast({ title: "Success", description: "Item added to Smart Capture list successfully" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message || "Failed to add item to Smart Capture list", variant: "destructive" });
+    }
+  });
+
   const form = useForm<CreatePartFormData>({
     resolver: zodResolver(createPartSchema),
     defaultValues: {
@@ -278,6 +349,30 @@ export default function PartsSuppliesPage() {
       imageUrl: "",
       requiresSpecialHandling: false,
       isHazardous: false
+    }
+  });
+
+  // Smart Capture forms
+  const smartCaptureListForm = useForm<CreateSmartCaptureListData>({
+    resolver: zodResolver(createSmartCaptureListSchema),
+    defaultValues: {
+      name: "",
+      description: "",
+      status: "draft"
+    }
+  });
+
+  const smartCaptureItemForm = useForm<CreateSmartCaptureItemData>({
+    resolver: zodResolver(createSmartCaptureItemSchema),
+    defaultValues: {
+      partNumber: "",
+      vehicleNumber: "",
+      inventoryNumber: "",
+      description: "",
+      quantity: 1,
+      unitPrice: "",
+      location: "",
+      notes: ""
     }
   });
 
@@ -351,6 +446,24 @@ export default function PartsSuppliesPage() {
       imageUrl: uploadedImageUrl || editingPart?.imageUrl || null,
     };
     editPartMutation.mutate(formattedData);
+  };
+
+  // Smart Capture form handlers
+  const onSmartCaptureListSubmit = (data: CreateSmartCaptureListData) => {
+    createSmartCaptureListMutation.mutate(data);
+  };
+
+  const onSmartCaptureItemSubmit = (data: CreateSmartCaptureItemData) => {
+    if (!selectedSmartCaptureList?.id) {
+      toast({ title: "Error", description: "Please select a Smart Capture list first", variant: "destructive" });
+      return;
+    }
+    const formattedData = {
+      ...data,
+      listId: selectedSmartCaptureList.id,
+      unitPrice: data.unitPrice || "0"
+    };
+    createSmartCaptureItemMutation.mutate(formattedData);
   };
 
   // Handle editing a part
@@ -1117,7 +1230,7 @@ export default function PartsSuppliesPage() {
 
               <div className="flex items-end">
                 <div className="text-sm text-muted-foreground">
-                  Showing {filteredPartsSupplies.length} of {partsSupplies.length} parts
+                  Showing {filteredPartsSupplies.length} of {Array.isArray(partsSupplies) ? partsSupplies.length : 0} parts
                 </div>
               </div>
             </div>
@@ -1178,9 +1291,9 @@ export default function PartsSuppliesPage() {
           <TabsTrigger value="inventory">Inventory</TabsTrigger>
           <TabsTrigger value="alerts">
             Stock Alerts
-            {stockAlerts.length > 0 && (
+            {Array.isArray(stockAlerts) && stockAlerts.length > 0 && (
               <Badge variant="destructive" className="ml-2">
-                {stockAlerts.length}
+                {Array.isArray(stockAlerts) ? stockAlerts.length : 0}
               </Badge>
             )}
           </TabsTrigger>
