@@ -14,7 +14,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Plus, Package, List, Edit, AlertCircle } from "lucide-react";
+import { Plus, Package, List, Edit, AlertCircle, Trash2, Pencil } from "lucide-react";
 import { 
   insertSmartCaptureListSchema, 
   insertSmartCaptureItemSchema,
@@ -34,7 +34,9 @@ type SmartCaptureListWithItems = SmartCaptureList & {
 export default function SmartCapturePage() {
   const [isCreateListDialogOpen, setIsCreateListDialogOpen] = useState(false);
   const [isAddItemDialogOpen, setIsAddItemDialogOpen] = useState(false);
+  const [isEditItemDialogOpen, setIsEditItemDialogOpen] = useState(false);
   const [selectedSmartCaptureList, setSelectedSmartCaptureList] = useState<any>(null);
+  const [editingItem, setEditingItem] = useState<SmartCaptureItem | null>(null);
   const [activeTab, setActiveTab] = useState("lists");
   
   const { toast } = useToast();
@@ -88,6 +90,38 @@ export default function SmartCapturePage() {
     }
   });
 
+  const updateSmartCaptureItemMutation = useMutation({
+    mutationFn: async (data: { itemId: number; updateData: Partial<InsertSmartCaptureItem> }) => {
+      const response = await apiRequest('PUT', `/api/smart-capture/items/${data.itemId}`, data.updateData);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/smart-capture/lists', selectedSmartCaptureList?.id] });
+      queryClient.invalidateQueries({ queryKey: ['/api/smart-capture/lists'] });
+      setIsEditItemDialogOpen(false);
+      setEditingItem(null);
+      toast({ title: "Success", description: "Item updated successfully" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message || "Failed to update item", variant: "destructive" });
+    }
+  });
+
+  const deleteSmartCaptureItemMutation = useMutation({
+    mutationFn: async (itemId: number) => {
+      const response = await apiRequest('DELETE', `/api/smart-capture/items/${itemId}`, {});
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/smart-capture/lists', selectedSmartCaptureList?.id] });
+      queryClient.invalidateQueries({ queryKey: ['/api/smart-capture/lists'] });
+      toast({ title: "Success", description: "Item deleted successfully" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message || "Failed to delete item", variant: "destructive" });
+    }
+  });
+
   // Smart Capture forms using shared schemas
   const smartCaptureListForm = useForm<InsertSmartCaptureList>({
     resolver: zodResolver(insertSmartCaptureListSchema),
@@ -111,6 +145,10 @@ export default function SmartCapturePage() {
     }
   });
 
+  const editSmartCaptureItemForm = useForm<InsertSmartCaptureItem>({
+    resolver: zodResolver(insertSmartCaptureItemSchema)
+  });
+
   // Smart Capture form handlers
   const onSmartCaptureListSubmit = (data: InsertSmartCaptureList) => {
     createSmartCaptureListMutation.mutate(data);
@@ -126,6 +164,34 @@ export default function SmartCapturePage() {
       listId: selectedSmartCaptureList.id
     };
     createSmartCaptureItemMutation.mutate(formattedData);
+  };
+
+  const onEditSmartCaptureItemSubmit = (data: InsertSmartCaptureItem) => {
+    if (!editingItem?.id) return;
+    updateSmartCaptureItemMutation.mutate({
+      itemId: editingItem.id,
+      updateData: data
+    });
+  };
+
+  const handleEditItem = (item: SmartCaptureItem) => {
+    setEditingItem(item);
+    editSmartCaptureItemForm.reset({
+      partNumber: item.partNumber || "",
+      vehicleNumber: item.vehicleNumber || "",
+      inventoryNumber: item.inventoryNumber || "",
+      masterPrice: item.masterPrice?.toString() || "0",
+      location: item.location || "",
+      quantity: item.quantity || 1,
+      notes: item.notes || ""
+    });
+    setIsEditItemDialogOpen(true);
+  };
+
+  const handleDeleteItem = (itemId: number) => {
+    if (confirm("Are you sure you want to delete this item?")) {
+      deleteSmartCaptureItemMutation.mutate(itemId);
+    }
   };
 
   return (
@@ -490,22 +556,23 @@ export default function SmartCapturePage() {
                         <TableHead>Quantity</TableHead>
                         <TableHead>Master Price</TableHead>
                         <TableHead>Location</TableHead>
+                        <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {itemsLoading ? (
                         <TableRow>
-                          <TableCell colSpan={7} className="text-center">Loading items...</TableCell>
+                          <TableCell colSpan={8} className="text-center">Loading items...</TableCell>
                         </TableRow>
                       ) : itemsError ? (
                         <TableRow>
-                          <TableCell colSpan={7} className="text-center text-red-600">
+                          <TableCell colSpan={8} className="text-center text-red-600">
                             Error loading items: {itemsError.message}
                           </TableCell>
                         </TableRow>
                       ) : Array.isArray(smartCaptureItems) && smartCaptureItems.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={7} className="text-center">
+                          <TableCell colSpan={8} className="text-center">
                             No items in this list. Click "Add Item" to get started.
                           </TableCell>
                         </TableRow>
@@ -519,6 +586,27 @@ export default function SmartCapturePage() {
                             <TableCell>{item.quantity}</TableCell>
                             <TableCell>${parseFloat(item.masterPrice?.toString() || "0").toFixed(2)}</TableCell>
                             <TableCell>{item.location}</TableCell>
+                            <TableCell>
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleEditItem(item)}
+                                  data-testid={`edit-item-${item.id}`}
+                                >
+                                  <Pencil className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleDeleteItem(item.id)}
+                                  className="text-red-600 hover:text-red-700"
+                                  data-testid={`delete-item-${item.id}`}
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </TableCell>
                           </TableRow>
                         ))
                       )}
@@ -530,6 +618,148 @@ export default function SmartCapturePage() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Edit Smart Capture Item Dialog */}
+      <Dialog open={isEditItemDialogOpen} onOpenChange={setIsEditItemDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Smart Capture Item</DialogTitle>
+          </DialogHeader>
+          <Form {...editSmartCaptureItemForm}>
+            <form onSubmit={editSmartCaptureItemForm.handleSubmit(onEditSmartCaptureItemSubmit)} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={editSmartCaptureItemForm.control}
+                  name="partNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Part Number</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., ABC-123" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={editSmartCaptureItemForm.control}
+                  name="vehicleNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Vehicle Number</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., VH-001" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={editSmartCaptureItemForm.control}
+                  name="inventoryNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Inventory Number</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., INV-456" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={editSmartCaptureItemForm.control}
+                  name="quantity"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Quantity</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          min="1" 
+                          {...field} 
+                          onChange={(e) => field.onChange(parseInt(e.target.value))}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={editSmartCaptureItemForm.control}
+                  name="masterPrice"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Master Price</FormLabel>
+                      <FormControl>
+                        <Input placeholder="0.00" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={editSmartCaptureItemForm.control}
+                  name="location"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Location</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., Warehouse A" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={editSmartCaptureItemForm.control}
+                name="notes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Notes</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Additional notes about this item..." 
+                        className="resize-none" 
+                        rows={3}
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="flex justify-end space-x-2">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setIsEditItemDialogOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={updateSmartCaptureItemMutation.isPending}
+                >
+                  {updateSmartCaptureItemMutation.isPending ? "Updating..." : "Update Item"}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
