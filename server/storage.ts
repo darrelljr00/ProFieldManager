@@ -8249,6 +8249,83 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  // Project-specific Smart Capture methods
+  async getSmartCaptureItemsByProject(projectId: number, organizationId: number): Promise<SmartCaptureItem[]> {
+    try {
+      return await db
+        .select()
+        .from(smartCaptureItems)
+        .where(and(
+          eq(smartCaptureItems.projectId, projectId),
+          eq(smartCaptureItems.organizationId, organizationId)
+        ))
+        .orderBy(asc(smartCaptureItems.createdAt));
+    } catch (error) {
+      console.error('Error fetching project smart capture items:', error);
+      return [];
+    }
+  }
+
+  async createProjectSmartCaptureItem(projectId: number, organizationId: number, itemData: InsertSmartCaptureItem): Promise<SmartCaptureItem> {
+    try {
+      // SECURITY: Verify the project belongs to this organization
+      const project = await db
+        .select()
+        .from(projects)
+        .where(and(
+          eq(projects.id, projectId),
+          eq(projects.organizationId, organizationId)
+        ))
+        .limit(1);
+
+      if (project.length === 0) {
+        throw new Error('Project not found or access denied');
+      }
+
+      // For project-specific items, we need a default list or create one
+      let defaultList = await db
+        .select()
+        .from(smartCaptureLists)
+        .where(and(
+          eq(smartCaptureLists.organizationId, organizationId),
+          eq(smartCaptureLists.name, `Project ${projectId} Items`)
+        ))
+        .limit(1);
+
+      if (defaultList.length === 0) {
+        // Create a default list for this project
+        const [newList] = await db
+          .insert(smartCaptureLists)
+          .values({
+            organizationId,
+            name: `Project ${projectId} Items`,
+            description: `Smart Capture items for project: ${project[0].name}`,
+            status: 'active',
+            createdBy: project[0].userId, // Use project creator as list creator
+          })
+          .returning();
+        defaultList = [newList];
+      }
+
+      // SECURITY: Override any client-supplied values with server values
+      const { listId: _, organizationId: __, projectId: ___, ...safeItemData } = itemData as any;
+      
+      const [item] = await db
+        .insert(smartCaptureItems)
+        .values({
+          ...safeItemData,
+          listId: defaultList[0].id,
+          organizationId,
+          projectId,
+        })
+        .returning();
+      return item;
+    } catch (error) {
+      console.error('Error creating project smart capture item:', error);
+      throw new Error('Failed to create project smart capture item');
+    }
+  }
+
   // Market Research Competitors methods
   async getMarketResearchCompetitors(organizationId: number, businessNiche?: string): Promise<any[]> {
     try {

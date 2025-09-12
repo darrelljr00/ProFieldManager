@@ -20415,6 +20415,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Project-specific Smart Capture API Routes
+  
+  // Get Smart Capture items for a specific project
+  app.get("/api/projects/:id/smart-capture", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const projectId = parseInt(req.params.id);
+      
+      const items = await storage.getSmartCaptureItemsByProject(projectId, user.organizationId);
+      res.json(items);
+    } catch (error: any) {
+      console.error("Error fetching project smart capture items:", error);
+      res.status(500).json({ message: "Failed to fetch smart capture items" });
+    }
+  });
+
+  // Create Smart Capture item for a specific project
+  app.post("/api/projects/:id/smart-capture", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const projectId = parseInt(req.params.id);
+      
+      // SECURITY: Strip any client-supplied projectId/listId/organizationId and use server values
+      const { projectId: _, listId: __, organizationId: ___, ...requestData } = req.body;
+      
+      const validatedData = insertSmartCaptureItemSchema.parse(requestData);
+      const item = await storage.createProjectSmartCaptureItem(projectId, user.organizationId, validatedData);
+      
+      // WebSocket broadcast for real-time updates
+      broadcastToWebUsers(`project_${projectId}_smart_capture_item_created`, {
+        item,
+        projectId,
+        createdBy: user.username
+      }, user.organizationId);
+      
+      res.status(201).json(item);
+    } catch (error: any) {
+      console.error("Error creating project smart capture item:", error);
+      if (error instanceof ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create smart capture item" });
+    }
+  });
+
   // Add broadcast functions to the app for use in routes  
   (app as any).broadcastToWebUsers = broadcastToWebUsers;
   (app as any).broadcastToUser = broadcastToUser;
