@@ -2738,20 +2738,6 @@ export default function Jobs() {
               />
             </div>
 
-            {/* Price Field */}
-            <div>
-              <Label htmlFor="masterPrice" className="text-sm font-medium">Price</Label>
-              <Input
-                id="masterPrice"
-                type="number"
-                step="0.01"
-                placeholder="0.00"
-                value={smartCaptureFormData.masterPrice}
-                onChange={(e) => setSmartCaptureFormData(prev => ({ ...prev, masterPrice: e.target.value }))}
-                data-testid="input-price"
-              />
-            </div>
-
             {/* Quantity Field */}
             <div>
               <Label htmlFor="quantity" className="text-sm font-medium">Quantity</Label>
