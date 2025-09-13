@@ -8341,7 +8341,8 @@ export class DatabaseStorage implements IStorage {
       const conditions: any[] = [
         eq(smartCaptureItems.organizationId, organizationId),
         eq(smartCaptureLists.organizationId, organizationId),
-        sql`${smartCaptureLists.name} NOT LIKE 'Project %'` // Only master lists, not project-specific
+        sql`${smartCaptureLists.name} NOT LIKE 'Project %'`, // Only master lists, not project-specific
+        isNull(smartCaptureItems.projectId) // Only master items, not project-specific items
       ];
 
       if (partNumber) {
