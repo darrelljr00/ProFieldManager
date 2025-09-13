@@ -4699,8 +4699,23 @@ export const insertSmartCaptureItemSchema = createInsertSchema(smartCaptureItems
   message: "At least one of part number, vehicle number, or inventory number is required",
 });
 
+// Smart Capture Integration API schemas
+export const linkSmartCaptureSchema = z.object({
+  masterItemId: z.number().int().positive("Master item ID must be a positive integer"),
+});
+
+export const searchSmartCaptureSchema = z.object({
+  query: z.string().optional(),
+  partNumber: z.string().trim().optional(),
+  vehicleNumber: z.string().trim().optional(), 
+  inventoryNumber: z.string().trim().optional(),
+  limit: z.number().int().min(1).max(100).default(50),
+});
+
 // Smart Capture types
 export type SmartCaptureList = typeof smartCaptureLists.$inferSelect;
 export type InsertSmartCaptureList = z.infer<typeof insertSmartCaptureListSchema>;
 export type SmartCaptureItem = typeof smartCaptureItems.$inferSelect;
 export type InsertSmartCaptureItem = z.infer<typeof insertSmartCaptureItemSchema>;
+export type LinkSmartCapture = z.infer<typeof linkSmartCaptureSchema>;
+export type SearchSmartCapture = z.infer<typeof searchSmartCaptureSchema>;

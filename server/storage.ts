@@ -470,6 +470,12 @@ export interface IStorage {
   deleteSmartCaptureItem(itemId: number, organizationId: number): Promise<boolean>;
   createSmartCaptureItemsBulk(listId: number, organizationId: number, items: InsertSmartCaptureItem[]): Promise<SmartCaptureItem[]>;
   
+  // Smart Capture search and linking methods
+  searchSmartCaptureItems(organizationId: number, filters: { query?: string; partNumber?: string; vehicleNumber?: string; inventoryNumber?: string; limit?: number }): Promise<SmartCaptureItem[]>;
+  getSmartCaptureItemById(id: number, organizationId: number): Promise<SmartCaptureItem | null>;
+  linkProjectSmartCaptureItem(projectItemId: number, masterItemId: number, organizationId: number): Promise<SmartCaptureItem>;
+  refreshProjectSmartCapturePrice(projectItemId: number, organizationId: number): Promise<SmartCaptureItem>;
+  
   // Market Research Competitors methods
   getMarketResearchCompetitors(organizationId: number, businessNiche?: string): Promise<any[]>;
   getMarketResearchCompetitor(id: number, organizationId: number): Promise<any>;
@@ -8323,6 +8329,217 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error creating project smart capture item:', error);
       throw new Error('Failed to create project smart capture item');
+    }
+  }
+
+  // Smart Capture search and linking methods
+  async searchSmartCaptureItems(organizationId: number, filters: { query?: string; partNumber?: string; vehicleNumber?: string; inventoryNumber?: string; limit?: number }): Promise<SmartCaptureItem[]> {
+    try {
+      const { query, partNumber, vehicleNumber, inventoryNumber, limit = 50 } = filters;
+      
+      // Build conditions for organization scoping and master list filtering
+      const conditions: any[] = [
+        eq(smartCaptureItems.organizationId, organizationId),
+        eq(smartCaptureLists.organizationId, organizationId),
+        sql`${smartCaptureLists.name} NOT LIKE 'Project %'` // Only master lists, not project-specific
+      ];
+
+      if (partNumber) {
+        conditions.push(eq(smartCaptureItems.partNumber, partNumber));
+      }
+      
+      if (vehicleNumber) {
+        conditions.push(eq(smartCaptureItems.vehicleNumber, vehicleNumber));
+      }
+      
+      if (inventoryNumber) {
+        conditions.push(eq(smartCaptureItems.inventoryNumber, inventoryNumber));
+      }
+      
+      if (query) {
+        conditions.push(
+          or(
+            ilike(smartCaptureItems.description, `%${query}%`),
+            ilike(smartCaptureItems.partNumber, `%${query}%`),
+            ilike(smartCaptureItems.vehicleNumber, `%${query}%`),
+            ilike(smartCaptureItems.inventoryNumber, `%${query}%`)
+          )
+        );
+      }
+
+      const result = await db
+        .select({
+          id: smartCaptureItems.id,
+          listId: smartCaptureItems.listId,
+          organizationId: smartCaptureItems.organizationId,
+          projectId: smartCaptureItems.projectId,
+          partNumber: smartCaptureItems.partNumber,
+          vehicleNumber: smartCaptureItems.vehicleNumber,
+          inventoryNumber: smartCaptureItems.inventoryNumber,
+          masterPrice: smartCaptureItems.masterPrice,
+          location: smartCaptureItems.location,
+          quantity: smartCaptureItems.quantity,
+          description: smartCaptureItems.description,
+          notes: smartCaptureItems.notes,
+          masterItemId: smartCaptureItems.masterItemId,
+          masterPriceSnapshot: smartCaptureItems.masterPriceSnapshot,
+          derivedPartId: smartCaptureItems.derivedPartId,
+          derivedVehicleId: smartCaptureItems.derivedVehicleId,
+          createdAt: smartCaptureItems.createdAt,
+          updatedAt: smartCaptureItems.updatedAt,
+        })
+        .from(smartCaptureItems)
+        .innerJoin(smartCaptureLists, eq(smartCaptureItems.listId, smartCaptureLists.id))
+        .where(and(...conditions))
+        .orderBy(desc(smartCaptureItems.createdAt))
+        .limit(Math.min(limit, 100)); // Enforce max limit of 100
+
+      return result;
+    } catch (error) {
+      console.error('Error searching smart capture items:', error);
+      return [];
+    }
+  }
+
+  async getSmartCaptureItemById(id: number, organizationId: number): Promise<SmartCaptureItem | null> {
+    try {
+      const [item] = await db
+        .select()
+        .from(smartCaptureItems)
+        .where(and(
+          eq(smartCaptureItems.id, id),
+          eq(smartCaptureItems.organizationId, organizationId)
+        ))
+        .limit(1);
+      
+      return item || null;
+    } catch (error) {
+      console.error('Error fetching smart capture item by ID:', error);
+      return null;
+    }
+  }
+
+  async linkProjectSmartCaptureItem(projectItemId: number, masterItemId: number, organizationId: number): Promise<SmartCaptureItem> {
+    try {
+      // Prevent self-referencing links
+      if (projectItemId === masterItemId) {
+        throw new Error('Cannot link item to itself');
+      }
+
+      // SECURITY: Verify both items belong to the organization and get their details
+      const [projectItem, masterItem] = await Promise.all([
+        this.getSmartCaptureItemById(projectItemId, organizationId),
+        this.getSmartCaptureItemById(masterItemId, organizationId)
+      ]);
+
+      if (!projectItem) {
+        throw new Error('Project item not found or access denied');
+      }
+      
+      if (!masterItem) {
+        throw new Error('Master item not found or access denied');
+      }
+
+      // Check if already linked to avoid redundant operations (idempotency)
+      if (projectItem.masterItemId === masterItemId) {
+        return projectItem;
+      }
+
+      // Verify master item belongs to a master list (not a project-specific list)
+      const masterList = await db
+        .select()
+        .from(smartCaptureLists)
+        .where(and(
+          eq(smartCaptureLists.id, masterItem.listId),
+          eq(smartCaptureLists.organizationId, organizationId)
+        ))
+        .limit(1);
+
+      if (!masterList.length || masterList[0].name.startsWith('Project ')) {
+        throw new Error('Target item must belong to a master Smart Capture list, not a project-specific list');
+      }
+
+      // Atomically update the project item with master link and price snapshot
+      const [updatedItem] = await db
+        .update(smartCaptureItems)
+        .set({
+          masterItemId,
+          masterPriceSnapshot: masterItem.price,
+          updatedAt: new Date(),
+        })
+        .where(and(
+          eq(smartCaptureItems.id, projectItemId),
+          eq(smartCaptureItems.organizationId, organizationId)
+        ))
+        .returning();
+
+      if (!updatedItem) {
+        throw new Error('Failed to link items - item may have been deleted');
+      }
+
+      return updatedItem;
+    } catch (error) {
+      console.error('Error linking smart capture items:', error);
+      throw new Error(`Failed to link items: ${error.message}`);
+    }
+  }
+
+  async refreshProjectSmartCapturePrice(projectItemId: number, organizationId: number): Promise<SmartCaptureItem> {
+    try {
+      // Get the project item to find its master link
+      const projectItem = await this.getSmartCaptureItemById(projectItemId, organizationId);
+      
+      if (!projectItem) {
+        throw new Error('Project item not found or access denied');
+      }
+      
+      if (!projectItem.masterItemId) {
+        throw new Error('Project item is not linked to a master item');
+      }
+
+      // Get the master item for current price
+      const masterItem = await this.getSmartCaptureItemById(projectItem.masterItemId, organizationId);
+      
+      if (!masterItem) {
+        // Handle case where master item was deleted - clear the link
+        const [clearedItem] = await db
+          .update(smartCaptureItems)
+          .set({
+            masterItemId: null,
+            masterPriceSnapshot: null,
+            updatedAt: new Date(),
+          })
+          .where(and(
+            eq(smartCaptureItems.id, projectItemId),
+            eq(smartCaptureItems.organizationId, organizationId)
+          ))
+          .returning();
+        
+        throw new Error('Master item no longer exists - link has been cleared');
+      }
+
+      // Atomically update the project item with fresh price snapshot
+      const [updatedItem] = await db
+        .update(smartCaptureItems)
+        .set({
+          masterPriceSnapshot: masterItem.price,
+          updatedAt: new Date(),
+        })
+        .where(and(
+          eq(smartCaptureItems.id, projectItemId),
+          eq(smartCaptureItems.organizationId, organizationId),
+          eq(smartCaptureItems.masterItemId, projectItem.masterItemId) // Ensure link hasn't changed
+        ))
+        .returning();
+
+      if (!updatedItem) {
+        throw new Error('Failed to refresh price - item may have been modified or deleted');
+      }
+
+      return updatedItem;
+    } catch (error) {
+      console.error('Error refreshing smart capture item price:', error);
+      throw new Error(`Failed to refresh price: ${error.message}`);
     }
   }
 

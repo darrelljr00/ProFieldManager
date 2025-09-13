@@ -32,6 +32,8 @@ import {
   insertMeetingRecordingSchema,
   insertSmartCaptureListSchema,
   insertSmartCaptureItemSchema,
+  linkSmartCaptureSchema,
+  searchSmartCaptureSchema,
   loginSchema,
   registerSchema,
   changePasswordSchema,
@@ -20457,6 +20459,119 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid data", errors: error.errors });
       }
       res.status(500).json({ message: "Failed to create smart capture item" });
+    }
+  });
+
+  // Smart Capture Integration API Routes
+  
+  // Search master Smart Capture items
+  app.get("/api/smart-capture/search", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      // Validate query parameters
+      const filters = searchSmartCaptureSchema.parse({
+        query: req.query.query,
+        partNumber: req.query.partNumber,
+        vehicleNumber: req.query.vehicleNumber,
+        inventoryNumber: req.query.inventoryNumber,
+        limit: req.query.limit ? parseInt(req.query.limit as string) : undefined
+      });
+      
+      const items = await storage.searchSmartCaptureItems(user.organizationId, filters);
+      res.json(items);
+    } catch (error: any) {
+      console.error("Error searching smart capture items:", error);
+      if (error instanceof ZodError) {
+        return res.status(400).json({ message: "Invalid search parameters", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to search smart capture items" });
+    }
+  });
+
+  // Get specific Smart Capture item by ID
+  app.get("/api/smart-capture/items/:id", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const itemId = parseInt(req.params.id);
+      
+      if (isNaN(itemId) || itemId <= 0) {
+        return res.status(400).json({ message: "Invalid item ID" });
+      }
+      
+      const item = await storage.getSmartCaptureItemById(itemId, user.organizationId);
+      if (!item) {
+        return res.status(404).json({ message: "Smart capture item not found" });
+      }
+      
+      res.json(item);
+    } catch (error: any) {
+      console.error("Error fetching smart capture item:", error);
+      res.status(500).json({ message: "Failed to fetch smart capture item" });
+    }
+  });
+
+  // Link project Smart Capture item to master item
+  app.post("/api/smart-capture/items/:id/link", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const projectItemId = parseInt(req.params.id);
+      
+      if (isNaN(projectItemId) || projectItemId <= 0) {
+        return res.status(400).json({ message: "Invalid project item ID" });
+      }
+      
+      // Validate request body
+      const { masterItemId } = linkSmartCaptureSchema.parse(req.body);
+      
+      const linkedItem = await storage.linkProjectSmartCaptureItem(
+        projectItemId,
+        masterItemId,
+        user.organizationId
+      );
+      
+      res.json(linkedItem);
+    } catch (error: any) {
+      console.error("Error linking smart capture items:", error);
+      if (error instanceof ZodError) {
+        return res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      }
+      
+      // Handle business rule violations with appropriate status codes
+      const message = error.message || "Failed to link items";
+      if (message.includes("Cannot link item to itself") || 
+          message.includes("not linked to a master item") ||
+          message.includes("must belong to a master Smart Capture list")) {
+        return res.status(400).json({ message });
+      }
+      
+      if (message.includes("not found") || message.includes("access denied")) {
+        return res.status(404).json({ message });
+      }
+      
+      res.status(500).json({ message });
+    }
+  });
+
+  // Refresh project Smart Capture item price from master
+  app.post("/api/smart-capture/items/:id/refresh-price", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const projectItemId = parseInt(req.params.id);
+      
+      if (isNaN(projectItemId) || projectItemId <= 0) {
+        return res.status(400).json({ message: "Invalid project item ID" });
+      }
+      
+      const refreshedItem = await storage.refreshProjectSmartCapturePrice(
+        projectItemId,
+        user.organizationId
+      );
+      
+      res.json(refreshedItem);
+    } catch (error: any) {
+      console.error("Error refreshing smart capture item price:", error);
+      res.status(500).json({ message: error.message || "Failed to refresh price" });
     }
   });
 
