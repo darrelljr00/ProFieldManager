@@ -4650,6 +4650,10 @@ export const smartCaptureItems = pgTable("smart_capture_items", {
   description: text("description"),
   notes: text("notes"),
   
+  // Master item linking - for project items to reference master items
+  masterItemId: integer("master_item_id").references(() => smartCaptureItems.id, { onDelete: "set null" }), // Links project items to master items
+  masterPriceSnapshot: decimal("master_price_snapshot", { precision: 10, scale: 2 }), // Snapshot of master price when linked
+  
   // Optional references to existing data
   derivedPartId: integer("derived_part_id").references(() => partsSupplies.id),
   derivedVehicleId: integer("derived_vehicle_id").references(() => vehicles.id),
@@ -4685,6 +4689,8 @@ export const insertSmartCaptureItemSchema = createInsertSchema(smartCaptureItems
   listId: true,
   organizationId: true,
   projectId: true,
+  masterItemId: true,
+  masterPriceSnapshot: true,
   derivedPartId: true,
   derivedVehicleId: true,
   createdAt: true,
