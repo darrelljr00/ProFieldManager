@@ -2859,15 +2859,6 @@ export default function Jobs() {
               </div>
               
               <div>
-                <Label htmlFor="edit-price">Price</Label>
-                <Input 
-                  id="edit-price" 
-                  name="masterPrice" 
-                  defaultValue={editingSmartCaptureItem.masterPrice}
-                />
-              </div>
-              
-              <div>
                 <Label htmlFor="edit-notes">Notes</Label>
                 <Textarea 
                   id="edit-notes" 
