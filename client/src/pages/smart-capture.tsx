@@ -39,6 +39,10 @@ export default function SmartCapturePage() {
   const [editingItem, setEditingItem] = useState<SmartCaptureItem | null>(null);
   const [activeTab, setActiveTab] = useState("lists");
   
+  // State for automatic master item linking
+  const [masterSearchResults, setMasterSearchResults] = useState<any[]>([]);
+  const [matchedMasterItem, setMatchedMasterItem] = useState<any>(null);
+  
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -55,6 +59,60 @@ export default function SmartCapturePage() {
 
   // Extract items from the selected list response
   const smartCaptureItems = selectedListWithItems?.items || [];
+
+  // Function to search master items for automatic linking
+  const searchMasterItems = async (searchValue: string, searchType: 'partNumber' | 'vehicleNumber' | 'inventoryNumber') => {
+    if (!searchValue.trim()) {
+      setMasterSearchResults([]);
+      setMatchedMasterItem(null);
+      return;
+    }
+
+    try {
+      const searchParams = new URLSearchParams();
+      searchParams.set(searchType, searchValue);
+      
+      const response = await apiRequest('GET', `/api/smart-capture/search?${searchParams.toString()}`);
+      const results = await response.json();
+      
+      // Validate that results is an array
+      if (!Array.isArray(results)) {
+        console.error('Expected array from master search API, got:', results);
+        setMasterSearchResults([]);
+        setMatchedMasterItem(null);
+        return;
+      }
+      
+      setMasterSearchResults(results);
+      
+      // If exactly one match found, auto-populate the form
+      if (results.length === 1) {
+        const masterItem = results[0];
+        setMatchedMasterItem(masterItem);
+        
+        // Auto-populate the master price in the form
+        smartCaptureItemForm.setValue('masterPrice', masterItem.price?.toString() || '0');
+        
+        toast({
+          title: "Master Item Found",
+          description: `Auto-linked to ${masterItem.name || masterItem.vehicleNumber || masterItem.partNumber} - $${masterItem.price}`,
+        });
+      } else if (results.length > 1) {
+        setMatchedMasterItem(null);
+        toast({
+          title: "Multiple Items Found",
+          description: `Found ${results.length} matching items. Please select one manually.`,
+          variant: "default"
+        });
+      } else {
+        setMatchedMasterItem(null);
+      }
+    } catch (error) {
+      console.error('Error searching master items:', error);
+      setMasterSearchResults([]);
+      setMatchedMasterItem(null);
+    }
+  };
 
   // Smart Capture mutations
   const createSmartCaptureListMutation = useMutation({
@@ -75,7 +133,14 @@ export default function SmartCapturePage() {
 
   const createSmartCaptureItemMutation = useMutation({
     mutationFn: async (data: InsertSmartCaptureItem & { listId: number }) => {
-      const response = await apiRequest('POST', `/api/smart-capture/lists/${data.listId}/items`, data);
+      // Add master item linking information if available
+      const payloadData = {
+        ...data,
+        masterItemId: matchedMasterItem?.id || null,
+        masterPriceSnapshot: data.masterPrice || '0.00'
+      };
+      
+      const response = await apiRequest('POST', `/api/smart-capture/lists/${data.listId}/items`, payloadData);
       return response.json();
     },
     onSuccess: () => {
@@ -83,6 +148,11 @@ export default function SmartCapturePage() {
       queryClient.invalidateQueries({ queryKey: ['/api/smart-capture/lists'] });
       setIsAddItemDialogOpen(false);
       smartCaptureItemForm.reset();
+      
+      // Reset master item search state to prevent stale linkage
+      setMatchedMasterItem(null);
+      setMasterSearchResults([]);
+      
       toast({ title: "Success", description: "Item added to Smart Capture list successfully" });
     },
     onError: (error: any) => {
@@ -404,7 +474,23 @@ export default function SmartCapturePage() {
                               <FormItem>
                                 <FormLabel>Part Number</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="e.g., ABC-123" {...field} data-testid="input-part-number" />
+                                  <Input 
+                                    placeholder="e.g., ABC-123" 
+                                    {...field} 
+                                    onChange={(e) => {
+                                      const value = e.target.value;
+                                      field.onChange(value);
+                                      
+                                      // Search for matching master items after user stops typing
+                                      clearTimeout(window.smartCaptureSearchTimeout);
+                                      window.smartCaptureSearchTimeout = setTimeout(() => {
+                                        if (value.trim()) {
+                                          searchMasterItems(value, 'partNumber');
+                                        }
+                                      }, 500);
+                                    }}
+                                    data-testid="input-part-number" 
+                                  />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -417,7 +503,23 @@ export default function SmartCapturePage() {
                               <FormItem>
                                 <FormLabel>Vehicle Number</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="e.g., VH-001" {...field} data-testid="input-vehicle-number" />
+                                  <Input 
+                                    placeholder="e.g., VH-001" 
+                                    {...field} 
+                                    onChange={(e) => {
+                                      const value = e.target.value;
+                                      field.onChange(value);
+                                      
+                                      // Search for matching master items after user stops typing
+                                      clearTimeout(window.smartCaptureSearchTimeout);
+                                      window.smartCaptureSearchTimeout = setTimeout(() => {
+                                        if (value.trim()) {
+                                          searchMasterItems(value, 'vehicleNumber');
+                                        }
+                                      }, 500);
+                                    }}
+                                    data-testid="input-vehicle-number" 
+                                  />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -433,7 +535,23 @@ export default function SmartCapturePage() {
                               <FormItem>
                                 <FormLabel>Inventory Number</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="e.g., INV-456" {...field} data-testid="input-inventory-number" />
+                                  <Input 
+                                    placeholder="e.g., INV-456" 
+                                    {...field} 
+                                    onChange={(e) => {
+                                      const value = e.target.value;
+                                      field.onChange(value);
+                                      
+                                      // Search for matching master items after user stops typing
+                                      clearTimeout(window.smartCaptureSearchTimeout);
+                                      window.smartCaptureSearchTimeout = setTimeout(() => {
+                                        if (value.trim()) {
+                                          searchMasterItems(value, 'inventoryNumber');
+                                        }
+                                      }, 500);
+                                    }}
+                                    data-testid="input-inventory-number" 
+                                  />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -460,6 +578,22 @@ export default function SmartCapturePage() {
                             )}
                           />
                         </div>
+
+                        {/* Master Item Match Display */}
+                        {matchedMasterItem && (
+                          <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                            <div className="flex items-center gap-2 mb-2">
+                              <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                              <span className="text-sm font-medium text-green-800">Master Item Found</span>
+                            </div>
+                            <p className="text-sm text-green-700">
+                              <strong>{matchedMasterItem.name || matchedMasterItem.vehicleNumber || matchedMasterItem.partNumber || matchedMasterItem.inventoryNumber}</strong>
+                            </p>
+                            <p className="text-sm text-green-600">
+                              Auto-populated price: <strong>${matchedMasterItem.price}</strong>
+                            </p>
+                          </div>
+                        )}
 
                         {/* Validation Message for Required Fields */}
                         <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
