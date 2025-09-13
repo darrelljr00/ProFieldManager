@@ -473,8 +473,21 @@ export default function Jobs() {
   
   // State for Smart Capture feature
   const [enableSmartCapture, setEnableSmartCapture] = useState(false);
+  const [createSmartCaptureDialogOpen, setCreateSmartCaptureDialogOpen] = useState(false);
   const [editSmartCaptureDialogOpen, setEditSmartCaptureDialogOpen] = useState(false);
   const [editingSmartCaptureItem, setEditingSmartCaptureItem] = useState<any>(null);
+  const [smartCaptureFormData, setSmartCaptureFormData] = useState({
+    partNumber: '',
+    vehicleNumber: '',
+    inventoryNumber: '',
+    location: 'Job Site',
+    masterPrice: '',
+    quantity: 1,
+    notes: '',
+    matchedMasterItem: null as any
+  });
+  const [masterSearchResults, setMasterSearchResults] = useState<any[]>([]);
+  const [isSearchingMaster, setIsSearchingMaster] = useState(false);
   
   // Search and filter states for completed jobs
   const [searchQuery, setSearchQuery] = useState("");
@@ -680,15 +693,75 @@ export default function Jobs() {
     },
   });
 
+  // Function to search master items for automatic linking
+  const searchMasterItems = async (searchValue: string, searchType: 'partNumber' | 'vehicleNumber' | 'inventoryNumber') => {
+    if (!searchValue.trim()) {
+      setMasterSearchResults([]);
+      return;
+    }
+
+    try {
+      setIsSearchingMaster(true);
+      const response = await fetch(`/api/smart-capture/search?${searchType}=${encodeURIComponent(searchValue.trim())}`);
+      
+      if (response.ok) {
+        const results = await response.json();
+        setMasterSearchResults(results);
+        
+        // If exactly one match found, auto-populate the price
+        if (results.length === 1) {
+          const masterItem = results[0];
+          setSmartCaptureFormData(prev => ({
+            ...prev,
+            masterPrice: masterItem.price || '0.00',
+            matchedMasterItem: masterItem
+          }));
+          
+          toast({
+            title: "Master Item Found",
+            description: `Auto-linked to "${masterItem.name}" - $${masterItem.price}`,
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Failed to search master items:', error);
+    } finally {
+      setIsSearchingMaster(false);
+    }
+  };
+
   // Smart Capture mutations
   const createSmartCaptureItemMutation = useMutation({
     mutationFn: (data: any) => {
       if (!selectedProject?.id) throw new Error("No project selected");
-      return apiRequest("POST", `/api/projects/${selectedProject.id}/smart-capture`, data);
+      
+      // Add master item linking information if available
+      const payloadData = {
+        ...data,
+        masterItemId: data.matchedMasterItem?.id || null,
+        masterPriceSnapshot: data.masterPrice || '0.00'
+      };
+      
+      return apiRequest("POST", `/api/projects/${selectedProject.id}/smart-capture`, payloadData);
     },
     onSuccess: () => {
       // Invalidate smart capture data to refresh the list
       queryClient.invalidateQueries({ queryKey: ["/api/projects", selectedProject?.id, "smart-capture"] });
+      
+      // Reset form and close dialog
+      setSmartCaptureFormData({
+        partNumber: '',
+        vehicleNumber: '',
+        inventoryNumber: '',
+        location: 'Job Site',
+        masterPrice: '',
+        quantity: 1,
+        notes: '',
+        matchedMasterItem: null
+      });
+      setMasterSearchResults([]);
+      setCreateSmartCaptureDialogOpen(false);
+      
       toast({
         title: "Smart Capture Item Created",
         description: "Item has been captured successfully",
@@ -2251,18 +2324,7 @@ export default function Jobs() {
                       <p className="text-xs text-purple-700">Capture items being cleaned, repaired, or installed at this job site</p>
                     </div>
                     <Button 
-                      onClick={() => {
-                        const partNumber = prompt("Enter part number for Smart Capture:");
-                        if (partNumber) {
-                          createSmartCaptureItemMutation.mutate({
-                            partNumber: partNumber,
-                            location: "Job Site",
-                            masterPrice: "0.00",
-                            quantity: 1,
-                            notes: ""
-                          });
-                        }
-                      }}
+                      onClick={() => setCreateSmartCaptureDialogOpen(true)}
                       disabled={createSmartCaptureItemMutation.isPending}
                       className="bg-purple-600 hover:bg-purple-700 text-white"
                       size="sm"
@@ -2557,6 +2619,199 @@ export default function Jobs() {
               Close
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Smart Capture Item Dialog */}
+      <Dialog open={createSmartCaptureDialogOpen} onOpenChange={setCreateSmartCaptureDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Smart Capture</DialogTitle>
+            <DialogDescription>
+              Add an item to this job's Smart Capture. Enter vehicle #, part #, or inventory # for automatic master linking.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            createSmartCaptureItemMutation.mutate(smartCaptureFormData);
+          }} className="space-y-4">
+            
+            {/* Vehicle Number Field */}
+            <div>
+              <Label htmlFor="vehicleNumber" className="text-sm font-medium">Vehicle Number</Label>
+              <Input
+                id="vehicleNumber"
+                type="text"
+                placeholder="Enter vehicle number"
+                value={smartCaptureFormData.vehicleNumber}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setSmartCaptureFormData(prev => ({ ...prev, vehicleNumber: value }));
+                  
+                  // Search for matching master items after user stops typing
+                  clearTimeout(window.smartCaptureSearchTimeout);
+                  window.smartCaptureSearchTimeout = setTimeout(() => {
+                    if (value.trim()) {
+                      searchMasterItems(value, 'vehicleNumber');
+                    }
+                  }, 500);
+                }}
+                data-testid="input-vehicle-number"
+              />
+              {isSearchingMaster && <p className="text-xs text-gray-500 mt-1">Searching master items...</p>}
+            </div>
+
+            {/* Part Number Field */}
+            <div>
+              <Label htmlFor="partNumber" className="text-sm font-medium">Part Number</Label>
+              <Input
+                id="partNumber"
+                type="text"
+                placeholder="Enter part number"
+                value={smartCaptureFormData.partNumber}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setSmartCaptureFormData(prev => ({ ...prev, partNumber: value }));
+                  
+                  // Search for matching master items after user stops typing
+                  clearTimeout(window.smartCaptureSearchTimeout);
+                  window.smartCaptureSearchTimeout = setTimeout(() => {
+                    if (value.trim()) {
+                      searchMasterItems(value, 'partNumber');
+                    }
+                  }, 500);
+                }}
+                data-testid="input-part-number"
+              />
+            </div>
+
+            {/* Inventory Number Field */}
+            <div>
+              <Label htmlFor="inventoryNumber" className="text-sm font-medium">Inventory Number</Label>
+              <Input
+                id="inventoryNumber"
+                type="text"
+                placeholder="Enter inventory number"
+                value={smartCaptureFormData.inventoryNumber}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setSmartCaptureFormData(prev => ({ ...prev, inventoryNumber: value }));
+                  
+                  // Search for matching master items after user stops typing
+                  clearTimeout(window.smartCaptureSearchTimeout);
+                  window.smartCaptureSearchTimeout = setTimeout(() => {
+                    if (value.trim()) {
+                      searchMasterItems(value, 'inventoryNumber');
+                    }
+                  }, 500);
+                }}
+                data-testid="input-inventory-number"
+              />
+            </div>
+
+            {/* Master Item Match Display */}
+            {smartCaptureFormData.matchedMasterItem && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                  <span className="text-sm font-medium text-green-800">Master Item Found</span>
+                </div>
+                <p className="text-sm text-green-700">
+                  <strong>{smartCaptureFormData.matchedMasterItem.name}</strong>
+                </p>
+                <p className="text-sm text-green-600">
+                  Auto-populated price: <strong>${smartCaptureFormData.masterPrice}</strong>
+                </p>
+              </div>
+            )}
+
+            {/* Location Field */}
+            <div>
+              <Label htmlFor="location" className="text-sm font-medium">Location</Label>
+              <Input
+                id="location"
+                type="text"
+                value={smartCaptureFormData.location}
+                onChange={(e) => setSmartCaptureFormData(prev => ({ ...prev, location: e.target.value }))}
+                data-testid="input-location"
+              />
+            </div>
+
+            {/* Price Field */}
+            <div>
+              <Label htmlFor="masterPrice" className="text-sm font-medium">Price</Label>
+              <Input
+                id="masterPrice"
+                type="number"
+                step="0.01"
+                placeholder="0.00"
+                value={smartCaptureFormData.masterPrice}
+                onChange={(e) => setSmartCaptureFormData(prev => ({ ...prev, masterPrice: e.target.value }))}
+                data-testid="input-price"
+              />
+            </div>
+
+            {/* Quantity Field */}
+            <div>
+              <Label htmlFor="quantity" className="text-sm font-medium">Quantity</Label>
+              <Input
+                id="quantity"
+                type="number"
+                min="1"
+                value={smartCaptureFormData.quantity}
+                onChange={(e) => setSmartCaptureFormData(prev => ({ ...prev, quantity: parseInt(e.target.value) || 1 }))}
+                data-testid="input-quantity"
+              />
+            </div>
+
+            {/* Notes Field */}
+            <div>
+              <Label htmlFor="notes" className="text-sm font-medium">Notes (Optional)</Label>
+              <textarea
+                id="notes"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                rows={2}
+                placeholder="Add any additional notes"
+                value={smartCaptureFormData.notes}
+                onChange={(e) => setSmartCaptureFormData(prev => ({ ...prev, notes: e.target.value }))}
+                data-testid="textarea-notes"
+              />
+            </div>
+
+            {/* Form Actions */}
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setCreateSmartCaptureDialogOpen(false);
+                  setSmartCaptureFormData({
+                    partNumber: '',
+                    vehicleNumber: '',
+                    inventoryNumber: '',
+                    location: 'Job Site',
+                    masterPrice: '',
+                    quantity: 1,
+                    notes: '',
+                    matchedMasterItem: null
+                  });
+                  setMasterSearchResults([]);
+                }}
+                data-testid="button-cancel-smart-capture"
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit"
+                disabled={createSmartCaptureItemMutation.isPending}
+                className="bg-purple-600 hover:bg-purple-700"
+                data-testid="button-submit-smart-capture"
+              >
+                {createSmartCaptureItemMutation.isPending ? "Adding..." : "Add Item"}
+              </Button>
+            </div>
+          </form>
         </DialogContent>
       </Dialog>
 
