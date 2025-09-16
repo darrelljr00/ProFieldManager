@@ -441,6 +441,8 @@ export const projects = pgTable("projects", {
   timestampPosition: text("timestamp_position").default("bottom-right"), // bottom-right, bottom-left, top-right, top-left
   // Job sharing settings
   shareWithTeam: boolean("share_with_team").default(true), // true = entire team, false = assigned only (admin and creator always see)
+  // Smart Capture settings
+  enableSmartCapture: boolean("enable_smart_capture").default(false), // Enable Smart Capture automated invoice generation
   // Dispatch routing fields
   scheduledDate: timestamp("scheduled_date"),
   scheduledTime: text("scheduled_time"), // e.g., "09:00", "14:30"

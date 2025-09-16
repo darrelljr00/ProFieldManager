@@ -5883,7 +5883,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`✅ Auto-created draft invoice for Smart Capture project ${project.id}`);
           
           // Broadcast draft invoice creation to organization users
-          broadcastToWebUsers(user.organizationId, 'project_draft_invoice_created', {
+          broadcastToWebUsers(user.organizationId, 'draft_invoice_created', {
             projectId: project.id,
             projectName: project.name,
             createdBy: user.username,
