@@ -281,6 +281,7 @@ export const invoices = pgTable("invoices", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
   customerId: integer("customer_id").references(() => customers.id), // Made nullable for uploaded invoices
+  projectId: integer("project_id").references(() => projects.id), // Link to project for Smart Capture auto-invoices
   invoiceNumber: text("invoice_number").notNull(),
   status: text("status").notNull().default("draft"), // draft, sent, paid, overdue, cancelled
   subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
@@ -298,6 +299,7 @@ export const invoices = pgTable("invoices", {
   attachmentUrl: text("attachment_url"), // For uploaded previous invoices
   originalFileName: text("original_file_name"), // Original name of uploaded file
   isUploadedInvoice: boolean("is_uploaded_invoice").default(false), // Flag for uploaded vs created invoices
+  isSmartCaptureInvoice: boolean("is_smart_capture_invoice").default(false), // Flag for Smart Capture auto-invoices
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -309,6 +311,10 @@ export const invoiceLineItems = pgTable("invoice_line_items", {
   quantity: decimal("quantity", { precision: 10, scale: 2 }).notNull(),
   rate: decimal("rate", { precision: 10, scale: 2 }).notNull(),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  // Smart Capture integration fields
+  sourceType: text("source_type").default("manual"), // "manual", "smart_capture"
+  smartCaptureItemId: integer("smart_capture_item_id").references(() => smartCaptureItems.id), // Link to original Smart Capture item
+  priceSnapshot: decimal("price_snapshot", { precision: 10, scale: 2 }), // Snapshot of price when added
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
