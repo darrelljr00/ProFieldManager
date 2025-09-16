@@ -20367,6 +20367,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const items = await storage.getSmartCaptureItems(listId, user.organizationId);
+      
+      // DEBUG: Log the actual data structure to see pricing issue
+      console.log(`🔍 SMART CAPTURE ITEMS DEBUG for list ${listId}:`, {
+        itemCount: items.length,
+        sampleItem: items[0] ? {
+          id: items[0].id,
+          masterPrice: items[0].masterPrice,
+          masterPriceType: typeof items[0].masterPrice,
+          masterPriceString: items[0].masterPrice?.toString(),
+          description: items[0].description
+        } : null
+      });
+      
       res.json({ ...list, items });
     } catch (error: any) {
       console.error("Error fetching smart capture list:", error);
