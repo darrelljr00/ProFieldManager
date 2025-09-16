@@ -39,7 +39,8 @@ import {
   MapPin,
   Smartphone,
   FileSignature,
-  Camera
+  Camera,
+  User as UserIcon
 } from "lucide-react";
 import { Link } from "wouter";
 import type { Project, Customer, User, Task, ProjectFile, TimeEntry, SmartCaptureItem } from "@shared/schema";
@@ -910,6 +911,10 @@ export default function ProjectDetail() {
                       <div className="flex items-center gap-2">
                         <Clock className="h-4 w-4" />
                         <span>Added {new Date(item.createdAt).toLocaleDateString()}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <UserIcon className="h-4 w-4" />
+                        <span>Submitted by: {item.submittedBy || 'System'}</span>
                       </div>
                       {item.notes && (
                         <div className="text-sm">
