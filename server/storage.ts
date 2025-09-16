@@ -8256,11 +8256,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Project-specific Smart Capture methods
-  async getSmartCaptureItemsByProject(projectId: number, organizationId: number): Promise<SmartCaptureItem[]> {
+  async getSmartCaptureItemsByProject(projectId: number, organizationId: number): Promise<any[]> {
     try {
       return await db
-        .select()
+        .select({
+          ...smartCaptureItems,
+          submittedBy: sql<string>`COALESCE(${users.firstName} || ' ' || ${users.lastName}, 'Unknown')`,
+          submittedByEmail: users.email,
+          submissionTime: smartCaptureItems.createdAt
+        })
         .from(smartCaptureItems)
+        .leftJoin(users, eq(smartCaptureItems.userId, users.id))
         .where(and(
           eq(smartCaptureItems.projectId, projectId),
           eq(smartCaptureItems.organizationId, organizationId)
@@ -8272,7 +8278,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async createProjectSmartCaptureItem(projectId: number, organizationId: number, itemData: InsertSmartCaptureItem): Promise<SmartCaptureItem> {
+  async createProjectSmartCaptureItem(projectId: number, organizationId: number, itemData: InsertSmartCaptureItem, userId: number): Promise<SmartCaptureItem> {
     try {
       // SECURITY: Verify the project belongs to this organization
       const project = await db
@@ -8323,6 +8329,7 @@ export class DatabaseStorage implements IStorage {
           listId: defaultList[0].id,
           organizationId,
           projectId,
+          userId,
         })
         .returning();
       return item;

@@ -2359,6 +2359,10 @@ export default function Jobs() {
                                 )}
                                 <p className="text-xs text-gray-600">Location: {item.location}</p>
                                 <p className="text-xs text-gray-600">Quantity: {item.quantity}</p>
+                                <p className="text-xs text-gray-500">Submitted by: {item.submittedBy || 'Unknown'}</p>
+                                <p className="text-xs text-gray-400">
+                                  {new Date(item.submissionTime || item.createdAt).toLocaleString()}
+                                </p>
                                 {item.notes && (
                                   <p className="text-xs text-gray-500 mt-1">{item.notes}</p>
                                 )}

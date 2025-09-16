@@ -20426,7 +20426,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const projectId = parseInt(req.params.id);
       
       const items = await storage.getSmartCaptureItemsByProject(projectId, user.organizationId);
-      res.json(items);
+      
+      // Enhance items with user information where possible
+      // Items now include real user information from the database
+      const itemsWithUserInfo = items;
+      
+      res.json(itemsWithUserInfo);
     } catch (error: any) {
       console.error("Error fetching project smart capture items:", error);
       res.status(500).json({ message: "Failed to fetch smart capture items" });
@@ -20443,16 +20448,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { projectId: _, listId: __, organizationId: ___, ...requestData } = req.body;
       
       const validatedData = insertSmartCaptureItemSchema.parse(requestData);
-      const item = await storage.createProjectSmartCaptureItem(projectId, user.organizationId, validatedData);
+      const item = await storage.createProjectSmartCaptureItem(projectId, user.organizationId, validatedData, user.id);
+      
+      // Add user information to the created item for response
+      const itemWithUser = {
+        ...item,
+        submittedBy: `${user.firstName} ${user.lastName}`,
+        submittedByEmail: user.email,
+        submissionTime: item.createdAt
+      };
       
       // WebSocket broadcast for real-time updates
       broadcastToWebUsers(`project_${projectId}_smart_capture_item_created`, {
-        item,
+        item: itemWithUser,
         projectId,
         createdBy: user.username
       }, user.organizationId);
       
-      res.status(201).json(item);
+      res.status(201).json(itemWithUser);
     } catch (error: any) {
       console.error("Error creating project smart capture item:", error);
       if (error instanceof ZodError) {
