@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Calendar, Users, CheckCircle, Clock, AlertCircle, Folder, Settings, MapPin, Route, Star, Smartphone, Eye, Image, FileText, CheckSquare, Upload, Camera, DollarSign, Download, Trash2, Archive, User as UserIcon, Search, Filter, X, XCircle } from "lucide-react";
 import { Link } from "wouter";
@@ -488,6 +489,10 @@ export default function Jobs() {
   });
   const [masterSearchResults, setMasterSearchResults] = useState<any[]>([]);
   const [isSearchingMaster, setIsSearchingMaster] = useState(false);
+  
+  // Smart Capture pricing visibility setting
+  const [showSmartCapturePricing, setShowSmartCapturePricing] = useState(true);
+  const isAdminOrManager = user?.role === 'admin' || user?.role === 'manager';
   
   // Search and filter states for completed jobs
   const [searchQuery, setSearchQuery] = useState("");
@@ -2340,7 +2345,20 @@ export default function Jobs() {
                 <div className="mb-4">
                   {/* Smart Capture Items */}
                   <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
-                    <h5 className="text-sm font-semibold text-purple-700 mb-2">Smart Capture Items</h5>
+                    <div className="flex justify-between items-center mb-2">
+                      <h5 className="text-sm font-semibold text-purple-700">Smart Capture Items</h5>
+                      {isAdminOrManager && (
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor="show-pricing" className="text-xs text-purple-600">Show Pricing</Label>
+                          <Switch
+                            id="show-pricing"
+                            checked={showSmartCapturePricing}
+                            onCheckedChange={setShowSmartCapturePricing}
+                            className="scale-75"
+                          />
+                        </div>
+                      )}
+                    </div>
                     {smartCaptureData.length > 0 ? (
                       <div className="space-y-2 max-h-40 overflow-y-auto">
                         {smartCaptureData.map((item: any) => (
@@ -2368,7 +2386,9 @@ export default function Jobs() {
                                 )}
                               </div>
                               <div className="text-right">
-                                <p className="text-xs font-medium text-green-600">${item.masterPrice}</p>
+                                {(isAdminOrManager && showSmartCapturePricing) && (
+                                  <p className="text-xs font-medium text-green-600">${item.masterPrice}</p>
+                                )}
                                 <p className="text-xs text-gray-400">
                                   {new Date(item.createdAt).toLocaleDateString()}
                                 </p>
