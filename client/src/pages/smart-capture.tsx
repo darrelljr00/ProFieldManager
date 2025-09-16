@@ -1,4 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+// TypeScript declaration for window timeout property
+declare global {
+  interface Window {
+    smartCaptureSearchTimeout?: NodeJS.Timeout;
+  }
+}
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,7 +24,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
-import { Plus, Package, List, Edit, AlertCircle, Trash2, Pencil } from "lucide-react";
+import { Plus, Package, List, Edit, AlertCircle, Trash2, Pencil, FileText, DollarSign } from "lucide-react";
 import { 
   insertSmartCaptureListSchema, 
   insertSmartCaptureItemSchema,
@@ -33,6 +40,225 @@ type SmartCaptureListWithItems = SmartCaptureList & {
 };
 
 // Using shared schemas from @shared/schema.ts to ensure backend/frontend consistency
+
+// Draft Invoice Preview Component
+function DraftInvoicePreview({ projectId }: { projectId: number }) {
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  // Check if user is admin or manager for pricing visibility
+  const isAdminOrManager = user?.role === 'admin' || user?.role === 'manager';
+
+  // Fetch draft invoice data
+  const { data: draftInvoice, isLoading, error } = useQuery<any>({
+    queryKey: ['/api/projects', projectId, 'invoice-draft'],
+    enabled: !!projectId
+  });
+
+  // Listen for real-time WebSocket updates
+  useEffect(() => {
+    const handleWebSocketUpdate = (event: CustomEvent) => {
+      const { eventType, data } = event.detail;
+      
+      // Refresh draft invoice on Smart Capture or invoice changes
+      if (eventType === 'smart_capture_item_created' ||
+          eventType === 'smart_capture_item_updated' ||
+          eventType === 'smart_capture_item_deleted' ||
+          eventType === 'draft_invoice_created' ||
+          eventType === 'project_invoice_finalized') {
+        
+        // Only refresh if it's for our project
+        if (data?.projectId === projectId) {
+          queryClient.invalidateQueries({ 
+            queryKey: ['/api/projects', projectId, 'invoice-draft'] 
+          });
+        }
+      }
+    };
+
+    window.addEventListener('websocket-update', handleWebSocketUpdate);
+    return () => window.removeEventListener('websocket-update', handleWebSocketUpdate);
+  }, [projectId, queryClient]);
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center py-8">
+          <div className="text-center">
+            <FileText className="h-8 w-8 mx-auto mb-2 text-muted-foreground animate-pulse" />
+            <p className="text-muted-foreground">Loading draft invoice...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center py-8">
+          <div className="text-center">
+            <AlertCircle className="h-8 w-8 mx-auto mb-2 text-red-500" />
+            <p className="text-red-600">Error loading draft invoice</p>
+            <p className="text-sm text-muted-foreground mt-1">{error.message}</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!draftInvoice) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center py-8">
+          <div className="text-center">
+            <FileText className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+            <p className="text-muted-foreground">No draft invoice found</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Smart Capture items will automatically create invoice line items
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Calculate totals
+  const subtotal = draftInvoice.lineItems?.reduce((sum: number, item: any) => {
+    const price = parseFloat(item.unitPrice?.toString() || '0');
+    const qty = parseInt(item.quantity?.toString() || '0');
+    return sum + (price * qty);
+  }, 0) || 0;
+
+  const taxAmount = subtotal * 0.08; // 8% tax rate - could be configurable
+  const total = subtotal + taxAmount;
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Draft Invoice Preview
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Real-time preview of invoice generated from Smart Capture items
+            </p>
+          </div>
+          <Badge variant="outline" className="flex items-center gap-1">
+            <DollarSign className="h-3 w-3" />
+            Draft
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Invoice Details */}
+        <div className="grid grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
+          <div>
+            <Label className="text-xs font-medium text-muted-foreground">Invoice ID</Label>
+            <p className="font-medium">{draftInvoice.id}</p>
+          </div>
+          <div>
+            <Label className="text-xs font-medium text-muted-foreground">Project ID</Label>
+            <p className="font-medium">{draftInvoice.projectId}</p>
+          </div>
+          <div>
+            <Label className="text-xs font-medium text-muted-foreground">Status</Label>
+            <Badge variant="secondary">Draft</Badge>
+          </div>
+          <div>
+            <Label className="text-xs font-medium text-muted-foreground">Created</Label>
+            <p className="text-sm">{new Date(draftInvoice.createdAt).toLocaleDateString()}</p>
+          </div>
+        </div>
+
+        {/* Line Items */}
+        <div>
+          <h4 className="font-medium mb-3">Line Items</h4>
+          <div className="border rounded-lg overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Description</TableHead>
+                  <TableHead className="text-center">Qty</TableHead>
+                  {isAdminOrManager && <TableHead className="text-right">Unit Price</TableHead>}
+                  {isAdminOrManager && <TableHead className="text-right">Total</TableHead>}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {!draftInvoice.lineItems || draftInvoice.lineItems.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={isAdminOrManager ? 4 : 2} className="text-center text-muted-foreground py-6">
+                      No line items yet. Add Smart Capture items to generate invoice lines.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  draftInvoice.lineItems.map((item: any, index: number) => {
+                    const unitPrice = parseFloat(item.unitPrice?.toString() || '0');
+                    const quantity = parseInt(item.quantity?.toString() || '0');
+                    const lineTotal = unitPrice * quantity;
+                    
+                    return (
+                      <TableRow key={item.id || index}>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{item.description}</p>
+                            {item.notes && (
+                              <p className="text-sm text-muted-foreground">{item.notes}</p>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center">{quantity}</TableCell>
+                        {isAdminOrManager && (
+                          <TableCell className="text-right">${unitPrice.toFixed(2)}</TableCell>
+                        )}
+                        {isAdminOrManager && (
+                          <TableCell className="text-right">${lineTotal.toFixed(2)}</TableCell>
+                        )}
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+
+        {/* Totals (only for admins/managers) */}
+        {isAdminOrManager && draftInvoice.lineItems && draftInvoice.lineItems.length > 0 && (
+          <div className="border-t pt-4">
+            <div className="flex justify-end">
+              <div className="w-64 space-y-2">
+                <div className="flex justify-between">
+                  <span>Subtotal:</span>
+                  <span>${subtotal.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Tax (8%):</span>
+                  <span>${taxAmount.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between font-medium text-lg border-t pt-2">
+                  <span>Total:</span>
+                  <span>${total.toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Status Information */}
+        <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+          <p className="text-sm text-blue-700 dark:text-blue-300">
+            💡 <strong>Real-time sync:</strong> This preview automatically updates when Smart Capture items are added, modified, or removed. 
+            When the project is marked as completed, this draft will be automatically converted to a final invoice.
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function SmartCapturePage() {
   const [isCreateListDialogOpen, setIsCreateListDialogOpen] = useState(false);
@@ -202,17 +428,17 @@ export default function SmartCapturePage() {
     }
   });
 
-  // Smart Capture forms using shared schemas
-  const smartCaptureListForm = useForm<InsertSmartCaptureList>({
+  // Smart Capture forms using shared schemas with explicit typing
+  const smartCaptureListForm = useForm({
     resolver: zodResolver(insertSmartCaptureListSchema),
     defaultValues: {
       name: "",
       description: "",
-      status: "draft"
+      status: "draft" as const
     }
   });
 
-  const smartCaptureItemForm = useForm<InsertSmartCaptureItem>({
+  const smartCaptureItemForm = useForm({
     resolver: zodResolver(insertSmartCaptureItemSchema),
     defaultValues: {
       partNumber: "",
@@ -221,20 +447,31 @@ export default function SmartCapturePage() {
       masterPrice: "0",
       location: "",
       quantity: 1,
+      description: "",
       notes: ""
     }
   });
 
-  const editSmartCaptureItemForm = useForm<InsertSmartCaptureItem>({
-    resolver: zodResolver(insertSmartCaptureItemSchema)
+  const editSmartCaptureItemForm = useForm({
+    resolver: zodResolver(insertSmartCaptureItemSchema),
+    defaultValues: {
+      partNumber: "",
+      vehicleNumber: "",
+      inventoryNumber: "",
+      masterPrice: "0",
+      location: "",
+      quantity: 1,
+      description: "",
+      notes: ""
+    }
   });
 
-  // Smart Capture form handlers
-  const onSmartCaptureListSubmit = (data: InsertSmartCaptureList) => {
-    createSmartCaptureListMutation.mutate(data);
+  // Smart Capture form handlers with explicit typing
+  const onSmartCaptureListSubmit = (data: any) => {
+    createSmartCaptureListMutation.mutate(data as InsertSmartCaptureList);
   };
 
-  const onSmartCaptureItemSubmit = (data: InsertSmartCaptureItem) => {
+  const onSmartCaptureItemSubmit = (data: any) => {
     if (!selectedSmartCaptureList?.id) {
       toast({ title: "Error", description: "Please select a Smart Capture list first", variant: "destructive" });
       return;
@@ -246,11 +483,11 @@ export default function SmartCapturePage() {
     createSmartCaptureItemMutation.mutate(formattedData);
   };
 
-  const onEditSmartCaptureItemSubmit = (data: InsertSmartCaptureItem) => {
+  const onEditSmartCaptureItemSubmit = (data: any) => {
     if (!editingItem?.id) return;
     updateSmartCaptureItemMutation.mutate({
       itemId: editingItem.id,
-      updateData: data
+      updateData: data as InsertSmartCaptureItem
     });
   };
 
@@ -390,6 +627,14 @@ export default function SmartCapturePage() {
             {selectedSmartCaptureList && (
               <Badge variant="secondary" className="ml-2">
                 {Array.isArray(smartCaptureItems) ? smartCaptureItems.length : 0}
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="invoice" data-testid="tab-invoice" disabled={!selectedSmartCaptureList?.projectId}>
+            Draft Invoice
+            {selectedSmartCaptureList?.projectId && (
+              <Badge variant="outline" className="ml-2">
+                Preview
               </Badge>
             )}
           </TabsTrigger>
@@ -791,6 +1036,12 @@ export default function SmartCapturePage() {
                 </div>
               </CardContent>
             </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="invoice" className="space-y-4">
+          {selectedSmartCaptureList?.projectId && (
+            <DraftInvoicePreview projectId={selectedSmartCaptureList.projectId} />
           )}
         </TabsContent>
       </Tabs>
