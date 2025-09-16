@@ -8986,7 +8986,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const trigger = await storage.createTaskTrigger(triggerData);
       
       // Broadcast to WebSocket clients
-      broadcastToWebUsers('task_trigger_created', { trigger }, organizationId);
+      broadcastToWebUsers(organizationId, 'task_trigger_created', { trigger });
       
       res.json(trigger);
     } catch (error: any) {
@@ -9004,7 +9004,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const trigger = await storage.updateTaskTrigger(triggerId, organizationId, req.body);
       
       // Broadcast to WebSocket clients
-      broadcastToWebUsers('task_trigger_updated', { trigger }, organizationId);
+      broadcastToWebUsers(organizationId, 'task_trigger_updated', { trigger });
       
       res.json(trigger);
     } catch (error: any) {
@@ -9022,7 +9022,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.deleteTaskTrigger(triggerId, organizationId);
       
       // Broadcast to WebSocket clients
-      broadcastToWebUsers('task_trigger_deleted', { triggerId }, organizationId);
+      broadcastToWebUsers(organizationId, 'task_trigger_deleted', { triggerId });
       
       res.json({ message: "Task trigger deleted successfully" });
     } catch (error: any) {
@@ -9056,7 +9056,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.completeTriggerInstance(instanceId, userId, organizationId, textValue, numberValue);
       
       // Broadcast to WebSocket clients
-      broadcastToWebUsers('trigger_instance_completed', { instanceId, userId }, organizationId);
+      broadcastToWebUsers(organizationId, 'trigger_instance_completed', { instanceId, userId });
       
       res.json({ message: "Task completed successfully" });
     } catch (error: any) {
@@ -9086,7 +9086,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const settings = await storage.updateTaskTriggerSettings(organizationId, req.body);
       
       // Broadcast to WebSocket clients
-      broadcastToWebUsers('task_trigger_settings_updated', { settings }, organizationId);
+      broadcastToWebUsers(organizationId, 'task_trigger_settings_updated', { settings });
       
       res.json(settings);
     } catch (error: any) {
@@ -19081,7 +19081,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .returning();
       
       // Broadcast clock in
-      broadcastToWebUsers('schedule_clock_in', {
+      broadcastToWebUsers(user.organizationId, 'schedule_clock_in', {
         schedule: updatedSchedule,
         user: user.username
       });
@@ -19136,7 +19136,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .returning();
       
       // Broadcast clock out
-      broadcastToWebUsers('schedule_clock_out', {
+      broadcastToWebUsers(user.organizationId, 'schedule_clock_out', {
         schedule: updatedSchedule,
         user: user.username,
         hoursWorked: actualHours.toFixed(2)
@@ -19255,7 +19255,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             });
           
           // Notify managers/admins
-          broadcastToWebUsers('late_arrival_detected', {
+          broadcastToWebUsers(user.organizationId, 'late_arrival_detected', {
             user: `${user.firstName} ${user.lastName}`,
             minutesLate,
             scheduledTime: schedule.startTime,
