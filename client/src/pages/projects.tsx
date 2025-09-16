@@ -713,13 +713,13 @@ export default function Jobs() {
           const masterItem = results[0];
           setSmartCaptureFormData(prev => ({
             ...prev,
-            masterPrice: masterItem.price || '0.00',
+            masterPrice: masterItem.masterPrice || '0.00',
             matchedMasterItem: masterItem
           }));
           
           toast({
             title: "Master Item Found",
-            description: `Auto-linked to "${masterItem.name}" - $${masterItem.price}`,
+            description: `Auto-linked to "${masterItem.name}" - $${masterItem.masterPrice}`,
           });
         }
       }
