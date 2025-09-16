@@ -4632,6 +4632,7 @@ export type InsertStreamNotification = z.infer<typeof insertStreamNotificationSc
 export const smartCaptureLists = pgTable("smart_capture_lists", {
   id: serial("id").primaryKey(),
   organizationId: integer("organization_id").references(() => organizations.id).notNull(),
+  projectId: integer("project_id").references(() => projects.id), // Link to project for Smart Capture automated invoicing
   
   name: text("name").notNull(),
   description: text("description"),
@@ -4678,6 +4679,7 @@ export const insertSmartCaptureListSchema = createInsertSchema(smartCaptureLists
   name: z.string().min(1, "List name is required"),
   description: z.string().optional(),
   status: z.enum(["draft", "active", "archived"]).default("draft"),
+  projectId: z.number().optional(), // Optional link to project for Smart Capture automated invoicing
 }).omit({
   id: true,
   organizationId: true,
