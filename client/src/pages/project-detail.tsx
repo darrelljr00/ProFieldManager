@@ -161,7 +161,7 @@ export default function ProjectDetail() {
   });
 
   const { data: smartCaptureItems = [] } = useQuery<SmartCaptureItem[]>({
-    queryKey: ["/api/projects", projectId, "smart-capture"],
+    queryKey: [`/api/projects/${projectId}/smart-capture`],
     enabled: !!projectId,
   });
 
@@ -288,7 +288,7 @@ export default function ProjectDetail() {
   const createSmartCaptureItemMutation = useMutation({
     mutationFn: (data: any) => apiRequest("POST", `/api/projects/${projectId}/smart-capture`, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId, "smart-capture"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/smart-capture`] });
       toast({
         title: "Success",
         description: "Smart Capture item added successfully",
