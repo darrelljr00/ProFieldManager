@@ -492,7 +492,6 @@ export default function Jobs() {
   
   // Smart Capture pricing visibility setting
   const [showSmartCapturePricing, setShowSmartCapturePricing] = useState(true);
-  const isAdminOrManager = user?.role === 'admin' || user?.role === 'manager';
   
   // Search and filter states for completed jobs
   const [searchQuery, setSearchQuery] = useState("");
@@ -504,6 +503,9 @@ export default function Jobs() {
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  
+  // Check if user is admin or manager (must be after useAuth)
+  const isAdminOrManager = user?.role === 'admin' || user?.role === 'manager';
 
   // Check if device is mobile
   useEffect(() => {
