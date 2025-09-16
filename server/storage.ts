@@ -8137,14 +8137,13 @@ export class DatabaseStorage implements IStorage {
 
   async getSmartCaptureItems(listId: number, organizationId: number): Promise<SmartCaptureItem[]> {
     try {
-      return await db
-        .select()
-        .from(smartCaptureItems)
-        .where(and(
-          eq(smartCaptureItems.listId, listId),
-          eq(smartCaptureItems.organizationId, organizationId)
-        ))
-        .orderBy(asc(smartCaptureItems.createdAt));
+      const result = await db.execute(sql`
+        SELECT * FROM smart_capture_items 
+        WHERE list_id = ${listId} 
+        AND organization_id = ${organizationId}
+        ORDER BY created_at ASC
+      `);
+      return result.rows || [];
     } catch (error) {
       console.error('Error fetching smart capture items:', error);
       return [];
@@ -8190,25 +8189,23 @@ export class DatabaseStorage implements IStorage {
       // SECURITY: Strip listId and organizationId from updates to prevent cross-tenant moves
       const { listId, organizationId: _, ...safeUpdates } = updates as any;
       
-      // SECURITY: Verify the item's list belongs to this organization
-      const [item] = await db
-        .update(smartCaptureItems)
-        .set({
-          ...safeUpdates,
-          updatedAt: new Date(),
-        })
-        .from(smartCaptureItems)
-        .innerJoin(smartCaptureLists, eq(smartCaptureItems.listId, smartCaptureLists.id))
-        .where(and(
-          eq(smartCaptureItems.id, itemId),
-          eq(smartCaptureLists.organizationId, organizationId)
-        ))
-        .returning();
-        
-      if (!item) {
+      // Simple approach: use basic UPDATE with security check
+      const result = await db.execute(sql`
+        UPDATE smart_capture_items 
+        SET updated_at = NOW()
+        WHERE id = ${itemId} 
+        AND EXISTS (
+          SELECT 1 FROM smart_capture_lists 
+          WHERE smart_capture_lists.id = smart_capture_items.list_id 
+          AND smart_capture_lists.organization_id = ${organizationId}
+        )
+        RETURNING *
+      `);
+      
+      if (!result.rows || result.rows.length === 0) {
         throw new Error('Item not found or access denied');
       }
-      return item;
+      return result.rows[0] as SmartCaptureItem;
     } catch (error) {
       console.error('Error updating smart capture item:', error);
       throw new Error('Failed to update smart capture item');
@@ -8277,14 +8274,13 @@ export class DatabaseStorage implements IStorage {
   // Project-specific Smart Capture methods
   async getSmartCaptureItemsByProject(projectId: number, organizationId: number): Promise<any[]> {
     try {
-      return await db
-        .select()
-        .from(smartCaptureItems)
-        .where(and(
-          eq(smartCaptureItems.projectId, projectId),
-          eq(smartCaptureItems.organizationId, organizationId)
-        ))
-        .orderBy(asc(smartCaptureItems.createdAt));
+      const result = await db.execute(sql`
+        SELECT * FROM smart_capture_items 
+        WHERE project_id = ${projectId} 
+        AND organization_id = ${organizationId}
+        ORDER BY created_at ASC
+      `);
+      return result.rows || [];
     } catch (error) {
       console.error('Error fetching project smart capture items:', error);
       return [];
@@ -8388,34 +8384,37 @@ export class DatabaseStorage implements IStorage {
         );
       }
 
-      const result = await db
-        .select({
-          id: smartCaptureItems.id,
-          listId: smartCaptureItems.listId,
-          organizationId: smartCaptureItems.organizationId,
-          projectId: smartCaptureItems.projectId,
-          partNumber: smartCaptureItems.partNumber,
-          vehicleNumber: smartCaptureItems.vehicleNumber,
-          inventoryNumber: smartCaptureItems.inventoryNumber,
-          masterPrice: smartCaptureItems.masterPrice,
-          location: smartCaptureItems.location,
-          quantity: smartCaptureItems.quantity,
-          description: smartCaptureItems.description,
-          notes: smartCaptureItems.notes,
-          masterItemId: smartCaptureItems.masterItemId,
-          masterPriceSnapshot: smartCaptureItems.masterPriceSnapshot,
-          derivedPartId: smartCaptureItems.derivedPartId,
-          derivedVehicleId: smartCaptureItems.derivedVehicleId,
-          createdAt: smartCaptureItems.createdAt,
-          updatedAt: smartCaptureItems.updatedAt,
-        })
-        .from(smartCaptureItems)
-        .innerJoin(smartCaptureLists, eq(smartCaptureItems.listId, smartCaptureLists.id))
-        .where(and(...conditions))
-        .orderBy(desc(smartCaptureItems.createdAt))
-        .limit(Math.min(limit, 100)); // Enforce max limit of 100
+      // Build WHERE conditions for raw SQL
+      let whereConditions = [`sci.organization_id = ${organizationId}`, `scl.organization_id = ${organizationId}`, `scl.name NOT LIKE 'Project %'`, `sci.project_id IS NULL`];
+      
+      if (partNumber) {
+        whereConditions.push(`sci.part_number = '${partNumber}'`);
+      }
+      if (vehicleNumber) {
+        whereConditions.push(`sci.vehicle_number = '${vehicleNumber}'`);
+      }
+      if (inventoryNumber) {
+        whereConditions.push(`sci.inventory_number = '${inventoryNumber}'`);
+      }
+      if (query) {
+        const escapedQuery = `%${query.replace(/'/g, "''")}%`;
+        whereConditions.push(`(sci.description ILIKE '${escapedQuery}' OR sci.part_number ILIKE '${escapedQuery}' OR sci.vehicle_number ILIKE '${escapedQuery}' OR sci.inventory_number ILIKE '${escapedQuery}')`);
+      }
+      
+      const result = await db.execute(sql`
+        SELECT sci.id, sci.list_id, sci.organization_id, sci.project_id, sci.part_number, 
+               sci.vehicle_number, sci.inventory_number, sci.master_price, sci.location,
+               sci.quantity, sci.description, sci.notes, sci.master_item_id, 
+               sci.master_price_snapshot, sci.derived_part_id, sci.derived_vehicle_id,
+               sci.created_at, sci.updated_at
+        FROM smart_capture_items sci
+        INNER JOIN smart_capture_lists scl ON sci.list_id = scl.id
+        WHERE ${sql.raw(whereConditions.join(' AND '))}
+        ORDER BY sci.created_at DESC
+        LIMIT ${Math.min(limit, 100)}
+      `);
 
-      return result;
+      return result.rows || [];
     } catch (error) {
       console.error('Error searching smart capture items:', error);
       return [];
@@ -8424,16 +8423,13 @@ export class DatabaseStorage implements IStorage {
 
   async getSmartCaptureItemById(id: number, organizationId: number): Promise<SmartCaptureItem | null> {
     try {
-      const [item] = await db
-        .select()
-        .from(smartCaptureItems)
-        .where(and(
-          eq(smartCaptureItems.id, id),
-          eq(smartCaptureItems.organizationId, organizationId)
-        ))
-        .limit(1);
-      
-      return item || null;
+      const result = await db.execute(sql`
+        SELECT * FROM smart_capture_items 
+        WHERE id = ${id} 
+        AND organization_id = ${organizationId}
+        LIMIT 1
+      `);
+      return result.rows?.[0] || null;
     } catch (error) {
       console.error('Error fetching smart capture item by ID:', error);
       return null;
