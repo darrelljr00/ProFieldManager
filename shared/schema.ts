@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, decimal, uuid, varchar, jsonb, date, time, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, decimal, uuid, varchar, jsonb, date, time, pgEnum, unique } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -316,7 +316,10 @@ export const invoiceLineItems = pgTable("invoice_line_items", {
   smartCaptureItemId: integer("smart_capture_item_id").references(() => smartCaptureItems.id), // Link to original Smart Capture item
   priceSnapshot: decimal("price_snapshot", { precision: 10, scale: 2 }), // Snapshot of price when added
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => ({
+  // Unique constraint for idempotency: prevent duplicate line items for same smart capture item
+  uniqueInvoiceSmartCaptureItem: unique().on(table.invoiceId, table.smartCaptureItemId),
+}));
 
 export const quotes = pgTable("quotes", {
   id: serial("id").primaryKey(),

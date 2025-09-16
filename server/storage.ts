@@ -1,7 +1,7 @@
 import { db } from "./db";
 import { ensureOrganizationFolders } from "./folderCreation";
 import { 
-  users, customers, invoices, quotes, quoteLineItems, payments, projects, tasks, taskGroups, taskTemplates,
+  users, customers, invoices, invoiceLineItems, quotes, quoteLineItems, payments, projects, tasks, taskGroups, taskTemplates,
   expenses, expenseCategories, vendors, expenseReports, gasCards, 
   gasCardAssignments, gasCardUsage, gasCardProviders, leads, calendarJobs, messages,
   images, settings, organizations, userSessions, subscriptionPlans,
@@ -76,6 +76,13 @@ export interface IStorage {
   updateInvoiceStatus(invoiceId: number, status: string, paymentMethod?: string, paidAt?: Date): Promise<any>;
   deleteInvoice(id: number): Promise<void>;
   getInvoiceStats(organizationId: number): Promise<any>;
+  
+  // Draft Invoice methods for Smart Capture auto-invoicing
+  ensureDraftInvoiceForProject(projectId: number, customerId: number, userId: number, organizationId: number): Promise<any>;
+  getDraftInvoiceForProject(projectId: number, organizationId: number): Promise<any>;
+  upsertDraftInvoiceLineItem(invoiceId: number, lineItemData: any): Promise<any>;
+  removeDraftInvoiceLineItem(invoiceId: number, smartCaptureItemId: number): Promise<void>;
+  finalizeDraftInvoiceForProject(projectId: number, organizationId: number): Promise<any>;
   
   // Quote methods
   getQuotes(organizationId: number): Promise<any[]>;
@@ -1247,6 +1254,339 @@ export class DatabaseStorage implements IStorage {
       paidInvoices: paidInvoices.count,
       pendingInvoices: totalInvoices.count - paidInvoices.count
     };
+  }
+
+  // Draft Invoice methods for Smart Capture auto-invoicing
+  async ensureDraftInvoiceForProject(projectId: number, customerId: number, userId: number, organizationId: number): Promise<any> {
+    // Validate organization scoping - ensure project and customer belong to the same organization
+    await this.validateProjectCustomerOrganization(projectId, customerId, organizationId);
+    
+    // Check if a draft invoice already exists for this project
+    const existingDraft = await this.getDraftInvoiceForProject(projectId, organizationId);
+    
+    if (existingDraft) {
+      return existingDraft;
+    }
+
+    // Get project details for invoice data - already validated above
+    const project = await this.getProject(projectId, userId);
+    if (!project) {
+      throw new Error('Project not found');
+    }
+
+    // Create a new draft invoice in a transaction
+    return await db.transaction(async (tx) => {
+      const invoiceData = {
+        userId,
+        customerId,
+        projectId,
+        invoiceNumber: `SC-DRAFT-${projectId}-${Date.now()}`,
+        status: 'draft',
+        subtotal: '0.00',
+        taxRate: '0.00',
+        taxAmount: '0.00',
+        total: '0.00',
+        currency: 'USD',
+        invoiceDate: new Date(),
+        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+        isSmartCaptureInvoice: true,
+        notes: `Auto-generated Smart Capture invoice for ${project.name}`
+      };
+
+      const [invoice] = await tx
+        .insert(invoices)
+        .values(invoiceData)
+        .returning();
+
+      return invoice;
+    });
+  }
+
+  async getDraftInvoiceForProject(projectId: number, organizationId: number): Promise<any> {
+    const [invoice] = await db
+      .select({
+        id: invoices.id,
+        userId: invoices.userId,
+        customerId: invoices.customerId,
+        projectId: invoices.projectId,
+        invoiceNumber: invoices.invoiceNumber,
+        status: invoices.status,
+        subtotal: invoices.subtotal,
+        taxRate: invoices.taxRate,
+        taxAmount: invoices.taxAmount,
+        total: invoices.total,
+        currency: invoices.currency,
+        notes: invoices.notes,
+        invoiceDate: invoices.invoiceDate,
+        dueDate: invoices.dueDate,
+        isSmartCaptureInvoice: invoices.isSmartCaptureInvoice,
+        createdAt: invoices.createdAt,
+        updatedAt: invoices.updatedAt
+      })
+      .from(invoices)
+      .innerJoin(users, eq(invoices.userId, users.id))
+      .where(and(
+        eq(invoices.projectId, projectId),
+        eq(invoices.status, 'draft'),
+        eq(invoices.isSmartCaptureInvoice, true),
+        eq(users.organizationId, organizationId)
+      ))
+      .limit(1);
+
+    if (!invoice) {
+      return null;
+    }
+
+    // Get line items for this invoice
+    const lineItems = await db
+      .select()
+      .from(invoiceLineItems)
+      .where(eq(invoiceLineItems.invoiceId, invoice.id))
+      .orderBy(asc(invoiceLineItems.id));
+
+    return {
+      ...invoice,
+      lineItems
+    };
+  }
+
+  async upsertDraftInvoiceLineItem(invoiceId: number, lineItemData: any, organizationId: number): Promise<any> {
+    const {
+      description,
+      quantity,
+      rate,
+      amount,
+      sourceType = 'smart_capture',
+      smartCaptureItemId,
+      priceSnapshot
+    } = lineItemData;
+
+    // Validate organization access to the invoice
+    await this.validateInvoiceOrganizationAccess(invoiceId, organizationId);
+
+    // Ensure we have a smartCaptureItemId for the unique constraint
+    if (!smartCaptureItemId) {
+      throw new Error('smartCaptureItemId is required for draft invoice line items');
+    }
+
+    // Use transaction for atomic operation with proper onConflictDoUpdate
+    return await db.transaction(async (tx) => {
+      const lineItemValues = {
+        invoiceId,
+        description,
+        quantity: quantity.toString(),
+        rate: rate.toString(),
+        amount: amount.toString(),
+        sourceType,
+        smartCaptureItemId,
+        priceSnapshot: priceSnapshot ? priceSnapshot.toString() : null
+      };
+
+      // Use onConflictDoUpdate with the unique constraint for true idempotency
+      const [upsertedItem] = await tx
+        .insert(invoiceLineItems)
+        .values(lineItemValues)
+        .onConflictDoUpdate({
+          target: [invoiceLineItems.invoiceId, invoiceLineItems.smartCaptureItemId],
+          set: {
+            description: lineItemValues.description,
+            quantity: lineItemValues.quantity,
+            rate: lineItemValues.rate,
+            amount: lineItemValues.amount,
+            priceSnapshot: lineItemValues.priceSnapshot
+          }
+        })
+        .returning();
+
+      // Recalculate invoice totals within the transaction
+      await this.recalculateInvoiceTotals(invoiceId);
+
+      return upsertedItem;
+    });
+  }
+
+  async removeDraftInvoiceLineItem(invoiceId: number, smartCaptureItemId: number, organizationId: number): Promise<void> {
+    // Validate organization access to the invoice
+    await this.validateInvoiceOrganizationAccess(invoiceId, organizationId);
+
+    // Use transaction for atomic operation
+    await db.transaction(async (tx) => {
+      // Delete the line item
+      await tx
+        .delete(invoiceLineItems)
+        .where(and(
+          eq(invoiceLineItems.invoiceId, invoiceId),
+          eq(invoiceLineItems.smartCaptureItemId, smartCaptureItemId)
+        ));
+
+      // Recalculate invoice totals within the transaction
+      await this.recalculateInvoiceTotals(invoiceId);
+    });
+  }
+
+  async finalizeDraftInvoiceForProject(projectId: number, organizationId: number): Promise<any> {
+    // Use transaction with locking to prevent race conditions and double-finalization
+    return await db.transaction(async (tx) => {
+      // Get draft invoice with SELECT FOR UPDATE lock to prevent concurrent finalization
+      const [draftInvoice] = await tx
+        .select({
+          id: invoices.id,
+          userId: invoices.userId,
+          customerId: invoices.customerId,
+          projectId: invoices.projectId,
+          invoiceNumber: invoices.invoiceNumber,
+          status: invoices.status,
+          subtotal: invoices.subtotal,
+          taxRate: invoices.taxRate,
+          taxAmount: invoices.taxAmount,
+          total: invoices.total,
+          currency: invoices.currency,
+          notes: invoices.notes,
+          invoiceDate: invoices.invoiceDate,
+          dueDate: invoices.dueDate,
+          isSmartCaptureInvoice: invoices.isSmartCaptureInvoice,
+          createdAt: invoices.createdAt,
+          updatedAt: invoices.updatedAt
+        })
+        .from(invoices)
+        .innerJoin(users, eq(invoices.userId, users.id))
+        .where(and(
+          eq(invoices.projectId, projectId),
+          eq(invoices.status, 'draft'),
+          eq(invoices.isSmartCaptureInvoice, true),
+          eq(users.organizationId, organizationId)
+        ))
+        .for('update') // Row-level lock to prevent double-finalization
+        .limit(1);
+      
+      if (!draftInvoice) {
+        throw new Error('No draft invoice found for this project or access denied - organization mismatch');
+      }
+
+      // Double-check status to prevent race conditions
+      if (draftInvoice.status !== 'draft') {
+        throw new Error(`Invoice has already been finalized. Current status: ${draftInvoice.status}`);
+      }
+
+      // Get line items count for validation
+      const [lineItemCount] = await tx
+        .select({ count: sql<number>`count(*)` })
+        .from(invoiceLineItems)
+        .where(eq(invoiceLineItems.invoiceId, draftInvoice.id));
+
+      // Only finalize if there are line items
+      if (lineItemCount.count === 0) {
+        throw new Error('Cannot finalize invoice with no line items');
+      }
+
+      // Generate final invoice number with better uniqueness
+      const timestamp = Date.now();
+      const finalInvoiceNumber = `INV-${timestamp}-${draftInvoice.id}`;
+
+      // Update invoice status and number
+      const [finalizedInvoice] = await tx
+        .update(invoices)
+        .set({
+          status: 'sent',
+          invoiceNumber: finalInvoiceNumber,
+          updatedAt: new Date()
+        })
+        .where(and(
+          eq(invoices.id, draftInvoice.id),
+          eq(invoices.status, 'draft') // Double-check status in update
+        ))
+        .returning();
+
+      if (!finalizedInvoice) {
+        throw new Error('Failed to finalize invoice - it may have been finalized by another process');
+      }
+
+      return finalizedInvoice;
+    });
+  }
+
+  // Helper method to validate invoice organization access
+  private async validateInvoiceOrganizationAccess(invoiceId: number, organizationId: number): Promise<void> {
+    const [invoice] = await db
+      .select({ id: invoices.id })
+      .from(invoices)
+      .innerJoin(users, eq(invoices.userId, users.id))
+      .where(and(
+        eq(invoices.id, invoiceId),
+        eq(users.organizationId, organizationId)
+      ))
+      .limit(1);
+
+    if (!invoice) {
+      throw new Error('Invoice not found or access denied - organization mismatch');
+    }
+  }
+
+  // Helper method to validate project and customer organization scoping
+  private async validateProjectCustomerOrganization(projectId: number, customerId: number, organizationId: number): Promise<void> {
+    // Validate project belongs to organization
+    const [project] = await db
+      .select({ id: projects.id })
+      .from(projects)
+      .innerJoin(users, eq(projects.userId, users.id))
+      .where(and(
+        eq(projects.id, projectId),
+        eq(users.organizationId, organizationId)
+      ))
+      .limit(1);
+
+    if (!project) {
+      throw new Error('Project not found or access denied - organization mismatch');
+    }
+
+    // Validate customer belongs to organization
+    const [customer] = await db
+      .select({ id: customers.id })
+      .from(customers)
+      .innerJoin(users, eq(customers.userId, users.id))
+      .where(and(
+        eq(customers.id, customerId),
+        eq(users.organizationId, organizationId)
+      ))
+      .limit(1);
+
+    if (!customer) {
+      throw new Error('Customer not found or access denied - organization mismatch');
+    }
+  }
+
+  // Helper method to recalculate invoice totals
+  private async recalculateInvoiceTotals(invoiceId: number): Promise<void> {
+    const [subtotalResult] = await db
+      .select({
+        subtotal: sql<number>`COALESCE(SUM(CAST(amount AS DECIMAL(10,2))), 0)`
+      })
+      .from(invoiceLineItems)
+      .where(eq(invoiceLineItems.invoiceId, invoiceId));
+
+    const subtotal = subtotalResult.subtotal || 0;
+
+    // Get current tax rate from invoice
+    const [currentInvoice] = await db
+      .select({ taxRate: invoices.taxRate })
+      .from(invoices)
+      .where(eq(invoices.id, invoiceId))
+      .limit(1);
+
+    const taxRate = parseFloat(currentInvoice?.taxRate || '0');
+    const taxAmount = (subtotal * taxRate) / 100;
+    const total = subtotal + taxAmount;
+
+    // Update invoice totals
+    await db
+      .update(invoices)
+      .set({
+        subtotal: subtotal.toFixed(2),
+        taxAmount: taxAmount.toFixed(2),
+        total: total.toFixed(2),
+        updatedAt: new Date()
+      })
+      .where(eq(invoices.id, invoiceId));
   }
 
   // Quote methods
