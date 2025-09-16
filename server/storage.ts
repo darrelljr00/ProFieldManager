@@ -80,8 +80,9 @@ export interface IStorage {
   // Draft Invoice methods for Smart Capture auto-invoicing
   ensureDraftInvoiceForProject(projectId: number, customerId: number, userId: number, organizationId: number): Promise<any>;
   getDraftInvoiceForProject(projectId: number, organizationId: number): Promise<any>;
-  upsertDraftInvoiceLineItem(invoiceId: number, lineItemData: any): Promise<any>;
+  upsertDraftInvoiceLineItem(invoiceId: number, lineItemData: any, organizationId: number): Promise<any>;
   removeDraftInvoiceLineItem(invoiceId: number, smartCaptureItemId: number): Promise<void>;
+  deleteDraftInvoiceLineItemBySmartCaptureItem(smartCaptureItemId: number, organizationId: number): Promise<boolean>;
   finalizeDraftInvoiceForProject(projectId: number, organizationId: number): Promise<any>;
   
   // Quote methods
@@ -1422,6 +1423,53 @@ export class DatabaseStorage implements IStorage {
       // Recalculate invoice totals within the transaction
       await this.recalculateInvoiceTotals(invoiceId);
     });
+  }
+
+  async deleteDraftInvoiceLineItemBySmartCaptureItem(smartCaptureItemId: number, organizationId: number): Promise<boolean> {
+    try {
+      // Use transaction for atomic operation
+      return await db.transaction(async (tx) => {
+        // First, find all draft invoices with line items linked to this Smart Capture item
+        // We need to ensure organization scoping by joining with users table
+        const affectedInvoices = await tx
+          .select({
+            invoiceId: invoiceLineItems.invoiceId
+          })
+          .from(invoiceLineItems)
+          .innerJoin(invoices, eq(invoiceLineItems.invoiceId, invoices.id))
+          .innerJoin(users, eq(invoices.userId, users.id))
+          .where(and(
+            eq(invoiceLineItems.smartCaptureItemId, smartCaptureItemId),
+            eq(invoices.status, 'draft'),
+            eq(invoices.isSmartCaptureInvoice, true),
+            eq(users.organizationId, organizationId)
+          ));
+
+        if (affectedInvoices.length === 0) {
+          // No matching line items found, return success (idempotent operation)
+          return true;
+        }
+
+        // Delete all line items linked to this Smart Capture item within organization scope
+        await tx
+          .delete(invoiceLineItems)
+          .where(and(
+            eq(invoiceLineItems.smartCaptureItemId, smartCaptureItemId),
+            inArray(invoiceLineItems.invoiceId, affectedInvoices.map(inv => inv.invoiceId))
+          ));
+
+        // Recalculate totals for all affected invoices
+        const uniqueInvoiceIds = [...new Set(affectedInvoices.map(inv => inv.invoiceId))];
+        for (const invoiceId of uniqueInvoiceIds) {
+          await this.recalculateInvoiceTotals(invoiceId);
+        }
+
+        return true;
+      });
+    } catch (error) {
+      console.error('Error deleting draft invoice line items by Smart Capture item:', error);
+      return false;
+    }
   }
 
   async finalizeDraftInvoiceForProject(projectId: number, organizationId: number): Promise<any> {

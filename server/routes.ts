@@ -20442,6 +20442,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updateData = insertSmartCaptureItemSchema.partial().parse(requestData);
       const item = await storage.updateSmartCaptureItem(itemId, user.organizationId, updateData);
       
+      // Automatically update draft invoice line item if this is a project-linked Smart Capture item
+      if (item && item.projectId) {
+        try {
+          const draftInvoice = await storage.getDraftInvoiceForProject(item.projectId, user.organizationId);
+          if (draftInvoice) {
+            await storage.upsertDraftInvoiceLineItem(draftInvoice.id, {
+              description: item.description || item.partNumber || item.vehicleNumber || item.inventoryNumber || 'Smart Capture Item',
+              quantity: item.quantity.toString(),
+              rate: item.masterPrice.toString(),
+              sourceType: 'smart_capture',
+              smartCaptureItemId: item.id
+            }, user.organizationId);
+            
+            console.log(`✅ Auto-updated draft invoice line item for Smart Capture item ${item.id}`);
+            
+            // Broadcast draft invoice line item update to organization users
+            broadcastToWebUsers(user.organizationId, 'draft_invoice_line_item_updated', {
+              invoiceId: draftInvoice.id,
+              projectId: item.projectId,
+              smartCaptureItemId: item.id,
+              description: item.description || item.partNumber || 'Smart Capture Item',
+              updatedBy: user.username,
+              timestamp: new Date().toISOString()
+            });
+          }
+        } catch (lineItemError) {
+          console.error("❌ Error updating Smart Capture item in draft invoice:", lineItemError);
+          // Continue with item update even if draft invoice update fails
+        }
+      }
+      
       if (!item) {
         return res.status(404).json({ message: "Smart capture item not found" });
       }
@@ -20462,9 +20493,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = getAuthenticatedUser(req);
       const itemId = parseInt(req.params.id);
       
+      // Get item details before deletion to check if it's linked to a project
+      const item = await storage.getSmartCaptureItemById(itemId, user.organizationId);
+      
       const success = await storage.deleteSmartCaptureItem(itemId, user.organizationId);
       if (!success) {
         return res.status(404).json({ message: "Smart capture item not found" });
+      }
+      
+      // Automatically remove line item from draft invoice if this was a project-linked Smart Capture item
+      if (item && item.projectId) {
+        try {
+          const draftInvoice = await storage.getDraftInvoiceForProject(item.projectId, user.organizationId);
+          if (draftInvoice) {
+            await storage.deleteDraftInvoiceLineItemBySmartCaptureItem(itemId, user.organizationId);
+            
+            console.log(`✅ Auto-removed draft invoice line item for deleted Smart Capture item ${itemId}`);
+            
+            // Broadcast draft invoice line item deletion to organization users
+            broadcastToWebUsers(user.organizationId, 'draft_invoice_line_item_removed', {
+              invoiceId: draftInvoice.id,
+              projectId: item.projectId,
+              smartCaptureItemId: itemId,
+              deletedBy: user.username,
+              timestamp: new Date().toISOString()
+            });
+          }
+        } catch (lineItemError) {
+          console.error("❌ Error removing Smart Capture item from draft invoice:", lineItemError);
+          // Continue with item deletion even if draft invoice update fails
+        }
       }
       
       res.json({ message: "Smart capture item deleted successfully" });
@@ -20506,6 +20564,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const validatedData = insertSmartCaptureItemSchema.parse(requestData);
       const item = await storage.createProjectSmartCaptureItem(projectId, user.organizationId, validatedData, user.id);
+      
+      // Automatically add item to draft invoice if one exists for this project
+      try {
+        const draftInvoice = await storage.getDraftInvoiceForProject(projectId, user.organizationId);
+        if (draftInvoice) {
+          await storage.upsertDraftInvoiceLineItem(draftInvoice.id, {
+            description: item.description || item.partNumber || item.vehicleNumber || item.inventoryNumber || 'Smart Capture Item',
+            quantity: item.quantity.toString(),
+            rate: item.masterPrice.toString(),
+            sourceType: 'smart_capture',
+            smartCaptureItemId: item.id
+          }, user.organizationId);
+          
+          console.log(`✅ Auto-added Smart Capture item ${item.id} to draft invoice ${draftInvoice.id}`);
+          
+          // Broadcast draft invoice line item update to organization users
+          broadcastToWebUsers(user.organizationId, 'draft_invoice_line_item_added', {
+            invoiceId: draftInvoice.id,
+            projectId,
+            smartCaptureItemId: item.id,
+            description: item.description || item.partNumber || 'Smart Capture Item',
+            createdBy: user.username,
+            timestamp: new Date().toISOString()
+          });
+        }
+      } catch (lineItemError) {
+        console.error("❌ Error adding Smart Capture item to draft invoice:", lineItemError);
+        // Continue with item creation even if draft invoice update fails
+      }
       
       // Add user information to the created item for response
       const itemWithUser = {
