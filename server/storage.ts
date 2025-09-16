@@ -19,7 +19,7 @@ import {
   callRecords, callRecordings, callTranscripts, voicemails, callQueues, 
   organizationTwilioSettings, organizationCallAnalytics,
   streamSessions, streamViewers, streamInvitations, streamNotifications,
-  smartCaptureLists, smartCaptureItems
+  smartCaptureLists, smartCaptureItems, timeEntries
 } from "@shared/schema";
 import { marketResearchCompetitors } from "@shared/schema";
 import type { GasCard, InsertGasCard, GasCardAssignment, InsertGasCardAssignment, GasCardUsage, InsertGasCardUsage, GasCardProvider, InsertGasCardProvider } from "@shared/schema";
@@ -177,6 +177,9 @@ export interface IStorage {
   getProjectFiles(projectId: number, userId: number): Promise<any[]>;
   getProjectFile(fileId: number, userId: number): Promise<any>;
   deleteProjectFile(fileId: number, userId: number): Promise<boolean>;
+  
+  // Time entry methods
+  getTimeEntries(projectId: number, userId: number): Promise<any[]>;
   
   // Folder methods
   getFolders(organizationId: number, parentId?: number): Promise<any[]>;
@@ -2739,6 +2742,22 @@ export class DatabaseStorage implements IStorage {
       .where(eq(projectFiles.id, fileId))
       .returning();
     return result.length > 0;
+  }
+
+  async getTimeEntries(projectId: number, userId: number): Promise<any[]> {
+    try {
+      return await db
+        .select()
+        .from(timeEntries)
+        .where(and(
+          eq(timeEntries.projectId, projectId),
+          eq(timeEntries.userId, userId)
+        ))
+        .orderBy(desc(timeEntries.clockInTime));
+    } catch (error) {
+      console.error('Error fetching time entries:', error);
+      return [];
+    }
   }
 
   // Calendar jobs methods
@@ -8260,9 +8279,26 @@ export class DatabaseStorage implements IStorage {
     try {
       return await db
         .select({
-          ...smartCaptureItems,
-          submittedBy: sql<string>`COALESCE(CONCAT(${users.firstName}, ' ', ${users.lastName}), 'Unknown User')`,
-          submittedByEmail: sql<string>`COALESCE(${users.email}, 'unknown@system.local')`,
+          id: smartCaptureItems.id,
+          listId: smartCaptureItems.listId,
+          projectId: smartCaptureItems.projectId,
+          userId: smartCaptureItems.userId,
+          organizationId: smartCaptureItems.organizationId,
+          title: smartCaptureItems.title,
+          description: smartCaptureItems.description,
+          category: smartCaptureItems.category,
+          priority: smartCaptureItems.priority,
+          status: smartCaptureItems.status,
+          tags: smartCaptureItems.tags,
+          location: smartCaptureItems.location,
+          assignedTo: smartCaptureItems.assignedTo,
+          dueDate: smartCaptureItems.dueDate,
+          createdAt: smartCaptureItems.createdAt,
+          updatedAt: smartCaptureItems.updatedAt,
+          completedAt: smartCaptureItems.completedAt,
+          metadata: smartCaptureItems.metadata,
+          submittedBy: users.firstName,
+          submittedByEmail: users.email,
           submissionTime: smartCaptureItems.createdAt
         })
         .from(smartCaptureItems)
