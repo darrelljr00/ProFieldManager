@@ -8,16 +8,18 @@ import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, Dialog
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
-import { Plus, Search, Filter, Upload, FileText, Calendar } from "lucide-react";
+import { Plus, Search, Filter, Upload, FileText, Calendar, Package } from "lucide-react";
 
 export default function Invoices() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [activeTab, setActiveTab] = useState("all");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -120,12 +122,26 @@ export default function Invoices() {
     uploadInvoiceMutation.mutate(formData);
   };
 
+  // Helper function to check if an invoice contains Smart Capture items
+  const hasSmartCaptureItems = (invoice: any) => {
+    if (!invoice.lineItems || !Array.isArray(invoice.lineItems)) return false;
+    return invoice.lineItems.some((item: any) => 
+      item.description?.toLowerCase().includes('smart capture') ||
+      item.description?.toLowerCase().includes('vehicle') ||
+      item.description?.toLowerCase().includes('part') ||
+      item.description?.toLowerCase().includes('inventory') ||
+      item.category === 'smart_capture'
+    );
+  };
+
   const filteredInvoices = safeInvoices.filter((invoice: any) => {
     const matchesSearch = invoice.customer?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          invoice.invoiceNumber?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || invoice.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  const smartCaptureInvoices = filteredInvoices.filter(hasSmartCaptureItems);
 
   return (
     <div className="flex-1">
@@ -232,13 +248,37 @@ export default function Invoices() {
           </div>
         </div>
 
-        {/* Invoices Table */}
-        <InvoicesTable 
-          invoices={filteredInvoices} 
-          isLoading={isLoading}
-          title="All Invoices"
-          showViewAll={false}
-        />
+        {/* Invoices Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsTrigger value="all" className="flex items-center gap-2">
+              <FileText className="w-4 h-4" />
+              All Invoices ({filteredInvoices.length})
+            </TabsTrigger>
+            <TabsTrigger value="smart-capture" className="flex items-center gap-2">
+              <Package className="w-4 h-4" />
+              Smart Capture Invoices ({smartCaptureInvoices.length})
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="all">
+            <InvoicesTable 
+              invoices={filteredInvoices} 
+              isLoading={isLoading}
+              title="All Invoices"
+              showViewAll={false}
+            />
+          </TabsContent>
+          
+          <TabsContent value="smart-capture">
+            <InvoicesTable 
+              invoices={smartCaptureInvoices} 
+              isLoading={isLoading}
+              title="Smart Capture Invoices"
+              showViewAll={false}
+            />
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );
