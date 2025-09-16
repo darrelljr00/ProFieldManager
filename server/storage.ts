@@ -8261,7 +8261,7 @@ export class DatabaseStorage implements IStorage {
       return await db
         .select({
           ...smartCaptureItems,
-          submittedBy: sql<string>`COALESCE(CONCAT(${users.firstName}, ' ', ${users.lastName}), 'Unknown User')`,
+          submittedBy: sql<string>`COALESCE(${users.firstName} || ' ' || ${users.lastName}, 'Unknown User')`,
           submittedByEmail: sql<string>`COALESCE(${users.email}, 'unknown@system.local')`,
           submissionTime: smartCaptureItems.createdAt
         })
