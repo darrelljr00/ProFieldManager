@@ -101,11 +101,11 @@ export default function SmartCapturePage() {
         setMatchedMasterItem(masterItem);
         
         // Auto-populate the master price in the form
-        smartCaptureItemForm.setValue('masterPrice', masterItem.price?.toString() || '0');
+        smartCaptureItemForm.setValue('masterPrice', masterItem.masterPrice?.toString() || '0');
         
         toast({
           title: "Master Item Found",
-          description: `Auto-linked to ${masterItem.name || masterItem.vehicleNumber || masterItem.partNumber} - $${masterItem.price}`,
+          description: `Auto-linked to ${masterItem.name || masterItem.vehicleNumber || masterItem.partNumber} - $${masterItem.masterPrice || '0.00'}`,
         });
       } else if (results.length > 1) {
         setMatchedMasterItem(null);
