@@ -2347,7 +2347,16 @@ export default function Jobs() {
                           <div key={item.id} className="bg-white border border-purple-100 rounded p-2">
                             <div className="flex justify-between items-start">
                               <div className="flex-1">
-                                <p className="text-sm font-medium text-purple-900">{item.partNumber}</p>
+                                {/* Display all available item identifiers */}
+                                {item.vehicleNumber && (
+                                  <p className="text-sm font-medium text-purple-900">Vehicle: {item.vehicleNumber}</p>
+                                )}
+                                {item.partNumber && (
+                                  <p className="text-sm font-medium text-purple-900">Part: {item.partNumber}</p>
+                                )}
+                                {item.inventoryNumber && (
+                                  <p className="text-sm font-medium text-purple-900">Inventory: {item.inventoryNumber}</p>
+                                )}
                                 <p className="text-xs text-gray-600">Location: {item.location}</p>
                                 <p className="text-xs text-gray-600">Quantity: {item.quantity}</p>
                                 {item.notes && (
