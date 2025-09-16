@@ -5833,6 +5833,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         includeGpsCoords,
         timestampPosition,
         shareWithTeam,
+        enableSmartCapture,
         ...otherData 
       } = req.body;
       
@@ -5868,6 +5869,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       const project = await storage.createProject(projectData);
+      
+      // Automatically create draft invoice for Smart Capture enabled projects
+      if (enableSmartCapture) {
+        try {
+          const user = getAuthenticatedUser(req);
+          await storage.createDraftInvoice(project.id, user.organizationId, {
+            customerId: project.customerId || null,
+            description: `Draft invoice for ${project.name}`,
+            notes: "Auto-generated invoice for Smart Capture project"
+          });
+          
+          console.log(`✅ Auto-created draft invoice for Smart Capture project ${project.id}`);
+          
+          // Broadcast draft invoice creation to organization users
+          broadcastToWebUsers(user.organizationId, 'project_draft_invoice_created', {
+            projectId: project.id,
+            projectName: project.name,
+            createdBy: user.username,
+            timestamp: new Date().toISOString()
+          });
+        } catch (draftInvoiceError) {
+          console.error("❌ Error creating draft invoice for Smart Capture project:", draftInvoiceError);
+          // Continue with project creation even if draft invoice creation fails
+        }
+      }
       
       // Handle waiver attachments if any were selected
       const { includeWaivers, selectedWaivers } = req.body;
