@@ -148,7 +148,12 @@ export function useWebSocket() {
       'disciplinary_action_created': `Disciplinary action recorded by ${data.createdBy}`,
       'navigation_order_updated': `Navigation tabs reordered by ${data.updatedBy}`,
       'navigation_order_reset': `Navigation tabs reset to default by ${data.resetBy}`,
-      'navigation_order_forced_update': `Navigation updates pushed to all users by ${data.pushedBy}`
+      'navigation_order_forced_update': `Navigation updates pushed to all users by ${data.pushedBy}`,
+      'smart_capture_item_created': `Smart Capture item added by ${data?.createdBy || 'system'}`,
+      'smart_capture_item_updated': `Smart Capture item updated by ${data?.updatedBy || 'system'}`,
+      'smart_capture_item_deleted': `Smart Capture item removed by ${data?.deletedBy || 'system'}`,
+      'draft_invoice_created': `Draft invoice created for project "${data?.projectName || `project #${data?.projectId || 'unknown'}`}" by ${data?.createdBy || 'system'}`,
+      'project_invoice_finalized': `Invoice finalized for completed project "${data?.projectName || `project #${data?.projectId || 'unknown'}`}" by ${data?.finalizedBy || 'system'}`
     };
 
     const notificationMessage = notifications[eventType];
@@ -161,14 +166,13 @@ export function useWebSocket() {
     }
 
     // Trigger data refresh for relevant pages
-    refreshPageData(eventType);
+    refreshPageData(eventType, data);
   };
 
-  const refreshPageData = (eventType: string) => {
-    // Always trigger websocket update event for global query invalidation
-    window.dispatchEvent(new CustomEvent('websocket-update', { 
-      detail: { eventType, data: lastMessage?.data } 
-    }));
+  const refreshPageData = (eventType: string, eventData: any) => {
+    // Trigger websocket update event for global query invalidation
+    // Note: This is called after the main dispatch in handleRealtimeUpdate
+    // Consider if this second dispatch is needed for your use case
   };
 
   return {
