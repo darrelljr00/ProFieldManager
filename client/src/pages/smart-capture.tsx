@@ -9,10 +9,13 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { Plus, Package, List, Edit, AlertCircle, Trash2, Pencil } from "lucide-react";
 import { 
@@ -39,12 +42,19 @@ export default function SmartCapturePage() {
   const [editingItem, setEditingItem] = useState<SmartCaptureItem | null>(null);
   const [activeTab, setActiveTab] = useState("lists");
   
+  // Smart Capture pricing visibility setting
+  const [showSmartCapturePricing, setShowSmartCapturePricing] = useState(true);
+  
   // State for automatic master item linking
   const [masterSearchResults, setMasterSearchResults] = useState<any[]>([]);
   const [matchedMasterItem, setMatchedMasterItem] = useState<any>(null);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  
+  // Check if user is admin or manager
+  const isAdminOrManager = user?.role === 'admin' || user?.role === 'manager';
 
   // Fetch Smart Capture lists
   const { data: smartCaptureLists = [], isLoading: smartCaptureLoading, error: smartCaptureError } = useQuery({
@@ -273,7 +283,19 @@ export default function SmartCapturePage() {
           <h1 className="text-3xl font-bold">Smart Capture</h1>
           <p className="text-muted-foreground">Create and manage inventory lists with part numbers, vehicle numbers, and pricing</p>
         </div>
-        <Dialog open={isCreateListDialogOpen} onOpenChange={setIsCreateListDialogOpen}>
+        <div className="flex items-center gap-4">
+          {isAdminOrManager && (
+            <div className="flex items-center gap-2">
+              <Label htmlFor="show-pricing" className="text-sm">Show Pricing</Label>
+              <Switch
+                id="show-pricing"
+                checked={showSmartCapturePricing}
+                onCheckedChange={setShowSmartCapturePricing}
+                data-testid="toggle-show-pricing"
+              />
+            </div>
+          )}
+          <Dialog open={isCreateListDialogOpen} onOpenChange={setIsCreateListDialogOpen}>
           <DialogTrigger asChild>
             <Button data-testid="button-create-list">
               <Plus className="h-4 w-4 mr-2" />
@@ -356,6 +378,7 @@ export default function SmartCapturePage() {
             </Form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* Main Content */}
@@ -703,7 +726,9 @@ export default function SmartCapturePage() {
                         <TableHead>Inventory #</TableHead>
                         <TableHead>Notes</TableHead>
                         <TableHead>Quantity</TableHead>
-                        <TableHead>Master Price</TableHead>
+                        {(isAdminOrManager && showSmartCapturePricing) && (
+                          <TableHead>Master Price</TableHead>
+                        )}
                         <TableHead>Location</TableHead>
                         <TableHead>Actions</TableHead>
                       </TableRow>
@@ -733,7 +758,9 @@ export default function SmartCapturePage() {
                             <TableCell>{item.inventoryNumber || "-"}</TableCell>
                             <TableCell>{item.notes || "-"}</TableCell>
                             <TableCell>{item.quantity}</TableCell>
-                            <TableCell>${parseFloat(item.masterPrice?.toString() || "0").toFixed(2)}</TableCell>
+                            {(isAdminOrManager && showSmartCapturePricing) && (
+                              <TableCell>${parseFloat(item.masterPrice?.toString() || "0").toFixed(2)}</TableCell>
+                            )}
                             <TableCell>{item.location}</TableCell>
                             <TableCell>
                               <div className="flex gap-2">
