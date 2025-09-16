@@ -8555,12 +8555,8 @@ export class DatabaseStorage implements IStorage {
         ))
         .orderBy(smartCaptureItems.createdAt);
         
-      // Ensure numeric values are properly converted
-      return items.map(item => ({
-        ...item,
-        masterPrice: item.masterPrice ? Number(item.masterPrice) : item.masterPrice,
-        masterPriceSnapshot: item.masterPriceSnapshot ? Number(item.masterPriceSnapshot) : item.masterPriceSnapshot,
-      }));
+      // Return items as-is (decimal values are strings in Drizzle)
+      return items;
     } catch (error) {
       console.error('Error fetching smart capture items:', error);
       return [];
