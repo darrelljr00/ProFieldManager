@@ -6619,7 +6619,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Get draft invoice for this project
-      const draftInvoice = await storage.getDraftInvoiceForProject(projectId, user.organizationId);
+      let draftInvoice = await storage.getDraftInvoiceForProject(projectId, user.organizationId);
+      
+      // Self-healing: If no draft exists but project has customer, Smart Capture enabled, and items exist, create one
+      if (!draftInvoice && project.customerId && project.enableSmartCapture) {
+        // Check if Smart Capture items exist for this project
+        const smartCaptureItems = await storage.getSmartCaptureItemsByProject(projectId, user.organizationId);
+        
+        if (smartCaptureItems && smartCaptureItems.length > 0) {
+          console.log(`🔧 SELF-HEALING: Creating draft invoice for project ${projectId} with ${smartCaptureItems.length} Smart Capture items`);
+          
+          // Create the draft invoice
+          draftInvoice = await storage.ensureDraftInvoiceForProject(projectId, project.customerId, user.id, user.organizationId);
+          
+          // Backfill all existing Smart Capture items into the draft invoice
+          for (const item of smartCaptureItems) {
+            const lineItemData = {
+              description: item.description || `Smart Capture Item #${item.id}`,
+              quantity: item.quantity || 1,
+              rate: item.masterPrice || 0,
+              amount: (item.quantity || 1) * (item.masterPrice || 0),
+              sourceType: 'smart_capture',
+              smartCaptureItemId: item.id,
+              priceSnapshot: {
+                price: item.masterPrice,
+                capturedAt: new Date().toISOString()
+              }
+            };
+            
+            await storage.upsertDraftInvoiceLineItem(draftInvoice.id, lineItemData, user.organizationId);
+          }
+          
+          console.log(`✅ SELF-HEALING: Draft invoice ${draftInvoice.id} created with ${smartCaptureItems.length} line items`);
+          
+          // Re-fetch the complete draft invoice with line items
+          draftInvoice = await storage.getDraftInvoiceForProject(projectId, user.organizationId);
+        }
+      }
       
       if (!draftInvoice) {
         return res.status(404).json({ message: "No draft invoice found for this project" });
