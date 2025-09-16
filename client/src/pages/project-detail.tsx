@@ -547,14 +547,20 @@ export default function ProjectDetail() {
           <Button 
             onClick={() => {
               const partNumber = prompt("Enter part number for Smart Capture:");
-              if (partNumber) {
-                createSmartCaptureItemMutation.mutate({
-                  partNumber: partNumber,
-                  location: "Job Site",
-                  masterPrice: "0.00",
-                  quantity: 1,
-                  notes: ""
-                });
+              if (partNumber && partNumber.trim()) {
+                const location = prompt("Enter location (required):", "Job Site");
+                if (location && location.trim()) {
+                  const priceStr = prompt("Enter price (optional):", "0.00");
+                  const price = priceStr && !isNaN(Number(priceStr)) ? priceStr : "0.00";
+                  
+                  createSmartCaptureItemMutation.mutate({
+                    partNumber: partNumber.trim(),
+                    location: location.trim(),
+                    masterPrice: price,
+                    quantity: 1,
+                    notes: ""
+                  });
+                }
               }
             }}
             disabled={createSmartCaptureItemMutation.isPending}
