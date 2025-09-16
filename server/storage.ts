@@ -8425,11 +8425,12 @@ export class DatabaseStorage implements IStorage {
       }
       
       const result = await db.execute(sql`
-        SELECT sci.id, sci.list_id, sci.organization_id, sci.project_id, sci.part_number, 
-               sci.vehicle_number, sci.inventory_number, sci.master_price, sci.location,
-               sci.quantity, sci.description, sci.notes, sci.master_item_id, 
-               sci.master_price_snapshot, sci.derived_part_id, sci.derived_vehicle_id,
-               sci.created_at, sci.updated_at
+        SELECT sci.id, sci.list_id as "listId", sci.organization_id as "organizationId", sci.project_id as "projectId", 
+               sci.part_number as "partNumber", sci.vehicle_number as "vehicleNumber", 
+               sci.inventory_number as "inventoryNumber", sci.master_price as "masterPrice", sci.location,
+               sci.quantity, sci.description, sci.notes, sci.master_item_id as "masterItemId", 
+               sci.master_price_snapshot as "masterPriceSnapshot", sci.derived_part_id as "derivedPartId", 
+               sci.derived_vehicle_id as "derivedVehicleId", sci.created_at as "createdAt", sci.updated_at as "updatedAt"
         FROM smart_capture_items sci
         INNER JOIN smart_capture_lists scl ON sci.list_id = scl.id
         WHERE ${sql.raw(whereConditions.join(' AND '))}
