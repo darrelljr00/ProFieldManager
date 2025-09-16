@@ -8525,34 +8525,42 @@ export class DatabaseStorage implements IStorage {
 
   async getSmartCaptureItems(listId: number, organizationId: number): Promise<SmartCaptureItem[]> {
     try {
-      const result = await db.execute(sql`
-        SELECT 
-          id,
-          list_id as "listId",
-          organization_id as "organizationId", 
-          project_id as "projectId",
-          user_id as "userId",
-          part_number as "partNumber",
-          vehicle_number as "vehicleNumber", 
-          inventory_number as "inventoryNumber",
-          master_price as "masterPrice",
-          location,
-          quantity,
-          description,
-          notes,
-          master_item_id as "masterItemId",
-          master_price_snapshot as "masterPriceSnapshot",
-          derived_part_id as "derivedPartId",
-          derived_vehicle_id as "derivedVehicleId",
-          shared_photo_id as "sharedPhotoId",
-          created_at as "createdAt",
-          updated_at as "updatedAt"
-        FROM smart_capture_items 
-        WHERE list_id = ${listId} 
-        AND organization_id = ${organizationId}
-        ORDER BY created_at ASC
-      `);
-      return result.rows || [];
+      const items = await db
+        .select({
+          id: smartCaptureItems.id,
+          listId: smartCaptureItems.listId,
+          organizationId: smartCaptureItems.organizationId,
+          projectId: smartCaptureItems.projectId,
+          userId: smartCaptureItems.userId,
+          partNumber: smartCaptureItems.partNumber,
+          vehicleNumber: smartCaptureItems.vehicleNumber,
+          inventoryNumber: smartCaptureItems.inventoryNumber,
+          masterPrice: smartCaptureItems.masterPrice,
+          location: smartCaptureItems.location,
+          quantity: smartCaptureItems.quantity,
+          description: smartCaptureItems.description,
+          notes: smartCaptureItems.notes,
+          masterItemId: smartCaptureItems.masterItemId,
+          masterPriceSnapshot: smartCaptureItems.masterPriceSnapshot,
+          derivedPartId: smartCaptureItems.derivedPartId,
+          derivedVehicleId: smartCaptureItems.derivedVehicleId,
+          sharedPhotoId: smartCaptureItems.sharedPhotoId,
+          createdAt: smartCaptureItems.createdAt,
+          updatedAt: smartCaptureItems.updatedAt,
+        })
+        .from(smartCaptureItems)
+        .where(and(
+          eq(smartCaptureItems.listId, listId),
+          eq(smartCaptureItems.organizationId, organizationId)
+        ))
+        .orderBy(smartCaptureItems.createdAt);
+        
+      // Ensure numeric values are properly converted
+      return items.map(item => ({
+        ...item,
+        masterPrice: item.masterPrice ? Number(item.masterPrice) : item.masterPrice,
+        masterPriceSnapshot: item.masterPriceSnapshot ? Number(item.masterPriceSnapshot) : item.masterPriceSnapshot,
+      }));
     } catch (error) {
       console.error('Error fetching smart capture items:', error);
       return [];
