@@ -6619,7 +6619,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Get draft invoice for this project
-      const draftInvoice = await storage.getDraftInvoiceByProject(projectId, user.organizationId);
+      const draftInvoice = await storage.getDraftInvoiceForProject(projectId, user.organizationId);
       
       if (!draftInvoice) {
         return res.status(404).json({ message: "No draft invoice found for this project" });
