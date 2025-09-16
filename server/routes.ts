@@ -6121,6 +6121,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.error('Error sending auto-review request:', reviewError);
           // Don't fail the project update if review request fails
         }
+        
+        // Automatically finalize draft invoice for completed projects
+        if (user) {
+          try {
+            const draftInvoice = await storage.getDraftInvoiceForProject(projectId, user.organizationId);
+            if (draftInvoice) {
+              const finalizedInvoice = await storage.finalizeDraftInvoiceForProject(projectId, user.organizationId);
+              
+              console.log(`✅ Auto-finalized draft invoice ${draftInvoice.id} for completed project ${projectId}`);
+              
+              // Broadcast invoice finalization to organization users
+              broadcastToWebUsers(user.organizationId, 'project_invoice_finalized', {
+                projectId: updatedProject.id,
+                projectName: updatedProject.name,
+                invoiceId: finalizedInvoice.id,
+                invoiceNumber: finalizedInvoice.invoiceNumber || finalizedInvoice.id,
+                finalizedBy: `${user.firstName} ${user.lastName}`,
+                timestamp: new Date().toISOString()
+              });
+            }
+          } catch (invoiceError) {
+            console.error('❌ Error finalizing draft invoice for completed project:', invoiceError);
+            // Don't fail the project update if invoice finalization fails
+          }
+        }
       }
       
       res.json(updatedProject);
