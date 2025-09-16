@@ -8278,31 +8278,8 @@ export class DatabaseStorage implements IStorage {
   async getSmartCaptureItemsByProject(projectId: number, organizationId: number): Promise<any[]> {
     try {
       return await db
-        .select({
-          id: smartCaptureItems.id,
-          listId: smartCaptureItems.listId,
-          projectId: smartCaptureItems.projectId,
-          userId: smartCaptureItems.userId,
-          organizationId: smartCaptureItems.organizationId,
-          title: smartCaptureItems.title,
-          description: smartCaptureItems.description,
-          category: smartCaptureItems.category,
-          priority: smartCaptureItems.priority,
-          status: smartCaptureItems.status,
-          tags: smartCaptureItems.tags,
-          location: smartCaptureItems.location,
-          assignedTo: smartCaptureItems.assignedTo,
-          dueDate: smartCaptureItems.dueDate,
-          createdAt: smartCaptureItems.createdAt,
-          updatedAt: smartCaptureItems.updatedAt,
-          completedAt: smartCaptureItems.completedAt,
-          metadata: smartCaptureItems.metadata,
-          submittedBy: users.firstName,
-          submittedByEmail: users.email,
-          submissionTime: smartCaptureItems.createdAt
-        })
+        .select()
         .from(smartCaptureItems)
-        .leftJoin(users, eq(smartCaptureItems.userId, users.id))
         .where(and(
           eq(smartCaptureItems.projectId, projectId),
           eq(smartCaptureItems.organizationId, organizationId)
