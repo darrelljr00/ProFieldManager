@@ -20616,6 +20616,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const items = await storage.getSmartCaptureItemsByProject(projectId, user.organizationId);
       
+      // DEBUG: Log the actual data structure to see pricing issue for PROJECT items
+      console.log(`🔍 PROJECT SMART CAPTURE ITEMS DEBUG for project ${projectId}:`, {
+        itemCount: items.length,
+        sampleItem: items[0] ? {
+          id: items[0].id,
+          masterPrice: items[0].masterPrice,
+          masterPriceType: typeof items[0].masterPrice,
+          masterPriceString: items[0].masterPrice?.toString(),
+          masterPriceNumber: Number(items[0].masterPrice),
+          description: items[0].description
+        } : null,
+        allItems: items.map(item => ({
+          id: item.id,
+          masterPrice: item.masterPrice,
+          masterPriceType: typeof item.masterPrice,
+          description: item.description
+        }))
+      });
+      
       // Enhance items with user information where possible
       // Items now include real user information from the database
       const itemsWithUserInfo = items;
