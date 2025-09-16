@@ -2347,20 +2347,7 @@ export default function Jobs() {
                 <div className="mb-4">
                   {/* Smart Capture Items */}
                   <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
-                    <div className="flex justify-between items-center mb-2">
-                      <h5 className="text-sm font-semibold text-purple-700">Smart Capture Items</h5>
-                      {isAdminOrManager && (
-                        <div className="flex items-center gap-2">
-                          <Label htmlFor="show-pricing" className="text-xs text-purple-600">Show Pricing</Label>
-                          <Switch
-                            id="show-pricing"
-                            checked={showSmartCapturePricing}
-                            onCheckedChange={setShowSmartCapturePricing}
-                            className="scale-75"
-                          />
-                        </div>
-                      )}
-                    </div>
+                    <h5 className="text-sm font-semibold text-purple-700 mb-2">Smart Capture Items</h5>
                     {smartCaptureData.length > 0 ? (
                       <div className="space-y-2 max-h-40 overflow-y-auto">
                         {smartCaptureData.map((item: any) => (
