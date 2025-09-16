@@ -6550,6 +6550,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get draft invoice for project
+  app.get("/api/projects/:id/invoice-draft", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const projectId = parseInt(req.params.id);
+      
+      // Validate project ID
+      if (!Number.isFinite(projectId) || projectId <= 0) {
+        return res.status(400).json({ message: "Invalid project ID" });
+      }
+      
+      // Verify user has access to the project
+      const project = await storage.getProject(projectId, user.id);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found or access denied" });
+      }
+      
+      // Get draft invoice for this project
+      const draftInvoice = await storage.getDraftInvoiceByProject(projectId, user.organizationId);
+      
+      if (!draftInvoice) {
+        return res.status(404).json({ message: "No draft invoice found for this project" });
+      }
+      
+      res.json(draftInvoice);
+    } catch (error: any) {
+      console.error("Error fetching project draft invoice:", error);
+      res.status(500).json({ message: "Failed to fetch draft invoice" });
+    }
+  });
+
   // Add comprehensive request logging middleware BEFORE all routes
   app.use((req, res, next) => {
     if (req.method === 'POST' && (req.url.includes('/files') || req.url.includes('/login'))) {
