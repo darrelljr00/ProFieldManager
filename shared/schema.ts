@@ -4661,6 +4661,7 @@ export const smartCaptureItems = pgTable("smart_capture_items", {
   quantity: integer("quantity").notNull().default(1),
   description: text("description"),
   notes: text("notes"),
+  image: text("image"), // URL or path to uploaded image
   
   // Master item linking - for project items to reference master items
   masterItemId: integer("master_item_id").references(() => smartCaptureItems.id, { onDelete: "set null" }), // Links project items to master items
@@ -4697,6 +4698,7 @@ export const insertSmartCaptureItemSchema = createInsertSchema(smartCaptureItems
   quantity: z.number().int().min(1, "Quantity must be at least 1").default(1),
   description: z.string().optional(),
   notes: z.string().optional(),
+  image: z.string().optional(), // URL or path to uploaded image
 }).omit({
   id: true,
   listId: true,

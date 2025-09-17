@@ -1065,6 +1065,69 @@ export default function SmartCapturePage() {
                           )}
                         />
 
+                        <FormField
+                          control={smartCaptureItemForm.control}
+                          name="image"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Item Image</FormLabel>
+                              <FormControl>
+                                <div className="space-y-4">
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={async (e) => {
+                                      const file = e.target.files?.[0];
+                                      if (file) {
+                                        const formData = new FormData();
+                                        formData.append('file', file);
+                                        
+                                        try {
+                                          const response = await fetch('/api/files/upload', {
+                                            method: 'POST',
+                                            headers: {
+                                              'Authorization': `Bearer ${import.meta.env.VITE_AUTH_TOKEN || localStorage.getItem('authToken')}`,
+                                            },
+                                            body: formData,
+                                          });
+                                          
+                                          if (response.ok) {
+                                            const data = await response.json();
+                                            field.onChange(data.url || data.filePath);
+                                          } else {
+                                            console.error('Upload failed');
+                                          }
+                                        } catch (error) {
+                                          console.error('Upload error:', error);
+                                        }
+                                      }
+                                    }}
+                                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                                    data-testid="input-image"
+                                  />
+                                  {field.value && (
+                                    <div className="mt-2">
+                                      <img 
+                                        src={field.value} 
+                                        alt="Item preview" 
+                                        className="w-32 h-32 object-cover rounded-lg border"
+                                      />
+                                      <button
+                                        type="button"
+                                        onClick={() => field.onChange('')}
+                                        className="mt-1 text-sm text-red-600 hover:text-red-800"
+                                      >
+                                        Remove image
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
                         <div className="flex justify-end space-x-2 pt-4">
                           <Button
                             type="button"
@@ -1093,6 +1156,7 @@ export default function SmartCapturePage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead>Image</TableHead>
                         <TableHead>Part #</TableHead>
                         <TableHead>Vehicle #</TableHead>
                         <TableHead>Inventory #</TableHead>
@@ -1108,23 +1172,38 @@ export default function SmartCapturePage() {
                     <TableBody>
                       {itemsLoading ? (
                         <TableRow>
-                          <TableCell colSpan={8} className="text-center">Loading items...</TableCell>
+                          <TableCell colSpan={9} className="text-center">Loading items...</TableCell>
                         </TableRow>
                       ) : itemsError ? (
                         <TableRow>
-                          <TableCell colSpan={8} className="text-center text-red-600">
+                          <TableCell colSpan={9} className="text-center text-red-600">
                             Error loading items: {itemsError.message}
                           </TableCell>
                         </TableRow>
                       ) : Array.isArray(smartCaptureItems) && smartCaptureItems.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={8} className="text-center">
+                          <TableCell colSpan={9} className="text-center">
                             No items in this list. Click "Add Item" to get started.
                           </TableCell>
                         </TableRow>
                       ) : (
                         Array.isArray(smartCaptureItems) && smartCaptureItems.map((item: SmartCaptureItem) => (
                           <TableRow key={item.id} data-testid={`item-row-${item.id}`}>
+                            <TableCell>
+                              {item.image ? (
+                                <img 
+                                  src={item.image} 
+                                  alt="Item image" 
+                                  className="w-12 h-12 object-cover rounded border cursor-pointer"
+                                  onClick={() => window.open(item.image, '_blank')}
+                                  data-testid={`item-image-${item.id}`}
+                                />
+                              ) : (
+                                <div className="w-12 h-12 bg-gray-100 rounded border flex items-center justify-center text-gray-400 text-xs">
+                                  No image
+                                </div>
+                              )}
+                            </TableCell>
                             <TableCell>{item.partNumber || "-"}</TableCell>
                             <TableCell>{item.vehicleNumber || "-"}</TableCell>
                             <TableCell>{item.inventoryNumber || "-"}</TableCell>
