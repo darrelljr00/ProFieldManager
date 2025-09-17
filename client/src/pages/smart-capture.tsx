@@ -643,7 +643,7 @@ export default function SmartCapturePage() {
         <TabsContent value="lists" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Smart Capture Lists</CardTitle>
+              <CardTitle>Smart Capture Inventory</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="rounded-md border">
