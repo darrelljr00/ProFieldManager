@@ -8531,7 +8531,6 @@ export class DatabaseStorage implements IStorage {
           listId: smartCaptureItems.listId,
           organizationId: smartCaptureItems.organizationId,
           projectId: smartCaptureItems.projectId,
-          userId: smartCaptureItems.userId,
           partNumber: smartCaptureItems.partNumber,
           vehicleNumber: smartCaptureItems.vehicleNumber,
           inventoryNumber: smartCaptureItems.inventoryNumber,
@@ -8544,7 +8543,6 @@ export class DatabaseStorage implements IStorage {
           masterPriceSnapshot: smartCaptureItems.masterPriceSnapshot,
           derivedPartId: smartCaptureItems.derivedPartId,
           derivedVehicleId: smartCaptureItems.derivedVehicleId,
-          sharedPhotoId: smartCaptureItems.sharedPhotoId,
           createdAt: smartCaptureItems.createdAt,
           updatedAt: smartCaptureItems.updatedAt,
         })
