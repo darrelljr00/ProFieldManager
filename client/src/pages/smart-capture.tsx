@@ -1393,15 +1393,15 @@ export default function SmartCapturePage() {
                     <FormLabel>Linked Project (Optional)</FormLabel>
                     <FormControl>
                       <Select 
-                        value={field.value ? field.value.toString() : ""} 
-                        onValueChange={(value) => field.onChange(value ? parseInt(value) : undefined)}
+                        value={field.value ? field.value.toString() : "null"} 
+                        onValueChange={(value) => field.onChange(value && value !== "null" ? parseInt(value) : undefined)}
                         data-testid="select-edit-list-project"
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select a project (optional)" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">No Project</SelectItem>
+                          <SelectItem value="null">No Project</SelectItem>
                           {(() => {
                             // Create a list that includes active projects and the currently assigned project if it's not active
                             const currentProjectId = editingList?.projectId;
