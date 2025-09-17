@@ -264,8 +264,11 @@ export default function SmartCapturePage() {
   const [isCreateListDialogOpen, setIsCreateListDialogOpen] = useState(false);
   const [isAddItemDialogOpen, setIsAddItemDialogOpen] = useState(false);
   const [isEditItemDialogOpen, setIsEditItemDialogOpen] = useState(false);
+  const [isEditListDialogOpen, setIsEditListDialogOpen] = useState(false);
+  const [isDeleteListDialogOpen, setIsDeleteListDialogOpen] = useState(false);
   const [selectedSmartCaptureList, setSelectedSmartCaptureList] = useState<any>(null);
   const [editingItem, setEditingItem] = useState<SmartCaptureItem | null>(null);
+  const [editingList, setEditingList] = useState<SmartCaptureList | null>(null);
   const [activeTab, setActiveTab] = useState("lists");
   
   // Smart Capture pricing visibility setting
@@ -286,6 +289,14 @@ export default function SmartCapturePage() {
   const { data: smartCaptureLists = [], isLoading: smartCaptureLoading, error: smartCaptureError } = useQuery({
     queryKey: ['/api/smart-capture/lists']
   });
+
+  // Fetch ALL projects for project selection in forms (not just active ones)
+  const { data: allProjects = [] } = useQuery<any[]>({
+    queryKey: ['/api/projects']
+  });
+
+  // For the dropdown, we'll show active projects plus any currently assigned project
+  const projects = allProjects.filter((project: any) => project.status === 'active') || [];
 
   // Fetch Smart Capture items for selected list
   const { data: selectedListWithItems, isLoading: itemsLoading, error: itemsError } = useQuery<SmartCaptureListWithItems>({
@@ -399,6 +410,10 @@ export default function SmartCapturePage() {
   const updateSmartCaptureItemMutation = useMutation({
     mutationFn: async (data: { itemId: number; updateData: Partial<InsertSmartCaptureItem> }) => {
       const response = await apiRequest('PUT', `/api/smart-capture/items/${data.itemId}`, data.updateData);
+      // Check if response has content before trying to parse JSON (avoid 204 No Content errors)
+      if (response.status === 204 || response.headers.get('content-length') === '0') {
+        return { success: true };
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -416,6 +431,10 @@ export default function SmartCapturePage() {
   const deleteSmartCaptureItemMutation = useMutation({
     mutationFn: async (itemId: number) => {
       const response = await apiRequest('DELETE', `/api/smart-capture/items/${itemId}`, {});
+      // Check if response has content before trying to parse JSON (avoid 204 No Content errors)
+      if (response.status === 204 || response.headers.get('content-length') === '0') {
+        return { success: true };
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -425,6 +444,57 @@ export default function SmartCapturePage() {
     },
     onError: (error: any) => {
       toast({ title: "Error", description: error.message || "Failed to delete item", variant: "destructive" });
+    }
+  });
+
+  const updateSmartCaptureListMutation = useMutation({
+    mutationFn: async (data: { listId: number; updateData: Partial<InsertSmartCaptureList> }) => {
+      const response = await apiRequest('PUT', `/api/smart-capture/lists/${data.listId}`, data.updateData);
+      // Check if response has content before trying to parse JSON (avoid 204 No Content errors)
+      if (response.status === 204 || response.headers.get('content-length') === '0') {
+        return { success: true };
+      }
+      return response.json();
+    },
+    onSuccess: (updatedList) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/smart-capture/lists'] });
+      
+      // Update selectedSmartCaptureList if it's currently selected to prevent stale UI data
+      if (selectedSmartCaptureList?.id === updatedList?.id) {
+        setSelectedSmartCaptureList(updatedList);
+      }
+      
+      setIsEditListDialogOpen(false);
+      setEditingList(null);
+      toast({ title: "Success", description: "Smart Capture list updated successfully" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message || "Failed to update Smart Capture list", variant: "destructive" });
+    }
+  });
+
+  const deleteSmartCaptureListMutation = useMutation({
+    mutationFn: async (listId: number) => {
+      const response = await apiRequest('DELETE', `/api/smart-capture/lists/${listId}`, {});
+      // Check if response has content before trying to parse JSON (avoid 204 No Content errors)
+      if (response.status === 204 || response.headers.get('content-length') === '0') {
+        return { success: true };
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/smart-capture/lists'] });
+      setIsDeleteListDialogOpen(false);
+      setEditingList(null);
+      // If we deleted the selected list, clear it
+      if (selectedSmartCaptureList?.id === editingList?.id) {
+        setSelectedSmartCaptureList(null);
+        setActiveTab("lists");
+      }
+      toast({ title: "Success", description: "Smart Capture list deleted successfully" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message || "Failed to delete Smart Capture list", variant: "destructive" });
     }
   });
 
@@ -463,6 +533,16 @@ export default function SmartCapturePage() {
       quantity: 1,
       description: "",
       notes: ""
+    }
+  });
+
+  const editSmartCaptureListForm = useForm({
+    resolver: zodResolver(insertSmartCaptureListSchema),
+    defaultValues: {
+      name: "",
+      description: "",
+      status: "draft" as "draft" | "active" | "archived",
+      projectId: undefined
     }
   });
 
@@ -509,6 +589,36 @@ export default function SmartCapturePage() {
   const handleDeleteItem = (itemId: number) => {
     if (confirm("Are you sure you want to delete this item?")) {
       deleteSmartCaptureItemMutation.mutate(itemId);
+    }
+  };
+
+  const onEditSmartCaptureListSubmit = (data: any) => {
+    if (!editingList?.id) return;
+    updateSmartCaptureListMutation.mutate({
+      listId: editingList.id,
+      updateData: data as InsertSmartCaptureList
+    });
+  };
+
+  const handleEditList = (list: SmartCaptureList) => {
+    setEditingList(list);
+    editSmartCaptureListForm.reset({
+      name: list.name || "",
+      description: list.description || "",
+      status: (list.status || "draft") as "draft" | "active" | "archived",
+      projectId: list.projectId || undefined
+    });
+    setIsEditListDialogOpen(true);
+  };
+
+  const handleDeleteList = (list: SmartCaptureList) => {
+    setEditingList(list);
+    setIsDeleteListDialogOpen(true);
+  };
+
+  const confirmDeleteList = () => {
+    if (editingList?.id) {
+      deleteSmartCaptureListMutation.mutate(editingList.id);
     }
   };
 
@@ -700,6 +810,23 @@ export default function SmartCapturePage() {
                               >
                                 <Package className="h-3 w-3 mr-1" />
                                 Manage Items
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEditList(list)}
+                                data-testid={`button-edit-list-${list.id}`}
+                              >
+                                <Pencil className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDeleteList(list)}
+                                className="text-red-600 hover:text-red-700"
+                                data-testid={`button-delete-list-${list.id}`}
+                              >
+                                <Trash2 className="h-3 w-3" />
                               </Button>
                             </div>
                           </TableCell>
@@ -1199,6 +1326,170 @@ export default function SmartCapturePage() {
               </div>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Smart Capture List Dialog */}
+      <Dialog open={isEditListDialogOpen} onOpenChange={setIsEditListDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit Smart Capture List</DialogTitle>
+          </DialogHeader>
+          <Form {...editSmartCaptureListForm}>
+            <form onSubmit={editSmartCaptureListForm.handleSubmit(onEditSmartCaptureListSubmit)} className="space-y-4">
+              <FormField
+                control={editSmartCaptureListForm.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>List Name *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., Project 123 Items" {...field} data-testid="input-edit-list-name" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={editSmartCaptureListForm.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="Brief description of this list..." {...field} data-testid="input-edit-list-description" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={editSmartCaptureListForm.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Status</FormLabel>
+                    <FormControl>
+                      <Select value={field.value} onValueChange={field.onChange} data-testid="select-edit-list-status">
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="draft">Draft</SelectItem>
+                          <SelectItem value="active">Active</SelectItem>
+                          <SelectItem value="archived">Archived</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={editSmartCaptureListForm.control}
+                name="projectId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Linked Project (Optional)</FormLabel>
+                    <FormControl>
+                      <Select 
+                        value={field.value ? field.value.toString() : ""} 
+                        onValueChange={(value) => field.onChange(value ? parseInt(value) : undefined)}
+                        data-testid="select-edit-list-project"
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a project (optional)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">No Project</SelectItem>
+                          {(() => {
+                            // Create a list that includes active projects and the currently assigned project if it's not active
+                            const currentProjectId = editingList?.projectId;
+                            const currentProject = currentProjectId ? allProjects.find(p => p.id === currentProjectId) : null;
+                            const projectsToShow = [...projects];
+                            
+                            // If the currently assigned project is not active, add it to the list
+                            if (currentProject && currentProject.status !== 'active' && !projectsToShow.find(p => p.id === currentProject.id)) {
+                              projectsToShow.push(currentProject);
+                            }
+                            
+                            return projectsToShow.map((project: any) => (
+                              <SelectItem key={project.id} value={project.id.toString()}>
+                                {project.name}{project.status !== 'active' ? ` (${project.status})` : ''}
+                              </SelectItem>
+                            ));
+                          })()}
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormMessage />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Link to a project to enable Smart Capture automated invoicing
+                    </p>
+                  </FormItem>
+                )}
+              />
+              <div className="flex justify-end space-x-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsEditListDialogOpen(false)}
+                  disabled={updateSmartCaptureListMutation.isPending}
+                  data-testid="button-cancel-edit-list"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={updateSmartCaptureListMutation.isPending}
+                  data-testid="button-submit-edit-list"
+                >
+                  {updateSmartCaptureListMutation.isPending ? "Updating..." : "Update List"}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Smart Capture List Confirmation Dialog */}
+      <Dialog open={isDeleteListDialogOpen} onOpenChange={setIsDeleteListDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete Smart Capture List</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex items-start space-x-3">
+              <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-sm text-foreground">
+                  Are you sure you want to delete the list "{editingList?.name}"?
+                </p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  This action cannot be undone. All items in this list will also be deleted.
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsDeleteListDialogOpen(false)}
+                disabled={deleteSmartCaptureListMutation.isPending}
+                data-testid="button-cancel-delete-list"
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={confirmDeleteList}
+                variant="destructive"
+                disabled={deleteSmartCaptureListMutation.isPending}
+                data-testid="button-confirm-delete-list"
+              >
+                {deleteSmartCaptureListMutation.isPending ? "Deleting..." : "Delete List"}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
