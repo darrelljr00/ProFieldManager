@@ -8691,7 +8691,6 @@ export class DatabaseStorage implements IStorage {
           sci.list_id as "listId",
           sci.organization_id as "organizationId", 
           sci.project_id as "projectId",
-          sci.user_id as "userId",
           sci.part_number as "partNumber",
           sci.vehicle_number as "vehicleNumber", 
           sci.inventory_number as "inventoryNumber",
@@ -8706,10 +8705,9 @@ export class DatabaseStorage implements IStorage {
           sci.derived_vehicle_id as "derivedVehicleId",
           sci.created_at as "createdAt",
           sci.updated_at as "updatedAt",
-          COALESCE(u.first_name || ' ' || u.last_name, 'System') as "submittedBy",
+          'System' as "submittedBy",
           sci.created_at as "submissionTime"
         FROM smart_capture_items sci
-        LEFT JOIN users u ON sci.user_id = u.id
         WHERE sci.project_id = ${projectId} 
         AND sci.organization_id = ${organizationId}
         ORDER BY sci.created_at ASC
