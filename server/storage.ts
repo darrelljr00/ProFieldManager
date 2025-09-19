@@ -1370,8 +1370,18 @@ export class DatabaseStorage implements IStorage {
       throw new Error('smartCaptureItemId is required for draft invoice line items');
     }
 
-    // Use transaction for atomic operation with proper onConflictDoUpdate
+    // Use transaction for atomic operation with simple check-and-upsert
     return await db.transaction(async (tx) => {
+      // Check if line item already exists for this Smart Capture item
+      const [existingItem] = await tx
+        .select()
+        .from(invoiceLineItems)
+        .where(and(
+          eq(invoiceLineItems.invoiceId, invoiceId),
+          eq(invoiceLineItems.smartCaptureItemId, smartCaptureItemId)
+        ))
+        .limit(1);
+
       const lineItemValues = {
         invoiceId,
         description,
@@ -1383,21 +1393,30 @@ export class DatabaseStorage implements IStorage {
         priceSnapshot: priceSnapshot ? priceSnapshot.toString() : null
       };
 
-      // Use onConflictDoUpdate with the unique constraint for true idempotency
-      const [upsertedItem] = await tx
-        .insert(invoiceLineItems)
-        .values(lineItemValues)
-        .onConflictDoUpdate({
-          target: [invoiceLineItems.invoiceId, invoiceLineItems.smartCaptureItemId],
-          set: {
+      let upsertedItem;
+
+      if (existingItem) {
+        // Update existing line item
+        const [updatedItem] = await tx
+          .update(invoiceLineItems)
+          .set({
             description: lineItemValues.description,
             quantity: lineItemValues.quantity,
             rate: lineItemValues.rate,
             amount: lineItemValues.amount,
             priceSnapshot: lineItemValues.priceSnapshot
-          }
-        })
-        .returning();
+          })
+          .where(eq(invoiceLineItems.id, existingItem.id))
+          .returning();
+        upsertedItem = updatedItem;
+      } else {
+        // Insert new line item
+        const [insertedItem] = await tx
+          .insert(invoiceLineItems)
+          .values(lineItemValues)
+          .returning();
+        upsertedItem = insertedItem;
+      }
 
       // Recalculate invoice totals within the transaction
       await this.recalculateInvoiceTotals(invoiceId);
