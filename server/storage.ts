@@ -1632,7 +1632,8 @@ export class DatabaseStorage implements IStorage {
       .where(eq(invoiceLineItems.invoiceId, invoiceId));
 
     const subtotalValue = subtotalResult?.subtotal?.toString() || '0';
-    const subtotal = Number(subtotalValue) || 0;
+    const subtotalNum = Number(subtotalValue);
+    const subtotal = isNaN(subtotalNum) ? 0 : subtotalNum;
 
     // Get current tax rate from invoice
     const [currentInvoice] = await db
@@ -1642,9 +1643,14 @@ export class DatabaseStorage implements IStorage {
       .limit(1);
 
     const taxRateValue = currentInvoice?.taxRate?.toString() || '0';
-    const taxRate = Number(taxRateValue) || 0;
-    const taxAmount = (subtotal * taxRate) / 100;
-    const total = subtotal + taxAmount;
+    const taxRateNum = Number(taxRateValue);
+    const taxRate = isNaN(taxRateNum) ? 0 : taxRateNum;
+    
+    const taxAmountNum = (subtotal * taxRate) / 100;
+    const taxAmount = isNaN(taxAmountNum) ? 0 : taxAmountNum;
+    
+    const totalNum = subtotal + taxAmount;
+    const total = isNaN(totalNum) ? 0 : totalNum;
 
     // Update invoice totals
     await db
