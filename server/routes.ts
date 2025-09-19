@@ -6621,39 +6621,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get draft invoice for this project
       let draftInvoice = await storage.getDraftInvoiceForProject(projectId, user.organizationId);
       
-      // Self-healing: If no draft exists but project has customer, Smart Capture enabled, and items exist, create one
-      if (!draftInvoice && project.customerId && project.enableSmartCapture) {
+      // Enhanced self-healing: Create draft invoice OR populate missing line items
+      if (project.customerId && project.enableSmartCapture) {
         // Check if Smart Capture items exist for this project
         const smartCaptureItems = await storage.getSmartCaptureItemsByProject(projectId, user.organizationId);
         
         if (smartCaptureItems && smartCaptureItems.length > 0) {
-          console.log(`🔧 SELF-HEALING: Creating draft invoice for project ${projectId} with ${smartCaptureItems.length} Smart Capture items`);
+          let itemsToProcess = [];
           
-          // Create the draft invoice
-          draftInvoice = await storage.ensureDraftInvoiceForProject(projectId, project.customerId, user.id, user.organizationId);
-          
-          // Backfill all existing Smart Capture items into the draft invoice
-          for (const item of smartCaptureItems) {
-            const lineItemData = {
-              description: item.description || `Smart Capture Item #${item.id}`,
-              quantity: item.quantity || 1,
-              rate: item.masterPrice || 0,
-              amount: (item.quantity || 1) * (item.masterPrice || 0),
-              sourceType: 'smart_capture',
-              smartCaptureItemId: item.id,
-              priceSnapshot: {
-                price: item.masterPrice,
-                capturedAt: new Date().toISOString()
-              }
-            };
+          // Case 1: No draft invoice exists - create one
+          if (!draftInvoice) {
+            console.log(`🔧 SELF-HEALING: Creating draft invoice for project ${projectId} with ${smartCaptureItems.length} Smart Capture items`);
+            draftInvoice = await storage.ensureDraftInvoiceForProject(projectId, project.customerId, user.id, user.organizationId);
+            itemsToProcess = smartCaptureItems; // Process all items for new draft invoice
+          }
+          // Case 2: Draft invoice exists but may be missing line items - check and populate
+          else {
+            const existingLineItems = draftInvoice.lineItems || [];
+            const smartCaptureItemIds = smartCaptureItems.map(item => item.id);
+            const existingItemIds = existingLineItems.map(item => item.smartCaptureItemId).filter(id => id);
+            const missingItems = smartCaptureItems.filter(item => !existingItemIds.includes(item.id));
             
-            await storage.upsertDraftInvoiceLineItem(draftInvoice.id, lineItemData, user.organizationId);
+            if (missingItems.length > 0) {
+              console.log(`🔧 SELF-HEALING: Draft invoice ${draftInvoice.id} exists but missing ${missingItems.length} line items. Adding them now.`);
+              itemsToProcess = missingItems; // Only process missing items
+            } else {
+              itemsToProcess = []; // No items to process
+            }
           }
           
-          console.log(`✅ SELF-HEALING: Draft invoice ${draftInvoice.id} created with ${smartCaptureItems.length} line items`);
-          
-          // Re-fetch the complete draft invoice with line items
-          draftInvoice = await storage.getDraftInvoiceForProject(projectId, user.organizationId);
+          // Backfill Smart Capture items into the draft invoice
+          if (itemsToProcess.length > 0) {
+            for (const item of itemsToProcess) {
+              const lineItemData = {
+                description: item.description || `Smart Capture Item #${item.id}`,
+                quantity: item.quantity || 1,
+                rate: item.masterPrice || 0,
+                amount: (item.quantity || 1) * (item.masterPrice || 0),
+                sourceType: 'smart_capture',
+                smartCaptureItemId: item.id,
+                priceSnapshot: item.masterPrice
+              };
+              
+              await storage.upsertDraftInvoiceLineItem(draftInvoice.id, lineItemData, user.organizationId);
+            }
+            
+            console.log(`✅ SELF-HEALING: Draft invoice ${draftInvoice.id} updated with ${itemsToProcess.length} line items`);
+            
+            // Re-fetch the complete draft invoice with line items
+            draftInvoice = await storage.getDraftInvoiceForProject(projectId, user.organizationId);
+          }
         }
       }
       
