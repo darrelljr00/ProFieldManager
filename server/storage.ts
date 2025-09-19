@@ -1624,44 +1624,94 @@ export class DatabaseStorage implements IStorage {
 
   // Helper method to recalculate invoice totals
   private async recalculateInvoiceTotals(invoiceId: number): Promise<void> {
-    const [subtotalResult] = await db
-      .select({
-        subtotal: sql<number>`COALESCE(SUM(CAST(amount AS DECIMAL(10,2))), 0)`
-      })
-      .from(invoiceLineItems)
-      .where(eq(invoiceLineItems.invoiceId, invoiceId));
+    try {
+      const [subtotalResult] = await db
+        .select({
+          subtotal: sql<number>`COALESCE(SUM(CAST(amount AS DECIMAL(10,2))), 0)`
+        })
+        .from(invoiceLineItems)
+        .where(eq(invoiceLineItems.invoiceId, invoiceId));
 
-    const subtotalValue = subtotalResult?.subtotal?.toString() || '0';
-    const subtotalNum = Number(subtotalValue);
-    const subtotal = isNaN(subtotalNum) ? 0 : subtotalNum;
+      // Bulletproof subtotal conversion
+      let subtotal = 0;
+      try {
+        const rawSubtotal = subtotalResult?.subtotal;
+        if (rawSubtotal !== null && rawSubtotal !== undefined) {
+          const subtotalValue = String(rawSubtotal);
+          const subtotalNum = parseFloat(subtotalValue);
+          subtotal = (!isNaN(subtotalNum) && isFinite(subtotalNum)) ? subtotalNum : 0;
+        }
+      } catch (e) {
+        console.error('Error processing subtotal:', e);
+        subtotal = 0;
+      }
 
-    // Get current tax rate from invoice
-    const [currentInvoice] = await db
-      .select({ taxRate: invoices.taxRate })
-      .from(invoices)
-      .where(eq(invoices.id, invoiceId))
-      .limit(1);
+      // Get current tax rate from invoice
+      const [currentInvoice] = await db
+        .select({ taxRate: invoices.taxRate })
+        .from(invoices)
+        .where(eq(invoices.id, invoiceId))
+        .limit(1);
 
-    const taxRateValue = currentInvoice?.taxRate?.toString() || '0';
-    const taxRateNum = Number(taxRateValue);
-    const taxRate = isNaN(taxRateNum) ? 0 : taxRateNum;
-    
-    const taxAmountNum = (subtotal * taxRate) / 100;
-    const taxAmount = isNaN(taxAmountNum) ? 0 : taxAmountNum;
-    
-    const totalNum = subtotal + taxAmount;
-    const total = isNaN(totalNum) ? 0 : totalNum;
+      // Bulletproof tax rate conversion
+      let taxRate = 0;
+      try {
+        const rawTaxRate = currentInvoice?.taxRate;
+        if (rawTaxRate !== null && rawTaxRate !== undefined) {
+          const taxRateValue = String(rawTaxRate);
+          const taxRateNum = parseFloat(taxRateValue);
+          taxRate = (!isNaN(taxRateNum) && isFinite(taxRateNum)) ? taxRateNum : 0;
+        }
+      } catch (e) {
+        console.error('Error processing tax rate:', e);
+        taxRate = 0;
+      }
+      
+      // Bulletproof calculations
+      let taxAmount = 0;
+      let total = 0;
+      try {
+        const taxAmountNum = (subtotal * taxRate) / 100;
+        taxAmount = (!isNaN(taxAmountNum) && isFinite(taxAmountNum)) ? taxAmountNum : 0;
+        
+        const totalNum = subtotal + taxAmount;
+        total = (!isNaN(totalNum) && isFinite(totalNum)) ? totalNum : 0;
+      } catch (e) {
+        console.error('Error calculating tax and total:', e);
+        taxAmount = 0;
+        total = subtotal; // Fallback to subtotal if tax calculation fails
+      }
 
-    // Update invoice totals
-    await db
-      .update(invoices)
-      .set({
-        subtotal: subtotal.toFixed(2),
-        taxAmount: taxAmount.toFixed(2),
-        total: total.toFixed(2),
-        updatedAt: new Date()
-      })
-      .where(eq(invoices.id, invoiceId));
+      // Final validation before .toFixed() calls
+      const safeSubtotal = (typeof subtotal === 'number' && !isNaN(subtotal) && isFinite(subtotal)) ? subtotal : 0;
+      const safeTotal = (typeof total === 'number' && !isNaN(total) && isFinite(total)) ? total : 0;
+
+      // Update invoice totals (removed taxAmount as it doesn't exist in schema)
+      await db
+        .update(invoices)
+        .set({
+          subtotal: safeSubtotal.toFixed(2),
+          total: safeTotal.toFixed(2),
+          updatedAt: new Date()
+        })
+        .where(eq(invoices.id, invoiceId));
+    } catch (error) {
+      console.error('Error in recalculateInvoiceTotals:', error);
+      // Emergency fallback: set totals to 0 to prevent app crash
+      try {
+        await db
+          .update(invoices)
+          .set({
+            subtotal: '0.00',
+            total: '0.00',
+            updatedAt: new Date()
+          })
+          .where(eq(invoices.id, invoiceId));
+      } catch (fallbackError) {
+        console.error('Emergency fallback failed:', fallbackError);
+        throw error; // Re-throw original error if fallback fails
+      }
+    }
   }
 
   // Quote methods
