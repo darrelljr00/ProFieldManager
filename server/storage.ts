@@ -1631,7 +1631,8 @@ export class DatabaseStorage implements IStorage {
       .from(invoiceLineItems)
       .where(eq(invoiceLineItems.invoiceId, invoiceId));
 
-    const subtotal = parseFloat(subtotalResult?.subtotal?.toString() || '0');
+    const subtotalValue = subtotalResult?.subtotal?.toString() || '0';
+    const subtotal = Number(subtotalValue) || 0;
 
     // Get current tax rate from invoice
     const [currentInvoice] = await db
@@ -1640,7 +1641,8 @@ export class DatabaseStorage implements IStorage {
       .where(eq(invoices.id, invoiceId))
       .limit(1);
 
-    const taxRate = parseFloat(currentInvoice?.taxRate || '0');
+    const taxRateValue = currentInvoice?.taxRate?.toString() || '0';
+    const taxRate = Number(taxRateValue) || 0;
     const taxAmount = (subtotal * taxRate) / 100;
     const total = subtotal + taxAmount;
 
