@@ -126,7 +126,7 @@ function DraftInvoicePreview({ projectId }: { projectId: number }) {
 
   // Calculate totals
   const subtotal = draftInvoice.lineItems?.reduce((sum: number, item: any) => {
-    const price = parseFloat(item.unitPrice?.toString() || '0');
+    const price = parseFloat(item.rate?.toString() || '0');
     const qty = parseInt(item.quantity?.toString() || '0');
     return sum + (price * qty);
   }, 0) || 0;
@@ -196,7 +196,7 @@ function DraftInvoicePreview({ projectId }: { projectId: number }) {
                   </TableRow>
                 ) : (
                   draftInvoice.lineItems.map((item: any, index: number) => {
-                    const unitPrice = parseFloat(item.unitPrice?.toString() || '0');
+                    const unitPrice = parseFloat(item.rate?.toString() || '0');
                     const quantity = parseInt(item.quantity?.toString() || '0');
                     const lineTotal = unitPrice * quantity;
                     
