@@ -455,6 +455,11 @@ export default function ProjectDetail() {
         <div className="flex justify-between items-start">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">{project.name}</h1>
+            {project.jobNumber && (
+              <div className="text-lg text-muted-foreground font-medium mb-3">
+                Job #{project.jobNumber}
+              </div>
+            )}
             <div className="flex items-center space-x-4 mb-2">
               <Badge variant={getStatusColor(project.status)}>{project.status}</Badge>
               <Badge variant={getPriorityColor(project.priority)}>{project.priority}</Badge>
