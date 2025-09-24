@@ -4672,6 +4672,9 @@ export const smartCaptureItems = pgTable("smart_capture_items", {
   derivedPartId: integer("derived_part_id").references(() => partsSupplies.id),
   derivedVehicleId: integer("derived_vehicle_id").references(() => vehicles.id),
   
+  // User attribution
+  submittedBy: integer("submitted_by").references(() => users.id),
+  
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -4709,6 +4712,7 @@ export const insertSmartCaptureItemSchema = createInsertSchema(smartCaptureItems
   masterPriceSnapshot: true,
   derivedPartId: true,
   derivedVehicleId: true,
+  submittedBy: true,
   createdAt: true,
   updatedAt: true,
 }).refine((data) => data.partNumber || data.vehicleNumber || data.inventoryNumber, {
