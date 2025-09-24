@@ -1222,6 +1222,11 @@ export default function Jobs() {
                     <Link href={`/jobs/${project.id}`} className="hover:text-primary">
                       {project.name}
                     </Link>
+                    {project.jobNumber && (
+                      <div className="text-sm text-muted-foreground font-normal mt-1">
+                        Job #{project.jobNumber}
+                      </div>
+                    )}
                   </CardTitle>
                   <div className="flex items-center space-x-2">
                     <Badge variant={getStatusColor(project.status)}>
