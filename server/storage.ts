@@ -2015,46 +2015,36 @@ export class DatabaseStorage implements IStorage {
 
   private async generateJobNumber(organizationId: number): Promise<string> {
     try {
-      // Get organization info for prefix
-      const org = await db
-        .select({ name: organizations.name })
-        .from(organizations)
-        .where(eq(organizations.id, organizationId))
-        .limit(1);
-      
-      // Create prefix from organization name (first 2-3 letters, uppercase)
-      const orgName = org[0]?.name || 'PF';
-      const prefix = orgName.replace(/[^A-Za-z]/g, '').substring(0, 3).toUpperCase() || 'PF';
-      
-      // Get current year
-      const currentYear = new Date().getFullYear();
-      
-      // Find the highest job number for this organization and year
+      // Find the highest numeric job number for this organization
       const existingJobs = await db
         .select({ jobNumber: projects.jobNumber })
         .from(projects)
-        .where(and(
-          eq(projects.organizationId, organizationId),
-          like(projects.jobNumber, `${prefix}-${currentYear}-%`)
-        ))
+        .where(eq(projects.organizationId, organizationId))
         .orderBy(desc(projects.jobNumber));
       
       // Extract the highest number and increment
       let nextNumber = 1;
       if (existingJobs.length > 0) {
-        const lastJobNumber = existingJobs[0].jobNumber;
-        const match = lastJobNumber?.match(/-(\d+)$/);
-        if (match) {
-          nextNumber = parseInt(match[1]) + 1;
+        for (const job of existingJobs) {
+          if (job.jobNumber) {
+            // Check if it's a simple numeric job number
+            const numericMatch = job.jobNumber.match(/^\d+$/);
+            if (numericMatch) {
+              const jobNum = parseInt(job.jobNumber);
+              if (jobNum >= nextNumber) {
+                nextNumber = jobNum + 1;
+              }
+            }
+          }
         }
       }
       
-      // Format as XXX-YYYY-NNN (e.g., PW-2024-001)
-      return `${prefix}-${currentYear}-${nextNumber.toString().padStart(3, '0')}`;
+      // Return simple 2-digit number as string
+      return nextNumber.toString();
     } catch (error) {
       console.error('Error generating job number:', error);
       // Fallback to timestamp-based number if generation fails
-      return `JOB-${Date.now()}`;
+      return Date.now().toString();
     }
   }
 
