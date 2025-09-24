@@ -20644,9 +20644,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = insertSmartCaptureItemSchema.parse(requestData);
       const item = await storage.createProjectSmartCaptureItem(projectId, user.organizationId, validatedData, user.id);
       
-      // Automatically add item to draft invoice if one exists for this project
+      // Automatically add item to draft invoice - create one if it doesn't exist
       try {
-        const draftInvoice = await storage.getDraftInvoiceForProject(projectId, user.organizationId);
+        console.log(`🔍 Checking for draft invoice for project ${projectId}`);
+        let draftInvoice = await storage.getDraftInvoiceForProject(projectId, user.organizationId);
+        
+        if (!draftInvoice) {
+          console.log(`📝 No draft invoice found for project ${projectId}, attempting to create one`);
+          
+          // Get project details to check if it has a customer
+          const project = await storage.getProject(projectId, user.id);
+          if (project && project.customerId) {
+            console.log(`👤 Project has customer ${project.customerId}, creating draft invoice`);
+            // Use ensureDraftInvoiceForProject to create a draft invoice
+            draftInvoice = await storage.ensureDraftInvoiceForProject(projectId, project.customerId, user.id, user.organizationId);
+            console.log(`✅ Created draft invoice ${draftInvoice.id} for project ${projectId}`);
+          } else if (project) {
+            console.log(`⚠️ Project ${projectId} has no customer assigned, cannot create draft invoice`);
+          } else {
+            console.log(`❌ Project ${projectId} not found`);
+          }
+        } else {
+          console.log(`✅ Found existing draft invoice ${draftInvoice.id} for project ${projectId}`);
+        }
+        
         if (draftInvoice) {
           await storage.upsertDraftInvoiceLineItem(draftInvoice.id, {
             description: item.description || item.partNumber || item.vehicleNumber || item.inventoryNumber || 'Smart Capture Item',
