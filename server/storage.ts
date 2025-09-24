@@ -1997,7 +1997,14 @@ export class DatabaseStorage implements IStorage {
     // Generate automatic job number if not provided
     let jobNumber = projectData.jobNumber;
     if (!jobNumber) {
-      jobNumber = await this.generateJobNumber(projectData.organizationId);
+      try {
+        console.log('🔢 Generating job number for organization:', projectData.organizationId);
+        jobNumber = await this.generateJobNumber(projectData.organizationId);
+        console.log('✅ Generated job number:', jobNumber);
+      } catch (error) {
+        console.error('❌ Error generating job number:', error);
+        jobNumber = undefined; // Let it be null instead of fallback
+      }
     }
     
     const insertData = {
@@ -2005,6 +2012,8 @@ export class DatabaseStorage implements IStorage {
       jobNumber,
       userId: projectData.userId || projectData.organizationId // Handle both userId and organizationId
     };
+    
+    console.log('📝 Creating project with data:', { ...insertData, jobNumber });
     
     const [project] = await db
       .insert(projects)
