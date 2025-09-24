@@ -8795,9 +8795,18 @@ export class DatabaseStorage implements IStorage {
           sci.derived_vehicle_id as "derivedVehicleId",
           sci.created_at as "createdAt",
           sci.updated_at as "updatedAt",
-          'System' as "submittedBy",
+          CASE 
+            WHEN u.first_name IS NOT NULL AND u.last_name IS NOT NULL 
+            THEN u.first_name || ' ' || u.last_name
+            WHEN u.first_name IS NOT NULL 
+            THEN u.first_name
+            WHEN u.last_name IS NOT NULL 
+            THEN u.last_name
+            ELSE 'Unknown User'
+          END as "submittedBy",
           sci.created_at as "submissionTime"
         FROM smart_capture_items sci
+        LEFT JOIN users u ON sci.submitted_by = u.id
         WHERE sci.project_id = ${projectId} 
         AND sci.organization_id = ${organizationId}
         ORDER BY sci.created_at ASC
@@ -8860,7 +8869,7 @@ export class DatabaseStorage implements IStorage {
           listId: defaultList[0].id,
           organizationId,
           projectId,
-          userId,
+          submittedBy: userId,
         })
         .returning();
       return item;
