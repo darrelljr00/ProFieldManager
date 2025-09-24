@@ -1861,6 +1861,7 @@ export class DatabaseStorage implements IStorage {
         id: projects.id,
         userId: projects.userId,
         name: projects.name,
+        jobNumber: projects.jobNumber,
         description: projects.description,
         status: projects.status,
         priority: projects.priority,
