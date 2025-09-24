@@ -416,6 +416,7 @@ export const projects = pgTable("projects", {
   userId: integer("user_id").notNull().references(() => users.id),
   organizationId: integer("organization_id").notNull().references(() => organizations.id),
   name: text("name").notNull(),
+  jobNumber: text("job_number"), // Unique job identifier like "PW-2024-001"
   description: text("description"),
   status: text("status").notNull().default("active"), // active, completed, on-hold, cancelled, deleted
   priority: text("priority").notNull().default("medium"), // low, medium, high, urgent
