@@ -476,10 +476,10 @@ export interface IStorage {
   updateSmartCaptureList(id: number, organizationId: number, updates: Partial<InsertSmartCaptureList>): Promise<SmartCaptureList>;
   deleteSmartCaptureList(id: number, organizationId: number): Promise<boolean>;
   getSmartCaptureItems(listId: number, organizationId: number): Promise<SmartCaptureItem[]>;
-  createSmartCaptureItem(listId: number, organizationId: number, itemData: InsertSmartCaptureItem): Promise<SmartCaptureItem>;
+  createSmartCaptureItem(listId: number, organizationId: number, itemData: InsertSmartCaptureItem, userId: number): Promise<SmartCaptureItem>;
   updateSmartCaptureItem(itemId: number, organizationId: number, updates: Partial<InsertSmartCaptureItem>): Promise<SmartCaptureItem>;
   deleteSmartCaptureItem(itemId: number, organizationId: number): Promise<boolean>;
-  createSmartCaptureItemsBulk(listId: number, organizationId: number, items: InsertSmartCaptureItem[]): Promise<SmartCaptureItem[]>;
+  createSmartCaptureItemsBulk(listId: number, organizationId: number, items: InsertSmartCaptureItem[], userId: number): Promise<SmartCaptureItem[]>;
   
   // Smart Capture search and linking methods
   searchSmartCaptureItems(organizationId: number, filters: { query?: string; partNumber?: string; vehicleNumber?: string; inventoryNumber?: string; limit?: number }): Promise<SmartCaptureItem[]>;
@@ -8639,7 +8639,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async createSmartCaptureItem(listId: number, organizationId: number, itemData: InsertSmartCaptureItem): Promise<SmartCaptureItem> {
+  async createSmartCaptureItem(listId: number, organizationId: number, itemData: InsertSmartCaptureItem, userId: number): Promise<SmartCaptureItem> {
     try {
       // SECURITY: Verify the list belongs to this organization before creating items
       const list = await db
@@ -8664,6 +8664,7 @@ export class DatabaseStorage implements IStorage {
           ...safeItemData,
           listId,
           organizationId,
+          submittedBy: userId,
         })
         .returning();
       return item;
@@ -8724,7 +8725,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async createSmartCaptureItemsBulk(listId: number, organizationId: number, items: InsertSmartCaptureItem[]): Promise<SmartCaptureItem[]> {
+  async createSmartCaptureItemsBulk(listId: number, organizationId: number, items: InsertSmartCaptureItem[], userId: number): Promise<SmartCaptureItem[]> {
     try {
       // SECURITY: Verify the list belongs to this organization before bulk creating items
       const list = await db
@@ -8747,6 +8748,7 @@ export class DatabaseStorage implements IStorage {
           ...safeItemData,
           listId,
           organizationId,
+          submittedBy: userId,
         };
       });
       
