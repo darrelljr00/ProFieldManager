@@ -8621,10 +8621,20 @@ export class DatabaseStorage implements IStorage {
           masterPriceSnapshot: smartCaptureItems.masterPriceSnapshot,
           derivedPartId: smartCaptureItems.derivedPartId,
           derivedVehicleId: smartCaptureItems.derivedVehicleId,
+          submittedBy: sql<string>`CASE 
+            WHEN ${users.firstName} IS NOT NULL AND ${users.lastName} IS NOT NULL 
+            THEN ${users.firstName} || ' ' || ${users.lastName}
+            WHEN ${users.firstName} IS NOT NULL 
+            THEN ${users.firstName}
+            WHEN ${users.lastName} IS NOT NULL 
+            THEN ${users.lastName}
+            ELSE 'Unknown User'
+          END`,
           createdAt: smartCaptureItems.createdAt,
           updatedAt: smartCaptureItems.updatedAt,
         })
         .from(smartCaptureItems)
+        .leftJoin(users, eq(smartCaptureItems.submittedBy, users.id))
         .where(and(
           eq(smartCaptureItems.listId, listId),
           eq(smartCaptureItems.organizationId, organizationId)

@@ -20470,7 +20470,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { listId: _, organizationId: __, ...requestData } = req.body;
       
       const itemData = insertSmartCaptureItemSchema.parse(requestData);
-      const item = await storage.createSmartCaptureItem(listId, user.organizationId, itemData);
+      const item = await storage.createSmartCaptureItem(listId, user.organizationId, itemData, user.id);
       
       res.status(201).json(item);
     } catch (error: any) {
@@ -20498,7 +20498,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return insertSmartCaptureItemSchema.parse(itemData);
       });
       
-      const createdItems = await storage.createSmartCaptureItemsBulk(listId, user.organizationId, items);
+      const createdItems = await storage.createSmartCaptureItemsBulk(listId, user.organizationId, items, user.id);
       res.status(201).json(createdItems);
     } catch (error: any) {
       console.error("Error bulk creating smart capture items:", error);
