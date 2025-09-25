@@ -32,6 +32,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
+import { useWebSocket } from "@/hooks/useWebSocket";
 
 interface Notification {
   id: number;
@@ -130,6 +131,7 @@ export default function NotificationsPage() {
   const [activeTab, setActiveTab] = useState('all');
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { isConnected, lastMessage } = useWebSocket();
   const isAdminOrManager = user?.role === 'admin' || user?.role === 'manager';
 
   // Fetch notifications
@@ -161,6 +163,49 @@ export default function NotificationsPage() {
     enabled: isAdminOrManager && activeTab === 'admin',
     refetchInterval: 60000,
   });
+
+  // WebSocket real-time updates for notifications
+  useEffect(() => {
+    if (!lastMessage) return;
+
+    const { type, eventType, data } = lastMessage;
+
+    if (type === 'update' && eventType) {
+      // Handle notification-related events
+      const notificationEvents = [
+        'notification_created',
+        'notification_read',
+        'notification_deleted',
+        'task_completed',
+        'project_completed',
+        'user_clock_in',
+        'user_clock_out',
+        'user_late'
+      ];
+
+      if (notificationEvents.includes(eventType)) {
+        console.log(`🔔 WebSocket: Received notification event: ${eventType}`, data);
+        
+        // Invalidate notification queries for real-time updates
+        queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/notifications/unread-count'] });
+        
+        if (isAdminOrManager) {
+          queryClient.invalidateQueries({ queryKey: ['/api/admin/notifications'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/admin/notifications/stats'] });
+        }
+
+        // Show toast for new notifications
+        if (eventType === 'notification_created' && data) {
+          toast({
+            title: "New Notification",
+            description: data.title || data.message || "You have a new notification",
+            duration: 4000,
+          });
+        }
+      }
+    }
+  }, [lastMessage, queryClient, isAdminOrManager, toast]);
 
   // Mark as read mutation
   const markAsReadMutation = useMutation({
