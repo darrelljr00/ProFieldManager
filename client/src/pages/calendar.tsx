@@ -49,6 +49,69 @@ export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'1month' | '3months' | '1week' | '2weeks'>('1month');
 
+  // Helper functions - must be declared before use
+  const getDaysInMonth = (date: Date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const startDate = new Date(firstDay);
+    startDate.setDate(startDate.getDate() - firstDay.getDay());
+    
+    const days = [];
+    const current = new Date(startDate);
+    
+    while (current <= lastDay || days.length < 42) {
+      days.push(new Date(current));
+      current.setDate(current.getDate() + 1);
+    }
+    
+    return days;
+  };
+
+  const getWeekDays = (date: Date) => {
+    const days = [];
+    const startOfWeek = new Date(date);
+    const dayOfWeek = startOfWeek.getDay();
+    startOfWeek.setDate(startOfWeek.getDate() - dayOfWeek);
+    
+    for (let i = 0; i < 7; i++) {
+      const day = new Date(startOfWeek);
+      day.setDate(startOfWeek.getDate() + i);
+      days.push(day);
+    }
+    
+    return days;
+  };
+
+  const getTwoWeekDays = (date: Date) => {
+    const days = [];
+    const startOfWeek = new Date(date);
+    const dayOfWeek = startOfWeek.getDay();
+    startOfWeek.setDate(startOfWeek.getDate() - dayOfWeek);
+    
+    for (let i = 0; i < 14; i++) {
+      const day = new Date(startOfWeek);
+      day.setDate(startOfWeek.getDate() + i);
+      days.push(day);
+    }
+    
+    return days;
+  };
+
+  const getThreeMonthDays = (date: Date) => {
+    const days = [];
+    const startMonth = new Date(date.getFullYear(), date.getMonth() - 1, 1);
+    
+    for (let monthOffset = 0; monthOffset < 3; monthOffset++) {
+      const currentMonth = new Date(startMonth.getFullYear(), startMonth.getMonth() + monthOffset, 1);
+      const monthDays = getDaysInMonth(currentMonth);
+      days.push(...monthDays);
+    }
+    
+    return days;
+  };
+
   // Calculate date range for API call
   const getDateRange = () => {
     const days = (() => {
@@ -131,68 +194,6 @@ export default function CalendarPage() {
       // Check if the job occurs on this date
       return jobStart <= dateStr && jobEnd >= dateStr;
     });
-  };
-
-  const getDaysInMonth = (date: Date) => {
-    const year = date.getFullYear();
-    const month = date.getMonth();
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const startDate = new Date(firstDay);
-    startDate.setDate(startDate.getDate() - firstDay.getDay());
-    
-    const days = [];
-    const current = new Date(startDate);
-    
-    while (current <= lastDay || days.length < 42) {
-      days.push(new Date(current));
-      current.setDate(current.getDate() + 1);
-    }
-    
-    return days;
-  };
-
-  const getWeekDays = (date: Date) => {
-    const days = [];
-    const startOfWeek = new Date(date);
-    const dayOfWeek = startOfWeek.getDay();
-    startOfWeek.setDate(startOfWeek.getDate() - dayOfWeek);
-    
-    for (let i = 0; i < 7; i++) {
-      const day = new Date(startOfWeek);
-      day.setDate(startOfWeek.getDate() + i);
-      days.push(day);
-    }
-    
-    return days;
-  };
-
-  const getTwoWeekDays = (date: Date) => {
-    const days = [];
-    const startOfWeek = new Date(date);
-    const dayOfWeek = startOfWeek.getDay();
-    startOfWeek.setDate(startOfWeek.getDate() - dayOfWeek);
-    
-    for (let i = 0; i < 14; i++) {
-      const day = new Date(startOfWeek);
-      day.setDate(startOfWeek.getDate() + i);
-      days.push(day);
-    }
-    
-    return days;
-  };
-
-  const getThreeMonthDays = (date: Date) => {
-    const days = [];
-    const startMonth = new Date(date.getFullYear(), date.getMonth() - 1, 1);
-    
-    for (let monthOffset = 0; monthOffset < 3; monthOffset++) {
-      const currentMonth = new Date(startMonth.getFullYear(), startMonth.getMonth() + monthOffset, 1);
-      const monthDays = getDaysInMonth(currentMonth);
-      days.push(...monthDays);
-    }
-    
-    return days;
   };
 
   const days = (() => {
