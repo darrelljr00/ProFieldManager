@@ -3,7 +3,7 @@ import { ensureOrganizationFolders } from "./folderCreation";
 import { 
   users, customers, invoices, invoiceLineItems, quotes, quoteLineItems, payments, projects, tasks, taskGroups, taskTemplates,
   expenses, expenseCategories, vendors, expenseReports, gasCards, 
-  gasCardAssignments, gasCardUsage, gasCardProviders, leads, calendarJobs, messages,
+  gasCardAssignments, gasCardUsage, gasCardProviders, leads, messages,
   images, settings, organizations, userSessions, subscriptionPlans,
   projectFiles, projectWaivers, fileManager, fileFolders, projectUsers, timeClock, timeClockSettings,
   internalMessages, internalMessageRecipients, messageGroups, messageGroupMembers,
@@ -3537,72 +3537,10 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  // Calendar jobs methods
-  async getCalendarJobs(organizationId: number): Promise<any[]> {
-    const results = await db
-      .select()
-      .from(calendarJobs)
-      .innerJoin(users, eq(calendarJobs.userId, users.id))
-      .where(eq(users.organizationId, organizationId))
-      .orderBy(desc(calendarJobs.createdAt));
-    
-    return results.map(row => row.calendar_jobs);
-  }
 
-  async getCalendarJob(id: number, organizationId: number): Promise<any> {
-    const results = await db
-      .select()
-      .from(calendarJobs)
-      .innerJoin(users, eq(calendarJobs.userId, users.id))
-      .where(and(eq(calendarJobs.id, id), eq(users.organizationId, organizationId)))
-      .limit(1);
-    
-    return results.length > 0 ? results[0].calendar_jobs : null;
-  }
 
-  async createCalendarJob(jobData: any): Promise<any> {
-    // Handle date parsing and field mapping properly
-    const processedData = { ...jobData };
-    
-    // Map scheduledDate to startDate if provided
-    if (processedData.scheduledDate) {
-      processedData.startDate = new Date(processedData.scheduledDate);
-      delete processedData.scheduledDate;
-    }
-    
-    // Ensure endDate is set - if not provided, set to same as startDate + 1 hour
-    if (!processedData.endDate && processedData.startDate) {
-      const endDate = new Date(processedData.startDate);
-      endDate.setHours(endDate.getHours() + 1);
-      processedData.endDate = endDate;
-    } else if (processedData.endDate && typeof processedData.endDate === 'string') {
-      processedData.endDate = new Date(processedData.endDate);
-    }
-    
-    // Parse startDate if it's a string
-    if (processedData.startDate && typeof processedData.startDate === 'string') {
-      processedData.startDate = new Date(processedData.startDate);
-    }
-    
-    const [job] = await db
-      .insert(calendarJobs)
-      .values(processedData)
-      .returning();
-    return job;
-  }
 
-  async updateCalendarJob(id: number, updates: any): Promise<any> {
-    const [job] = await db
-      .update(calendarJobs)
-      .set(updates)
-      .where(eq(calendarJobs.id, id))
-      .returning();
-    return job;
-  }
 
-  async deleteCalendarJob(id: number): Promise<void> {
-    await db.delete(calendarJobs).where(eq(calendarJobs.id, id));
-  }
 
   async convertJobToProject(jobId: number, userId: number, projectData: any): Promise<any> {
     try {
