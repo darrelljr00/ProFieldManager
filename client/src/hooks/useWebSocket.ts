@@ -153,7 +153,13 @@ export function useWebSocket() {
       'smart_capture_item_updated': `Smart Capture item updated by ${data?.updatedBy || 'system'}`,
       'smart_capture_item_deleted': `Smart Capture item removed by ${data?.deletedBy || 'system'}`,
       'draft_invoice_created': `Draft invoice created for project "${data?.projectName || `project #${data?.projectId || 'unknown'}`}" by ${data?.createdBy || 'system'}`,
-      'project_invoice_finalized': `Invoice finalized for completed project "${data?.projectName || `project #${data?.projectId || 'unknown'}`}" by ${data?.finalizedBy || 'system'}`
+      'project_invoice_finalized': `Invoice finalized for completed project "${data?.projectName || `project #${data?.projectId || 'unknown'}`}" by ${data?.finalizedBy || 'system'}`,
+      'notification_created': `New notification: ${data?.title || 'You have a new notification'}`,
+      'task_completed': `Task completed by ${data?.completedBy || 'team member'}`,
+      'project_completed': `Project completed by ${data?.completedBy || 'team member'}`,
+      'user_clock_in': `${data?.user || 'Team member'} clocked in`,
+      'user_clock_out': `${data?.user || 'Team member'} clocked out`,
+      'user_late': `${data?.user || 'Team member'} arrived late`
     };
 
     const notificationMessage = notifications[eventType];
