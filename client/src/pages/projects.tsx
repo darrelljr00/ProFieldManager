@@ -1994,7 +1994,7 @@ export default function Jobs() {
                       <Label className="text-sm font-medium">Default Technicians</Label>
                       <p className="text-xs text-gray-500 mb-2">Select default technicians for recurring jobs (can be changed per occurrence)</p>
                       <div className="space-y-2 max-h-32 overflow-y-auto border rounded p-2">
-                        {users.map((user) => (
+                        {allUsers.map((user) => (
                           <div key={user.id} className="flex items-center space-x-2">
                             <input
                               type="checkbox"
