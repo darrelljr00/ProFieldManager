@@ -55,6 +55,7 @@ function DraftInvoicePreview({ projectId }: { projectId: number }) {
   // Fetch draft invoice data
   const { data: draftInvoice, isLoading, error } = useQuery<any>({
     queryKey: ['/api/projects', projectId, 'invoice-draft'],
+    queryFn: () => apiRequest('GET', `/api/projects/${projectId}/invoice-draft`).then(res => res.json()),
     enabled: !!projectId
   });
 
