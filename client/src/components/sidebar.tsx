@@ -48,6 +48,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
+import { useWebSocket } from "@/hooks/useWebSocket";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -248,6 +249,7 @@ const DEFAULT_NAVIGATION_ORDER = [
 
 export function Sidebar() {
   const { user, isAuthenticated, logout } = useAuth();
+  const { lastMessage } = useWebSocket();
   const [location] = useLocation();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [expandedItems, setExpandedItems] = useState<{[key: string]: boolean}>({});
@@ -337,6 +339,36 @@ export function Sidebar() {
       setUnreadNotificationsCount((notificationData as any).count);
     }
   }, [notificationData]);
+
+  // WebSocket real-time updates for notification counts in sidebar
+  useEffect(() => {
+    if (!lastMessage) return;
+
+    const { type, eventType } = lastMessage;
+
+    if (type === 'update' && eventType) {
+      // Handle notification-related events that should refresh notification counts
+      const notificationEvents = [
+        'notification_created',
+        'notification_read',
+        'task_completed',
+        'project_completed',
+        'user_clock_in',
+        'user_clock_out',
+        'user_late'
+      ];
+
+      if (notificationEvents.includes(eventType)) {
+        // Invalidate notification count queries for real-time updates
+        queryClient.invalidateQueries({ queryKey: ['/api/notifications/unread-count'] });
+      }
+
+      // Handle message events for Team Messages count
+      if (eventType === 'new_message' || eventType === 'message_sent') {
+        queryClient.invalidateQueries({ queryKey: ['/api/internal-messages'] });
+      }
+    }
+  }, [lastMessage, queryClient]);
 
   // Debug: log user data and permissions
   useEffect(() => {
