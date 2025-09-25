@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { buildApiUrl, getAuthHeaders } from "@/lib/api-config";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -133,14 +134,31 @@ export default function CalendarPage() {
     return { startDate, endDate };
   };
 
-  // Fetch calendar jobs
+  // Fetch calendar jobs - using authenticated request with proper date params
+  const dateRange = getDateRange();
   const { data: jobs, isLoading } = useQuery<CalendarJob[]>({
-    queryKey: ['/api/jobs/calendar', getDateRange()],
+    queryKey: ['/api/jobs/calendar', dateRange],
     queryFn: async () => {
-      const { startDate, endDate } = getDateRange();
-      const params = new URLSearchParams({ startDate, endDate });
-      const response = await fetch(`/api/jobs/calendar?${params}`);
-      if (!response.ok) throw new Error('Failed to fetch calendar jobs');
+      const params = new URLSearchParams(dateRange);
+      const url = `/api/jobs/calendar?${params}`;
+      const fullUrl = buildApiUrl(url);
+      const headers = getAuthHeaders();
+      
+      console.log('🌐 Calendar Query Request:', {
+        originalUrl: url,
+        fullUrl,
+        hasAuthHeader: !!headers.Authorization
+      });
+      
+      const response = await fetch(fullUrl, {
+        headers,
+        credentials: "include"
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
       return response.json();
     }
   });
