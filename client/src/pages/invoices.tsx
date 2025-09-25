@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
-import { Plus, Search, Filter, Upload, FileText, Calendar, Package } from "lucide-react";
+import { Plus, Search, Filter, Upload, FileText, Calendar, Package, Clock, CheckCircle, XCircle, Edit } from "lucide-react";
 
 export default function Invoices() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -27,6 +27,14 @@ export default function Invoices() {
 
   const { data: invoices = [], isLoading, error } = useQuery({
     queryKey: ["/api/invoices"],
+    retry: 1,
+    retryOnMount: true,
+  });
+
+  // Query for pending Smart Capture invoices (admin/manager only)
+  const { data: pendingInvoices = [], isLoading: isPendingLoading } = useQuery({
+    queryKey: ["/api/smart-capture/invoices/pending"],
+    enabled: user?.role === 'admin' || user?.role === 'manager',
     retry: 1,
     retryOnMount: true,
   });
@@ -143,6 +151,80 @@ export default function Invoices() {
 
   const smartCaptureInvoices = filteredInvoices.filter(hasSmartCaptureItems);
 
+  // Approve Smart Capture invoice mutation
+  const approveInvoiceMutation = useMutation({
+    mutationFn: async (invoiceId: number) => {
+      return apiRequest(`/api/smart-capture/invoices/${invoiceId}/approve`, {
+        method: "PUT",
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/smart-capture/invoices/pending"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
+      toast({
+        title: "Success",
+        description: "Smart Capture invoice approved successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to approve invoice",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Reject Smart Capture invoice mutation
+  const rejectInvoiceMutation = useMutation({
+    mutationFn: async ({ invoiceId, rejectionReason }: { invoiceId: number; rejectionReason: string }) => {
+      return apiRequest(`/api/smart-capture/invoices/${invoiceId}/reject`, {
+        method: "PUT",
+        body: { rejectionReason },
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/smart-capture/invoices/pending"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
+      toast({
+        title: "Success",
+        description: "Smart Capture invoice rejected successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to reject invoice",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Edit and approve Smart Capture invoice mutation
+  const editAndApproveInvoiceMutation = useMutation({
+    mutationFn: async ({ invoiceId, edits }: { invoiceId: number; edits: any }) => {
+      return apiRequest(`/api/smart-capture/invoices/${invoiceId}/edit-and-approve`, {
+        method: "PUT",
+        body: edits,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/smart-capture/invoices/pending"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
+      toast({
+        title: "Success",
+        description: "Smart Capture invoice edited and approved successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to edit and approve invoice",
+        variant: "destructive",
+      });
+    },
+  });
+
   return (
     <div className="flex-1">
       {/* Header */}
@@ -250,7 +332,7 @@ export default function Invoices() {
 
         {/* Invoices Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-6">
+          <TabsList className={`grid w-full mb-6 ${(user?.role === 'admin' || user?.role === 'manager') ? 'grid-cols-3' : 'grid-cols-2'}`}>
             <TabsTrigger value="all" className="flex items-center gap-2">
               <FileText className="w-4 h-4" />
               All Invoices ({filteredInvoices.length})
@@ -259,6 +341,12 @@ export default function Invoices() {
               <Package className="w-4 h-4" />
               Smart Capture Invoices ({smartCaptureInvoices.length})
             </TabsTrigger>
+            {(user?.role === 'admin' || user?.role === 'manager') && (
+              <TabsTrigger value="pending-approvals" className="flex items-center gap-2">
+                <Clock className="w-4 h-4" />
+                Pending Approvals ({Array.isArray(pendingInvoices) ? pendingInvoices.length : 0})
+              </TabsTrigger>
+            )}
           </TabsList>
           
           <TabsContent value="all">
@@ -278,6 +366,127 @@ export default function Invoices() {
               showViewAll={false}
             />
           </TabsContent>
+          
+          {(user?.role === 'admin' || user?.role === 'manager') && (
+            <TabsContent value="pending-approvals">
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+                <div className="px-6 py-4 border-b border-gray-200">
+                  <h3 className="text-lg font-semibold text-gray-900">Smart Capture Invoices Pending Approval</h3>
+                  <p className="text-sm text-gray-600">Review and approve Smart Capture invoices that need your attention</p>
+                </div>
+                
+                {isPendingLoading ? (
+                  <div className="p-6 text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                    <p className="text-gray-500 mt-2">Loading pending invoices...</p>
+                  </div>
+                ) : Array.isArray(pendingInvoices) && pendingInvoices.length > 0 ? (
+                  <div className="divide-y divide-gray-200">
+                    {pendingInvoices.map((invoice: any) => (
+                      <div key={invoice.id} className="p-6">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-4 mb-3">
+                              <h4 className="text-lg font-medium text-gray-900">Invoice #{invoice.invoiceNumber || invoice.id}</h4>
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                Pending Approval
+                              </span>
+                              {invoice.project && (
+                                <span className="text-sm text-gray-500">Job: {invoice.project.name}</span>
+                              )}
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                              <div>
+                                <p className="text-sm font-medium text-gray-700">Customer</p>
+                                <p className="text-sm text-gray-900">{invoice.customer?.name || 'N/A'}</p>
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-gray-700">Total Amount</p>
+                                <p className="text-sm text-gray-900">${parseFloat(invoice.total || 0).toFixed(2)}</p>
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-gray-700">Created</p>
+                                <p className="text-sm text-gray-900">{new Date(invoice.createdAt).toLocaleDateString()}</p>
+                              </div>
+                            </div>
+                            {invoice.notes && (
+                              <div className="mb-4">
+                                <p className="text-sm font-medium text-gray-700">Notes</p>
+                                <p className="text-sm text-gray-900">{invoice.notes}</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
+                          <Button
+                            onClick={() => approveInvoiceMutation.mutate(invoice.id)}
+                            disabled={approveInvoiceMutation.isPending}
+                            className="bg-green-600 hover:bg-green-700 text-white"
+                            data-testid={`approve-invoice-${invoice.id}`}
+                          >
+                            <CheckCircle className="w-4 h-4 mr-2" />
+                            {approveInvoiceMutation.isPending ? 'Approving...' : 'Approve'}
+                          </Button>
+                          
+                          <Button
+                            onClick={() => {
+                              const reason = prompt('Please provide a reason for rejection:');
+                              if (reason) {
+                                rejectInvoiceMutation.mutate({ invoiceId: invoice.id, rejectionReason: reason });
+                              }
+                            }}
+                            disabled={rejectInvoiceMutation.isPending}
+                            variant="outline"
+                            className="border-red-300 text-red-700 hover:bg-red-50"
+                            data-testid={`reject-invoice-${invoice.id}`}
+                          >
+                            <XCircle className="w-4 h-4 mr-2" />
+                            {rejectInvoiceMutation.isPending ? 'Rejecting...' : 'Reject'}
+                          </Button>
+                          
+                          <Button
+                            onClick={() => {
+                              // Simple edit interface - can be enhanced later
+                              const newNotes = prompt('Update notes (leave empty to keep current):', invoice.notes || '');
+                              const newTotal = prompt('Update total amount (leave empty to keep current):', invoice.total || '');
+                              
+                              const edits: any = {};
+                              if (newNotes !== null && newNotes !== invoice.notes) edits.notes = newNotes;
+                              if (newTotal !== null && newTotal !== invoice.total && !isNaN(parseFloat(newTotal))) {
+                                edits.total = parseFloat(newTotal);
+                                edits.subtotal = parseFloat(newTotal); // Simplifying for now
+                              }
+                              
+                              if (Object.keys(edits).length > 0) {
+                                editAndApproveInvoiceMutation.mutate({ invoiceId: invoice.id, edits });
+                              } else {
+                                // Just approve without changes
+                                approveInvoiceMutation.mutate(invoice.id);
+                              }
+                            }}
+                            disabled={editAndApproveInvoiceMutation.isPending}
+                            variant="outline"
+                            className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                            data-testid={`edit-approve-invoice-${invoice.id}`}
+                          >
+                            <Edit className="w-4 h-4 mr-2" />
+                            {editAndApproveInvoiceMutation.isPending ? 'Processing...' : 'Edit & Approve'}
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-6 text-center">
+                    <Clock className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Pending Approvals</h3>
+                    <p className="text-gray-500">All Smart Capture invoices have been reviewed.</p>
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+          )}
         </Tabs>
       </main>
     </div>
