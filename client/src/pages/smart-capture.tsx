@@ -740,6 +740,9 @@ export default function SmartCapturePage() {
               </Badge>
             )}
           </TabsTrigger>
+          <TabsTrigger value="master-inventory" data-testid="tab-master-inventory">
+            Master Inventory
+          </TabsTrigger>
           <TabsTrigger value="invoice" data-testid="tab-invoice" disabled={!selectedSmartCaptureList?.projectId}>
             Draft Invoice
             {selectedSmartCaptureList?.projectId && (
@@ -1243,6 +1246,210 @@ export default function SmartCapturePage() {
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+
+        <TabsContent value="master-inventory" className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Locations Management */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Location Management</CardTitle>
+                  <p className="text-sm text-muted-foreground">Create and manage storage locations</p>
+                </div>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button data-testid="button-add-location">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Location
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Add New Location</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="location-name">Location Name *</Label>
+                        <Input 
+                          id="location-name" 
+                          placeholder="e.g., Warehouse A - Shelf 1" 
+                          data-testid="input-location-name"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="location-description">Description</Label>
+                        <Textarea 
+                          id="location-description" 
+                          placeholder="Additional details about this location..."
+                          data-testid="input-location-description"
+                        />
+                      </div>
+                      <div className="flex justify-end space-x-2">
+                        <Button variant="outline" data-testid="button-cancel-location">Cancel</Button>
+                        <Button data-testid="button-submit-location">Add Location</Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Location Name</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      <TableRow>
+                        <TableCell className="text-center" colSpan={3}>
+                          No locations created yet. Click "Add Location" to get started.
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Master Inventory Items */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Master Inventory</CardTitle>
+                  <p className="text-sm text-muted-foreground">Manage inventory items and master pricing</p>
+                </div>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button data-testid="button-add-master-item">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Master Item
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                      <DialogTitle>Add Master Inventory Item</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="master-part-number">Part Number</Label>
+                          <Input 
+                            id="master-part-number" 
+                            placeholder="e.g., ABC-123" 
+                            data-testid="input-master-part-number"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="master-vehicle-number">Vehicle Number</Label>
+                          <Input 
+                            id="master-vehicle-number" 
+                            placeholder="e.g., VH-001" 
+                            data-testid="input-master-vehicle-number"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="master-inventory-number">Inventory Number</Label>
+                          <Input 
+                            id="master-inventory-number" 
+                            placeholder="e.g., INV-456" 
+                            data-testid="input-master-inventory-number"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="master-price">Master Price *</Label>
+                          <Input 
+                            id="master-price" 
+                            type="number" 
+                            min="0" 
+                            step="0.01" 
+                            placeholder="0.00" 
+                            data-testid="input-master-price-field"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="master-location">Default Location *</Label>
+                        <Select>
+                          <SelectTrigger data-testid="select-master-location">
+                            <SelectValue placeholder="Select a location" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="warehouse-a">Warehouse A - Shelf 1</SelectItem>
+                            <SelectItem value="warehouse-b">Warehouse B - Shelf 2</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="master-description">Description</Label>
+                        <Input 
+                          id="master-description" 
+                          placeholder="Brief description of the item..." 
+                          data-testid="input-master-description"
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="master-notes">Notes</Label>
+                        <Textarea 
+                          id="master-notes" 
+                          placeholder="Additional notes..." 
+                          data-testid="input-master-notes"
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="master-image">Item Image</Label>
+                        <input
+                          id="master-image"
+                          type="file"
+                          accept="image/*"
+                          className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                          data-testid="input-master-image"
+                        />
+                      </div>
+                      
+                      <div className="flex justify-end space-x-2">
+                        <Button variant="outline" data-testid="button-cancel-master-item">Cancel</Button>
+                        <Button data-testid="button-submit-master-item">Add Master Item</Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Part #</TableHead>
+                        <TableHead>Vehicle #</TableHead>
+                        <TableHead>Inventory #</TableHead>
+                        <TableHead>Price</TableHead>
+                        <TableHead>Location</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      <TableRow>
+                        <TableCell className="text-center" colSpan={6}>
+                          No master items created yet. Click "Add Master Item" to get started.
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         <TabsContent value="invoice" className="space-y-4">
