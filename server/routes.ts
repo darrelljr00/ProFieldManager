@@ -6149,6 +6149,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Don't fail the project update if invoice approval fails
           }
         }
+        
+        // Send job completion notifications to admins/managers
+        try {
+          const { NotificationService } = await import("./notificationService");
+          
+          // Get admin/manager users to notify
+          const adminUsers = await db
+            .select({ id: users.id })
+            .from(users)
+            .where(and(
+              eq(users.organizationId, user.organizationId),
+              or(eq(users.role, 'admin'), eq(users.role, 'manager'))
+            ));
+          
+          // Create notifications for all admins/managers
+          for (const admin of adminUsers) {
+            await NotificationService.createNotification({
+              type: 'job_completed',
+              title: `Job Completed`,
+              message: `${user.firstName} ${user.lastName} completed job: ${updatedProject.name}`,
+              userId: admin.id,
+              organizationId: user.organizationId,
+              relatedEntityType: 'project',
+              relatedEntityId: projectId,
+              priority: 'normal',
+              category: 'team_based',
+              createdBy: userId
+            });
+          }
+          
+          console.log(`📢 Job completion notifications sent to ${adminUsers.length} admins/managers`);
+        } catch (notificationError) {
+          console.error('Error sending job completion notifications:', notificationError);
+        }
       }
       
       res.json(updatedProject);
@@ -6468,11 +6502,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Handle notification updates based on task changes
       try {
         const { TaskNotificationService } = await import("./taskNotificationService");
+        const { NotificationService } = await import("./notificationService");
         
-        // If task is completed, cancel pending notifications
+        // If task is completed, cancel pending notifications and notify admins/managers
         if (updatedTask.isCompleted) {
           await TaskNotificationService.cancelNotificationsForTask(taskId);
           console.log(`📅 Task notifications cancelled for completed task ${taskId}`);
+          
+          // Get admin/manager users to notify
+          const adminUsers = await db
+            .select({ id: users.id })
+            .from(users)
+            .where(and(
+              eq(users.organizationId, req.user!.organizationId),
+              or(eq(users.role, 'admin'), eq(users.role, 'manager'))
+            ));
+          
+          // Create notifications for all admins/managers
+          for (const admin of adminUsers) {
+            await NotificationService.createNotification({
+              type: 'task_completed',
+              title: `Task Completed`,
+              message: `${req.user!.firstName} ${req.user!.lastName} completed task: ${updatedTask.title}`,
+              userId: admin.id,
+              organizationId: req.user!.organizationId,
+              relatedEntityType: 'task',
+              relatedEntityId: taskId,
+              priority: 'normal',
+              category: 'team_based',
+              createdBy: req.user!.id
+            });
+          }
+          
+          console.log(`📢 Task completion notifications sent to ${adminUsers.length} admins/managers`);
         }
         // If task due date changed and task is not completed
         else if (req.body.dueDate && updatedTask.assignedToId && !updatedTask.isCompleted) {
@@ -18079,6 +18141,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         entry
       });
       
+      // Send clock-in notifications to admins/managers
+      try {
+        const { NotificationService } = await import("./notificationService");
+        
+        // Get admin/manager users to notify
+        const adminUsers = await db
+          .select({ id: users.id })
+          .from(users)
+          .where(and(
+            eq(users.organizationId, user.organizationId),
+            or(eq(users.role, 'admin'), eq(users.role, 'manager'))
+          ));
+        
+        // Create clock-in notifications for all admins/managers
+        for (const admin of adminUsers) {
+          await NotificationService.createNotification({
+            type: 'user_clock_in',
+            title: `Employee Clocked In`,
+            message: `${user.firstName} ${user.lastName} clocked in${location ? ` from ${location}` : ''}`,
+            userId: admin.id,
+            organizationId: user.organizationId,
+            relatedEntityType: 'time_clock',
+            relatedEntityId: entry.id,
+            priority: 'low',
+            category: 'team_based',
+            createdBy: user.id
+          });
+        }
+        
+        console.log(`📢 Clock-in notifications sent to ${adminUsers.length} admins/managers`);
+      } catch (notificationError) {
+        console.error('Error sending clock-in notifications:', notificationError);
+      }
+      
       res.json({ entry, message: "Successfully clocked in" });
     } catch (error: any) {
       console.error("Error clocking in:", error);
@@ -18101,6 +18197,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userName: user.firstName || user.username,
         entry
       });
+      
+      // Send clock-out notifications to admins/managers
+      try {
+        const { NotificationService } = await import("./notificationService");
+        
+        // Get admin/manager users to notify
+        const adminUsers = await db
+          .select({ id: users.id })
+          .from(users)
+          .where(and(
+            eq(users.organizationId, user.organizationId),
+            or(eq(users.role, 'admin'), eq(users.role, 'manager'))
+          ));
+        
+        // Create clock-out notifications for all admins/managers
+        for (const admin of adminUsers) {
+          await NotificationService.createNotification({
+            type: 'user_clock_out',
+            title: `Employee Clocked Out`,
+            message: `${user.firstName} ${user.lastName} clocked out${notes ? ` with notes: ${notes}` : ''}`,
+            userId: admin.id,
+            organizationId: user.organizationId,
+            relatedEntityType: 'time_clock',
+            relatedEntityId: entry.id,
+            priority: 'low',
+            category: 'team_based',
+            createdBy: user.id
+          });
+        }
+        
+        console.log(`📢 Clock-out notifications sent to ${adminUsers.length} admins/managers`);
+      } catch (notificationError) {
+        console.error('Error sending clock-out notifications:', notificationError);
+      }
       
       res.json({ entry, message: "Successfully clocked out" });
     } catch (error: any) {
@@ -19392,7 +19522,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               location,
             });
           
-          // Notify managers/admins
+          // Notify managers/admins via WebSocket
           broadcastToWebUsers(user.organizationId, 'late_arrival_detected', {
             user: `${user.firstName} ${user.lastName}`,
             minutesLate,
@@ -19400,7 +19530,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
             actualTime: clockInTime.toTimeString().slice(0, 5),
             location,
           });
+          
+          // Send late arrival notifications to admins/managers
+          try {
+            const { NotificationService } = await import("./notificationService");
+            
+            // Get admin/manager users to notify
+            const adminUsers = await db
+              .select({ id: users.id })
+              .from(users)
+              .where(and(
+                eq(users.organizationId, user.organizationId),
+                or(eq(users.role, 'admin'), eq(users.role, 'manager'))
+              ));
+            
+            // Create notifications for all admins/managers
+            for (const admin of adminUsers) {
+              await NotificationService.createNotification({
+                type: 'user_late',
+                title: `Employee Late Arrival`,
+                message: `${user.firstName} ${user.lastName} clocked in ${minutesLate} minutes late (scheduled: ${schedule.startTime}, actual: ${clockInTime.toTimeString().slice(0, 5)})`,
+                userId: admin.id,
+                organizationId: user.organizationId,
+                relatedEntityType: 'late_arrival',
+                relatedEntityId: timeClockEntry.id,
+                priority: 'high',
+                category: 'team_based',
+                createdBy: user.id
+              });
+            }
+            
+            console.log(`📢 Late arrival notifications sent to ${adminUsers.length} admins/managers`);
+          } catch (notificationError) {
+            console.error('Error sending late arrival notifications:', notificationError);
+          }
         }
+      }
+      
+      // Send regular clock-in notifications to admins/managers
+      try {
+        const { NotificationService } = await import("./notificationService");
+        
+        // Get admin/manager users to notify
+        const adminUsers = await db
+          .select({ id: users.id })
+          .from(users)
+          .where(and(
+            eq(users.organizationId, user.organizationId),
+            or(eq(users.role, 'admin'), eq(users.role, 'manager'))
+          ));
+        
+        // Create clock-in notifications for all admins/managers
+        for (const admin of adminUsers) {
+          await NotificationService.createNotification({
+            type: 'user_clock_in',
+            title: `Employee Clocked In`,
+            message: `${user.firstName} ${user.lastName} clocked in at ${clockInTime.toTimeString().slice(0, 5)}${location ? ` from ${location}` : ''}`,
+            userId: admin.id,
+            organizationId: user.organizationId,
+            relatedEntityType: 'time_clock',
+            relatedEntityId: timeClockEntry.id,
+            priority: 'low',
+            category: 'team_based',
+            createdBy: user.id
+          });
+        }
+        
+        console.log(`📢 Clock-in notifications sent to ${adminUsers.length} admins/managers`);
+      } catch (notificationError) {
+        console.error('Error sending clock-in notifications:', notificationError);
       }
       
       res.json({ 
