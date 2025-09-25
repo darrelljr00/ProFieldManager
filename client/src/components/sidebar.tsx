@@ -152,7 +152,7 @@ function SortableNavItem({
               {!isCollapsed && (
                 <>
                   {item.name}
-                  {item.name === "Team Messages" && item.unreadCount > 0 && (
+                  {(item.name === "Team Messages" || item.name === "Notifications") && item.unreadCount > 0 && (
                     <Badge variant="destructive" className="ml-auto h-5 w-5 flex items-center justify-center p-0 text-xs">
                       {item.unreadCount > 99 ? "99+" : item.unreadCount}
                     </Badge>
@@ -253,6 +253,7 @@ export function Sidebar() {
   const [expandedItems, setExpandedItems] = useState<{[key: string]: boolean}>({});
   const [isOpen, setIsOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
   const [navigationOrder, setNavigationOrder] = useState<string[]>(DEFAULT_NAVIGATION_ORDER);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -279,6 +280,13 @@ export function Sidebar() {
     queryKey: ["/api/internal-messages"],
     enabled: isAuthenticated,
     refetchInterval: 30000, // Poll every 30 seconds
+  });
+
+  // Fetch unread notification count
+  const { data: notificationData } = useQuery({
+    queryKey: ["/api/notifications/unread-count"],
+    enabled: isAuthenticated,
+    refetchInterval: 10000, // Poll every 10 seconds
   });
 
   // Load custom navigation order
@@ -323,6 +331,12 @@ export function Sidebar() {
       setUnreadCount(unread);
     }
   }, [messages, user?.id]);
+
+  useEffect(() => {
+    if (notificationData && typeof (notificationData as any).count === 'number') {
+      setUnreadNotificationsCount((notificationData as any).count);
+    }
+  }, [notificationData]);
 
   // Debug: log user data and permissions
   useEffect(() => {
@@ -396,7 +410,7 @@ export function Sidebar() {
       unreadCount: unreadCount
     },
     { name: "Live Stream", href: "/live-stream", icon: Video, requiresAuth: true, permission: "canAccessLiveStream" },
-    { name: "Notifications", href: "/notifications", icon: Bell, requiresAuth: true, permission: "canAccessNotifications" },
+    { name: "Notifications", href: "/notifications", icon: Bell, requiresAuth: true, permission: "canAccessNotifications", unreadCount: unreadNotificationsCount },
     { name: "Image Gallery", href: "/image-gallery", icon: ImageIcon, requiresAuth: true, permission: "canAccessImageGallery" },
     { name: "SMS", href: "/sms", icon: Smartphone, requiresAuth: true, permission: "canAccessSMS" },
     { name: "Messages", href: "/messages", icon: Mail, requiresAuth: true, permission: "canAccessMessages" },
