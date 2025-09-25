@@ -20835,6 +20835,191 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Smart Capture Invoice Approval Routes (Admin/Manager only)
+  
+  // Get pending Smart Capture invoices for approval
+  app.get("/api/smart-capture/invoices/pending", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      // Check if user is admin or manager
+      if (user.role !== 'admin' && user.role !== 'manager') {
+        return res.status(403).json({ message: "Access denied. Admin or Manager role required." });
+      }
+      
+      const pendingInvoices = await storage.getInvoices(user.id, {
+        status: 'pending_approval',
+        isSmartCaptureInvoice: true,
+        organizationId: user.organizationId
+      });
+      
+      res.json(pendingInvoices);
+    } catch (error: any) {
+      console.error("Error fetching pending Smart Capture invoices:", error);
+      res.status(500).json({ message: "Failed to fetch pending invoices" });
+    }
+  });
+
+  // Approve Smart Capture invoice
+  app.put("/api/smart-capture/invoices/:id/approve", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const invoiceId = parseInt(req.params.id);
+      
+      // Check if user is admin or manager
+      if (user.role !== 'admin' && user.role !== 'manager') {
+        return res.status(403).json({ message: "Access denied. Admin or Manager role required." });
+      }
+      
+      // Get the invoice to verify it's a Smart Capture invoice pending approval
+      const invoice = await storage.getInvoices(user.id, { 
+        id: invoiceId,
+        organizationId: user.organizationId 
+      });
+      
+      if (!invoice || invoice.length === 0) {
+        return res.status(404).json({ message: "Invoice not found" });
+      }
+      
+      const currentInvoice = invoice[0];
+      if (!currentInvoice.isSmartCaptureInvoice || currentInvoice.status !== 'pending_approval') {
+        return res.status(400).json({ message: "Invoice is not eligible for approval" });
+      }
+      
+      // Approve the invoice
+      const approvedInvoice = await storage.updateInvoice(invoiceId, user.id, {
+        status: 'sent', // Move to sent status after approval
+        approvedBy: user.id,
+        approvedAt: new Date()
+      });
+      
+      console.log(`✅ Smart Capture invoice ${invoiceId} approved by ${user.firstName} ${user.lastName}`);
+      
+      // Broadcast approval to organization users
+      broadcastToWebUsers(user.organizationId, 'smart_capture_invoice_approved', {
+        invoiceId: approvedInvoice.id,
+        invoiceNumber: approvedInvoice.invoiceNumber || approvedInvoice.id,
+        approvedBy: `${user.firstName} ${user.lastName}`,
+        timestamp: new Date().toISOString()
+      });
+      
+      res.json(approvedInvoice);
+    } catch (error: any) {
+      console.error("Error approving Smart Capture invoice:", error);
+      res.status(500).json({ message: "Failed to approve invoice" });
+    }
+  });
+
+  // Reject Smart Capture invoice
+  app.put("/api/smart-capture/invoices/:id/reject", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const invoiceId = parseInt(req.params.id);
+      const { rejectionReason } = req.body;
+      
+      // Check if user is admin or manager
+      if (user.role !== 'admin' && user.role !== 'manager') {
+        return res.status(403).json({ message: "Access denied. Admin or Manager role required." });
+      }
+      
+      // Get the invoice to verify it's a Smart Capture invoice pending approval
+      const invoice = await storage.getInvoices(user.id, { 
+        id: invoiceId,
+        organizationId: user.organizationId 
+      });
+      
+      if (!invoice || invoice.length === 0) {
+        return res.status(404).json({ message: "Invoice not found" });
+      }
+      
+      const currentInvoice = invoice[0];
+      if (!currentInvoice.isSmartCaptureInvoice || currentInvoice.status !== 'pending_approval') {
+        return res.status(400).json({ message: "Invoice is not eligible for rejection" });
+      }
+      
+      // Reject the invoice - move back to draft status
+      const rejectedInvoice = await storage.updateInvoice(invoiceId, user.id, {
+        status: 'draft', // Move back to draft for editing
+        rejectedBy: user.id,
+        rejectedAt: new Date(),
+        rejectionReason: rejectionReason || 'No reason provided'
+      });
+      
+      console.log(`❌ Smart Capture invoice ${invoiceId} rejected by ${user.firstName} ${user.lastName}: ${rejectionReason}`);
+      
+      // Broadcast rejection to organization users
+      broadcastToWebUsers(user.organizationId, 'smart_capture_invoice_rejected', {
+        invoiceId: rejectedInvoice.id,
+        invoiceNumber: rejectedInvoice.invoiceNumber || rejectedInvoice.id,
+        rejectedBy: `${user.firstName} ${user.lastName}`,
+        rejectionReason: rejectionReason || 'No reason provided',
+        timestamp: new Date().toISOString()
+      });
+      
+      res.json(rejectedInvoice);
+    } catch (error: any) {
+      console.error("Error rejecting Smart Capture invoice:", error);
+      res.status(500).json({ message: "Failed to reject invoice" });
+    }
+  });
+
+  // Edit and approve Smart Capture invoice (allow admins/managers to make changes and approve)
+  app.put("/api/smart-capture/invoices/:id/edit-and-approve", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const invoiceId = parseInt(req.params.id);
+      const { notes, taxRate, taxAmount, subtotal, total } = req.body;
+      
+      // Check if user is admin or manager
+      if (user.role !== 'admin' && user.role !== 'manager') {
+        return res.status(403).json({ message: "Access denied. Admin or Manager role required." });
+      }
+      
+      // Get the invoice to verify it's a Smart Capture invoice pending approval
+      const invoice = await storage.getInvoices(user.id, { 
+        id: invoiceId,
+        organizationId: user.organizationId 
+      });
+      
+      if (!invoice || invoice.length === 0) {
+        return res.status(404).json({ message: "Invoice not found" });
+      }
+      
+      const currentInvoice = invoice[0];
+      if (!currentInvoice.isSmartCaptureInvoice || currentInvoice.status !== 'pending_approval') {
+        return res.status(400).json({ message: "Invoice is not eligible for editing and approval" });
+      }
+      
+      // Update invoice with changes and approve
+      const updatedInvoice = await storage.updateInvoice(invoiceId, user.id, {
+        ...(notes !== undefined && { notes }),
+        ...(taxRate !== undefined && { taxRate }),
+        ...(taxAmount !== undefined && { taxAmount }),
+        ...(subtotal !== undefined && { subtotal }),
+        ...(total !== undefined && { total }),
+        status: 'sent', // Approve after editing
+        approvedBy: user.id,
+        approvedAt: new Date()
+      });
+      
+      console.log(`✅ Smart Capture invoice ${invoiceId} edited and approved by ${user.firstName} ${user.lastName}`);
+      
+      // Broadcast approval to organization users
+      broadcastToWebUsers(user.organizationId, 'smart_capture_invoice_approved', {
+        invoiceId: updatedInvoice.id,
+        invoiceNumber: updatedInvoice.invoiceNumber || updatedInvoice.id,
+        approvedBy: `${user.firstName} ${user.lastName}`,
+        wasEdited: true,
+        timestamp: new Date().toISOString()
+      });
+      
+      res.json(updatedInvoice);
+    } catch (error: any) {
+      console.error("Error editing and approving Smart Capture invoice:", error);
+      res.status(500).json({ message: "Failed to edit and approve invoice" });
+    }
+  });
+
   // Add broadcast functions to the app for use in routes  
   (app as any).broadcastToWebUsers = broadcastToWebUsers;
   (app as any).broadcastToUser = broadcastToUser;
