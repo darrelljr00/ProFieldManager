@@ -5834,6 +5834,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timestampPosition,
         shareWithTeam,
         enableSmartCapture,
+        // Recurring job data
+        isRecurring,
+        recurrencePattern,
+        selectedDays,
+        dayOfMonth,
+        recurringStartTime,
+        estimatedDuration,
+        defaultTechnicians,
+        seriesEndType,
+        seriesEndDate,
+        maxOccurrences,
         ...otherData 
       } = req.body;
       
@@ -5892,6 +5903,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } catch (draftInvoiceError) {
           console.error("❌ Error creating draft invoice for Smart Capture project:", draftInvoiceError);
           // Continue with project creation even if draft invoice creation fails
+        }
+      }
+      
+      // Handle recurring job creation
+      if (isRecurring && recurrencePattern) {
+        try {
+          const user = getAuthenticatedUser(req);
+          
+          // Create recurring job series
+          const recurringJobSeries = await storage.createRecurringJobSeries({
+            organizationId: user.organizationId,
+            templateProjectId: project.id,
+            name: project.name,
+            description: project.description || '',
+            recurrencePattern,
+            selectedDays: recurrencePattern === 'weekly' ? selectedDays || [] : [],
+            dayOfMonth: recurrencePattern === 'monthly' ? dayOfMonth : null,
+            recurringStartTime,
+            estimatedDuration,
+            defaultTechnicians: defaultTechnicians || [],
+            seriesEndType,
+            seriesEndDate: seriesEndType === 'date' ? (seriesEndDate ? new Date(seriesEndDate) : null) : null,
+            maxOccurrences: seriesEndType === 'count' ? maxOccurrences : null,
+            isActive: true,
+            createdBy: user.id
+          });
+          
+          // Generate initial set of recurring job occurrences
+          await storage.generateRecurringJobOccurrences(recurringJobSeries.id, user.organizationId);
+          
+          console.log(`✅ Created recurring job series ${recurringJobSeries.id} for project ${project.id}`);
+          
+          // Broadcast recurring job series creation to organization users
+          broadcastToWebUsers(user.organizationId, 'recurring_job_created', {
+            projectId: project.id,
+            projectName: project.name,
+            seriesId: recurringJobSeries.id,
+            pattern: recurrencePattern,
+            createdBy: user.username,
+            timestamp: new Date().toISOString()
+          });
+        } catch (recurringJobError) {
+          console.error("❌ Error creating recurring job series:", recurringJobError);
+          // Continue with project creation even if recurring job creation fails
+          // The main project has already been created successfully
         }
       }
       

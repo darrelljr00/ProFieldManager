@@ -477,6 +477,36 @@ export default function Jobs() {
   const [createSmartCaptureDialogOpen, setCreateSmartCaptureDialogOpen] = useState(false);
   const [editSmartCaptureDialogOpen, setEditSmartCaptureDialogOpen] = useState(false);
   const [editingSmartCaptureItem, setEditingSmartCaptureItem] = useState<any>(null);
+  
+  // Recurring job state variables
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurrencePattern, setRecurrencePattern] = useState<string>("");
+  const [selectedDays, setSelectedDays] = useState<string[]>([]);
+  const [dayOfMonth, setDayOfMonth] = useState(1);
+  const [recurringStartTime, setRecurringStartTime] = useState("09:00");
+  const [estimatedDuration, setEstimatedDuration] = useState(1);
+  const [defaultTechnicians, setDefaultTechnicians] = useState<number[]>([]);
+  const [seriesEndType, setSeriesEndType] = useState<'none' | 'date' | 'count'>('none');
+  const [seriesEndDate, setSeriesEndDate] = useState("");
+  const [maxOccurrences, setMaxOccurrences] = useState(10);
+
+  // Recurring job handler functions
+  const handleDayToggle = (day: string, checked: boolean) => {
+    if (checked) {
+      setSelectedDays(prev => [...prev, day]);
+    } else {
+      setSelectedDays(prev => prev.filter(d => d !== day));
+    }
+  };
+
+  const handleTechnicianToggle = (techId: number, checked: boolean) => {
+    if (checked) {
+      setDefaultTechnicians(prev => [...prev, techId]);
+    } else {
+      setDefaultTechnicians(prev => prev.filter(id => id !== techId));
+    }
+  };
+  
   const [smartCaptureFormData, setSmartCaptureFormData] = useState({
     partNumber: '',
     vehicleNumber: '',
@@ -899,6 +929,17 @@ export default function Jobs() {
       shareWithTeam: formData.get("shareWithTeam") === "true",
       // Smart Capture settings
       enableSmartCapture,
+      // Recurring job settings
+      isRecurring,
+      recurrencePattern: isRecurring ? recurrencePattern : null,
+      selectedDays: isRecurring && recurrencePattern === 'weekly' ? selectedDays : [],
+      dayOfMonth: isRecurring && recurrencePattern === 'monthly' ? dayOfMonth : null,
+      recurringStartTime: isRecurring ? recurringStartTime : null,
+      estimatedDuration: isRecurring ? estimatedDuration : null,
+      defaultTechnicians: isRecurring ? defaultTechnicians : [],
+      seriesEndType: isRecurring ? seriesEndType : null,
+      seriesEndDate: isRecurring && seriesEndType === 'date' ? seriesEndDate : null,
+      maxOccurrences: isRecurring && seriesEndType === 'count' ? maxOccurrences : null,
     };
   createJobMutation.mutate(data);
   };
@@ -1839,6 +1880,203 @@ export default function Jobs() {
               </div>
 
               {/* Job Site Address Selection */}
+              {/* Recurring Job Section */}
+              <div className="space-y-4 p-4 border rounded-lg bg-purple-50 dark:bg-purple-900/20">
+                <div className="flex items-center space-x-3">
+                  <Switch
+                    id="isRecurring"
+                    checked={isRecurring}
+                    onCheckedChange={setIsRecurring}
+                    data-testid="switch-recurring-job"
+                  />
+                  <Label htmlFor="isRecurring" className="text-sm font-semibold">
+                    Recurring Job
+                  </Label>
+                </div>
+                <p className="text-sm text-gray-600">
+                  Schedule this job to repeat automatically on selected days and times
+                </p>
+
+                {isRecurring && (
+                  <div className="space-y-4 pt-4 border-t">
+                    {/* Recurrence Pattern */}
+                    <div>
+                      <Label className="text-sm font-medium">Recurrence Pattern</Label>
+                      <Select 
+                        value={recurrencePattern} 
+                        onValueChange={setRecurrencePattern}
+                        data-testid="select-recurrence-pattern"
+                      >
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Select pattern" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="daily">Daily</SelectItem>
+                          <SelectItem value="weekly">Weekly</SelectItem>
+                          <SelectItem value="monthly">Monthly</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Days of Week Selection (for weekly pattern) */}
+                    {recurrencePattern === 'weekly' && (
+                      <div>
+                        <Label className="text-sm font-medium">Days of the Week</Label>
+                        <div className="grid grid-cols-4 gap-2 mt-2">
+                          {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => (
+                            <div key={day} className="flex items-center space-x-2">
+                              <input
+                                type="checkbox"
+                                id={`day-${day.toLowerCase()}`}
+                                checked={selectedDays.includes(day.toLowerCase())}
+                                onChange={(e) => handleDayToggle(day.toLowerCase(), e.target.checked)}
+                                className="w-4 h-4"
+                                data-testid={`checkbox-${day.toLowerCase()}`}
+                              />
+                              <Label htmlFor={`day-${day.toLowerCase()}`} className="text-sm">
+                                {day.slice(0, 3)}
+                              </Label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Day of Month (for monthly pattern) */}
+                    {recurrencePattern === 'monthly' && (
+                      <div>
+                        <Label htmlFor="dayOfMonth" className="text-sm font-medium">Day of Month</Label>
+                        <Input
+                          id="dayOfMonth"
+                          type="number"
+                          min="1"
+                          max="31"
+                          value={dayOfMonth}
+                          onChange={(e) => setDayOfMonth(parseInt(e.target.value) || 1)}
+                          className="mt-1"
+                          data-testid="input-day-of-month"
+                        />
+                      </div>
+                    )}
+
+                    {/* Time Settings */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="recurringStartTime" className="text-sm font-medium">Start Time</Label>
+                        <Input
+                          id="recurringStartTime"
+                          type="time"
+                          value={recurringStartTime}
+                          onChange={(e) => setRecurringStartTime(e.target.value)}
+                          className="mt-1"
+                          data-testid="input-recurring-start-time"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="estimatedDuration" className="text-sm font-medium">Duration (hours)</Label>
+                        <Input
+                          id="estimatedDuration"
+                          type="number"
+                          min="0.5"
+                          max="24"
+                          step="0.5"
+                          value={estimatedDuration}
+                          onChange={(e) => setEstimatedDuration(parseFloat(e.target.value) || 1)}
+                          placeholder="2"
+                          className="mt-1"
+                          data-testid="input-estimated-duration"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Default Technician Assignment */}
+                    <div>
+                      <Label className="text-sm font-medium">Default Technicians</Label>
+                      <p className="text-xs text-gray-500 mb-2">Select default technicians for recurring jobs (can be changed per occurrence)</p>
+                      <div className="space-y-2 max-h-32 overflow-y-auto border rounded p-2">
+                        {users.map((user) => (
+                          <div key={user.id} className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              id={`tech-${user.id}`}
+                              checked={defaultTechnicians.includes(user.id)}
+                              onChange={(e) => handleTechnicianToggle(user.id, e.target.checked)}
+                              className="w-4 h-4"
+                              data-testid={`checkbox-tech-${user.id}`}
+                            />
+                            <Label htmlFor={`tech-${user.id}`} className="text-sm">
+                              {user.firstName} {user.lastName} ({user.role})
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Series End Options */}
+                    <div>
+                      <Label className="text-sm font-medium">Series Duration</Label>
+                      <div className="space-y-3 mt-2">
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="radio"
+                            id="noEndDate"
+                            name="seriesEnd"
+                            checked={seriesEndType === 'none'}
+                            onChange={() => setSeriesEndType('none')}
+                            className="w-4 h-4"
+                          />
+                          <Label htmlFor="noEndDate" className="text-sm">No end date (continues indefinitely)</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="radio"
+                            id="endDate"
+                            name="seriesEnd"
+                            checked={seriesEndType === 'date'}
+                            onChange={() => setSeriesEndType('date')}
+                            className="w-4 h-4"
+                          />
+                          <Label htmlFor="endDate" className="text-sm">End on specific date</Label>
+                          {seriesEndType === 'date' && (
+                            <Input
+                              type="date"
+                              value={seriesEndDate}
+                              onChange={(e) => setSeriesEndDate(e.target.value)}
+                              className="ml-2 w-40"
+                              data-testid="input-series-end-date"
+                            />
+                          )}
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="radio"
+                            id="maxOccurrences"
+                            name="seriesEnd"
+                            checked={seriesEndType === 'count'}
+                            onChange={() => setSeriesEndType('count')}
+                            className="w-4 h-4"
+                          />
+                          <Label htmlFor="maxOccurrences" className="text-sm">End after</Label>
+                          {seriesEndType === 'count' && (
+                            <>
+                              <Input
+                                type="number"
+                                min="1"
+                                value={maxOccurrences}
+                                onChange={(e) => setMaxOccurrences(parseInt(e.target.value) || 1)}
+                                className="ml-2 w-20"
+                                data-testid="input-max-occurrences"
+                              />
+                              <span className="text-sm">occurrences</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div className="space-y-4 p-4 border rounded-lg bg-blue-50 dark:bg-blue-900/20">
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">Job Site Address</Label>

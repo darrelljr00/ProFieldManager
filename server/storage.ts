@@ -112,6 +112,14 @@ export interface IStorage {
   getProjectWaivers(projectId: number): Promise<any[]>;
   removeWaiverFromProject(projectId: number, fileId: number): Promise<void>;
   
+  // Recurring job methods
+  createRecurringJobSeries(seriesData: any): Promise<any>;
+  generateRecurringJobOccurrences(seriesId: number, organizationId: number): Promise<void>;
+  getRecurringJobSeries(organizationId: number): Promise<any[]>;
+  getRecurringJobOccurrences(seriesId: number): Promise<any[]>;
+  updateRecurringJobSeries(seriesId: number, updates: any): Promise<any>;
+  deactivateRecurringJobSeries(seriesId: number): Promise<void>;
+  
   // Expense methods
   getExpenses(organizationId: number, userId?: number): Promise<any[]>;
   getExpense(id: number, userId?: number): Promise<any>;
@@ -2547,6 +2555,192 @@ export class DatabaseStorage implements IStorage {
     await db
       .delete(projectWaivers)
       .where(and(eq(projectWaivers.projectId, projectId), eq(projectWaivers.fileId, fileId)));
+  }
+
+  // Recurring job methods
+  async createRecurringJobSeries(seriesData: any): Promise<any> {
+    const [series] = await db
+      .insert(recurringJobSeries)
+      .values({
+        organizationId: seriesData.organizationId,
+        templateProjectId: seriesData.templateProjectId,
+        name: seriesData.name,
+        description: seriesData.description,
+        recurrencePattern: seriesData.recurrencePattern,
+        selectedDays: seriesData.selectedDays,
+        dayOfMonth: seriesData.dayOfMonth,
+        recurringStartTime: seriesData.recurringStartTime,
+        estimatedDuration: seriesData.estimatedDuration,
+        defaultTechnicians: seriesData.defaultTechnicians,
+        seriesEndType: seriesData.seriesEndType,
+        seriesEndDate: seriesData.seriesEndDate,
+        maxOccurrences: seriesData.maxOccurrences,
+        isActive: seriesData.isActive,
+        createdBy: seriesData.createdBy,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning();
+    return series;
+  }
+
+  async generateRecurringJobOccurrences(seriesId: number, organizationId: number): Promise<void> {
+    // Get the series details
+    const [series] = await db
+      .select()
+      .from(recurringJobSeries)
+      .where(and(eq(recurringJobSeries.id, seriesId), eq(recurringJobSeries.organizationId, organizationId)));
+    
+    if (!series) {
+      throw new Error(`Recurring job series ${seriesId} not found`);
+    }
+
+    // Get the template project
+    const [templateProject] = await db
+      .select()
+      .from(projects)
+      .where(eq(projects.id, series.templateProjectId));
+
+    if (!templateProject) {
+      throw new Error(`Template project ${series.templateProjectId} not found`);
+    }
+
+    // Generate occurrences based on pattern
+    const occurrences = this.generateOccurrenceSchedule(series);
+    
+    // Insert occurrences
+    if (occurrences.length > 0) {
+      const occurrenceData = occurrences.map(occurrence => ({
+        seriesId: seriesId,
+        organizationId: organizationId,
+        scheduledDate: occurrence.scheduledDate,
+        startTime: occurrence.startTime,
+        estimatedDuration: series.estimatedDuration,
+        assignedTechnicians: series.defaultTechnicians,
+        status: 'scheduled' as const,
+        isGenerated: true,
+        createdAt: new Date()
+      }));
+
+      await db
+        .insert(recurringJobOccurrences)
+        .values(occurrenceData)
+        .onConflictDoNothing();
+    }
+  }
+
+  private generateOccurrenceSchedule(series: any): Array<{scheduledDate: Date, startTime: string}> {
+    const occurrences: Array<{scheduledDate: Date, startTime: string}> = [];
+    const startDate = new Date();
+    const maxDate = series.seriesEndDate ? new Date(series.seriesEndDate) : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000); // 1 year from now
+    const maxCount = series.maxOccurrences || 52; // Default to 52 occurrences
+    
+    let currentDate = new Date(startDate);
+    let count = 0;
+
+    while (currentDate <= maxDate && count < maxCount) {
+      let shouldInclude = false;
+
+      if (series.recurrencePattern === 'daily') {
+        shouldInclude = true;
+      } else if (series.recurrencePattern === 'weekly' && series.selectedDays && series.selectedDays.length > 0) {
+        const dayName = currentDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+        shouldInclude = series.selectedDays.includes(dayName);
+      } else if (series.recurrencePattern === 'monthly' && series.dayOfMonth) {
+        shouldInclude = currentDate.getDate() === series.dayOfMonth;
+      }
+
+      if (shouldInclude) {
+        occurrences.push({
+          scheduledDate: new Date(currentDate),
+          startTime: series.recurringStartTime
+        });
+        count++;
+      }
+
+      // Move to next day
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    return occurrences;
+  }
+
+  async getRecurringJobSeries(organizationId: number): Promise<any[]> {
+    return await db
+      .select({
+        id: recurringJobSeries.id,
+        organizationId: recurringJobSeries.organizationId,
+        templateProjectId: recurringJobSeries.templateProjectId,
+        name: recurringJobSeries.name,
+        description: recurringJobSeries.description,
+        recurrencePattern: recurringJobSeries.recurrencePattern,
+        selectedDays: recurringJobSeries.selectedDays,
+        dayOfMonth: recurringJobSeries.dayOfMonth,
+        recurringStartTime: recurringJobSeries.recurringStartTime,
+        estimatedDuration: recurringJobSeries.estimatedDuration,
+        defaultTechnicians: recurringJobSeries.defaultTechnicians,
+        seriesEndType: recurringJobSeries.seriesEndType,
+        seriesEndDate: recurringJobSeries.seriesEndDate,
+        maxOccurrences: recurringJobSeries.maxOccurrences,
+        isActive: recurringJobSeries.isActive,
+        createdBy: recurringJobSeries.createdBy,
+        createdAt: recurringJobSeries.createdAt,
+        updatedAt: recurringJobSeries.updatedAt,
+        templateProjectName: projects.name,
+        createdByName: users.firstName
+      })
+      .from(recurringJobSeries)
+      .leftJoin(projects, eq(recurringJobSeries.templateProjectId, projects.id))
+      .leftJoin(users, eq(recurringJobSeries.createdBy, users.id))
+      .where(eq(recurringJobSeries.organizationId, organizationId))
+      .orderBy(desc(recurringJobSeries.createdAt));
+  }
+
+  async getRecurringJobOccurrences(seriesId: number): Promise<any[]> {
+    return await db
+      .select({
+        id: recurringJobOccurrences.id,
+        seriesId: recurringJobOccurrences.seriesId,
+        organizationId: recurringJobOccurrences.organizationId,
+        scheduledDate: recurringJobOccurrences.scheduledDate,
+        startTime: recurringJobOccurrences.startTime,
+        estimatedDuration: recurringJobOccurrences.estimatedDuration,
+        assignedTechnicians: recurringJobOccurrences.assignedTechnicians,
+        status: recurringJobOccurrences.status,
+        actualProjectId: recurringJobOccurrences.actualProjectId,
+        isGenerated: recurringJobOccurrences.isGenerated,
+        createdAt: recurringJobOccurrences.createdAt,
+        completedAt: recurringJobOccurrences.completedAt,
+        seriesName: recurringJobSeries.name,
+        projectName: projects.name
+      })
+      .from(recurringJobOccurrences)
+      .leftJoin(recurringJobSeries, eq(recurringJobOccurrences.seriesId, recurringJobSeries.id))
+      .leftJoin(projects, eq(recurringJobOccurrences.actualProjectId, projects.id))
+      .where(eq(recurringJobOccurrences.seriesId, seriesId))
+      .orderBy(asc(recurringJobOccurrences.scheduledDate));
+  }
+
+  async updateRecurringJobSeries(seriesId: number, updates: any): Promise<any> {
+    const [series] = await db
+      .update(recurringJobSeries)
+      .set({
+        ...updates,
+        updatedAt: new Date()
+      })
+      .where(eq(recurringJobSeries.id, seriesId))
+      .returning();
+    return series;
+  }
+
+  async deactivateRecurringJobSeries(seriesId: number): Promise<void> {
+    await db
+      .update(recurringJobSeries)
+      .set({
+        isActive: false,
+        updatedAt: new Date()
+      })
+      .where(eq(recurringJobSeries.id, seriesId));
   }
 
   // DocuSign integration methods
