@@ -6122,28 +6122,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Don't fail the project update if review request fails
         }
         
-        // Automatically finalize draft invoice for completed projects
-        if (user) {
+        // Smart Capture: Automatically mark invoice for approval when project is completed
+        if (user && updatedProject.enableSmartCapture) {
           try {
             const draftInvoice = await storage.getDraftInvoiceForProject(projectId, user.organizationId);
-            if (draftInvoice) {
-              const finalizedInvoice = await storage.finalizeDraftInvoiceForProject(projectId, user.organizationId);
+            if (draftInvoice && draftInvoice.isSmartCaptureInvoice) {
+              // Mark Smart Capture invoice as pending approval instead of auto-finalizing
+              const pendingInvoice = await storage.updateInvoice(draftInvoice.id, userId, {
+                status: 'pending_approval'
+              });
               
-              console.log(`✅ Auto-finalized draft invoice ${draftInvoice.id} for completed project ${projectId}`);
+              console.log(`✅ Smart Capture invoice ${draftInvoice.id} marked for approval - project ${projectId} completed`);
               
-              // Broadcast invoice finalization to organization users
-              broadcastToWebUsers(user.organizationId, 'project_invoice_finalized', {
+              // Broadcast invoice pending approval to organization admins/managers
+              broadcastToWebUsers(user.organizationId, 'smart_capture_invoice_pending_approval', {
                 projectId: updatedProject.id,
                 projectName: updatedProject.name,
-                invoiceId: finalizedInvoice.id,
-                invoiceNumber: finalizedInvoice.invoiceNumber || finalizedInvoice.id,
-                finalizedBy: `${user.firstName} ${user.lastName}`,
+                invoiceId: draftInvoice.id,
+                invoiceNumber: draftInvoice.invoiceNumber || draftInvoice.id,
+                submittedBy: `${user.firstName} ${user.lastName}`,
                 timestamp: new Date().toISOString()
               });
             }
           } catch (invoiceError) {
-            console.error('❌ Error finalizing draft invoice for completed project:', invoiceError);
-            // Don't fail the project update if invoice finalization fails
+            console.error('❌ Error marking Smart Capture invoice for approval:', invoiceError);
+            // Don't fail the project update if invoice approval fails
           }
         }
       }
