@@ -24,7 +24,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
-import { Plus, Package, List, Edit, AlertCircle, Trash2, Pencil, FileText, DollarSign } from "lucide-react";
+import { Plus, Package, List, Edit, AlertCircle, Trash2, Pencil, FileText, DollarSign, Download, ChevronDown } from "lucide-react";
+import * as XLSX from 'xlsx';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { 
   insertSmartCaptureListSchema, 
   insertSmartCaptureItemSchema,
@@ -358,6 +360,244 @@ export default function SmartCapturePage() {
       console.error('Error searching master items:', error);
       setMasterSearchResults([]);
       setMatchedMasterItem(null);
+    }
+  };
+
+  // Export functions
+  const getProjectName = (projectId: number) => {
+    const project = allProjects.find(p => p.id === projectId);
+    return project?.name || `Project_${projectId}`;
+  };
+
+  const getProjectLocation = (projectId: number) => {
+    const project = allProjects.find(p => p.id === projectId);
+    return project?.address || project?.city || 'Unknown_Location';
+  };
+
+  const generateFilename = (format: string) => {
+    if (!selectedSmartCaptureList) return `smart_capture_export.${format}`;
+    
+    const projectName = selectedSmartCaptureList.projectId 
+      ? getProjectName(selectedSmartCaptureList.projectId)
+      : 'No_Project';
+    
+    const location = selectedSmartCaptureList.projectId 
+      ? getProjectLocation(selectedSmartCaptureList.projectId)
+      : 'No_Location';
+    
+    // Sanitize filename by removing invalid characters
+    const sanitizedProjectName = projectName.replace(/[^\w\s-]/g, '').replace(/\s+/g, '_');
+    const sanitizedLocation = location.replace(/[^\w\s-]/g, '').replace(/\s+/g, '_');
+    
+    return `${sanitizedProjectName}_${sanitizedLocation}_SmartCapture.${format}`;
+  };
+
+  const exportToCSV = () => {
+    if (!smartCaptureItems.length) {
+      toast({ title: "No Data", description: "No items to export", variant: "destructive" });
+      return;
+    }
+
+    const headers = [
+      'Part Number',
+      'Vehicle Number', 
+      'Inventory Number',
+      'Description',
+      'Notes',
+      'Quantity',
+      'Location'
+    ];
+
+    // Add Master Price column if user has permission and pricing is visible
+    if (isAdminOrManager && showSmartCapturePricing) {
+      headers.push('Master Price');
+    }
+
+    const csvData = smartCaptureItems.map(item => {
+      const row = [
+        item.partNumber || '',
+        item.vehicleNumber || '',
+        item.inventoryNumber || '',
+        item.description || '',
+        item.notes || '',
+        item.quantity?.toString() || '0',
+        item.location || ''
+      ];
+
+      if (isAdminOrManager && showSmartCapturePricing) {
+        row.push(`$${parseFloat(item.masterPrice?.toString() || '0').toFixed(2)}`);
+      }
+
+      return row;
+    });
+
+    const csvContent = [headers, ...csvData]
+      .map(row => row.map(field => `"${field}"`).join(','))
+      .join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = generateFilename('csv');
+    a.click();
+    window.URL.revokeObjectURL(url);
+
+    toast({ title: "Export Complete", description: "CSV file downloaded successfully" });
+  };
+
+  const exportToExcel = () => {
+    if (!smartCaptureItems.length) {
+      toast({ title: "No Data", description: "No items to export", variant: "destructive" });
+      return;
+    }
+
+    const headers = [
+      'Part Number',
+      'Vehicle Number',
+      'Inventory Number', 
+      'Description',
+      'Notes',
+      'Quantity',
+      'Location'
+    ];
+
+    if (isAdminOrManager && showSmartCapturePricing) {
+      headers.push('Master Price');
+    }
+
+    const worksheetData = [
+      headers,
+      ...smartCaptureItems.map(item => {
+        const row = [
+          item.partNumber || '',
+          item.vehicleNumber || '',
+          item.inventoryNumber || '',
+          item.description || '',
+          item.notes || '',
+          item.quantity || 0,
+          item.location || ''
+        ];
+
+        if (isAdminOrManager && showSmartCapturePricing) {
+          row.push(parseFloat(item.masterPrice?.toString() || '0').toFixed(2));
+        }
+
+        return row;
+      })
+    ];
+
+    const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Smart Capture Items');
+
+    XLSX.writeFile(workbook, generateFilename('xlsx'));
+
+    toast({ title: "Export Complete", description: "Excel file downloaded successfully" });
+  };
+
+  const exportToPDF = async () => {
+    if (!smartCaptureItems.length) {
+      toast({ title: "No Data", description: "No items to export", variant: "destructive" });
+      return;
+    }
+
+    // Create HTML content for PDF
+    const projectName = selectedSmartCaptureList?.projectId 
+      ? getProjectName(selectedSmartCaptureList.projectId)
+      : 'Unknown Project';
+    
+    const location = selectedSmartCaptureList?.projectId 
+      ? getProjectLocation(selectedSmartCaptureList.projectId) 
+      : 'Unknown Location';
+
+    let htmlContent = `
+      <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            h1 { color: #333; border-bottom: 2px solid #333; padding-bottom: 10px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f2f2f2; font-weight: bold; }
+            .header-info { margin-bottom: 20px; }
+            .header-info p { margin: 5px 0; }
+          </style>
+        </head>
+        <body>
+          <h1>Smart Capture Items Export</h1>
+          <div class="header-info">
+            <p><strong>Project:</strong> ${projectName}</p>
+            <p><strong>Location:</strong> ${location}</p>
+            <p><strong>List:</strong> ${selectedSmartCaptureList?.name || 'Unknown List'}</p>
+            <p><strong>Exported:</strong> ${new Date().toLocaleDateString()}</p>
+            <p><strong>Total Items:</strong> ${smartCaptureItems.length}</p>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Part Number</th>
+                <th>Vehicle Number</th>
+                <th>Inventory Number</th>
+                <th>Description</th>
+                <th>Notes</th>
+                <th>Quantity</th>
+                ${isAdminOrManager && showSmartCapturePricing ? '<th>Master Price</th>' : ''}
+                <th>Location</th>
+              </tr>
+            </thead>
+            <tbody>
+    `;
+
+    smartCaptureItems.forEach(item => {
+      htmlContent += `
+        <tr>
+          <td>${item.partNumber || '-'}</td>
+          <td>${item.vehicleNumber || '-'}</td>
+          <td>${item.inventoryNumber || '-'}</td>
+          <td>${item.description || '-'}</td>
+          <td>${item.notes || '-'}</td>
+          <td>${item.quantity || 0}</td>
+          ${isAdminOrManager && showSmartCapturePricing ? `<td>$${parseFloat(item.masterPrice?.toString() || '0').toFixed(2)}</td>` : ''}
+          <td>${item.location || '-'}</td>
+        </tr>
+      `;
+    });
+
+    htmlContent += `
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `;
+
+    try {
+      // Use the backend PDF generation service
+      const response = await apiRequest('POST', '/api/generate-pdf', {
+        html: htmlContent,
+        filename: generateFilename('pdf')
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = generateFilename('pdf');
+        a.click();
+        window.URL.revokeObjectURL(url);
+
+        toast({ title: "Export Complete", description: "PDF file downloaded successfully" });
+      } else {
+        throw new Error('PDF generation failed');
+      }
+    } catch (error) {
+      console.error('PDF export error:', error);
+      toast({ 
+        title: "Export Failed", 
+        description: "Could not generate PDF. Please try CSV or Excel export.", 
+        variant: "destructive" 
+      });
     }
   };
 
@@ -851,13 +1091,34 @@ export default function SmartCapturePage() {
                   <CardTitle>Items in "{selectedSmartCaptureList.name}"</CardTitle>
                   <p className="text-sm text-muted-foreground">{selectedSmartCaptureList.description}</p>
                 </div>
-                <Dialog open={isAddItemDialogOpen} onOpenChange={setIsAddItemDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button data-testid="button-add-item">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Item
-                    </Button>
-                  </DialogTrigger>
+                <div className="flex gap-2">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" data-testid="button-export-items">
+                        <Download className="h-4 w-4 mr-2" />
+                        Export
+                        <ChevronDown className="h-4 w-4 ml-2" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuItem onClick={exportToCSV} data-testid="export-csv">
+                        Export as CSV
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={exportToExcel} data-testid="export-excel">
+                        Export as Excel
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={exportToPDF} data-testid="export-pdf">
+                        Export as PDF
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  <Dialog open={isAddItemDialogOpen} onOpenChange={setIsAddItemDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button data-testid="button-add-item">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Item
+                      </Button>
+                    </DialogTrigger>
                   <DialogContent className="max-w-2xl">
                     <DialogHeader>
                       <DialogTitle>Add Item to Smart Capture List</DialogTitle>
@@ -1153,6 +1414,7 @@ export default function SmartCapturePage() {
                     </Form>
                   </DialogContent>
                 </Dialog>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="rounded-md border">
