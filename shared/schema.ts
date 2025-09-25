@@ -1014,6 +1014,80 @@ export const calendarJobs = pgTable("calendar_jobs", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Recurring Jobs System - Template-based recurring job scheduling
+export const recurringJobSeries = pgTable("recurring_job_series", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  createdByUserId: integer("created_by_user_id").notNull().references(() => users.id),
+  
+  // Job template data (default values for all occurrences)
+  title: text("title").notNull(),
+  description: text("description"),
+  location: text("location"),
+  estimatedValue: decimal("estimated_value", { precision: 10, scale: 2 }),
+  estimatedDuration: integer("estimated_duration"), // in minutes
+  priority: text("priority").notNull().default("medium"), // low, medium, high, urgent
+  customerId: integer("customer_id").references(() => customers.id),
+  
+  // Job payload stored as JSON for flexible template data
+  jobTemplateData: jsonb("job_template_data"), // stores all job fields as template
+  
+  // Recurrence configuration
+  recurrencePattern: text("recurrence_pattern").notNull(), // daily, weekly, monthly, custom
+  recurrenceInterval: integer("recurrence_interval").default(1), // every N days/weeks/months
+  daysOfWeek: text("days_of_week").array(), // ['monday', 'tuesday'] for weekly
+  dayOfMonth: integer("day_of_month"), // 1-31 for monthly
+  monthsOfYear: text("months_of_year").array(), // ['january', 'march'] for yearly
+  
+  // Time configuration
+  defaultStartTime: text("default_start_time"), // "09:00"
+  timezone: text("timezone").notNull().default("America/New_York"),
+  
+  // Series lifecycle
+  isActive: boolean("is_active").default(true),
+  startDate: date("start_date").notNull(), // when recurring series begins
+  endDate: date("end_date"), // optional end date
+  maxOccurrences: integer("max_occurrences"), // optional limit on total occurrences
+  
+  // Default technician assignments
+  defaultTechnicianIds: integer("default_technician_ids").array(), // default assigned users
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Recurring Job Occurrences - Links generated dates to actual jobs
+export const recurringJobOccurrences = pgTable("recurring_job_occurrences", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  seriesId: integer("series_id").notNull().references(() => recurringJobSeries.id, { onDelete: "cascade" }),
+  
+  // Generated occurrence details
+  scheduledDate: date("scheduled_date").notNull(),
+  scheduledStartTime: text("scheduled_start_time"), // can override series default
+  scheduledEndTime: text("scheduled_end_time"),
+  
+  // Links to actual created jobs
+  calendarJobId: integer("calendar_job_id").references(() => calendarJobs.id),
+  projectId: integer("project_id").references(() => projects.id),
+  
+  // Per-occurrence overrides
+  assignedTechnicianIds: integer("assigned_technician_ids").array(), // can override series defaults
+  occurrenceOverrideData: jsonb("occurrence_override_data"), // custom data for this specific occurrence
+  
+  // Occurrence status
+  status: text("status").notNull().default("scheduled"), // scheduled, created, completed, skipped, cancelled
+  isOverride: boolean("is_override").default(false), // true if manually edited from series template
+  
+  // Skip/reschedule functionality
+  isSkipped: boolean("is_skipped").default(false),
+  skipReason: text("skip_reason"),
+  rescheduledTo: date("rescheduled_to"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Internal messaging system
 export const internalMessages = pgTable("internal_messages", {
   id: serial("id").primaryKey(),
@@ -1901,6 +1975,29 @@ export const insertCalendarJobSchema = z.object({
   userId: z.number(),
 });
 
+export const insertRecurringJobSeriesSchema = createInsertSchema(recurringJobSeries).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  title: z.string().min(1, "Job title is required"),
+  recurrencePattern: z.enum(['daily', 'weekly', 'monthly', 'custom'], {
+    required_error: "Recurrence pattern is required"
+  }),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Start date must be in YYYY-MM-DD format"),
+  priority: z.enum(['low', 'medium', 'high', 'urgent']).default('medium'),
+  timezone: z.string().default('America/New_York'),
+});
+
+export const insertRecurringJobOccurrenceSchema = createInsertSchema(recurringJobOccurrences).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  scheduledDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Scheduled date must be in YYYY-MM-DD format"),
+  status: z.enum(['scheduled', 'created', 'completed', 'skipped', 'cancelled']).default('scheduled'),
+});
+
 export const insertInternalMessageSchema = z.object({
   senderId: z.number(),
   subject: z.string().min(1),
@@ -2113,6 +2210,12 @@ export type Lead = typeof leads.$inferSelect;
 export type InsertLead = z.infer<typeof insertLeadSchema>;
 
 export type CalendarJob = typeof calendarJobs.$inferSelect;
+
+export type RecurringJobSeries = typeof recurringJobSeries.$inferSelect;
+export type InsertRecurringJobSeries = z.infer<typeof insertRecurringJobSeriesSchema>;
+
+export type RecurringJobOccurrence = typeof recurringJobOccurrences.$inferSelect;
+export type InsertRecurringJobOccurrence = z.infer<typeof insertRecurringJobOccurrenceSchema>;
 export type InsertCalendarJob = z.infer<typeof insertCalendarJobSchema>;
 
 export type InternalMessage = typeof internalMessages.$inferSelect;

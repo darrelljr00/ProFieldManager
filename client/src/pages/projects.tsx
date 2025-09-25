@@ -43,7 +43,7 @@ function HistoricalJobs() {
     queryKey: ["/api/customers"],
   });
 
-  const { data: users = [] } = useQuery({
+  const { data: users = [] } = useQuery<User[]>({
     queryKey: ["/api/users"],
   });
 
