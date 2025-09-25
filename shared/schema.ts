@@ -283,7 +283,7 @@ export const invoices = pgTable("invoices", {
   customerId: integer("customer_id").references(() => customers.id), // Made nullable for uploaded invoices
   projectId: integer("project_id").references(() => projects.id), // Link to project for Smart Capture auto-invoices
   invoiceNumber: text("invoice_number").notNull(),
-  status: text("status").notNull().default("draft"), // draft, sent, paid, overdue, cancelled
+  status: text("status").notNull().default("draft"), // draft, pending_approval, sent, paid, overdue, cancelled
   subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
   taxRate: decimal("tax_rate", { precision: 5, scale: 2 }).default("0.00"),
   taxAmount: decimal("tax_amount", { precision: 10, scale: 2 }).default("0.00"),
@@ -300,6 +300,14 @@ export const invoices = pgTable("invoices", {
   originalFileName: text("original_file_name"), // Original name of uploaded file
   isUploadedInvoice: boolean("is_uploaded_invoice").default(false), // Flag for uploaded vs created invoices
   isSmartCaptureInvoice: boolean("is_smart_capture_invoice").default(false), // Flag for Smart Capture auto-invoices
+  
+  // Smart Capture approval tracking
+  approvedBy: integer("approved_by").references(() => users.id),
+  approvedAt: timestamp("approved_at"),
+  rejectedBy: integer("rejected_by").references(() => users.id),
+  rejectedAt: timestamp("rejected_at"),
+  rejectionReason: text("rejection_reason"),
+  
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
