@@ -2154,6 +2154,9 @@ export default function Jobs() {
                 <div>
                   <Label className="text-sm font-medium text-gray-500">Job Name</Label>
                   <p className="text-base font-medium">{selectedProject.name}</p>
+                  {selectedProject.jobNumber && (
+                    <p className="text-sm text-gray-600 mt-1">Job #{selectedProject.jobNumber}</p>
+                  )}
                 </div>
                 <div>
                   <Label className="text-sm font-medium text-gray-500">Status</Label>
