@@ -1,12 +1,137 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { 
+  Calendar, 
+  ChevronLeft, 
+  ChevronRight, 
+  Clock, 
+  MapPin, 
+  Repeat, 
+  CloudRain,
+  Sun,
+  Cloud 
+} from "lucide-react";
+
+interface CalendarJob {
+  id: string;
+  title: string;
+  description?: string;
+  startDate: string;
+  endDate: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  status: string;
+  priority: string;
+  customerId?: number;
+  type: 'project' | 'recurring';
+  isRecurring: boolean;
+  originalId?: number;
+  seriesId?: number;
+  occurrenceId?: number;
+}
+
+interface JobWeather {
+  temp_f: number;
+  condition: {
+    text: string;
+    icon: string;
+  };
+  chance_of_rain?: number;
+}
 
 export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'1month' | '3months' | '1week' | '2weeks'>('1month');
+
+  // Calculate date range for API call
+  const getDateRange = () => {
+    const days = (() => {
+      switch (viewMode) {
+        case '1week':
+          return getWeekDays(currentDate);
+        case '2weeks':
+          return getTwoWeekDays(currentDate);
+        case '3months':
+          return getThreeMonthDays(currentDate);
+        default:
+          return getDaysInMonth(currentDate);
+      }
+    })();
+    
+    const startDate = days[0]?.toISOString().split('T')[0];
+    const endDate = days[days.length - 1]?.toISOString().split('T')[0];
+    
+    return { startDate, endDate };
+  };
+
+  // Fetch calendar jobs
+  const { data: jobs, isLoading } = useQuery<CalendarJob[]>({
+    queryKey: ['/api/jobs/calendar', getDateRange()],
+    queryFn: async () => {
+      const { startDate, endDate } = getDateRange();
+      const params = new URLSearchParams({ startDate, endDate });
+      const response = await fetch(`/api/jobs/calendar?${params}`);
+      if (!response.ok) throw new Error('Failed to fetch calendar jobs');
+      return response.json();
+    }
+  });
+
+  // Fetch weather for jobs
+  const jobsWithWeather = useQuery<{[key: string]: JobWeather}>({
+    queryKey: ['/api/weather/jobs', jobs?.map(j => j.originalId).filter(Boolean)],
+    queryFn: async () => {
+      if (!jobs?.length) return {};
+      
+      const weatherData: {[key: string]: JobWeather} = {};
+      
+      // Fetch weather for each job that has an originalId
+      await Promise.all(
+        jobs
+          .filter(job => job.originalId)
+          .map(async (job) => {
+            try {
+              const response = await fetch(`/api/weather/jobs/${job.originalId}`);
+              if (response.ok) {
+                const data = await response.json();
+                // Use start date weather if available
+                if (data.weather?.startDate) {
+                  weatherData[job.id] = {
+                    temp_f: data.weather.startDate.temp_f,
+                    condition: data.weather.startDate.condition,
+                    chance_of_rain: data.weather.startDate.chance_of_rain
+                  };
+                }
+              }
+            } catch (error) {
+              console.warn(`Failed to fetch weather for job ${job.id}:`, error);
+            }
+          })
+      );
+      
+      return weatherData;
+    },
+    enabled: !!jobs?.length
+  });
+
+  // Group jobs by date
+  const getJobsForDate = (date: Date) => {
+    if (!jobs) return [];
+    
+    const dateStr = date.toISOString().split('T')[0];
+    return jobs.filter(job => {
+      const jobStart = job.startDate;
+      const jobEnd = job.endDate;
+      
+      // Check if the job occurs on this date
+      return jobStart <= dateStr && jobEnd >= dateStr;
+    });
+  };
 
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
@@ -212,6 +337,7 @@ export default function CalendarPage() {
             {days.map((day, index) => {
               const isCurrentMonth = getIsCurrentPeriod(day);
               const isToday = day.toDateString() === new Date().toDateString();
+              const dayJobs = getJobsForDate(day);
               
               return (
                 <div
@@ -220,10 +346,81 @@ export default function CalendarPage() {
                     isCurrentMonth ? 'bg-background' : 'bg-muted/30'
                   } ${isToday ? 'ring-2 ring-primary' : ''}`}
                 >
-                  <div className={`text-sm font-medium mb-1 ${
+                  <div className={`text-sm font-medium mb-2 ${
                     isCurrentMonth ? 'text-foreground' : 'text-muted-foreground'
                   }`}>
                     {day.getDate()}
+                  </div>
+                  
+                  {/* Jobs for this day */}
+                  <div className="space-y-1">
+                    {isLoading ? (
+                      <Skeleton className="h-6 w-full" />
+                    ) : (
+                      dayJobs.slice(0, 3).map((job) => {
+                        const weather = jobsWithWeather.data?.[job.id];
+                        const priorityColors = {
+                          low: 'bg-blue-100 text-blue-800 border-blue-200',
+                          medium: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+                          high: 'bg-orange-100 text-orange-800 border-orange-200',
+                          urgent: 'bg-red-100 text-red-800 border-red-200'
+                        };
+                        
+                        return (
+                          <div
+                            key={job.id}
+                            className={`p-2 rounded-md border text-xs ${
+                              priorityColors[job.priority as keyof typeof priorityColors] || 
+                              priorityColors.medium
+                            }`}
+                            data-testid={`calendar-job-${job.id}`}
+                          >
+                            <div className="flex items-start justify-between gap-1">
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium truncate" title={job.title}>
+                                  {job.title}
+                                </p>
+                                {job.address && (
+                                  <p className="flex items-center gap-1 text-xs opacity-75 mt-1">
+                                    <MapPin className="h-3 w-3" />
+                                    <span className="truncate">{job.address}</span>
+                                  </p>
+                                )}
+                              </div>
+                              
+                              {/* Badges and Weather */}
+                              <div className="flex flex-col items-end gap-1">
+                                {job.isRecurring && (
+                                  <Badge variant="secondary" className="text-xs h-4">
+                                    <Repeat className="h-2 w-2 mr-1" />
+                                    R
+                                  </Badge>
+                                )}
+                                {weather && (
+                                  <div className="flex items-center gap-1 text-xs">
+                                    {weather.condition.text.toLowerCase().includes('rain') ? (
+                                      <CloudRain className="h-3 w-3" />
+                                    ) : weather.condition.text.toLowerCase().includes('cloud') ? (
+                                      <Cloud className="h-3 w-3" />
+                                    ) : (
+                                      <Sun className="h-3 w-3" />
+                                    )}
+                                    <span>{Math.round(weather.temp_f)}°F</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                    
+                    {/* Show more indicator */}
+                    {dayJobs.length > 3 && (
+                      <div className="text-xs text-muted-foreground text-center py-1">
+                        +{dayJobs.length - 3} more
+                      </div>
+                    )}
                   </div>
                 </div>
               );
@@ -232,18 +429,42 @@ export default function CalendarPage() {
         </CardContent>
       </Card>
 
-      {/* Info Message */}
+      {/* Job Summary */}
       <Card>
         <CardHeader>
-          <CardTitle>Calendar Information</CardTitle>
-          <CardDescription>Basic calendar view</CardDescription>
+          <CardTitle>Job Summary</CardTitle>
+          <CardDescription>
+            Overview of jobs in the current period
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8">
-            <p className="text-muted-foreground">
-              Calendar view for browsing dates
-            </p>
-          </div>
+          {isLoading ? (
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-3/4" />
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-600">
+                  {jobs?.filter(job => !job.isRecurring).length || 0}
+                </div>
+                <p className="text-sm text-muted-foreground">Regular Jobs</p>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-purple-600">
+                  {jobs?.filter(job => job.isRecurring).length || 0}
+                </div>
+                <p className="text-sm text-muted-foreground">Recurring Jobs</p>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-600">
+                  {jobs?.length || 0}
+                </div>
+                <p className="text-sm text-muted-foreground">Total Jobs</p>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
