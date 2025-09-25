@@ -63,6 +63,7 @@ import {
   users, customers, invoices, quotes, projects, tasks, 
   expenses, expenseCategories, expenseReports, gasCards, 
   gasCardAssignments, leads, messages, internalMessages,
+  recurringJobSeries, recurringJobOccurrences,
   images, settings, organizations, userSessions, vendors, vehicles,
   soundSettings, userDashboardSettings, dashboardProfiles,
   schedules, scheduleAssignments, scheduleComments, timeClock,
@@ -5816,6 +5817,102 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("❌ ERROR IN GET PROJECTS:", error);
       console.error("❌ Error stack:", error.stack);
       res.status(500).json({ message: "Failed to fetch projects" });
+    }
+  });
+
+  // Calendar endpoint for displaying jobs with recurring support
+  app.get("/api/jobs/calendar", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { startDate, endDate } = req.query;
+      
+      // Get regular projects/jobs for the organization
+      const projects = await storage.getProjects(user.organizationId, undefined, user.role);
+      
+      // Filter projects that have start/end dates within the calendar range
+      let calendarJobs = projects
+        .filter(project => project.startDate || project.endDate)
+        .map(project => ({
+          id: `project-${project.id}`,
+          title: project.name,
+          description: project.description,
+          startDate: project.startDate,
+          endDate: project.endDate,
+          address: project.address,
+          city: project.city,
+          state: project.state,
+          status: project.status,
+          priority: project.priority || 'medium',
+          customerId: project.customerId,
+          type: 'project',
+          isRecurring: false,
+          originalId: project.id
+        }));
+      
+      // Get recurring job occurrences that have been converted to projects
+      try {
+        const recurringOccurrences = await db
+          .select({
+            occurrence: recurringJobOccurrences,
+            series: recurringJobSeries,
+            project: projects
+          })
+          .from(recurringJobOccurrences)
+          .innerJoin(recurringJobSeries, eq(recurringJobOccurrences.seriesId, recurringJobSeries.id))
+          .leftJoin(projects, eq(recurringJobOccurrences.projectId, projects.id))
+          .where(eq(recurringJobSeries.organizationId, user.organizationId));
+        
+        // Add recurring job occurrences to calendar
+        const recurringCalendarJobs = recurringOccurrences.map(row => ({
+          id: `recurring-${row.occurrence.id}`,
+          title: row.project?.name || row.series.title,
+          description: row.project?.description || row.series.description,
+          startDate: row.occurrence.scheduledDate,
+          endDate: row.occurrence.scheduledDate, // Same day for now
+          address: row.project?.address || row.series.location,
+          city: row.project?.city,
+          state: row.project?.state,
+          status: row.occurrence.status,
+          priority: row.series.priority,
+          customerId: row.series.customerId,
+          type: 'recurring',
+          isRecurring: true,
+          seriesId: row.series.id,
+          occurrenceId: row.occurrence.id,
+          originalId: row.project?.id || null
+        }));
+        
+        calendarJobs = [...calendarJobs, ...recurringCalendarJobs];
+      } catch (recurringError) {
+        console.error("Error fetching recurring jobs:", recurringError);
+        // Continue without recurring jobs if there's an error
+      }
+      
+      // If date range is specified, filter jobs
+      if (startDate && endDate) {
+        const start = new Date(startDate as string);
+        const end = new Date(endDate as string);
+        
+        calendarJobs = calendarJobs.filter(job => {
+          const jobStart = job.startDate ? new Date(job.startDate) : null;
+          const jobEnd = job.endDate ? new Date(job.endDate) : null;
+          
+          // Show job if it overlaps with the requested date range
+          if (jobStart && jobEnd) {
+            return (jobStart <= end && jobEnd >= start);
+          } else if (jobStart) {
+            return (jobStart >= start && jobStart <= end);
+          } else if (jobEnd) {
+            return (jobEnd >= start && jobEnd <= end);
+          }
+          return false;
+        });
+      }
+      
+      res.json(calendarJobs);
+    } catch (error: any) {
+      console.error("Error fetching calendar jobs:", error);
+      res.status(500).json({ message: "Failed to fetch calendar jobs" });
     }
   });
 
