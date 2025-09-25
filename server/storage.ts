@@ -1303,6 +1303,72 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
+  // Smart Capture specific version that auto-detects customer and validates Smart Capture is enabled
+  async ensureDraftInvoiceForSmartCaptureProject(projectId: number, organizationId: number, userId: number): Promise<any> {
+    // Check if project exists and has Smart Capture enabled
+    const [project] = await db
+      .select({
+        id: projects.id,
+        customerId: projects.customerId,
+        enableSmartCapture: projects.enableSmartCapture,
+        name: projects.name
+      })
+      .from(projects)
+      .where(and(
+        eq(projects.id, projectId),
+        eq(projects.organizationId, organizationId)
+      ))
+      .limit(1);
+
+    if (!project) {
+      throw new Error('Project not found or access denied');
+    }
+
+    if (!project.enableSmartCapture) {
+      throw new Error('Smart Capture is not enabled for this project');
+    }
+
+    if (!project.customerId) {
+      console.warn(`⚠️ Project ${projectId} has Smart Capture enabled but no customer assigned. Draft invoice creation skipped.`);
+      return null;
+    }
+
+    // Check if a draft invoice already exists for this project
+    const existingDraft = await this.getDraftInvoiceForProject(projectId, organizationId);
+    
+    if (existingDraft) {
+      return existingDraft;
+    }
+
+    // Create a new draft Smart Capture invoice
+    return await db.transaction(async (tx) => {
+      const invoiceData = {
+        userId,
+        customerId: project.customerId,
+        projectId,
+        invoiceNumber: `SC-DRAFT-${projectId}-${Date.now()}`,
+        status: 'draft',
+        subtotal: '0.00',
+        taxRate: '0.00',
+        taxAmount: '0.00',
+        total: '0.00',
+        currency: 'USD',
+        invoiceDate: new Date(),
+        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+        isSmartCaptureInvoice: true,
+        notes: `Auto-generated Smart Capture invoice for ${project.name}`
+      };
+
+      const [invoice] = await tx
+        .insert(invoices)
+        .values(invoiceData)
+        .returning();
+
+      console.log(`✅ Created new Smart Capture draft invoice ${invoice.invoiceNumber} for project ${projectId}`);
+      return invoice;
+    });
+  }
+
   async getDraftInvoiceForProject(projectId: number, organizationId: number): Promise<any> {
     const [invoice] = await db
       .select({
@@ -8728,6 +8794,26 @@ export class DatabaseStorage implements IStorage {
           submittedBy: userId,
         })
         .returning();
+
+      // Auto-create draft invoice for Smart Capture projects when first item is added
+      if (item && item.projectId) {
+        await this.ensureDraftInvoiceForSmartCaptureProject(item.projectId, organizationId, userId);
+        
+        // Add this item to the draft invoice
+        const draftInvoice = await this.getDraftInvoiceForProject(item.projectId, organizationId);
+        if (draftInvoice) {
+          await this.upsertDraftInvoiceLineItem(draftInvoice.id, {
+            description: item.description || item.partNumber || item.vehicleNumber || item.inventoryNumber || 'Smart Capture Item',
+            quantity: item.quantity.toString(),
+            rate: item.masterPrice.toString(),
+            sourceType: 'smart_capture',
+            smartCaptureItemId: item.id
+          }, organizationId);
+          
+          console.log(`✅ Auto-created/updated draft invoice line item for new Smart Capture item ${item.id}`);
+        }
+      }
+
       return item;
     } catch (error) {
       console.error('Error creating smart capture item:', error);
@@ -8813,10 +8899,40 @@ export class DatabaseStorage implements IStorage {
         };
       });
       
-      return await db
+      const createdItems = await db
         .insert(smartCaptureItems)
         .values(itemsWithMeta)
         .returning();
+
+      // Auto-create draft invoice for Smart Capture projects when items are added
+      const projectItems = createdItems.filter(item => item.projectId);
+      const projectIds = [...new Set(projectItems.map(item => item.projectId))];
+      
+      for (const projectId of projectIds) {
+        if (projectId) {
+          await this.ensureDraftInvoiceForSmartCaptureProject(projectId, organizationId, userId);
+          
+          // Add all items for this project to the draft invoice
+          const draftInvoice = await this.getDraftInvoiceForProject(projectId, organizationId);
+          if (draftInvoice) {
+            const projectSpecificItems = projectItems.filter(item => item.projectId === projectId);
+            
+            for (const item of projectSpecificItems) {
+              await this.upsertDraftInvoiceLineItem(draftInvoice.id, {
+                description: item.description || item.partNumber || item.vehicleNumber || item.inventoryNumber || 'Smart Capture Item',
+                quantity: item.quantity.toString(),
+                rate: item.masterPrice.toString(),
+                sourceType: 'smart_capture',
+                smartCaptureItemId: item.id
+              }, organizationId);
+            }
+            
+            console.log(`✅ Auto-created/updated draft invoice line items for ${projectSpecificItems.length} new Smart Capture items in project ${projectId}`);
+          }
+        }
+      }
+
+      return createdItems;
     } catch (error) {
       console.error('Error creating bulk smart capture items:', error);
       throw new Error('Failed to create smart capture items');
