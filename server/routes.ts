@@ -21,7 +21,6 @@ import {
   insertGasCardSchema,
   insertGasCardAssignmentSchema,
   insertSharedPhotoLinkSchema,
-  insertCalendarJobSchema,
   insertScheduleSchema,
   insertScheduleAssignmentSchema,
   insertScheduleCommentSchema,
@@ -63,7 +62,7 @@ import { db } from "./db";
 import { 
   users, customers, invoices, quotes, projects, tasks, 
   expenses, expenseCategories, expenseReports, gasCards, 
-  gasCardAssignments, leads, calendarJobs, messages, internalMessages,
+  gasCardAssignments, leads, messages, internalMessages,
   images, settings, organizations, userSessions, vendors, vehicles,
   soundSettings, userDashboardSettings, dashboardProfiles,
   schedules, scheduleAssignments, scheduleComments, timeClock,

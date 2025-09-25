@@ -27,7 +27,7 @@ import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull, is
 import type { 
   User, Customer, Invoice, Quote, Project, Task, 
   Expense, ExpenseCategory, ExpenseReport,
-  Lead, CalendarJob, Message, Organization, Department,
+  Lead, Message, Organization, Department,
   Employee, TimeOffRequest, PerformanceReview, DisciplinaryAction,
   NavigationOrder, InsertNavigationOrder, BackupSettings, BackupJob,
   Meeting, MeetingParticipant, MeetingMessage, MeetingRecording,
@@ -3542,96 +3542,6 @@ export class DatabaseStorage implements IStorage {
 
 
 
-  async convertJobToProject(jobId: number, userId: number, projectData: any): Promise<any> {
-    try {
-      // First, get the calendar job to verify it exists and get its data
-      const calendarJob = await db
-        .select()
-        .from(calendarJobs)
-        .where(eq(calendarJobs.id, jobId))
-        .limit(1);
-
-      if (calendarJob.length === 0) {
-        return null;
-      }
-
-      const job = calendarJob[0];
-
-      // Parse location into address components if available
-      let addressParts = { address: '', city: '', state: '', zipCode: '' };
-      if (job.location) {
-        // Split location string and try to parse components
-        // Format: "123 Main St, City, State 12345" or variations
-        const parts = job.location.split(',').map(p => p.trim());
-        if (parts.length >= 3) {
-          addressParts.address = parts[0];
-          addressParts.city = parts[1];
-          // Parse state and zip from last part
-          const stateZip = parts[2].split(' ').filter(p => p.length > 0);
-          if (stateZip.length >= 2) {
-            addressParts.state = stateZip[0];
-            addressParts.zipCode = stateZip.slice(1).join(' ');
-          } else {
-            addressParts.state = parts[2];
-          }
-        } else if (parts.length === 2) {
-          addressParts.address = parts[0];
-          addressParts.city = parts[1];
-        } else {
-          // Single location string - could be address, city, or just a name
-          if (job.location.match(/\d+.*\w+/)) {
-            // Looks like an address (starts with numbers)
-            addressParts.address = job.location;
-          } else {
-            // Treat as city name
-            addressParts.city = job.location;
-          }
-        }
-      }
-
-      // Create a new project based on the calendar job data
-      const projectPayload = {
-        name: projectData.name || job.title,
-        description: projectData.description || job.description || '',
-        userId: userId,
-        customerId: job.customerId,
-        status: 'active',
-        startDate: job.startDate,
-        endDate: job.endDate,
-        estimatedValue: job.estimatedValue,
-        address: addressParts.address,
-        city: addressParts.city,
-        state: addressParts.state,
-        zip_code: addressParts.zipCode,
-        country: 'US',
-        // Copy image timestamp settings if available
-        enableImageTimestamp: job.enableImageTimestamp || false,
-        timestampFormat: job.timestampFormat || "MM/dd/yyyy hh:mm a",
-        includeGpsCoords: job.includeGpsCoords || false,
-        timestampPosition: job.timestampPosition || "bottom-right",
-      };
-
-      const [newProject] = await db
-        .insert(projects)
-        .values(projectPayload)
-        .returning();
-
-      // Update the calendar job to mark it as converted and link to the new project
-      await db
-        .update(calendarJobs)
-        .set({
-          status: 'converted',
-          convertedToProjectId: newProject.id,
-          updatedAt: new Date(),
-        })
-        .where(eq(calendarJobs.id, jobId));
-
-      return newProject;
-    } catch (error) {
-      console.error('Error converting calendar job to project:', error);
-      throw error;
-    }
-  }
 
   // Inspection Methods
   async getInspectionTemplates(organizationId: number, type?: string): Promise<any[]> {
