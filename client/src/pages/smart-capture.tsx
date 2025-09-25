@@ -731,7 +731,7 @@ export default function SmartCapturePage() {
       {/* Main Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="lists" data-testid="tab-lists">Lists</TabsTrigger>
+          <TabsTrigger value="lists" data-testid="tab-lists">Smart Capture Jobs</TabsTrigger>
           <TabsTrigger value="items" data-testid="tab-items" disabled={!selectedSmartCaptureList}>
             Items
             {selectedSmartCaptureList && (
