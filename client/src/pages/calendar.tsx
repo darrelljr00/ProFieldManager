@@ -216,51 +216,45 @@ export default function CalendarPage() {
     if (!jobs) return [];
     
     const dateStr = date.toISOString().split('T')[0];
-    return jobs.filter(job => {
+    console.log(`🗓️ getJobsForDate called for ${dateStr}`, { 
+      totalJobs: jobs.length,
+      jobDates: jobs.map(j => ({ id: j.id, startDate: j.startDate, endDate: j.endDate }))
+    });
+    
+    const matches = jobs.filter(job => {
       const jobStart = job.startDate;
       const jobEnd = job.endDate || job.startDate; // Use startDate as endDate if null
       
       // Check if the job occurs on this date
       if (jobStart && jobEnd) {
-        return jobStart <= dateStr && jobEnd >= dateStr;
+        const match = jobStart <= dateStr && jobEnd >= dateStr;
+        console.log(`📅 Job ${job.id} range check: ${jobStart} <= ${dateStr} >= ${jobEnd} = ${match}`);
+        return match;
       } else if (jobStart) {
         // If only startDate exists, check if it matches this date
-        return jobStart === dateStr;
+        const match = jobStart === dateStr;
+        console.log(`📅 Job ${job.id} exact check: ${jobStart} === ${dateStr} = ${match}`);
+        return match;
       }
+      console.log(`❌ Job ${job.id} has no valid dates`);
       return false;
     });
+    
+    console.log(`✅ getJobsForDate returning ${matches.length} jobs for ${dateStr}`);
+    return matches;
   };
 
   const days = (() => {
-    console.log('🗓️ Calendar date generation:', { 
-      currentDate: currentDate.toISOString(), 
-      viewMode,
-      month: currentDate.getMonth(),
-      year: currentDate.getFullYear(),
-      monthName: currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-    });
-    
-    let generatedDays;
     switch (viewMode) {
       case '1week':
-        generatedDays = getWeekDays(currentDate);
-        break;
+        return getWeekDays(currentDate);
       case '2weeks':
-        generatedDays = getTwoWeekDays(currentDate);
-        break;
+        return getTwoWeekDays(currentDate);
       case '3months':
-        generatedDays = getThreeMonthDays(currentDate);
-        break;
+        return getThreeMonthDays(currentDate);
       default:
-        generatedDays = getDaysInMonth(currentDate);
+        return getDaysInMonth(currentDate);
     }
-    
-    console.log('🗓️ Generated days sample:', generatedDays.slice(0, 5).map(d => ({ 
-      date: d.toISOString().split('T')[0], 
-      month: d.getMonth(), 
-      monthName: d.toLocaleDateString('en-US', { month: 'long' })
-    })));
-    return generatedDays;
   })();
 
   const getIsCurrentPeriod = (day: Date) => {
