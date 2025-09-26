@@ -438,13 +438,15 @@ export default function Invoices() {
                         
                         <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
                           <Button
-                            onClick={() => approveInvoiceMutation.mutate(invoice.id)}
-                            disabled={approveInvoiceMutation.isPending}
+                            onClick={() => {
+                              setSelectedInvoice(invoice);
+                              setIsApprovalDialogOpen(true);
+                            }}
                             className="bg-green-600 hover:bg-green-700 text-white"
                             data-testid={`approve-invoice-${invoice.id}`}
                           >
                             <CheckCircle className="w-4 h-4 mr-2" />
-                            {approveInvoiceMutation.isPending ? 'Approving...' : 'Approve'}
+                            Approve
                           </Button>
                           
                           <Button
