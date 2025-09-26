@@ -1739,7 +1739,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         });
         
-        console.log('🔍 Final company settings for org', orgId, ':', companySettings);
+        console.log('🔍 Final company settings for org', user.organizationId, ':', companySettings);
       }
       
       res.json(companySettings);
