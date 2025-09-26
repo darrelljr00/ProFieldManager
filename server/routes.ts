@@ -6266,15 +6266,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           try {
             const draftInvoice = await storage.getDraftInvoiceForProject(projectId, user.organizationId);
             if (draftInvoice && draftInvoice.isSmartCaptureInvoice) {
-              // Mark Smart Capture invoice as pending approval instead of auto-finalizing
+              // Mark Smart Capture invoice as pending instead of auto-finalizing
               const pendingInvoice = await storage.updateInvoice(draftInvoice.id, userId, {
-                status: 'pending_approval'
+                status: 'pending'
               });
               
-              console.log(`✅ Smart Capture invoice ${draftInvoice.id} marked for approval - project ${projectId} completed`);
+              console.log(`✅ Smart Capture invoice ${draftInvoice.id} marked as pending - project ${projectId} completed`);
               
-              // Broadcast invoice pending approval to organization admins/managers
-              broadcastToWebUsers(user.organizationId, 'smart_capture_invoice_pending_approval', {
+              // Broadcast invoice pending to organization admins/managers
+              broadcastToWebUsers(user.organizationId, 'smart_capture_invoice_pending', {
                 projectId: updatedProject.id,
                 projectName: updatedProject.name,
                 invoiceId: draftInvoice.id,
