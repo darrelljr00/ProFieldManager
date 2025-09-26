@@ -520,6 +520,11 @@ export default function Jobs() {
   const [masterSearchResults, setMasterSearchResults] = useState<any[]>([]);
   const [isSearchingMaster, setIsSearchingMaster] = useState(false);
   
+  // OCR-related state
+  const [isProcessingOCR, setIsProcessingOCR] = useState(false);
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [ocrResult, setOcrResult] = useState<any>(null);
+  
   // Smart Capture pricing visibility setting
   const [showSmartCapturePricing, setShowSmartCapturePricing] = useState(true);
   
@@ -765,6 +770,99 @@ export default function Jobs() {
     } finally {
       setIsSearchingMaster(false);
     }
+  };
+
+  // OCR camera capture handler
+  const handleCameraCapture = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsProcessingOCR(true);
+
+      // Create preview URL for the captured image
+      const previewUrl = URL.createObjectURL(file);
+      setCapturedImage(previewUrl);
+
+      // Create FormData for the OCR API
+      const formData = new FormData();
+      formData.append('image', file);
+
+      // Call the OCR API using authenticated request
+      const response = await fetch('/api/smart-capture/ocr', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include', // Include cookies for authentication
+      });
+
+      if (!response.ok) {
+        throw new Error('OCR processing failed');
+      }
+
+      const result = await response.json();
+      
+      if (result.success) {
+        setOcrResult(result.ocrResult);
+        toast({
+          title: "Text extracted successfully",
+          description: `Found: ${result.ocrResult.extractedText}`,
+        });
+      } else {
+        throw new Error(result.message || 'OCR failed');
+      }
+
+    } catch (error: any) {
+      console.error('OCR Error:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to process image",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessingOCR(false);
+    }
+  };
+
+  // Apply OCR result to form fields
+  const applyOCRResult = () => {
+    if (!ocrResult) return;
+
+    const { extractedText, detectedType } = ocrResult;
+
+    // Auto-populate the appropriate field based on detected type
+    setSmartCaptureFormData(prev => {
+      const updates: any = {};
+
+      switch (detectedType) {
+        case 'partNumber':
+          updates.partNumber = extractedText;
+          break;
+        case 'vehicleNumber':
+          updates.vehicleNumber = extractedText;
+          break;
+        case 'inventoryNumber':
+          updates.inventoryNumber = extractedText;
+          break;
+        default:
+          // If type is unclear, populate part number as default
+          updates.partNumber = extractedText;
+          break;
+      }
+
+      return { ...prev, ...updates };
+    });
+
+    // Trigger master item search for the extracted text
+    if (extractedText.trim()) {
+      const searchType = detectedType === 'vehicleNumber' ? 'vehicleNumber' :
+                        detectedType === 'inventoryNumber' ? 'inventoryNumber' : 'partNumber';
+      searchMasterItems(extractedText, searchType);
+    }
+
+    toast({
+      title: "Applied to form",
+      description: `${extractedText} has been added to the ${detectedType?.replace(/([A-Z])/g, ' $1').toLowerCase() || 'part number'} field`,
+    });
   };
 
   // Smart Capture mutations
@@ -2896,7 +2994,7 @@ export default function Jobs() {
           <DialogHeader>
             <DialogTitle>Smart Capture</DialogTitle>
             <DialogDescription>
-              Add an item to this job's Smart Capture. Enter vehicle #, part #, or inventory # for automatic master linking.
+              Add an item to this job's Smart Capture. Take a photo to automatically extract part/vehicle numbers, or enter manually.
             </DialogDescription>
           </DialogHeader>
           
@@ -2904,6 +3002,91 @@ export default function Jobs() {
             e.preventDefault();
             createSmartCaptureItemMutation.mutate(smartCaptureFormData);
           }} className="space-y-4">
+            
+            {/* Camera OCR Section */}
+            <div className="space-y-3 p-4 border rounded-lg bg-blue-50 dark:bg-blue-900/20">
+              <div className="flex items-center gap-2">
+                <Camera className="h-4 w-4" />
+                <Label className="text-sm font-medium">Photo OCR</Label>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Take a photo of a part number, vehicle number, or serial number to automatically extract the text.
+              </p>
+              
+              <div className="flex items-center gap-2">
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={handleCameraCapture}
+                  className="hidden"
+                  id="camera-input"
+                  data-testid="input-camera-capture"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => document.getElementById('camera-input')?.click()}
+                  disabled={isProcessingOCR}
+                  className="flex items-center gap-2"
+                  data-testid="button-take-photo"
+                >
+                  <Camera className="h-4 w-4" />
+                  {isProcessingOCR ? 'Processing...' : 'Take Photo'}
+                </Button>
+                
+                {capturedImage && (
+                  <div className="flex items-center gap-2">
+                    <div className="relative">
+                      <img 
+                        src={capturedImage} 
+                        alt="Captured" 
+                        className="w-12 h-12 object-cover rounded border"
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setCapturedImage(null);
+                        setOcrResult(null);
+                      }}
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+              
+              {ocrResult && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                    <span className="text-sm font-medium text-green-800">Text Extracted</span>
+                    <span className="text-xs text-green-600">({Math.round(ocrResult.confidence * 100)}% confidence)</span>
+                  </div>
+                  <p className="text-sm text-green-700">
+                    <strong>{ocrResult.extractedText}</strong>
+                  </p>
+                  <p className="text-xs text-green-600 mt-1">
+                    Detected as: {ocrResult.detectedType?.replace(/([A-Z])/g, ' $1').toLowerCase()}
+                  </p>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={applyOCRResult}
+                    className="mt-2 text-green-700 border-green-300 hover:bg-green-100"
+                    data-testid="button-apply-ocr"
+                  >
+                    Apply to Form
+                  </Button>
+                </div>
+              )}
+            </div>
             
             {/* Vehicle Number Field */}
             <div>

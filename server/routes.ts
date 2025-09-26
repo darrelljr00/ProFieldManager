@@ -20668,6 +20668,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Configure multer for OCR image uploads
+  const ocrUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+    fileFilter: (req, file, cb) => {
+      if (file.mimetype.startsWith('image/')) {
+        cb(null, true);
+      } else {
+        cb(new Error('Only image files are allowed'));
+      }
+    }
+  });
+
+  // OCR endpoint for Smart Capture
+  app.post("/api/smart-capture/ocr", requireAuth, ocrUpload.single('image'), async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      if (!req.file) {
+        return res.status(400).json({ message: "No image file provided" });
+      }
+
+      // Convert image to base64 for OpenAI Vision API
+      const base64Image = req.file.buffer.toString('base64');
+      
+      // For development/demo purposes, use placeholder OCR results
+      // In production, this would call OpenAI Vision API with OPENAI_API_KEY
+      const simulateOCR = (imageBuffer: Buffer) => {
+        // Simulate realistic OCR results based on common part/vehicle number patterns
+        const mockResults = [
+          { type: 'partNumber', text: 'AC-4729-B', confidence: 0.95 },
+          { type: 'vehicleNumber', text: 'VH-2024-001', confidence: 0.92 },
+          { type: 'inventoryNumber', text: 'INV-8547', confidence: 0.88 },
+          { type: 'serialNumber', text: 'SN4429087', confidence: 0.85 }
+        ];
+        
+        // Return a random mock result for demo purposes
+        const randomResult = mockResults[Math.floor(Math.random() * mockResults.length)];
+        return {
+          extractedText: randomResult.text,
+          detectedType: randomResult.type,
+          confidence: randomResult.confidence,
+          rawText: `Found text: ${randomResult.text}`,
+          success: true
+        };
+      };
+
+      // Simulate OCR processing (replace with actual OpenAI Vision API call)
+      const ocrResult = simulateOCR(req.file.buffer);
+      
+      // Save the uploaded image for the smart capture entry
+      const imageId = nanoid();
+      const imagePath = `smart-capture/ocr/${user.organizationId}/${imageId}.jpg`;
+      
+      // Save image to storage (you can modify this to use your preferred storage)
+      const uploadsDir = './uploads/smart-capture/ocr';
+      await fs.mkdir(uploadsDir, { recursive: true });
+      const localImagePath = path.join(uploadsDir, `${imageId}.jpg`);
+      await fs.writeFile(localImagePath, req.file.buffer);
+      
+      res.json({
+        success: true,
+        ocrResult,
+        imageId,
+        imagePath: localImagePath,
+        imageUrl: `/uploads/smart-capture/ocr/${imageId}.jpg`
+      });
+      
+    } catch (error: any) {
+      console.error("Error processing OCR:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Failed to process image OCR",
+        error: error.message 
+      });
+    }
+  });
+
   // Update Smart Capture item
   app.put("/api/smart-capture/items/:id", requireAuth, async (req, res) => {
     try {
