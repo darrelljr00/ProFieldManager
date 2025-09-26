@@ -135,10 +135,10 @@ export default function CalendarPage() {
   };
 
   // Fetch calendar jobs - using authenticated request with proper date params
-  const dateRange = getDateRange();
   const { data: jobs, isLoading } = useQuery<CalendarJob[]>({
-    queryKey: ['/api/jobs/calendar', dateRange],
+    queryKey: ['/api/jobs/calendar', currentDate.toISOString()],
     queryFn: async () => {
+      const dateRange = getDateRange();
       const params = new URLSearchParams(dateRange);
       const url = `/api/jobs/calendar?${params}`;
       const fullUrl = buildApiUrl(url);
@@ -147,6 +147,7 @@ export default function CalendarPage() {
       console.log('🌐 Calendar Query Request:', {
         originalUrl: url,
         fullUrl,
+        dateRange,
         hasAuthHeader: !!headers.Authorization
       });
       
@@ -160,7 +161,9 @@ export default function CalendarPage() {
       }
       
       return response.json();
-    }
+    },
+    refetchOnWindowFocus: true,
+    staleTime: 0, // Always refetch to get latest data
   });
 
   // Fetch weather for jobs
