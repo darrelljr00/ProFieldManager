@@ -21071,6 +21071,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Smart Capture Invoice Approval Routes (Admin/Manager only)
   
+  // Submit Smart Capture invoice for approval
+  app.put("/api/projects/:projectId/smart-capture/submit-for-approval", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const projectId = parseInt(req.params.projectId);
+      
+      // Validate project access (user must be able to access the project)
+      const userProject = await storage.getProject(projectId, user.id);
+      if (!userProject) {
+        return res.status(404).json({ message: "Project not found or access denied" });
+      }
+      
+      const submittedInvoice = await storage.submitSmartCaptureInvoiceForApproval(projectId, user.organizationId);
+      
+      res.json({ 
+        message: "Smart Capture invoice submitted for approval",
+        invoice: submittedInvoice
+      });
+    } catch (error: any) {
+      console.error("Error submitting Smart Capture invoice for approval:", error);
+      res.status(400).json({ message: error.message || "Failed to submit invoice for approval" });
+    }
+  });
+  
   // Get pending Smart Capture invoices for approval
   app.get("/api/smart-capture/invoices/pending", requireAuth, async (req, res) => {
     try {
