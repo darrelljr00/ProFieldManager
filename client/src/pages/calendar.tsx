@@ -232,16 +232,35 @@ export default function CalendarPage() {
   };
 
   const days = (() => {
+    console.log('🗓️ Calendar date generation:', { 
+      currentDate: currentDate.toISOString(), 
+      viewMode,
+      month: currentDate.getMonth(),
+      year: currentDate.getFullYear(),
+      monthName: currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+    });
+    
+    let generatedDays;
     switch (viewMode) {
       case '1week':
-        return getWeekDays(currentDate);
+        generatedDays = getWeekDays(currentDate);
+        break;
       case '2weeks':
-        return getTwoWeekDays(currentDate);
+        generatedDays = getTwoWeekDays(currentDate);
+        break;
       case '3months':
-        return getThreeMonthDays(currentDate);
+        generatedDays = getThreeMonthDays(currentDate);
+        break;
       default:
-        return getDaysInMonth(currentDate);
+        generatedDays = getDaysInMonth(currentDate);
     }
+    
+    console.log('🗓️ Generated days sample:', generatedDays.slice(0, 5).map(d => ({ 
+      date: d.toISOString().split('T')[0], 
+      month: d.getMonth(), 
+      monthName: d.toLocaleDateString('en-US', { month: 'long' })
+    })));
+    return generatedDays;
   })();
 
   const getIsCurrentPeriod = (day: Date) => {
