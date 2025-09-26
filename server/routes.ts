@@ -1711,23 +1711,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Pattern 2: company_org_2_company_companyName (nested company prefix)
           else if (setting.key === `company_org_${orgId}_company_companyName`) {
             if (!companySettings.companyName) companySettings.companyName = setting.value;
-          } else if (setting.key === `company_org_${orgId}_company_companyEmail`) {
+          } else if (setting.key === `company_org_${user.organizationId}_company_companyEmail`) {
             if (!companySettings.companyEmail) companySettings.companyEmail = setting.value;
-          } else if (setting.key === `company_org_${orgId}_company_companyPhone`) {
+          } else if (setting.key === `company_org_${user.organizationId}_company_companyPhone`) {
             if (!companySettings.companyPhone) companySettings.companyPhone = setting.value;
-          } else if (setting.key === `company_org_${orgId}_company_companyWebsite`) {
+          } else if (setting.key === `company_org_${user.organizationId}_company_companyWebsite`) {
             if (!companySettings.companyWebsite) companySettings.companyWebsite = setting.value;
-          } else if (setting.key === `company_org_${orgId}_company_companyStreetAddress`) {
+          } else if (setting.key === `company_org_${user.organizationId}_company_companyStreetAddress`) {
             if (!companySettings.companyStreetAddress) companySettings.companyStreetAddress = setting.value;
-          } else if (setting.key === `company_org_${orgId}_company_companyCity`) {
+          } else if (setting.key === `company_org_${user.organizationId}_company_companyCity`) {
             if (!companySettings.companyCity) companySettings.companyCity = setting.value;
-          } else if (setting.key === `company_org_${orgId}_company_companyState`) {
+          } else if (setting.key === `company_org_${user.organizationId}_company_companyState`) {
             if (!companySettings.companyState) companySettings.companyState = setting.value;
-          } else if (setting.key === `company_org_${orgId}_company_companyZipCode`) {
+          } else if (setting.key === `company_org_${user.organizationId}_company_companyZipCode`) {
             if (!companySettings.companyZipCode) companySettings.companyZipCode = setting.value;
-          } else if (setting.key === `company_org_${orgId}_company_companyCountry`) {
+          } else if (setting.key === `company_org_${user.organizationId}_company_companyCountry`) {
             if (!companySettings.companyCountry) companySettings.companyCountry = setting.value;
-          } else if (setting.key === `company_org_${orgId}_company_logoSize`) {
+          } else if (setting.key === `company_org_${user.organizationId}_company_logoSize`) {
             if (!companySettings.logoSize) companySettings.logoSize = setting.value;
           }
           // Pattern 3: Global fallback for backward compatibility (only if no org-specific value)
