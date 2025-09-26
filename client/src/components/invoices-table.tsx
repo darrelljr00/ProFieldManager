@@ -33,20 +33,6 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll }: Invoi
   // Fetch company settings for logo and company info
   const { data: companySettings, isLoading: companySettingsLoading, error: companyError } = useQuery({
     queryKey: ['/api/settings/company'],
-    queryFn: async () => {
-      console.log("🔍 COMPANY SETTINGS: Fetching company settings...");
-      const response = await fetch('/api/settings/company', {
-        credentials: 'include'
-      });
-      console.log("🔍 COMPANY SETTINGS: Response status:", response.status);
-      if (!response.ok) {
-        console.log("🔍 COMPANY SETTINGS: Response not ok, returning empty object");
-        return {};
-      }
-      const data = await response.json();
-      console.log("🔍 COMPANY SETTINGS: Received data:", data);
-      return data;
-    },
   });
 
   // Debug company settings
