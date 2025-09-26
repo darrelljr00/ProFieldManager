@@ -1646,6 +1646,66 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
+  // Submit Smart Capture invoice for approval
+  async submitSmartCaptureInvoiceForApproval(projectId: number, organizationId: number): Promise<any> {
+    return await db.transaction(async (tx) => {
+      // Find the draft Smart Capture invoice for this project
+      const [draftInvoice] = await tx
+        .select({
+          id: invoices.id,
+          invoiceNumber: invoices.invoiceNumber,
+          status: invoices.status,
+          total: invoices.total,
+          customerId: invoices.customerId,
+          projectId: invoices.projectId,
+          isSmartCaptureInvoice: invoices.isSmartCaptureInvoice,
+        })
+        .from(invoices)
+        .innerJoin(users, eq(invoices.userId, users.id))
+        .where(and(
+          eq(invoices.projectId, projectId),
+          eq(invoices.status, 'draft'),
+          eq(invoices.isSmartCaptureInvoice, true),
+          eq(users.organizationId, organizationId)
+        ))
+        .for('update') // Row-level lock
+        .limit(1);
+      
+      if (!draftInvoice) {
+        throw new Error('No draft Smart Capture invoice found for this project');
+      }
+
+      // Check if invoice has line items
+      const lineItemCount = await tx
+        .select({ count: sql<number>`count(*)` })
+        .from(invoiceLineItems)
+        .where(eq(invoiceLineItems.invoiceId, draftInvoice.id));
+
+      if (lineItemCount.count === 0) {
+        throw new Error('Cannot submit invoice with no line items for approval');
+      }
+
+      // Update invoice status to pending_approval
+      const [submittedInvoice] = await tx
+        .update(invoices)
+        .set({
+          status: 'pending_approval',
+          updatedAt: new Date()
+        })
+        .where(and(
+          eq(invoices.id, draftInvoice.id),
+          eq(invoices.status, 'draft') // Double-check status in update
+        ))
+        .returning();
+
+      if (!submittedInvoice) {
+        throw new Error('Failed to submit invoice for approval - it may have been submitted by another process');
+      }
+
+      return submittedInvoice;
+    });
+  }
+
   // Helper method to validate invoice organization access
   private async validateInvoiceOrganizationAccess(invoiceId: number, organizationId: number): Promise<void> {
     const [invoice] = await db
