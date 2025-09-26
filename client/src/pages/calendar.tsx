@@ -218,10 +218,16 @@ export default function CalendarPage() {
     const dateStr = date.toISOString().split('T')[0];
     return jobs.filter(job => {
       const jobStart = job.startDate;
-      const jobEnd = job.endDate;
+      const jobEnd = job.endDate || job.startDate; // Use startDate as endDate if null
       
       // Check if the job occurs on this date
-      return jobStart <= dateStr && jobEnd >= dateStr;
+      if (jobStart && jobEnd) {
+        return jobStart <= dateStr && jobEnd >= dateStr;
+      } else if (jobStart) {
+        // If only startDate exists, check if it matches this date
+        return jobStart === dateStr;
+      }
+      return false;
     });
   };
 
