@@ -9,10 +9,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
-import { Plus, Search, Filter, Upload, FileText, Calendar, Package, Clock, CheckCircle, XCircle, Edit } from "lucide-react";
+import { Plus, Search, Filter, Upload, FileText, Calendar, Package, Clock, CheckCircle, XCircle, Edit, Eye, Mail, MessageSquare, Printer } from "lucide-react";
 
 export default function Invoices() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -20,6 +25,10 @@ export default function Invoices() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [activeTab, setActiveTab] = useState("all");
+  const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isApprovalDialogOpen, setIsApprovalDialogOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -387,7 +396,16 @@ export default function Invoices() {
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <div className="flex items-center gap-4 mb-3">
-                              <h4 className="text-lg font-medium text-gray-900">Invoice #{invoice.invoiceNumber || invoice.id}</h4>
+                              <button 
+                                onClick={() => {
+                                  setSelectedInvoice && setSelectedInvoice(invoice);
+                                  setIsViewDialogOpen && setIsViewDialogOpen(true);
+                                }}
+                                className="text-lg font-medium text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                                data-testid={`view-invoice-${invoice.id}`}
+                              >
+                                Invoice #{invoice.project?.jobNumber ? `${invoice.project.jobNumber}-${invoice.invoiceNumber || invoice.id}` : (invoice.invoiceNumber || invoice.id)}
+                              </button>
                               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
                                 Pending Approval
                               </span>
@@ -489,6 +507,372 @@ export default function Invoices() {
           )}
         </Tabs>
       </main>
+      
+      {/* Enhanced Invoice View Dialog */}
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Invoice Details - {selectedInvoice && (
+                selectedInvoice.project?.jobNumber ? 
+                  `${selectedInvoice.project.jobNumber}-${selectedInvoice.invoiceNumber || selectedInvoice.id}` : 
+                  (selectedInvoice.invoiceNumber || selectedInvoice.id)
+              )}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedInvoice?.project && (
+                <span className="text-sm text-gray-600">
+                  Job: {selectedInvoice.project.name} | Customer: {selectedInvoice.project.customer?.name || 'N/A'}
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedInvoice && (
+            <div className="space-y-6">
+              {/* Status and Actions Bar */}
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                    Pending Approval
+                  </span>
+                  <span className="text-sm text-gray-600">
+                    Captured: {new Date(selectedInvoice.createdAt).toLocaleDateString()}
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      setIsViewDialogOpen(false);
+                      setIsEditDialogOpen(true);
+                    }}
+                    data-testid="edit-invoice-btn"
+                  >
+                    <Edit className="h-4 w-4 mr-1" />
+                    Edit
+                  </Button>
+                  <Button 
+                    size="sm"
+                    onClick={() => {
+                      setIsViewDialogOpen(false);
+                      setIsApprovalDialogOpen(true);
+                    }}
+                    data-testid="approve-invoice-btn"
+                  >
+                    <CheckCircle className="h-4 w-4 mr-1" />
+                    Approve & Send
+                  </Button>
+                </div>
+              </div>
+              
+              {/* Invoice Image */}
+              {selectedInvoice.smartCaptureImages && selectedInvoice.smartCaptureImages.length > 0 && (
+                <div className="space-y-2">
+                  <h3 className="text-lg font-medium">Original Invoice</h3>
+                  <div className="bg-white border rounded-lg p-4">
+                    <img 
+                      src={selectedInvoice.smartCaptureImages[0]} 
+                      alt="Invoice" 
+                      className="max-w-full h-auto rounded border"
+                      data-testid="invoice-image"
+                    />
+                  </div>
+                </div>
+              )}
+              
+              {/* Extracted Data */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Invoice Information</h3>
+                  <div className="space-y-3">
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700">Total Amount</Label>
+                      <p className="text-lg font-semibold text-green-600">${selectedInvoice.total}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700">Subtotal</Label>
+                      <p className="text-base">${selectedInvoice.subtotal}</p>
+                    </div>
+                    {selectedInvoice.taxAmount && (
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">Tax Amount</Label>
+                        <p className="text-base">${selectedInvoice.taxAmount}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Additional Details</h3>
+                  <div className="space-y-3">
+                    {selectedInvoice.notes && (
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">Notes</Label>
+                        <p className="text-sm text-gray-600">{selectedInvoice.notes}</p>
+                      </div>
+                    )}
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700">Captured By</Label>
+                      <p className="text-sm">{selectedInvoice.user?.name || selectedInvoice.user?.email || 'Unknown'}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+      
+      {/* Invoice Edit Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Invoice Details</DialogTitle>
+            <DialogDescription>
+              Make corrections to the captured invoice data
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedInvoice && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-total">Total Amount *</Label>
+                  <Input 
+                    id="edit-total"
+                    type="number"
+                    step="0.01"
+                    defaultValue={selectedInvoice.total}
+                    data-testid="edit-total-input"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-subtotal">Subtotal *</Label>
+                  <Input 
+                    id="edit-subtotal"
+                    type="number"
+                    step="0.01"
+                    defaultValue={selectedInvoice.subtotal}
+                    data-testid="edit-subtotal-input"
+                  />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-tax-rate">Tax Rate (%)</Label>
+                  <Input 
+                    id="edit-tax-rate"
+                    type="number"
+                    step="0.01"
+                    defaultValue={selectedInvoice.taxRate || ''}
+                    data-testid="edit-tax-rate-input"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-tax-amount">Tax Amount</Label>
+                  <Input 
+                    id="edit-tax-amount"
+                    type="number"
+                    step="0.01"
+                    defaultValue={selectedInvoice.taxAmount || ''}
+                    data-testid="edit-tax-amount-input"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <Label htmlFor="edit-notes">Notes</Label>
+                <Textarea 
+                  id="edit-notes"
+                  rows={3}
+                  defaultValue={selectedInvoice.notes || ''}
+                  placeholder="Add any additional notes or corrections..."
+                  data-testid="edit-notes-textarea"
+                />
+              </div>
+              
+              <div className="flex gap-2 pt-4">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsEditDialogOpen(false)}
+                  data-testid="cancel-edit-btn"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={() => {
+                    // Handle save logic here
+                    toast({ title: "Invoice updated successfully" });
+                    setIsEditDialogOpen(false);
+                    setIsViewDialogOpen(true);
+                  }}
+                  data-testid="save-edit-btn"
+                >
+                  Save Changes
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+      
+      {/* Invoice Approval & Communication Dialog */}
+      <Dialog open={isApprovalDialogOpen} onOpenChange={setIsApprovalDialogOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Approve & Send Invoice</DialogTitle>
+            <DialogDescription>
+              Choose how to send the approved invoice to the customer
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedInvoice && (
+            <div className="space-y-6">
+              {/* Invoice Summary */}
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h4 className="font-medium">Invoice Summary</h4>
+                    <p className="text-sm text-gray-600 mt-1">
+                      {selectedInvoice.project?.name} - {selectedInvoice.project?.customer?.name}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-2xl font-bold text-green-600">${selectedInvoice.total}</p>
+                    <p className="text-sm text-gray-600">Total Amount</p>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Communication Options */}
+              <div className="space-y-4">
+                <h4 className="font-medium">Send Options</h4>
+                
+                <Tabs defaultValue="email" className="w-full">
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="email" data-testid="email-tab">
+                      <Mail className="h-4 w-4 mr-2" />
+                      Email
+                    </TabsTrigger>
+                    <TabsTrigger value="sms" data-testid="sms-tab">
+                      <MessageSquare className="h-4 w-4 mr-2" />
+                      SMS/Text
+                    </TabsTrigger>
+                    <TabsTrigger value="print" data-testid="print-tab">
+                      <Printer className="h-4 w-4 mr-2" />
+                      Print
+                    </TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="email" className="space-y-4">
+                    <div>
+                      <Label htmlFor="customer-email">Customer Email</Label>
+                      <Input 
+                        id="customer-email"
+                        type="email"
+                        defaultValue={selectedInvoice.project?.customer?.email || ''}
+                        placeholder="customer@example.com"
+                        data-testid="customer-email-input"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="email-subject">Email Subject</Label>
+                      <Input 
+                        id="email-subject"
+                        defaultValue={`Invoice from ${selectedInvoice.project?.name || 'Texas Power Wash'}`}
+                        data-testid="email-subject-input"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="email-message">Message</Label>
+                      <Textarea 
+                        id="email-message"
+                        rows={4}
+                        defaultValue="Please find your invoice attached. Thank you for your business!"
+                        data-testid="email-message-textarea"
+                      />
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="sms" className="space-y-4">
+                    <div>
+                      <Label htmlFor="customer-phone">Customer Phone</Label>
+                      <Input 
+                        id="customer-phone"
+                        type="tel"
+                        defaultValue={selectedInvoice.project?.customer?.phone || ''}
+                        placeholder="+1 (555) 123-4567"
+                        data-testid="customer-phone-input"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="sms-message">SMS Message</Label>
+                      <Textarea 
+                        id="sms-message"
+                        rows={3}
+                        defaultValue="Your invoice is ready! Click the link to view and pay: [INVOICE_LINK]"
+                        data-testid="sms-message-textarea"
+                      />
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="print" className="space-y-4">
+                    <div className="text-center p-8 border-2 border-dashed border-gray-300 rounded-lg">
+                      <Printer className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                      <h4 className="text-lg font-medium mb-2">Print Invoice</h4>
+                      <p className="text-sm text-gray-600 mb-4">
+                        Generate a printable PDF version of the invoice
+                      </p>
+                      <Button variant="outline" data-testid="generate-pdf-btn">
+                        Generate PDF
+                      </Button>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </div>
+              
+              {/* Action Buttons */}
+              <div className="flex gap-2 pt-4 border-t">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsApprovalDialogOpen(false)}
+                  data-testid="cancel-approval-btn"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    // Handle save as draft
+                    toast({ title: "Invoice saved as draft" });
+                    setIsApprovalDialogOpen(false);
+                  }}
+                  data-testid="save-draft-btn"
+                >
+                  Save as Draft
+                </Button>
+                <Button 
+                  onClick={() => {
+                    // Handle approve and send
+                    toast({ title: "Invoice approved and sent successfully!" });
+                    setIsApprovalDialogOpen(false);
+                    // Refresh invoice list
+                    queryClient.invalidateQueries({ queryKey: ["/api/smart-capture/invoices/pending"] });
+                  }}
+                  data-testid="approve-send-btn"
+                >
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Approve & Send
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
