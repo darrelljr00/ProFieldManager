@@ -216,32 +216,23 @@ export default function CalendarPage() {
     if (!jobs) return [];
     
     const dateStr = date.toISOString().split('T')[0];
-    console.log(`🗓️ getJobsForDate called for ${dateStr}`, { 
-      totalJobs: jobs.length,
-      jobDates: jobs.map(j => ({ id: j.id, startDate: j.startDate, endDate: j.endDate }))
-    });
     
-    const matches = jobs.filter(job => {
+    return jobs.filter(job => {
       const jobStart = job.startDate;
       const jobEnd = job.endDate || job.startDate; // Use startDate as endDate if null
       
-      // Check if the job occurs on this date
+      // Extract just the date part (YYYY-MM-DD) from job dates
       if (jobStart && jobEnd) {
-        const match = jobStart <= dateStr && jobEnd >= dateStr;
-        console.log(`📅 Job ${job.id} range check: ${jobStart} <= ${dateStr} >= ${jobEnd} = ${match}`);
-        return match;
+        const jobStartDate = jobStart.split('T')[0]; // Get just YYYY-MM-DD
+        const jobEndDate = jobEnd.split('T')[0];
+        return jobStartDate <= dateStr && jobEndDate >= dateStr;
       } else if (jobStart) {
         // If only startDate exists, check if it matches this date
-        const match = jobStart === dateStr;
-        console.log(`📅 Job ${job.id} exact check: ${jobStart} === ${dateStr} = ${match}`);
-        return match;
+        const jobStartDate = jobStart.split('T')[0];
+        return jobStartDate === dateStr;
       }
-      console.log(`❌ Job ${job.id} has no valid dates`);
       return false;
     });
-    
-    console.log(`✅ getJobsForDate returning ${matches.length} jobs for ${dateStr}`);
-    return matches;
   };
 
   const days = (() => {
