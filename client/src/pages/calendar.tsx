@@ -692,8 +692,9 @@ export default function CalendarPage() {
                 </Button>
                 <Button 
                   onClick={() => {
-                    // Navigate to job details page - you can implement this based on your routing
-                    window.open(`/projects?id=${selectedJob.originalId || selectedJob.id}`, '_blank');
+                    // Navigate to job details page using the correct route
+                    const jobId = selectedJob.originalId || selectedJob.id.replace('project-', '');
+                    window.open(`/jobs/${jobId}`, '_blank');
                   }}
                   data-testid="button-view-job-details"
                 >
