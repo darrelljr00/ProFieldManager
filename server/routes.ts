@@ -1678,23 +1678,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       if (settings && settings.length > 0) {
+        console.log('🔍 Raw company settings:', settings.map(s => ({ key: s.key, value: s.value })));
+        
         settings.forEach((setting: any) => {
-          // Check for organization-specific settings first
-          const orgPrefix = `company_org_${user.organizationId}_`;
-          if (setting.key.startsWith(orgPrefix)) {
-            const key = setting.key.replace(orgPrefix, '');
-            if (key in companySettings) {
-              companySettings[key] = setting.value;
-            }
+          // Check for various organization-specific key patterns
+          const orgId = user.organizationId;
+          
+          // Pattern 1: company_org_2_companyName
+          if (setting.key === `company_org_${orgId}_companyName`) {
+            companySettings.companyName = setting.value;
+          } else if (setting.key === `company_org_${orgId}_companyEmail`) {
+            companySettings.companyEmail = setting.value;
+          } else if (setting.key === `company_org_${orgId}_companyPhone`) {
+            companySettings.companyPhone = setting.value;
+          } else if (setting.key === `company_org_${orgId}_companyWebsite`) {
+            companySettings.companyWebsite = setting.value;
+          } else if (setting.key === `company_org_${orgId}_companyStreetAddress`) {
+            companySettings.companyStreetAddress = setting.value;
+          } else if (setting.key === `company_org_${orgId}_companyCity`) {
+            companySettings.companyCity = setting.value;
+          } else if (setting.key === `company_org_${orgId}_companyState`) {
+            companySettings.companyState = setting.value;
+          } else if (setting.key === `company_org_${orgId}_companyZipCode`) {
+            companySettings.companyZipCode = setting.value;
+          } else if (setting.key === `company_org_${orgId}_companyCountry`) {
+            companySettings.companyCountry = setting.value;
+          } else if (setting.key === `company_org_${orgId}_companyAddress`) {
+            companySettings.companyAddress = setting.value;
+          } else if (setting.key === `company_org_${orgId}_logoSize`) {
+            companySettings.logoSize = setting.value;
+          } 
+          // Pattern 2: company_org_2_company_companyName (nested company prefix)
+          else if (setting.key === `company_org_${orgId}_company_companyName`) {
+            if (!companySettings.companyName) companySettings.companyName = setting.value;
+          } else if (setting.key === `company_org_${orgId}_company_companyEmail`) {
+            if (!companySettings.companyEmail) companySettings.companyEmail = setting.value;
+          } else if (setting.key === `company_org_${orgId}_company_companyPhone`) {
+            if (!companySettings.companyPhone) companySettings.companyPhone = setting.value;
+          } else if (setting.key === `company_org_${orgId}_company_companyWebsite`) {
+            if (!companySettings.companyWebsite) companySettings.companyWebsite = setting.value;
+          } else if (setting.key === `company_org_${orgId}_company_companyStreetAddress`) {
+            if (!companySettings.companyStreetAddress) companySettings.companyStreetAddress = setting.value;
+          } else if (setting.key === `company_org_${orgId}_company_companyCity`) {
+            if (!companySettings.companyCity) companySettings.companyCity = setting.value;
+          } else if (setting.key === `company_org_${orgId}_company_companyState`) {
+            if (!companySettings.companyState) companySettings.companyState = setting.value;
+          } else if (setting.key === `company_org_${orgId}_company_companyZipCode`) {
+            if (!companySettings.companyZipCode) companySettings.companyZipCode = setting.value;
+          } else if (setting.key === `company_org_${orgId}_company_companyCountry`) {
+            if (!companySettings.companyCountry) companySettings.companyCountry = setting.value;
+          } else if (setting.key === `company_org_${orgId}_company_logoSize`) {
+            if (!companySettings.logoSize) companySettings.logoSize = setting.value;
           }
-          // Fallback to old format for backward compatibility
-          else if (setting.key.startsWith('company_')) {
+          // Pattern 3: Global fallback for backward compatibility (only if no org-specific value)
+          else if (!setting.key.includes('org_') && setting.key.startsWith('company_')) {
             const key = setting.key.replace('company_', '');
             if (key in companySettings && !companySettings[key]) {
               companySettings[key] = setting.value;
             }
           }
         });
+        
+        console.log('🔍 Final company settings for org', orgId, ':', companySettings);
       }
       
       res.json(companySettings);
