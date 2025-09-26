@@ -21323,7 +21323,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Get invoice from storage
-      const invoice = await storage.getInvoiceWithDetails(invoiceId, user.organizationId);
+      const invoice = await storage.getInvoices(user.id, { 
+        id: invoiceId,
+        organizationId: user.organizationId 
+      });
       
       if (!invoice || invoice.length === 0) {
         return res.status(404).json({ message: "Invoice not found" });
