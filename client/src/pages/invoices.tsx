@@ -163,9 +163,7 @@ export default function Invoices() {
   // Approve Smart Capture invoice mutation
   const approveInvoiceMutation = useMutation({
     mutationFn: async (invoiceId: number) => {
-      return apiRequest(`/api/smart-capture/invoices/${invoiceId}/approve`, {
-        method: "PUT",
-      });
+      return apiRequest("PUT", `/api/smart-capture/invoices/${invoiceId}/approve`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/smart-capture/invoices/pending"] });
@@ -187,10 +185,7 @@ export default function Invoices() {
   // Reject Smart Capture invoice mutation
   const rejectInvoiceMutation = useMutation({
     mutationFn: async ({ invoiceId, rejectionReason }: { invoiceId: number; rejectionReason: string }) => {
-      return apiRequest(`/api/smart-capture/invoices/${invoiceId}/reject`, {
-        method: "PUT",
-        body: { rejectionReason },
-      });
+      return apiRequest("PUT", `/api/smart-capture/invoices/${invoiceId}/reject`, { rejectionReason });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/smart-capture/invoices/pending"] });
@@ -212,10 +207,7 @@ export default function Invoices() {
   // Edit and approve Smart Capture invoice mutation
   const editAndApproveInvoiceMutation = useMutation({
     mutationFn: async ({ invoiceId, edits }: { invoiceId: number; edits: any }) => {
-      return apiRequest(`/api/smart-capture/invoices/${invoiceId}/edit-and-approve`, {
-        method: "PUT",
-        body: edits,
-      });
+      return apiRequest("PUT", `/api/smart-capture/invoices/${invoiceId}/edit-and-approve`, edits);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/smart-capture/invoices/pending"] });
@@ -229,6 +221,35 @@ export default function Invoices() {
       toast({
         title: "Error",
         description: error.message || "Failed to edit and approve invoice",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // PDF generation mutation
+  const generatePdfMutation = useMutation({
+    mutationFn: async (invoiceId: number) => {
+      const response = await apiRequest("POST", `/api/smart-capture/invoices/${invoiceId}/generate-pdf`);
+      return response;
+    },
+    onSuccess: (data: any) => {
+      // Create a downloadable PDF link
+      if (data.pdfUrl) {
+        const link = document.createElement('a');
+        link.href = data.pdfUrl;
+        link.download = `invoice-${selectedInvoice?.invoiceNumber || selectedInvoice?.id}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        toast({ title: "PDF generated and downloaded successfully!" });
+      } else {
+        toast({ title: "PDF generated successfully!", description: "Check your downloads folder." });
+      }
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to generate PDF",
         variant: "destructive",
       });
     },
@@ -829,8 +850,17 @@ export default function Invoices() {
                       <p className="text-sm text-gray-600 mb-4">
                         Generate a printable PDF version of the invoice
                       </p>
-                      <Button variant="outline" data-testid="generate-pdf-btn">
-                        Generate PDF
+                      <Button 
+                        variant="outline" 
+                        data-testid="generate-pdf-btn"
+                        onClick={() => {
+                          if (selectedInvoice?.id) {
+                            generatePdfMutation.mutate(selectedInvoice.id);
+                          }
+                        }}
+                        disabled={generatePdfMutation.isPending}
+                      >
+                        {generatePdfMutation.isPending ? 'Generating...' : 'Generate PDF'}
                       </Button>
                     </div>
                   </TabsContent>

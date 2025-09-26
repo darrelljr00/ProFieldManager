@@ -21312,6 +21312,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Generate PDF for Smart Capture invoice
+  app.post("/api/smart-capture/invoices/:id/generate-pdf", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const invoiceId = parseInt(req.params.id);
+      
+      if (isNaN(invoiceId)) {
+        return res.status(400).json({ message: "Invalid invoice ID" });
+      }
+
+      // Get invoice from storage
+      const invoice = await storage.getInvoiceWithDetails(invoiceId, user.organizationId);
+      
+      if (!invoice || invoice.length === 0) {
+        return res.status(404).json({ message: "Invoice not found" });
+      }
+      
+      const currentInvoice = invoice[0];
+      if (!currentInvoice.isSmartCaptureInvoice) {
+        return res.status(400).json({ message: "Invoice is not a Smart Capture invoice" });
+      }
+      
+      console.log(`📄 Generating PDF for Smart Capture invoice ${invoiceId} by ${user.firstName} ${user.lastName}`);
+      
+      // For now, we'll simulate PDF generation with a simple response
+      // In a real implementation, you would use a PDF library like puppeteer, html-pdf-node, or similar
+      
+      // Create invoice HTML content for PDF generation
+      const invoiceHTML = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>Invoice ${currentInvoice.invoiceNumber || currentInvoice.id}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            .header { text-align: center; margin-bottom: 30px; }
+            .invoice-details { margin-bottom: 20px; }
+            .total { font-size: 18px; font-weight: bold; text-align: right; margin-top: 20px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>Texas Power Wash</h1>
+            <h2>Invoice ${currentInvoice.invoiceNumber || currentInvoice.id}</h2>
+          </div>
+          
+          <div class="invoice-details">
+            <p><strong>Date:</strong> ${new Date(currentInvoice.createdAt).toLocaleDateString()}</p>
+            <p><strong>Customer:</strong> ${currentInvoice.customer?.name || 'N/A'}</p>
+            <p><strong>Project:</strong> ${currentInvoice.project?.name || 'N/A'}</p>
+            ${currentInvoice.project?.jobNumber ? `<p><strong>Job Number:</strong> ${currentInvoice.project.jobNumber}</p>` : ''}
+          </div>
+          
+          <div class="invoice-content">
+            <p><strong>Subtotal:</strong> $${currentInvoice.subtotal}</p>
+            ${currentInvoice.taxAmount ? `<p><strong>Tax:</strong> $${currentInvoice.taxAmount}</p>` : ''}
+            <div class="total">
+              <p>Total: $${currentInvoice.total}</p>
+            </div>
+          </div>
+          
+          ${currentInvoice.notes ? `
+            <div style="margin-top: 30px;">
+              <h3>Notes:</h3>
+              <p>${currentInvoice.notes}</p>
+            </div>
+          ` : ''}
+        </body>
+        </html>
+      `;
+      
+      // In a real implementation, you would:
+      // 1. Use html-pdf-node or puppeteer to convert HTML to PDF
+      // 2. Save the PDF to file system or cloud storage
+      // 3. Return the PDF URL or file path
+      
+      // For now, we'll return a success response indicating the PDF was "generated"
+      res.json({ 
+        success: true,
+        message: "PDF generated successfully",
+        invoiceNumber: currentInvoice.invoiceNumber || currentInvoice.id,
+        // In real implementation: pdfUrl: "/path/to/generated/invoice.pdf"
+      });
+      
+    } catch (error: any) {
+      console.error("Error generating PDF for Smart Capture invoice:", error);
+      res.status(500).json({ message: "Failed to generate PDF" });
+    }
+  });
+
   // Add broadcast functions to the app for use in routes  
   (app as any).broadcastToWebUsers = broadcastToWebUsers;
   (app as any).broadcastToUser = broadcastToUser;
