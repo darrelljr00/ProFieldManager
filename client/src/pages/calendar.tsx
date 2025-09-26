@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
   Calendar, 
   ChevronLeft, 
@@ -15,7 +16,7 @@ import {
   Repeat, 
   CloudRain,
   Sun,
-  Cloud 
+  Cloud
 } from "lucide-react";
 
 interface CalendarJob {
@@ -49,6 +50,7 @@ interface JobWeather {
 export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'1month' | '3months' | '1week' | '2weeks'>('1month');
+  const [selectedJob, setSelectedJob] = useState<CalendarJob | null>(null);
 
   // Helper functions - must be declared before use
   const getDaysInMonth = (date: Date) => {
@@ -379,6 +381,19 @@ export default function CalendarPage() {
               const isToday = day.toDateString() === new Date().toDateString();
               const dayJobs = getJobsForDate(day);
               
+              // Get weather summary for this day (from jobs with weather data)
+              const dayWeatherData = dayJobs
+                .map(job => jobsWithWeather.data?.[job.id])
+                .filter(Boolean);
+              
+              const dayWeather = dayWeatherData.length > 0 ? {
+                avgTemp: Math.round(dayWeatherData.reduce((sum, w) => sum + w!.temp_f, 0) / dayWeatherData.length),
+                conditions: dayWeatherData.map(w => w!.condition.text),
+                avgRainChance: dayWeatherData.some(w => w!.chance_of_rain !== undefined) 
+                  ? Math.round(dayWeatherData.filter(w => w!.chance_of_rain !== undefined).reduce((sum, w) => sum + (w!.chance_of_rain || 0), 0) / dayWeatherData.filter(w => w!.chance_of_rain !== undefined).length)
+                  : undefined
+              } : null;
+              
               return (
                 <div
                   key={index}
@@ -386,10 +401,29 @@ export default function CalendarPage() {
                     isCurrentMonth ? 'bg-background' : 'bg-muted/30'
                   } ${isToday ? 'ring-2 ring-primary' : ''}`}
                 >
-                  <div className={`text-sm font-medium mb-2 ${
-                    isCurrentMonth ? 'text-foreground' : 'text-muted-foreground'
-                  }`}>
-                    {day.getDate()}
+                  <div className="flex items-center justify-between mb-2">
+                    <div className={`text-sm font-medium ${
+                      isCurrentMonth ? 'text-foreground' : 'text-muted-foreground'
+                    }`}>
+                      {day.getDate()}
+                    </div>
+                    
+                    {/* Day Weather Summary */}
+                    {dayWeather && dayJobs.length > 0 && (
+                      <div className="flex items-center gap-1 text-xs">
+                        {dayWeather.conditions.some(c => c.toLowerCase().includes('rain')) ? (
+                          <CloudRain className="h-3 w-3 text-blue-600" />
+                        ) : dayWeather.conditions.some(c => c.toLowerCase().includes('cloud')) ? (
+                          <Cloud className="h-3 w-3 text-gray-600" />
+                        ) : (
+                          <Sun className="h-3 w-3 text-yellow-600" />
+                        )}
+                        <span className="font-medium">{dayWeather.avgTemp}°F</span>
+                        {dayWeather.avgRainChance !== undefined && dayWeather.avgRainChance > 0 && (
+                          <span className="text-blue-600">({dayWeather.avgRainChance}%)</span>
+                        )}
+                      </div>
+                    )}
                   </div>
                   
                   {/* Jobs for this day */}
@@ -409,11 +443,12 @@ export default function CalendarPage() {
                         return (
                           <div
                             key={job.id}
-                            className={`p-2 rounded-md border text-xs ${
+                            className={`p-2 rounded-md border text-xs cursor-pointer hover:opacity-80 transition-opacity ${
                               priorityColors[job.priority as keyof typeof priorityColors] || 
                               priorityColors.medium
                             }`}
                             data-testid={`calendar-job-${job.id}`}
+                            onClick={() => setSelectedJob(job)}
                           >
                             <div className="flex items-start justify-between gap-1">
                               <div className="flex-1 min-w-0">
@@ -507,6 +542,168 @@ export default function CalendarPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Job Details Modal */}
+      <Dialog open={!!selectedJob} onOpenChange={() => setSelectedJob(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              Job Details
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedJob && (
+            <div className="space-y-6">
+              {/* Job Header */}
+              <div className="space-y-2">
+                <h3 className="text-xl font-semibold">{selectedJob.title}</h3>
+                {selectedJob.description && (
+                  <p className="text-muted-foreground">{selectedJob.description}</p>
+                )}
+                
+                <div className="flex items-center gap-4 text-sm">
+                  <Badge className={`${
+                    selectedJob.priority === 'low' ? 'bg-blue-500' :
+                    selectedJob.priority === 'medium' ? 'bg-yellow-500' :
+                    selectedJob.priority === 'high' ? 'bg-orange-500' :
+                    'bg-red-500'
+                  }`}>
+                    {selectedJob.priority} Priority
+                  </Badge>
+                  
+                  <Badge variant="outline" className={`${
+                    selectedJob.status === 'completed' ? 'text-green-600 border-green-600' :
+                    selectedJob.status === 'in_progress' ? 'text-blue-600 border-blue-600' :
+                    selectedJob.status === 'scheduled' ? 'text-orange-600 border-orange-600' :
+                    'text-gray-600 border-gray-600'
+                  }`}>
+                    {selectedJob.status.replace('_', ' ')}
+                  </Badge>
+                  
+                  {selectedJob.isRecurring && (
+                    <Badge variant="secondary">
+                      <Repeat className="h-3 w-3 mr-1" />
+                      Recurring
+                    </Badge>
+                  )}
+                </div>
+              </div>
+
+              {/* Job Details Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Date & Time */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="font-medium">Start Date</p>
+                      <p className="text-muted-foreground">
+                        {new Date(selectedJob.startDate).toLocaleDateString('en-US', {
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {selectedJob.endDate && selectedJob.endDate !== selectedJob.startDate && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <p className="font-medium">End Date</p>
+                        <p className="text-muted-foreground">
+                          {new Date(selectedJob.endDate).toLocaleDateString('en-US', {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Location */}
+                {selectedJob.address && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm">
+                      <MapPin className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <p className="font-medium">Location</p>
+                        <p className="text-muted-foreground">{selectedJob.address}</p>
+                        {(selectedJob.city || selectedJob.state) && (
+                          <p className="text-muted-foreground">
+                            {[selectedJob.city, selectedJob.state].filter(Boolean).join(', ')}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Weather Information */}
+              {(() => {
+                const weather = jobsWithWeather.data?.[selectedJob.id];
+                return weather && (
+                  <div className="border rounded-lg p-4 bg-muted/30">
+                    <h4 className="font-medium mb-3 flex items-center gap-2">
+                      {weather.condition.text.toLowerCase().includes('rain') ? (
+                        <CloudRain className="h-4 w-4" />
+                      ) : weather.condition.text.toLowerCase().includes('cloud') ? (
+                        <Cloud className="h-4 w-4" />
+                      ) : (
+                        <Sun className="h-4 w-4" />
+                      )}
+                      Weather Forecast
+                    </h4>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p className="text-muted-foreground">Temperature</p>
+                        <p className="font-medium">{Math.round(weather.temp_f)}°F</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Conditions</p>
+                        <p className="font-medium">{weather.condition.text}</p>
+                      </div>
+                      {weather.chance_of_rain !== undefined && (
+                        <div>
+                          <p className="text-muted-foreground">Chance of Rain</p>
+                          <p className="font-medium">{weather.chance_of_rain}%</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Actions */}
+              <div className="flex justify-end gap-2 pt-4">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setSelectedJob(null)}
+                  data-testid="button-close-job-modal"
+                >
+                  Close
+                </Button>
+                <Button 
+                  onClick={() => {
+                    // Navigate to job details page - you can implement this based on your routing
+                    window.open(`/projects?id=${selectedJob.originalId || selectedJob.id}`, '_blank');
+                  }}
+                  data-testid="button-view-job-details"
+                >
+                  View Full Details
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
