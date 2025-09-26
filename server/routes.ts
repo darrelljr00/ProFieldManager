@@ -6266,15 +6266,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           try {
             const draftInvoice = await storage.getDraftInvoiceForProject(projectId, user.organizationId);
             if (draftInvoice && draftInvoice.isSmartCaptureInvoice) {
-              // Mark Smart Capture invoice as pending instead of auto-finalizing
+              // Mark Smart Capture invoice as pending approval instead of auto-finalizing
               const pendingInvoice = await storage.updateInvoice(draftInvoice.id, userId, {
-                status: 'pending'
+                status: 'pending_approval'
               });
               
-              console.log(`✅ Smart Capture invoice ${draftInvoice.id} marked as pending - project ${projectId} completed`);
+              console.log(`✅ Smart Capture invoice ${draftInvoice.id} marked for approval - project ${projectId} completed`);
               
-              // Broadcast invoice pending to organization admins/managers
-              broadcastToWebUsers(user.organizationId, 'smart_capture_invoice_pending', {
+              // Broadcast invoice pending approval to organization admins/managers
+              broadcastToWebUsers(user.organizationId, 'smart_capture_invoice_pending_approval', {
                 projectId: updatedProject.id,
                 projectName: updatedProject.name,
                 invoiceId: draftInvoice.id,
@@ -21105,11 +21105,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Access denied. Admin or Manager role required." });
       }
       
-      const pendingInvoices = await storage.getInvoices(user.id, {
-        status: 'pending_approval',
-        isSmartCaptureInvoice: true,
-        organizationId: user.organizationId
-      });
+      // Get pending Smart Capture invoices for this organization
+      const pendingInvoices = await db
+        .select({
+          id: invoices.id,
+          userId: invoices.userId,
+          customerId: invoices.customerId,
+          invoiceNumber: invoices.invoiceNumber,
+          status: invoices.status,
+          subtotal: invoices.subtotal,
+          taxRate: invoices.taxRate,
+          taxAmount: invoices.taxAmount,
+          total: invoices.total,
+          currency: invoices.currency,
+          notes: invoices.notes,
+          invoiceDate: invoices.invoiceDate,
+          dueDate: invoices.dueDate,
+          paidAt: invoices.paidAt,
+          stripePaymentIntentId: invoices.stripePaymentIntentId,
+          squarePaymentId: invoices.squarePaymentId,
+          paymentMethod: invoices.paymentMethod,
+          attachmentUrl: invoices.attachmentUrl,
+          originalFileName: invoices.originalFileName,
+          isUploadedInvoice: invoices.isUploadedInvoice,
+          isSmartCaptureInvoice: invoices.isSmartCaptureInvoice,
+          projectId: invoices.projectId,
+          createdAt: invoices.createdAt,
+          updatedAt: invoices.updatedAt,
+        })
+        .from(invoices)
+        .innerJoin(users, eq(invoices.userId, users.id))
+        .where(and(
+          eq(users.organizationId, user.organizationId),
+          eq(invoices.status, 'pending_approval'),
+          eq(invoices.isSmartCaptureInvoice, true)
+        ))
+        .orderBy(desc(invoices.createdAt));
       
       res.json(pendingInvoices);
     } catch (error: any) {
