@@ -5849,40 +5849,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           originalId: project.id
         }));
       
-      // Get recurring job occurrences that have been converted to projects
+      // Temporarily disable recurring jobs query to fix stack overflow
+      // TODO: Fix circular reference in recurring jobs query
       try {
-        const recurringOccurrences = await db
-          .select({
-            occurrence: recurringJobOccurrences,
-            series: recurringJobSeries,
-            project: projects
-          })
-          .from(recurringJobOccurrences)
-          .innerJoin(recurringJobSeries, eq(recurringJobOccurrences.seriesId, recurringJobSeries.id))
-          .leftJoin(projects, eq(recurringJobOccurrences.projectId, projects.id))
-          .where(eq(recurringJobSeries.organizationId, user.organizationId));
-        
-        // Add recurring job occurrences to calendar
-        const recurringCalendarJobs = recurringOccurrences.map(row => ({
-          id: `recurring-${row.occurrence.id}`,
-          title: row.project?.name || row.series.title,
-          description: row.project?.description || row.series.description,
-          startDate: row.occurrence.scheduledDate,
-          endDate: row.occurrence.scheduledDate, // Same day for now
-          address: row.project?.address || row.series.location,
-          city: row.project?.city,
-          state: row.project?.state,
-          status: row.occurrence.status,
-          priority: row.series.priority,
-          customerId: row.series.customerId,
-          type: 'recurring',
-          isRecurring: true,
-          seriesId: row.series.id,
-          occurrenceId: row.occurrence.id,
-          originalId: row.project?.id || null
-        }));
-        
-        calendarJobs = [...calendarJobs, ...recurringCalendarJobs];
+        console.log("📅 Skipping recurring jobs query to prevent stack overflow");
+        // const recurringOccurrences = await db
+        //   .select({
+        //     occurrence: recurringJobOccurrences,
+        //     series: recurringJobSeries,
+        //     project: projects
+        //   })
+        //   .from(recurringJobOccurrences)
+        //   .innerJoin(recurringJobSeries, eq(recurringJobOccurrences.seriesId, recurringJobSeries.id))
+        //   .leftJoin(projects, eq(recurringJobOccurrences.projectId, projects.id))
+        //   .where(eq(recurringJobSeries.organizationId, user.organizationId));
+        // calendarJobs = [...calendarJobs, ...recurringCalendarJobs];
       } catch (recurringError) {
         console.error("Error fetching recurring jobs:", recurringError);
         // Continue without recurring jobs if there's an error
@@ -5909,6 +5890,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      console.log(`📅 Calendar API returning ${calendarJobs.length} jobs:`, calendarJobs.map(job => ({
+        id: job.id,
+        title: job.title,
+        startDate: job.startDate,
+        endDate: job.endDate
+      })));
       res.json(calendarJobs);
     } catch (error: any) {
       console.error("Error fetching calendar jobs:", error);
