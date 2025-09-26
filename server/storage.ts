@@ -19,7 +19,7 @@ import {
   callRecords, callRecordings, callTranscripts, voicemails, callQueues, 
   organizationTwilioSettings, organizationCallAnalytics,
   streamSessions, streamViewers, streamInvitations, streamNotifications,
-  smartCaptureLists, smartCaptureItems, timeEntries
+  smartCaptureLists, smartCaptureItems, timeEntries, recurringJobSeries
 } from "@shared/schema";
 import { marketResearchCompetitors } from "@shared/schema";
 import type { GasCard, InsertGasCard, GasCardAssignment, InsertGasCardAssignment, GasCardUsage, InsertGasCardUsage, GasCardProvider, InsertGasCardProvider } from "@shared/schema";

@@ -173,6 +173,7 @@ export default function CalendarPage() {
       if (!jobs?.length) return {};
       
       const weatherData: {[key: string]: JobWeather} = {};
+      const headers = getAuthHeaders();
       
       // Fetch weather for each job that has an originalId
       await Promise.all(
@@ -180,7 +181,14 @@ export default function CalendarPage() {
           .filter(job => job.originalId)
           .map(async (job) => {
             try {
-              const response = await fetch(`/api/weather/jobs/${job.originalId}`);
+              const url = `/api/weather/jobs/${job.originalId}`;
+              const fullUrl = buildApiUrl(url);
+              
+              const response = await fetch(fullUrl, {
+                headers,
+                credentials: "include"
+              });
+              
               if (response.ok) {
                 const data = await response.json();
                 // Use start date weather if available
