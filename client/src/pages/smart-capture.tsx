@@ -409,8 +409,8 @@ export default function SmartCapturePage() {
       'Location'
     ];
 
-    // Add Master Price column if user has permission and pricing is visible
-    if (isAdminOrManager && showSmartCapturePricing) {
+    // Add Master Price column if user is admin/manager or if pricing is enabled for technicians
+    if (isAdminOrManager || showSmartCapturePricing) {
       headers.push('Master Price');
     }
 
@@ -425,7 +425,7 @@ export default function SmartCapturePage() {
         item.location || ''
       ];
 
-      if (isAdminOrManager && showSmartCapturePricing) {
+      if (isAdminOrManager || showSmartCapturePricing) {
         row.push(`$${parseFloat(item.masterPrice?.toString() || '0').toFixed(2)}`);
       }
 
@@ -463,7 +463,7 @@ export default function SmartCapturePage() {
       'Location'
     ];
 
-    if (isAdminOrManager && showSmartCapturePricing) {
+    if (isAdminOrManager || showSmartCapturePricing) {
       headers.push('Master Price');
     }
 
@@ -480,7 +480,7 @@ export default function SmartCapturePage() {
           item.location || ''
         ];
 
-        if (isAdminOrManager && showSmartCapturePricing) {
+        if (isAdminOrManager || showSmartCapturePricing) {
           row.push(parseFloat(item.masterPrice?.toString() || '0').toFixed(2));
         }
 
@@ -543,7 +543,7 @@ export default function SmartCapturePage() {
                 <th>Description</th>
                 <th>Notes</th>
                 <th>Quantity</th>
-                ${isAdminOrManager && showSmartCapturePricing ? '<th>Master Price</th>' : ''}
+                ${isAdminOrManager || showSmartCapturePricing ? '<th>Master Price</th>' : ''}
                 <th>Location</th>
               </tr>
             </thead>
@@ -559,7 +559,7 @@ export default function SmartCapturePage() {
           <td>${item.description || '-'}</td>
           <td>${item.notes || '-'}</td>
           <td>${item.quantity || 0}</td>
-          ${isAdminOrManager && showSmartCapturePricing ? `<td>$${parseFloat(item.masterPrice?.toString() || '0').toFixed(2)}</td>` : ''}
+          ${isAdminOrManager || showSmartCapturePricing ? `<td>$${parseFloat(item.masterPrice?.toString() || '0').toFixed(2)}</td>` : ''}
           <td>${item.location || '-'}</td>
         </tr>
       `;
@@ -1428,7 +1428,7 @@ export default function SmartCapturePage() {
                         <TableHead>Inventory #</TableHead>
                         <TableHead>Notes</TableHead>
                         <TableHead>Quantity</TableHead>
-                        {(isAdminOrManager && showSmartCapturePricing) && (
+                        {(isAdminOrManager || showSmartCapturePricing) && (
                           <TableHead>Master Price</TableHead>
                         )}
                         <TableHead>Location</TableHead>
@@ -1475,7 +1475,7 @@ export default function SmartCapturePage() {
                             <TableCell>{item.inventoryNumber || "-"}</TableCell>
                             <TableCell>{item.notes || "-"}</TableCell>
                             <TableCell>{item.quantity}</TableCell>
-                            {(isAdminOrManager && showSmartCapturePricing) && (
+                            {(isAdminOrManager || showSmartCapturePricing) && (
                               <TableCell>${parseFloat(item.masterPrice?.toString() || "0").toFixed(2)}</TableCell>
                             )}
                             <TableCell>{item.location}</TableCell>
