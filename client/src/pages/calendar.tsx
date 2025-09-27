@@ -137,7 +137,7 @@ export default function CalendarPage() {
   };
 
   // Fetch calendar jobs - using authenticated request with proper date params
-  const { data: jobs, isLoading } = useQuery<CalendarJob[]>({
+  const { data: jobs, isLoading, error: jobsError } = useQuery<CalendarJob[]>({
     queryKey: ['/api/jobs/calendar', currentDate.toISOString()],
     queryFn: async () => {
       const dateRange = getDateRange();
@@ -159,10 +159,13 @@ export default function CalendarPage() {
       });
       
       if (!response.ok) {
+        console.error('❌ Calendar API Error:', response.status, response.statusText);
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
       
-      return response.json();
+      const data = await response.json();
+      console.log('📅 Calendar jobs fetched:', data?.length || 0, 'jobs');
+      return data;
     },
     refetchOnWindowFocus: true,
     staleTime: 0, // Always refetch to get latest data
@@ -172,8 +175,12 @@ export default function CalendarPage() {
   const jobsWithWeather = useQuery<{[key: string]: JobWeather}>({
     queryKey: ['/api/weather/jobs', jobs?.map(j => j.originalId).filter(Boolean)],
     queryFn: async () => {
-      if (!jobs?.length) return {};
+      if (!jobs?.length) {
+        console.log('🌤️ No jobs found, skipping weather fetch');
+        return {};
+      }
       
+      console.log('🌤️ Fetching weather for', jobs.length, 'jobs');
       const weatherData: {[key: string]: JobWeather} = {};
       const headers = getAuthHeaders();
       
@@ -186,6 +193,8 @@ export default function CalendarPage() {
               const url = `/api/weather/jobs/${job.originalId}`;
               const fullUrl = buildApiUrl(url);
               
+              console.log(`🌤️ Fetching weather for job ${job.id} (originalId: ${job.originalId}) at ${url}`);
+              
               const response = await fetch(fullUrl, {
                 headers,
                 credentials: "include"
@@ -193,6 +202,7 @@ export default function CalendarPage() {
               
               if (response.ok) {
                 const data = await response.json();
+                console.log(`🌤️ Weather data for job ${job.id}:`, data);
                 // Use start date weather if available
                 if (data.weather?.startDate) {
                   weatherData[job.id] = {
@@ -200,14 +210,18 @@ export default function CalendarPage() {
                     condition: data.weather.startDate.condition,
                     chance_of_rain: data.weather.startDate.chance_of_rain
                   };
+                  console.log(`✅ Weather stored for job ${job.id}`);
                 }
+              } else {
+                console.warn(`❌ Weather fetch failed for job ${job.id}:`, response.status, response.statusText);
               }
             } catch (error) {
-              console.warn(`Failed to fetch weather for job ${job.id}:`, error);
+              console.warn(`❌ Failed to fetch weather for job ${job.id}:`, error);
             }
           })
       );
       
+      console.log('🌤️ Final weather data:', weatherData);
       return weatherData;
     },
     enabled: !!jobs?.length
@@ -316,12 +330,27 @@ export default function CalendarPage() {
     }
   };
 
+  // Debug logging
+  console.log('📅 Calendar component render:', {
+    isLoading,
+    jobsError: jobsError?.message,
+    jobsCount: jobs?.length || 0,
+    weatherEnabled: !!jobsWithWeather.data,
+    weatherDataCount: Object.keys(jobsWithWeather.data || {}).length
+  });
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Calendar</h1>
           <p className="text-muted-foreground">View your calendar</p>
+        </div>
+        {/* Debug Info */}
+        <div className="text-xs text-gray-500">
+          {isLoading && <span>Loading jobs...</span>}
+          {jobsError && <span className="text-red-500">Error: {jobsError.message}</span>}
+          {jobs && <span>{jobs.length} jobs loaded</span>}
         </div>
       </div>
 
