@@ -222,6 +222,7 @@ export default function Inspections() {
       const submissionData = {
         type: activeTab,
         vehicleInfo: {
+          vehicleNumber: vehicleInfo.vehicleNumber,
           licensePlate: vehicleInfo.licensePlate,
           mileage: vehicleInfo.mileage,
           fuelLevel: vehicleInfo.fuelLevel
