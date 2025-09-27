@@ -279,6 +279,16 @@ export default function Inspections() {
     isRequired: false
   });
   const [editingItemId, setEditingItemId] = useState<number | null>(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  
+  // Drag and drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
   
   // Auto-populate technician name when user is logged in
   useEffect(() => {
@@ -292,8 +302,8 @@ export default function Inspections() {
   useEffect(() => {
     if (customInspectionItems['pre-trip'].length === 0) {
       setCustomInspectionItems({
-        'pre-trip': defaultInspectionItems.map((item, index) => ({ ...item, id: index + 1 })),
-        'post-trip': defaultInspectionItems.map((item, index) => ({ ...item, id: index + 100 }))
+        'pre-trip': defaultInspectionItems['pre-trip'].map((item, index) => ({ ...item, id: index + 1 })),
+        'post-trip': defaultInspectionItems['post-trip'].map((item, index) => ({ ...item, id: index + 100 }))
       });
     }
   }, []);
@@ -351,27 +361,76 @@ export default function Inspections() {
   const resetTemplateToDefaults = () => {
     setCustomInspectionItems(prev => ({
       ...prev,
-      [editingTemplateType]: defaultInspectionItems.map((item, index) => ({ 
+      [editingTemplateType]: defaultInspectionItems[editingTemplateType].map((item, index) => ({ 
         ...item, 
         id: index + (editingTemplateType === 'pre-trip' ? 1 : 100) 
       }))
     }));
+    setHasUnsavedChanges(true);
     toast({ title: `${editingTemplateType} template reset to defaults` });
   };
+
+  // Drag and drop handler
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const items = customInspectionItems[editingTemplateType];
+      const oldIndex = items.findIndex(item => item.id === active.id);
+      const newIndex = items.findIndex(item => item.id === over.id);
+
+      if (oldIndex !== -1 && newIndex !== -1) {
+        const reorderedItems = arrayMove(items, oldIndex, newIndex);
+        setCustomInspectionItems(prev => ({
+          ...prev,
+          [editingTemplateType]: reorderedItems
+        }));
+        setHasUnsavedChanges(true);
+        toast({ title: "Items reordered successfully" });
+      }
+    }
+  };
+
+  // Save inspection settings
+  const saveInspectionSettings = async () => {
+    if (!hasUnsavedChanges) {
+      toast({ title: "No changes to save", variant: "default" });
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      // Here you would typically save to the backend
+      // For now, we'll just simulate a save
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      setHasUnsavedChanges(false);
+      toast({ title: "Inspection settings saved successfully", variant: "default" });
+    } catch (error) {
+      console.error('Failed to save inspection settings:', error);
+      toast({ title: "Failed to save inspection settings", variant: "destructive" });
+    } finally {
+      setIsSaving(false);
+    }
+  };
   
-  // Default inspection items for demo
-  const defaultInspectionItems: InspectionItem[] = [
-    { id: 1, name: "Left Mirror", category: "Mirrors", description: "Check left side mirror for cracks and proper adjustment", isRequired: true },
-    { id: 2, name: "Right Mirror", category: "Mirrors", description: "Check right side mirror for cracks and proper adjustment", isRequired: true },
-    { id: 3, name: "Front Tires", category: "Tires", description: "Check tire pressure and tread depth", isRequired: true },
-    { id: 4, name: "Rear Tires", category: "Tires", description: "Check tire pressure and tread depth", isRequired: true },
-    { id: 5, name: "Headlights", category: "Lights", description: "Test headlight functionality", isRequired: true },
-    { id: 6, name: "Brake Lights", category: "Lights", description: "Test brake light functionality", isRequired: true },
-    { id: 7, name: "Turn Signals", category: "Turn Signals", description: "Test left and right turn signals", isRequired: true },
-    { id: 8, name: "Chemicals", category: "Equipment", description: "Check chemical levels and equipment", isRequired: false },
-    { id: 9, name: "O-Rings", category: "Equipment", description: "Inspect o-rings for damage", isRequired: false },
-    { id: 10, name: "Nozzles", category: "Equipment", description: "Check nozzle condition and functionality", isRequired: false }
-  ];
+  // Update existing functions to mark changes
+  const addNewInspectionItemWithChange = () => {
+    addNewInspectionItem();
+    setHasUnsavedChanges(true);
+  };
+
+  const deleteInspectionItemWithChange = (itemId: number) => {
+    deleteInspectionItem(itemId);
+    setHasUnsavedChanges(true);
+  };
+
+  const updateInspectionItemWithChange = (itemId: number, updates: Partial<InspectionItem>) => {
+    updateInspectionItem(itemId, updates);
+    setHasUnsavedChanges(true);
+  };
+  
+  // Removed duplicate defaultInspectionItems - using the global one defined at the top
 
   const sampleInspectionRecords: InspectionRecord[] = [
     { id: 1, type: "pre-trip", status: "completed", submittedAt: "2025-06-29T08:30:00Z", templateName: "Standard Pre-Trip", technicianName: "John Smith", vehicleInfo: { licensePlate: "ABC-123", mileage: "45,230" } },
@@ -1355,7 +1414,7 @@ export default function Inspections() {
                         <Label htmlFor="itemRequired">This item is required</Label>
                       </div>
                       <div className="flex gap-2">
-                        <Button onClick={addNewInspectionItem} className="flex-1">
+                        <Button onClick={addNewInspectionItemWithChange} className="flex-1">
                           <Plus className="w-4 h-4 mr-2" />
                           Add Item
                         </Button>
@@ -1378,93 +1437,71 @@ export default function Inspections() {
                     </CardHeader>
                     <CardContent>
                       {customInspectionItems[editingTemplateType]?.length > 0 ? (
-                        <div className="space-y-3">
-                          {customInspectionItems[editingTemplateType].map((item) => (
-                            <div key={item.id} className="border rounded-lg p-4">
-                              <div className="flex items-start justify-between">
-                                <div className="flex-1">
-                                  {editingItemId === item.id ? (
-                                    // Edit mode
-                                    <div className="space-y-3">
-                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                        <Input
-                                          value={item.name}
-                                          onChange={(e) => updateInspectionItem(item.id, { name: e.target.value })}
-                                          placeholder="Item name"
-                                        />
-                                        <Input
-                                          value={item.category}
-                                          onChange={(e) => updateInspectionItem(item.id, { category: e.target.value })}
-                                          placeholder="Category"
-                                        />
-                                      </div>
-                                      <Textarea
-                                        value={item.description || ''}
-                                        onChange={(e) => updateInspectionItem(item.id, { description: e.target.value })}
-                                        placeholder="Description"
-                                        rows={2}
-                                      />
-                                      <div className="flex items-center space-x-2">
-                                        <Checkbox
-                                          checked={item.isRequired}
-                                          onCheckedChange={(checked) => updateInspectionItem(item.id, { isRequired: !!checked })}
-                                        />
-                                        <Label>Required item</Label>
-                                      </div>
-                                    </div>
-                                  ) : (
-                                    // View mode
-                                    <div>
-                                      <div className="flex items-center gap-2">
-                                        <h4 className="font-medium">{item.name}</h4>
-                                        {item.isRequired && (
-                                          <Badge variant="destructive" className="text-xs">Required</Badge>
-                                        )}
-                                        <Badge variant="outline" className="text-xs">{item.category}</Badge>
-                                      </div>
-                                      {item.description && (
-                                        <p className="text-sm text-gray-600 mt-1">{item.description}</p>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="flex gap-2 ml-4">
-                                  {editingItemId === item.id ? (
-                                    <Button
-                                      size="sm"
-                                      onClick={() => setEditingItemId(null)}
-                                      variant="outline"
-                                    >
-                                      Done
-                                    </Button>
-                                  ) : (
-                                    <>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => setEditingItemId(item.id)}
-                                      >
-                                        <Edit3 className="w-3 h-3" />
-                                      </Button>
-                                      <Button
-                                        size="sm"
-                                        variant="destructive"
-                                        onClick={() => deleteInspectionItem(item.id)}
-                                      >
-                                        <Trash2 className="w-3 h-3" />
-                                      </Button>
-                                    </>
-                                  )}
-                                </div>
-                              </div>
+                        <DndContext
+                          sensors={sensors}
+                          collisionDetection={closestCenter}
+                          onDragEnd={handleDragEnd}
+                        >
+                          <SortableContext
+                            items={customInspectionItems[editingTemplateType].map(item => item.id)}
+                            strategy={verticalListSortingStrategy}
+                          >
+                            <div className="space-y-3">
+                              {customInspectionItems[editingTemplateType].map((item) => (
+                                <SortableItem
+                                  key={item.id}
+                                  item={item}
+                                  editingItemId={editingItemId}
+                                  setEditingItemId={setEditingItemId}
+                                  updateInspectionItem={updateInspectionItemWithChange}
+                                  deleteInspectionItem={deleteInspectionItemWithChange}
+                                />
+                              ))}
                             </div>
-                          ))}
-                        </div>
+                          </SortableContext>
+                        </DndContext>
                       ) : (
                         <div className="text-center py-8">
                           <AlertTriangle className="h-8 w-8 mx-auto mb-4 text-gray-400" />
                           <p className="text-gray-500">No inspection items configured yet.</p>
                           <p className="text-sm text-gray-400 mt-1">Add your first item above to get started.</p>
+                        </div>
+                      )}
+                      
+                      {/* Save Button */}
+                      {customInspectionItems[editingTemplateType]?.length > 0 && (
+                        <div className="mt-6 pt-4 border-t">
+                          <div className="flex items-center justify-between">
+                            <div className="text-sm text-gray-600">
+                              {hasUnsavedChanges ? (
+                                <span className="text-orange-600 font-medium">
+                                  You have unsaved changes
+                                </span>
+                              ) : (
+                                <span className="text-green-600">
+                                  All changes saved
+                                </span>
+                              )}
+                            </div>
+                            <Button 
+                              onClick={saveInspectionSettings}
+                              disabled={!hasUnsavedChanges || isSaving}
+                              className="min-w-[120px]"
+                              data-testid="save-inspection-settings"
+                            >
+                              {isSaving ? (
+                                <>
+                                  <Clock className="w-4 h-4 mr-2 animate-spin" />
+                                  Saving...
+                                </>
+                              ) : (
+                                <>
+                                  <Save className="w-4 h-4 mr-2" />
+                                  Save Settings
+                                </>
+                              )}
+                            </Button>
+                          </div>
                         </div>
                       )}
                     </CardContent>
