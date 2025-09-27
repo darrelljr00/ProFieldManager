@@ -2719,7 +2719,7 @@ export default function Jobs() {
                                 )}
                               </div>
                               <div className="text-right">
-                                {(isAdminOrManager && showSmartCapturePricing) && (
+                                {(isAdminOrManager || showSmartCapturePricing) && (
                                   <p className="text-xs font-medium text-green-600">${item.masterPrice}</p>
                                 )}
                                 <p className="text-xs text-gray-400">
