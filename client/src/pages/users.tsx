@@ -1534,6 +1534,7 @@ export default function UsersPage() {
                         <TableHead>My Tasks</TableHead>
                         <TableHead>Leads</TableHead>
                         <TableHead>Expenses</TableHead>
+                        <TableHead>Exp. Reports</TableHead>
                         <TableHead>Exp. Categories</TableHead>
                         <TableHead>Gas Cards</TableHead>
                         <TableHead>Gas Providers</TableHead>
@@ -1547,8 +1548,7 @@ export default function UsersPage() {
                         <TableHead>Gallery</TableHead>
                         <TableHead>SMS</TableHead>
                         <TableHead>GPS Tracking</TableHead>
-                        <TableHead>Time Clock</TableHead>
-                        <TableHead>My Tasks</TableHead>
+                        <TableHead>Weather</TableHead>
                         <TableHead>Inspections</TableHead>
                         <TableHead>Mobile Test</TableHead>
                         <TableHead>Reviews</TableHead>
@@ -1558,6 +1558,7 @@ export default function UsersPage() {
                         <TableHead>Tutorials</TableHead>
                         <TableHead>Front End</TableHead>
                         <TableHead>Live Stream</TableHead>
+                        <TableHead>Call Manager</TableHead>
                         <TableHead>HR</TableHead>
                         <TableHead>User Mgmt</TableHead>
                         <TableHead>SaaS Admin</TableHead>
@@ -1638,6 +1639,18 @@ export default function UsersPage() {
                                 updatePendingPermission(user.id, 'canAccessExpenses', checked)
                               }
                               disabled={user.role === 'admin' || batchSavePermissionsMutation.isPending}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Switch
+                              checked={user.canAccessExpenseReports === true}
+                              onCheckedChange={(checked) => 
+                                updateUserPermissionsMutation.mutate({
+                                  userId: user.id,
+                                  permissions: { canAccessExpenseReports: checked }
+                                })
+                              }
+                              disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
                             />
                           </TableCell>
                           <TableCell>
@@ -1762,11 +1775,11 @@ export default function UsersPage() {
                           </TableCell>
                           <TableCell>
                             <Switch
-                              checked={user.canAccessTimeClock === true}
+                              checked={user.canAccessWeather === true}
                               onCheckedChange={(checked) => 
                                 updateUserPermissionsMutation.mutate({
                                   userId: user.id,
-                                  permissions: { canAccessTimeClock: checked }
+                                  permissions: { canAccessWeather: checked }
                                 })
                               }
                               disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
@@ -1892,6 +1905,19 @@ export default function UsersPage() {
                                 updateUserPermissionsMutation.mutate({
                                   userId: user.id,
                                   permissions: { canAccessLiveStream: checked }
+                                })
+                              }
+                              disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
+                            />
+                          </TableCell>
+                          {/* Call Manager */}
+                          <TableCell>
+                            <Switch
+                              checked={user.canAccessCallManager === true}
+                              onCheckedChange={(checked) => 
+                                updateUserPermissionsMutation.mutate({
+                                  userId: user.id,
+                                  permissions: { canAccessCallManager: checked }
                                 })
                               }
                               disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
