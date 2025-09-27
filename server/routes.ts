@@ -16576,12 +16576,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
+      // Debug: log the received data
+      console.log("🚗 Inspection submission data:", {
+        type,
+        vehicleInfo: JSON.stringify(vehicleInfo, null, 2),
+        responsesCount: responses?.length || 0
+      });
+      
       // Validate mandatory vehicle information fields
       if (!vehicleInfo || typeof vehicleInfo !== 'object') {
+        console.log("❌ Vehicle info validation failed: not an object");
         return res.status(400).json({ message: "Vehicle information is required" });
       }
       
       if (!vehicleInfo.vehicleNumber || !vehicleInfo.vehicleNumber.trim()) {
+        console.log("❌ Vehicle number validation failed:", {
+          vehicleNumber: vehicleInfo.vehicleNumber,
+          type: typeof vehicleInfo.vehicleNumber,
+          trimmed: vehicleInfo.vehicleNumber?.trim?.()
+        });
         return res.status(400).json({ message: "Vehicle Number is required" });
       }
       
