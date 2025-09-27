@@ -561,7 +561,7 @@ export default function Inspections() {
     toast({ title: "Inspection submitted successfully!" });
   };
 
-  const handleResponseChange = (itemId: number, response: InspectionResponse['response']) => {
+  const handleResponseChange = (itemId: number, response: InspectionFormResponse['response']) => {
     updateInspectionResponse(itemId, response);
   };
 
@@ -676,7 +676,7 @@ export default function Inspections() {
 
                 {/* Inspection Items */}
                 <div className="space-y-4">
-                  {inspectionItems.map((item) => (
+                  {(customInspectionItems['pre-trip'] || []).map((item) => (
                     <div key={item.id} className="border rounded-lg p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
@@ -916,7 +916,7 @@ export default function Inspections() {
 
                 {/* Inspection Items */}
                 <div className="space-y-4">
-                  {inspectionItems.map((item) => (
+                  {(customInspectionItems['post-trip'] || []).map((item) => (
                     <div key={item.id} className="border rounded-lg p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
