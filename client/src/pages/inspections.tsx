@@ -118,6 +118,20 @@ export default function Inspections() {
   const [selectedInspectionId, setSelectedInspectionId] = useState<number | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   
+  // Inspection Settings State
+  const [editingTemplateType, setEditingTemplateType] = useState<'pre-trip' | 'post-trip'>('pre-trip');
+  const [customInspectionItems, setCustomInspectionItems] = useState<{[key: string]: InspectionItem[]}>({
+    'pre-trip': [],
+    'post-trip': []
+  });
+  const [newInspectionItem, setNewInspectionItem] = useState({
+    name: '',
+    category: '',
+    description: '',
+    isRequired: false
+  });
+  const [editingItemId, setEditingItemId] = useState<number | null>(null);
+  
   // Auto-populate technician name when user is logged in
   useEffect(() => {
     if (user) {
@@ -125,6 +139,77 @@ export default function Inspections() {
       setTechnicianName(fullName);
     }
   }, [user]);
+
+  // Initialize custom inspection items from default templates
+  useEffect(() => {
+    if (customInspectionItems['pre-trip'].length === 0) {
+      setCustomInspectionItems({
+        'pre-trip': defaultInspectionItems.map((item, index) => ({ ...item, id: index + 1 })),
+        'post-trip': defaultInspectionItems.map((item, index) => ({ ...item, id: index + 100 }))
+      });
+    }
+  }, []);
+
+  // Helper functions for inspection settings
+  const addNewInspectionItem = () => {
+    if (!newInspectionItem.name.trim() || !newInspectionItem.category.trim()) {
+      toast({ title: "Please fill in all required fields", variant: "destructive" });
+      return;
+    }
+
+    const newId = Date.now(); // Simple ID generation
+    const newItem: InspectionItem = {
+      id: newId,
+      name: newInspectionItem.name.trim(),
+      category: newInspectionItem.category.trim(),
+      description: newInspectionItem.description.trim(),
+      isRequired: newInspectionItem.isRequired
+    };
+
+    setCustomInspectionItems(prev => ({
+      ...prev,
+      [editingTemplateType]: [...prev[editingTemplateType], newItem]
+    }));
+
+    // Reset form
+    setNewInspectionItem({
+      name: '',
+      category: '',
+      description: '',
+      isRequired: false
+    });
+
+    toast({ title: "Inspection item added successfully" });
+  };
+
+  const deleteInspectionItem = (itemId: number) => {
+    setCustomInspectionItems(prev => ({
+      ...prev,
+      [editingTemplateType]: prev[editingTemplateType].filter(item => item.id !== itemId)
+    }));
+    toast({ title: "Inspection item deleted successfully" });
+  };
+
+  const updateInspectionItem = (itemId: number, updates: Partial<InspectionItem>) => {
+    setCustomInspectionItems(prev => ({
+      ...prev,
+      [editingTemplateType]: prev[editingTemplateType].map(item => 
+        item.id === itemId ? { ...item, ...updates } : item
+      )
+    }));
+    toast({ title: "Inspection item updated successfully" });
+  };
+
+  const resetTemplateToDefaults = () => {
+    setCustomInspectionItems(prev => ({
+      ...prev,
+      [editingTemplateType]: defaultInspectionItems.map((item, index) => ({ 
+        ...item, 
+        id: index + (editingTemplateType === 'pre-trip' ? 1 : 100) 
+      }))
+    }));
+    toast({ title: `${editingTemplateType} template reset to defaults` });
+  };
   
   // Default inspection items for demo
   const defaultInspectionItems: InspectionItem[] = [
@@ -496,11 +581,14 @@ export default function Inspections() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className={cn("grid w-full", (user?.role === 'admin' || user?.role === 'manager') ? "grid-cols-5" : "grid-cols-4")}>
             <TabsTrigger value="pre-trip">Pre-Trip Inspection</TabsTrigger>
             <TabsTrigger value="post-trip">Post-Trip Inspection</TabsTrigger>
             <TabsTrigger value="vehicle-maintenance">Vehicle Maintenance</TabsTrigger>
             <TabsTrigger value="history">Inspection History</TabsTrigger>
+            {(user?.role === 'admin' || user?.role === 'manager') && (
+              <TabsTrigger value="settings">Inspection Settings</TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="pre-trip" className="space-y-6">
@@ -1041,6 +1129,202 @@ export default function Inspections() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Inspection Settings Tab - Only visible to Admins and Managers */}
+          {(user?.role === 'admin' || user?.role === 'manager') && (
+            <TabsContent value="settings" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Edit3 className="w-5 h-5" />
+                    Inspection Settings
+                  </CardTitle>
+                  <p className="text-gray-600">Customize pre-trip and post-trip inspection templates</p>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Template Type Selector */}
+                  <div className="flex gap-4">
+                    <Button
+                      variant={editingTemplateType === 'pre-trip' ? 'default' : 'outline'}
+                      onClick={() => setEditingTemplateType('pre-trip')}
+                      className="flex-1"
+                    >
+                      Pre-Trip Template
+                    </Button>
+                    <Button
+                      variant={editingTemplateType === 'post-trip' ? 'default' : 'outline'}
+                      onClick={() => setEditingTemplateType('post-trip')}
+                      className="flex-1"
+                    >
+                      Post-Trip Template
+                    </Button>
+                  </div>
+
+                  {/* Add New Item Form */}
+                  <Card className="border-2 border-dashed border-gray-300">
+                    <CardHeader>
+                      <CardTitle className="text-lg">Add New Inspection Item</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="itemName">Item Name <span className="text-red-500">*</span></Label>
+                          <Input
+                            id="itemName"
+                            value={newInspectionItem.name}
+                            onChange={(e) => setNewInspectionItem(prev => ({ ...prev, name: e.target.value }))}
+                            placeholder="e.g., Left Mirror"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="itemCategory">Category <span className="text-red-500">*</span></Label>
+                          <Input
+                            id="itemCategory"
+                            value={newInspectionItem.category}
+                            onChange={(e) => setNewInspectionItem(prev => ({ ...prev, category: e.target.value }))}
+                            placeholder="e.g., Vehicle Safety"
+                            required
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="itemDescription">Description</Label>
+                        <Textarea
+                          id="itemDescription"
+                          value={newInspectionItem.description}
+                          onChange={(e) => setNewInspectionItem(prev => ({ ...prev, description: e.target.value }))}
+                          placeholder="Detailed description of what to check"
+                          rows={2}
+                        />
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="itemRequired"
+                          checked={newInspectionItem.isRequired}
+                          onCheckedChange={(checked) => setNewInspectionItem(prev => ({ ...prev, isRequired: !!checked }))}
+                        />
+                        <Label htmlFor="itemRequired">This item is required</Label>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button onClick={addNewInspectionItem} className="flex-1">
+                          <Plus className="w-4 h-4 mr-2" />
+                          Add Item
+                        </Button>
+                        <Button variant="outline" onClick={resetTemplateToDefaults}>
+                          Reset to Defaults
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Current Template Items */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>
+                        {editingTemplateType === 'pre-trip' ? 'Pre-Trip' : 'Post-Trip'} Inspection Items
+                      </CardTitle>
+                      <p className="text-sm text-gray-600">
+                        {customInspectionItems[editingTemplateType]?.length || 0} items configured
+                      </p>
+                    </CardHeader>
+                    <CardContent>
+                      {customInspectionItems[editingTemplateType]?.length > 0 ? (
+                        <div className="space-y-3">
+                          {customInspectionItems[editingTemplateType].map((item) => (
+                            <div key={item.id} className="border rounded-lg p-4">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  {editingItemId === item.id ? (
+                                    // Edit mode
+                                    <div className="space-y-3">
+                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <Input
+                                          value={item.name}
+                                          onChange={(e) => updateInspectionItem(item.id, { name: e.target.value })}
+                                          placeholder="Item name"
+                                        />
+                                        <Input
+                                          value={item.category}
+                                          onChange={(e) => updateInspectionItem(item.id, { category: e.target.value })}
+                                          placeholder="Category"
+                                        />
+                                      </div>
+                                      <Textarea
+                                        value={item.description || ''}
+                                        onChange={(e) => updateInspectionItem(item.id, { description: e.target.value })}
+                                        placeholder="Description"
+                                        rows={2}
+                                      />
+                                      <div className="flex items-center space-x-2">
+                                        <Checkbox
+                                          checked={item.isRequired}
+                                          onCheckedChange={(checked) => updateInspectionItem(item.id, { isRequired: !!checked })}
+                                        />
+                                        <Label>Required item</Label>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    // View mode
+                                    <div>
+                                      <div className="flex items-center gap-2">
+                                        <h4 className="font-medium">{item.name}</h4>
+                                        {item.isRequired && (
+                                          <Badge variant="destructive" className="text-xs">Required</Badge>
+                                        )}
+                                        <Badge variant="outline" className="text-xs">{item.category}</Badge>
+                                      </div>
+                                      {item.description && (
+                                        <p className="text-sm text-gray-600 mt-1">{item.description}</p>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex gap-2 ml-4">
+                                  {editingItemId === item.id ? (
+                                    <Button
+                                      size="sm"
+                                      onClick={() => setEditingItemId(null)}
+                                      variant="outline"
+                                    >
+                                      Done
+                                    </Button>
+                                  ) : (
+                                    <>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => setEditingItemId(item.id)}
+                                      >
+                                        <Edit3 className="w-3 h-3" />
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="destructive"
+                                        onClick={() => deleteInspectionItem(item.id)}
+                                      >
+                                        <Trash2 className="w-3 h-3" />
+                                      </Button>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8">
+                          <AlertTriangle className="h-8 w-8 mx-auto mb-4 text-gray-400" />
+                          <p className="text-gray-500">No inspection items configured yet.</p>
+                          <p className="text-sm text-gray-400 mt-1">Add your first item above to get started.</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
         </Tabs>
 
         {/* Detailed Inspection View Dialog */}
