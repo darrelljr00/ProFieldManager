@@ -114,6 +114,134 @@ const defaultInspectionItems = {
   ]
 };
 
+// Sortable Item Component for drag-and-drop
+interface SortableItemProps {
+  item: InspectionItem;
+  editingItemId: number | null;
+  setEditingItemId: (id: number | null) => void;
+  updateInspectionItem: (id: number, updates: Partial<InspectionItem>) => void;
+  deleteInspectionItem: (id: number) => void;
+}
+
+function SortableItem({ 
+  item, 
+  editingItemId, 
+  setEditingItemId, 
+  updateInspectionItem, 
+  deleteInspectionItem 
+}: SortableItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: item.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "border rounded-lg p-4",
+        isDragging && "shadow-lg"
+      )}
+    >
+      <div className="flex items-start justify-between">
+        <div 
+          {...attributes} 
+          {...listeners} 
+          className="cursor-grab active:cursor-grabbing mr-3 mt-1"
+          data-testid={`drag-handle-${item.id}`}
+        >
+          <GripVertical className="w-4 h-4 text-gray-400" />
+        </div>
+        <div className="flex-1">
+          {editingItemId === item.id ? (
+            // Edit mode
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <Input
+                  value={item.name}
+                  onChange={(e) => updateInspectionItem(item.id, { name: e.target.value })}
+                  placeholder="Item name"
+                />
+                <Input
+                  value={item.category}
+                  onChange={(e) => updateInspectionItem(item.id, { category: e.target.value })}
+                  placeholder="Category"
+                />
+              </div>
+              <Textarea
+                value={item.description || ''}
+                onChange={(e) => updateInspectionItem(item.id, { description: e.target.value })}
+                placeholder="Description"
+                rows={2}
+              />
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  checked={item.isRequired}
+                  onCheckedChange={(checked) => updateInspectionItem(item.id, { isRequired: !!checked })}
+                />
+                <Label>Required item</Label>
+              </div>
+            </div>
+          ) : (
+            // View mode
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="font-medium">{item.name}</h4>
+                {item.isRequired && (
+                  <Badge variant="destructive" className="text-xs">Required</Badge>
+                )}
+                <Badge variant="outline" className="text-xs">{item.category}</Badge>
+              </div>
+              {item.description && (
+                <p className="text-sm text-gray-600 mt-1">{item.description}</p>
+              )}
+            </div>
+          )}
+        </div>
+        <div className="flex gap-2 ml-4">
+          {editingItemId === item.id ? (
+            <Button
+              size="sm"
+              onClick={() => setEditingItemId(null)}
+              variant="outline"
+            >
+              Done
+            </Button>
+          ) : (
+            <>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setEditingItemId(item.id)}
+              >
+                <Edit3 className="w-3 h-3" />
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() => deleteInspectionItem(item.id)}
+              >
+                <Trash2 className="w-3 h-3" />
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Inspections() {
   const { user } = useAuth();
   const preTripFileInputRef = useRef<HTMLInputElement>(null);
