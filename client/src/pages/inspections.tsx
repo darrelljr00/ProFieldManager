@@ -266,9 +266,27 @@ export default function Inspections() {
       setNotes('');
       setInspectionImages([]);
       setDisclaimerAccepted(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error submitting inspection:', error);
-      toast({ title: "Failed to submit inspection", variant: "destructive" });
+      
+      // Try to extract specific error message from apiRequest error
+      let errorMessage = "Failed to submit inspection";
+      if (error?.message) {
+        try {
+          // apiRequest throws errors in format "400: {"message":"Vehicle Number is required"}"
+          const errorParts = error.message.split(': ');
+          if (errorParts.length > 1) {
+            const jsonPart = errorParts.slice(1).join(': '); // Rejoin in case there are colons in the JSON
+            const errorData = JSON.parse(jsonPart);
+            errorMessage = errorData.message || errorMessage;
+          }
+        } catch (parseError) {
+          // If we can't parse the response, use the raw error message or default
+          errorMessage = error.message || errorMessage;
+        }
+      }
+      
+      toast({ title: errorMessage, variant: "destructive" });
     } finally {
       setUploading(false);
     }
