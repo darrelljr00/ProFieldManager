@@ -180,14 +180,23 @@ export default function CalendarPage() {
         return {};
       }
       
-      console.log('🌤️ Fetching weather for', jobs.length, 'jobs');
+      console.log('🌤️ Jobs data:', jobs.map(j => ({ id: j.id, originalId: j.originalId, title: j.title })));
+      
+      const jobsWithOriginalId = jobs.filter(job => job.originalId);
+      console.log('🌤️ Jobs with originalId:', jobsWithOriginalId.length, 'out of', jobs.length);
+      
+      if (jobsWithOriginalId.length === 0) {
+        console.log('🌤️ No jobs have originalId, skipping weather fetch');
+        return {};
+      }
+      
+      console.log('🌤️ Fetching weather for', jobsWithOriginalId.length, 'jobs');
       const weatherData: {[key: string]: JobWeather} = {};
       const headers = getAuthHeaders();
       
       // Fetch weather for each job that has an originalId
       await Promise.all(
-        jobs
-          .filter(job => job.originalId)
+        jobsWithOriginalId
           .map(async (job) => {
             try {
               const url = `/api/weather/jobs/${job.originalId}`;
