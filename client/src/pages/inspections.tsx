@@ -183,6 +183,23 @@ export default function Inspections() {
       return;
     }
 
+    // Validate mandatory vehicle information fields
+    if (!vehicleInfo.vehicleNumber.trim()) {
+      toast({ title: "Vehicle Number is required", variant: "destructive" });
+      return;
+    }
+
+    if (!vehicleInfo.mileage.trim()) {
+      const mileageLabel = activeTab === 'pre-trip' ? 'Starting Mileage' : 'Ending Mileage';
+      toast({ title: `${mileageLabel} is required`, variant: "destructive" });
+      return;
+    }
+
+    if (!vehicleInfo.fuelLevel.trim()) {
+      toast({ title: "Fuel Level is required", variant: "destructive" });
+      return;
+    }
+
     setUploading(true);
     
     try {
@@ -489,12 +506,19 @@ export default function Inspections() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="vehicleNumber">Vehicle Number</Label>
+                    <Label htmlFor="vehicleNumber" className="flex items-center gap-1">
+                      Vehicle Number <span className="text-red-500">*</span>
+                    </Label>
                     <Input
                       id="vehicleNumber"
                       value={vehicleInfo.vehicleNumber}
                       onChange={(e) => setVehicleInfo(prev => ({ ...prev, vehicleNumber: e.target.value }))}
                       placeholder="Enter vehicle number"
+                      className={cn(
+                        "border-2",
+                        !vehicleInfo.vehicleNumber.trim() ? "border-red-300 focus:border-red-500" : "border-gray-300"
+                      )}
+                      required
                     />
                   </div>
                   <div>
@@ -507,22 +531,36 @@ export default function Inspections() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="startMileage">Starting Mileage</Label>
+                    <Label htmlFor="startMileage" className="flex items-center gap-1">
+                      Starting Mileage <span className="text-red-500">*</span>
+                    </Label>
                     <Input
                       id="startMileage"
                       type="number"
                       value={vehicleInfo.mileage}
                       onChange={(e) => setVehicleInfo(prev => ({ ...prev, mileage: e.target.value }))}
                       placeholder="Enter starting mileage"
+                      className={cn(
+                        "border-2",
+                        !vehicleInfo.mileage.trim() ? "border-red-300 focus:border-red-500" : "border-gray-300"
+                      )}
+                      required
                     />
                   </div>
                   <div>
-                    <Label htmlFor="startFuelLevel">Fuel Level</Label>
+                    <Label htmlFor="startFuelLevel" className="flex items-center gap-1">
+                      Fuel Level <span className="text-red-500">*</span>
+                    </Label>
                     <Input
                       id="startFuelLevel"
                       value={vehicleInfo.fuelLevel}
                       onChange={(e) => setVehicleInfo(prev => ({ ...prev, fuelLevel: e.target.value }))}
                       placeholder="e.g., Full, 3/4 tank"
+                      className={cn(
+                        "border-2",
+                        !vehicleInfo.fuelLevel.trim() ? "border-red-300 focus:border-red-500" : "border-gray-300"
+                      )}
+                      required
                     />
                   </div>
                 </div>
@@ -708,12 +746,19 @@ export default function Inspections() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="vehicleNumberPost">Vehicle Number</Label>
+                    <Label htmlFor="vehicleNumberPost" className="flex items-center gap-1">
+                      Vehicle Number <span className="text-red-500">*</span>
+                    </Label>
                     <Input
                       id="vehicleNumberPost"
                       value={vehicleInfo.vehicleNumber}
                       onChange={(e) => setVehicleInfo(prev => ({ ...prev, vehicleNumber: e.target.value }))}
                       placeholder="Enter vehicle number"
+                      className={cn(
+                        "border-2",
+                        !vehicleInfo.vehicleNumber.trim() ? "border-red-300 focus:border-red-500" : "border-gray-300"
+                      )}
+                      required
                     />
                   </div>
                   <div>
@@ -726,22 +771,36 @@ export default function Inspections() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="endMileage">Ending Mileage</Label>
+                    <Label htmlFor="endMileage" className="flex items-center gap-1">
+                      Ending Mileage <span className="text-red-500">*</span>
+                    </Label>
                     <Input
                       id="endMileage"
                       type="number"
                       value={vehicleInfo.mileage}
                       onChange={(e) => setVehicleInfo(prev => ({ ...prev, mileage: e.target.value }))}
                       placeholder="Enter ending mileage"
+                      className={cn(
+                        "border-2",
+                        !vehicleInfo.mileage.trim() ? "border-red-300 focus:border-red-500" : "border-gray-300"
+                      )}
+                      required
                     />
                   </div>
                   <div>
-                    <Label htmlFor="endFuelLevel">Fuel Level</Label>
+                    <Label htmlFor="endFuelLevel" className="flex items-center gap-1">
+                      Fuel Level <span className="text-red-500">*</span>
+                    </Label>
                     <Input
                       id="endFuelLevel"
                       value={vehicleInfo.fuelLevel}
                       onChange={(e) => setVehicleInfo(prev => ({ ...prev, fuelLevel: e.target.value }))}
                       placeholder="e.g., 1/4 tank"
+                      className={cn(
+                        "border-2",
+                        !vehicleInfo.fuelLevel.trim() ? "border-red-300 focus:border-red-500" : "border-gray-300"
+                      )}
+                      required
                     />
                   </div>
                 </div>

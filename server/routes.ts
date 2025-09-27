@@ -16576,6 +16576,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
+      // Validate mandatory vehicle information fields
+      if (!vehicleInfo || typeof vehicleInfo !== 'object') {
+        return res.status(400).json({ message: "Vehicle information is required" });
+      }
+      
+      if (!vehicleInfo.vehicleNumber || !vehicleInfo.vehicleNumber.trim()) {
+        return res.status(400).json({ message: "Vehicle Number is required" });
+      }
+      
+      if (!vehicleInfo.mileage || !vehicleInfo.mileage.trim()) {
+        const mileageLabel = type === 'pre-trip' ? 'Starting Mileage' : 'Ending Mileage';
+        return res.status(400).json({ message: `${mileageLabel} is required` });
+      }
+      
+      if (!vehicleInfo.fuelLevel || !vehicleInfo.fuelLevel.trim()) {
+        return res.status(400).json({ message: "Fuel Level is required" });
+      }
+      
       // Create inspection record
       const recordData = {
         userId: user.id,
