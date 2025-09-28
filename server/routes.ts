@@ -9689,8 +9689,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           projectId: tasks.projectId,
           isCompleted: tasks.isCompleted,
           completedAt: tasks.completedAt,
+          startedAt: tasks.startedAt,
           completedById: tasks.completedById,
-          title: tasks.title
+          title: tasks.title,
+          estimatedHours: tasks.estimatedHours,
+          actualHours: tasks.actualHours,
+          status: tasks.status,
+          assignedToId: tasks.assignedToId
         })
           .from(tasks)
           .innerJoin(projects, eq(tasks.projectId, projects.id))
@@ -9920,6 +9925,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
         value
       }));
 
+      // Task completion analytics - estimated vs actual hours
+      const completedTasksWithData = allTasks.filter(task => 
+        task.isCompleted && task.estimatedHours && task.actualHours
+      );
+      
+      const totalEstimatedHours = completedTasksWithData.reduce((sum, task) => 
+        sum + parseFloat(task.estimatedHours || '0'), 0
+      );
+      
+      const totalActualHours = completedTasksWithData.reduce((sum, task) => 
+        sum + parseFloat(task.actualHours || '0'), 0
+      );
+      
+      const avgEstimationAccuracy = completedTasksWithData.length > 0 ? 
+        completedTasksWithData.reduce((sum, task) => {
+          const estimated = parseFloat(task.estimatedHours || '0');
+          const actual = parseFloat(task.actualHours || '0');
+          if (estimated > 0) {
+            const accuracy = Math.min(actual / estimated, estimated / actual) * 100;
+            return sum + accuracy;
+          }
+          return sum;
+        }, 0) / completedTasksWithData.length : 0;
+      
+      // Task efficiency by project
+      const taskEfficiencyByProject = allProjects.slice(0, 10).map(project => {
+        const projectTasks = allTasks.filter(task => task.projectId === project.id);
+        const completedTasks = projectTasks.filter(task => task.isCompleted);
+        const tasksWithEstimates = completedTasks.filter(task => task.estimatedHours && task.actualHours);
+        
+        const totalEstimated = tasksWithEstimates.reduce((sum, task) => sum + parseFloat(task.estimatedHours || '0'), 0);
+        const totalActual = tasksWithEstimates.reduce((sum, task) => sum + parseFloat(task.actualHours || '0'), 0);
+        
+        return {
+          projectName: project.name || `Project ${project.id}`,
+          completedTasks: completedTasks.length,
+          totalTasks: projectTasks.length,
+          estimatedHours: Math.round(totalEstimated * 10) / 10,
+          actualHours: Math.round(totalActual * 10) / 10,
+          efficiency: totalEstimated > 0 ? Math.round((totalEstimated / totalActual) * 100) : 0,
+          tasksWithData: tasksWithEstimates.length
+        };
+      });
+
       // GPS tracking summary
       const totalArrivals = jobSiteEventsData.filter(e => e.eventType === 'arrival').length;
       const totalDepartures = jobSiteEventsData.filter(e => e.eventType === 'departure').length;
@@ -9944,6 +9993,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           avgOnsiteTimePerVisit: totalDepartures > 0 ? Math.round(totalOnsiteMinutes / totalDepartures) : 0, // minutes
           activeJobSites: new Set(jobSiteEventsData.map(e => e.projectId)).size,
           trackingCoverage: allProjects.length > 0 ? Math.round((new Set(jobSiteEventsData.map(e => e.projectId)).size / allProjects.length) * 100) : 0 // percentage
+        },
+        // Task completion analytics - estimated vs actual hours
+        taskCompletionAnalytics: {
+          totalTasks: allTasks.length,
+          completedTasks: allTasks.filter(t => t.isCompleted).length,
+          tasksWithEstimates: completedTasksWithData.length,
+          totalEstimatedHours: Math.round(totalEstimatedHours * 10) / 10,
+          totalActualHours: Math.round(totalActualHours * 10) / 10,
+          estimationAccuracy: Math.round(avgEstimationAccuracy * 10) / 10, // percentage
+          overUnderEstimation: totalEstimatedHours > 0 ? Math.round(((totalActualHours - totalEstimatedHours) / totalEstimatedHours) * 100) : 0, // positive = over, negative = under
+          taskEfficiencyByProject
         }
       };
 
