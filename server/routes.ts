@@ -69,7 +69,8 @@ import {
   schedules, scheduleAssignments, scheduleComments, timeClock,
   lateArrivals, notifications, notificationSettings,
   partsSupplies, inventoryTransactions, stockAlerts,
-  partsCategories, meetings, meetingParticipants, meetingMessages, meetingRecordings
+  partsCategories, meetings, meetingParticipants, meetingMessages, meetingRecordings,
+  jobSiteGeofences, jobSiteEvents, gpsTrackingData
 } from "@shared/schema";
 import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull } from "drizzle-orm";
 import { DocuSignService, getDocuSignConfig } from "./docusign";
@@ -16507,6 +16508,254 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error updating GPS location:", error);
       res.status(500).json({ message: "Error updating location: " + error.message });
+    }
+  });
+
+  // Geofencing API Endpoints
+  
+  // Get active geofences for user's organization
+  app.get("/api/geofences", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      const geofences = await db
+        .select()
+        .from(jobSiteGeofences)
+        .where(
+          and(
+            eq(jobSiteGeofences.organizationId, user.organizationId),
+            eq(jobSiteGeofences.isActive, true)
+          )
+        );
+      
+      res.json({ geofences });
+    } catch (error: any) {
+      console.error("Error fetching geofences:", error);
+      res.status(500).json({ message: "Failed to load geofences: " + error.message });
+    }
+  });
+
+  // Create or update geofence for a project
+  app.post("/api/geofences", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { projectId, centerLatitude, centerLongitude, radius, address } = req.body;
+
+      if (!projectId || !centerLatitude || !centerLongitude || !address) {
+        return res.status(400).json({ message: "Missing required geofence parameters" });
+      }
+
+      // Check if geofence already exists for this project
+      const [existingGeofence] = await db
+        .select()
+        .from(jobSiteGeofences)
+        .where(
+          and(
+            eq(jobSiteGeofences.projectId, projectId),
+            eq(jobSiteGeofences.organizationId, user.organizationId)
+          )
+        );
+
+      if (existingGeofence) {
+        // Update existing geofence
+        const [updatedGeofence] = await db
+          .update(jobSiteGeofences)
+          .set({
+            centerLatitude: centerLatitude.toString(),
+            centerLongitude: centerLongitude.toString(),
+            radius: parseInt(radius) || 100,
+            address,
+            isActive: true,
+            updatedAt: new Date(),
+          })
+          .where(eq(jobSiteGeofences.id, existingGeofence.id))
+          .returning();
+        
+        res.json({ message: "Geofence updated successfully", geofence: updatedGeofence });
+      } else {
+        // Create new geofence
+        const [newGeofence] = await db
+          .insert(jobSiteGeofences)
+          .values({
+            projectId: parseInt(projectId),
+            organizationId: user.organizationId,
+            centerLatitude: centerLatitude.toString(),
+            centerLongitude: centerLongitude.toString(),
+            radius: parseInt(radius) || 100,
+            address,
+            isActive: true,
+          })
+          .returning();
+        
+        res.json({ message: "Geofence created successfully", geofence: newGeofence });
+      }
+    } catch (error: any) {
+      console.error("Error creating/updating geofence:", error);
+      res.status(500).json({ message: "Failed to save geofence: " + error.message });
+    }
+  });
+
+  // Record job site arrival/departure event
+  app.post("/api/job-site-events", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { projectId, geofenceId, eventType, eventTime, latitude, longitude, accuracy } = req.body;
+
+      if (!projectId || !geofenceId || !eventType || !eventTime || !latitude || !longitude) {
+        return res.status(400).json({ message: "Missing required event parameters" });
+      }
+
+      if (!['arrival', 'departure'].includes(eventType)) {
+        return res.status(400).json({ message: "Event type must be 'arrival' or 'departure'" });
+      }
+
+      // Calculate duration for departure events
+      let durationMinutes = null;
+      if (eventType === 'departure') {
+        // Find the most recent arrival event for this user and geofence
+        const [lastArrival] = await db
+          .select()
+          .from(jobSiteEvents)
+          .where(
+            and(
+              eq(jobSiteEvents.userId, user.id),
+              eq(jobSiteEvents.geofenceId, parseInt(geofenceId)),
+              eq(jobSiteEvents.eventType, 'arrival')
+            )
+          )
+          .orderBy(desc(jobSiteEvents.eventTime))
+          .limit(1);
+
+        if (lastArrival) {
+          const arrivalTime = new Date(lastArrival.eventTime).getTime();
+          const departureTime = new Date(eventTime).getTime();
+          durationMinutes = Math.round((departureTime - arrivalTime) / (1000 * 60));
+        }
+      }
+
+      // Store the event
+      const [jobSiteEvent] = await db
+        .insert(jobSiteEvents)
+        .values({
+          userId: user.id,
+          organizationId: user.organizationId,
+          projectId: parseInt(projectId),
+          geofenceId: parseInt(geofenceId),
+          eventType,
+          eventTime: new Date(eventTime),
+          latitude: latitude.toString(),
+          longitude: longitude.toString(),
+          accuracy: accuracy ? accuracy.toString() : null,
+          durationMinutes,
+        })
+        .returning();
+
+      // Send notification for the arrival/departure event
+      const [geofence] = await db
+        .select()
+        .from(jobSiteGeofences)
+        .where(eq(jobSiteGeofences.id, parseInt(geofenceId)));
+
+      if (geofence) {
+        // Import notification service here to avoid circular imports
+        const { NotificationService } = await import('./notificationService');
+        
+        const eventTitle = eventType === 'arrival' ? 'Technician Arrived' : 'Technician Departed';
+        const eventMessage = eventType === 'arrival' 
+          ? `${user.firstName} ${user.lastName} has arrived at ${geofence.address}`
+          : `${user.firstName} ${user.lastName} has departed from ${geofence.address}${durationMinutes ? ` (onsite for ${durationMinutes} minutes)` : ''}`;
+
+        // Notify managers and admins in the organization
+        const managers = await db
+          .select()
+          .from(users)
+          .where(
+            and(
+              eq(users.organizationId, user.organizationId),
+              or(eq(users.role, 'admin'), eq(users.role, 'manager')),
+              eq(users.isActive, true)
+            )
+          );
+
+        for (const manager of managers) {
+          if (manager.id !== user.id) { // Don't notify the user themselves
+            await NotificationService.createNotification({
+              type: `job_site_${eventType}`,
+              title: eventTitle,
+              message: eventMessage,
+              userId: manager.id,
+              organizationId: user.organizationId,
+              relatedEntityType: 'project',
+              relatedEntityId: parseInt(projectId),
+              priority: 'normal',
+              category: 'team_based',
+              createdBy: user.id,
+            });
+          }
+        }
+      }
+
+      res.json({ 
+        message: `Job site ${eventType} recorded successfully`,
+        event: jobSiteEvent,
+        durationMinutes
+      });
+    } catch (error: any) {
+      console.error("Error recording job site event:", error);
+      res.status(500).json({ message: "Failed to record event: " + error.message });
+    }
+  });
+
+  // Get job site events for analytics
+  app.get("/api/job-site-events", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { projectId, userId: requestedUserId, startDate, endDate } = req.query;
+
+      let whereCondition = eq(jobSiteEvents.organizationId, user.organizationId);
+
+      if (projectId) {
+        whereCondition = and(whereCondition, eq(jobSiteEvents.projectId, parseInt(projectId as string)));
+      }
+
+      if (requestedUserId && (user.role === 'admin' || user.role === 'manager')) {
+        whereCondition = and(whereCondition, eq(jobSiteEvents.userId, parseInt(requestedUserId as string)));
+      } else if (!requestedUserId || (user.role !== 'admin' && user.role !== 'manager')) {
+        // Regular users can only see their own events
+        whereCondition = and(whereCondition, eq(jobSiteEvents.userId, user.id));
+      }
+
+      if (startDate) {
+        whereCondition = and(whereCondition, gte(jobSiteEvents.eventTime, new Date(startDate as string)));
+      }
+
+      if (endDate) {
+        whereCondition = and(whereCondition, lte(jobSiteEvents.eventTime, new Date(endDate as string)));
+      }
+
+      const events = await db
+        .select({
+          id: jobSiteEvents.id,
+          userId: jobSiteEvents.userId,
+          projectId: jobSiteEvents.projectId,
+          eventType: jobSiteEvents.eventType,
+          eventTime: jobSiteEvents.eventTime,
+          durationMinutes: jobSiteEvents.durationMinutes,
+          address: jobSiteEvents.address,
+          // Join with user and project info
+          userName: sql<string>`${users.firstName} || ' ' || ${users.lastName}`,
+          projectName: projects.name,
+        })
+        .from(jobSiteEvents)
+        .leftJoin(users, eq(jobSiteEvents.userId, users.id))
+        .leftJoin(projects, eq(jobSiteEvents.projectId, projects.id))
+        .where(whereCondition)
+        .orderBy(desc(jobSiteEvents.eventTime));
+
+      res.json({ events });
+    } catch (error: any) {
+      console.error("Error fetching job site events:", error);
+      res.status(500).json({ message: "Failed to load events: " + error.message });
     }
   });
 
