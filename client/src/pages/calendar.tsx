@@ -730,9 +730,9 @@ export default function CalendarPage() {
                 </Button>
                 <Button 
                   onClick={() => {
-                    // Navigate to job details page using the correct route
+                    // Navigate to job tasks page which shows job-specific details
                     const jobId = selectedJob.originalId || selectedJob.id.replace('project-', '');
-                    window.open(`/jobs/${jobId}`, '_blank');
+                    window.open(`/jobs/${jobId}/tasks`, '_blank');
                   }}
                   data-testid="button-view-job-details"
                 >
