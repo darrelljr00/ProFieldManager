@@ -16,7 +16,8 @@ import {
 } from "recharts";
 import { 
   TrendingUp, TrendingDown, DollarSign, Users, Target, Calculator,
-  BarChart3, Download, CalendarIcon, Filter, Clock, Briefcase, CheckSquare
+  BarChart3, Download, CalendarIcon, Filter, Clock, Briefcase, CheckSquare,
+  Check, Activity
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useWebSocket } from "@/hooks/useWebSocket";
@@ -30,6 +31,45 @@ interface ReportData {
   expenses: any[];
   invoices: any[];
   customers: any[];
+}
+
+interface TaskCompletionAnalytics {
+  totalTasks: number;
+  completedTasks: number;
+  tasksWithEstimates: number;
+  totalEstimatedHours: number;
+  totalActualHours: number;
+  estimationAccuracy: number;
+  overUnderEstimation: number;
+  taskEfficiencyByProject: Array<{
+    projectName: string;
+    completedTasks: number;
+    totalTasks: number;
+    estimatedHours: number;
+    actualHours: number;
+    efficiency: number;
+    tasksWithData: number;
+  }>;
+}
+
+interface JobAnalyticsData {
+  totalJobs: number;
+  completedJobs: number;
+  completionRate: number;
+  avgJobDuration: number;
+  jobDurationData: any[];
+  taskEfficiencyData: any[];
+  technicianPerformance: any[];
+  jobStatusData: any[];
+  gpsTrackingMetrics: {
+    totalArrivals: number;
+    totalDepartures: number;
+    totalOnsiteHours: number;
+    avgOnsiteTimePerVisit: number;
+    activeJobSites: number;
+    trackingCoverage: number;
+  };
+  taskCompletionAnalytics: TaskCompletionAnalytics;
 }
 
 export default function Reports() {
@@ -121,7 +161,7 @@ export default function Reports() {
   });
 
   // Fetch job analytics data
-  const { data: jobAnalyticsData, isLoading: jobAnalyticsLoading, refetch: refetchJobAnalytics } = useQuery({
+  const { data: jobAnalyticsData, isLoading: jobAnalyticsLoading, refetch: refetchJobAnalytics } = useQuery<JobAnalyticsData>({
     queryKey: ["/api/job-analytics", jobAnalyticsDateRange],
     enabled: true,
     refetchInterval: realTimeUpdates ? 30000 : false,
@@ -298,7 +338,7 @@ export default function Reports() {
     },
     select: (data) => Array.isArray(data) ? data : getAllEmployeeData(),
     staleTime: 0,
-    cacheTime: 0
+    gcTime: 0
   });
 
   // Extract data from consolidated response
@@ -1519,6 +1559,179 @@ export default function Reports() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Task Completion Analytics Section */}
+            {jobAnalyticsData?.taskCompletionAnalytics && (
+              <div className="space-y-6">
+                <h3 className="text-xl font-semibold text-gray-900">Task Completion Analytics</h3>
+                
+                {/* Task Completion Metrics Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center">
+                        <Clock className="h-8 w-8 text-blue-600" />
+                        <div className="ml-3">
+                          <p className="text-sm font-medium text-gray-500">Total Tasks</p>
+                          <p className="text-2xl font-bold">{jobAnalyticsData.taskCompletionAnalytics.totalTasks}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center">
+                        <Check className="h-8 w-8 text-green-600" />
+                        <div className="ml-3">
+                          <p className="text-sm font-medium text-gray-500">Completed Tasks</p>
+                          <p className="text-2xl font-bold">{jobAnalyticsData.taskCompletionAnalytics.completedTasks}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center">
+                        <TrendingUp className="h-8 w-8 text-purple-600" />
+                        <div className="ml-3">
+                          <p className="text-sm font-medium text-gray-500">Estimation Accuracy</p>
+                          <p className="text-2xl font-bold">{jobAnalyticsData.taskCompletionAnalytics.estimationAccuracy}%</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center">
+                        <Activity className="h-8 w-8 text-orange-600" />
+                        <div className="ml-3">
+                          <p className="text-sm font-medium text-gray-500">Over/Under Estimation</p>
+                          <p className={`text-2xl font-bold ${jobAnalyticsData.taskCompletionAnalytics.overUnderEstimation > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                            {jobAnalyticsData.taskCompletionAnalytics.overUnderEstimation > 0 ? '+' : ''}{jobAnalyticsData.taskCompletionAnalytics.overUnderEstimation}%
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Estimated vs Actual Hours Comparison */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Estimated vs Actual Hours</CardTitle>
+                      <CardDescription>
+                        Total hours comparison across all completed tasks
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={[
+                          {
+                            name: 'Estimated',
+                            hours: jobAnalyticsData.taskCompletionAnalytics.totalEstimatedHours,
+                            fill: '#3B82F6'
+                          },
+                          {
+                            name: 'Actual',
+                            hours: jobAnalyticsData.taskCompletionAnalytics.totalActualHours,
+                            fill: '#10B981'
+                          }
+                        ]}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="name" />
+                          <YAxis />
+                          <Tooltip formatter={(value) => [`${value} hours`, 'Total Hours']} />
+                          <Bar dataKey="hours" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Task Efficiency by Project</CardTitle>
+                      <CardDescription>
+                        Project-wise task completion efficiency (Estimated/Actual * 100%)
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={jobAnalyticsData.taskCompletionAnalytics.taskEfficiencyByProject.slice(0, 8)}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis 
+                            dataKey="projectName" 
+                            angle={-45}
+                            textAnchor="end"
+                            height={100}
+                            fontSize={10}
+                          />
+                          <YAxis />
+                          <Tooltip 
+                            formatter={(value, name) => [
+                              name === 'efficiency' ? `${value}%` : value,
+                              name === 'efficiency' ? 'Efficiency' : 
+                              name === 'completedTasks' ? 'Completed Tasks' : 
+                              name === 'estimatedHours' ? 'Estimated Hours' : 
+                              'Actual Hours'
+                            ]}
+                          />
+                          <Bar dataKey="efficiency" fill="#8B5CF6" name="efficiency" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Task Efficiency Summary Table */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Project Task Summary</CardTitle>
+                    <CardDescription>
+                      Detailed breakdown of task completion metrics by project
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="text-left p-2">Project Name</th>
+                            <th className="text-left p-2">Total Tasks</th>
+                            <th className="text-left p-2">Completed</th>
+                            <th className="text-left p-2">Estimated Hours</th>
+                            <th className="text-left p-2">Actual Hours</th>
+                            <th className="text-left p-2">Efficiency</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {jobAnalyticsData.taskCompletionAnalytics.taskEfficiencyByProject.map((project: any, index: number) => (
+                            <tr key={index} className="border-b hover:bg-gray-50">
+                              <td className="p-2 font-medium">{project.projectName}</td>
+                              <td className="p-2">{project.totalTasks}</td>
+                              <td className="p-2">{project.completedTasks}</td>
+                              <td className="p-2">{project.estimatedHours}h</td>
+                              <td className="p-2">{project.actualHours}h</td>
+                              <td className="p-2">
+                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                  project.efficiency >= 90 ? 'bg-green-100 text-green-800' :
+                                  project.efficiency >= 70 ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
+                                }`}>
+                                  {project.efficiency}%
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
           </div>
         </TabsContent>
 
