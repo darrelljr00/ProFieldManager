@@ -87,10 +87,13 @@ export interface IStorage {
   
   // Quote methods
   getQuotes(organizationId: number): Promise<any[]>;
+  getTrashedQuotes(organizationId: number): Promise<any[]>;
   getQuote(id: number, organizationId: number): Promise<any>;
   createQuote(quoteData: any): Promise<any>;
   updateQuote(id: number, organizationId: number, updates: any): Promise<any>;
   deleteQuote(id: number, organizationId: number): Promise<boolean>;
+  restoreQuote(id: number, organizationId: number): Promise<boolean>;
+  hardDeleteQuote(id: number, organizationId: number): Promise<boolean>;
   
   // Project/Job methods
   getProjects(organizationId: number, userId?: number, userRole?: string, status?: string): Promise<any[]>;
@@ -1864,7 +1867,10 @@ export class DatabaseStorage implements IStorage {
       .from(quotes)
       .innerJoin(users, eq(quotes.userId, users.id))
       .leftJoin(customers, eq(quotes.customerId, customers.id))
-      .where(eq(users.organizationId, organizationId))
+      .where(and(
+        eq(users.organizationId, organizationId),
+        eq(quotes.isDeleted, false)
+      ))
       .orderBy(desc(quotes.createdAt));
 
     // Get line items for each quote
@@ -1903,7 +1909,8 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(customers, eq(quotes.customerId, customers.id))
       .where(and(
         eq(quotes.id, id),
-        eq(users.organizationId, organizationId)
+        eq(users.organizationId, organizationId),
+        eq(quotes.isDeleted, false)
       ));
 
     if (!quoteWithCustomer) {
@@ -1941,8 +1948,142 @@ export class DatabaseStorage implements IStorage {
     return quote;
   }
 
-  async deleteQuote(id: number): Promise<void> {
-    await db.delete(quotes).where(eq(quotes.id, id));
+  async deleteQuote(id: number, organizationId: number): Promise<boolean> {
+    try {
+      // Verify the quote belongs to the organization before soft deleting
+      const quote = await db
+        .select({ id: quotes.id })
+        .from(quotes)
+        .innerJoin(users, eq(quotes.userId, users.id))
+        .where(and(
+          eq(quotes.id, id),
+          eq(users.organizationId, organizationId),
+          eq(quotes.isDeleted, false)
+        ));
+
+      if (!quote.length) {
+        return false;
+      }
+
+      // Soft delete by setting isDeleted to true and deletedAt to now
+      await db
+        .update(quotes)
+        .set({
+          isDeleted: true,
+          deletedAt: new Date(),
+          updatedAt: new Date()
+        })
+        .where(eq(quotes.id, id));
+
+      return true;
+    } catch (error) {
+      console.error('Error in deleteQuote:', error);
+      return false;
+    }
+  }
+
+  async getTrashedQuotes(organizationId: number): Promise<any[]> {
+    const trashedQuotesWithCustomers = await db
+      .select({
+        quote: quotes,
+        customer: customers,
+        user: {
+          id: users.id,
+          username: users.username,
+          firstName: users.firstName,
+          lastName: users.lastName,
+        }
+      })
+      .from(quotes)
+      .innerJoin(users, eq(quotes.userId, users.id))
+      .leftJoin(customers, eq(quotes.customerId, customers.id))
+      .where(and(
+        eq(users.organizationId, organizationId),
+        eq(quotes.isDeleted, true)
+      ))
+      .orderBy(desc(quotes.deletedAt));
+
+    // Get line items for each quote
+    const result = [];
+    for (const row of trashedQuotesWithCustomers) {
+      const lineItems = await db
+        .select()
+        .from(quoteLineItems)
+        .where(eq(quoteLineItems.quoteId, row.quote.id));
+      
+      result.push({
+        ...row.quote,
+        customer: row.customer,
+        user: row.user,
+        lineItems: lineItems
+      });
+    }
+    
+    return result;
+  }
+
+  async restoreQuote(id: number, organizationId: number): Promise<boolean> {
+    try {
+      // Verify the quote is deleted and belongs to the organization
+      const quote = await db
+        .select({ id: quotes.id })
+        .from(quotes)
+        .innerJoin(users, eq(quotes.userId, users.id))
+        .where(and(
+          eq(quotes.id, id),
+          eq(users.organizationId, organizationId),
+          eq(quotes.isDeleted, true)
+        ));
+
+      if (!quote.length) {
+        return false;
+      }
+
+      // Restore by setting isDeleted to false and clearing deletedAt
+      await db
+        .update(quotes)
+        .set({
+          isDeleted: false,
+          deletedAt: null,
+          updatedAt: new Date()
+        })
+        .where(eq(quotes.id, id));
+
+      return true;
+    } catch (error) {
+      console.error('Error in restoreQuote:', error);
+      return false;
+    }
+  }
+
+  async hardDeleteQuote(id: number, organizationId: number): Promise<boolean> {
+    try {
+      // Verify the quote is deleted and belongs to the organization
+      const quote = await db
+        .select({ id: quotes.id })
+        .from(quotes)
+        .innerJoin(users, eq(quotes.userId, users.id))
+        .where(and(
+          eq(quotes.id, id),
+          eq(users.organizationId, organizationId),
+          eq(quotes.isDeleted, true)
+        ));
+
+      if (!quote.length) {
+        return false;
+      }
+
+      // First delete the line items
+      await db.delete(quoteLineItems).where(eq(quoteLineItems.quoteId, id));
+      
+      // Then permanently delete the quote
+      await db.delete(quotes).where(eq(quotes.id, id));
+
+      return true;
+    } catch (error) {
+      console.error('Error in hardDeleteQuote:', error);
+      return false;
+    }
   }
 
   async createQuoteLineItems(quoteId: number, lineItems: any[]): Promise<void> {
