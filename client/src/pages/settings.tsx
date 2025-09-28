@@ -113,20 +113,20 @@ type InvoiceSettings = {
   invoiceFooter: string;
 };
 
+type WidgetTab = {
+  key: string;
+  name: string;
+  description: string;
+  defaultEnabled: boolean;
+  permission?: string;
+};
+
 type DashboardSettings = {
-  // Widget visibility
-  showStatsCards: boolean;
-  showRevenueChart: boolean;
-  showRecentActivity: boolean;
-  showRecentInvoices: boolean;
-  showNotifications: boolean;
-  showQuickActions: boolean;
-  showProjectsOverview: boolean;
-  showWeatherWidget: boolean;
-  showTasksWidget: boolean;
-  showCalendarWidget: boolean;
-  showMessagesWidget: boolean;
-  showTeamOverview: boolean;
+  // Dynamic widget visibility - will be populated based on available tabs
+  [key: string]: boolean | string | number | string[] | WidgetTab[] | undefined;
+  
+  // Available widget tabs from backend
+  availableWidgetTabs?: WidgetTab[];
   
   // Layout and appearance
   widgetOrder: string[];
@@ -2672,195 +2672,35 @@ export default function Settings() {
                       </div>
                       
                       <div className="grid gap-4">
-                        <div className="flex items-center justify-between">
-                          <div className="space-y-0.5">
-                            <Label htmlFor="showStatsCards">Stats Cards</Label>
-                            <p className="text-sm text-muted-foreground">
-                              Revenue, invoices, and performance metrics
-                            </p>
+                        {dashboardSettings?.availableWidgetTabs?.length ? (
+                          dashboardSettings.availableWidgetTabs.map((widgetTab, index) => (
+                            <div key={widgetTab.key}>
+                              <div className="flex items-center justify-between">
+                                <div className="space-y-0.5">
+                                  <Label htmlFor={widgetTab.key}>{widgetTab.name}</Label>
+                                  <p className="text-sm text-muted-foreground">
+                                    {widgetTab.description}
+                                  </p>
+                                </div>
+                                <Switch
+                                  id={widgetTab.key}
+                                  name={widgetTab.key}
+                                  defaultChecked={
+                                    dashboardSettings[widgetTab.key] !== undefined 
+                                      ? Boolean(dashboardSettings[widgetTab.key])
+                                      : widgetTab.defaultEnabled
+                                  }
+                                  data-testid={`switch-${widgetTab.key}`}
+                                />
+                              </div>
+                              {index < dashboardSettings.availableWidgetTabs.length - 1 && <Separator />}
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-sm text-muted-foreground">
+                            Loading widget options...
                           </div>
-                          <Switch
-                            id="showStatsCards"
-                            name="showStatsCards"
-                            defaultChecked={dashboardSettings?.showStatsCards ?? true}
-                          />
-                        </div>
-                        
-                        <Separator />
-                        
-                        <div className="flex items-center justify-between">
-                          <div className="space-y-0.5">
-                            <Label htmlFor="showRevenueChart">Revenue Chart</Label>
-                            <p className="text-sm text-muted-foreground">
-                              Monthly revenue and growth trends
-                            </p>
-                          </div>
-                          <Switch
-                            id="showRevenueChart"
-                            name="showRevenueChart"
-                            defaultChecked={dashboardSettings?.showRevenueChart ?? true}
-                          />
-                        </div>
-                        
-                        <Separator />
-                        
-                        <div className="flex items-center justify-between">
-                          <div className="space-y-0.5">
-                            <Label htmlFor="showRecentActivity">Recent Activity</Label>
-                            <p className="text-sm text-muted-foreground">
-                              Latest projects and system activity
-                            </p>
-                          </div>
-                          <Switch
-                            id="showRecentActivity"
-                            name="showRecentActivity"
-                            defaultChecked={dashboardSettings?.showRecentActivity ?? true}
-                          />
-                        </div>
-                        
-                        <Separator />
-                        
-                        <div className="flex items-center justify-between">
-                          <div className="space-y-0.5">
-                            <Label htmlFor="showRecentInvoices">Recent Invoices</Label>
-                            <p className="text-sm text-muted-foreground">
-                              Latest invoices and payment status
-                            </p>
-                          </div>
-                          <Switch
-                            id="showRecentInvoices"
-                            name="showRecentInvoices"
-                            defaultChecked={dashboardSettings?.showRecentInvoices ?? true}
-                          />
-                        </div>
-                        
-                        <Separator />
-                        
-                        <div className="flex items-center justify-between">
-                          <div className="space-y-0.5">
-                            <Label htmlFor="showNotifications">Notifications</Label>
-                            <p className="text-sm text-muted-foreground">
-                              Alert badge on notification bell
-                            </p>
-                          </div>
-                          <Switch
-                            id="showNotifications"
-                            name="showNotifications"
-                            defaultChecked={dashboardSettings?.showNotifications ?? true}
-                          />
-                        </div>
-                        
-                        <Separator />
-                        
-                        <div className="flex items-center justify-between">
-                          <div className="space-y-0.5">
-                            <Label htmlFor="showQuickActions">Quick Actions</Label>
-                            <p className="text-sm text-muted-foreground">
-                              "New Invoice" button and other quick actions
-                            </p>
-                          </div>
-                          <Switch
-                            id="showQuickActions"
-                            name="showQuickActions"
-                            defaultChecked={dashboardSettings?.showQuickActions ?? true}
-                          />
-                        </div>
-                        
-                        <Separator />
-                        
-                        <div className="flex items-center justify-between">
-                          <div className="space-y-0.5">
-                            <Label htmlFor="showProjectsOverview">Projects Overview</Label>
-                            <p className="text-sm text-muted-foreground">
-                              Active projects status and progress tracking
-                            </p>
-                          </div>
-                          <Switch
-                            id="showProjectsOverview"
-                            name="showProjectsOverview"
-                            defaultChecked={dashboardSettings?.showProjectsOverview ?? false}
-                          />
-                        </div>
-                        
-                        <Separator />
-                        
-                        <div className="flex items-center justify-between">
-                          <div className="space-y-0.5">
-                            <Label htmlFor="showWeatherWidget">Weather Widget</Label>
-                            <p className="text-sm text-muted-foreground">
-                              Current weather conditions and forecast
-                            </p>
-                          </div>
-                          <Switch
-                            id="showWeatherWidget"
-                            name="showWeatherWidget"
-                            defaultChecked={dashboardSettings?.showWeatherWidget ?? false}
-                          />
-                        </div>
-                        
-                        <Separator />
-                        
-                        <div className="flex items-center justify-between">
-                          <div className="space-y-0.5">
-                            <Label htmlFor="showTasksWidget">My Tasks</Label>
-                            <p className="text-sm text-muted-foreground">
-                              Assigned tasks and deadlines overview
-                            </p>
-                          </div>
-                          <Switch
-                            id="showTasksWidget"
-                            name="showTasksWidget"
-                            defaultChecked={dashboardSettings?.showTasksWidget ?? false}
-                          />
-                        </div>
-                        
-                        <Separator />
-                        
-                        <div className="flex items-center justify-between">
-                          <div className="space-y-0.5">
-                            <Label htmlFor="showCalendarWidget">Calendar Widget</Label>
-                            <p className="text-sm text-muted-foreground">
-                              Upcoming appointments and schedule preview
-                            </p>
-                          </div>
-                          <Switch
-                            id="showCalendarWidget"
-                            name="showCalendarWidget"
-                            defaultChecked={dashboardSettings?.showCalendarWidget ?? false}
-                          />
-                        </div>
-                        
-                        <Separator />
-                        
-                        <div className="flex items-center justify-between">
-                          <div className="space-y-0.5">
-                            <Label htmlFor="showMessagesWidget">Team Messages</Label>
-                            <p className="text-sm text-muted-foreground">
-                              Recent team communications and alerts
-                            </p>
-                          </div>
-                          <Switch
-                            id="showMessagesWidget"
-                            name="showMessagesWidget"
-                            defaultChecked={dashboardSettings?.showMessagesWidget ?? false}
-                          />
-                        </div>
-                        
-                        <Separator />
-                        
-                        <div className="flex items-center justify-between">
-                          <div className="space-y-0.5">
-                            <Label htmlFor="showTeamOverview">Team Overview</Label>
-                            <p className="text-sm text-muted-foreground">
-                              Team status, time tracking, and productivity metrics
-                            </p>
-                          </div>
-                          <Switch
-                            id="showTeamOverview"
-                            name="showTeamOverview"
-                            defaultChecked={dashboardSettings?.showTeamOverview ?? false}
-                          />
-                        </div>
+                        )}
                       </div>
                     </div>
 
