@@ -4340,6 +4340,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get trashed quotes
+  app.get("/api/quotes/trash", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const trashedQuotes = await storage.getTrashedQuotes(user.organizationId);
+      res.json(trashedQuotes);
+    } catch (error: any) {
+      console.error("Error fetching trashed quotes:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Restore quote from trash
+  app.post("/api/quotes/:id/restore", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const restored = await storage.restoreQuote(parseInt(req.params.id), user.organizationId);
+      if (!restored) {
+        return res.status(404).json({ message: "Quote not found in trash" });
+      }
+      res.json({ message: "Quote restored successfully" });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Permanently delete quote (hard delete)
+  app.delete("/api/quotes/:id/permanent", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const deleted = await storage.hardDeleteQuote(parseInt(req.params.id), user.organizationId);
+      if (!deleted) {
+        return res.status(404).json({ message: "Quote not found in trash" });
+      }
+      res.status(204).send();
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Send quote (update status to sent)
   app.post("/api/quotes/:id/send", async (req, res) => {
     try {

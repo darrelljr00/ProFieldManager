@@ -6,9 +6,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { QuoteForm } from "@/components/quote-form";
 import { QuotesTable } from "@/components/quotes-table";
-import { Plus, FileText, TrendingUp, Clock, CheckCircle, Search, Filter } from "lucide-react";
+import { TrashedQuotesTable } from "@/components/trashed-quotes-table";
+import { Plus, FileText, TrendingUp, Clock, CheckCircle, Search, Filter, Trash2 } from "lucide-react";
 import type { Quote, Customer, QuoteLineItem } from "@shared/schema";
 
 export default function Quotes() {
@@ -16,9 +18,14 @@ export default function Quotes() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("all");
+  const [activeTab, setActiveTab] = useState("active");
 
   const { data: quotes = [], isLoading, error } = useQuery<(Quote & { customer: Customer; lineItems: QuoteLineItem[] })[]>({
     queryKey: ["/api/quotes"],
+  });
+
+  const { data: trashedQuotes = [], isLoading: trashedLoading, error: trashedError } = useQuery<(Quote & { customer: Customer; lineItems: QuoteLineItem[] })[]>({
+    queryKey: ["/api/quotes/trash"],
   });
 
   // Filter quotes based on search criteria
@@ -100,6 +107,20 @@ export default function Quotes() {
           </DialogContent>
         </Dialog>
       </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="active" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Active Quotes ({quotes.length})
+          </TabsTrigger>
+          <TabsTrigger value="trash" className="flex items-center gap-2">
+            <Trash2 className="h-4 w-4" />
+            Trash ({trashedQuotes.length})
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="active" className="space-y-6 mt-6">
 
       {/* Search and Filter Controls */}
       <Card>
@@ -261,8 +282,45 @@ export default function Quotes() {
         </Card>
       </div>
 
-      {/* Quotes Table */}
-      <QuotesTable quotes={filteredQuotes} isLoading={isLoading} />
+          {/* Quotes Table */}
+          <QuotesTable quotes={filteredQuotes} isLoading={isLoading} />
+        </TabsContent>
+
+        <TabsContent value="trash" className="space-y-6 mt-6">
+          {/* Trash Content */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Trash2 className="h-5 w-5" />
+                Deleted Quotes
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground mb-4">
+                These quotes have been deleted. You can restore or permanently delete them.
+              </p>
+              
+              {trashedError ? (
+                <div className="text-center text-red-600 py-8">
+                  Failed to load deleted quotes. Please try again.
+                </div>
+              ) : trashedLoading ? (
+                <div className="text-center text-muted-foreground py-8">
+                  Loading deleted quotes...
+                </div>
+              ) : trashedQuotes.length === 0 ? (
+                <div className="text-center text-muted-foreground py-8">
+                  <Trash2 className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+                  <p className="text-lg font-medium mb-2">No deleted quotes</p>
+                  <p>When you delete quotes, they'll appear here for recovery.</p>
+                </div>
+              ) : (
+                <TrashedQuotesTable quotes={trashedQuotes} isLoading={trashedLoading} />
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
