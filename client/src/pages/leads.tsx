@@ -27,7 +27,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Edit, Trash2, Phone, Mail, DollarSign, Calendar, Search, Filter, X, MapPin, BarChart3, TrendingUp, Users, Target, Hash, FileText } from "lucide-react";
+import { Plus, Edit, Trash2, Phone, Mail, DollarSign, Calendar, Search, Filter, X, MapPin, BarChart3, TrendingUp, Users, Target, Hash, FileText, Settings } from "lucide-react";
 import type { Lead, InsertLead } from "@shared/schema";
 
 // Google Maps heatmap functionality
@@ -1106,7 +1106,7 @@ export default function Leads() {
 
       {/* Tabs Navigation */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="leads" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
             Leads Management
@@ -1114,6 +1114,10 @@ export default function Leads() {
           <TabsTrigger value="analytics" className="flex items-center gap-2">
             <BarChart3 className="h-4 w-4" />
             Analytics
+          </TabsTrigger>
+          <TabsTrigger value="settings" className="flex items-center gap-2">
+            <Settings className="h-4 w-4" />
+            Lead Settings
           </TabsTrigger>
         </TabsList>
 
@@ -1770,6 +1774,345 @@ export default function Leads() {
                 </div>
               </CardContent>
             </Card>
+          </div>
+        </TabsContent>
+
+        {/* Lead Settings Tab */}
+        <TabsContent value="settings" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            
+            {/* Follow-up Automation Settings */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5" />
+                  Follow-up Automation
+                </CardTitle>
+                <CardDescription>
+                  Configure automatic email and SMS follow-up settings for new leads
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <Label className="text-base font-medium">Enable Automatic Follow-ups</Label>
+                    <p className="text-sm text-muted-foreground">Automatically send follow-ups to new leads</p>
+                  </div>
+                  <input type="checkbox" className="rounded" />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="defaultInterval">Default Interval (days)</Label>
+                    <Input
+                      id="defaultInterval"
+                      type="number"
+                      min="1"
+                      max="30"
+                      defaultValue="1"
+                      placeholder="1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="maxFollowUps">Max Follow-ups</Label>
+                    <Input
+                      id="maxFollowUps"
+                      type="number"
+                      min="1"
+                      max="10"
+                      defaultValue="3"
+                      placeholder="3"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="emailTemplate">Email Template</Label>
+                  <Textarea
+                    id="emailTemplate"
+                    placeholder="Hi {name}, this is a follow-up regarding your {service} request. Please let us know if you have any questions!"
+                    rows={3}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Use {`{name}`} and {`{service}`} as placeholders
+                  </p>
+                </div>
+
+                <div>
+                  <Label htmlFor="smsTemplate">SMS Template</Label>
+                  <Textarea
+                    id="smsTemplate"
+                    placeholder="Hi {name}, following up on your {service} inquiry. Reply STOP to opt out."
+                    rows={2}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Automatic Discounts */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <DollarSign className="h-5 w-5" />
+                  Automatic Discounts
+                </CardTitle>
+                <CardDescription>
+                  Set up automatic discount rules based on lead behavior and timing
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <Label className="text-base font-medium">Enable Auto Discounts</Label>
+                    <p className="text-sm text-muted-foreground">Apply discounts automatically to qualified leads</p>
+                  </div>
+                  <input type="checkbox" className="rounded" />
+                </div>
+
+                <div className="space-y-3">
+                  <div className="p-3 border rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <Label className="font-medium">First-time Customer</Label>
+                      <input type="checkbox" className="rounded" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input placeholder="10%" />
+                      <Select>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="percentage">Percentage</SelectItem>
+                          <SelectItem value="fixed">Fixed Amount</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="p-3 border rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <Label className="font-medium">Quick Response (within 24h)</Label>
+                      <input type="checkbox" className="rounded" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input placeholder="5%" />
+                      <Select>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="percentage">Percentage</SelectItem>
+                          <SelectItem value="fixed">Fixed Amount</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="p-3 border rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <Label className="font-medium">High Value Lead (>$1000)</Label>
+                      <input type="checkbox" className="rounded" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input placeholder="15%" />
+                      <Select>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="percentage">Percentage</SelectItem>
+                          <SelectItem value="fixed">Fixed Amount</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Referral Program Settings */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  Referral Program
+                </CardTitle>
+                <CardDescription>
+                  Configure referral rewards and tracking for customer referrals
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <Label className="text-base font-medium">Enable Referral Program</Label>
+                    <p className="text-sm text-muted-foreground">Track and reward customer referrals</p>
+                  </div>
+                  <input type="checkbox" className="rounded" />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="referrerReward">Referrer Reward</Label>
+                    <Input
+                      id="referrerReward"
+                      placeholder="$50"
+                      />
+                  </div>
+                  <div>
+                    <Label htmlFor="refereeDiscount">New Customer Discount</Label>
+                    <Input
+                      id="refereeDiscount"
+                      placeholder="10%"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="referralThreshold">Minimum Job Value</Label>
+                  <Input
+                    id="referralThreshold"
+                    placeholder="$200"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="referralMessage">Referral Message Template</Label>
+                  <Textarea
+                    id="referralMessage"
+                    placeholder="Thanks for the referral! You'll receive your reward after the job is completed."
+                    rows={2}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Lead Scoring Settings */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Target className="h-5 w-5" />
+                  Lead Scoring
+                </CardTitle>
+                <CardDescription>
+                  Automatically score leads based on various factors
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <Label className="text-base font-medium">Enable Lead Scoring</Label>
+                    <p className="text-sm text-muted-foreground">Automatically grade leads as hot, warm, or cold</p>
+                  </div>
+                  <input type="checkbox" className="rounded" />
+                </div>
+
+                <div className="space-y-3">
+                  <div className="p-3 border rounded-lg">
+                    <Label className="font-medium">Hot Lead Criteria (🔥)</Label>
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                      <div className="flex items-center gap-2">
+                        <input type="checkbox" className="rounded" />
+                        <span className="text-sm">Value > $1000</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input type="checkbox" className="rounded" />
+                        <span className="text-sm">Responds within 2 hours</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input type="checkbox" className="rounded" />
+                        <span className="text-sm">Has complete contact info</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input type="checkbox" className="rounded" />
+                        <span className="text-sm">Referral lead</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-3 border rounded-lg">
+                    <Label className="font-medium">Warm Lead Criteria (🟠)</Label>
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                      <div className="flex items-center gap-2">
+                        <input type="checkbox" className="rounded" />
+                        <span className="text-sm">Value $200-$1000</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input type="checkbox" className="rounded" />
+                        <span className="text-sm">Responds within 24 hours</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input type="checkbox" className="rounded" />
+                        <span className="text-sm">Has phone or email</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input type="checkbox" className="rounded" />
+                        <span className="text-sm">Local area</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <Button className="w-full">Save Lead Settings</Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Integration Settings */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  Integration Settings
+                </CardTitle>
+                <CardDescription>
+                  Configure third-party integrations for enhanced lead management
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <div>
+                      <Label className="font-medium">Google My Business</Label>
+                      <p className="text-sm text-muted-foreground">Auto-request reviews from completed jobs</p>
+                    </div>
+                    <input type="checkbox" className="rounded" />
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <div>
+                      <Label className="font-medium">SMS Notifications</Label>
+                      <p className="text-sm text-muted-foreground">Send SMS alerts for new leads</p>
+                    </div>
+                    <input type="checkbox" className="rounded" />
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <div>
+                      <Label className="font-medium">Email Marketing</Label>
+                      <p className="text-sm text-muted-foreground">Add leads to email campaigns</p>
+                    </div>
+                    <input type="checkbox" className="rounded" />
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <div>
+                      <Label className="font-medium">CRM Sync</Label>
+                      <p className="text-sm text-muted-foreground">Sync leads with external CRM systems</p>
+                    </div>
+                    <input type="checkbox" className="rounded" />
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t">
+                  <div className="grid grid-cols-2 gap-4">
+                    <Button variant="outline">Import Settings</Button>
+                    <Button variant="outline">Export Settings</Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
           </div>
         </TabsContent>
       </Tabs>
