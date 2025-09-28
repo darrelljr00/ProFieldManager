@@ -10246,6 +10246,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Lead automation endpoints
+  app.post("/api/leads/:id/enable-auto-followup", requireAuth, async (req, res) => {
+    try {
+      const leadId = parseInt(req.params.id);
+      const { interval } = req.body;
+      
+      const { leadAutomationService } = await import("./leadAutomation");
+      await leadAutomationService.enableAutomaticFollowUp(leadId, interval || 1);
+      
+      res.json({ message: "Automatic follow-up enabled successfully" });
+    } catch (error: any) {
+      console.error("Error enabling automatic follow-up:", error);
+      res.status(500).json({ message: "Failed to enable automatic follow-up" });
+    }
+  });
+
+  app.post("/api/leads/:id/disable-auto-followup", requireAuth, async (req, res) => {
+    try {
+      const leadId = parseInt(req.params.id);
+      
+      const { leadAutomationService } = await import("./leadAutomation");
+      await leadAutomationService.disableAutomaticFollowUp(leadId);
+      
+      res.json({ message: "Automatic follow-up disabled successfully" });
+    } catch (error: any) {
+      console.error("Error disabling automatic follow-up:", error);
+      res.status(500).json({ message: "Failed to disable automatic follow-up" });
+    }
+  });
+
+  app.post("/api/leads/process-auto-followups", requireManagerOrAdmin, async (req, res) => {
+    try {
+      const { leadAutomationService } = await import("./leadAutomation");
+      await leadAutomationService.processAutomaticFollowUps();
+      
+      res.json({ message: "Automatic follow-ups processed successfully" });
+    } catch (error: any) {
+      console.error("Error processing automatic follow-ups:", error);
+      res.status(500).json({ message: "Failed to process automatic follow-ups" });
+    }
+  });
+
   // Lead Settings API
   app.get("/api/lead-settings", requireAuth, async (req, res) => {
     try {

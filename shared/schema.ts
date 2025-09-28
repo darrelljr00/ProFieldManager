@@ -1954,20 +1954,38 @@ export type InsertGasCardUsage = z.infer<typeof insertGasCardUsageSchema>;
 export type InsertGasCardAssignment = z.infer<typeof insertGasCardAssignmentSchema>;
 
 export const insertLeadSchema = z.object({
-  firstName: z.string(),
-  lastName: z.string(),
+  name: z.string(),
   email: z.string().email().optional(),
   phone: z.string().optional(),
   address: z.string().optional(),
   city: z.string().optional(),
   state: z.string().optional(),
   zipCode: z.string().optional(),
-  source: z.string().optional(),
-  status: z.enum(['new', 'contacted', 'qualified', 'converted', 'lost']).default('new'),
+  serviceDescription: z.string(),
+  leadPrice: z.string().optional(),
+  leadSource: z.string(),
+  status: z.enum(['new', 'contacted', 'qualified', 'proposal_sent', 'won', 'lost']).default('new'),
+  priority: z.enum(['low', 'medium', 'high']).default('medium'),
+  grade: z.enum(['cold', 'warm', 'hot']).default('cold'),
   notes: z.string().optional(),
-  assignedToId: z.number().optional(),
-  estimatedValue: z.number().optional(),
-  organizationId: z.number(),
+  followUpDate: z.string().optional(),
+  // Manual follow-up attempts
+  followUpAttempt1Date: z.string().optional(),
+  followUpAttempt1Type: z.string().optional(),
+  followUpAttempt1Completed: z.boolean().default(false),
+  followUpAttempt2Date: z.string().optional(),
+  followUpAttempt2Type: z.string().optional(),
+  followUpAttempt2Completed: z.boolean().default(false),
+  followUpAttempt3Date: z.string().optional(),
+  followUpAttempt3Type: z.string().optional(),
+  followUpAttempt3Completed: z.boolean().default(false),
+  followUpAttempt4Date: z.string().optional(),
+  followUpAttempt4Type: z.string().optional(),
+  followUpAttempt4Completed: z.boolean().default(false),
+  // Automatic follow-up fields
+  automaticFollowUpEnabled: z.boolean().default(false),
+  automaticFollowUpInterval: z.number().default(1),
+  automaticFollowUpTemplate: z.string().optional(),
 });
 
 export const insertCalendarJobSchema = z.object({
