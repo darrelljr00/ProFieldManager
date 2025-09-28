@@ -4740,6 +4740,56 @@ export type InsertStreamInvitation = z.infer<typeof insertStreamInvitationSchema
 export type StreamNotification = typeof streamNotifications.$inferSelect;
 export type InsertStreamNotification = z.infer<typeof insertStreamNotificationSchema>;
 
+// GPS Tracking Tables
+export const gpsTrackingData = pgTable("gps_tracking_data", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  latitude: decimal("latitude", { precision: 10, scale: 7 }).notNull(),
+  longitude: decimal("longitude", { precision: 10, scale: 7 }).notNull(),
+  accuracy: decimal("accuracy", { precision: 8, scale: 2 }),
+  speed: decimal("speed", { precision: 6, scale: 2 }), // in meters per second
+  heading: decimal("heading", { precision: 6, scale: 2 }), // in degrees
+  altitude: decimal("altitude", { precision: 8, scale: 2 }), // in meters
+  timestamp: timestamp("timestamp").notNull(),
+  address: text("address"), // reverse geocoded address
+  deviceType: text("device_type").default("mobile"), // mobile, desktop, tablet
+  batteryLevel: integer("battery_level"), // 0-100
+  isInsideGeofence: boolean("is_inside_geofence").default(false),
+  jobSiteId: integer("job_site_id").references(() => projects.id), // null if not at job site
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const jobSiteGeofences = pgTable("job_site_geofences", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  centerLatitude: decimal("center_latitude", { precision: 10, scale: 7 }).notNull(),
+  centerLongitude: decimal("center_longitude", { precision: 10, scale: 7 }).notNull(),
+  radius: integer("radius").notNull().default(100), // radius in meters
+  address: text("address").notNull(),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const jobSiteEvents = pgTable("job_site_events", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  projectId: integer("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  geofenceId: integer("geofence_id").notNull().references(() => jobSiteGeofences.id),
+  eventType: text("event_type").notNull(), // 'arrival', 'departure'
+  eventTime: timestamp("event_time").notNull(),
+  latitude: decimal("latitude", { precision: 10, scale: 7 }).notNull(),
+  longitude: decimal("longitude", { precision: 10, scale: 7 }).notNull(),
+  accuracy: decimal("accuracy", { precision: 8, scale: 2 }),
+  address: text("address"),
+  durationMinutes: integer("duration_minutes"), // calculated for departure events
+  notificationSent: boolean("notification_sent").default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Smart Capture Inventory Lists - allows creation of custom inventory lists
 export const smartCaptureLists = pgTable("smart_capture_lists", {
   id: serial("id").primaryKey(),
@@ -4842,6 +4892,54 @@ export const searchSmartCaptureSchema = z.object({
   inventoryNumber: z.string().trim().optional(),
   limit: z.number().int().min(1).max(100).default(50),
 });
+
+// GPS Tracking insert schemas
+export const insertGpsTrackingDataSchema = createInsertSchema(gpsTrackingData, {
+  latitude: z.string().refine((val) => !isNaN(Number(val)), "Latitude must be a number"),
+  longitude: z.string().refine((val) => !isNaN(Number(val)), "Longitude must be a number"),
+  accuracy: z.string().optional().refine((val) => !val || !isNaN(Number(val)), "Accuracy must be a number"),
+  speed: z.string().optional().refine((val) => !val || !isNaN(Number(val)), "Speed must be a number"),
+  heading: z.string().optional().refine((val) => !val || !isNaN(Number(val)), "Heading must be a number"),
+  altitude: z.string().optional().refine((val) => !val || !isNaN(Number(val)), "Altitude must be a number"),
+  timestamp: z.string().datetime(),
+}).omit({
+  id: true,
+  organizationId: true,
+  createdAt: true,
+});
+
+export const insertJobSiteGeofenceSchema = createInsertSchema(jobSiteGeofences, {
+  centerLatitude: z.string().refine((val) => !isNaN(Number(val)), "Latitude must be a number"),
+  centerLongitude: z.string().refine((val) => !isNaN(Number(val)), "Longitude must be a number"),
+  radius: z.number().int().min(50).max(1000).default(100),
+  address: z.string().min(1, "Address is required"),
+}).omit({
+  id: true,
+  organizationId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertJobSiteEventSchema = createInsertSchema(jobSiteEvents, {
+  eventType: z.enum(['arrival', 'departure']),
+  eventTime: z.string().datetime(),
+  latitude: z.string().refine((val) => !isNaN(Number(val)), "Latitude must be a number"),
+  longitude: z.string().refine((val) => !isNaN(Number(val)), "Longitude must be a number"),
+}).omit({
+  id: true,
+  organizationId: true,
+  durationMinutes: true,
+  notificationSent: true,
+  createdAt: true,
+});
+
+// GPS Tracking types
+export type GpsTrackingData = typeof gpsTrackingData.$inferSelect;
+export type InsertGpsTrackingData = z.infer<typeof insertGpsTrackingDataSchema>;
+export type JobSiteGeofence = typeof jobSiteGeofences.$inferSelect;
+export type InsertJobSiteGeofence = z.infer<typeof insertJobSiteGeofenceSchema>;
+export type JobSiteEvent = typeof jobSiteEvents.$inferSelect;
+export type InsertJobSiteEvent = z.infer<typeof insertJobSiteEventSchema>;
 
 // Smart Capture types
 export type SmartCaptureList = typeof smartCaptureLists.$inferSelect;
