@@ -223,7 +223,6 @@ const DEFAULT_NAVIGATION_ORDER = [
   "Expenses",
   "Quotes",
   "Invoices",
-  "Invoice Templates",
   "Customers",
   "Payments",
   "File Manager",
@@ -425,7 +424,6 @@ export function Sidebar() {
     },
     { name: "Quotes", href: "/quotes", icon: Quote, requiresAuth: true, permission: "canAccessQuotes" },
     { name: "Invoices", href: "/invoices", icon: FileText, requiresAuth: true, permission: "canAccessInvoices" },
-    { name: "Invoice Templates", href: "/invoice-templates", icon: FileType, requiresAuth: true, permission: "canAccessInvoices" },
     { name: "Customers", href: "/customers", icon: Users, requiresAuth: true, permission: "canAccessCustomers" },
     { name: "Payments", href: "/payments", icon: CreditCard, requiresAuth: true, permission: "canAccessPayments" },
     { name: "File Manager", href: "/file-manager", icon: FolderOpen, requiresAuth: true, permission: "canAccessFileManager" },
@@ -490,7 +488,8 @@ export function Sidebar() {
         { name: "Dashboard", href: "/settings?tab=dashboard", icon: BarChart3 },
         { name: "Notifications", href: "/settings?tab=notifications", icon: Bell },
         { name: "Messages", href: "/settings?tab=messages", icon: MessageCircle },
-        { name: "Weather", href: "/settings?tab=weather", icon: Cloud }
+        { name: "Weather", href: "/settings?tab=weather", icon: Cloud },
+        { name: "Invoice Templates", href: "/invoice-templates", icon: FileType }
       ]
     }
   ];
