@@ -3,6 +3,8 @@ import { db } from "./db";
 import { leads, organizations, leadSettings } from "@shared/schema";
 import { eq, and, lte, isNotNull } from "drizzle-orm";
 import sgMail from "@sendgrid/mail";
+import { TwilioService } from "./twilio";
+import { storage } from "./storage";
 
 // Initialize SendGrid with API key
 if (process.env.SENDGRID_API_KEY) {
@@ -117,12 +119,12 @@ export class LeadAutomationService {
       }
     }
     
-    // Send SMS follow-up if phone is available (placeholder for future SMS integration)
+    // Send SMS follow-up if phone is available
     if (lead.phone) {
       try {
-        // TODO: Implement SMS sending when Twilio integration is available
-        console.log(`📱 SMS follow-up would be sent to ${lead.phone} (not implemented yet)`);
-        smsSent = false; // Set to true when SMS is implemented
+        await this.sendSMSFollowUp(lead);
+        smsSent = true;
+        console.log(`✅ SMS sent to ${lead.phone}`);
       } catch (error) {
         console.error(`❌ Failed to send SMS to ${lead.phone}:`, error);
       }
@@ -140,13 +142,21 @@ export class LeadAutomationService {
       throw new Error("SendGrid API key not configured");
     }
     
-    // Prepare email content with template variables
-    const message = this.replaceTemplateVariables(
-      lead.automaticFollowUpTemplate || "Hi {name}, this is a follow-up regarding your {service} request. Please let us know if you have any questions!",
-      lead
-    );
+    // Get lead settings for email template
+    const leadSettingsData = await storage.getLeadSettings(lead.organizationId);
     
-    const subject = `Follow-up on your ${lead.serviceDescription} inquiry`;
+    // Use email template from lead settings or fallback
+    const emailTemplate = leadSettingsData?.emailTemplate ||
+      lead.automaticFollowUpTemplate || 
+      "Hi {name}, this is a follow-up regarding your {service} request. Please let us know if you have any questions!";
+    
+    const emailSubject = leadSettingsData?.emailSubject || 
+      `Follow-up on your ${lead.serviceDescription} inquiry`;
+    
+    // Prepare email content with template variables
+    const message = this.replaceTemplateVariables(emailTemplate, lead);
+    const subject = this.replaceTemplateVariables(emailSubject, lead);
+    
     const fromEmail = lead.organizationEmail || 'noreply@profieldmanager.com';
     const fromName = lead.organizationName || 'Pro Field Manager';
     
@@ -177,6 +187,53 @@ export class LeadAutomationService {
     };
     
     await sgMail.send(emailData);
+  }
+
+  /**
+   * Send SMS follow-up to a lead
+   */
+  private async sendSMSFollowUp(lead: AutoFollowUpLead): Promise<void> {
+    // Get organization-specific Twilio settings
+    const twilioSettings = await storage.getOrganizationTwilioSettings(lead.organizationId);
+    
+    if (!twilioSettings || !twilioSettings.accountSid || !twilioSettings.authToken) {
+      throw new Error(`Twilio not configured for organization ${lead.organizationId}`);
+    }
+    
+    // Get lead settings for SMS template
+    const leadSettingsData = await storage.getLeadSettings(lead.organizationId);
+    
+    // Create organization-specific Twilio client
+    const twilioClient = TwilioService.createOrganizationClient(
+      twilioSettings.accountSid,
+      twilioSettings.authToken
+    );
+    
+    if (!twilioClient) {
+      throw new Error(`Failed to create Twilio client for organization ${lead.organizationId}`);
+    }
+    
+    // Use SMS template from lead settings or fallback
+    const smsTemplate = leadSettingsData?.smsTemplate || 
+      "Hi {name}, we wanted to follow up on your recent inquiry about our {service} services. Are you still interested in learning more?";
+    
+    // Get from phone number (use first available number)
+    const phoneNumbers = await twilioClient.incomingPhoneNumbers.list();
+    if (phoneNumbers.length === 0) {
+      throw new Error(`No phone numbers available for organization ${lead.organizationId}`);
+    }
+    
+    const fromNumber = phoneNumbers[0].phoneNumber;
+    
+    // Prepare SMS content with template variables
+    const message = this.replaceTemplateVariables(smsTemplate, lead);
+    
+    // Send SMS using Twilio client
+    await twilioClient.messages.create({
+      body: message,
+      from: fromNumber,
+      to: lead.phone
+    });
   }
 
   /**
