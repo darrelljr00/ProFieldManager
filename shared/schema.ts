@@ -964,6 +964,15 @@ export const leads = pgTable("leads", {
   followUpAttempt4Date: timestamp("follow_up_attempt_4_date"),
   followUpAttempt4Type: text("follow_up_attempt_4_type"),
   followUpAttempt4Completed: boolean("follow_up_attempt_4_completed").default(false),
+  // Automatic follow-up tracking
+  automaticFollowUpEnabled: boolean("automatic_follow_up_enabled").default(false),
+  automaticFollowUpCount: integer("automatic_follow_up_count").default(0),
+  automaticFollowUpEmailCount: integer("automatic_follow_up_email_count").default(0),
+  automaticFollowUpSmsCount: integer("automatic_follow_up_sms_count").default(0),
+  lastAutomaticFollowUp: timestamp("last_automatic_follow_up"),
+  nextAutomaticFollowUp: timestamp("next_automatic_follow_up"),
+  automaticFollowUpInterval: integer("automatic_follow_up_interval").default(1), // days between follow-ups
+  automaticFollowUpTemplate: text("automatic_follow_up_template"), // custom message template
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

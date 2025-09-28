@@ -509,6 +509,10 @@ export default function Leads() {
       followUpAttempt4Date: formData.get('followUpAttempt4Date') as string || null,
       followUpAttempt4Type: formData.get('followUpAttempt4Type') as string || null,
       followUpAttempt4Completed: formData.get('followUpAttempt4Completed') === 'on',
+      // Automatic follow-up fields
+      automaticFollowUpEnabled: formData.get('automaticFollowUpEnabled') === 'on',
+      automaticFollowUpInterval: parseInt(formData.get('automaticFollowUpInterval') as string) || 1,
+      automaticFollowUpTemplate: formData.get('automaticFollowUpTemplate') as string || '',
     };
 
     if (selectedLead) {
@@ -850,9 +854,79 @@ export default function Leads() {
                 />
               </div>
 
-              {/* Follow-up Attempts Section */}
+              {/* Automatic Follow-ups Section */}
               <div className="space-y-4">
-                <Label className="text-base font-semibold">Follow-up Attempts</Label>
+                <Label className="text-base font-semibold">Automatic Follow-ups</Label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border">
+                  <div className="flex items-center space-x-2">
+                    <input 
+                      type="checkbox" 
+                      id="automaticFollowUpEnabled"
+                      name="automaticFollowUpEnabled"
+                      defaultChecked={selectedLead?.automaticFollowUpEnabled || false}
+                      className="rounded"
+                    />
+                    <Label htmlFor="automaticFollowUpEnabled" className="text-sm font-medium">
+                      Enable daily automatic follow-ups
+                    </Label>
+                  </div>
+                  <div>
+                    <Label htmlFor="automaticFollowUpInterval" className="text-xs">Follow-up interval (days)</Label>
+                    <Input
+                      id="automaticFollowUpInterval"
+                      name="automaticFollowUpInterval"
+                      type="number"
+                      min="1"
+                      max="30"
+                      defaultValue={selectedLead?.automaticFollowUpInterval || 1}
+                      className="text-sm"
+                    />
+                  </div>
+                  {selectedLead && (
+                    <div className="col-span-1 md:col-span-2">
+                      <div className="grid grid-cols-3 gap-4 text-sm">
+                        <div className="text-center">
+                          <div className="font-semibold text-lg">{selectedLead.automaticFollowUpCount || 0}</div>
+                          <div className="text-muted-foreground">Total Sent</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="font-semibold text-lg">{selectedLead.automaticFollowUpEmailCount || 0}</div>
+                          <div className="text-muted-foreground">Emails</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="font-semibold text-lg">{selectedLead.automaticFollowUpSmsCount || 0}</div>
+                          <div className="text-muted-foreground">SMS</div>
+                        </div>
+                      </div>
+                      {selectedLead.lastAutomaticFollowUp && (
+                        <div className="mt-2 text-xs text-muted-foreground">
+                          Last sent: {new Date(selectedLead.lastAutomaticFollowUp).toLocaleString()}
+                        </div>
+                      )}
+                      {selectedLead.nextAutomaticFollowUp && (
+                        <div className="text-xs text-muted-foreground">
+                          Next: {new Date(selectedLead.nextAutomaticFollowUp).toLocaleString()}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  <div className="col-span-1 md:col-span-2">
+                    <Label htmlFor="automaticFollowUpTemplate" className="text-xs">Custom message template</Label>
+                    <Textarea
+                      id="automaticFollowUpTemplate"
+                      name="automaticFollowUpTemplate"
+                      defaultValue={selectedLead?.automaticFollowUpTemplate || "Hi {name}, this is a follow-up regarding your {service} request. Please let us know if you have any questions!"}
+                      placeholder="Use {name} and {service} as placeholders"
+                      rows={2}
+                      className="text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Manual Follow-up Attempts Section */}
+              <div className="space-y-4">
+                <Label className="text-base font-semibold">Manual Follow-up Attempts</Label>
                 
                 {/* Follow-up Attempt 1 */}
                 <div className="grid grid-cols-12 gap-2 items-end">
