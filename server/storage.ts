@@ -4283,10 +4283,24 @@ export class DatabaseStorage implements IStorage {
 
     const updateData = { ...updates, updatedAt: new Date() };
     
+    // Track startedAt when status changes to in-progress
+    if (updates.status === 'in-progress' && currentTask.status !== 'in-progress' && !currentTask.startedAt) {
+      updateData.startedAt = new Date();
+    }
+    
     // If completing the task, set completedById and add completion timestamp to description
     if (updates.isCompleted === true && !currentTask.isCompleted) {
       updateData.completedById = userId;
       updateData.completedAt = new Date();
+      
+      // Calculate actual hours if task was started
+      if (currentTask.startedAt || updateData.startedAt) {
+        const startTime = currentTask.startedAt || updateData.startedAt;
+        const completionTime = updateData.completedAt;
+        const durationMs = completionTime.getTime() - new Date(startTime).getTime();
+        const actualHours = parseFloat((durationMs / (1000 * 60 * 60)).toFixed(2));
+        updateData.actualHours = actualHours;
+      }
       
       // Get user info for completion timestamp
       const [user] = await db
@@ -4308,6 +4322,45 @@ export class DatabaseStorage implements IStorage {
       // Append completion info to description
       const completionNote = `\n\n✅ Completed by ${userName} on ${completionTimestamp}`;
       updateData.description = (currentTask.description || '') + completionNote;
+    }
+    
+    // Also handle status-based completion for legacy compatibility
+    if (updates.status === 'completed' && currentTask.status !== 'completed') {
+      updateData.isCompleted = true;
+      updateData.completedById = userId;
+      updateData.completedAt = new Date();
+      
+      // Calculate actual hours if task was started
+      if (currentTask.startedAt || updateData.startedAt) {
+        const startTime = currentTask.startedAt || updateData.startedAt;
+        const completionTime = updateData.completedAt;
+        const durationMs = completionTime.getTime() - new Date(startTime).getTime();
+        const actualHours = parseFloat((durationMs / (1000 * 60 * 60)).toFixed(2));
+        updateData.actualHours = actualHours;
+      }
+      
+      // Get user info for completion timestamp if not already added
+      if (!updateData.description || !updateData.description.includes('✅ Completed by')) {
+        const [user] = await db
+          .select({ firstName: users.firstName, lastName: users.lastName })
+          .from(users)
+          .where(eq(users.id, userId));
+        
+        const userName = user ? `${user.firstName} ${user.lastName}` : 'Unknown User';
+        const completionTimestamp = new Date().toLocaleString('en-US', {
+          weekday: 'short',
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          timeZoneName: 'short'
+        });
+        
+        // Append completion info to description
+        const completionNote = `\n\n✅ Completed by ${userName} on ${completionTimestamp}`;
+        updateData.description = (currentTask.description || '') + completionNote;
+      }
     }
     
     // If uncompleting the task, remove completion info

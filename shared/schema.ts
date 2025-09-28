@@ -483,6 +483,7 @@ export const tasks = pgTable("tasks", {
   type: text("type").notNull().default("checkbox"), // checkbox, text, number, image
   isRequired: boolean("is_required").default(false),
   isCompleted: boolean("is_completed").default(false),
+  startedAt: timestamp("started_at"), // When task was started (status changed to in-progress)
   completedAt: timestamp("completed_at"),
   completedById: integer("completed_by_id").references(() => users.id),
   
