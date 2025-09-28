@@ -981,20 +981,62 @@ export const leads = pgTable("leads", {
 export const leadSettings = pgTable("lead_settings", {
   id: serial("id").primaryKey(),
   organizationId: integer("organization_id").notNull().references(() => organizations.id),
-  // Automatic follow-up settings
+  
+  // Follow-up Automation Settings
   enableAutoFollowUp: boolean("enable_auto_follow_up").default(false),
-  autoFollowUpInterval: integer("auto_follow_up_interval").default(24), // hours
+  autoFollowUpInterval: integer("auto_follow_up_interval").default(1), // days
+  maxFollowUps: integer("max_follow_ups").default(3),
   defaultFollowUpMethod: text("default_follow_up_method").default("email"), // sms, email, call
+  
   // SMS follow-up settings
   enableSmsFollowUp: boolean("enable_sms_follow_up").default(false),
-  smsTemplate: text("sms_template").default("Hi {name}, this is a follow-up regarding your {service} request. Please let us know if you have any questions."),
+  smsTemplate: text("sms_template").default("Hi {name}, following up on your {service} inquiry. Reply STOP to opt out."),
+  
   // Email follow-up settings
   enableEmailFollowUp: boolean("enable_email_follow_up").default(false),
-  emailTemplate: text("email_template").default("Dear {name},\n\nWe wanted to follow up on your recent inquiry about {service}. We're here to help and answer any questions you may have.\n\nBest regards,\nThe Team"),
+  emailTemplate: text("email_template").default("Hi {name}, this is a follow-up regarding your {service} request. Please let us know if you have any questions!"),
   emailSubject: text("email_subject").default("Follow-up on your {service} inquiry"),
+  
   // Voice call settings
   enableVoiceFollowUp: boolean("enable_voice_follow_up").default(false),
   voiceScript: text("voice_script").default("Hello {name}, this is a follow-up call regarding your {service} request. Please call us back when convenient."),
+  
+  // Automatic Discount Settings
+  enableAutoDiscounts: boolean("enable_auto_discounts").default(false),
+  firstTimeCustomerDiscount: boolean("first_time_customer_discount").default(false),
+  firstTimeCustomerDiscountValue: text("first_time_customer_discount_value").default("10%"),
+  firstTimeCustomerDiscountType: text("first_time_customer_discount_type").default("percentage"), // percentage, fixed
+  quickResponseDiscount: boolean("quick_response_discount").default(false),
+  quickResponseDiscountValue: text("quick_response_discount_value").default("5%"),
+  quickResponseDiscountType: text("quick_response_discount_type").default("percentage"),
+  highValueLeadDiscount: boolean("high_value_lead_discount").default(false),
+  highValueLeadDiscountValue: text("high_value_lead_discount_value").default("15%"),
+  highValueLeadDiscountType: text("high_value_lead_discount_type").default("percentage"),
+  
+  // Referral Program Settings
+  enableReferralProgram: boolean("enable_referral_program").default(false),
+  referrerReward: text("referrer_reward").default("$50"),
+  refereeDiscount: text("referee_discount").default("10%"),
+  referralThreshold: text("referral_threshold").default("$200"),
+  referralMessage: text("referral_message").default("Thanks for the referral! You'll receive your reward after the job is completed."),
+  
+  // Lead Scoring Settings
+  enableLeadScoring: boolean("enable_lead_scoring").default(false),
+  hotLeadValueThreshold: boolean("hot_lead_value_threshold").default(false),
+  hotLeadQuickResponse: boolean("hot_lead_quick_response").default(false),
+  hotLeadCompleteInfo: boolean("hot_lead_complete_info").default(false),
+  hotLeadReferral: boolean("hot_lead_referral").default(false),
+  warmLeadValueRange: boolean("warm_lead_value_range").default(false),
+  warmLeadResponse24h: boolean("warm_lead_response_24h").default(false),
+  warmLeadHasContact: boolean("warm_lead_has_contact").default(false),
+  warmLeadLocalArea: boolean("warm_lead_local_area").default(false),
+  
+  // Integration Settings
+  enableGoogleMyBusiness: boolean("enable_google_my_business").default(false),
+  enableSmsNotifications: boolean("enable_sms_notifications").default(false),
+  enableEmailMarketing: boolean("enable_email_marketing").default(false),
+  enableCrmSync: boolean("enable_crm_sync").default(false),
+  
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

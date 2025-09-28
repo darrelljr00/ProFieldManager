@@ -62,7 +62,7 @@ import { db } from "./db";
 import { 
   users, customers, invoices, quotes, projects, tasks, 
   expenses, expenseCategories, expenseReports, gasCards, 
-  gasCardAssignments, leads, messages, internalMessages,
+  gasCardAssignments, leads, leadSettings, messages, internalMessages,
   recurringJobSeries, recurringJobOccurrences,
   images, settings, organizations, userSessions, vendors, vehicles,
   soundSettings, userDashboardSettings, dashboardProfiles,
