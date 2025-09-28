@@ -27,7 +27,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Edit, Trash2, Phone, Mail, DollarSign, Calendar, Search, Filter, X, MapPin, BarChart3, TrendingUp, Users, Target, Hash } from "lucide-react";
+import { Plus, Edit, Trash2, Phone, Mail, DollarSign, Calendar, Search, Filter, X, MapPin, BarChart3, TrendingUp, Users, Target, Hash, FileText } from "lucide-react";
 import type { Lead, InsertLead } from "@shared/schema";
 
 // Google Maps heatmap functionality
@@ -438,6 +438,40 @@ export default function Leads() {
       toast({
         title: "Error",
         description: error.message || "Failed to delete lead",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const convertToQuoteMutation = useMutation({
+    mutationFn: (leadData: Lead) => 
+      apiRequest("POST", "/api/quotes", {
+        customerId: null, // Will be set based on lead data if customer exists
+        customerName: leadData.name,
+        customerEmail: leadData.email || '',
+        customerPhone: leadData.phone || '',
+        customerAddress: leadData.address || '',
+        customerCity: leadData.city || '',
+        customerState: leadData.state || '',
+        customerZipCode: leadData.zipCode || '',
+        description: leadData.serviceDescription,
+        amount: leadData.leadPrice ? parseFloat(leadData.leadPrice) : 0,
+        status: 'draft',
+        leadId: leadData.id // Reference to original lead
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/quotes"] });
+      setIsDialogOpen(false);
+      setSelectedLead(null);
+      toast({
+        title: "Success",
+        description: "Lead converted to quote successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to convert lead to quote",
         variant: "destructive",
       });
     },
@@ -976,6 +1010,17 @@ export default function Leads() {
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                   Cancel
                 </Button>
+                {selectedLead && (
+                  <Button 
+                    type="button" 
+                    variant="secondary" 
+                    onClick={() => convertToQuoteMutation.mutate(selectedLead)}
+                    disabled={convertToQuoteMutation.isPending}
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Convert to Quote
+                  </Button>
+                )}
                 <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
                   {selectedLead ? "Update Lead" : "Create Lead"}
                 </Button>
