@@ -8741,23 +8741,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/settings/dashboard", requireAuth, async (req, res) => {
     try {
       const settingsData = req.body;
+      const user = req.user;
       
-      // Convert settings to key-value pairs for storage
-      const settingsMap = {
-        // Widget visibility
-        showStatsCards: settingsData.showStatsCards?.toString(),
-        showRevenueChart: settingsData.showRevenueChart?.toString(),
-        showRecentActivity: settingsData.showRecentActivity?.toString(),
-        showRecentInvoices: settingsData.showRecentInvoices?.toString(),
-        showNotifications: settingsData.showNotifications?.toString(),
-        showQuickActions: settingsData.showQuickActions?.toString(),
-        showProjectsOverview: settingsData.showProjectsOverview?.toString(),
-        showWeatherWidget: settingsData.showWeatherWidget?.toString(),
-        showTasksWidget: settingsData.showTasksWidget?.toString(),
-        showCalendarWidget: settingsData.showCalendarWidget?.toString(),
-        showMessagesWidget: settingsData.showMessagesWidget?.toString(),
-        showTeamOverview: settingsData.showTeamOverview?.toString(),
-        
+      // Get available widget tabs to validate incoming settings
+      const availableWidgetTabs = getAvailableWidgetTabs(user);
+      const validWidgetKeys = availableWidgetTabs.map(tab => tab.key);
+      
+      // Start with layout and widget-specific settings (non-widget visibility)
+      const settingsMap: { [key: string]: string } = {
         // Layout and appearance  
         layoutType: settingsData.layoutType?.toString(),
         gridColumns: settingsData.gridColumns?.toString(),
@@ -8774,6 +8765,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         widgetOrder: JSON.stringify(settingsData.widgetOrder || ['stats', 'revenue', 'activity', 'invoices'])
       };
+
+      // Dynamically add widget visibility settings based on user permissions
+      validWidgetKeys.forEach(widgetKey => {
+        if (settingsData[widgetKey] !== undefined) {
+          settingsMap[widgetKey] = settingsData[widgetKey]?.toString();
+        }
+      });
 
       // Update each setting individually
       for (const [key, value] of Object.entries(settingsMap)) {
