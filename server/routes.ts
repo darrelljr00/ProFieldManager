@@ -9671,8 +9671,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           startDate = new Date(endDate.getTime() - 30 * 24 * 60 * 60 * 1000);
       }
 
-      // Fetch projects (jobs) and related data
-      const [allProjects, allTasks, timeClockEntries] = await Promise.all([
+      // Fetch projects (jobs), related data, and GPS tracking events
+      const [allProjects, allTasks, timeClockEntries, jobSiteEventsData] = await Promise.all([
         db.select()
           .from(projects)
           .where(
@@ -9721,7 +9721,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
               lte(timeClock.clockInTime, endDate)
             )
           )
-          .orderBy(desc(timeClock.clockInTime))
+          .orderBy(desc(timeClock.clockInTime)),
+
+        // Fetch job site events for accurate onsite duration tracking
+        db.select({
+          id: jobSiteEvents.id,
+          projectId: jobSiteEvents.projectId,
+          userId: jobSiteEvents.userId,
+          eventType: jobSiteEvents.eventType,
+          eventTime: jobSiteEvents.eventTime,
+          durationMinutes: jobSiteEvents.durationMinutes,
+          userName: sql<string>`CONCAT(${users.firstName}, ' ', ${users.lastName})`.as('userName'),
+          projectName: projects.name
+        })
+          .from(jobSiteEvents)
+          .leftJoin(users, eq(jobSiteEvents.userId, users.id))
+          .leftJoin(projects, eq(jobSiteEvents.projectId, projects.id))
+          .where(
+            and(
+              eq(jobSiteEvents.organizationId, organizationId),
+              gte(jobSiteEvents.eventTime, startDate),
+              lte(jobSiteEvents.eventTime, endDate)
+            )
+          )
+          .orderBy(desc(jobSiteEvents.eventTime))
       ]);
 
       // Calculate job analytics
@@ -9742,34 +9765,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return sum + durationHours;
         }, 0) / completedJobsWithDates.length : 0;
 
-      // Job duration vs onsite time data
+      // Job duration vs onsite time data with GPS tracking
       const jobDurationData = allProjects.slice(0, 10).map(job => {
         const jobTasks = allTasks.filter(t => t.projectId === job.id);
         const completedTasks = jobTasks.filter(t => t.isCompleted);
         
-        // Calculate onsite duration from time clock entries for this job
-        const jobTimeEntries = timeClockEntries.filter(entry => {
-          // For now, we'll estimate based on date proximity
-          if (!entry.clockInTime || !job.startDate) return false;
-          const entryDate = new Date(entry.clockInTime);
-          const jobDate = new Date(job.startDate);
-          const dateDiff = Math.abs(entryDate.getTime() - jobDate.getTime()) / (1000 * 60 * 60 * 24);
-          return dateDiff <= 1; // Within 1 day of job
-        });
+        // Calculate accurate onsite duration from GPS tracking events
+        const jobEvents = jobSiteEventsData.filter(event => event.projectId === job.id);
         
-        const totalOnsiteHours = jobTimeEntries.reduce((sum, entry) => {
-          return sum + (parseFloat(entry.totalHours?.toString() || '0'));
-        }, 0);
+        // Calculate total onsite time from departure events (which include duration)
+        const totalOnsiteMinutes = jobEvents
+          .filter(event => event.eventType === 'departure' && event.durationMinutes)
+          .reduce((sum, event) => sum + (event.durationMinutes || 0), 0);
+        
+        const totalOnsiteHours = totalOnsiteMinutes / 60;
+
+        // Also include ongoing sessions (arrivals without departures)
+        const arrivals = jobEvents.filter(e => e.eventType === 'arrival');
+        const departures = jobEvents.filter(e => e.eventType === 'departure');
+        const ongoingSessions = arrivals.filter(arrival => {
+          const hasMatchingDeparture = departures.some(departure => 
+            departure.userId === arrival.userId && 
+            new Date(departure.eventTime) > new Date(arrival.eventTime)
+          );
+          return !hasMatchingDeparture;
+        });
+
+        // For ongoing sessions, estimate time until now or job end
+        let ongoingMinutes = 0;
+        ongoingSessions.forEach(arrival => {
+          const arrivalTime = new Date(arrival.eventTime);
+          const endTime = job.endDate ? new Date(job.endDate) : new Date();
+          const minutesSinceArrival = Math.max(0, (endTime.getTime() - arrivalTime.getTime()) / (1000 * 60));
+          ongoingMinutes += minutesSinceArrival;
+        });
+
+        const totalActualOnsiteHours = totalOnsiteHours + (ongoingMinutes / 60);
 
         const totalJobTime = job.startDate && job.endDate ? 
           (new Date(job.endDate).getTime() - new Date(job.startDate).getTime()) / (1000 * 60 * 60) : 0;
 
         return {
           jobName: job.name || `Job ${job.id}`,
-          onsiteDuration: Math.round(totalOnsiteHours * 10) / 10,
+          onsiteDuration: Math.round(totalActualOnsiteHours * 10) / 10,
           totalJobTime: Math.round(totalJobTime * 10) / 10,
           tasksCompleted: completedTasks.length,
-          totalTasks: jobTasks.length
+          totalTasks: jobTasks.length,
+          arrivals: arrivals.length,
+          departures: departures.length,
+          totalOnsiteEvents: jobEvents.length
         };
       });
 
@@ -9795,30 +9839,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Technician performance
-      const technicianPerformance = timeClockEntries.reduce((acc: any[], entry) => {
-        const existingTech = acc.find(t => t.userId === entry.userId);
-        const hours = parseFloat(entry.totalHours?.toString() || '0');
+      // Enhanced Technician performance with GPS tracking data
+      const technicianGpsData = jobSiteEventsData.reduce((acc: any, event) => {
+        if (!event.userName) return acc;
         
-        if (existingTech) {
-          existingTech.totalHours += hours;
-          existingTech.jobCount++;
-          existingTech.avgJobTime = existingTech.totalHours / existingTech.jobCount;
-        } else {
-          acc.push({
-            userId: entry.userId,
-            name: entry.userName || 'Unknown User',
-            totalHours: hours,
-            jobCount: 1,
-            avgJobTime: hours
-          });
+        if (!acc[event.userId]) {
+          acc[event.userId] = {
+            name: event.userName,
+            totalOnsiteMinutes: 0,
+            jobSites: new Set(),
+            arrivals: 0,
+            departures: 0,
+          };
         }
+        
+        acc[event.userId].jobSites.add(event.projectId);
+        
+        if (event.eventType === 'arrival') {
+          acc[event.userId].arrivals++;
+        } else if (event.eventType === 'departure' && event.durationMinutes) {
+          acc[event.userId].departures++;
+          acc[event.userId].totalOnsiteMinutes += event.durationMinutes;
+        }
+        
         return acc;
-      }, []).map(tech => ({
+      }, {});
+
+      const technicianPerformance = Object.values(technicianGpsData).map((tech: any) => ({
         name: tech.name,
-        avgJobTime: Math.round(tech.avgJobTime * 10) / 10,
-        totalJobs: tech.jobCount
+        avgJobTime: tech.jobSites.size > 0 ? Math.round((tech.totalOnsiteMinutes / tech.jobSites.size) / 60 * 10) / 10 : 0,
+        totalJobs: tech.jobSites.size,
+        totalOnsiteHours: Math.round(tech.totalOnsiteMinutes / 60 * 10) / 10,
+        arrivals: tech.arrivals,
+        departures: tech.departures,
+        avgOnsiteTime: tech.departures > 0 ? Math.round(tech.totalOnsiteMinutes / tech.departures) : 0 // minutes per visit
       }));
+
+      // Fallback to time clock data if no GPS data available
+      if (technicianPerformance.length === 0) {
+        const fallbackPerformance = timeClockEntries.reduce((acc: any[], entry) => {
+          const existingTech = acc.find(t => t.userId === entry.userId);
+          const hours = parseFloat(entry.totalHours?.toString() || '0');
+          
+          if (existingTech) {
+            existingTech.totalHours += hours;
+            existingTech.jobCount++;
+            existingTech.avgJobTime = existingTech.totalHours / existingTech.jobCount;
+          } else {
+            acc.push({
+              userId: entry.userId,
+              name: entry.userName || 'Unknown User',
+              totalHours: hours,
+              jobCount: 1,
+              avgJobTime: hours
+            });
+          }
+          return acc;
+        }, []).map(tech => ({
+          name: tech.name,
+          avgJobTime: Math.round(tech.avgJobTime * 10) / 10,
+          totalJobs: tech.jobCount,
+          totalOnsiteHours: Math.round(tech.totalHours * 10) / 10,
+          arrivals: 0,
+          departures: 0,
+          avgOnsiteTime: 0
+        }));
+
+        technicianPerformance.push(...fallbackPerformance);
+      }
 
       // Job status distribution
       const statusCounts = allProjects.reduce((acc: any, job) => {
@@ -9832,6 +9920,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         value
       }));
 
+      // GPS tracking summary
+      const totalArrivals = jobSiteEventsData.filter(e => e.eventType === 'arrival').length;
+      const totalDepartures = jobSiteEventsData.filter(e => e.eventType === 'departure').length;
+      const totalOnsiteMinutes = jobSiteEventsData
+        .filter(e => e.eventType === 'departure' && e.durationMinutes)
+        .reduce((sum, e) => sum + (e.durationMinutes || 0), 0);
+
       const analyticsData = {
         totalJobs,
         completedJobs,
@@ -9840,7 +9935,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         jobDurationData,
         taskEfficiencyData,
         technicianPerformance,
-        jobStatusData
+        jobStatusData,
+        // Enhanced GPS tracking metrics
+        gpsTrackingMetrics: {
+          totalArrivals,
+          totalDepartures,
+          totalOnsiteHours: Math.round(totalOnsiteMinutes / 60 * 10) / 10,
+          avgOnsiteTimePerVisit: totalDepartures > 0 ? Math.round(totalOnsiteMinutes / totalDepartures) : 0, // minutes
+          activeJobSites: new Set(jobSiteEventsData.map(e => e.projectId)).size,
+          trackingCoverage: allProjects.length > 0 ? Math.round((new Set(jobSiteEventsData.map(e => e.projectId)).size / allProjects.length) * 100) : 0 // percentage
+        }
       };
 
       res.json(analyticsData);
