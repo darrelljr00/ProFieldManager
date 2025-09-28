@@ -9636,6 +9636,219 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Job Analytics API endpoint
+  app.get("/api/job-analytics", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const organizationId = user.organizationId;
+
+      // Parse date range filter
+      const dateRange = (req.query.dateRange as string) || '30days';
+      let startDate: Date;
+      const endDate = new Date();
+
+      switch (dateRange) {
+        case '7days':
+          startDate = new Date(endDate.getTime() - 7 * 24 * 60 * 60 * 1000);
+          break;
+        case '30days':
+          startDate = new Date(endDate.getTime() - 30 * 24 * 60 * 60 * 1000);
+          break;
+        case '90days':
+          startDate = new Date(endDate.getTime() - 90 * 24 * 60 * 60 * 1000);
+          break;
+        case '6months':
+          startDate = new Date(endDate.getTime() - 180 * 24 * 60 * 60 * 1000);
+          break;
+        case '12months':
+          startDate = new Date(endDate.getTime() - 365 * 24 * 60 * 60 * 1000);
+          break;
+        case '2years':
+          startDate = new Date(endDate.getTime() - 2 * 365 * 24 * 60 * 60 * 1000);
+          break;
+        default:
+          startDate = new Date(endDate.getTime() - 30 * 24 * 60 * 60 * 1000);
+      }
+
+      // Fetch projects (jobs) and related data
+      const [allProjects, allTasks, timeClockEntries] = await Promise.all([
+        db.select()
+          .from(projects)
+          .where(
+            and(
+              eq(projects.organizationId, organizationId),
+              gte(projects.createdAt, startDate),
+              lte(projects.createdAt, endDate)
+            )
+          )
+          .orderBy(desc(projects.createdAt)),
+        
+        db.select({
+          id: tasks.id,
+          projectId: tasks.projectId,
+          isCompleted: tasks.isCompleted,
+          completedAt: tasks.completedAt,
+          completedById: tasks.completedById,
+          title: tasks.title
+        })
+          .from(tasks)
+          .innerJoin(projects, eq(tasks.projectId, projects.id))
+          .where(
+            and(
+              eq(projects.organizationId, organizationId),
+              gte(projects.createdAt, startDate),
+              lte(projects.createdAt, endDate)
+            )
+          ),
+
+        db.select({
+          id: timeClock.id,
+          userId: timeClock.userId,
+          clockInTime: timeClock.clockInTime,
+          clockOutTime: timeClock.clockOutTime,
+          totalHours: timeClock.totalHours,
+          clockInLocation: timeClock.clockInLocation,
+          clockOutLocation: timeClock.clockOutLocation,
+          userName: sql<string>`CONCAT(${users.firstName}, ' ', ${users.lastName})`.as('userName')
+        })
+          .from(timeClock)
+          .leftJoin(users, eq(timeClock.userId, users.id))
+          .where(
+            and(
+              eq(timeClock.organizationId, organizationId),
+              gte(timeClock.clockInTime, startDate),
+              lte(timeClock.clockInTime, endDate)
+            )
+          )
+          .orderBy(desc(timeClock.clockInTime))
+      ]);
+
+      // Calculate job analytics
+      const totalJobs = allProjects.length;
+      const completedJobs = allProjects.filter(p => p.status === 'completed').length;
+      const completionRate = totalJobs > 0 ? Math.round((completedJobs / totalJobs) * 100) : 0;
+
+      // Calculate average job duration
+      const completedJobsWithDates = allProjects.filter(p => 
+        p.status === 'completed' && p.startDate && p.endDate
+      );
+      
+      const avgJobDuration = completedJobsWithDates.length > 0 ? 
+        completedJobsWithDates.reduce((sum, job) => {
+          const start = new Date(job.startDate!);
+          const end = new Date(job.endDate!);
+          const durationHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+          return sum + durationHours;
+        }, 0) / completedJobsWithDates.length : 0;
+
+      // Job duration vs onsite time data
+      const jobDurationData = allProjects.slice(0, 10).map(job => {
+        const jobTasks = allTasks.filter(t => t.projectId === job.id);
+        const completedTasks = jobTasks.filter(t => t.isCompleted);
+        
+        // Calculate onsite duration from time clock entries for this job
+        const jobTimeEntries = timeClockEntries.filter(entry => {
+          // For now, we'll estimate based on date proximity
+          if (!entry.clockInTime || !job.startDate) return false;
+          const entryDate = new Date(entry.clockInTime);
+          const jobDate = new Date(job.startDate);
+          const dateDiff = Math.abs(entryDate.getTime() - jobDate.getTime()) / (1000 * 60 * 60 * 24);
+          return dateDiff <= 1; // Within 1 day of job
+        });
+        
+        const totalOnsiteHours = jobTimeEntries.reduce((sum, entry) => {
+          return sum + (parseFloat(entry.totalHours?.toString() || '0'));
+        }, 0);
+
+        const totalJobTime = job.startDate && job.endDate ? 
+          (new Date(job.endDate).getTime() - new Date(job.startDate).getTime()) / (1000 * 60 * 60) : 0;
+
+        return {
+          jobName: job.name || `Job ${job.id}`,
+          onsiteDuration: Math.round(totalOnsiteHours * 10) / 10,
+          totalJobTime: Math.round(totalJobTime * 10) / 10,
+          tasksCompleted: completedTasks.length,
+          totalTasks: jobTasks.length
+        };
+      });
+
+      // Task efficiency data (daily aggregation)
+      const taskEfficiencyData = [];
+      for (let i = 0; i < 7; i++) {
+        const date = new Date(endDate);
+        date.setDate(date.getDate() - i);
+        const dateStr = date.toISOString().split('T')[0];
+        
+        const dayTasks = allTasks.filter(t => {
+          if (!t.completedAt) return false;
+          const completedDate = new Date(t.completedAt).toISOString().split('T')[0];
+          return completedDate === dateStr;
+        });
+        
+        const avgTimePerTask = dayTasks.length > 0 ? (8 * 60) / dayTasks.length : 0; // Estimate based on 8-hour workday
+        
+        taskEfficiencyData.unshift({
+          date: dateStr,
+          tasksCompleted: dayTasks.length,
+          avgTimePerTask: Math.round(avgTimePerTask)
+        });
+      }
+
+      // Technician performance
+      const technicianPerformance = timeClockEntries.reduce((acc: any[], entry) => {
+        const existingTech = acc.find(t => t.userId === entry.userId);
+        const hours = parseFloat(entry.totalHours?.toString() || '0');
+        
+        if (existingTech) {
+          existingTech.totalHours += hours;
+          existingTech.jobCount++;
+          existingTech.avgJobTime = existingTech.totalHours / existingTech.jobCount;
+        } else {
+          acc.push({
+            userId: entry.userId,
+            name: entry.userName || 'Unknown User',
+            totalHours: hours,
+            jobCount: 1,
+            avgJobTime: hours
+          });
+        }
+        return acc;
+      }, []).map(tech => ({
+        name: tech.name,
+        avgJobTime: Math.round(tech.avgJobTime * 10) / 10,
+        totalJobs: tech.jobCount
+      }));
+
+      // Job status distribution
+      const statusCounts = allProjects.reduce((acc: any, job) => {
+        const status = job.status || 'unknown';
+        acc[status] = (acc[status] || 0) + 1;
+        return acc;
+      }, {});
+
+      const jobStatusData = Object.entries(statusCounts).map(([name, value]) => ({
+        name: name.charAt(0).toUpperCase() + name.slice(1),
+        value
+      }));
+
+      const analyticsData = {
+        totalJobs,
+        completedJobs,
+        completionRate,
+        avgJobDuration: Math.round(avgJobDuration * 10) / 10,
+        jobDurationData,
+        taskEfficiencyData,
+        technicianPerformance,
+        jobStatusData
+      };
+
+      res.json(analyticsData);
+    } catch (error: any) {
+      console.error("Error fetching job analytics:", error);
+      res.status(500).json({ message: "Failed to fetch job analytics data" });
+    }
+  });
+
   // Dedicated Task Analytics API endpoint
   app.get("/api/analytics/tasks", requireAuth, async (req, res) => {
     try {

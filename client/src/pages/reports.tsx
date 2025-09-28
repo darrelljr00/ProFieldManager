@@ -44,6 +44,7 @@ export default function Reports() {
   const [projectAssignmentDateRange, setProjectAssignmentDateRange] = useState("30days");
   const [performanceIssuesDateRange, setPerformanceIssuesDateRange] = useState("30days");
   const [timeOffDateRange, setTimeOffDateRange] = useState("30days");
+  const [jobAnalyticsDateRange, setJobAnalyticsDateRange] = useState("30days");
   const queryClient = useQueryClient();
 
   // Helper function to get date range based on selection
@@ -117,6 +118,13 @@ export default function Reports() {
       return response.json();
     },
     select: (data) => data || { metrics: {}, data: { invoices: [], leads: [], expenses: [], customers: [], employees: [] } }
+  });
+
+  // Fetch job analytics data
+  const { data: jobAnalyticsData, isLoading: jobAnalyticsLoading, refetch: refetchJobAnalytics } = useQuery({
+    queryKey: ["/api/job-analytics", jobAnalyticsDateRange],
+    enabled: true,
+    refetchInterval: realTimeUpdates ? 30000 : false,
   });
 
   // All employees with realistic performance metrics
@@ -706,13 +714,14 @@ export default function Reports() {
 
       {/* Chart Tabs */}
       <Tabs defaultValue="sales" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="sales">Sales</TabsTrigger>
           <TabsTrigger value="leads">Leads</TabsTrigger>
           <TabsTrigger value="refunds">Refunds</TabsTrigger>
           <TabsTrigger value="close-rate">Close Rate</TabsTrigger>
           <TabsTrigger value="expenses">Expenses</TabsTrigger>
           <TabsTrigger value="employees">Employees</TabsTrigger>
+          <TabsTrigger value="job-analytics">Job Analytics</TabsTrigger>
         </TabsList>
 
         {/* Sales Charts */}
@@ -1320,6 +1329,198 @@ export default function Reports() {
           </div>
         </TabsContent>
 
+        {/* Job Analytics Tab */}
+        <TabsContent value="job-analytics" className="space-y-6">
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Briefcase className="h-5 w-5" />
+                      Job Completion Analytics
+                    </CardTitle>
+                    <CardDescription>
+                      Analysis of job completion times based on technician onsite duration and task completion
+                      <span className="ml-2 text-blue-600 font-medium">
+                        ({jobAnalyticsDateRange === '7days' ? 'Last 7 Days' :
+                          jobAnalyticsDateRange === '30days' ? 'Last 30 Days' :
+                          jobAnalyticsDateRange === '90days' ? 'Last 90 Days' :
+                          jobAnalyticsDateRange === '6months' ? 'Last 6 Months' :
+                          jobAnalyticsDateRange === '12months' ? 'Last 12 Months' :
+                          jobAnalyticsDateRange === '2years' ? 'Last 2 Years' : 
+                          'Custom Period'})
+                      </span>
+                    </CardDescription>
+                  </div>
+                  <Select value={jobAnalyticsDateRange} onValueChange={setJobAnalyticsDateRange}>
+                    <SelectTrigger className="w-40">
+                      <CalendarIcon className="h-4 w-4 mr-2" />
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="7days">Last 7 Days</SelectItem>
+                      <SelectItem value="30days">Last 30 Days</SelectItem>
+                      <SelectItem value="90days">Last 90 Days</SelectItem>
+                      <SelectItem value="6months">Last 6 Months</SelectItem>
+                      <SelectItem value="12months">Last 12 Months</SelectItem>
+                      <SelectItem value="2years">Last 2 Years</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Total Jobs</p>
+                          <p className="text-2xl font-bold">{jobAnalyticsData?.totalJobs || 0}</p>
+                        </div>
+                        <Briefcase className="h-8 w-8 text-blue-500" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Completed Jobs</p>
+                          <p className="text-2xl font-bold">{jobAnalyticsData?.completedJobs || 0}</p>
+                        </div>
+                        <CheckSquare className="h-8 w-8 text-green-500" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Avg Job Duration</p>
+                          <p className="text-2xl font-bold">{jobAnalyticsData?.avgJobDuration || 0}h</p>
+                        </div>
+                        <Clock className="h-8 w-8 text-orange-500" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Completion Rate</p>
+                          <p className="text-2xl font-bold">{jobAnalyticsData?.completionRate || 0}%</p>
+                        </div>
+                        <Target className="h-8 w-8 text-purple-500" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Job Analytics Charts */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Job Completion Time vs Onsite Duration</CardTitle>
+                  <CardDescription>
+                    Correlation between time spent onsite and job completion
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={jobAnalyticsData?.jobDurationData || []}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="jobName" angle={-45} textAnchor="end" height={100} />
+                      <YAxis />
+                      <Tooltip formatter={(value, name) => [
+                        name === 'onsiteDuration' ? `${value} hours` : `${value} hours`,
+                        name === 'onsiteDuration' ? 'Onsite Time' : 'Total Job Time'
+                      ]} />
+                      <Legend />
+                      <Bar dataKey="onsiteDuration" fill="#0088FE" name="Onsite Duration" />
+                      <Bar dataKey="totalJobTime" fill="#00C49F" name="Total Job Time" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Task Completion Efficiency</CardTitle>
+                  <CardDescription>
+                    Tasks completed vs time spent on jobs
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={jobAnalyticsData?.taskEfficiencyData || []}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" />
+                      <YAxis yAxisId="left" />
+                      <YAxis yAxisId="right" orientation="right" />
+                      <Tooltip />
+                      <Legend />
+                      <Line yAxisId="left" type="monotone" dataKey="tasksCompleted" stroke="#8884d8" name="Tasks Completed" />
+                      <Line yAxisId="right" type="monotone" dataKey="avgTimePerTask" stroke="#82ca9d" name="Avg Time per Task (min)" />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Technician Performance</CardTitle>
+                  <CardDescription>
+                    Job completion times by technician
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={jobAnalyticsData?.technicianPerformance || []}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
+                      <YAxis />
+                      <Tooltip formatter={(value) => [`${value} hours`, 'Avg Job Time']} />
+                      <Bar dataKey="avgJobTime" fill="#FFBB28" name="Average Job Time (hours)" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Job Status Distribution</CardTitle>
+                  <CardDescription>
+                    Distribution of job statuses over time
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={jobAnalyticsData?.jobStatusData || []}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {(jobAnalyticsData?.jobStatusData || []).map((entry: any, index: number) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </TabsContent>
 
       </Tabs>
     </div>
