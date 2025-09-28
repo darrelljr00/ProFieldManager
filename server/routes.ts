@@ -8633,27 +8633,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 
+  // Helper function to get available navigation tabs that can be dashboard widgets
+  function getAvailableWidgetTabs(user: any) {
+    const widgetTabs = [
+      // Core widget tabs
+      { key: 'showStatsCards', name: 'Stats Cards', description: 'Revenue, invoices, and performance metrics', defaultEnabled: true },
+      { key: 'showRevenueChart', name: 'Revenue Chart', description: 'Monthly revenue and growth trends', defaultEnabled: true },
+      { key: 'showRecentActivity', name: 'Recent Activity', description: 'Latest projects and system activity', defaultEnabled: true },
+      { key: 'showRecentInvoices', name: 'Recent Invoices', description: 'Latest invoices and payment status', defaultEnabled: true },
+      { key: 'showNotifications', name: 'Notifications', description: 'Alert badge on notification bell', defaultEnabled: true },
+      { key: 'showQuickActions', name: 'Quick Actions', description: '"New Invoice" button and other quick actions', defaultEnabled: true },
+      
+      // Dynamic tabs based on user permissions
+      { key: 'showProjectsOverview', name: 'Projects Overview', description: 'Active projects status and progress tracking', defaultEnabled: false, permission: 'canAccessJobs' },
+      { key: 'showWeatherWidget', name: 'Weather Widget', description: 'Current weather conditions and forecast', defaultEnabled: false, permission: 'canAccessWeather' },
+      { key: 'showTasksWidget', name: 'My Tasks', description: 'Assigned tasks and deadlines overview', defaultEnabled: false, permission: 'canAccessMyTasks' },
+      { key: 'showCalendarWidget', name: 'Calendar Widget', description: 'Upcoming appointments and schedule preview', defaultEnabled: false, permission: 'canAccessCalendar' },
+      { key: 'showMessagesWidget', name: 'Team Messages', description: 'Recent team communications and alerts', defaultEnabled: false, permission: 'canAccessInternalMessages' },
+      { key: 'showTeamOverview', name: 'Team Overview', description: 'Team status, time tracking, and productivity metrics', defaultEnabled: false, permission: 'canAccessUsers' },
+      { key: 'showGpsTrackingWidget', name: 'GPS Tracking', description: 'Real-time location tracking and job site monitoring', defaultEnabled: false, permission: 'canAccessGpsTracking' },
+      { key: 'showSmsWidget', name: 'SMS Messages', description: 'Recent SMS communications and quick messaging', defaultEnabled: false, permission: 'canAccessSMS' },
+      { key: 'showReviewsWidget', name: 'Customer Reviews', description: 'Latest customer reviews and ratings overview', defaultEnabled: false, permission: 'canAccessReviews' },
+      { key: 'showLeadsWidget', name: 'Recent Leads', description: 'New leads and prospect management overview', defaultEnabled: false, permission: 'canAccessLeads' },
+      { key: 'showExpensesWidget', name: 'Recent Expenses', description: 'Latest expense entries and budget tracking', defaultEnabled: false, permission: 'canAccessExpenses' },
+      { key: 'showQuotesWidget', name: 'Recent Quotes', description: 'Latest quotes and proposal status tracking', defaultEnabled: false, permission: 'canAccessQuotes' },
+      { key: 'showCustomersWidget', name: 'Customer Overview', description: 'Customer list and communication history', defaultEnabled: false, permission: 'canAccessCustomers' },
+      { key: 'showPaymentsWidget', name: 'Payment Status', description: 'Payment tracking and outstanding balances', defaultEnabled: false, permission: 'canAccessPayments' },
+      { key: 'showFileManagerWidget', name: 'Recent Files', description: 'Recently uploaded files and document access', defaultEnabled: false, permission: 'canAccessFileManager' },
+      { key: 'showPartsSuppliesWidget', name: 'Parts & Supplies', description: 'Inventory levels and supply management', defaultEnabled: false, permission: 'canAccessPartsSupplies' },
+      { key: 'showInspectionsWidget', name: 'Vehicle Inspections', description: 'Recent inspections and maintenance tracking', defaultEnabled: false, permission: 'canAccessInspections' },
+      { key: 'showImageGalleryWidget', name: 'Image Gallery', description: 'Recent project photos and image management', defaultEnabled: false, permission: 'canAccessImageGallery' },
+      { key: 'showTimeClockWidget', name: 'Time Clock Status', description: 'Employee time tracking and attendance overview', defaultEnabled: false, permission: 'canAccessTimeClock' },
+      { key: 'showReportsWidget', name: 'Quick Reports', description: 'Key business metrics and report summaries', defaultEnabled: false, permission: 'canAccessReports' }
+    ];
+
+    // Filter tabs based on user permissions
+    return widgetTabs.filter(tab => {
+      // Always include tabs without permission requirements (core widgets)
+      if (!tab.permission) return true;
+      
+      // Admin users get access to all widgets
+      if (user?.role === 'admin') return true;
+      
+      // Check user permissions
+      return user && (user as any)[tab.permission] === true;
+    });
+  }
+
   // Dashboard Settings API
   app.get("/api/settings/dashboard", requireAuth, async (req, res) => {
     try {
       const settings = await storage.getSettings('dashboard');
+      const user = req.user;
       
-      // Default dashboard widget settings if none exist
-      const defaultSettings = {
-        // Widget visibility
-        showStatsCards: true,
-        showRevenueChart: true,
-        showRecentActivity: true,
-        showRecentInvoices: true,
-        showNotifications: true,
-        showQuickActions: true,
-        showProjectsOverview: false,
-        showWeatherWidget: false,
-        showTasksWidget: false,
-        showCalendarWidget: false,
-        showMessagesWidget: false,
-        showTeamOverview: false,
-        
+      // Get available widget tabs based on user permissions
+      const availableWidgetTabs = getAvailableWidgetTabs(user);
+      
+      // Create default settings based on available tabs
+      const defaultSettings: any = {
         // Layout and appearance
         layoutType: 'grid',
         gridColumns: 3,
@@ -8670,6 +8707,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         widgetOrder: ['stats', 'revenue', 'activity', 'invoices']
       };
+
+      // Set default widget visibility based on available tabs
+      availableWidgetTabs.forEach(tab => {
+        defaultSettings[tab.key] = tab.defaultEnabled;
+      });
       
       // Merge with stored settings
       const mergedSettings = { ...defaultSettings };
@@ -8685,6 +8727,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           mergedSettings[key] = setting.value === 'true';
         }
       });
+      
+      // Include available tabs metadata for frontend
+      mergedSettings.availableWidgetTabs = availableWidgetTabs;
       
       res.json(mergedSettings);
     } catch (error: any) {
