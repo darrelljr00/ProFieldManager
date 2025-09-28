@@ -107,9 +107,94 @@ export default function Leads() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const wsRef = useRef<WebSocket | null>(null);
+  
+  // Lead Settings State
+  const [leadSettings, setLeadSettings] = useState<any>({
+    // Follow-up Automation
+    enableAutoFollowUp: false,
+    autoFollowUpInterval: 1,
+    maxFollowUps: 3,
+    emailTemplate: "",
+    smsTemplate: "",
+    
+    // Automatic Discounts  
+    enableAutoDiscounts: false,
+    firstTimeCustomerDiscount: false,
+    firstTimeCustomerDiscountValue: "10%",
+    firstTimeCustomerDiscountType: "percentage",
+    quickResponseDiscount: false,
+    quickResponseDiscountValue: "5%",
+    quickResponseDiscountType: "percentage",
+    highValueLeadDiscount: false,
+    highValueLeadDiscountValue: "15%", 
+    highValueLeadDiscountType: "percentage",
+    
+    // Referral Program
+    enableReferralProgram: false,
+    referrerReward: "$50",
+    refereeDiscount: "10%",
+    referralThreshold: "$200",
+    referralMessage: "",
+    
+    // Lead Scoring
+    enableLeadScoring: false,
+    hotLeadValueThreshold: false,
+    hotLeadQuickResponse: false,
+    hotLeadCompleteInfo: false,
+    hotLeadReferral: false,
+    warmLeadValueRange: false,
+    warmLeadResponse24h: false,
+    warmLeadHasContact: false,
+    warmLeadLocalArea: false,
+    
+    // Integrations
+    enableGoogleMyBusiness: false,
+    enableSmsNotifications: false,
+    enableEmailMarketing: false,
+    enableCrmSync: false
+  });
 
   const { data: leads = [], isLoading } = useQuery<Lead[]>({
     queryKey: ["/api/leads"],
+  });
+  
+  // Lead Settings Query
+  const { data: leadSettingsData } = useQuery({
+    queryKey: ["/api/lead-settings"],
+    enabled: activeTab === "settings"
+  });
+  
+  // Load lead settings when data is fetched
+  useEffect(() => {
+    if (leadSettingsData) {
+      setLeadSettings(prev => ({
+        ...prev,
+        ...leadSettingsData
+      }));
+    }
+  }, [leadSettingsData]);
+  
+  // Save Lead Settings Mutation
+  const saveLeadSettingsMutation = useMutation({
+    mutationFn: (settings: any) => apiRequest("/api/lead-settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(settings)
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/lead-settings"] });
+      toast({
+        title: "Settings Saved",
+        description: "Lead settings have been saved successfully."
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Save Failed", 
+        description: error.message || "Failed to save lead settings",
+        variant: "destructive"
+      });
+    }
   });
 
   // Fetch integration settings to get Google Maps API key
@@ -1798,7 +1883,12 @@ export default function Leads() {
                     <Label className="text-base font-medium">Enable Automatic Follow-ups</Label>
                     <p className="text-sm text-muted-foreground">Automatically send follow-ups to new leads</p>
                   </div>
-                  <input type="checkbox" className="rounded" />
+                  <input 
+                    type="checkbox" 
+                    className="rounded" 
+                    checked={leadSettings.enableAutoFollowUp}
+                    onChange={(e) => setLeadSettings(prev => ({ ...prev, enableAutoFollowUp: e.target.checked }))}
+                  />
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
@@ -1809,7 +1899,8 @@ export default function Leads() {
                       type="number"
                       min="1"
                       max="30"
-                      defaultValue="1"
+                      value={leadSettings.autoFollowUpInterval}
+                      onChange={(e) => setLeadSettings(prev => ({ ...prev, autoFollowUpInterval: parseInt(e.target.value) || 1 }))}
                       placeholder="1"
                     />
                   </div>
@@ -1820,7 +1911,8 @@ export default function Leads() {
                       type="number"
                       min="1"
                       max="10"
-                      defaultValue="3"
+                      value={leadSettings.maxFollowUps}
+                      onChange={(e) => setLeadSettings(prev => ({ ...prev, maxFollowUps: parseInt(e.target.value) || 3 }))}
                       placeholder="3"
                     />
                   </div>
@@ -1830,6 +1922,8 @@ export default function Leads() {
                   <Label htmlFor="emailTemplate">Email Template</Label>
                   <Textarea
                     id="emailTemplate"
+                    value={leadSettings.emailTemplate}
+                    onChange={(e) => setLeadSettings(prev => ({ ...prev, emailTemplate: e.target.value }))}
                     placeholder="Hi {name}, this is a follow-up regarding your {service} request. Please let us know if you have any questions!"
                     rows={3}
                   />
@@ -1842,6 +1936,8 @@ export default function Leads() {
                   <Label htmlFor="smsTemplate">SMS Template</Label>
                   <Textarea
                     id="smsTemplate"
+                    value={leadSettings.smsTemplate}
+                    onChange={(e) => setLeadSettings(prev => ({ ...prev, smsTemplate: e.target.value }))}
                     placeholder="Hi {name}, following up on your {service} inquiry. Reply STOP to opt out."
                     rows={2}
                   />
@@ -1910,7 +2006,7 @@ export default function Leads() {
 
                   <div className="p-3 border rounded-lg">
                     <div className="flex items-center justify-between mb-2">
-                      <Label className="font-medium">High Value Lead (>$1000)</Label>
+                      <Label className="font-medium">High Value Lead (above $1000)</Label>
                       <input type="checkbox" className="rounded" />
                     </div>
                     <div className="grid grid-cols-2 gap-2">
@@ -2012,7 +2108,7 @@ export default function Leads() {
                     <div className="grid grid-cols-2 gap-2 mt-2">
                       <div className="flex items-center gap-2">
                         <input type="checkbox" className="rounded" />
-                        <span className="text-sm">Value > $1000</span>
+                        <span className="text-sm">Value above $1000</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <input type="checkbox" className="rounded" />
@@ -2053,7 +2149,13 @@ export default function Leads() {
                 </div>
 
                 <div>
-                  <Button className="w-full">Save Lead Settings</Button>
+                  <Button 
+                    className="w-full" 
+                    onClick={() => saveLeadSettingsMutation.mutate(leadSettings)}
+                    disabled={saveLeadSettingsMutation.isPending}
+                  >
+                    {saveLeadSettingsMutation.isPending ? "Saving..." : "Save Lead Settings"}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
