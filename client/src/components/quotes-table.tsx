@@ -514,9 +514,9 @@ export function QuotesTable({ quotes, isLoading }: QuotesTableProps) {
       <AlertDialog open={!!deleteDialog} onOpenChange={() => setDeleteDialog(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogTitle>Move Quote to Trash?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete quote #{deleteDialog?.quoteNumber}.
+              Quote #{deleteDialog?.quoteNumber} will be moved to the trash. You can restore it later if needed.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -525,7 +525,7 @@ export function QuotesTable({ quotes, isLoading }: QuotesTableProps) {
               onClick={() => deleteDialog && deleteQuoteMutation.mutate(deleteDialog.id)}
               disabled={deleteQuoteMutation.isPending}
             >
-              {deleteQuoteMutation.isPending ? "Deleting..." : "Delete"}
+              {deleteQuoteMutation.isPending ? "Moving..." : "Move to Trash"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
