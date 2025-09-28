@@ -1620,8 +1620,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const settings = await storage.getSettingsByCategory('integrations');
       const defaultSettings = {
-        googleMapsEnabled: false,
-        googleMapsApiKey: '',
+        googleMapsEnabled: !!process.env.GOOGLE_MAPS_API_KEY,
+        googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || '',
         twilioEnabled: false,
         twilioAccountSid: '',
         twilioAuthToken: '',
@@ -1635,7 +1635,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       settings.forEach((setting: any) => {
         const key = setting.key.replace('integrations_', '');
         if (key in integrationSettings) {
-          integrationSettings[key] = setting.value === 'true' ? true : setting.value === 'false' ? false : setting.value;
+          // For googleMapsApiKey, prioritize environment variable
+          if (key === 'googleMapsApiKey' && process.env.GOOGLE_MAPS_API_KEY) {
+            integrationSettings[key] = process.env.GOOGLE_MAPS_API_KEY;
+          } else if (key === 'googleMapsEnabled' && process.env.GOOGLE_MAPS_API_KEY) {
+            integrationSettings[key] = true;
+          } else {
+            integrationSettings[key] = setting.value === 'true' ? true : setting.value === 'false' ? false : setting.value;
+          }
         }
       });
       
@@ -11088,8 +11095,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const settings = await storage.getSettingsByCategory('integrations');
       const defaultSettings = {
-        googleMapsEnabled: false,
-        googleMapsApiKey: '',
+        googleMapsEnabled: !!process.env.GOOGLE_MAPS_API_KEY,
+        googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || '',
         twilioEnabled: false,
         twilioAccountSid: '',
         twilioAuthToken: '',
@@ -11103,7 +11110,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       settings.forEach((setting: any) => {
         const key = setting.key.replace('integrations_', '');
         if (key in integrationSettings) {
-          integrationSettings[key] = setting.value === 'true' ? true : setting.value === 'false' ? false : setting.value;
+          // For googleMapsApiKey, prioritize environment variable
+          if (key === 'googleMapsApiKey' && process.env.GOOGLE_MAPS_API_KEY) {
+            integrationSettings[key] = process.env.GOOGLE_MAPS_API_KEY;
+          } else if (key === 'googleMapsEnabled' && process.env.GOOGLE_MAPS_API_KEY) {
+            integrationSettings[key] = true;
+          } else {
+            integrationSettings[key] = setting.value === 'true' ? true : setting.value === 'false' ? false : setting.value;
+          }
         }
       });
       
@@ -12047,7 +12061,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Start location is required' });
       }
 
-      const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY || 'AIzaSyCy9lgjvkKV3vS_U1IIcmxJUC8q8yJaASI';
+      const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
       if (!GOOGLE_MAPS_API_KEY) {
         return res.status(500).json({ message: 'Google Maps API key not configured' });
       }
@@ -16642,10 +16656,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Perform reverse geocoding to get address from coordinates
       let address = null;
       try {
-        // Get Google Maps API key from integration settings
-        const googleMapsSettings = await storage.getSettings('integration');
-        const isGoogleMapsEnabled = googleMapsSettings?.integration_googleMapsEnabled === 'true';
-        const googleMapsApiKey = googleMapsSettings?.integration_googleMapsApiKey;
+        // Get Google Maps API key from environment variables
+        const isGoogleMapsEnabled = !!process.env.GOOGLE_MAPS_API_KEY;
+        const googleMapsApiKey = process.env.GOOGLE_MAPS_API_KEY;
         
         if (!isGoogleMapsEnabled || !googleMapsApiKey) {
           console.log('Google Maps integration disabled or API key not configured');
