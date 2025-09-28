@@ -22156,6 +22156,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const taskNotificationModule = await import("./taskNotificationService");
   taskNotificationModule.startNotificationProcessor();
 
+  // Set up daily automation for lead follow-ups (runs every day at 9 AM)
+  const AUTOMATION_HOUR = 9; // 9 AM
+  const checkAutomation = () => {
+    const now = new Date();
+    const nextRun = new Date();
+    nextRun.setHours(AUTOMATION_HOUR, 0, 0, 0);
+    
+    // If we've already passed 9 AM today, schedule for tomorrow
+    if (now >= nextRun) {
+      nextRun.setDate(nextRun.getDate() + 1);
+    }
+    
+    const timeUntilNext = nextRun.getTime() - now.getTime();
+    
+    console.log(`🔄 Next automatic lead follow-up scheduled for: ${nextRun.toLocaleString()}`);
+    
+    setTimeout(async () => {
+      try {
+        console.log("🚀 Running daily automatic lead follow-ups...");
+        const { leadAutomationService } = await import("./leadAutomation");
+        await leadAutomationService.processAutomaticFollowUps();
+        
+        // Schedule the next run
+        checkAutomation();
+      } catch (error) {
+        console.error("❌ Error in daily automation:", error);
+        // Still schedule the next run even if this one failed
+        checkAutomation();
+      }
+    }, timeUntilNext);
+  };
+  
+  // Start the automation scheduler
+  console.log("🤖 Starting lead automation scheduler...");
+  checkAutomation();
+
   return httpServer;
 }
 
