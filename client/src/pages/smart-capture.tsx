@@ -316,11 +316,22 @@ export default function SmartCapturePage() {
   const { data: customerLocations = [] } = useQuery({
     queryKey: ['/api/customers/locations'],
     queryFn: async () => {
-      const response = await apiRequest('GET', '/api/customers/locations');
-      const result = await response.json();
-      console.log('📍 Customer locations loaded:', result);
-      return Array.isArray(result) ? result : [];
-    }
+      try {
+        const response = await apiRequest('GET', '/api/customers/locations');
+        if (!response.ok) {
+          console.error('❌ Customer locations API error:', response.status, response.statusText);
+          return [];
+        }
+        const result = await response.json();
+        console.log('📍 Customer locations loaded:', result);
+        return Array.isArray(result) ? result : [];
+      } catch (error) {
+        console.error('❌ Error fetching customer locations:', error);
+        return [];
+      }
+    },
+    retry: 1,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
   // Fetch Smart Capture items for selected list
