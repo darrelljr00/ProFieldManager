@@ -9473,7 +9473,7 @@ export class DatabaseStorage implements IStorage {
       const conditions: any[] = [
         eq(smartCaptureItems.organizationId, organizationId),
         eq(smartCaptureLists.organizationId, organizationId),
-        sql`${smartCaptureLists.name} NOT LIKE 'Project %'`, // Only master lists, not project-specific
+        isNull(smartCaptureLists.projectId), // Only master lists (lists with no project_id)
         isNull(smartCaptureItems.projectId) // Only master items, not project-specific items
       ];
 
@@ -9501,7 +9501,7 @@ export class DatabaseStorage implements IStorage {
       }
 
       // Build WHERE conditions for raw SQL
-      let whereConditions = [`sci.organization_id = ${organizationId}`, `scl.organization_id = ${organizationId}`, `scl.name NOT LIKE 'Project %'`, `sci.project_id IS NULL`];
+      let whereConditions = [`sci.organization_id = ${organizationId}`, `scl.organization_id = ${organizationId}`, `scl.project_id IS NULL`, `sci.project_id IS NULL`];
       
       if (partNumber) {
         whereConditions.push(`sci.part_number = '${partNumber}'`);
