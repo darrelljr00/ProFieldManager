@@ -1832,7 +1832,33 @@ export default function SmartCapturePage() {
                               <FormItem>
                                 <FormLabel>Address</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="e.g., 123 Main Street" {...field} data-testid="input-master-address" />
+                                  <div className="relative">
+                                    <Input 
+                                      placeholder="e.g., 123 Main Street" 
+                                      {...field} 
+                                      onChange={(e) => {
+                                        field.onChange(e);
+                                        handleLocationSearch(e.target.value);
+                                      }}
+                                      data-testid="input-master-address" 
+                                    />
+                                    {showLocationSuggestions && locationSuggestions.length > 0 && (
+                                      <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-auto">
+                                        {locationSuggestions.map((location, index) => (
+                                          <div
+                                            key={index}
+                                            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                                            onClick={() => applyLocationSuggestion(location)}
+                                          >
+                                            <div className="font-medium">{location.name}</div>
+                                            <div className="text-sm text-gray-600 dark:text-gray-400">
+                                              {location.address}, {location.city}, {location.state}
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
