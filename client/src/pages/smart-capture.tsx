@@ -316,6 +316,16 @@ export default function SmartCapturePage() {
   // Extract items from the selected list response
   const smartCaptureItems = selectedListWithItems?.items || [];
 
+  // Fetch ALL master inventory items from all lists for Master Inventory display
+  const { data: allMasterItems = [], isLoading: masterItemsLoading } = useQuery({
+    queryKey: ['/api/smart-capture/search'],
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/smart-capture/search');
+      const result = await response.json();
+      return Array.isArray(result) ? result : [];
+    }
+  });
+
   // Function to search master items for automatic linking
   const searchMasterItems = async (searchValue: string, searchType: 'partNumber' | 'vehicleNumber' | 'inventoryNumber') => {
     if (!searchValue.trim()) {
@@ -1795,11 +1805,52 @@ export default function SmartCapturePage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      <TableRow>
-                        <TableCell className="text-center" colSpan={6}>
-                          No master items created yet. Click "Add Master Item" to get started.
-                        </TableCell>
-                      </TableRow>
+                      {masterItemsLoading ? (
+                        <TableRow>
+                          <TableCell className="text-center" colSpan={6}>
+                            Loading master inventory items...
+                          </TableCell>
+                        </TableRow>
+                      ) : allMasterItems.length > 0 ? (
+                        allMasterItems.map((item: SmartCaptureItem) => (
+                          <TableRow key={item.id}>
+                            <TableCell>{item.partNumber || '-'}</TableCell>
+                            <TableCell>{item.vehicleNumber || '-'}</TableCell>
+                            <TableCell>{item.inventoryNumber || '-'}</TableCell>
+                            <TableCell>$
+                              {isAdminOrManager || showSmartCapturePricing
+                                ? parseFloat(item.masterPrice?.toString() || '0').toFixed(2)
+                                : 'Hidden'
+                              }
+                            </TableCell>
+                            <TableCell>{item.location || '-'}</TableCell>
+                            <TableCell>
+                              <div className="flex space-x-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleEditItem(item)}
+                                >
+                                  Edit
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleDeleteItem(item.id)}
+                                >
+                                  Delete
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell className="text-center" colSpan={6}>
+                            No master items created yet. Click "Add Master Item" to get started.
+                          </TableCell>
+                        </TableRow>
+                      )}
                     </TableBody>
                   </Table>
                 </div>
