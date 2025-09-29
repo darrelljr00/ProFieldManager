@@ -985,28 +985,34 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCustomerLocations(organizationId: number): Promise<any[]> {
-    // Fetch unique customer locations for autocomplete suggestions
-    const locations = await db
-      .select({
-        name: customers.name,
-        address: customers.address,
-        city: customers.city,
-        state: customers.state,
-      })
-      .from(customers)
-      .where(and(
-        eq(customers.organizationId, organizationId),
-        or(
-          isNotNull(customers.address),
-          isNotNull(customers.city),
-          isNotNull(customers.state)
-        )
-      ))
-      .limit(100);
-    
-    return locations.filter(location => 
-      location.address || location.city || location.state
-    );
+    try {
+      console.log('📍 getCustomerLocations called for org:', organizationId);
+      
+      // Fetch unique customer locations for autocomplete suggestions
+      const locations = await db
+        .select({
+          name: customers.name,
+          address: customers.address,
+          city: customers.city,
+          state: customers.state,
+        })
+        .from(customers)
+        .where(eq(customers.organizationId, organizationId))
+        .limit(100);
+      
+      console.log('📍 Found locations count:', locations.length);
+      
+      // Filter out locations that have no address, city, or state
+      const filtered = locations.filter(location => 
+        location.address || location.city || location.state
+      );
+      
+      console.log('📍 Filtered locations count:', filtered.length);
+      return filtered;
+    } catch (error) {
+      console.error('❌ Error in getCustomerLocations:', error);
+      throw error;
+    }
   }
 
   async updateCustomerNew(id: number, updates: any): Promise<Customer> {
