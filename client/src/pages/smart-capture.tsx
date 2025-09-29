@@ -24,7 +24,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
-import { Plus, Package, List, Edit, AlertCircle, Trash2, Pencil, FileText, DollarSign, Download, ChevronDown } from "lucide-react";
+import { Plus, Package, List, Edit, AlertCircle, Trash2, Pencil, FileText, DollarSign, Download, ChevronDown, Search } from "lucide-react";
 import * as XLSX from 'xlsx';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { 
@@ -282,6 +282,9 @@ export default function SmartCapturePage() {
   const [masterSearchResults, setMasterSearchResults] = useState<any[]>([]);
   const [matchedMasterItem, setMatchedMasterItem] = useState<any>(null);
   
+  // State for master inventory search
+  const [masterInventorySearch, setMasterInventorySearch] = useState("");
+  
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -324,6 +327,20 @@ export default function SmartCapturePage() {
       const result = await response.json();
       return Array.isArray(result) ? result : [];
     }
+  });
+
+  // Filter master items based on search term
+  const filteredMasterItems = allMasterItems.filter((item: SmartCaptureItem) => {
+    if (!masterInventorySearch.trim()) return true;
+    
+    const searchTerm = masterInventorySearch.toLowerCase();
+    return (
+      item.partNumber?.toLowerCase().includes(searchTerm) ||
+      item.vehicleNumber?.toLowerCase().includes(searchTerm) ||
+      item.inventoryNumber?.toLowerCase().includes(searchTerm) ||
+      item.description?.toLowerCase().includes(searchTerm) ||
+      item.location?.toLowerCase().includes(searchTerm)
+    );
   });
 
   // Function to search master items for automatic linking
@@ -1640,18 +1657,19 @@ export default function SmartCapturePage() {
 
             {/* Master Inventory Items */}
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle>Master Inventory</CardTitle>
-                  <p className="text-sm text-muted-foreground">Manage inventory items and master pricing</p>
-                </div>
-                <Dialog open={isAddMasterItemDialogOpen} onOpenChange={setIsAddMasterItemDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button data-testid="button-add-master-item">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Master Item
-                    </Button>
-                  </DialogTrigger>
+              <CardHeader>
+                <div className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle>Master Inventory</CardTitle>
+                    <p className="text-sm text-muted-foreground">Manage inventory items and master pricing</p>
+                  </div>
+                  <Dialog open={isAddMasterItemDialogOpen} onOpenChange={setIsAddMasterItemDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button data-testid="button-add-master-item">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Master Item
+                      </Button>
+                    </DialogTrigger>
                   <DialogContent className="max-w-2xl">
                     <DialogHeader>
                       <DialogTitle>Add Master Inventory Item</DialogTitle>
@@ -1790,6 +1808,21 @@ export default function SmartCapturePage() {
                     </Form>
                   </DialogContent>
                 </Dialog>
+                </div>
+                
+                {/* Search Input */}
+                <div className="mt-4">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search master inventory..."
+                      value={masterInventorySearch}
+                      onChange={(e) => setMasterInventorySearch(e.target.value)}
+                      className="pl-9"
+                      data-testid="input-master-inventory-search"
+                    />
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="rounded-md border">
@@ -1811,8 +1844,8 @@ export default function SmartCapturePage() {
                             Loading master inventory items...
                           </TableCell>
                         </TableRow>
-                      ) : allMasterItems.length > 0 ? (
-                        allMasterItems.map((item: SmartCaptureItem) => (
+                      ) : filteredMasterItems.length > 0 ? (
+                        filteredMasterItems.map((item: SmartCaptureItem) => (
                           <TableRow key={item.id}>
                             <TableCell>{item.partNumber || '-'}</TableCell>
                             <TableCell>{item.vehicleNumber || '-'}</TableCell>
