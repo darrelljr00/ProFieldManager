@@ -313,11 +313,14 @@ export default function SmartCapturePage() {
   const projects = allProjects.filter((project: any) => project.status === 'active') || [];
 
   // Fetch customer locations for suggestions
-  const { data: customerLocations = [] } = useQuery({
+  const { data: customerLocations = [], isError: customerLocationsError } = useQuery({
     queryKey: ['/api/customers/locations'],
     queryFn: async () => {
+      console.log('🚀 Customer locations query starting...');
       try {
+        console.log('🌐 Making API request to /api/customers/locations');
         const response = await apiRequest('GET', '/api/customers/locations');
+        console.log('📥 Response received:', {status: response.status, ok: response.ok});
         if (!response.ok) {
           console.error('❌ Customer locations API error:', response.status, response.statusText);
           return [];
@@ -332,6 +335,12 @@ export default function SmartCapturePage() {
     },
     retry: 1,
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
+
+  console.log('🔍 CustomerLocations state:', {
+    customerLocations,
+    customerLocationsError,
+    length: customerLocations?.length
   });
 
   // Fetch Smart Capture items for selected list
