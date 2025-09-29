@@ -294,6 +294,11 @@ export default function SmartCapturePage() {
   // Check if user is admin or manager
   const isAdminOrManager = user?.role === 'admin' || user?.role === 'manager';
 
+  // Force invalidate customer locations cache on mount to ensure fresh data
+  useEffect(() => {
+    queryClient.invalidateQueries({ queryKey: ['/api/customers/locations'] });
+  }, []);
+
   // Fetch Smart Capture lists
   const { data: smartCaptureLists = [], isLoading: smartCaptureLoading, error: smartCaptureError } = useQuery({
     queryKey: ['/api/smart-capture/lists']
@@ -313,33 +318,24 @@ export default function SmartCapturePage() {
   const projects = allProjects.filter((project: any) => project.status === 'active') || [];
 
   // Fetch customer locations for suggestions
-  const { data: customerLocations = [], isError: customerLocationsError } = useQuery({
+  const { data: customerLocations = [], isError: customerLocationsError, isLoading: isLoadingCustomerLocations } = useQuery({
     queryKey: ['/api/customers/locations'],
     queryFn: async () => {
-      console.log('🚀 Customer locations query starting...');
-      try {
-        console.log('🌐 Making API request to /api/customers/locations');
-        const response = await apiRequest('GET', '/api/customers/locations');
-        console.log('📥 Response received:', {status: response.status, ok: response.ok});
-        if (!response.ok) {
-          console.error('❌ Customer locations API error:', response.status, response.statusText);
-          return [];
-        }
-        const result = await response.json();
-        console.log('📍 Customer locations loaded:', result);
-        return Array.isArray(result) ? result : [];
-      } catch (error) {
-        console.error('❌ Error fetching customer locations:', error);
-        return [];
-      }
+      console.log('🚀 FETCHING customer locations with explicit auth...');
+      const response = await apiRequest('GET', '/api/customers/locations');
+      const result = await response.json();
+      console.log('✅ Customer locations fetched:', result);
+      return Array.isArray(result) ? result : [];
     },
-    retry: 1,
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    enabled: true,
+    refetchOnMount: true,
+    staleTime: 0,
   });
 
   console.log('🔍 CustomerLocations state:', {
     customerLocations,
     customerLocationsError,
+    isLoadingCustomerLocations,
     length: customerLocations?.length
   });
 
