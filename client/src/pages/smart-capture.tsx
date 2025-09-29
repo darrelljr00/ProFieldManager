@@ -318,6 +318,7 @@ export default function SmartCapturePage() {
     queryFn: async () => {
       const response = await apiRequest('GET', '/api/customers/locations');
       const result = await response.json();
+      console.log('📍 Customer locations loaded:', result);
       return Array.isArray(result) ? result : [];
     }
   });
@@ -357,6 +358,9 @@ export default function SmartCapturePage() {
 
   // Function to handle location suggestions
   const handleLocationSearch = (value: string) => {
+    console.log('🔍 handleLocationSearch called with value:', value);
+    console.log('📍 Available customerLocations:', customerLocations);
+    
     if (!value.trim()) {
       setLocationSuggestions([]);
       setShowLocationSuggestions(false);
@@ -370,6 +374,7 @@ export default function SmartCapturePage() {
       location.name?.toLowerCase().includes(value.toLowerCase())
     );
     
+    console.log('✅ Filtered locations:', filtered);
     setLocationSuggestions(filtered);
     setShowLocationSuggestions(filtered.length > 0);
   };
