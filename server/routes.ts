@@ -4608,29 +4608,176 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Email quote (placeholder for now - would use SendGrid in production)
-  app.post("/api/quotes/:id/email", async (req, res) => {
+  // Email quote with approval/denial functionality
+  app.post("/api/quotes/:id/email", requireAuth, async (req, res) => {
     try {
+      const user = getAuthenticatedUser(req);
       const { to, subject, message } = req.body;
-      const quote = await storage.getQuote(parseInt(req.params.id), req.user.id);
+      const quote = await storage.getQuote(parseInt(req.params.id), user.organizationId);
       
       if (!quote) {
         return res.status(404).json({ message: "Quote not found" });
       }
 
-      // In a real implementation, this would use SendGrid or another email service
-      // For now, we'll just return success and update the quote status
-      await storage.updateQuote(parseInt(req.params.id), req.user.id, { 
-        status: 'sent' 
+      // Check if SendGrid is configured
+      if (!process.env.SENDGRID_API_KEY) {
+        return res.status(500).json({ message: "Email service not configured" });
+      }
+
+      // Import SendGrid (only when needed)
+      const sgMail = require('@sendgrid/mail');
+      sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+
+      // Generate approval/denial tokens for the quote
+      const tokens = await storage.generateQuoteTokens(parseInt(req.params.id));
+      
+      // Get organization details for the email
+      const organization = quote.organization || {
+        name: quote.user.organizationName || 'Pro Field Manager',
+        email: quote.user.email || 'noreply@profieldmanager.com'
+      };
+
+      // Calculate quote total from line items
+      const total = quote.lineItems?.reduce((sum: number, item: any) => {
+        return sum + (parseFloat(item.quantity) * parseFloat(item.amount));
+      }, 0) || 0;
+
+      // Create approval/denial URLs
+      const baseUrl = process.env.NODE_ENV === 'production' 
+        ? 'https://profieldmanager.com' 
+        : `https://${process.env.REPL_SLUG}-5000.${process.env.REPL_OWNER}.repl.co`;
+      
+      const approveUrl = `${baseUrl}/quote-response/approve/${tokens.approvalToken}`;
+      const denyUrl = `${baseUrl}/quote-response/deny/${tokens.denialToken}`;
+
+      // Build line items HTML
+      const lineItemsHtml = quote.lineItems?.map((item: any) => `
+        <tr style="border-bottom: 1px solid #eee;">
+          <td style="padding: 10px; text-align: left;">${item.description}</td>
+          <td style="padding: 10px; text-align: center;">${item.quantity}</td>
+          <td style="padding: 10px; text-align: right;">$${parseFloat(item.amount).toFixed(2)}</td>
+          <td style="padding: 10px; text-align: right;">$${(parseFloat(item.quantity) * parseFloat(item.amount)).toFixed(2)}</td>
+        </tr>
+      `).join('') || '';
+
+      const emailSubject = subject || `Quote ${quote.quoteNumber} - ${organization.name}`;
+      const customMessage = message || `Please review the attached quote and let us know if you'd like to proceed.`;
+
+      const emailData = {
+        to: to || quote.customer?.email,
+        from: {
+          email: organization.email,
+          name: organization.name
+        },
+        subject: emailSubject,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 700px; margin: 0 auto; background-color: #f9f9f9; padding: 20px;">
+            <div style="background-color: white; border-radius: 8px; padding: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+              <!-- Header -->
+              <div style="text-align: center; border-bottom: 2px solid #007bff; padding-bottom: 20px; margin-bottom: 30px;">
+                <h1 style="color: #333; margin: 0; font-size: 28px;">${organization.name}</h1>
+                <p style="color: #666; margin: 5px 0 0 0; font-size: 16px;">Quote: ${quote.quoteNumber}</p>
+              </div>
+
+              <!-- Custom Message -->
+              <div style="margin-bottom: 30px;">
+                <p style="color: #555; line-height: 1.6; font-size: 16px;">${customMessage.replace(/\n/g, '<br>')}</p>
+              </div>
+
+              <!-- Customer & Quote Details -->
+              <div style="background-color: #f8f9fa; padding: 20px; border-radius: 6px; margin-bottom: 30px;">
+                <h3 style="color: #333; margin: 0 0 15px 0;">Quote Details</h3>
+                <table style="width: 100%; border-collapse: collapse;">
+                  <tr>
+                    <td style="padding: 8px 0; font-weight: bold; color: #555;">Customer:</td>
+                    <td style="padding: 8px 0; color: #333;">${quote.customer?.name || 'N/A'}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; font-weight: bold; color: #555;">Quote Date:</td>
+                    <td style="padding: 8px 0; color: #333;">${new Date(quote.quoteDate).toLocaleDateString()}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; font-weight: bold; color: #555;">Valid Until:</td>
+                    <td style="padding: 8px 0; color: #333;">${new Date(quote.expiryDate).toLocaleDateString()}</td>
+                  </tr>
+                </table>
+              </div>
+
+              <!-- Line Items -->
+              ${quote.lineItems && quote.lineItems.length > 0 ? `
+              <div style="margin-bottom: 30px;">
+                <h3 style="color: #333; margin: 0 0 15px 0;">Items & Services</h3>
+                <table style="width: 100%; border-collapse: collapse; border: 1px solid #ddd;">
+                  <thead>
+                    <tr style="background-color: #f8f9fa;">
+                      <th style="padding: 12px; text-align: left; border-bottom: 2px solid #007bff; color: #333;">Description</th>
+                      <th style="padding: 12px; text-align: center; border-bottom: 2px solid #007bff; color: #333;">Qty</th>
+                      <th style="padding: 12px; text-align: right; border-bottom: 2px solid #007bff; color: #333;">Rate</th>
+                      <th style="padding: 12px; text-align: right; border-bottom: 2px solid #007bff; color: #333;">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${lineItemsHtml}
+                  </tbody>
+                  <tfoot>
+                    <tr style="background-color: #f8f9fa; font-weight: bold;">
+                      <td colspan="3" style="padding: 15px; text-align: right; border-top: 2px solid #007bff;">Total:</td>
+                      <td style="padding: 15px; text-align: right; border-top: 2px solid #007bff; color: #007bff; font-size: 18px;">$${total.toFixed(2)}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+              ` : ''}
+
+              <!-- Action Buttons -->
+              <div style="text-align: center; margin: 40px 0;">
+                <h3 style="color: #333; margin-bottom: 20px;">Please respond to this quote:</h3>
+                <div style="margin-bottom: 15px;">
+                  <a href="${approveUrl}" style="display: inline-block; background-color: #28a745; color: white; padding: 15px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px; margin: 0 10px;">
+                    ✓ APPROVE QUOTE
+                  </a>
+                  <a href="${denyUrl}" style="display: inline-block; background-color: #dc3545; color: white; padding: 15px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px; margin: 0 10px;">
+                    ✗ DECLINE QUOTE
+                  </a>
+                </div>
+                <p style="color: #666; font-size: 14px; margin: 20px 0 0 0;">
+                  Click one of the buttons above to respond, or reply to this email with any questions.
+                </p>
+              </div>
+
+              <!-- Footer -->
+              <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; text-align: center;">
+                <p style="color: #666; font-size: 12px; margin: 0;">
+                  This quote was sent from ${organization.name}<br>
+                  If you have any questions, please reply to this email or contact us directly.
+                </p>
+              </div>
+            </div>
+          </div>
+        `
+      };
+
+      // Send the email
+      await sgMail.send(emailData);
+
+      // Update quote status to sent
+      await storage.updateQuote(parseInt(req.params.id), user.organizationId, { 
+        status: 'sent',
+        sentAt: new Date()
       });
       
       res.json({ 
-        message: "Quote emailed successfully", 
-        to, 
-        subject: subject || `Quote ${quote.quoteNumber}`,
-        quote: quote
+        message: "Quote emailed successfully with approval links", 
+        to: emailData.to, 
+        subject: emailSubject,
+        quote: quote,
+        approvalLinks: {
+          approve: approveUrl,
+          deny: denyUrl
+        }
       });
     } catch (error: any) {
+      console.error("Error sending quote email:", error);
       res.status(500).json({ message: error.message });
     }
   });
