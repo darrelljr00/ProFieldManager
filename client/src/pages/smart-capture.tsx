@@ -294,25 +294,10 @@ export default function SmartCapturePage() {
   // Check if user is admin or manager
   const isAdminOrManager = user?.role === 'admin' || user?.role === 'manager';
 
-  // State for customer locations
-  const [customerLocations, setCustomerLocations] = useState<any[]>([]);
-
-  // Fetch customer locations directly with useEffect
-  useEffect(() => {
-    const fetchCustomerLocations = async () => {
-      try {
-        const response = await apiRequest('GET', '/api/customers/locations');
-        const data = await response.json();
-        console.log('✅ Customer locations fetched:', data);
-        setCustomerLocations(Array.isArray(data) ? data : []);
-      } catch (error) {
-        console.error('❌ Error fetching customer locations:', error);
-        setCustomerLocations([]);
-      }
-    };
-    
-    fetchCustomerLocations();
-  }, []);
+  // Fetch customer locations using React Query
+  const { data: customerLocations = [] } = useQuery<any[]>({
+    queryKey: ['/api/customers/locations']
+  });
 
   // Fetch Smart Capture lists
   const { data: smartCaptureLists = [], isLoading: smartCaptureLoading, error: smartCaptureError } = useQuery({
