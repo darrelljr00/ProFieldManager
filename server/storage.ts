@@ -95,6 +95,11 @@ export interface IStorage {
   restoreQuote(id: number, organizationId: number): Promise<boolean>;
   hardDeleteQuote(id: number, organizationId: number): Promise<boolean>;
   
+  // Quote token-based response methods (no auth required)
+  getQuoteByToken(action: 'approve' | 'deny', token: string): Promise<any>;
+  generateQuoteTokens(quoteId: number): Promise<{ approvalToken: string; denialToken: string }>;
+  updateQuoteResponse(action: 'approve' | 'deny', token: string, responseMethod: string): Promise<any>;
+  
   // Project/Job methods
   getProjects(organizationId: number, userId?: number, userRole?: string, status?: string): Promise<any[]>;
   getProject(id: number, userId: number): Promise<any>;
@@ -2097,6 +2102,97 @@ export class DatabaseStorage implements IStorage {
       
       await db.insert(quoteLineItems).values(lineItemsWithQuoteId);
     }
+  }
+
+  // Quote token-based response methods (no auth required)
+  async getQuoteByToken(action: 'approve' | 'deny', token: string): Promise<any> {
+    const tokenField = action === 'approve' ? quotes.approvalToken : quotes.denialToken;
+    
+    const [quoteWithCustomer] = await db
+      .select({
+        quote: quotes,
+        customer: customers,
+        user: {
+          id: users.id,
+          username: users.username,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          email: users.email,
+        },
+        organization: {
+          id: organizations.id,
+          name: organizations.name,
+          email: organizations.email,
+          phone: organizations.phone,
+        }
+      })
+      .from(quotes)
+      .innerJoin(users, eq(quotes.userId, users.id))
+      .innerJoin(organizations, eq(users.organizationId, organizations.id))
+      .leftJoin(customers, eq(quotes.customerId, customers.id))
+      .where(and(
+        eq(tokenField, token),
+        eq(quotes.isDeleted, false)
+      ));
+
+    if (!quoteWithCustomer) {
+      return null;
+    }
+
+    // Get line items for the quote
+    const lineItems = await db
+      .select()
+      .from(quoteLineItems)
+      .where(eq(quoteLineItems.quoteId, quoteWithCustomer.quote.id));
+    
+    return {
+      ...quoteWithCustomer.quote,
+      customer: quoteWithCustomer.customer,
+      user: quoteWithCustomer.user,
+      organization: quoteWithCustomer.organization,
+      lineItems: lineItems
+    };
+  }
+
+  async generateQuoteTokens(quoteId: number): Promise<{ approvalToken: string; denialToken: string }> {
+    const crypto = require('crypto');
+    const approvalToken = crypto.randomBytes(32).toString('hex');
+    const denialToken = crypto.randomBytes(32).toString('hex');
+    
+    await db
+      .update(quotes)
+      .set({
+        approvalToken,
+        denialToken,
+        updatedAt: new Date()
+      })
+      .where(eq(quotes.id, quoteId));
+    
+    return { approvalToken, denialToken };
+  }
+
+  async updateQuoteResponse(action: 'approve' | 'deny', token: string, responseMethod: string = 'email'): Promise<any> {
+    const tokenField = action === 'approve' ? quotes.approvalToken : quotes.denialToken;
+    const newStatus = action === 'approve' ? 'accepted' : 'rejected';
+    
+    const [updatedQuote] = await db
+      .update(quotes)
+      .set({
+        status: newStatus,
+        respondedAt: new Date(),
+        responseMethod,
+        ...(action === 'approve' ? { acceptedAt: new Date() } : {}),
+        updatedAt: new Date()
+      })
+      .where(and(
+        eq(tokenField, token),
+        eq(quotes.isDeleted, false),
+        // Only allow updating if not already responded
+        eq(quotes.respondedAt, null as any)
+      ))
+      .returning();
+    
+    return updatedQuote;
   }
 
   // Project/Job methods
