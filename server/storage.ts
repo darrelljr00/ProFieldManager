@@ -67,6 +67,7 @@ export interface IStorage {
   createCustomer(customerData: any): Promise<Customer>;
   updateCustomer(id: number, userId: number, updates: any): Promise<Customer>;
   deleteCustomer(id: number, userId: number): Promise<boolean>;
+  getCustomerLocations(organizationId: number): Promise<any[]>;
   
   // Invoice methods
   getInvoices(organizationId: number): Promise<any[]>;
@@ -981,6 +982,31 @@ export class DatabaseStorage implements IStorage {
       .delete(customers)
       .where(eq(customers.id, id));
     return result.rowCount > 0;
+  }
+
+  async getCustomerLocations(organizationId: number): Promise<any[]> {
+    // Fetch unique customer locations for autocomplete suggestions
+    const locations = await db
+      .select({
+        name: customers.name,
+        address: customers.address,
+        city: customers.city,
+        state: customers.state,
+      })
+      .from(customers)
+      .where(and(
+        eq(customers.organizationId, organizationId),
+        or(
+          isNotNull(customers.address),
+          isNotNull(customers.city),
+          isNotNull(customers.state)
+        )
+      ))
+      .limit(100);
+    
+    return locations.filter(location => 
+      location.address || location.city || location.state
+    );
   }
 
   async updateCustomerNew(id: number, updates: any): Promise<Customer> {

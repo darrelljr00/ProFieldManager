@@ -274,6 +274,8 @@ export default function SmartCapturePage() {
   const [editingItem, setEditingItem] = useState<SmartCaptureItem | null>(null);
   const [editingList, setEditingList] = useState<SmartCaptureList | null>(null);
   const [activeTab, setActiveTab] = useState("lists");
+  const [locationSuggestions, setLocationSuggestions] = useState<any[]>([]);
+  const [showLocationSuggestions, setShowLocationSuggestions] = useState(false);
   
   // Smart Capture pricing visibility setting
   const [showSmartCapturePricing, setShowSmartCapturePricing] = useState(true);
@@ -310,6 +312,16 @@ export default function SmartCapturePage() {
   // For the dropdown, we'll show active projects plus any currently assigned project
   const projects = allProjects.filter((project: any) => project.status === 'active') || [];
 
+  // Fetch customer locations for suggestions
+  const { data: customerLocations = [] } = useQuery({
+    queryKey: ['/api/customers/locations'],
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/customers/locations');
+      const result = await response.json();
+      return Array.isArray(result) ? result : [];
+    }
+  });
+
   // Fetch Smart Capture items for selected list
   const { data: selectedListWithItems, isLoading: itemsLoading, error: itemsError } = useQuery<SmartCaptureListWithItems>({
     queryKey: ['/api/smart-capture/lists', selectedSmartCaptureList?.id],
@@ -342,6 +354,33 @@ export default function SmartCapturePage() {
       item.location?.toLowerCase().includes(searchTerm)
     );
   });
+
+  // Function to handle location suggestions
+  const handleLocationSearch = (value: string) => {
+    if (!value.trim()) {
+      setLocationSuggestions([]);
+      setShowLocationSuggestions(false);
+      return;
+    }
+
+    const filtered = customerLocations.filter((location: any) => 
+      location.address?.toLowerCase().includes(value.toLowerCase()) ||
+      location.city?.toLowerCase().includes(value.toLowerCase()) ||
+      location.state?.toLowerCase().includes(value.toLowerCase()) ||
+      location.name?.toLowerCase().includes(value.toLowerCase())
+    );
+    
+    setLocationSuggestions(filtered);
+    setShowLocationSuggestions(filtered.length > 0);
+  };
+
+  // Function to apply selected location
+  const applyLocationSuggestion = (location: any) => {
+    masterItemForm.setValue('address', location.address || '');
+    masterItemForm.setValue('city', location.city || '');
+    masterItemForm.setValue('state', location.state || '');
+    setShowLocationSuggestions(false);
+  };
 
   // Function to search master items for automatic linking
   const searchMasterItems = async (searchValue: string, searchType: 'partNumber' | 'vehicleNumber' | 'inventoryNumber') => {
@@ -853,6 +892,9 @@ export default function SmartCapturePage() {
       inventoryNumber: "",
       masterPrice: "0",
       location: "",
+      address: "",
+      city: "",
+      state: "",
       quantity: 1,
       description: "",
       notes: ""
@@ -1748,12 +1790,85 @@ export default function SmartCapturePage() {
                             <FormItem>
                               <FormLabel>Default Location *</FormLabel>
                               <FormControl>
-                                <Input placeholder="e.g., Warehouse A - Shelf 1" {...field} data-testid="select-master-location" />
+                                <div className="relative">
+                                  <Input 
+                                    placeholder="e.g., Warehouse A - Shelf 1" 
+                                    {...field} 
+                                    onChange={(e) => {
+                                      field.onChange(e);
+                                      handleLocationSearch(e.target.value);
+                                    }}
+                                    data-testid="select-master-location" 
+                                  />
+                                  {showLocationSuggestions && locationSuggestions.length > 0 && (
+                                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                                      {locationSuggestions.map((location, index) => (
+                                        <div
+                                          key={index}
+                                          className="p-2 hover:bg-gray-100 cursor-pointer"
+                                          onClick={() => applyLocationSuggestion(location)}
+                                        >
+                                          <div className="font-medium">{location.name}</div>
+                                          <div className="text-sm text-gray-600">
+                                            {location.address}, {location.city}, {location.state}
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
                               </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
+                        
+                        {/* Address Fields */}
+                        <div className="grid grid-cols-1 gap-4">
+                          <FormField
+                            control={masterItemForm.control}
+                            name="address"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Address</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="e.g., 123 Main Street" {...field} data-testid="input-master-address" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                          <FormField
+                            control={masterItemForm.control}
+                            name="city"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>City</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="e.g., Dallas" {...field} data-testid="input-master-city" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={masterItemForm.control}
+                            name="state"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>State</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="e.g., TX" {...field} data-testid="input-master-state" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
                         
                         <FormField
                           control={masterItemForm.control}

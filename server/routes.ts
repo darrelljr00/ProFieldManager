@@ -22004,6 +22004,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Customer locations endpoint for Smart Capture location suggestions
+  app.get("/api/customers/locations", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      const locations = await storage.getCustomerLocations(user.organizationId);
+      res.json(locations);
+    } catch (error: any) {
+      console.error("Error fetching customer locations:", error);
+      res.status(500).json({ message: "Failed to fetch customer locations" });
+    }
+  });
+
   // Get specific Smart Capture item by ID
   app.get("/api/smart-capture/items/:id", requireAuth, async (req, res) => {
     try {
