@@ -289,15 +289,15 @@ export default function SmartCapturePage() {
   // Check if user is admin or manager
   const isAdminOrManager = user?.role === 'admin' || user?.role === 'manager';
 
-  // Find or create master inventory list
-  const masterInventoryList = smartCaptureLists.find(list => 
-    list.name === 'Master Inventory' || list.description?.includes('Master Inventory')
-  ) || smartCaptureLists[0]; // Fallback to first list if no master list found
-
   // Fetch Smart Capture lists
   const { data: smartCaptureLists = [], isLoading: smartCaptureLoading, error: smartCaptureError } = useQuery({
     queryKey: ['/api/smart-capture/lists']
   });
+
+  // Find or create master inventory list
+  const masterInventoryList = smartCaptureLists.find(list => 
+    list.name === 'Master Inventory' || list.description?.includes('Master Inventory')
+  ) || smartCaptureLists[0]; // Fallback to first list if no master list found
 
   // Fetch ALL projects for project selection in forms (not just active ones)
   const { data: allProjects = [] } = useQuery<any[]>({
