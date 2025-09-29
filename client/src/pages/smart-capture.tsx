@@ -294,18 +294,14 @@ export default function SmartCapturePage() {
   // Check if user is admin or manager
   const isAdminOrManager = user?.role === 'admin' || user?.role === 'manager';
 
-  // Fetch customer locations using React Query
-  const { data: customerLocations = [], isLoading: isLoadingLocations, error: locationsError } = useQuery<any[]>({
-    queryKey: ['/api/customers/locations'],
-    staleTime: 0, // Always fetch fresh data
-    refetchOnMount: true
-  });
+  // Invalidate customer locations cache on mount to force fresh fetch
+  useEffect(() => {
+    queryClient.invalidateQueries({ queryKey: ['/api/customers/locations'] });
+  }, []);
 
-  console.log('🏠 Customer Locations Query:', { 
-    customerLocations, 
-    count: customerLocations?.length, 
-    isLoadingLocations,
-    locationsError
+  // Fetch customer locations using React Query
+  const { data: customerLocations = [] } = useQuery<any[]>({
+    queryKey: ['/api/customers/locations']
   });
 
   // Fetch Smart Capture lists
