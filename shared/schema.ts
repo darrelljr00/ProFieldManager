@@ -345,6 +345,10 @@ export const quotes = pgTable("quotes", {
   expiryDate: timestamp("expiry_date").notNull(),
   acceptedAt: timestamp("accepted_at"),
   convertedInvoiceId: integer("converted_invoice_id").references(() => invoices.id),
+  approvalToken: text("approval_token"),
+  denialToken: text("denial_token"),
+  respondedAt: timestamp("responded_at"),
+  responseMethod: text("response_method"), // email, sms
   isDeleted: boolean("is_deleted").default(false).notNull(),
   deletedAt: timestamp("deleted_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
