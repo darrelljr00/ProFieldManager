@@ -9443,12 +9443,16 @@ export class DatabaseStorage implements IStorage {
     try {
       const { query, partNumber, vehicleNumber, inventoryNumber, limit = 50 } = filters;
       
+      // Debug: temporarily disable filters to see all items
+      console.log('🔍 SEARCHING Smart Capture items for organization:', organizationId);
+      
       // Build conditions for organization scoping and master list filtering
       const conditions: any[] = [
         eq(smartCaptureItems.organizationId, organizationId),
         eq(smartCaptureLists.organizationId, organizationId),
-        sql`${smartCaptureLists.name} NOT LIKE 'Project %'`, // Only master lists, not project-specific
-        isNull(smartCaptureItems.projectId) // Only master items, not project-specific items
+        // Temporarily commenting out these filters to see all items
+        // sql`${smartCaptureLists.name} NOT LIKE 'Project %'`, // Only master lists, not project-specific
+        // isNull(smartCaptureItems.projectId) // Only master items, not project-specific items
       ];
 
       if (partNumber) {
@@ -9475,7 +9479,8 @@ export class DatabaseStorage implements IStorage {
       }
 
       // Build WHERE conditions for raw SQL
-      let whereConditions = [`sci.organization_id = ${organizationId}`, `scl.organization_id = ${organizationId}`, `scl.name NOT LIKE 'Project %'`, `sci.project_id IS NULL`];
+      let whereConditions = [`sci.organization_id = ${organizationId}`, `scl.organization_id = ${organizationId}`];
+      // Temporarily removing project filters: `scl.name NOT LIKE 'Project %'`, `sci.project_id IS NULL`
       
       if (partNumber) {
         whereConditions.push(`sci.part_number = '${partNumber}'`);
