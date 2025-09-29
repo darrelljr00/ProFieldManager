@@ -94,6 +94,7 @@ function AuthenticatedApp() {
         'expense_created': ['/api/expenses', '/api/dashboard'],
         'expense_with_line_items_created': ['/api/expenses', '/api/dashboard'],
         'quote_created': ['/api/quotes', '/api/dashboard'],
+        'quote_response': ['/api/quotes', '/api/dashboard'],
         'customer_created': ['/api/customers'],
         'project_created': ['/api/projects', '/api/dashboard'],
         'job_status_changed': ['/api/projects', '/api/dispatch/scheduled-jobs', '/api/dashboard'],

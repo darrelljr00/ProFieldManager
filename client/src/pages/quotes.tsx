@@ -28,6 +28,13 @@ export default function Quotes() {
     queryKey: ["/api/quotes/trash"],
   });
 
+  // Calculate pending approvals count (sent quotes without response)
+  const pendingApprovalsCount = useMemo(() => {
+    return quotes.filter(quote => 
+      quote.status === 'sent' && !quote.respondedAt
+    ).length;
+  }, [quotes]);
+
   // Filter quotes based on search criteria
   const filteredQuotes = useMemo(() => {
     return quotes.filter(quote => {
@@ -110,9 +117,18 @@ export default function Quotes() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="active" className="flex items-center gap-2">
+          <TabsTrigger value="active" className="flex items-center gap-2 relative">
             <FileText className="h-4 w-4" />
             Active Quotes ({quotes.length})
+            {pendingApprovalsCount > 0 && (
+              <Badge 
+                variant="destructive" 
+                className="ml-1 h-5 w-5 text-xs flex items-center justify-center p-0 rounded-full"
+                data-testid="pending-approvals-badge"
+              >
+                {pendingApprovalsCount}
+              </Badge>
+            )}
           </TabsTrigger>
           <TabsTrigger value="trash" className="flex items-center gap-2">
             <Trash2 className="h-4 w-4" />

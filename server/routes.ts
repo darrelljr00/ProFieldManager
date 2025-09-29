@@ -4297,7 +4297,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Broadcast WebSocket notification to organization users
       const organizationId = existingQuote.user.organizationId || existingQuote.organization?.id;
       if (organizationId) {
-        (app as any).broadcastToOrganization('quote_response', {
+        broadcastToWebUsers(organizationId, 'quote_response', {
           quoteId: updatedQuote.id,
           action,
           status: updatedQuote.status,
@@ -4306,7 +4306,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           total: updatedQuote.total,
           respondedAt: updatedQuote.respondedAt,
           responseMethod: updatedQuote.responseMethod
-        }, organizationId);
+        });
       }
       
       res.json({
