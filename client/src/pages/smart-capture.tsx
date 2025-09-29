@@ -295,8 +295,17 @@ export default function SmartCapturePage() {
   const isAdminOrManager = user?.role === 'admin' || user?.role === 'manager';
 
   // Fetch customer locations using React Query
-  const { data: customerLocations = [] } = useQuery<any[]>({
-    queryKey: ['/api/customers/locations']
+  const { data: customerLocations = [], isLoading: isLoadingLocations, error: locationsError } = useQuery<any[]>({
+    queryKey: ['/api/customers/locations'],
+    staleTime: 0, // Always fetch fresh data
+    refetchOnMount: true
+  });
+
+  console.log('🏠 Customer Locations Query:', { 
+    customerLocations, 
+    count: customerLocations?.length, 
+    isLoadingLocations,
+    locationsError
   });
 
   // Fetch Smart Capture lists
