@@ -1844,35 +1844,43 @@ export default function SmartCapturePage() {
                             name="address"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Address</FormLabel>
+                                <FormLabel>Customer Address</FormLabel>
                                 <FormControl>
-                                  <div className="relative">
-                                    <Input 
-                                      placeholder="e.g., 123 Main Street" 
-                                      {...field} 
-                                      onChange={(e) => {
-                                        field.onChange(e);
-                                        handleLocationSearch(e.target.value);
-                                      }}
-                                      data-testid="input-master-address" 
-                                    />
-                                    {showLocationSuggestions && locationSuggestions.length > 0 && (
-                                      <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-auto">
-                                        {locationSuggestions.map((location, index) => (
-                                          <div
-                                            key={index}
-                                            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-                                            onClick={() => applyLocationSuggestion(location)}
-                                          >
-                                            <div className="font-medium">{location.name}</div>
-                                            <div className="text-sm text-gray-600 dark:text-gray-400">
-                                              {location.address}, {location.city}, {location.state}
+                                  <Select
+                                    value={field.value || ""}
+                                    onValueChange={(value) => {
+                                      const selectedLocation = customerLocations.find(
+                                        (loc: any) => loc.address === value
+                                      );
+                                      if (selectedLocation) {
+                                        field.onChange(value);
+                                        masterItemForm.setValue('city', selectedLocation.city || '');
+                                        masterItemForm.setValue('state', selectedLocation.state || '');
+                                      }
+                                    }}
+                                  >
+                                    <SelectTrigger data-testid="select-master-address">
+                                      <SelectValue placeholder="Select a customer address" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {customerLocations.length > 0 ? (
+                                        customerLocations.map((location: any, index: number) => (
+                                          <SelectItem key={index} value={location.address}>
+                                            <div className="flex flex-col">
+                                              <span className="font-medium">{location.name}</span>
+                                              <span className="text-sm text-muted-foreground">
+                                                {location.address}, {location.city}, {location.state}
+                                              </span>
                                             </div>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    )}
-                                  </div>
+                                          </SelectItem>
+                                        ))
+                                      ) : (
+                                        <SelectItem value="no-addresses" disabled>
+                                          No customer addresses available
+                                        </SelectItem>
+                                      )}
+                                    </SelectContent>
+                                  </Select>
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
