@@ -4231,6 +4231,95 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Quote routes
+  
+  // Public quote response routes (no authentication required)
+  app.get("/api/quotes/response/:action/:token", async (req, res) => {
+    try {
+      const { action, token } = req.params;
+      
+      if (action !== 'approve' && action !== 'deny') {
+        return res.status(400).json({ message: "Invalid action. Must be 'approve' or 'deny'" });
+      }
+      
+      const quote = await storage.getQuoteByToken(action as 'approve' | 'deny', token);
+      
+      if (!quote) {
+        return res.status(404).json({ message: "Quote not found or token invalid" });
+      }
+      
+      // Check if quote has already been responded to
+      if (quote.respondedAt) {
+        return res.status(400).json({ 
+          message: "This quote has already been responded to",
+          status: quote.status,
+          respondedAt: quote.respondedAt
+        });
+      }
+      
+      res.json(quote);
+    } catch (error: any) {
+      console.error("Error fetching quote by token:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  app.post("/api/quotes/response/:action/:token", async (req, res) => {
+    try {
+      const { action, token } = req.params;
+      const { responseMethod = 'email' } = req.body;
+      
+      if (action !== 'approve' && action !== 'deny') {
+        return res.status(400).json({ message: "Invalid action. Must be 'approve' or 'deny'" });
+      }
+      
+      // First check if quote exists and hasn't been responded to
+      const existingQuote = await storage.getQuoteByToken(action as 'approve' | 'deny', token);
+      
+      if (!existingQuote) {
+        return res.status(404).json({ message: "Quote not found or token invalid" });
+      }
+      
+      if (existingQuote.respondedAt) {
+        return res.status(400).json({ 
+          message: "This quote has already been responded to",
+          status: existingQuote.status,
+          respondedAt: existingQuote.respondedAt
+        });
+      }
+      
+      // Update quote with response
+      const updatedQuote = await storage.updateQuoteResponse(action as 'approve' | 'deny', token, responseMethod);
+      
+      if (!updatedQuote) {
+        return res.status(400).json({ message: "Failed to update quote response" });
+      }
+      
+      // Broadcast WebSocket notification to organization users
+      const organizationId = existingQuote.user.organizationId || existingQuote.organization?.id;
+      if (organizationId) {
+        (app as any).broadcastToOrganization('quote_response', {
+          quoteId: updatedQuote.id,
+          action,
+          status: updatedQuote.status,
+          customer: existingQuote.customer,
+          quoteNumber: updatedQuote.quoteNumber,
+          total: updatedQuote.total,
+          respondedAt: updatedQuote.respondedAt,
+          responseMethod: updatedQuote.responseMethod
+        }, organizationId);
+      }
+      
+      res.json({
+        success: true,
+        quote: updatedQuote,
+        message: `Quote ${action === 'approve' ? 'approved' : 'denied'} successfully`
+      });
+    } catch (error: any) {
+      console.error("Error updating quote response:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
   app.get("/api/quotes", requireAuth, async (req, res) => {
     try {
       const user = getAuthenticatedUser(req);
