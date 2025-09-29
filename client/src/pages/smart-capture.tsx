@@ -294,9 +294,24 @@ export default function SmartCapturePage() {
   // Check if user is admin or manager
   const isAdminOrManager = user?.role === 'admin' || user?.role === 'manager';
 
-  // Force invalidate customer locations cache on mount to ensure fresh data
+  // State for customer locations
+  const [customerLocations, setCustomerLocations] = useState<any[]>([]);
+
+  // Fetch customer locations directly with useEffect
   useEffect(() => {
-    queryClient.invalidateQueries({ queryKey: ['/api/customers/locations'] });
+    const fetchCustomerLocations = async () => {
+      try {
+        const response = await apiRequest('GET', '/api/customers/locations');
+        const data = await response.json();
+        console.log('✅ Customer locations fetched:', data);
+        setCustomerLocations(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error('❌ Error fetching customer locations:', error);
+        setCustomerLocations([]);
+      }
+    };
+    
+    fetchCustomerLocations();
   }, []);
 
   // Fetch Smart Capture lists
@@ -305,7 +320,7 @@ export default function SmartCapturePage() {
   });
 
   // Find or create master inventory list
-  const masterInventoryList = smartCaptureLists.find(list => 
+  const masterInventoryList = smartCaptureLists.find((list: any) => 
     list.name === 'Master Inventory' || list.description?.includes('Master Inventory')
   ) || smartCaptureLists[0]; // Fallback to first list if no master list found
 
@@ -316,28 +331,6 @@ export default function SmartCapturePage() {
 
   // For the dropdown, we'll show active projects plus any currently assigned project
   const projects = allProjects.filter((project: any) => project.status === 'active') || [];
-
-  // Fetch customer locations for suggestions
-  const { data: customerLocations = [], isError: customerLocationsError, isLoading: isLoadingCustomerLocations } = useQuery({
-    queryKey: ['/api/customers/locations'],
-    queryFn: async () => {
-      console.log('🚀 FETCHING customer locations with explicit auth...');
-      const response = await apiRequest('GET', '/api/customers/locations');
-      const result = await response.json();
-      console.log('✅ Customer locations fetched:', result);
-      return Array.isArray(result) ? result : [];
-    },
-    enabled: true,
-    refetchOnMount: true,
-    staleTime: 0,
-  });
-
-  console.log('🔍 CustomerLocations state:', {
-    customerLocations,
-    customerLocationsError,
-    isLoadingCustomerLocations,
-    length: customerLocations?.length
-  });
 
   // Fetch Smart Capture items for selected list
   const { data: selectedListWithItems, isLoading: itemsLoading, error: itemsError } = useQuery<SmartCaptureListWithItems>({

@@ -22008,12 +22008,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/customers/locations", requireAuth, async (req, res) => {
     try {
       const user = getAuthenticatedUser(req);
+      console.log('🔍 Customer locations request - User org ID:', user.organizationId, 'Type:', typeof user.organizationId);
       
       const locations = await storage.getCustomerLocations(user.organizationId);
+      console.log('✅ Customer locations fetched successfully:', locations.length);
       res.json(locations);
     } catch (error: any) {
-      console.error("Error fetching customer locations:", error);
-      res.status(500).json({ message: "Failed to fetch customer locations" });
+      console.error("❌ FULL Error fetching customer locations:", {
+        message: error.message,
+        stack: error.stack,
+        code: error.code,
+        detail: error.detail,
+        hint: error.hint
+      });
+      res.status(500).json({ message: error.message || "Failed to fetch customer locations" });
     }
   });
 
