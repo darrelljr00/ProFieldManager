@@ -269,6 +269,7 @@ export default function SmartCapturePage() {
   const [isEditItemDialogOpen, setIsEditItemDialogOpen] = useState(false);
   const [isEditListDialogOpen, setIsEditListDialogOpen] = useState(false);
   const [isDeleteListDialogOpen, setIsDeleteListDialogOpen] = useState(false);
+  const [isAddMasterItemDialogOpen, setIsAddMasterItemDialogOpen] = useState(false);
   const [selectedSmartCaptureList, setSelectedSmartCaptureList] = useState<any>(null);
   const [editingItem, setEditingItem] = useState<SmartCaptureItem | null>(null);
   const [editingList, setEditingList] = useState<SmartCaptureList | null>(null);
@@ -287,6 +288,11 @@ export default function SmartCapturePage() {
   
   // Check if user is admin or manager
   const isAdminOrManager = user?.role === 'admin' || user?.role === 'manager';
+
+  // Find or create master inventory list
+  const masterInventoryList = smartCaptureLists.find(list => 
+    list.name === 'Master Inventory' || list.description?.includes('Master Inventory')
+  ) || smartCaptureLists[0]; // Fallback to first list if no master list found
 
   // Fetch Smart Capture lists
   const { data: smartCaptureLists = [], isLoading: smartCaptureLoading, error: smartCaptureError } = useQuery({
@@ -648,6 +654,30 @@ export default function SmartCapturePage() {
     }
   });
 
+  // Mutation for creating master inventory items
+  const createMasterItemMutation = useMutation({
+    mutationFn: async (data: InsertSmartCaptureItem) => {
+      if (!masterInventoryList) {
+        throw new Error('No master inventory list found. Please create a Smart Capture list first.');
+      }
+      
+      const response = await apiRequest('POST', `/api/smart-capture/lists/${masterInventoryList.id}/items`, data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/smart-capture/lists'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/smart-capture/search'] });
+      setIsAddMasterItemDialogOpen(false);
+      masterItemForm.reset();
+      
+      toast({ title: "Success", description: "Master inventory item created successfully" });
+    },
+    onError: (error: any) => {
+      console.error('Error creating master item:', error);
+      toast({ title: "Error", description: error.message || "Failed to create master item. Please try again.", variant: "destructive" });
+    }
+  });
+
   const updateSmartCaptureItemMutation = useMutation({
     mutationFn: async (data: { itemId: number; updateData: Partial<InsertSmartCaptureItem> }) => {
       const response = await apiRequest('PUT', `/api/smart-capture/items/${data.itemId}`, data.updateData);
@@ -787,6 +817,21 @@ export default function SmartCapturePage() {
     }
   });
 
+  // Master item form for creating master inventory items
+  const masterItemForm = useForm({
+    resolver: zodResolver(insertSmartCaptureItemSchema),
+    defaultValues: {
+      partNumber: "",
+      vehicleNumber: "",
+      inventoryNumber: "",
+      masterPrice: "0",
+      location: "",
+      quantity: 1,
+      description: "",
+      notes: ""
+    }
+  });
+
   // Smart Capture form handlers with explicit typing
   const onSmartCaptureListSubmit = (data: any) => {
     createSmartCaptureListMutation.mutate(data as InsertSmartCaptureList);
@@ -810,6 +855,11 @@ export default function SmartCapturePage() {
       itemId: editingItem.id,
       updateData: data as InsertSmartCaptureItem
     });
+  };
+
+  // Submit handler for master item creation
+  const onMasterItemSubmit = (data: any) => {
+    createMasterItemMutation.mutate(data as InsertSmartCaptureItem);
   };
 
   const handleEditItem = (item: SmartCaptureItem) => {
@@ -1585,7 +1635,7 @@ export default function SmartCapturePage() {
                   <CardTitle>Master Inventory</CardTitle>
                   <p className="text-sm text-muted-foreground">Manage inventory items and master pricing</p>
                 </div>
-                <Dialog>
+                <Dialog open={isAddMasterItemDialogOpen} onOpenChange={setIsAddMasterItemDialogOpen}>
                   <DialogTrigger asChild>
                     <Button data-testid="button-add-master-item">
                       <Plus className="h-4 w-4 mr-2" />
@@ -1596,95 +1646,138 @@ export default function SmartCapturePage() {
                     <DialogHeader>
                       <DialogTitle>Add Master Inventory Item</DialogTitle>
                     </DialogHeader>
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="master-part-number">Part Number</Label>
-                          <Input 
-                            id="master-part-number" 
-                            placeholder="e.g., ABC-123" 
-                            data-testid="input-master-part-number"
+                    <Form {...masterItemForm}>
+                      <form onSubmit={masterItemForm.handleSubmit(onMasterItemSubmit)} className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <FormField
+                            control={masterItemForm.control}
+                            name="partNumber"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Part Number</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="e.g., ABC-123" {...field} data-testid="input-master-part-number" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={masterItemForm.control}
+                            name="vehicleNumber"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Vehicle Number</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="e.g., VH-001" {...field} data-testid="input-master-vehicle-number" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
                           />
                         </div>
-                        <div>
-                          <Label htmlFor="master-vehicle-number">Vehicle Number</Label>
-                          <Input 
-                            id="master-vehicle-number" 
-                            placeholder="e.g., VH-001" 
-                            data-testid="input-master-vehicle-number"
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                          <FormField
+                            control={masterItemForm.control}
+                            name="inventoryNumber"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Inventory Number</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="e.g., INV-456" {...field} data-testid="input-master-inventory-number" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={masterItemForm.control}
+                            name="masterPrice"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Master Price *</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    type="number" 
+                                    min="0" 
+                                    step="0.01" 
+                                    placeholder="0.00" 
+                                    {...field} 
+                                    data-testid="input-master-price-field"
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
                           />
                         </div>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="master-inventory-number">Inventory Number</Label>
-                          <Input 
-                            id="master-inventory-number" 
-                            placeholder="e.g., INV-456" 
-                            data-testid="input-master-inventory-number"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="master-price">Master Price *</Label>
-                          <Input 
-                            id="master-price" 
-                            type="number" 
-                            min="0" 
-                            step="0.01" 
-                            placeholder="0.00" 
-                            data-testid="input-master-price-field"
-                          />
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <Label htmlFor="master-location">Default Location *</Label>
-                        <Select>
-                          <SelectTrigger data-testid="select-master-location">
-                            <SelectValue placeholder="Select a location" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="warehouse-a">Warehouse A - Shelf 1</SelectItem>
-                            <SelectItem value="warehouse-b">Warehouse B - Shelf 2</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      
-                      <div>
-                        <Label htmlFor="master-description">Description</Label>
-                        <Input 
-                          id="master-description" 
-                          placeholder="Brief description of the item..." 
-                          data-testid="input-master-description"
+                        
+                        <FormField
+                          control={masterItemForm.control}
+                          name="location"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Default Location *</FormLabel>
+                              <FormControl>
+                                <Input placeholder="e.g., Warehouse A - Shelf 1" {...field} data-testid="select-master-location" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
                         />
-                      </div>
-                      
-                      <div>
-                        <Label htmlFor="master-notes">Notes</Label>
-                        <Textarea 
-                          id="master-notes" 
-                          placeholder="Additional notes..." 
-                          data-testid="input-master-notes"
+                        
+                        <FormField
+                          control={masterItemForm.control}
+                          name="description"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Description</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Brief description of the item..." {...field} data-testid="input-master-description" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
                         />
-                      </div>
-                      
-                      <div>
-                        <Label htmlFor="master-image">Item Image</Label>
-                        <input
-                          id="master-image"
-                          type="file"
-                          accept="image/*"
-                          className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                          data-testid="input-master-image"
+                        
+                        <FormField
+                          control={masterItemForm.control}
+                          name="notes"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Notes</FormLabel>
+                              <FormControl>
+                                <Textarea 
+                                  placeholder="Additional notes..." 
+                                  {...field} 
+                                  data-testid="input-master-notes"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
                         />
-                      </div>
-                      
-                      <div className="flex justify-end space-x-2">
-                        <Button variant="outline" data-testid="button-cancel-master-item">Cancel</Button>
-                        <Button data-testid="button-submit-master-item">Add Master Item</Button>
-                      </div>
-                    </div>
+                        
+                        <div className="flex justify-end space-x-2">
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            onClick={() => setIsAddMasterItemDialogOpen(false)}
+                            data-testid="button-cancel-master-item"
+                          >
+                            Cancel
+                          </Button>
+                          <Button 
+                            type="submit" 
+                            disabled={createMasterItemMutation.isPending}
+                            data-testid="button-submit-master-item"
+                          >
+                            {createMasterItemMutation.isPending ? "Adding..." : "Add Master Item"}
+                          </Button>
+                        </div>
+                      </form>
+                    </Form>
                   </DialogContent>
                 </Dialog>
               </CardHeader>
