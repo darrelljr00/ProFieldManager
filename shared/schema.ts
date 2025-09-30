@@ -3699,12 +3699,13 @@ export const inspectionTemplates = pgTable("inspection_templates", {
 export const inspectionItems = pgTable("inspection_items", {
   id: serial("id").primaryKey(),
   templateId: integer("template_id").notNull().references(() => inspectionTemplates.id),
-  category: text("category").notNull(), // 'safety', 'vehicle', 'equipment'
+  category: text("category").notNull(), // 'safety', 'vehicle', 'equipment', 'gas_card'
   name: text("name").notNull(),
   description: text("description"),
   isRequired: boolean("is_required").default(true),
   sortOrder: integer("sort_order").default(0),
   isActive: boolean("is_active").default(true),
+  itemType: text("item_type").default("regular"), // 'regular', 'gas_card_check_in', 'gas_card_check_out'
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -3731,9 +3732,11 @@ export const inspectionResponses = pgTable("inspection_responses", {
   id: serial("id").primaryKey(),
   recordId: integer("record_id").notNull().references(() => inspectionRecords.id),
   itemId: integer("item_id").notNull().references(() => inspectionItems.id),
-  response: text("response").notNull(), // 'pass', 'fail', 'na', 'needs_attention'
+  response: text("response").notNull(), // 'pass', 'fail', 'na', 'needs_attention', 'checked_in', 'checked_out'
   notes: text("notes"),
   photos: text("photos").array(), // Array of photo file paths for this specific item
+  gasCardId: integer("gas_card_id").references(() => gasCards.id), // For gas card check-in/check-out items
+  gasCardAssignmentId: integer("gas_card_assignment_id").references(() => gasCardAssignments.id), // Link to assignment record
   createdAt: timestamp("created_at").defaultNow(),
 });
 

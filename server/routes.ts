@@ -17622,14 +17622,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const record = await storage.createInspectionRecord(recordData);
       
-      // Create responses
+      // Create responses and handle gas card operations
       for (const response of responses) {
+        let gasCardAssignmentId = null;
+        
+        // Handle gas card check-in/check-out operations
+        if (response.gasCardId) {
+          // Ensure gasCardId is a number
+          const gasCardId = typeof response.gasCardId === 'number' 
+            ? response.gasCardId 
+            : parseInt(response.gasCardId);
+          
+          // Check if this is a check-out (pre-trip) or check-in (post-trip)
+          if (type === 'pre-trip' && response.response === 'checked_out') {
+            // Create a gas card assignment (check-out)
+            const assignment = await storage.createGasCardAssignment({
+              cardId: gasCardId,
+              assignedToUserId: user.id,
+              assignedBy: user.id,
+              assignedDate: new Date(),
+              status: 'assigned',
+              purpose: 'Field work',
+              notes: response.notes || 'Checked out via pre-trip inspection'
+            });
+            gasCardAssignmentId = assignment.id;
+          } else if (type === 'post-trip' && response.response === 'checked_in') {
+            // Find and return the gas card assignment (check-in)
+            const activeAssignments = await storage.getActiveGasCardAssignments();
+            const assignment = activeAssignments.find(a => 
+              a.cardId === gasCardId && a.assignedToUserId === user.id
+            );
+            
+            if (assignment) {
+              await storage.returnGasCard(assignment.id, new Date());
+              gasCardAssignmentId = assignment.id;
+            }
+          }
+        }
+        
         await storage.createInspectionResponse({
           recordId: record.id,
           itemId: response.itemId,
           response: response.response,
           notes: response.notes,
-          photos: response.photos || []
+          photos: response.photos || [],
+          gasCardId: response.gasCardId ? (typeof response.gasCardId === 'number' ? response.gasCardId : parseInt(response.gasCardId)) : null,
+          gasCardAssignmentId
         });
       }
       

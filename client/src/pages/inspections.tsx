@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   CheckCircle, XCircle, Clock, AlertTriangle, 
   Camera, Send, Plus, Trash2, Edit3, Upload, X, Eye, 
@@ -46,6 +47,7 @@ interface InspectionItem {
   category: string;
   description?: string;
   isRequired: boolean;
+  itemType?: 'regular' | 'gas_card_check_in' | 'gas_card_check_out';
 }
 
 interface InspectionRecord {
@@ -84,9 +86,10 @@ interface DetailedInspectionRecord extends InspectionRecord {
 
 interface InspectionFormResponse {
   itemId: number;
-  response: 'pass' | 'fail' | 'na' | 'needs_attention';
+  response: 'pass' | 'fail' | 'na' | 'needs_attention' | 'checked_in' | 'checked_out';
   notes?: string;
   photos?: string[];
+  gasCardId?: number;
 }
 
 const defaultInspectionItems = {
@@ -276,7 +279,8 @@ export default function Inspections() {
     name: '',
     category: '',
     description: '',
-    isRequired: false
+    isRequired: false,
+    itemType: 'regular' as 'regular' | 'gas_card_check_in' | 'gas_card_check_out'
   });
   const [editingItemId, setEditingItemId] = useState<number | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -289,6 +293,12 @@ export default function Inspections() {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
+  
+  // Fetch available gas cards
+  const { data: gasCards = [] } = useQuery({
+    queryKey: ['/api/gas-cards'],
+    enabled: !!user
+  });
   
   // Auto-populate technician name when user is logged in
   useEffect(() => {
@@ -321,7 +331,8 @@ export default function Inspections() {
       name: newInspectionItem.name.trim(),
       category: newInspectionItem.category.trim(),
       description: newInspectionItem.description.trim(),
-      isRequired: newInspectionItem.isRequired
+      isRequired: newInspectionItem.isRequired,
+      itemType: newInspectionItem.itemType
     };
 
     setCustomInspectionItems(prev => ({
@@ -334,7 +345,8 @@ export default function Inspections() {
       name: '',
       category: '',
       description: '',
-      isRequired: false
+      isRequired: false,
+      itemType: 'regular' as 'regular' | 'gas_card_check_in' | 'gas_card_check_out'
     });
 
     toast({ title: "Inspection item added successfully" });
@@ -523,7 +535,8 @@ export default function Inspections() {
           itemId: response.itemId,
           response: response.response,
           note: response.notes || '',
-          photos: uploadedImagePaths
+          photos: uploadedImagePaths,
+          gasCardId: response.gasCardId || null
         })),
         notes: notes,
         location: null // Can be enhanced with GPS data later
@@ -898,28 +911,65 @@ export default function Inspections() {
                             <p className="text-sm text-gray-600 mt-1">{item.description}</p>
                           )}
                         </div>
-                        <div className="flex gap-2">
-                          {['pass', 'fail', 'na', 'needs_attention'].map((status) => (
-                            <Button
-                              key={status}
-                              variant={getResponseForItem(item.id)?.response === status ? "default" : "outline"}
-                              size="sm"
-                              onClick={() => handleResponseChange(item.id, status as any)}
-                              className={cn(
-                                "px-3 py-1 text-xs",
-                                status === 'pass' && getResponseForItem(item.id)?.response === status && "bg-green-500 hover:bg-green-600",
-                                status === 'fail' && getResponseForItem(item.id)?.response === status && "bg-red-500 hover:bg-red-600",
-                                status === 'na' && getResponseForItem(item.id)?.response === status && "bg-gray-500 hover:bg-gray-600",
-                                status === 'needs_attention' && getResponseForItem(item.id)?.response === status && "bg-yellow-500 hover:bg-yellow-600"
-                              )}
+                        {/* Gas Card Check-Out Selector */}
+                        {item.itemType === 'gas_card_check_out' ? (
+                          <div className="w-64">
+                            <Select
+                              value={getResponseForItem(item.id)?.gasCardId?.toString() || ''}
+                              onValueChange={(value) => {
+                                const gasCardId = parseInt(value);
+                                const existingResponse = getResponseForItem(item.id);
+                                if (existingResponse) {
+                                  setCurrentInspection(prev => prev.map(r => 
+                                    r.itemId === item.id 
+                                      ? { ...r, gasCardId, response: 'checked_out' } 
+                                      : r
+                                  ));
+                                } else {
+                                  setCurrentInspection(prev => [...prev, {
+                                    itemId: item.id,
+                                    response: 'checked_out',
+                                    gasCardId
+                                  }]);
+                                }
+                              }}
                             >
-                              {status === 'pass' && 'Pass'}
-                              {status === 'fail' && 'Fail'}
-                              {status === 'na' && 'N/A'}
-                              {status === 'needs_attention' && 'Attention'}
-                            </Button>
-                          ))}
-                        </div>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select gas card to check out" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {(gasCards as any[]).map((card: any) => (
+                                  <SelectItem key={card.id} value={card.id.toString()}>
+                                    {card.cardName} ({card.cardNumber})
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        ) : (
+                          <div className="flex gap-2">
+                            {['pass', 'fail', 'na', 'needs_attention'].map((status) => (
+                              <Button
+                                key={status}
+                                variant={getResponseForItem(item.id)?.response === status ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => handleResponseChange(item.id, status as any)}
+                                className={cn(
+                                  "px-3 py-1 text-xs",
+                                  status === 'pass' && getResponseForItem(item.id)?.response === status && "bg-green-500 hover:bg-green-600",
+                                  status === 'fail' && getResponseForItem(item.id)?.response === status && "bg-red-500 hover:bg-red-600",
+                                  status === 'na' && getResponseForItem(item.id)?.response === status && "bg-gray-500 hover:bg-gray-600",
+                                  status === 'needs_attention' && getResponseForItem(item.id)?.response === status && "bg-yellow-500 hover:bg-yellow-600"
+                                )}
+                              >
+                                {status === 'pass' && 'Pass'}
+                                {status === 'fail' && 'Fail'}
+                                {status === 'na' && 'N/A'}
+                                {status === 'needs_attention' && 'Attention'}
+                              </Button>
+                            ))}
+                          </div>
+                        )}
                       </div>
                       
                       {getResponseForItem(item.id) && (
@@ -1138,28 +1188,65 @@ export default function Inspections() {
                             <p className="text-sm text-gray-600 mt-1">{item.description}</p>
                           )}
                         </div>
-                        <div className="flex gap-2">
-                          {['pass', 'fail', 'na', 'needs_attention'].map((status) => (
-                            <Button
-                              key={status}
-                              variant={getResponseForItem(item.id)?.response === status ? "default" : "outline"}
-                              size="sm"
-                              onClick={() => handleResponseChange(item.id, status as any)}
-                              className={cn(
-                                "px-3 py-1 text-xs",
-                                status === 'pass' && getResponseForItem(item.id)?.response === status && "bg-green-500 hover:bg-green-600",
-                                status === 'fail' && getResponseForItem(item.id)?.response === status && "bg-red-500 hover:bg-red-600",
-                                status === 'na' && getResponseForItem(item.id)?.response === status && "bg-gray-500 hover:bg-gray-600",
-                                status === 'needs_attention' && getResponseForItem(item.id)?.response === status && "bg-yellow-500 hover:bg-yellow-600"
-                              )}
+                        {/* Gas Card Check-In Selector */}
+                        {item.itemType === 'gas_card_check_in' ? (
+                          <div className="w-64">
+                            <Select
+                              value={getResponseForItem(item.id)?.gasCardId?.toString() || ''}
+                              onValueChange={(value) => {
+                                const gasCardId = parseInt(value);
+                                const existingResponse = getResponseForItem(item.id);
+                                if (existingResponse) {
+                                  setCurrentInspection(prev => prev.map(r => 
+                                    r.itemId === item.id 
+                                      ? { ...r, gasCardId, response: 'checked_in' } 
+                                      : r
+                                  ));
+                                } else {
+                                  setCurrentInspection(prev => [...prev, {
+                                    itemId: item.id,
+                                    response: 'checked_in',
+                                    gasCardId
+                                  }]);
+                                }
+                              }}
                             >
-                              {status === 'pass' && 'Pass'}
-                              {status === 'fail' && 'Fail'}
-                              {status === 'na' && 'N/A'}
-                              {status === 'needs_attention' && 'Attention'}
-                            </Button>
-                          ))}
-                        </div>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select gas card to check in" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {(gasCards as any[]).map((card: any) => (
+                                  <SelectItem key={card.id} value={card.id.toString()}>
+                                    {card.cardName} ({card.cardNumber})
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        ) : (
+                          <div className="flex gap-2">
+                            {['pass', 'fail', 'na', 'needs_attention'].map((status) => (
+                              <Button
+                                key={status}
+                                variant={getResponseForItem(item.id)?.response === status ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => handleResponseChange(item.id, status as any)}
+                                className={cn(
+                                  "px-3 py-1 text-xs",
+                                  status === 'pass' && getResponseForItem(item.id)?.response === status && "bg-green-500 hover:bg-green-600",
+                                  status === 'fail' && getResponseForItem(item.id)?.response === status && "bg-red-500 hover:bg-red-600",
+                                  status === 'na' && getResponseForItem(item.id)?.response === status && "bg-gray-500 hover:bg-gray-600",
+                                  status === 'needs_attention' && getResponseForItem(item.id)?.response === status && "bg-yellow-500 hover:bg-yellow-600"
+                                )}
+                              >
+                                {status === 'pass' && 'Pass'}
+                                {status === 'fail' && 'Fail'}
+                                {status === 'na' && 'N/A'}
+                                {status === 'needs_attention' && 'Attention'}
+                              </Button>
+                            ))}
+                          </div>
+                        )}
                       </div>
                       
                       {getResponseForItem(item.id) && (
@@ -1404,6 +1491,34 @@ export default function Inspections() {
                           placeholder="Detailed description of what to check"
                           rows={2}
                         />
+                      </div>
+                      <div>
+                        <Label htmlFor="itemType">Item Type</Label>
+                        <Select
+                          value={newInspectionItem.itemType}
+                          onValueChange={(value: 'regular' | 'gas_card_check_in' | 'gas_card_check_out') => 
+                            setNewInspectionItem(prev => ({ ...prev, itemType: value }))
+                          }
+                        >
+                          <SelectTrigger id="itemType">
+                            <SelectValue placeholder="Select item type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="regular">Regular Inspection Item</SelectItem>
+                            {editingTemplateType === 'pre-trip' && (
+                              <SelectItem value="gas_card_check_out">Gas Card Check-Out</SelectItem>
+                            )}
+                            {editingTemplateType === 'post-trip' && (
+                              <SelectItem value="gas_card_check_in">Gas Card Check-In</SelectItem>
+                            )}
+                          </SelectContent>
+                        </Select>
+                        {newInspectionItem.itemType === 'gas_card_check_out' && (
+                          <p className="text-sm text-gray-600 mt-1">Technician will check out a gas card during pre-trip inspection</p>
+                        )}
+                        {newInspectionItem.itemType === 'gas_card_check_in' && (
+                          <p className="text-sm text-gray-600 mt-1">Technician will check in a gas card during post-trip inspection</p>
+                        )}
                       </div>
                       <div className="flex items-center space-x-2">
                         <Checkbox
