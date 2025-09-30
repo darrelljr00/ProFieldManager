@@ -297,12 +297,10 @@ export function Sidebar() {
 
   // Fallback polling for navigation updates when WebSocket is not connected
   const { data: navigationUpdates } = useQuery({
-    queryKey: ["/api/navigation/check-updates"],
+    queryKey: ["/api/navigation/check-updates", "v2"], // Changed key to force recreation
     queryFn: async () => {
       const lastCheck = localStorage.getItem('last_navigation_check') || '1970-01-01T00:00:00.000Z';
-      const response = await fetch(`/api/navigation/check-updates?lastCheck=${encodeURIComponent(lastCheck)}`, {
-        headers: { 'Content-Type': 'application/json' }
-      });
+      const response = await apiRequest('GET', `/api/navigation/check-updates?lastCheck=${encodeURIComponent(lastCheck)}`);
       const data = await response.json();
       
       if (data.hasUpdates) {
