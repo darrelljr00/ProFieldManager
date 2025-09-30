@@ -17457,8 +17457,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = getAuthenticatedUser(req);
       const recordId = parseInt(req.params.id);
       
-      // Get the inspection record
-      const record = await storage.getInspectionRecord(recordId, user.id);
+      // Get the inspection record - now uses organizationId instead of userId
+      const record = await storage.getInspectionRecord(recordId, user.organizationId);
       if (!record) {
         return res.status(404).json({ message: "Inspection record not found" });
       }

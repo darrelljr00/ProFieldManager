@@ -4000,7 +4000,7 @@ export class DatabaseStorage implements IStorage {
     return record;
   }
 
-  async getInspectionRecord(recordId: number, userId: number): Promise<any> {
+  async getInspectionRecord(recordId: number, organizationId: number): Promise<any> {
     const results = await db
       .select({
         id: inspectionRecords.id,
@@ -4023,7 +4023,7 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(inspectionTemplates, eq(inspectionRecords.templateId, inspectionTemplates.id))
       .where(and(
         eq(inspectionRecords.id, recordId),
-        eq(inspectionRecords.userId, userId)
+        eq(inspectionRecords.organizationId, organizationId)
       ))
       .limit(1);
 
