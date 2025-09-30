@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { buildApiUrl, getAuthHeaders } from "@/lib/api-config";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -744,7 +745,15 @@ export default function Jobs() {
 
     try {
       setIsSearchingMaster(true);
-      const response = await fetch(`/api/smart-capture/search?${searchType}=${encodeURIComponent(searchValue.trim())}`);
+      
+      // Build authenticated URL with proper headers
+      const url = buildApiUrl(`/api/smart-capture/search?${searchType}=${encodeURIComponent(searchValue.trim())}`);
+      const headers = getAuthHeaders();
+      
+      const response = await fetch(url, {
+        headers,
+        credentials: 'include'
+      });
       
       if (response.ok) {
         const results = await response.json();
