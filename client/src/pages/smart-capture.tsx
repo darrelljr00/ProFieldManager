@@ -294,14 +294,18 @@ export default function SmartCapturePage() {
   // Check if user is admin or manager
   const isAdminOrManager = user?.role === 'admin' || user?.role === 'manager';
 
-  // Invalidate customer locations cache on mount to force fresh fetch
-  useEffect(() => {
-    queryClient.invalidateQueries({ queryKey: ['/api/customers/locations'] });
-  }, []);
-
-  // Fetch customer locations using React Query
-  const { data: customerLocations = [] } = useQuery<any[]>({
-    queryKey: ['/api/customers/locations']
+  // Fetch customer locations using React Query with explicit query function
+  const { data: customerLocations = [], isLoading: customerLocationsLoading, error: customerLocationsError } = useQuery<any[]>({
+    queryKey: ['/api/customers/locations'],
+    queryFn: async () => {
+      console.log('🔍 Fetching customer locations...');
+      const response = await apiRequest('GET', '/api/customers/locations');
+      const data = await response.json();
+      console.log('✅ Customer locations loaded:', data);
+      return data;
+    },
+    staleTime: 0, // Override the global Infinity to ensure fresh data
+    refetchOnMount: true
   });
 
   // Fetch Smart Capture lists
