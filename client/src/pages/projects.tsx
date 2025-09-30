@@ -2698,6 +2698,14 @@ export default function Jobs() {
                           <div key={item.id} className="bg-white border border-purple-100 rounded p-2">
                             <div className="flex justify-between items-start">
                               <div className="flex-1">
+                                {/* Master Inventory Link Indicator */}
+                                {item.masterItemId && (
+                                  <div className="mb-2 flex items-center gap-1 bg-green-50 border border-green-200 rounded px-2 py-1">
+                                    <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                                    <span className="text-xs font-medium text-green-700">Linked to Master Inventory</span>
+                                  </div>
+                                )}
+                                
                                 {/* Display all available item identifiers */}
                                 {item.vehicleNumber && (
                                   <p className="text-sm font-medium text-purple-900">Vehicle: {item.vehicleNumber}</p>
@@ -2994,7 +3002,7 @@ export default function Jobs() {
           <DialogHeader>
             <DialogTitle>Smart Capture</DialogTitle>
             <DialogDescription>
-              Add an item to this job's Smart Capture. Take a photo to automatically extract part/vehicle numbers, or enter manually.
+              Add an item to this job's Smart Capture. The system will automatically search and link to your master inventory when you enter part, vehicle, or inventory numbers.
             </DialogDescription>
           </DialogHeader>
           
@@ -3166,13 +3174,16 @@ export default function Jobs() {
               <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="h-2 w-2 bg-green-500 rounded-full"></div>
-                  <span className="text-sm font-medium text-green-800">Master Item Found</span>
+                  <span className="text-sm font-medium text-green-800">✓ Linked to Master Inventory</span>
                 </div>
-                <p className="text-sm text-green-700">
-                  <strong>{smartCaptureFormData.matchedMasterItem.name}</strong>
+                <p className="text-sm text-green-700 mb-1">
+                  <strong>{smartCaptureFormData.matchedMasterItem.name || smartCaptureFormData.matchedMasterItem.partNumber || smartCaptureFormData.matchedMasterItem.vehicleNumber || 'Master Item'}</strong>
                 </p>
                 <p className="text-sm text-green-600">
-                  Auto-populated price: <strong>${smartCaptureFormData.masterPrice}</strong>
+                  Price from master: <strong>${smartCaptureFormData.masterPrice}</strong>
+                </p>
+                <p className="text-xs text-green-600 mt-1">
+                  This item will be automatically linked to your master inventory
                 </p>
               </div>
             )}
