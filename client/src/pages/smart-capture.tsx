@@ -298,10 +298,22 @@ export default function SmartCapturePage() {
 
   // Fetch customer locations using React Query with explicit query function
   const { data: customerLocations = [], isLoading: customerLocationsLoading, error: customerLocationsError, refetch: refetchCustomerLocations } = useQuery<any[]>({
-    queryKey: ['/api/customers/locations'],
+    queryKey: ['/api/customers/locations', Date.now()], // Force unique key to bypass cache
     queryFn: async () => {
       console.log('🔍 Fetching customer locations...');
       const response = await apiRequest('GET', '/api/customers/locations');
+      console.log('📡 Customer locations response status:', response.status, response.statusText);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Customer locations API error:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorText
+        });
+        throw new Error(`Failed to fetch customer locations: ${response.status} - ${errorText}`);
+      }
+      
       const data = await response.json();
       console.log('✅ Customer locations loaded:', data);
       return data;
