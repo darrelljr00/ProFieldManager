@@ -349,7 +349,10 @@ export default function Inspections() {
       return;
     }
 
-    const newId = Date.now(); // Simple ID generation
+    // Generate a safe ID within PostgreSQL integer range (max 2147483647)
+    const existingIds = customInspectionItems[editingTemplateType].map(item => item.id);
+    const newId = existingIds.length > 0 ? Math.max(...existingIds) + 1 : 1;
+    
     const newItem: InspectionItem = {
       id: newId,
       name: newInspectionItem.name.trim(),
