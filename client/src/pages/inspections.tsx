@@ -73,6 +73,8 @@ interface InspectionResponse {
   itemCategory: string;
   itemDescription?: string;
   isRequired: boolean;
+  gasCardId?: number;
+  gasCardName?: string;
 }
 
 interface DetailedInspectionRecord extends InspectionRecord {
@@ -1720,6 +1722,12 @@ export default function Inspections() {
                               )}
                             </div>
                           </div>
+                          {(response.response === 'checked_out' || response.response === 'checked_in') && response.gasCardName && (
+                            <div className="mt-2 p-2 bg-blue-50 rounded">
+                              <p className="text-sm font-medium">Gas Card:</p>
+                              <p className="text-sm text-gray-700">{response.gasCardName}</p>
+                            </div>
+                          )}
                           {response.notes && (
                             <div className="mt-2">
                               <p className="text-sm font-medium">Notes:</p>

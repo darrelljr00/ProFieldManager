@@ -4115,10 +4115,13 @@ export class DatabaseStorage implements IStorage {
         itemName: inspectionItems.name,
         itemCategory: inspectionItems.category,
         itemDescription: inspectionItems.description,
-        isRequired: inspectionItems.isRequired
+        isRequired: inspectionItems.isRequired,
+        gasCardId: inspectionResponses.gasCardId,
+        gasCardName: gasCards.name
       })
       .from(inspectionResponses)
       .innerJoin(inspectionItems, eq(inspectionResponses.itemId, inspectionItems.id))
+      .leftJoin(gasCards, eq(inspectionResponses.gasCardId, gasCards.id))
       .where(eq(inspectionResponses.recordId, recordId))
       .orderBy(inspectionItems.sortOrder, inspectionItems.name);
   }
