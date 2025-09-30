@@ -367,14 +367,14 @@ export default function Inspections() {
       [editingTemplateType]: [...prev[editingTemplateType], newItem]
     }));
 
-    // Reset form
-    setNewInspectionItem({
+    // Reset form but preserve itemType so user can add multiple items of same type
+    setNewInspectionItem(prev => ({
       name: '',
       category: '',
       description: '',
       isRequired: false,
-      itemType: 'regular' as 'regular' | 'gas_card_check_in' | 'gas_card_check_out'
-    });
+      itemType: prev.itemType // Keep the selected item type
+    }));
 
     toast({ title: "Inspection item added successfully" });
   };
