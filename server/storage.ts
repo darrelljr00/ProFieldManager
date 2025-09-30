@@ -3950,8 +3950,23 @@ export class DatabaseStorage implements IStorage {
     return result.rowCount > 0;
   }
 
-  async getInspectionRecords(userId: number, organizationId: number, type?: string): Promise<any[]> {
-    let query = db
+  async getInspectionRecords(userId: number | null, organizationId: number, type?: string): Promise<any[]> {
+    // Build where conditions
+    const whereConditions = [
+      eq(inspectionRecords.organizationId, organizationId)
+    ];
+    
+    // Only filter by userId if provided
+    if (userId !== null) {
+      whereConditions.push(eq(inspectionRecords.userId, userId));
+    }
+    
+    // Add type filter if provided
+    if (type) {
+      whereConditions.push(eq(inspectionRecords.type, type));
+    }
+    
+    const query = db
       .select({
         id: inspectionRecords.id,
         userId: inspectionRecords.userId,
@@ -3971,19 +3986,8 @@ export class DatabaseStorage implements IStorage {
       })
       .from(inspectionRecords)
       .innerJoin(inspectionTemplates, eq(inspectionRecords.templateId, inspectionTemplates.id))
-      .where(and(
-        eq(inspectionRecords.userId, userId),
-        eq(inspectionRecords.organizationId, organizationId)
-      ))
+      .where(and(...whereConditions))
       .orderBy(desc(inspectionRecords.createdAt));
-
-    if (type) {
-      query = query.where(and(
-        eq(inspectionRecords.userId, userId),
-        eq(inspectionRecords.organizationId, organizationId),
-        eq(inspectionRecords.type, type)
-      ));
-    }
 
     return await query;
   }

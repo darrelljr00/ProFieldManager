@@ -17427,7 +17427,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const user = getAuthenticatedUser(req);
       const { type } = req.query;
-      const records = await storage.getInspectionRecords(user.id, user.organizationId, type as string);
+      // Pass null for userId to get ALL inspections for the organization
+      const records = await storage.getInspectionRecords(null, user.organizationId, type as string);
       
       // Add technician name to each record
       const recordsWithTechnicianName = await Promise.all(
