@@ -4005,6 +4005,7 @@ export class DatabaseStorage implements IStorage {
       .select({
         id: inspectionRecords.id,
         userId: inspectionRecords.userId,
+        organizationId: inspectionRecords.organizationId,
         templateId: inspectionRecords.templateId,
         type: inspectionRecords.type,
         vehicleInfo: inspectionRecords.vehicleInfo,
