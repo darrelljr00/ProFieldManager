@@ -491,7 +491,17 @@ export default function Inspections() {
     enabled: !!activeTab,
   });
   
-  const allInspectionRecords = [...submittedInspections, ...sampleInspectionRecords];
+  // Fetch inspection records from the database
+  const { data: inspectionRecords = [], isLoading: recordsLoading } = useQuery<InspectionRecord[]>({
+    queryKey: ["/api/inspections/records"],
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/inspections/records');
+      const result = await response.json();
+      return result;
+    },
+  });
+  
+  const allInspectionRecords = [...submittedInspections, ...inspectionRecords];
 
   // Fetch detailed inspection record when selected
   const { data: detailedInspection, isLoading: detailLoading } = useQuery<DetailedInspectionRecord>({
@@ -596,6 +606,10 @@ export default function Inspections() {
 
       // Show success message and reset form
       toast({ title: `Inspection submitted successfully by ${newInspectionRecord.technicianName}` });
+      
+      // Invalidate the inspection records query to refetch from database
+      queryClient.invalidateQueries({ queryKey: ["/api/inspections/records"] });
+      
       setCurrentInspection([]);
       setVehicleInfo({ vehicleNumber: '', licensePlate: '', mileage: '', fuelLevel: '' });
       setNotes('');
