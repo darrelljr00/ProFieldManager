@@ -295,7 +295,7 @@ export default function SmartCapturePage() {
   const isAdminOrManager = user?.role === 'admin' || user?.role === 'manager';
 
   // Fetch customer locations using React Query with explicit query function
-  const { data: customerLocations = [], isLoading: customerLocationsLoading, error: customerLocationsError } = useQuery<any[]>({
+  const { data: customerLocations = [], isLoading: customerLocationsLoading, error: customerLocationsError, refetch: refetchCustomerLocations } = useQuery<any[]>({
     queryKey: ['/api/customers/locations'],
     queryFn: async () => {
       console.log('🔍 Fetching customer locations...');
@@ -305,9 +305,15 @@ export default function SmartCapturePage() {
       return data;
     },
     staleTime: 0,
-    refetchOnMount: true,
-    retry: 2 // Retry failed queries up to 2 times
+    refetchOnMount: 'always', // Force refetch on every mount
+    retry: 3, // Retry failed queries up to 3 times
+    retryDelay: 1000 // Wait 1 second between retries
   });
+
+  // Force refetch on mount to clear any cached errors
+  useEffect(() => {
+    refetchCustomerLocations();
+  }, []);
 
   // Log query status for debugging
   useEffect(() => {
