@@ -161,6 +161,7 @@ function AuthenticatedApp() {
         
         <div className="flex-1 overflow-auto p-2 sm:p-4 md:p-6">
         <Switch>
+          <Route path="/smart-capture" component={SmartCapture} />
           <Route path="/" component={Dashboard} />
           <Route path="/dashboard" component={Dashboard} />
           <Route path="/calendar" component={CalendarPage} />
@@ -205,7 +206,6 @@ function AuthenticatedApp() {
           <Route path="/mobile-test" component={MobileTest} />
           <Route path="/users" component={Users} />
           <Route path="/parts-supplies" component={PartsSupplies} />
-          <Route path="/smart-capture" component={SmartCapture} />
           {isAdmin && <Route path="/admin-settings" component={AdminSettings} />}
           {isAdmin && <Route path="/saas-admin" component={SaasAdmin} />}
           {isAdmin && <Route path="/saas-admin/call-manager" component={SaasCallManagerPage} />}
