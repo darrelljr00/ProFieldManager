@@ -3755,6 +3755,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Customer locations endpoint for Smart Capture location suggestions
+  // NOTE: This MUST come BEFORE /api/customers/:id to avoid route conflict
+  app.get("/api/customers/locations", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const locations = await storage.getCustomerLocations(user.organizationId);
+      res.json(locations);
+    } catch (error: any) {
+      console.error("❌ Error fetching customer locations:", error);
+      res.status(500).json({ message: error.message || "Failed to fetch customer locations" });
+    }
+  });
+
   app.get("/api/customers/:id", async (req, res) => {
     try {
       const customer = await storage.getCustomer(parseInt(req.params.id), req.user.id);
@@ -22001,27 +22014,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid search parameters", errors: error.errors });
       }
       res.status(500).json({ message: "Failed to search smart capture items" });
-    }
-  });
-
-  // Customer locations endpoint for Smart Capture location suggestions
-  app.get("/api/customers/locations", requireAuth, async (req, res) => {
-    try {
-      const user = getAuthenticatedUser(req);
-      console.log('🔍 Customer locations request - User org ID:', user.organizationId, 'Type:', typeof user.organizationId);
-      
-      const locations = await storage.getCustomerLocations(user.organizationId);
-      console.log('✅ Customer locations fetched successfully:', locations.length);
-      res.json(locations);
-    } catch (error: any) {
-      console.error("❌ FULL Error fetching customer locations:", {
-        message: error.message,
-        stack: error.stack,
-        code: error.code,
-        detail: error.detail,
-        hint: error.hint
-      });
-      res.status(500).json({ message: error.message || "Failed to fetch customer locations" });
     }
   });
 
