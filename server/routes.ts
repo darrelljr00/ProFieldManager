@@ -17428,7 +17428,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = getAuthenticatedUser(req);
       const { type } = req.query;
       const records = await storage.getInspectionRecords(user.id, user.organizationId, type as string);
-      res.json(records);
+      
+      // Add technician name to each record
+      const recordsWithTechnicianName = await Promise.all(
+        records.map(async (record) => {
+          const technician = await storage.getUser(record.userId);
+          const technicianName = technician 
+            ? `${technician.firstName || ''} ${technician.lastName || ''}`.trim() || technician.username
+            : 'Unknown';
+          return {
+            ...record,
+            technicianName
+          };
+        })
+      );
+      
+      res.json(recordsWithTechnicianName);
     } catch (error: any) {
       console.error("Error fetching inspection records:", error);
       res.status(500).json({ message: "Failed to fetch inspection records" });

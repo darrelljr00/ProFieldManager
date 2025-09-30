@@ -3967,12 +3967,10 @@ export class DatabaseStorage implements IStorage {
         photos: inspectionRecords.photos,
         signature: inspectionRecords.signature,
         createdAt: inspectionRecords.createdAt,
-        templateName: inspectionTemplates.name,
-        reviewerName: users.firstName
+        templateName: inspectionTemplates.name
       })
       .from(inspectionRecords)
       .innerJoin(inspectionTemplates, eq(inspectionRecords.templateId, inspectionTemplates.id))
-      .leftJoin(users, eq(inspectionRecords.reviewedBy, users.id))
       .where(and(
         eq(inspectionRecords.userId, userId),
         eq(inspectionRecords.organizationId, organizationId)
