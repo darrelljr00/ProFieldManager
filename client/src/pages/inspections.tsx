@@ -188,23 +188,47 @@ function SortableItem({
                 placeholder="Description"
                 rows={2}
               />
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  checked={item.isRequired}
-                  onCheckedChange={(checked) => updateInspectionItem(item.id, { isRequired: !!checked })}
-                />
-                <Label>Required item</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    checked={item.isRequired}
+                    onCheckedChange={(checked) => updateInspectionItem(item.id, { isRequired: !!checked })}
+                  />
+                  <Label>Required item</Label>
+                </div>
+                <div>
+                  <Label>Item Type</Label>
+                  <Select
+                    value={item.itemType || 'regular'}
+                    onValueChange={(value) => updateInspectionItem(item.id, { itemType: value as 'regular' | 'gas_card_check_in' | 'gas_card_check_out' })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select item type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="regular">Regular Inspection Item</SelectItem>
+                      <SelectItem value="gas_card_check_out">Gas Card Check-Out</SelectItem>
+                      <SelectItem value="gas_card_check_in">Gas Card Check-In</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
           ) : (
             // View mode
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h4 className="font-medium">{item.name}</h4>
                 {item.isRequired && (
                   <Badge variant="destructive" className="text-xs">Required</Badge>
                 )}
                 <Badge variant="outline" className="text-xs">{item.category}</Badge>
+                {item.itemType === 'gas_card_check_out' && (
+                  <Badge variant="default" className="text-xs bg-blue-500">Gas Card Check-Out</Badge>
+                )}
+                {item.itemType === 'gas_card_check_in' && (
+                  <Badge variant="default" className="text-xs bg-green-500">Gas Card Check-In</Badge>
+                )}
               </div>
               {item.description && (
                 <p className="text-sm text-gray-600 mt-1">{item.description}</p>
