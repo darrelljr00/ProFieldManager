@@ -986,7 +986,16 @@ export class DatabaseStorage implements IStorage {
 
   async getCustomerLocations(organizationId: number): Promise<any[]> {
     try {
-      console.log('📍 getCustomerLocations called for org:', organizationId);
+      console.log('📍 getCustomerLocations called for org:', organizationId, 'Type:', typeof organizationId);
+      
+      // Ensure organizationId is a valid number
+      const orgId = parseInt(String(organizationId));
+      if (isNaN(orgId)) {
+        console.error('❌ Invalid organizationId:', organizationId);
+        return [];
+      }
+      
+      console.log('📍 Using validated org ID:', orgId);
       
       // Fetch unique customer locations for autocomplete suggestions
       const locations = await db
@@ -997,7 +1006,7 @@ export class DatabaseStorage implements IStorage {
           state: customers.state,
         })
         .from(customers)
-        .where(eq(customers.organizationId, organizationId))
+        .where(eq(customers.organizationId, orgId))
         .limit(100);
       
       console.log('📍 Found locations count:', locations.length);
