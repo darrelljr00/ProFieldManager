@@ -304,9 +304,23 @@ export default function SmartCapturePage() {
       console.log('✅ Customer locations loaded:', data);
       return data;
     },
-    staleTime: 0, // Override the global Infinity to ensure fresh data
-    refetchOnMount: true
+    staleTime: 0,
+    refetchOnMount: true,
+    retry: 2 // Retry failed queries up to 2 times
   });
+
+  // Log query status for debugging
+  useEffect(() => {
+    if (customerLocationsError) {
+      console.error('❌ Customer locations query error:', customerLocationsError);
+    }
+    if (customerLocationsLoading) {
+      console.log('⏳ Customer locations loading...');
+    }
+    if (customerLocations) {
+      console.log('📍 Customer locations available:', customerLocations.length);
+    }
+  }, [customerLocations, customerLocationsLoading, customerLocationsError]);
 
   // Fetch Smart Capture lists
   const { data: smartCaptureLists = [], isLoading: smartCaptureLoading, error: smartCaptureError } = useQuery({

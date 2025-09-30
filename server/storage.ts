@@ -988,14 +988,11 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log('📍 getCustomerLocations called for org:', organizationId, 'Type:', typeof organizationId);
       
-      // Ensure organizationId is a valid number
-      const orgId = parseInt(String(organizationId));
-      if (isNaN(orgId)) {
+      // Validate organizationId is a valid number (trust the type, just verify it exists)
+      if (!organizationId || typeof organizationId !== 'number') {
         console.error('❌ Invalid organizationId:', organizationId);
-        return [];
+        throw new Error('Organization ID must be a valid number');
       }
-      
-      console.log('📍 Using validated org ID:', orgId);
       
       // Fetch unique customer locations for autocomplete suggestions
       const locations = await db
@@ -1006,7 +1003,7 @@ export class DatabaseStorage implements IStorage {
           state: customers.state,
         })
         .from(customers)
-        .where(eq(customers.organizationId, orgId))
+        .where(eq(customers.organizationId, organizationId))
         .limit(100);
       
       console.log('📍 Found locations count:', locations.length);
