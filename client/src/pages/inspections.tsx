@@ -576,6 +576,22 @@ export default function Inspections() {
       return;
     }
 
+    // Check that all required items are completed
+    const requiredItems = inspectionItems?.filter(item => item.isRequired) || [];
+    const completedRequiredItems = requiredItems.filter(item => 
+      currentInspection.some(response => response.itemId === item.id)
+    );
+    
+    if (completedRequiredItems.length < requiredItems.length) {
+      const missingCount = requiredItems.length - completedRequiredItems.length;
+      toast({ 
+        title: "Please complete all required items", 
+        description: `${missingCount} required item${missingCount > 1 ? 's' : ''} still need to be completed`,
+        variant: "destructive" 
+      });
+      return;
+    }
+
     if (!user) {
       toast({ title: "You must be logged in to submit an inspection", variant: "destructive" });
       return;
