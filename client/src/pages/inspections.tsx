@@ -547,7 +547,7 @@ export default function Inspections() {
     }
 
     // Check that all required items are completed
-    const requiredItems = inspectionItems?.filter(item => item.isRequired) || [];
+    const requiredItems = inspectionItems?.filter(item => item.isRequired && item.type === activeTab) || [];
     const completedRequiredItems = requiredItems.filter(item => 
       currentInspection.some(response => response.itemId === item.id)
     );
@@ -985,7 +985,7 @@ export default function Inspections() {
 
                 {/* Inspection Items */}
                 <div className="space-y-4">
-                  {(inspectionItems || []).map((item) => (
+                  {(inspectionItems || []).filter(item => item.type === 'pre-trip').map((item) => (
                     <div key={item.id} className="border rounded-lg p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
@@ -1262,7 +1262,7 @@ export default function Inspections() {
 
                 {/* Inspection Items */}
                 <div className="space-y-4">
-                  {(inspectionItems || []).map((item) => (
+                  {(inspectionItems || []).filter(item => item.type === 'post-trip').map((item) => (
                     <div key={item.id} className="border rounded-lg p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
