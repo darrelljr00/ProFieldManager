@@ -327,45 +327,6 @@ export default function Inspections() {
     enabled: !!user
   });
   
-  // Mutation for creating inspection items
-  const createInspectionItemMutation = useMutation({
-    mutationFn: async (itemData: {
-      name: string;
-      description: string;
-      category: string;
-      isRequired: boolean;
-      type: string;
-      itemType: string;
-    }) => {
-      const response = await apiRequest('POST', '/api/inspections/items', itemData);
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/inspections/items'] });
-    }
-  });
-
-  // Mutation for updating inspection items
-  const updateInspectionItemMutation = useMutation({
-    mutationFn: async ({ id, ...updates }: { id: number; name?: string; description?: string; category?: string; isRequired?: boolean; itemType?: string }) => {
-      const response = await apiRequest('PUT', `/api/inspections/items/${id}`, updates);
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/inspections/items'] });
-    }
-  });
-
-  // Mutation for deleting inspection items
-  const deleteInspectionItemMutation = useMutation({
-    mutationFn: async (id: number) => {
-      const response = await apiRequest('DELETE', `/api/inspections/items/${id}`);
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/inspections/items'] });
-    }
-  });
   
   // Auto-populate technician name when user is logged in
   useEffect(() => {
@@ -386,77 +347,58 @@ export default function Inspections() {
   }, []);
 
   // Helper functions for inspection settings
-  const addNewInspectionItem = async () => {
+  const addNewInspectionItem = () => {
     if (!newInspectionItem.name.trim() || !newInspectionItem.category.trim()) {
       toast({ title: "Please fill in all required fields", variant: "destructive" });
       return;
     }
 
-    try {
-      // Save to database
-      const createdItem = await createInspectionItemMutation.mutateAsync({
-        name: newInspectionItem.name.trim(),
-        description: newInspectionItem.description.trim(),
-        category: newInspectionItem.category.trim(),
-        isRequired: newInspectionItem.isRequired,
-        type: editingTemplateType,
-        itemType: newInspectionItem.itemType
-      });
+    // Generate a safe ID within PostgreSQL integer range (max 2147483647)
+    const existingIds = customInspectionItems[editingTemplateType].map(item => item.id);
+    const newId = existingIds.length > 0 ? Math.max(...existingIds) + 1 : 1;
+    
+    const newItem: InspectionItem = {
+      id: newId,
+      name: newInspectionItem.name.trim(),
+      category: newInspectionItem.category.trim(),
+      description: newInspectionItem.description.trim(),
+      isRequired: newInspectionItem.isRequired,
+      itemType: newInspectionItem.itemType
+    };
 
-      // Also add to local state for immediate UI update
-      setCustomInspectionItems(prev => ({
-        ...prev,
-        [editingTemplateType]: [...prev[editingTemplateType], createdItem]
-      }));
+    setCustomInspectionItems(prev => ({
+      ...prev,
+      [editingTemplateType]: [...prev[editingTemplateType], newItem]
+    }));
 
-      // Reset form but preserve itemType so user can add multiple items of same type
-      setNewInspectionItem(prev => ({
-        name: '',
-        category: '',
-        description: '',
-        isRequired: false,
-        itemType: prev.itemType // Keep the selected item type
-      }));
+    // Reset form but preserve itemType so user can add multiple items of same type
+    setNewInspectionItem(prev => ({
+      name: '',
+      category: '',
+      description: '',
+      isRequired: false,
+      itemType: prev.itemType // Keep the selected item type
+    }));
 
-      toast({ title: "Inspection item added successfully" });
-    } catch (error) {
-      console.error('Error creating inspection item:', error);
-      toast({ title: "Failed to create inspection item", variant: "destructive" });
-    }
+    toast({ title: "Inspection item added successfully" });
   };
 
-  const deleteInspectionItem = async (itemId: number) => {
-    try {
-      await deleteInspectionItemMutation.mutateAsync(itemId);
-      
-      setCustomInspectionItems(prev => ({
-        ...prev,
-        [editingTemplateType]: prev[editingTemplateType].filter(item => item.id !== itemId)
-      }));
-      
-      toast({ title: "Inspection item deleted successfully" });
-    } catch (error) {
-      console.error('Error deleting inspection item:', error);
-      toast({ title: "Failed to delete inspection item", variant: "destructive" });
-    }
+  const deleteInspectionItem = (itemId: number) => {
+    setCustomInspectionItems(prev => ({
+      ...prev,
+      [editingTemplateType]: prev[editingTemplateType].filter(item => item.id !== itemId)
+    }));
+    toast({ title: "Inspection item deleted successfully" });
   };
 
-  const updateInspectionItem = async (itemId: number, updates: Partial<InspectionItem>) => {
-    try {
-      await updateInspectionItemMutation.mutateAsync({ id: itemId, ...updates });
-      
-      setCustomInspectionItems(prev => ({
-        ...prev,
-        [editingTemplateType]: prev[editingTemplateType].map(item => 
-          item.id === itemId ? { ...item, ...updates } : item
-        )
-      }));
-      
-      toast({ title: "Inspection item updated successfully" });
-    } catch (error) {
-      console.error('Error updating inspection item:', error);
-      toast({ title: "Failed to update inspection item", variant: "destructive" });
-    }
+  const updateInspectionItem = (itemId: number, updates: Partial<InspectionItem>) => {
+    setCustomInspectionItems(prev => ({
+      ...prev,
+      [editingTemplateType]: prev[editingTemplateType].map(item => 
+        item.id === itemId ? { ...item, ...updates } : item
+      )
+    }));
+    toast({ title: "Inspection item updated successfully" });
   };
 
   const resetTemplateToDefaults = () => {
@@ -501,9 +443,37 @@ export default function Inspections() {
 
     setIsSaving(true);
     try {
-      // Here you would typically save to the backend
-      // For now, we'll just simulate a save
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const currentItems = customInspectionItems[editingTemplateType];
+      
+      // Save each item to the database
+      for (const item of currentItems) {
+        // Check if item exists in database (has a real DB id from fetched items)
+        const isExistingItem = inspectionItems?.some(dbItem => dbItem.id === item.id);
+        
+        if (isExistingItem) {
+          // Update existing item
+          await apiRequest('PUT', `/api/inspections/items/${item.id}`, {
+            name: item.name,
+            description: item.description,
+            category: item.category,
+            isRequired: item.isRequired,
+            itemType: item.itemType
+          });
+        } else {
+          // Create new item
+          await apiRequest('POST', '/api/inspections/items', {
+            name: item.name,
+            description: item.description,
+            category: item.category,
+            isRequired: item.isRequired,
+            type: editingTemplateType,
+            itemType: item.itemType
+          });
+        }
+      }
+      
+      // Refresh the inspection items from database
+      queryClient.invalidateQueries({ queryKey: ['/api/inspections/items'] });
       
       setHasUnsavedChanges(false);
       toast({ title: "Inspection settings saved successfully", variant: "default" });
