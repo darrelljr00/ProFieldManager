@@ -985,7 +985,7 @@ export default function Inspections() {
 
                 {/* Inspection Items */}
                 <div className="space-y-4">
-                  {(customInspectionItems['pre-trip'] || []).map((item) => (
+                  {(inspectionItems || []).map((item) => (
                     <div key={item.id} className="border rounded-lg p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
@@ -1262,7 +1262,7 @@ export default function Inspections() {
 
                 {/* Inspection Items */}
                 <div className="space-y-4">
-                  {(customInspectionItems['post-trip'] || []).map((item) => (
+                  {(inspectionItems || []).map((item) => (
                     <div key={item.id} className="border rounded-lg p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
