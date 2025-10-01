@@ -17383,46 +17383,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/inspections/items", requireAuth, async (req, res) => {
-    try {
-      const user = getAuthenticatedUser(req);
-      const { type = 'pre-trip' } = req.query;
-      
-      // Get default template for the type
-      const templates = await storage.getInspectionTemplates(user.organizationId, type as string);
-      const defaultTemplate = templates.find(t => t.isDefault) || templates[0];
-      
-      if (!defaultTemplate) {
-        // Return default items if no template exists
-        const defaultItems = {
-          'pre-trip': [
-            { id: 1, category: "Vehicle Safety", name: "Mirrors", description: "Check all mirrors for proper adjustment and cleanliness", isRequired: true },
-            { id: 2, category: "Vehicle Safety", name: "Tires", description: "Inspect tire pressure and tread depth", isRequired: true },
-            { id: 3, category: "Vehicle Safety", name: "Lights", description: "Test headlights, taillights, and hazard lights", isRequired: true },
-            { id: 4, category: "Vehicle Safety", name: "Turn Signals", description: "Check left and right turn signals", isRequired: true },
-            { id: 5, category: "Equipment", name: "Chemicals", description: "Verify chemical levels and proper storage", isRequired: true },
-            { id: 6, category: "Equipment", name: "O-rings", description: "Inspect o-rings for wear and proper sealing", isRequired: true },
-            { id: 7, category: "Equipment", name: "Nozzles", description: "Check nozzle condition and spray patterns", isRequired: true }
-          ],
-          'post-trip': [
-            { id: 8, category: "Equipment", name: "Chemical Storage", description: "Secure all chemicals properly", isRequired: true },
-            { id: 9, category: "Equipment", name: "Equipment Cleaning", description: "Clean and store all equipment", isRequired: true },
-            { id: 10, category: "Vehicle", name: "Fuel Level", description: "Record fuel level at end of shift", isRequired: true },
-            { id: 11, category: "Vehicle", name: "Mileage", description: "Record ending mileage", isRequired: true },
-            { id: 12, category: "Safety", name: "Incident Report", description: "Report any incidents or issues", isRequired: false }
-          ]
-        };
-        return res.json(defaultItems[type as keyof typeof defaultItems] || []);
-      }
-      
-      const items = await storage.getInspectionItems(defaultTemplate.id);
-      res.json(items);
-    } catch (error: any) {
-      console.error("Error fetching inspection items:", error);
-      res.status(500).json({ message: "Failed to fetch inspection items" });
-    }
-  });
-
   app.get("/api/inspections/records", requireAuth, async (req, res) => {
     try {
       const user = getAuthenticatedUser(req);
@@ -17543,9 +17503,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Get inspection items for the template
+      // Get inspection items for the template and add type field
       const items = await storage.getInspectionItems(templateId);
-      res.json(items);
+      const itemsWithType = items.map(item => ({ ...item, type: type as string }));
+      res.json(itemsWithType);
     } catch (error: any) {
       console.error("Error fetching inspection items:", error);
       res.status(500).json({ message: "Failed to fetch inspection items" });
@@ -17621,6 +17582,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!vehicleInfo.fuelLevel || !vehicleInfo.fuelLevel.trim()) {
         return res.status(400).json({ message: "Fuel Level is required" });
+      }
+      
+      // Validate that all response item IDs are valid for this template
+      const validItems = await storage.getInspectionItems(templateId);
+      const validItemIds = new Set(validItems.map(item => item.id));
+      const invalidResponses = responses.filter(r => !validItemIds.has(r.itemId));
+      
+      if (invalidResponses.length > 0) {
+        const invalidIds = invalidResponses.map(r => r.itemId).join(', ');
+        console.error(`⚠️ Invalid item IDs detected: ${invalidIds}`);
+        return res.status(400).json({ 
+          message: "Invalid inspection items detected. Please refresh the page and try again.",
+          invalidItemIds: invalidIds
+        });
       }
       
       // Create inspection record
