@@ -336,15 +336,19 @@ export default function Inspections() {
     }
   }, [user]);
 
-  // Initialize custom inspection items from default templates
+  // Initialize custom inspection items from database
   useEffect(() => {
-    if (customInspectionItems['pre-trip'].length === 0) {
+    if (inspectionItems && inspectionItems.length > 0) {
+      // Group items by type
+      const preTripItems = inspectionItems.filter(item => item.type === 'pre-trip');
+      const postTripItems = inspectionItems.filter(item => item.type === 'post-trip');
+      
       setCustomInspectionItems({
-        'pre-trip': defaultInspectionItems['pre-trip'].map((item, index) => ({ ...item, id: index + 1 })),
-        'post-trip': defaultInspectionItems['post-trip'].map((item, index) => ({ ...item, id: index + 100 }))
+        'pre-trip': preTripItems,
+        'post-trip': postTripItems
       });
     }
-  }, []);
+  }, [inspectionItems]);
 
   // Helper functions for inspection settings
   const addNewInspectionItem = () => {
@@ -353,17 +357,17 @@ export default function Inspections() {
       return;
     }
 
-    // Generate a safe ID within PostgreSQL integer range (max 2147483647)
-    const existingIds = customInspectionItems[editingTemplateType].map(item => item.id);
-    const newId = existingIds.length > 0 ? Math.max(...existingIds) + 1 : 1;
+    // Generate a unique temporary ID (negative number to avoid conflicts with real DB IDs)
+    const tempId = -Date.now();
     
     const newItem: InspectionItem = {
-      id: newId,
+      id: tempId,
       name: newInspectionItem.name.trim(),
       category: newInspectionItem.category.trim(),
       description: newInspectionItem.description.trim(),
       isRequired: newInspectionItem.isRequired,
-      itemType: newInspectionItem.itemType
+      itemType: newInspectionItem.itemType,
+      type: editingTemplateType // Add the type for proper filtering
     };
 
     setCustomInspectionItems(prev => ({
@@ -445,21 +449,15 @@ export default function Inspections() {
     try {
       const currentItems = customInspectionItems[editingTemplateType];
       
-      // Save each item to the database
-      for (const item of currentItems) {
-        // Check if item exists in database (has a real DB id from fetched items)
-        const isExistingItem = inspectionItems?.some(dbItem => dbItem.id === item.id);
+      // Save each item to the database with sortOrder
+      for (let i = 0; i < currentItems.length; i++) {
+        const item = currentItems[i];
         
-        if (isExistingItem) {
-          // Update existing item
-          await apiRequest('PUT', `/api/inspections/items/${item.id}`, {
-            name: item.name,
-            description: item.description,
-            category: item.category,
-            isRequired: item.isRequired,
-            itemType: item.itemType
-          });
-        } else {
+        // Items with negative IDs are new (temporary IDs)
+        // Items with positive IDs are existing (from database)
+        const isNewItem = item.id < 0;
+        
+        if (isNewItem) {
           // Create new item
           await apiRequest('POST', '/api/inspections/items', {
             name: item.name,
@@ -467,7 +465,18 @@ export default function Inspections() {
             category: item.category,
             isRequired: item.isRequired,
             type: editingTemplateType,
-            itemType: item.itemType
+            itemType: item.itemType,
+            sortOrder: i
+          });
+        } else {
+          // Update existing item
+          await apiRequest('PUT', `/api/inspections/items/${item.id}`, {
+            name: item.name,
+            description: item.description,
+            category: item.category,
+            isRequired: item.isRequired,
+            itemType: item.itemType,
+            sortOrder: i
           });
         }
       }

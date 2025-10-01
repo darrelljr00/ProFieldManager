@@ -17738,7 +17738,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/inspections/items", requireAuth, async (req, res) => {
     try {
       const user = getAuthenticatedUser(req);
-      const { name, description, category, isRequired, type, itemType } = req.body;
+      const { name, description, category, isRequired, type, itemType, sortOrder } = req.body;
       
       // Get or create default template for the specified type
       const templates = await storage.getInspectionTemplates(user.organizationId, type);
@@ -17763,7 +17763,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         description,
         isRequired,
         itemType: itemType || 'regular',
-        sortOrder: 999
+        sortOrder: sortOrder !== undefined ? sortOrder : 999
       });
       
       res.json(item);
@@ -17777,14 +17777,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/inspections/items/:id", requireAuth, async (req, res) => {
     try {
       const itemId = parseInt(req.params.id);
-      const { name, description, category, isRequired, itemType } = req.body;
+      const { name, description, category, isRequired, itemType, sortOrder } = req.body;
       
       const updatedItem = await storage.updateInspectionItem(itemId, {
         name,
         description,
         category,
         isRequired,
-        itemType
+        itemType,
+        ...(sortOrder !== undefined && { sortOrder })
       });
       
       if (!updatedItem) {
