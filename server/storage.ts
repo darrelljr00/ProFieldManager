@@ -4119,7 +4119,7 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(inspectionItems, eq(inspectionResponses.itemId, inspectionItems.id))
       .leftJoin(gasCards, eq(inspectionResponses.gasCardId, gasCards.id))
       .where(eq(inspectionResponses.recordId, recordId))
-      .orderBy(inspectionItems.sortOrder, inspectionItems.name);
+      .orderBy(asc(inspectionItems.sortOrder));
   }
 
   async createInspectionResponse(responseData: any): Promise<any> {
