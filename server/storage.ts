@@ -4113,7 +4113,7 @@ export class DatabaseStorage implements IStorage {
         itemDescription: inspectionItems.description,
         isRequired: inspectionItems.isRequired,
         gasCardId: inspectionResponses.gasCardId,
-        gasCardName: gasCards.cardName
+        gasCardName: sql<string | null>`${gasCards.cardName}`.as('gasCardName')
       })
       .from(inspectionResponses)
       .innerJoin(inspectionItems, eq(inspectionResponses.itemId, inspectionItems.id))
