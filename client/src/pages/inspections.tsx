@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { 
   CheckCircle, XCircle, Clock, AlertTriangle, 
   Camera, Send, Plus, Trash2, Edit3, Upload, X, Eye, 
-  GripVertical, Save
+  GripVertical, Save, Search, Filter
 } from "lucide-react";
 import {
   DndContext,
@@ -48,6 +48,7 @@ interface InspectionItem {
   description?: string;
   isRequired: boolean;
   itemType?: 'regular' | 'gas_card_check_in' | 'gas_card_check_out';
+  type?: 'pre-trip' | 'post-trip';
 }
 
 interface InspectionRecord {
@@ -313,6 +314,14 @@ export default function Inspections() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   
+  // Inspection History Filters
+  const [filterTechnician, setFilterTechnician] = useState('');
+  const [filterDateFrom, setFilterDateFrom] = useState('');
+  const [filterDateTo, setFilterDateTo] = useState('');
+  const [filterType, setFilterType] = useState<string>('all');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [filterVehicle, setFilterVehicle] = useState('');
+  
   // Drag and drop sensors
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -327,6 +336,18 @@ export default function Inspections() {
     enabled: !!user
   });
   
+  // Fetch inspection items from API
+  const { data: inspectionItems, isLoading: itemsLoading, error: itemsError } = useQuery({
+    queryKey: ["/api/inspections/items", activeTab],
+    queryFn: async () => {
+      console.log('Fetching inspection items for type:', activeTab);
+      const response = await apiRequest('GET', `/api/inspections/items?type=${activeTab}`);
+      const result = await response.json();
+      console.log('Fetched inspection items:', result);
+      return result;
+    },
+    enabled: !!activeTab,
+  });
   
   // Auto-populate technician name when user is logged in
   useEffect(() => {
@@ -517,19 +538,6 @@ export default function Inspections() {
     { id: 2, type: "post-trip", status: "completed", submittedAt: "2025-06-28T17:45:00Z", templateName: "Standard Post-Trip", technicianName: "Mike Johnson", vehicleInfo: { licensePlate: "ABC-123", mileage: "45,180" } }
   ];
 
-  // Fetch inspection items from API
-  const { data: inspectionItems, isLoading: itemsLoading, error: itemsError } = useQuery({
-    queryKey: ["/api/inspections/items", activeTab],
-    queryFn: async () => {
-      console.log('Fetching inspection items for type:', activeTab);
-      const response = await apiRequest('GET', `/api/inspections/items?type=${activeTab}`);
-      const result = await response.json();
-      console.log('Fetched inspection items:', result);
-      return result;
-    },
-    enabled: !!activeTab,
-  });
-  
   // Fetch inspection records from the database
   const { data: inspectionRecords = [], isLoading: recordsLoading } = useQuery<InspectionRecord[]>({
     queryKey: ["/api/inspections/records"],
@@ -541,6 +549,68 @@ export default function Inspections() {
   });
   
   const allInspectionRecords = [...submittedInspections, ...inspectionRecords];
+
+  // Filter inspection records based on search criteria
+  const filteredInspectionRecords = allInspectionRecords.filter(record => {
+    // Filter by technician name
+    if (filterTechnician && !record.technicianName?.toLowerCase().includes(filterTechnician.toLowerCase())) {
+      return false;
+    }
+
+    // Filter by date range
+    if (filterDateFrom && record.submittedAt) {
+      const recordDate = new Date(record.submittedAt);
+      const fromDate = new Date(filterDateFrom);
+      if (recordDate < fromDate) {
+        return false;
+      }
+    }
+
+    if (filterDateTo && record.submittedAt) {
+      const recordDate = new Date(record.submittedAt);
+      const toDate = new Date(filterDateTo);
+      toDate.setHours(23, 59, 59, 999); // End of day
+      if (recordDate > toDate) {
+        return false;
+      }
+    }
+
+    // Filter by inspection type
+    if (filterType !== 'all' && record.type !== filterType) {
+      return false;
+    }
+
+    // Filter by status
+    if (filterStatus !== 'all' && record.status !== filterStatus) {
+      return false;
+    }
+
+    // Filter by vehicle
+    if (filterVehicle && record.vehicleInfo) {
+      const vehicleMatch = 
+        record.vehicleInfo.licensePlate?.toLowerCase().includes(filterVehicle.toLowerCase()) ||
+        record.vehicleInfo.vehicleNumber?.toLowerCase().includes(filterVehicle.toLowerCase());
+      if (!vehicleMatch) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+
+  // Clear filters function
+  const clearFilters = () => {
+    setFilterTechnician('');
+    setFilterDateFrom('');
+    setFilterDateTo('');
+    setFilterType('all');
+    setFilterStatus('all');
+    setFilterVehicle('');
+  };
+
+  // Check if any filters are active
+  const hasActiveFilters = filterTechnician || filterDateFrom || filterDateTo || 
+    filterType !== 'all' || filterStatus !== 'all' || filterVehicle;
 
   // Fetch detailed inspection record when selected
   const { data: detailedInspection, isLoading: detailLoading } = useQuery<DetailedInspectionRecord>({
@@ -1480,12 +1550,131 @@ export default function Inspections() {
           <TabsContent value="history" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Inspection History</CardTitle>
+                <CardTitle className="flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <Search className="w-5 h-5" />
+                    Inspection History
+                  </span>
+                  {hasActiveFilters && (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={clearFilters}
+                      data-testid="clear-filters"
+                    >
+                      <X className="w-4 h-4 mr-1" />
+                      Clear Filters
+                    </Button>
+                  )}
+                </CardTitle>
               </CardHeader>
-              <CardContent>
-                {allInspectionRecords?.length > 0 ? (
+              <CardContent className="space-y-6">
+                {/* Filter Controls */}
+                <Card className="border-dashed">
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Filter className="w-4 h-4" />
+                      Search & Filter
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {/* Technician Name Search */}
+                      <div>
+                        <Label htmlFor="filter-technician">Technician Name</Label>
+                        <Input
+                          id="filter-technician"
+                          placeholder="Search by name..."
+                          value={filterTechnician}
+                          onChange={(e) => setFilterTechnician(e.target.value)}
+                          data-testid="input-filter-technician"
+                        />
+                      </div>
+
+                      {/* Date From */}
+                      <div>
+                        <Label htmlFor="filter-date-from">Date From</Label>
+                        <Input
+                          id="filter-date-from"
+                          type="date"
+                          value={filterDateFrom}
+                          onChange={(e) => setFilterDateFrom(e.target.value)}
+                          data-testid="input-filter-date-from"
+                        />
+                      </div>
+
+                      {/* Date To */}
+                      <div>
+                        <Label htmlFor="filter-date-to">Date To</Label>
+                        <Input
+                          id="filter-date-to"
+                          type="date"
+                          value={filterDateTo}
+                          onChange={(e) => setFilterDateTo(e.target.value)}
+                          data-testid="input-filter-date-to"
+                        />
+                      </div>
+
+                      {/* Inspection Type */}
+                      <div>
+                        <Label htmlFor="filter-type">Inspection Type</Label>
+                        <Select value={filterType} onValueChange={setFilterType}>
+                          <SelectTrigger id="filter-type" data-testid="select-filter-type">
+                            <SelectValue placeholder="All types" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Types</SelectItem>
+                            <SelectItem value="pre-trip">Pre-Trip</SelectItem>
+                            <SelectItem value="post-trip">Post-Trip</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Status */}
+                      <div>
+                        <Label htmlFor="filter-status">Status</Label>
+                        <Select value={filterStatus} onValueChange={setFilterStatus}>
+                          <SelectTrigger id="filter-status" data-testid="select-filter-status">
+                            <SelectValue placeholder="All statuses" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Statuses</SelectItem>
+                            <SelectItem value="completed">Completed</SelectItem>
+                            <SelectItem value="pending">Pending</SelectItem>
+                            <SelectItem value="reviewed">Reviewed</SelectItem>
+                            <SelectItem value="needs_attention">Needs Attention</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Vehicle Search */}
+                      <div>
+                        <Label htmlFor="filter-vehicle">Vehicle</Label>
+                        <Input
+                          id="filter-vehicle"
+                          placeholder="License plate or number..."
+                          value={filterVehicle}
+                          onChange={(e) => setFilterVehicle(e.target.value)}
+                          data-testid="input-filter-vehicle"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Results Count */}
+                    <div className="mt-4 pt-4 border-t">
+                      <p className="text-sm text-gray-600">
+                        Showing <span className="font-semibold">{filteredInspectionRecords.length}</span> of{' '}
+                        <span className="font-semibold">{allInspectionRecords.length}</span> inspections
+                        {hasActiveFilters && <span className="text-blue-600"> (filtered)</span>}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Inspection Records List */}
+                {filteredInspectionRecords?.length > 0 ? (
                   <div className="space-y-4">
-                    {allInspectionRecords.map((record: InspectionRecord) => (
+                    {filteredInspectionRecords.map((record: InspectionRecord) => (
                       <div 
                         key={record.id} 
                         className="border rounded-lg p-4 cursor-pointer hover:bg-gray-50 transition-colors"
@@ -1516,7 +1705,24 @@ export default function Inspections() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-gray-500">No inspection records found.</p>
+                  <div className="text-center py-8">
+                    <Search className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                    {hasActiveFilters ? (
+                      <>
+                        <p className="text-gray-600 font-medium mb-2">No inspections match your search criteria</p>
+                        <p className="text-sm text-gray-500 mb-4">Try adjusting your filters to see more results</p>
+                        <Button variant="outline" onClick={clearFilters} size="sm">
+                          <X className="w-4 h-4 mr-1" />
+                          Clear All Filters
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-gray-600 font-medium mb-2">No inspection records found</p>
+                        <p className="text-sm text-gray-500">Inspections will appear here once they are submitted</p>
+                      </>
+                    )}
+                  </div>
                 )}
               </CardContent>
             </Card>
