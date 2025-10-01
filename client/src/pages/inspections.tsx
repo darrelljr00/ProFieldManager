@@ -273,6 +273,7 @@ function SortableItem({
 
 export default function Inspections() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const preTripFileInputRef = useRef<HTMLInputElement>(null);
   const postTripFileInputRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState('pre-trip');
