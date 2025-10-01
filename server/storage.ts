@@ -4001,34 +4001,33 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getInspectionRecord(recordId: number, organizationId: number): Promise<any> {
+    // First get the record
     const results = await db
-      .select({
-        id: inspectionRecords.id,
-        userId: inspectionRecords.userId,
-        organizationId: inspectionRecords.organizationId,
-        templateId: inspectionRecords.templateId,
-        type: inspectionRecords.type,
-        vehicleInfo: inspectionRecords.vehicleInfo,
-        status: inspectionRecords.status,
-        submittedAt: inspectionRecords.submittedAt,
-        reviewedBy: inspectionRecords.reviewedBy,
-        reviewedAt: inspectionRecords.reviewedAt,
-        reviewNotes: inspectionRecords.reviewNotes,
-        location: inspectionRecords.location,
-        photos: inspectionRecords.photos,
-        signature: inspectionRecords.signature,
-        createdAt: inspectionRecords.createdAt,
-        templateName: inspectionTemplates.name
-      })
+      .select()
       .from(inspectionRecords)
-      .innerJoin(inspectionTemplates, eq(inspectionRecords.templateId, inspectionTemplates.id))
       .where(and(
         eq(inspectionRecords.id, recordId),
         eq(inspectionRecords.organizationId, organizationId)
       ))
       .limit(1);
 
-    return results.length > 0 ? results[0] : null;
+    if (results.length === 0) {
+      return null;
+    }
+
+    const record = results[0];
+
+    // Then get the template name separately
+    const template = await db
+      .select()
+      .from(inspectionTemplates)
+      .where(eq(inspectionTemplates.id, record.templateId))
+      .limit(1);
+
+    return {
+      ...record,
+      templateName: template.length > 0 ? template[0].name : null
+    };
   }
 
   // Get all inspection records for organization (Manager/Admin only)
