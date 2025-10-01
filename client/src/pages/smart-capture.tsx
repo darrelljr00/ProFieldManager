@@ -296,38 +296,10 @@ export default function SmartCapturePage() {
   // Check if user is admin or manager
   const isAdminOrManager = user?.role === 'admin' || user?.role === 'manager';
 
-  // Fetch customer locations using React Query with explicit query function
-  const { data: customerLocations = [], isLoading: customerLocationsLoading, error: customerLocationsError, refetch: refetchCustomerLocations } = useQuery<any[]>({
-    queryKey: ['/api/customers/locations', Date.now()], // Force unique key to bypass cache
-    queryFn: async () => {
-      console.log('🔍 Fetching customer locations...');
-      const response = await apiRequest('GET', '/api/customers/locations');
-      console.log('📡 Customer locations response status:', response.status, response.statusText);
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ Customer locations API error:', {
-          status: response.status,
-          statusText: response.statusText,
-          error: errorText
-        });
-        throw new Error(`Failed to fetch customer locations: ${response.status} - ${errorText}`);
-      }
-      
-      const data = await response.json();
-      console.log('✅ Customer locations loaded:', data);
-      return data;
-    },
-    staleTime: 0,
-    refetchOnMount: 'always', // Force refetch on every mount
-    retry: 3, // Retry failed queries up to 3 times
-    retryDelay: 1000 // Wait 1 second between retries
+  // Fetch customer locations using React Query
+  const { data: customerLocations = [], isLoading: customerLocationsLoading, error: customerLocationsError } = useQuery<any[]>({
+    queryKey: ['/api/customers/locations']
   });
-
-  // Force refetch on mount to clear any cached errors
-  useEffect(() => {
-    refetchCustomerLocations();
-  }, []);
 
   // Log query status for debugging
   useEffect(() => {
@@ -339,6 +311,14 @@ export default function SmartCapturePage() {
     }
     if (customerLocations) {
       console.log('📍 Customer locations available:', customerLocations.length);
+      const validLocations = customerLocations.filter((loc: any) => loc.address);
+      console.log('📍 Valid customer locations (with addresses):', validLocations.length);
+      console.log('📍 Sample valid locations:', validLocations.slice(0, 3).map((loc: any) => ({
+        name: loc.name,
+        address: loc.address,
+        city: loc.city,
+        state: loc.state
+      })));
     }
   }, [customerLocations, customerLocationsLoading, customerLocationsError]);
 
@@ -1897,24 +1877,30 @@ export default function SmartCapturePage() {
                                         <SelectItem value="loading" disabled>
                                           Loading customer addresses...
                                         </SelectItem>
-                                      ) : customerLocations.filter((loc: any) => loc.address).length > 0 ? (
-                                        customerLocations
-                                          .filter((loc: any) => loc.address)
-                                          .map((location: any, index: number) => (
+                                      ) : (() => {
+                                        const validLocations = customerLocations.filter((loc: any) => loc.address);
+                                        console.log('🎯 Rendering dropdown - Valid locations count:', validLocations.length);
+                                        console.log('🎯 First 3 valid locations:', validLocations.slice(0, 3));
+                                        
+                                        if (validLocations.length > 0) {
+                                          return validLocations.map((location: any, index: number) => (
                                             <SelectItem key={index} value={location.address}>
                                               <div className="flex flex-col">
                                                 <span className="font-medium">{location.name}</span>
                                                 <span className="text-sm text-muted-foreground">
-                                                  {location.address}, {location.city}, {location.state}
+                                                  {location.address}{location.city ? `, ${location.city}` : ''}{location.state ? `, ${location.state}` : ''}
                                                 </span>
                                               </div>
                                             </SelectItem>
-                                          ))
-                                      ) : (
-                                        <SelectItem value="no-addresses" disabled>
-                                          No customer addresses available
-                                        </SelectItem>
-                                      )}
+                                          ));
+                                        } else {
+                                          return (
+                                            <SelectItem value="no-addresses" disabled>
+                                              No customer addresses available
+                                            </SelectItem>
+                                          );
+                                        }
+                                      })()}
                                     </SelectContent>
                                   </Select>
                                 </FormControl>
