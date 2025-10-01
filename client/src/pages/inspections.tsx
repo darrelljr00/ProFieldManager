@@ -349,6 +349,9 @@ export default function Inspections() {
     enabled: !!activeTab,
   });
   
+  // Combine fetched items and custom items
+  const allItems = [...(inspectionItems || []), ...customItems];
+  
   // Auto-populate technician name when user is logged in
   useEffect(() => {
     if (user) {
@@ -766,9 +769,6 @@ export default function Inspections() {
     }
   };
 
-  // Combine fetched items and custom items
-  const allItems = [...(inspectionItems || []), ...customItems];
-  
   // Show loading state if items are still loading
   if (itemsLoading) {
     return (
