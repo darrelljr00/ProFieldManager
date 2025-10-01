@@ -4001,9 +4001,26 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getInspectionRecord(recordId: number, organizationId: number): Promise<any> {
-    // First get the record
+    // First get the record - explicitly select all columns to avoid Drizzle ORM issues
     const results = await db
-      .select()
+      .select({
+        id: inspectionRecords.id,
+        userId: inspectionRecords.userId,
+        organizationId: inspectionRecords.organizationId,
+        templateId: inspectionRecords.templateId,
+        type: inspectionRecords.type,
+        vehicleInfo: inspectionRecords.vehicleInfo,
+        status: inspectionRecords.status,
+        submittedAt: inspectionRecords.submittedAt,
+        reviewedBy: inspectionRecords.reviewedBy,
+        reviewedAt: inspectionRecords.reviewedAt,
+        reviewNotes: inspectionRecords.reviewNotes,
+        location: inspectionRecords.location,
+        photos: inspectionRecords.photos,
+        signature: inspectionRecords.signature,
+        createdAt: inspectionRecords.createdAt,
+        updatedAt: inspectionRecords.updatedAt
+      })
       .from(inspectionRecords)
       .where(and(
         eq(inspectionRecords.id, recordId),
@@ -4019,7 +4036,9 @@ export class DatabaseStorage implements IStorage {
 
     // Then get the template name separately
     const template = await db
-      .select()
+      .select({
+        name: inspectionTemplates.name
+      })
       .from(inspectionTemplates)
       .where(eq(inspectionTemplates.id, record.templateId))
       .limit(1);
