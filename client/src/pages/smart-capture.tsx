@@ -1890,20 +1890,26 @@ export default function SmartCapturePage() {
                                     }}
                                   >
                                     <SelectTrigger data-testid="select-master-address">
-                                      <SelectValue placeholder="Select a customer address" />
+                                      <SelectValue placeholder={customerLocationsLoading ? "Loading addresses..." : "Select a customer address"} />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      {customerLocations.length > 0 ? (
-                                        customerLocations.map((location: any, index: number) => (
-                                          <SelectItem key={index} value={location.address}>
-                                            <div className="flex flex-col">
-                                              <span className="font-medium">{location.name}</span>
-                                              <span className="text-sm text-muted-foreground">
-                                                {location.address}, {location.city}, {location.state}
-                                              </span>
-                                            </div>
-                                          </SelectItem>
-                                        ))
+                                      {customerLocationsLoading ? (
+                                        <SelectItem value="loading" disabled>
+                                          Loading customer addresses...
+                                        </SelectItem>
+                                      ) : customerLocations.filter((loc: any) => loc.address).length > 0 ? (
+                                        customerLocations
+                                          .filter((loc: any) => loc.address)
+                                          .map((location: any, index: number) => (
+                                            <SelectItem key={index} value={location.address}>
+                                              <div className="flex flex-col">
+                                                <span className="font-medium">{location.name}</span>
+                                                <span className="text-sm text-muted-foreground">
+                                                  {location.address}, {location.city}, {location.state}
+                                                </span>
+                                              </div>
+                                            </SelectItem>
+                                          ))
                                       ) : (
                                         <SelectItem value="no-addresses" disabled>
                                           No customer addresses available
