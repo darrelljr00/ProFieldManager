@@ -1,0 +1,91 @@
+XHRGET
+https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/inspections/records/16
+[HTTP/1.1 500 Internal Server Error 125ms]
+
+	
+GET
+	https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/inspections/records/16
+Status
+500
+Internal Server Error
+VersionHTTP/1.1
+Transferred729 B (55 B size)
+Referrer Policystrict-origin-when-cross-origin
+Request PriorityHighest
+DNS ResolutionDNS over HTTPS
+
+	
+Access-Control-Allow-Credentials
+	true
+Access-Control-Allow-Headers
+	Origin, X-Requested-With, Content-Type, Accept, Authorization, Cookie
+Access-Control-Allow-Methods
+	GET, POST, PUT, DELETE, PATCH, OPTIONS
+Access-Control-Allow-Origin
+	*
+Access-Control-Expose-Headers
+	Set-Cookie
+Content-Length
+	55
+Content-Type
+	application/json; charset=utf-8
+Date
+	Wed, 01 Oct 2025 02:55:03 GMT
+Etag
+	W/"37-jT7hX1/qqr66PabHFjj6AUITldM"
+Replit-Cluster
+	riker
+X-Powered-By
+	Express
+X-Robots-Tag
+	none, noindex, noarchive, nofollow, nositelinkssearchbox, noimageindex
+X-Robots-Tag
+	none, noindex, noarchive, nofollow, nositelinkssearchbox, noimageindex
+	
+Accept
+	*/*
+Accept-Encoding
+	gzip, deflate, br, zstd
+Accept-Language
+	en-US,en;q=0.5
+Authorization
+	Bearer 8eaeb3a80a163a362f6ee62f9b3038437d63f269968f184572e54880c20b9192
+Connection
+	keep-alive
+DNT
+	1
+Host
+	d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev
+Priority
+	u=0
+Referer
+	https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/inspections
+Sec-Fetch-Dest
+	empty
+Sec-Fetch-Mode
+	cors
+Sec-Fetch-Site
+	same-origin
+User-Agent
+	Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:143.0) Gecko/20100101 Firefox/143.0
+❌ HTTP Error Response: 
+Object { status: 500, statusText: "Internal Server Error", url: "https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/inspections/records/16", headers: {…}, body: '{"message":"Failed to fetch inspection record details"}' }
+Console.js:61:15
+    o Console.js:61
+    throwIfResNotOk queryClient.ts:15
+    getQueryFn queryClient.ts:120
+    fetchFn query.ts:429
+    run retryer.ts:153
+    start retryer.ts:218
+    fetch query.ts:540
+    executeFetch_fn queryObserver.ts:346
+    setOptions queryObserver.ts:199
+    useBaseQuery useBaseQuery.ts:109
+    React 15
+    handleViewInspection inspections.tsx:741
+    onClick inspections.tsx:1437
+    React 15
+    (Async: EventListener.handleEvent)
+    addEventListener Detail.js:76
+    React 8
+    <anonymous> main.tsx:9
