@@ -2904,7 +2904,7 @@ export default function Jobs() {
             <Button variant="outline" onClick={() => setViewDialogOpen(false)}>
               Close
             </Button>
-            {!selectedProject?.startDate && selectedProject?.status !== 'completed' && (
+            {selectedProject?.status !== 'in-progress' && selectedProject?.status !== 'completed' && (
               <Button 
                 onClick={() => selectedProject?.id && startJobMutation.mutate(selectedProject.id)}
                 disabled={startJobMutation.isPending}
