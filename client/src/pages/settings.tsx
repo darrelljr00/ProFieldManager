@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { format } from "date-fns";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -13,7 +14,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Save, Eye, EyeOff, Upload, X, Download, Database, Clock, AlertTriangle, Map, MessageSquare, FileSignature, Route } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Save, Eye, EyeOff, Upload, X, Download, Database, Clock, AlertTriangle, Map, MessageSquare, FileSignature, Route, CalendarIcon, Plus, Trash2 } from "lucide-react";
 import { InvoicePreview } from "@/components/InvoicePreview";
 import SoundSettings from "@/components/SoundSettings";
 import { FileStorageManager } from "@/components/file-storage-manager";
@@ -226,6 +229,20 @@ type BackupJob = {
   createdAt: string;
 };
 
+type DialogBoxConfig = {
+  id: string;
+  title: string;
+  description: string;
+  enabled: boolean;
+  showDate: boolean;
+  date?: Date;
+  customFields: {
+    id: string;
+    label: string;
+    value: string;
+  }[];
+};
+
 export default function Settings() {
   const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -233,6 +250,18 @@ export default function Settings() {
   // Admin dashboard management state
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [selectedUserDashboard, setSelectedUserDashboard] = useState<any>(null);
+  // Rollouts dialog boxes state
+  const [dialogBoxes, setDialogBoxes] = useState<DialogBoxConfig[]>([
+    {
+      id: '1',
+      title: 'New Feature Rollout',
+      description: 'Announce new features to users',
+      enabled: true,
+      showDate: true,
+      date: new Date(),
+      customFields: []
+    }
+  ]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -981,6 +1010,7 @@ export default function Settings() {
           <TabsTrigger value="dispatch" className="flex-shrink-0">Dispatch Routing</TabsTrigger>
           <TabsTrigger value="integrations" className="flex-shrink-0">Integrations</TabsTrigger>
           <TabsTrigger value="navigation" className="flex-shrink-0">Navigation</TabsTrigger>
+          <TabsTrigger value="rollouts" className="flex-shrink-0">Rollouts</TabsTrigger>
         </TabsList>
 
         <TabsContent value="payment">
@@ -4103,6 +4133,284 @@ export default function Settings() {
 
         <TabsContent value="storage">
           <FileStorageManager />
+        </TabsContent>
+
+        <TabsContent value="rollouts">
+          <Card>
+            <CardHeader>
+              <CardTitle>Rollouts Configuration</CardTitle>
+              <CardDescription>
+                Configure dialog boxes and announcements for feature rollouts
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                {/* Add New Dialog Box Button */}
+                <div className="flex justify-end">
+                  <Button
+                    data-testid="button-add-dialog"
+                    onClick={() => {
+                      const newId = String(Date.now());
+                      setDialogBoxes([...dialogBoxes, {
+                        id: newId,
+                        title: '',
+                        description: '',
+                        enabled: false,
+                        showDate: false,
+                        customFields: []
+                      }]);
+                    }}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Dialog Box
+                  </Button>
+                </div>
+
+                {/* Dialog Boxes List */}
+                <div className="space-y-4">
+                  {dialogBoxes.map((dialogBox, index) => (
+                    <Card key={dialogBox.id} className="border-2">
+                      <CardHeader className="pb-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-4 flex-1">
+                            <Switch
+                              data-testid={`switch-enabled-${dialogBox.id}`}
+                              checked={dialogBox.enabled}
+                              onCheckedChange={(checked) => {
+                                const updated = [...dialogBoxes];
+                                updated[index].enabled = checked;
+                                setDialogBoxes(updated);
+                              }}
+                            />
+                            <div className="flex-1">
+                              <Label htmlFor={`title-${dialogBox.id}`}>Dialog Title</Label>
+                              <Input
+                                data-testid={`input-title-${dialogBox.id}`}
+                                id={`title-${dialogBox.id}`}
+                                value={dialogBox.title}
+                                onChange={(e) => {
+                                  const updated = [...dialogBoxes];
+                                  updated[index].title = e.target.value;
+                                  setDialogBoxes(updated);
+                                }}
+                                placeholder="Enter dialog title"
+                                className="mt-1"
+                              />
+                            </div>
+                          </div>
+                          <Button
+                            data-testid={`button-delete-${dialogBox.id}`}
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setDialogBoxes(dialogBoxes.filter(db => db.id !== dialogBox.id));
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        {/* Description */}
+                        <div>
+                          <Label htmlFor={`description-${dialogBox.id}`}>Description</Label>
+                          <Textarea
+                            data-testid={`textarea-description-${dialogBox.id}`}
+                            id={`description-${dialogBox.id}`}
+                            value={dialogBox.description}
+                            onChange={(e) => {
+                              const updated = [...dialogBoxes];
+                              updated[index].description = e.target.value;
+                              setDialogBoxes(updated);
+                            }}
+                            placeholder="Enter dialog description"
+                            className="mt-1"
+                          />
+                        </div>
+
+                        {/* Date Picker */}
+                        <div className="flex items-center space-x-4">
+                          <div className="flex items-center space-x-2">
+                            <Switch
+                              data-testid={`switch-show-date-${dialogBox.id}`}
+                              checked={dialogBox.showDate}
+                              onCheckedChange={(checked) => {
+                                const updated = [...dialogBoxes];
+                                updated[index].showDate = checked;
+                                if (checked && !updated[index].date) {
+                                  updated[index].date = new Date();
+                                }
+                                setDialogBoxes(updated);
+                              }}
+                            />
+                            <Label>Show Date</Label>
+                          </div>
+
+                          {dialogBox.showDate && (
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  data-testid={`button-date-picker-${dialogBox.id}`}
+                                  variant="outline"
+                                  className="w-[240px] justify-start text-left font-normal"
+                                >
+                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                  {dialogBox.date ? format(dialogBox.date, 'PPP') : <span>Pick a date</span>}
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                  mode="single"
+                                  selected={dialogBox.date}
+                                  onSelect={(date) => {
+                                    const updated = [...dialogBoxes];
+                                    updated[index].date = date;
+                                    setDialogBoxes(updated);
+                                  }}
+                                  initialFocus
+                                />
+                              </PopoverContent>
+                            </Popover>
+                          )}
+                        </div>
+
+                        {/* Custom Fields */}
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <Label>Custom Fields</Label>
+                            <Button
+                              data-testid={`button-add-field-${dialogBox.id}`}
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                const updated = [...dialogBoxes];
+                                updated[index].customFields.push({
+                                  id: String(Date.now()),
+                                  label: '',
+                                  value: ''
+                                });
+                                setDialogBoxes(updated);
+                              }}
+                            >
+                              <Plus className="h-3 w-3 mr-1" />
+                              Add Field
+                            </Button>
+                          </div>
+
+                          {dialogBox.customFields.map((field, fieldIndex) => (
+                            <div key={field.id} className="flex items-center space-x-2">
+                              <Input
+                                data-testid={`input-field-label-${dialogBox.id}-${field.id}`}
+                                value={field.label}
+                                onChange={(e) => {
+                                  const updated = [...dialogBoxes];
+                                  updated[index].customFields[fieldIndex].label = e.target.value;
+                                  setDialogBoxes(updated);
+                                }}
+                                placeholder="Field label"
+                                className="flex-1"
+                              />
+                              <Input
+                                data-testid={`input-field-value-${dialogBox.id}-${field.id}`}
+                                value={field.value}
+                                onChange={(e) => {
+                                  const updated = [...dialogBoxes];
+                                  updated[index].customFields[fieldIndex].value = e.target.value;
+                                  setDialogBoxes(updated);
+                                }}
+                                placeholder="Field value"
+                                className="flex-1"
+                              />
+                              <Button
+                                data-testid={`button-delete-field-${dialogBox.id}-${field.id}`}
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  const updated = [...dialogBoxes];
+                                  updated[index].customFields = updated[index].customFields.filter(f => f.id !== field.id);
+                                  setDialogBoxes(updated);
+                                }}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Checkmarks Section */}
+                        <div className="pt-2">
+                          <Label className="mb-2 block">Configuration</Label>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="flex items-center space-x-2">
+                              <input
+                                data-testid={`checkbox-dismissible-${dialogBox.id}`}
+                                type="checkbox"
+                                id={`dismissible-${dialogBox.id}`}
+                                className="h-4 w-4"
+                                defaultChecked
+                              />
+                              <Label htmlFor={`dismissible-${dialogBox.id}`} className="font-normal">
+                                Dismissible
+                              </Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <input
+                                data-testid={`checkbox-auto-show-${dialogBox.id}`}
+                                type="checkbox"
+                                id={`auto-show-${dialogBox.id}`}
+                                className="h-4 w-4"
+                              />
+                              <Label htmlFor={`auto-show-${dialogBox.id}`} className="font-normal">
+                                Auto-show on login
+                              </Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <input
+                                data-testid={`checkbox-show-once-${dialogBox.id}`}
+                                type="checkbox"
+                                id={`show-once-${dialogBox.id}`}
+                                className="h-4 w-4"
+                              />
+                              <Label htmlFor={`show-once-${dialogBox.id}`} className="font-normal">
+                                Show only once
+                              </Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <input
+                                data-testid={`checkbox-require-action-${dialogBox.id}`}
+                                type="checkbox"
+                                id={`require-action-${dialogBox.id}`}
+                                className="h-4 w-4"
+                              />
+                              <Label htmlFor={`require-action-${dialogBox.id}`} className="font-normal">
+                                Require action
+                              </Label>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+
+                {/* Save Button */}
+                <div className="flex justify-end pt-4">
+                  <Button
+                    data-testid="button-save-rollouts"
+                    onClick={() => {
+                      toast({
+                        title: "Rollouts Saved",
+                        description: "Your dialog box configurations have been saved successfully.",
+                      });
+                    }}
+                  >
+                    <Save className="h-4 w-4 mr-2" />
+                    Save Rollouts Configuration
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
