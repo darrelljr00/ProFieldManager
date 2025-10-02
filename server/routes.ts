@@ -4632,14 +4632,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Quote not found" });
       }
 
-      // Check if SendGrid is configured
-      if (!process.env.SENDGRID_API_KEY) {
-        return res.status(500).json({ message: "Email service not configured" });
+      // Get SendGrid API key from settings or environment
+      const emailSettings = await storage.getSettingsByCategory('email');
+      const sendgridApiKey = emailSettings.find((s: any) => s.key === 'email_sendgridApiKey')?.value || process.env.SENDGRID_API_KEY;
+      
+      if (!sendgridApiKey) {
+        return res.status(500).json({ message: "Email service not configured. Please add SendGrid API key in Settings." });
       }
 
       // Import SendGrid (only when needed)
       const sgMail = require('@sendgrid/mail');
-      sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+      sgMail.setApiKey(sendgridApiKey);
 
       // Generate approval/denial tokens for the quote
       const tokens = await storage.generateQuoteTokens(parseInt(req.params.id));

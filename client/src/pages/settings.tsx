@@ -56,6 +56,8 @@ type EmailSettings = {
   smtpUser: string;
   smtpPassword: string;
   smtpSecure: boolean;
+  sendgridEnabled: boolean;
+  sendgridApiKey: string;
   fromEmail: string;
   fromName: string;
 };
@@ -1412,7 +1414,7 @@ export default function Settings() {
             <CardHeader>
               <CardTitle>Email Settings</CardTitle>
               <CardDescription>
-                Configure SMTP settings for sending invoices and notifications
+                Configure SMTP or SendGrid settings for sending invoices and notifications
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -1493,6 +1495,49 @@ export default function Settings() {
                     defaultChecked={emailSettings?.smtpSecure}
                   />
                   <Label htmlFor="smtpSecure">Use TLS/SSL</Label>
+                </div>
+
+                <Separator />
+
+                {/* SendGrid Settings */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-medium">SendGrid</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Configure SendGrid for reliable email delivery
+                      </p>
+                    </div>
+                    <Switch
+                      name="sendgridEnabled"
+                      defaultChecked={emailSettings?.sendgridEnabled}
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="sendgridApiKey">API Key</Label>
+                    <div className="relative">
+                      <Input
+                        id="sendgridApiKey"
+                        name="sendgridApiKey"
+                        type={showSecrets.sendgridApiKey ? "text" : "password"}
+                        placeholder="SG.xxxxxxxxxxxxxxxxxxxx"
+                        defaultValue={emailSettings?.sendgridApiKey}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-1 top-1/2 -translate-y-1/2"
+                        onClick={() => toggleSecretVisibility('sendgridApiKey')}
+                      >
+                        {showSecrets.sendgridApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Get your API key from SendGrid dashboard at https://sendgrid.com
+                    </p>
+                  </div>
                 </div>
 
                 <Separator />
