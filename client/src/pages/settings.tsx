@@ -4386,6 +4386,17 @@ export default function Settings() {
                                 Require action
                               </Label>
                             </div>
+                            <div className="flex items-center space-x-2">
+                              <input
+                                data-testid={`checkbox-alert-new-users-${dialogBox.id}`}
+                                type="checkbox"
+                                id={`alert-new-users-${dialogBox.id}`}
+                                className="h-4 w-4"
+                              />
+                              <Label htmlFor={`alert-new-users-${dialogBox.id}`} className="font-normal">
+                                Alert new users
+                              </Label>
+                            </div>
                           </div>
                         </div>
                       </CardContent>
