@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Calendar, Users, CheckCircle, Clock, AlertCircle, Folder, Settings, MapPin, Route, Star, Smartphone, Eye, Image, FileText, CheckSquare, Upload, Camera, DollarSign, Download, Trash2, Archive, User as UserIcon, Search, Filter, X, XCircle } from "lucide-react";
+import { Plus, Calendar, Users, CheckCircle, Clock, AlertCircle, Folder, Settings, MapPin, Route, Star, Smartphone, Eye, Image, FileText, CheckSquare, Upload, Camera, DollarSign, Download, Trash2, Archive, User as UserIcon, Search, Filter, X, XCircle, Play } from "lucide-react";
 import { Link } from "wouter";
 import { format } from "date-fns";
 import type { Project, Customer, User } from "@shared/schema";
@@ -2879,6 +2879,13 @@ export default function Jobs() {
           <div className="flex justify-end gap-2 pt-4">
             <Button variant="outline" onClick={() => setViewDialogOpen(false)}>
               Close
+            </Button>
+            <Button 
+              className="bg-blue-600 hover:bg-blue-700"
+              data-testid="button-start-job"
+            >
+              <Play className="h-4 w-4 mr-2" />
+              Start Job
             </Button>
             {selectedProject?.status !== 'completed' && (
               <Button 
