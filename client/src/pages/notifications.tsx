@@ -138,6 +138,7 @@ export default function NotificationsPage() {
   const { data: notifications = [], isLoading: notificationsLoading } = useQuery<Notification[]>({
     queryKey: ['/api/notifications'],
     refetchInterval: 30000, // Refetch every 30 seconds
+    staleTime: 0, // Always consider data stale to force refetching
   });
 
   // Fetch unread count
