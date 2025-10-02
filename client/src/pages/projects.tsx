@@ -677,8 +677,32 @@ export default function Jobs() {
     },
   });
 
+  const startJobMutation = useMutation({
+    mutationFn: (projectId: number) => apiRequest("PUT", `/api/projects/${projectId}`, { 
+      startDate: new Date().toISOString(),
+      status: "in-progress" 
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      toast({
+        title: "Job Started",
+        description: "Job has been started and time tracking is active",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to start job",
+        variant: "destructive",
+      });
+    },
+  });
+
   const markCompleteMutation = useMutation({
-    mutationFn: (projectId: number) => apiRequest("PUT", `/api/projects/${projectId}`, { status: "completed" }),
+    mutationFn: (projectId: number) => apiRequest("PUT", `/api/projects/${projectId}`, { 
+      status: "completed",
+      endDate: new Date().toISOString()
+    }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
       setViewDialogOpen(false);
@@ -2880,13 +2904,17 @@ export default function Jobs() {
             <Button variant="outline" onClick={() => setViewDialogOpen(false)}>
               Close
             </Button>
-            <Button 
-              className="bg-blue-600 hover:bg-blue-700"
-              data-testid="button-start-job"
-            >
-              <Play className="h-4 w-4 mr-2" />
-              Start Job
-            </Button>
+            {!selectedProject?.startDate && selectedProject?.status !== 'completed' && (
+              <Button 
+                onClick={() => selectedProject?.id && startJobMutation.mutate(selectedProject.id)}
+                disabled={startJobMutation.isPending}
+                className="bg-blue-600 hover:bg-blue-700"
+                data-testid="button-start-job"
+              >
+                <Play className="h-4 w-4 mr-2" />
+                {startJobMutation.isPending ? "Starting..." : "Start Job"}
+              </Button>
+            )}
             {selectedProject?.status !== 'completed' && (
               <Button 
                 onClick={() => handleMarkComplete(selectedProject?.id)}

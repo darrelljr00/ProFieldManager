@@ -6572,6 +6572,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           broadcastToWebUsers(user.organizationId, 'job_status_changed', statusChangeData);
         }
+
+        // Send job start notifications to admins/managers when job is started
+        if (req.body.status === 'in-progress' && currentProject.status !== 'in-progress' && req.body.startDate) {
+          try {
+            const { NotificationService } = await import("./notificationService");
+            
+            // Get admin/manager users to notify
+            const adminUsers = await db
+              .select({ id: users.id })
+              .from(users)
+              .where(and(
+                eq(users.organizationId, user.organizationId),
+                or(eq(users.role, 'admin'), eq(users.role, 'manager'))
+              ));
+            
+            // Create notifications for all admins/managers
+            for (const admin of adminUsers) {
+              await NotificationService.createNotification({
+                type: 'job_started',
+                title: `Job Started`,
+                message: `${user.firstName} ${user.lastName} started job: ${updatedProject.name}`,
+                userId: admin.id,
+                organizationId: user.organizationId,
+                relatedEntityType: 'project',
+                relatedEntityId: projectId,
+                priority: 'normal',
+                category: 'team_based',
+                createdBy: userId
+              });
+            }
+            
+            console.log(`📢 Job start notifications sent to ${adminUsers.length} admins/managers`);
+          } catch (notificationError) {
+            console.error('Error sending job start notifications:', notificationError);
+          }
+        }
       }
 
       // Check if project was just marked as completed and trigger review request
