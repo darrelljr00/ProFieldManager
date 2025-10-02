@@ -678,10 +678,7 @@ export default function Jobs() {
   });
 
   const startJobMutation = useMutation({
-    mutationFn: (projectId: number) => apiRequest("PUT", `/api/projects/${projectId}`, { 
-      startDate: new Date().toISOString(),
-      status: "in-progress" 
-    }),
+    mutationFn: (projectId: number) => apiRequest("POST", `/api/projects/${projectId}/start-job`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
       toast({
@@ -701,7 +698,7 @@ export default function Jobs() {
   const markCompleteMutation = useMutation({
     mutationFn: (projectId: number) => apiRequest("PUT", `/api/projects/${projectId}`, { 
       status: "completed",
-      endDate: new Date().toISOString()
+      endDate: new Date()
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
