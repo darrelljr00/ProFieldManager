@@ -6732,6 +6732,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Start job endpoint
+  app.post("/api/projects/:id/start-job", requireAuth, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const userId = req.user!.id;
+      
+      // Get the current project
+      const currentProject = await storage.getProject(projectId, userId);
+      if (!currentProject) {
+        return res.status(404).json({ message: "Project not found or access denied" });
+      }
+
+      // Update project with in-progress status and start date
+      const updatedProject = await storage.updateProject(projectId, {
+        status: 'in-progress',
+        startDate: new Date()
+      });
+      
+      if (!updatedProject) {
+        return res.status(500).json({ message: "Failed to start job" });
+      }
+
+      // Get user for organization info
+      const user = await storage.getUser(userId);
+      if (user) {
+        // Broadcast job status change for dispatch routing synchronization
+        const statusChangeData = {
+          projectId: updatedProject.id,
+          projectName: updatedProject.name,
+          oldStatus: currentProject.status,
+          newStatus: 'in-progress',
+          progress: updatedProject.progress || 0,
+          startDate: updatedProject.startDate,
+          updatedBy: `${user.firstName} ${user.lastName}`,
+          updatedAt: new Date().toISOString()
+        };
+        
+        broadcastToWebUsers(user.organizationId, 'job_status_changed', statusChangeData);
+
+        // Send job start notifications to admins/managers
+        try {
+          const { NotificationService } = await import("./notificationService");
+          
+          // Get admin/manager users to notify
+          const adminUsers = await db
+            .select({ id: users.id })
+            .from(users)
+            .where(and(
+              eq(users.organizationId, user.organizationId),
+              or(eq(users.role, 'admin'), eq(users.role, 'manager'))
+            ));
+          
+          // Create notifications for all admins/managers
+          for (const admin of adminUsers) {
+            await NotificationService.createNotification({
+              type: 'job_started',
+              title: `Job Started`,
+              message: `${user.firstName} ${user.lastName} started job: ${updatedProject.name}`,
+              userId: admin.id,
+              organizationId: user.organizationId,
+              relatedEntityType: 'project',
+              relatedEntityId: projectId,
+              priority: 'normal',
+              category: 'team_based',
+              createdBy: userId
+            });
+          }
+          
+          console.log(`📢 Job start notifications sent to ${adminUsers.length} admins/managers`);
+        } catch (notificationError) {
+          console.error('Error sending job start notifications:', notificationError);
+        }
+      }
+
+      res.json(updatedProject);
+    } catch (error: any) {
+      console.error("Error starting job:", error);
+      res.status(500).json({ message: "Failed to start job" });
+    }
+  });
+
   // Cancel project endpoint
   app.put("/api/projects/:id/cancel", requireAuth, async (req, res) => {
     try {
