@@ -4339,7 +4339,7 @@ export default function Settings() {
 
                         {/* Checkmarks Section */}
                         <div className="pt-2">
-                          <Label className="mb-2 block">Configuration</Label>
+                          <Label className="mb-2 block">Configuration Options</Label>
                           <div className="grid grid-cols-2 gap-3">
                             <div className="flex items-center space-x-2">
                               <input
