@@ -1776,10 +1776,10 @@ export default function Reports() {
                       ${totalRevenue.toLocaleString()}
                     </p>
                     <p className="text-sm text-muted-foreground mt-1">
-                      {dateRange === '7days' ? 'Last 7 Days' : 
-                       dateRange === '30days' ? 'Last 30 Days' : 
-                       dateRange === '3months' ? 'Last 3 Months' : 
-                       dateRange === '6months' ? 'Last 6 Months' : 'Last Year'}
+                      {timeRange === '7days' ? 'Last 7 Days' : 
+                       timeRange === '30days' ? 'Last 30 Days' : 
+                       timeRange === '3months' ? 'Last 3 Months' : 
+                       timeRange === '6months' ? 'Last 6 Months' : 'Last Year'}
                     </p>
                   </div>
                   <TrendingUp className="h-12 w-12 text-green-500" />
@@ -1799,10 +1799,10 @@ export default function Reports() {
                       ${totalExpenses.toLocaleString()}
                     </p>
                     <p className="text-sm text-muted-foreground mt-1">
-                      {dateRange === '7days' ? 'Last 7 Days' : 
-                       dateRange === '30days' ? 'Last 30 Days' : 
-                       dateRange === '3months' ? 'Last 3 Months' : 
-                       dateRange === '6months' ? 'Last 6 Months' : 'Last Year'}
+                      {timeRange === '7days' ? 'Last 7 Days' : 
+                       timeRange === '30days' ? 'Last 30 Days' : 
+                       timeRange === '3months' ? 'Last 3 Months' : 
+                       timeRange === '6months' ? 'Last 6 Months' : 'Last Year'}
                     </p>
                   </div>
                   <TrendingDown className="h-12 w-12 text-red-500" />
