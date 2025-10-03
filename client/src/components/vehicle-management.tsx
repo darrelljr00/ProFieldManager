@@ -28,6 +28,7 @@ interface Vehicle {
   status: string;
   currentMileage?: number;
   fuelType?: string;
+  mpg?: number;
   insuranceExpiry?: string;
   registrationExpiry?: string;
   inspectionDue?: string;
@@ -549,6 +550,7 @@ function VehicleFormDialog({ mode, vehicle, onSubmit, isLoading }: VehicleFormDi
     status: vehicle?.status || "active",
     currentMileage: vehicle?.currentMileage || "",
     fuelType: vehicle?.fuelType || "not_specified",
+    mpg: vehicle?.mpg || "",
     insuranceExpiry: vehicle?.insuranceExpiry ? vehicle.insuranceExpiry.split('T')[0] : "",
     registrationExpiry: vehicle?.registrationExpiry ? vehicle.registrationExpiry.split('T')[0] : "",
     inspectionDue: vehicle?.inspectionDue ? vehicle.inspectionDue.split('T')[0] : "",
@@ -563,6 +565,7 @@ function VehicleFormDialog({ mode, vehicle, onSubmit, isLoading }: VehicleFormDi
       year: formData.year ? parseInt(formData.year.toString()) : null,
       currentMileage: formData.currentMileage ? parseInt(formData.currentMileage.toString()) : null,
       fuelType: formData.fuelType === "not_specified" ? null : formData.fuelType,
+      mpg: formData.mpg ? parseFloat(formData.mpg.toString()) : null,
       insuranceExpiry: formData.insuranceExpiry || null,
       registrationExpiry: formData.registrationExpiry || null,
       inspectionDue: formData.inspectionDue || null,
@@ -721,6 +724,19 @@ function VehicleFormDialog({ mode, vehicle, onSubmit, isLoading }: VehicleFormDi
                 <SelectItem value="hybrid">Hybrid</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="mpg">MPG (Miles Per Gallon)</Label>
+            <Input
+              id="mpg"
+              type="number"
+              step="0.1"
+              placeholder="e.g., 18.5"
+              value={formData.mpg}
+              onChange={(e) => setFormData({ ...formData, mpg: e.target.value })}
+              data-testid="input-mpg"
+            />
           </div>
 
           {/* Important Dates */}
