@@ -231,8 +231,8 @@ export function QuotesTable({ quotes, isLoading }: QuotesTableProps) {
       description: "Redirecting to create new job with quote details...",
     });
 
-    // Navigate to projects page
-    setLocation('/projects?action=create');
+    // Navigate to jobs page
+    setLocation('/jobs?action=create');
   };
 
   const getStatusBadgeVariant = (status: string) => {
