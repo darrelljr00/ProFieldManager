@@ -586,6 +586,10 @@ export default function Reports() {
   const closeRateData = calculateCloseRate();
   const leadSourceData = getLeadSourceData();
   const metrics = getKeyMetrics();
+  
+  // Calculate total revenue and expenses for Profit Loss tab
+  const totalRevenue = salesChartData.reduce((sum, item) => sum + (item.revenue || 0), 0);
+  const totalExpenses = salesChartData.reduce((sum, item) => sum + (item.expenses || 0), 0);
 
   if (isLoading) {
     return (
