@@ -85,6 +85,7 @@ export default function Reports() {
   const [performanceIssuesDateRange, setPerformanceIssuesDateRange] = useState("30days");
   const [timeOffDateRange, setTimeOffDateRange] = useState("30days");
   const [jobAnalyticsDateRange, setJobAnalyticsDateRange] = useState("30days");
+  const [profitLossView, setProfitLossView] = useState<'daily' | 'weekly' | 'monthly' | 'job'>('monthly');
   const queryClient = useQueryClient();
 
   // Helper function to get date range based on selection
@@ -590,6 +591,146 @@ export default function Reports() {
   // Calculate total revenue and expenses for Profit Loss tab
   const totalRevenue = salesChartData.reduce((sum, item) => sum + (item.revenue || 0), 0);
   const totalExpenses = salesChartData.reduce((sum, item) => sum + (item.expenses || 0), 0);
+
+  // Process profit/loss data by different views
+  const getProfitLossDataByView = () => {
+    if (!salesData && !expensesData) return [];
+
+    if (profitLossView === 'job') {
+      // Group by individual jobs
+      const jobMap: Record<string, any> = {};
+      
+      // Add revenue from invoices
+      salesData?.forEach((invoice: any) => {
+        if (invoice.projectId && invoice.project) {
+          const jobId = invoice.projectId;
+          if (!jobMap[jobId]) {
+            jobMap[jobId] = {
+              jobName: invoice.project.name || `Job #${jobId}`,
+              revenue: 0,
+              expenses: 0,
+              profit: 0
+            };
+          }
+          jobMap[jobId].revenue += parseFloat(invoice.total || 0);
+        }
+      });
+
+      // Add expenses by project
+      expensesData?.forEach((expense: any) => {
+        if (expense.projectId && expense.project) {
+          const jobId = expense.projectId;
+          if (!jobMap[jobId]) {
+            jobMap[jobId] = {
+              jobName: expense.project.name || `Job #${jobId}`,
+              revenue: 0,
+              expenses: 0,
+              profit: 0
+            };
+          }
+          jobMap[jobId].expenses += parseFloat(expense.amount || 0);
+        }
+      });
+
+      // Calculate profit for each job
+      Object.values(jobMap).forEach((job: any) => {
+        job.profit = job.revenue - job.expenses;
+      });
+
+      return Object.values(jobMap).sort((a: any, b: any) => b.profit - a.profit);
+    }
+
+    if (profitLossView === 'daily') {
+      // Group by day
+      const dailyMap: Record<string, any> = {};
+      
+      salesData?.forEach((invoice: any) => {
+        if (invoice.date) {
+          const date = format(new Date(invoice.date), 'MM/dd/yyyy');
+          if (!dailyMap[date]) {
+            dailyMap[date] = { date, revenue: 0, expenses: 0, profit: 0 };
+          }
+          dailyMap[date].revenue += parseFloat(invoice.total || 0);
+        }
+      });
+
+      expensesData?.forEach((expense: any) => {
+        if (expense.date) {
+          const date = format(new Date(expense.date), 'MM/dd/yyyy');
+          if (!dailyMap[date]) {
+            dailyMap[date] = { date, revenue: 0, expenses: 0, profit: 0 };
+          }
+          dailyMap[date].expenses += parseFloat(expense.amount || 0);
+        }
+      });
+
+      Object.values(dailyMap).forEach((day: any) => {
+        day.profit = day.revenue - day.expenses;
+      });
+
+      return Object.values(dailyMap).sort((a: any, b: any) => 
+        new Date(a.date).getTime() - new Date(b.date).getTime()
+      ).slice(-30); // Last 30 days
+    }
+
+    if (profitLossView === 'weekly') {
+      // Group by week
+      const weeklyMap: Record<string, any> = {};
+      
+      salesData?.forEach((invoice: any) => {
+        if (invoice.date) {
+          const date = new Date(invoice.date);
+          const weekStart = new Date(date);
+          weekStart.setDate(date.getDate() - date.getDay()); // Start of week (Sunday)
+          const weekKey = format(weekStart, 'MM/dd/yyyy');
+          
+          if (!weeklyMap[weekKey]) {
+            weeklyMap[weekKey] = { 
+              week: `Week of ${format(weekStart, 'MMM d')}`, 
+              revenue: 0, 
+              expenses: 0, 
+              profit: 0 
+            };
+          }
+          weeklyMap[weekKey].revenue += parseFloat(invoice.total || 0);
+        }
+      });
+
+      expensesData?.forEach((expense: any) => {
+        if (expense.date) {
+          const date = new Date(expense.date);
+          const weekStart = new Date(date);
+          weekStart.setDate(date.getDate() - date.getDay());
+          const weekKey = format(weekStart, 'MM/dd/yyyy');
+          
+          if (!weeklyMap[weekKey]) {
+            weeklyMap[weekKey] = { 
+              week: `Week of ${format(weekStart, 'MMM d')}`, 
+              revenue: 0, 
+              expenses: 0, 
+              profit: 0 
+            };
+          }
+          weeklyMap[weekKey].expenses += parseFloat(expense.amount || 0);
+        }
+      });
+
+      Object.values(weeklyMap).forEach((week: any) => {
+        week.profit = week.revenue - week.expenses;
+      });
+
+      return Object.values(weeklyMap).sort((a: any, b: any) => {
+        const dateA = new Date(a.week.replace('Week of ', '') + ', 2024');
+        const dateB = new Date(b.week.replace('Week of ', '') + ', 2024');
+        return dateA.getTime() - dateB.getTime();
+      }).slice(-12); // Last 12 weeks
+    }
+
+    // Default: monthly view
+    return salesChartData;
+  };
+
+  const profitLossChartData = getProfitLossDataByView();
 
   if (isLoading) {
     return (
@@ -1763,6 +1904,30 @@ export default function Reports() {
 
         {/* Profit Loss Tab */}
         <TabsContent value="profit-loss" className="space-y-6">
+          {/* View Selector */}
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <CardTitle>Profit & Loss Analysis</CardTitle>
+                  <CardDescription>View profitability data by different time periods or individual jobs</CardDescription>
+                </div>
+                <Select value={profitLossView} onValueChange={(value: any) => setProfitLossView(value)}>
+                  <SelectTrigger className="w-48">
+                    <Filter className="h-4 w-4 mr-2" />
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="daily">Per Day</SelectItem>
+                    <SelectItem value="weekly">Per Week</SelectItem>
+                    <SelectItem value="monthly">Per Month</SelectItem>
+                    <SelectItem value="job">Per Job</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardHeader>
+          </Card>
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <Card>
               <CardHeader>
@@ -1838,14 +2003,27 @@ export default function Reports() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle>Profit & Loss Overview</CardTitle>
-                <CardDescription>Monthly revenue vs expenses</CardDescription>
+                <CardTitle>
+                  {profitLossView === 'job' ? 'Job Profitability' : 'Profit & Loss Overview'}
+                </CardTitle>
+                <CardDescription>
+                  {profitLossView === 'daily' && 'Daily revenue vs expenses'}
+                  {profitLossView === 'weekly' && 'Weekly revenue vs expenses'}
+                  {profitLossView === 'monthly' && 'Monthly revenue vs expenses'}
+                  {profitLossView === 'job' && 'Profitability by individual job'}
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={salesChartData}>
+                  <BarChart data={profitLossChartData}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
+                    <XAxis 
+                      dataKey={profitLossView === 'job' ? 'jobName' : profitLossView === 'weekly' ? 'week' : profitLossView === 'daily' ? 'date' : 'month'} 
+                      angle={-45}
+                      textAnchor="end"
+                      height={100}
+                      interval={0}
+                    />
                     <YAxis />
                     <Tooltip formatter={(value) => [`$${value}`, '']} />
                     <Legend />
@@ -1859,16 +2037,24 @@ export default function Reports() {
             <Card>
               <CardHeader>
                 <CardTitle>Net Profit Trend</CardTitle>
-                <CardDescription>Monthly profit/loss over time</CardDescription>
+                <CardDescription>
+                  {profitLossView === 'daily' && 'Daily profit/loss trends'}
+                  {profitLossView === 'weekly' && 'Weekly profit/loss trends'}
+                  {profitLossView === 'monthly' && 'Monthly profit/loss trends'}
+                  {profitLossView === 'job' && 'Profit by job comparison'}
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={salesChartData.map(item => ({
-                    ...item,
-                    profit: item.revenue - (item.expenses || 0)
-                  }))}>
+                  <LineChart data={profitLossChartData}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
+                    <XAxis 
+                      dataKey={profitLossView === 'job' ? 'jobName' : profitLossView === 'weekly' ? 'week' : profitLossView === 'daily' ? 'date' : 'month'} 
+                      angle={-45}
+                      textAnchor="end"
+                      height={100}
+                      interval={0}
+                    />
                     <YAxis />
                     <Tooltip formatter={(value) => [`$${value}`, 'Profit']} />
                     <Line 
@@ -1887,17 +2073,24 @@ export default function Reports() {
           <Card>
             <CardHeader>
               <CardTitle>Profit Margin Analysis</CardTitle>
-              <CardDescription>Revenue breakdown and profitability percentage</CardDescription>
+              <CardDescription>
+                {profitLossView === 'job' ? 'Profit margin by job' : 'Revenue breakdown and profitability percentage'}
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
-                <AreaChart data={salesChartData.map(item => ({
+                <AreaChart data={profitLossChartData.map(item => ({
                   ...item,
-                  profit: item.revenue - (item.expenses || 0),
-                  profitMargin: ((item.revenue - (item.expenses || 0)) / item.revenue * 100).toFixed(1)
+                  profitMargin: item.revenue > 0 ? ((item.profit) / item.revenue * 100).toFixed(1) : 0
                 }))}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
+                  <XAxis 
+                    dataKey={profitLossView === 'job' ? 'jobName' : profitLossView === 'weekly' ? 'week' : profitLossView === 'daily' ? 'date' : 'month'} 
+                    angle={-45}
+                    textAnchor="end"
+                    height={100}
+                    interval={0}
+                  />
                   <YAxis yAxisId="left" />
                   <YAxis yAxisId="right" orientation="right" />
                   <Tooltip />
@@ -1934,6 +2127,74 @@ export default function Reports() {
               </ResponsiveContainer>
             </CardContent>
           </Card>
+
+          {/* Detailed Table View for Per Job */}
+          {profitLossView === 'job' && profitLossChartData.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Job Profitability Details</CardTitle>
+                <CardDescription>Detailed breakdown of revenue, expenses, and profit by job</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="border-b bg-gray-50">
+                        <th className="text-left p-3 font-medium">Job Name</th>
+                        <th className="text-right p-3 font-medium">Revenue</th>
+                        <th className="text-right p-3 font-medium">Expenses</th>
+                        <th className="text-right p-3 font-medium">Profit</th>
+                        <th className="text-right p-3 font-medium">Profit Margin</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {profitLossChartData.map((job: any, index: number) => {
+                        const profitMargin = job.revenue > 0 ? ((job.profit / job.revenue) * 100).toFixed(1) : 0;
+                        return (
+                          <tr key={index} className="border-b hover:bg-gray-50">
+                            <td className="p-3 font-medium">{job.jobName}</td>
+                            <td className="text-right p-3 text-green-600">
+                              ${job.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </td>
+                            <td className="text-right p-3 text-red-600">
+                              ${job.expenses.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </td>
+                            <td className={`text-right p-3 font-semibold ${job.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              ${job.profit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </td>
+                            <td className={`text-right p-3 ${parseFloat(profitMargin.toString()) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              {profitMargin}%
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                    <tfoot className="border-t-2 bg-gray-50">
+                      <tr className="font-bold">
+                        <td className="p-3">Total</td>
+                        <td className="text-right p-3 text-green-600">
+                          ${profitLossChartData.reduce((sum: number, job: any) => sum + job.revenue, 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </td>
+                        <td className="text-right p-3 text-red-600">
+                          ${profitLossChartData.reduce((sum: number, job: any) => sum + job.expenses, 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </td>
+                        <td className={`text-right p-3 ${profitLossChartData.reduce((sum: number, job: any) => sum + job.profit, 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          ${profitLossChartData.reduce((sum: number, job: any) => sum + job.profit, 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </td>
+                        <td className="text-right p-3">
+                          {(() => {
+                            const totalRevenue = profitLossChartData.reduce((sum: number, job: any) => sum + job.revenue, 0);
+                            const totalProfit = profitLossChartData.reduce((sum: number, job: any) => sum + job.profit, 0);
+                            return totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100).toFixed(1) : 0;
+                          })()}%
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
       </Tabs>
