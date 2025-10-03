@@ -1025,11 +1025,13 @@ export default function Inspections() {
                         <SelectValue placeholder="Select vehicle number" />
                       </SelectTrigger>
                       <SelectContent>
-                        {(vehicles as any[]).map((vehicle: any) => (
-                          <SelectItem key={vehicle.id} value={vehicle.vehicleNumber}>
-                            {vehicle.vehicleNumber} {vehicle.licensePlate ? `(${vehicle.licensePlate})` : ''}
-                          </SelectItem>
-                        ))}
+                        {(vehicles as any[])
+                          .filter((vehicle: any) => vehicle.vehicleNumber && vehicle.vehicleNumber.trim())
+                          .map((vehicle: any) => (
+                            <SelectItem key={vehicle.id} value={vehicle.vehicleNumber}>
+                              {vehicle.vehicleNumber} {vehicle.licensePlate ? `(${vehicle.licensePlate})` : ''}
+                            </SelectItem>
+                          ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -1313,11 +1315,13 @@ export default function Inspections() {
                         <SelectValue placeholder="Select vehicle number" />
                       </SelectTrigger>
                       <SelectContent>
-                        {(vehicles as any[]).map((vehicle: any) => (
-                          <SelectItem key={vehicle.id} value={vehicle.vehicleNumber}>
-                            {vehicle.vehicleNumber} {vehicle.licensePlate ? `(${vehicle.licensePlate})` : ''}
-                          </SelectItem>
-                        ))}
+                        {(vehicles as any[])
+                          .filter((vehicle: any) => vehicle.vehicleNumber && vehicle.vehicleNumber.trim())
+                          .map((vehicle: any) => (
+                            <SelectItem key={vehicle.id} value={vehicle.vehicleNumber}>
+                              {vehicle.vehicleNumber} {vehicle.licensePlate ? `(${vehicle.licensePlate})` : ''}
+                            </SelectItem>
+                          ))}
                       </SelectContent>
                     </Select>
                   </div>
