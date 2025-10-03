@@ -432,7 +432,8 @@ export default function Reports() {
           month: date.toLocaleString('default', { month: 'short', year: 'numeric' }),
           revenue: 0,
           count: 0,
-          refunds: 0
+          refunds: 0,
+          expenses: 0
         };
       }
       
@@ -446,6 +447,26 @@ export default function Reports() {
       
       return acc;
     }, {});
+    
+    // Add expenses data to each month
+    if (expensesData) {
+      expensesData.forEach((expense: any) => {
+        const date = new Date(expense.createdAt);
+        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        
+        if (!monthlyData[monthKey]) {
+          monthlyData[monthKey] = {
+            month: date.toLocaleString('default', { month: 'short', year: 'numeric' }),
+            revenue: 0,
+            count: 0,
+            refunds: 0,
+            expenses: 0
+          };
+        }
+        
+        monthlyData[monthKey].expenses += parseFloat(expense.amount || 0);
+      });
+    }
     
     return Object.values(monthlyData).slice(-12);
   };
@@ -754,7 +775,7 @@ export default function Reports() {
 
       {/* Chart Tabs */}
       <Tabs defaultValue="sales" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-7">
+        <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="sales">Sales</TabsTrigger>
           <TabsTrigger value="leads">Leads</TabsTrigger>
           <TabsTrigger value="refunds">Refunds</TabsTrigger>
@@ -762,6 +783,7 @@ export default function Reports() {
           <TabsTrigger value="expenses">Expenses</TabsTrigger>
           <TabsTrigger value="employees">Employees</TabsTrigger>
           <TabsTrigger value="job-analytics">Job Analytics</TabsTrigger>
+          <TabsTrigger value="profit-loss">Profit Loss</TabsTrigger>
         </TabsList>
 
         {/* Sales Charts */}
@@ -1733,6 +1755,181 @@ export default function Reports() {
               </div>
             )}
           </div>
+        </TabsContent>
+
+        {/* Profit Loss Tab */}
+        <TabsContent value="profit-loss" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Total Revenue</CardTitle>
+                <CardDescription>Income from all sources</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-3xl font-bold text-green-600">
+                      ${totalRevenue.toLocaleString()}
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {dateRange === '7days' ? 'Last 7 Days' : 
+                       dateRange === '30days' ? 'Last 30 Days' : 
+                       dateRange === '3months' ? 'Last 3 Months' : 
+                       dateRange === '6months' ? 'Last 6 Months' : 'Last Year'}
+                    </p>
+                  </div>
+                  <TrendingUp className="h-12 w-12 text-green-500" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Total Expenses</CardTitle>
+                <CardDescription>All operating costs</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-3xl font-bold text-red-600">
+                      ${totalExpenses.toLocaleString()}
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {dateRange === '7days' ? 'Last 7 Days' : 
+                       dateRange === '30days' ? 'Last 30 Days' : 
+                       dateRange === '3months' ? 'Last 3 Months' : 
+                       dateRange === '6months' ? 'Last 6 Months' : 'Last Year'}
+                    </p>
+                  </div>
+                  <TrendingDown className="h-12 w-12 text-red-500" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Net Profit</CardTitle>
+                <CardDescription>Revenue minus expenses</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className={`text-3xl font-bold ${
+                      (totalRevenue - totalExpenses) >= 0 ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      ${(totalRevenue - totalExpenses).toLocaleString()}
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {((totalRevenue - totalExpenses) / totalRevenue * 100).toFixed(1)}% profit margin
+                    </p>
+                  </div>
+                  <DollarSign className={`h-12 w-12 ${
+                    (totalRevenue - totalExpenses) >= 0 ? 'text-green-500' : 'text-red-500'
+                  }`} />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Profit & Loss Overview</CardTitle>
+                <CardDescription>Monthly revenue vs expenses</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={salesChartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" />
+                    <YAxis />
+                    <Tooltip formatter={(value) => [`$${value}`, '']} />
+                    <Legend />
+                    <Bar dataKey="revenue" fill="#00C49F" name="Revenue" />
+                    <Bar dataKey="expenses" fill="#FF8042" name="Expenses" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Net Profit Trend</CardTitle>
+                <CardDescription>Monthly profit/loss over time</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={salesChartData.map(item => ({
+                    ...item,
+                    profit: item.revenue - (item.expenses || 0)
+                  }))}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" />
+                    <YAxis />
+                    <Tooltip formatter={(value) => [`$${value}`, 'Profit']} />
+                    <Line 
+                      type="monotone" 
+                      dataKey="profit" 
+                      stroke="#0088FE" 
+                      strokeWidth={3}
+                      name="Net Profit" 
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Profit Margin Analysis</CardTitle>
+              <CardDescription>Revenue breakdown and profitability percentage</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <AreaChart data={salesChartData.map(item => ({
+                  ...item,
+                  profit: item.revenue - (item.expenses || 0),
+                  profitMargin: ((item.revenue - (item.expenses || 0)) / item.revenue * 100).toFixed(1)
+                }))}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis yAxisId="left" />
+                  <YAxis yAxisId="right" orientation="right" />
+                  <Tooltip />
+                  <Legend />
+                  <Area 
+                    yAxisId="left"
+                    type="monotone" 
+                    dataKey="revenue" 
+                    stackId="1"
+                    stroke="#00C49F" 
+                    fill="#00C49F" 
+                    fillOpacity={0.6}
+                    name="Revenue ($)"
+                  />
+                  <Area 
+                    yAxisId="left"
+                    type="monotone" 
+                    dataKey="profit" 
+                    stackId="2"
+                    stroke="#0088FE" 
+                    fill="#0088FE" 
+                    fillOpacity={0.6}
+                    name="Profit ($)"
+                  />
+                  <Line 
+                    yAxisId="right"
+                    type="monotone" 
+                    dataKey="profitMargin" 
+                    stroke="#FFBB28" 
+                    strokeWidth={2}
+                    name="Profit Margin (%)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
         </TabsContent>
 
       </Tabs>
