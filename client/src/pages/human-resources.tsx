@@ -483,7 +483,7 @@ export default function HumanResources() {
     }
   };
 
-  const departmentList = Array.from(new Set(employees.map(emp => emp.department)));
+  const departmentList = Array.from(new Set(employees.map(emp => emp.department).filter(dept => dept && dept.trim())));
   const totalEmployees = employees.length;
   const activeEmployees = employees.filter(emp => emp.status === "active").length;
   const onLeaveEmployees = employees.filter(emp => emp.status === "on_leave").length;
