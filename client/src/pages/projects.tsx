@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Calendar, Users, CheckCircle, Clock, AlertCircle, Folder, Settings, MapPin, Route, Star, Smartphone, Eye, Image, FileText, CheckSquare, Upload, Camera, DollarSign, Download, Trash2, Archive, User as UserIcon, Search, Filter, X, XCircle, Play } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { format } from "date-fns";
 import type { Project, Customer, User } from "@shared/schema";
 import { DirectionsButton } from "@/components/google-maps";
@@ -458,6 +458,8 @@ export default function Jobs() {
   const [isMobile, setIsMobile] = useState(false);
   const [showMobileCamera, setShowMobileCamera] = useState(false);
   const [showUserAssignment, setShowUserAssignment] = useState(false);
+  const [location] = useLocation();
+  const [quoteConversionData, setQuoteConversionData] = useState<any>(null);
   const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
   const [bulkAssignmentRole, setBulkAssignmentRole] = useState<string>("member");
   const [includeWaivers, setIncludeWaivers] = useState(false);
@@ -555,6 +557,27 @@ export default function Jobs() {
     return () => window.removeEventListener('resize', checkIsMobile);
   }, []);
 
+  // Check for quote-to-job conversion data
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const action = urlParams.get('action');
+    
+    if (action === 'create') {
+      const conversionDataStr = sessionStorage.getItem('quoteToJobConversion');
+      if (conversionDataStr) {
+        try {
+          const conversionData = JSON.parse(conversionDataStr);
+          setQuoteConversionData(conversionData);
+          setCreateDialogOpen(true);
+          // Clear the sessionStorage after reading
+          sessionStorage.removeItem('quoteToJobConversion');
+        } catch (error) {
+          console.error('Error parsing quote conversion data:', error);
+        }
+      }
+    }
+  }, [location]);
+
   const { data: jobs = [], isLoading } = useQuery<ProjectWithDetails[]>({
     queryKey: ["/api/projects"],
   });
@@ -644,6 +667,7 @@ export default function Jobs() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
       setCreateDialogOpen(false);
+      setQuoteConversionData(null);
       toast({
         title: "Success",
         description: "Job created successfully",
@@ -1620,7 +1644,12 @@ export default function Jobs() {
               Take Photo
             </Button>
           )}
-          <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+          <Dialog open={createDialogOpen} onOpenChange={(open) => {
+            setCreateDialogOpen(open);
+            if (!open) {
+              setQuoteConversionData(null);
+            }
+          }}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
@@ -1647,7 +1676,10 @@ export default function Jobs() {
                 </div>
                 <div>
                   <Label htmlFor="customerId">Customer</Label>
-                  <Select name="customerId">
+                  <Select 
+                    name="customerId" 
+                    defaultValue={quoteConversionData?.customerId?.toString() || undefined}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select customer (optional)" />
                     </SelectTrigger>
@@ -1669,6 +1701,7 @@ export default function Jobs() {
                   name="description"
                   placeholder="Job description"
                   rows={3}
+                  defaultValue={quoteConversionData?.description || undefined}
                 />
               </div>
 
@@ -2240,6 +2273,7 @@ export default function Jobs() {
                   name="address"
                   placeholder="Street address"
                   data-testid="input-address"
+                  defaultValue={quoteConversionData?.customerAddress || undefined}
                 />
               </div>
 
@@ -2251,6 +2285,7 @@ export default function Jobs() {
                     name="city"
                     placeholder="City"
                     data-testid="input-city"
+                    defaultValue={quoteConversionData?.customerCity || undefined}
                   />
                 </div>
                 <div>
@@ -2260,6 +2295,7 @@ export default function Jobs() {
                     name="state"
                     placeholder="State"
                     data-testid="input-state"
+                    defaultValue={quoteConversionData?.customerState || undefined}
                   />
                 </div>
                 <div>
@@ -2269,6 +2305,7 @@ export default function Jobs() {
                     name="zipCode"
                     placeholder="ZIP Code"
                     data-testid="input-zip-code"
+                    defaultValue={quoteConversionData?.customerZipCode || undefined}
                   />
                 </div>
               </div>

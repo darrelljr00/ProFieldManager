@@ -34,7 +34,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Eye, Mail, FileText, Trash2, Check, X, Download } from "lucide-react";
+import { Eye, Mail, FileText, Trash2, Check, X, Download, Briefcase } from "lucide-react";
+import { useLocation } from "wouter";
 
 interface QuotesTableProps {
   quotes: (Quote & { customer: Customer; lineItems: QuoteLineItem[] })[];
@@ -50,6 +51,7 @@ export function QuotesTable({ quotes, isLoading }: QuotesTableProps) {
   const [emailMessage, setEmailMessage] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
 
   // Download handler for PDF and Word documents
   const handleDownload = async (quoteId: number, format: 'pdf' | 'word') => {
@@ -200,6 +202,37 @@ export function QuotesTable({ quotes, isLoading }: QuotesTableProps) {
       setSelectedQuote(fullQuote);
       setViewDialog(quote);
     }
+  };
+
+  const handleConvertToJob = (quote: Quote & { customer: Customer; lineItems: QuoteLineItem[] }) => {
+    // Create description from line items
+    const description = quote.lineItems.map(item => 
+      `${item.description} (Qty: ${parseFloat(item.quantity).toFixed(0)})`
+    ).join('\n');
+
+    // Store quote conversion data in sessionStorage
+    const conversionData = {
+      customerId: quote.customerId,
+      customerName: quote.customer.name,
+      customerAddress: quote.customer.address,
+      customerCity: quote.customer.city,
+      customerState: quote.customer.state,
+      customerZipCode: quote.customer.zipCode,
+      description: description,
+      notes: quote.notes || '',
+      quoteId: quote.id,
+      quoteNumber: quote.quoteNumber
+    };
+
+    sessionStorage.setItem('quoteToJobConversion', JSON.stringify(conversionData));
+    
+    toast({
+      title: "Converting to Job",
+      description: "Redirecting to create new job with quote details...",
+    });
+
+    // Navigate to projects page
+    setLocation('/projects?action=create');
   };
 
   const getStatusBadgeVariant = (status: string) => {
@@ -456,6 +489,21 @@ export function QuotesTable({ quotes, isLoading }: QuotesTableProps) {
                   <p className="mt-1">{selectedQuote.notes}</p>
                 </div>
               )}
+
+              <div className="flex justify-end mt-6 pt-4 border-t">
+                <Button
+                  onClick={() => {
+                    handleConvertToJob(selectedQuote);
+                    setSelectedQuote(null);
+                    setViewDialog(null);
+                  }}
+                  className="gap-2"
+                  data-testid="button-convert-to-job"
+                >
+                  <Briefcase className="h-4 w-4" />
+                  Convert to Job
+                </Button>
+              </div>
             </div>
           )}
         </DialogContent>
