@@ -287,6 +287,9 @@ export default function HumanResources() {
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [employeeDetailOpen, setEmployeeDetailOpen] = useState(false);
   const [employeeDetailTab, setEmployeeDetailTab] = useState("overview");
+  const [isEditingEmployee, setIsEditingEmployee] = useState(false);
+  const [editedEmployee, setEditedEmployee] = useState<any>(null);
+  const [editPayType, setEditPayType] = useState<"salary" | "hourly">("salary");
   const [searchTerm, setSearchTerm] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -360,6 +363,27 @@ export default function HumanResources() {
       toast({
         title: "Error",
         description: error.message || "Failed to create employee",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateEmployeeMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: any }) => 
+      apiRequest("PUT", `/api/employees/${id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/employees"] });
+      setIsEditingEmployee(false);
+      setEditedEmployee(null);
+      toast({
+        title: "Success",
+        description: "Employee updated successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update employee",
         variant: "destructive",
       });
     },
@@ -1921,29 +1945,96 @@ export default function HumanResources() {
       </Tabs>
 
       {/* Employee Detail Dialog */}
-      <Dialog open={employeeDetailOpen} onOpenChange={setEmployeeDetailOpen}>
+      <Dialog open={employeeDetailOpen} onOpenChange={(open) => {
+        setEmployeeDetailOpen(open);
+        if (!open) {
+          setIsEditingEmployee(false);
+          setEditedEmployee(null);
+        }
+      }}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>
-              {selectedEmployee && (
-                <div className="flex items-center space-x-3">
-                  <Avatar>
-                    <AvatarImage src={selectedEmployee.profileImage} />
-                    <AvatarFallback>
-                      {selectedEmployee.firstName[0]}{selectedEmployee.lastName[0]}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <h3 className="text-lg font-semibold">
-                      {selectedEmployee.firstName} {selectedEmployee.lastName}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      {selectedEmployee.position} • {selectedEmployee.department}
-                    </p>
+            <div className="flex items-center justify-between">
+              <DialogTitle>
+                {selectedEmployee && (
+                  <div className="flex items-center space-x-3">
+                    <Avatar>
+                      <AvatarImage src={selectedEmployee.profileImage} />
+                      <AvatarFallback>
+                        {selectedEmployee.firstName[0]}{selectedEmployee.lastName[0]}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <h3 className="text-lg font-semibold">
+                        {selectedEmployee.firstName} {selectedEmployee.lastName}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        {selectedEmployee.position} • {selectedEmployee.department}
+                      </p>
+                    </div>
                   </div>
+                )}
+              </DialogTitle>
+              {!isEditingEmployee ? (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    setIsEditingEmployee(true);
+                    setEditedEmployee({...selectedEmployee});
+                    setEditPayType(selectedEmployee?.payType || 'salary');
+                  }}
+                  data-testid="button-edit-employee"
+                >
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit
+                </Button>
+              ) : (
+                <div className="flex space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setIsEditingEmployee(false);
+                      setEditedEmployee(null);
+                    }}
+                    data-testid="button-cancel-edit"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      if (editedEmployee) {
+                        const updateData = {
+                          firstName: editedEmployee.firstName,
+                          lastName: editedEmployee.lastName,
+                          email: editedEmployee.email,
+                          phone: editedEmployee.phone || null,
+                          position: editedEmployee.position,
+                          department: editedEmployee.department,
+                          hireDate: editedEmployee.hireDate,
+                          status: editedEmployee.status,
+                          payType: editPayType,
+                          salary: editPayType === 'salary' && editedEmployee.salary ? parseFloat(editedEmployee.salary) : null,
+                          hourlyRate: editPayType === 'hourly' && editedEmployee.hourlyRate ? parseFloat(editedEmployee.hourlyRate) : null,
+                          location: editedEmployee.location || null,
+                          notes: editedEmployee.notes || null,
+                        };
+                        updateEmployeeMutation.mutate({
+                          id: editedEmployee.id,
+                          data: updateData
+                        });
+                      }
+                    }}
+                    disabled={updateEmployeeMutation.isPending}
+                    data-testid="button-save-employee"
+                  >
+                    {updateEmployeeMutation.isPending ? 'Saving...' : 'Save'}
+                  </Button>
                 </div>
               )}
-            </DialogTitle>
+            </div>
           </DialogHeader>
 
           {selectedEmployee && (
@@ -1955,81 +2046,268 @@ export default function HumanResources() {
               </TabsList>
 
               <TabsContent value="overview" className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-base">Contact Information</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="flex items-center space-x-2">
-                        <Mail className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">{selectedEmployee.email}</span>
-                      </div>
-                      {selectedEmployee.phone && (
-                        <div className="flex items-center space-x-2">
-                          <Phone className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm">{selectedEmployee.phone}</span>
-                        </div>
-                      )}
-                      {selectedEmployee.location && (
-                        <div className="flex items-center space-x-2">
-                          <MapPin className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm">{selectedEmployee.location}</span>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
+                {!isEditingEmployee ? (
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-base">Contact Information</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          <div className="flex items-center space-x-2">
+                            <Mail className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm">{selectedEmployee.email}</span>
+                          </div>
+                          {selectedEmployee.phone && (
+                            <div className="flex items-center space-x-2">
+                              <Phone className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm">{selectedEmployee.phone}</span>
+                            </div>
+                          )}
+                          {selectedEmployee.location && (
+                            <div className="flex items-center space-x-2">
+                              <MapPin className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm">{selectedEmployee.location}</span>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
 
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-base">Employment Details</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Employee ID:</span>
-                        <span className="text-sm font-medium">{selectedEmployee.id}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Hire Date:</span>
-                        <span className="text-sm font-medium">
-                          {new Date(selectedEmployee.hireDate).toLocaleDateString()}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Status:</span>
-                        <Badge className={getStatusColor(selectedEmployee.status)}>
-                          {selectedEmployee.status.replace('_', ' ')}
-                        </Badge>
-                      </div>
-                      {(selectedEmployee.payType === 'salary' && selectedEmployee.salary) && (
-                        <div className="flex justify-between">
-                          <span className="text-sm text-muted-foreground">Annual Salary:</span>
-                          <span className="text-sm font-medium">
-                            ${Number(selectedEmployee.salary).toLocaleString()}
-                          </span>
-                        </div>
-                      )}
-                      {(selectedEmployee.payType === 'hourly' && selectedEmployee.hourlyRate) && (
-                        <div className="flex justify-between">
-                          <span className="text-sm text-muted-foreground">Hourly Rate:</span>
-                          <span className="text-sm font-medium">
-                            ${Number(selectedEmployee.hourlyRate).toFixed(2)}/hr
-                          </span>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </div>
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-base">Employment Details</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          <div className="flex justify-between">
+                            <span className="text-sm text-muted-foreground">Employee ID:</span>
+                            <span className="text-sm font-medium">{selectedEmployee.id}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-sm text-muted-foreground">Position:</span>
+                            <span className="text-sm font-medium">{selectedEmployee.position}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-sm text-muted-foreground">Department:</span>
+                            <span className="text-sm font-medium">{selectedEmployee.department}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-sm text-muted-foreground">Hire Date:</span>
+                            <span className="text-sm font-medium">
+                              {new Date(selectedEmployee.hireDate).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-sm text-muted-foreground">Status:</span>
+                            <Badge className={getStatusColor(selectedEmployee.status)}>
+                              {selectedEmployee.status.replace('_', ' ')}
+                            </Badge>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-sm text-muted-foreground">Pay Type:</span>
+                            <span className="text-sm font-medium capitalize">{selectedEmployee.payType}</span>
+                          </div>
+                          {(selectedEmployee.payType === 'salary' && selectedEmployee.salary) && (
+                            <div className="flex justify-between">
+                              <span className="text-sm text-muted-foreground">Annual Salary:</span>
+                              <span className="text-sm font-medium">
+                                ${Number(selectedEmployee.salary).toLocaleString()}
+                              </span>
+                            </div>
+                          )}
+                          {(selectedEmployee.payType === 'hourly' && selectedEmployee.hourlyRate) && (
+                            <div className="flex justify-between">
+                              <span className="text-sm text-muted-foreground">Hourly Rate:</span>
+                              <span className="text-sm font-medium">
+                                ${Number(selectedEmployee.hourlyRate).toFixed(2)}/hr
+                              </span>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </div>
 
-                {selectedEmployee.notes && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-base">Notes</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-muted-foreground">{selectedEmployee.notes}</p>
-                    </CardContent>
-                  </Card>
+                    {selectedEmployee.notes && (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-base">Notes</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-sm text-muted-foreground">{selectedEmployee.notes}</p>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="edit-firstName">First Name</Label>
+                        <Input
+                          id="edit-firstName"
+                          value={editedEmployee.firstName}
+                          onChange={(e) => setEditedEmployee({...editedEmployee, firstName: e.target.value})}
+                          data-testid="input-edit-firstName"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="edit-lastName">Last Name</Label>
+                        <Input
+                          id="edit-lastName"
+                          value={editedEmployee.lastName}
+                          onChange={(e) => setEditedEmployee({...editedEmployee, lastName: e.target.value})}
+                          data-testid="input-edit-lastName"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="edit-email">Email</Label>
+                        <Input
+                          id="edit-email"
+                          type="email"
+                          value={editedEmployee.email}
+                          onChange={(e) => setEditedEmployee({...editedEmployee, email: e.target.value})}
+                          data-testid="input-edit-email"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="edit-phone">Phone</Label>
+                        <Input
+                          id="edit-phone"
+                          value={editedEmployee.phone || ''}
+                          onChange={(e) => setEditedEmployee({...editedEmployee, phone: e.target.value})}
+                          data-testid="input-edit-phone"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="edit-position">Position</Label>
+                        <Input
+                          id="edit-position"
+                          value={editedEmployee.position}
+                          onChange={(e) => setEditedEmployee({...editedEmployee, position: e.target.value})}
+                          data-testid="input-edit-position"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="edit-department">Department</Label>
+                        <Select
+                          value={editedEmployee.department}
+                          onValueChange={(value) => setEditedEmployee({...editedEmployee, department: value})}
+                        >
+                          <SelectTrigger data-testid="select-edit-department">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Engineering">Engineering</SelectItem>
+                            <SelectItem value="Operations">Operations</SelectItem>
+                            <SelectItem value="Design">Design</SelectItem>
+                            <SelectItem value="Sales">Sales</SelectItem>
+                            <SelectItem value="Marketing">Marketing</SelectItem>
+                            <SelectItem value="HR">Human Resources</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="edit-hireDate">Hire Date</Label>
+                        <Input
+                          id="edit-hireDate"
+                          type="date"
+                          value={editedEmployee.hireDate?.split('T')[0] || ''}
+                          onChange={(e) => setEditedEmployee({...editedEmployee, hireDate: e.target.value})}
+                          data-testid="input-edit-hireDate"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="edit-status">Status</Label>
+                        <Select
+                          value={editedEmployee.status}
+                          onValueChange={(value) => setEditedEmployee({...editedEmployee, status: value})}
+                        >
+                          <SelectTrigger data-testid="select-edit-status">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="active">Active</SelectItem>
+                            <SelectItem value="inactive">Inactive</SelectItem>
+                            <SelectItem value="on_leave">On Leave</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="edit-payType">Pay Type</Label>
+                        <Select
+                          value={editPayType}
+                          onValueChange={(value: "salary" | "hourly") => setEditPayType(value)}
+                        >
+                          <SelectTrigger data-testid="select-edit-payType">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="salary">Salary</SelectItem>
+                            <SelectItem value="hourly">Hourly</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {editPayType === 'salary' ? (
+                        <div>
+                          <Label htmlFor="edit-salary">Annual Salary</Label>
+                          <Input
+                            id="edit-salary"
+                            type="number"
+                            value={editedEmployee.salary || ''}
+                            onChange={(e) => setEditedEmployee({...editedEmployee, salary: e.target.value})}
+                            placeholder="e.g., 75000"
+                            data-testid="input-edit-salary"
+                          />
+                        </div>
+                      ) : (
+                        <div>
+                          <Label htmlFor="edit-hourlyRate">Hourly Rate</Label>
+                          <Input
+                            id="edit-hourlyRate"
+                            type="number"
+                            step="0.01"
+                            value={editedEmployee.hourlyRate || ''}
+                            onChange={(e) => setEditedEmployee({...editedEmployee, hourlyRate: e.target.value})}
+                            placeholder="e.g., 35.00"
+                            data-testid="input-edit-hourlyRate"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <Label htmlFor="edit-location">Location</Label>
+                      <Input
+                        id="edit-location"
+                        value={editedEmployee.location || ''}
+                        onChange={(e) => setEditedEmployee({...editedEmployee, location: e.target.value})}
+                        data-testid="input-edit-location"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="edit-notes">Notes</Label>
+                      <textarea
+                        id="edit-notes"
+                        className="w-full min-h-[100px] px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        value={editedEmployee.notes || ''}
+                        onChange={(e) => setEditedEmployee({...editedEmployee, notes: e.target.value})}
+                        placeholder="Add notes about this employee..."
+                        data-testid="input-edit-notes"
+                      />
+                    </div>
+                  </div>
                 )}
               </TabsContent>
 
