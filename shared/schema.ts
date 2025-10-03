@@ -3452,7 +3452,9 @@ export const employees = pgTable("employees", {
   position: text("position").notNull(),
   department: text("department").notNull(), // Keep for backward compatibility
   hireDate: timestamp("hire_date").notNull(),
+  payType: text("pay_type").notNull().default("salary"), // salary, hourly
   salary: decimal("salary", { precision: 10, scale: 2 }),
+  hourlyRate: decimal("hourly_rate", { precision: 10, scale: 2 }),
   status: text("status").notNull().default("active"), // active, inactive, on_leave, terminated
   managerId: integer("manager_id").references(() => employees.id),
   location: text("location"),

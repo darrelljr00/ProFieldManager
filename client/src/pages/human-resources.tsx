@@ -55,7 +55,9 @@ interface Employee {
   position: string;
   department: string;
   hireDate: string;
+  payType: "salary" | "hourly";
   salary?: number;
+  hourlyRate?: number;
   status: "active" | "inactive" | "on_leave";
   manager?: string;
   location?: string;
@@ -136,6 +138,7 @@ const mockEmployees: Employee[] = [
     position: "Senior Developer",
     department: "Engineering",
     hireDate: "2022-01-15",
+    payType: "salary",
     salary: 95000,
     status: "active",
     manager: "Jane Smith",
@@ -150,6 +153,7 @@ const mockEmployees: Employee[] = [
     position: "Project Manager",
     department: "Operations",
     hireDate: "2021-08-22",
+    payType: "salary",
     salary: 85000,
     status: "active",
     manager: "Mike Wilson",
@@ -164,7 +168,8 @@ const mockEmployees: Employee[] = [
     position: "UX Designer",
     department: "Design",
     hireDate: "2023-03-10",
-    salary: 78000,
+    payType: "hourly",
+    hourlyRate: 45.50,
     status: "on_leave",
     manager: "Lisa Brown",
     location: "Austin, TX"
@@ -289,6 +294,7 @@ export default function HumanResources() {
   const [isUploading, setIsUploading] = useState(false);
   const [showUserSync, setShowUserSync] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string>("");
+  const [payType, setPayType] = useState<"salary" | "hourly">("salary");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -660,7 +666,14 @@ export default function HumanResources() {
                   <CardTitle>Employee Directory</CardTitle>
                   <CardDescription>Manage your team members and their information</CardDescription>
                 </div>
-                <Dialog open={employeeDialogOpen} onOpenChange={setEmployeeDialogOpen}>
+                <Dialog open={employeeDialogOpen} onOpenChange={(open) => {
+                  setEmployeeDialogOpen(open);
+                  if (!open) {
+                    setPayType("salary");
+                    setShowUserSync(false);
+                    setSelectedUserId("");
+                  }
+                }}>
                   <DialogTrigger asChild>
                     <Button>
                       <UserPlus className="mr-2 h-4 w-4" />
@@ -764,9 +777,45 @@ export default function HumanResources() {
                           <Input id="hireDate" name="hireDate" type="date" required />
                         </div>
                         <div>
-                          <Label htmlFor="salary">Salary</Label>
-                          <Input id="salary" name="salary" type="number" />
+                          <Label htmlFor="payType">Pay Type</Label>
+                          <Select 
+                            name="payType" 
+                            value={payType}
+                            onValueChange={(value: "salary" | "hourly") => setPayType(value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="salary">Salary</SelectItem>
+                              <SelectItem value="hourly">Hourly</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        {payType === "salary" ? (
+                          <div>
+                            <Label htmlFor="salary">Annual Salary</Label>
+                            <Input 
+                              id="salary" 
+                              name="salary" 
+                              type="number" 
+                              placeholder="e.g., 75000"
+                            />
+                          </div>
+                        ) : (
+                          <div>
+                            <Label htmlFor="hourlyRate">Hourly Rate</Label>
+                            <Input 
+                              id="hourlyRate" 
+                              name="hourlyRate" 
+                              type="number" 
+                              step="0.01"
+                              placeholder="e.g., 35.00"
+                            />
+                          </div>
+                        )}
                       </div>
                       <div>
                         <Label htmlFor="location">Location</Label>
@@ -788,7 +837,9 @@ export default function HumanResources() {
                             position: formData.get('position'),
                             department: formData.get('department'),
                             hireDate: formData.get('hireDate'),
-                            salary: formData.get('salary') ? parseFloat(formData.get('salary') as string) : null,
+                            payType: formData.get('payType') || 'salary',
+                            salary: payType === 'salary' && formData.get('salary') ? parseFloat(formData.get('salary') as string) : null,
+                            hourlyRate: payType === 'hourly' && formData.get('hourlyRate') ? parseFloat(formData.get('hourlyRate') as string) : null,
                             location: formData.get('location'),
                             ...(showUserSync && selectedUserId && { userId: parseInt(selectedUserId) })
                           };
@@ -1950,11 +2001,19 @@ export default function HumanResources() {
                           {selectedEmployee.status.replace('_', ' ')}
                         </Badge>
                       </div>
-                      {selectedEmployee.salary && (
+                      {(selectedEmployee.payType === 'salary' && selectedEmployee.salary) && (
                         <div className="flex justify-between">
-                          <span className="text-sm text-muted-foreground">Salary:</span>
+                          <span className="text-sm text-muted-foreground">Annual Salary:</span>
                           <span className="text-sm font-medium">
                             ${Number(selectedEmployee.salary).toLocaleString()}
+                          </span>
+                        </div>
+                      )}
+                      {(selectedEmployee.payType === 'hourly' && selectedEmployee.hourlyRate) && (
+                        <div className="flex justify-between">
+                          <span className="text-sm text-muted-foreground">Hourly Rate:</span>
+                          <span className="text-sm font-medium">
+                            ${Number(selectedEmployee.hourlyRate).toFixed(2)}/hr
                           </span>
                         </div>
                       )}
