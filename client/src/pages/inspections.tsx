@@ -335,6 +335,12 @@ export default function Inspections() {
     queryKey: ['/api/gas-cards'],
     enabled: !!user
   });
+
+  // Fetch available vehicles
+  const { data: vehicles = [] } = useQuery({
+    queryKey: ['/api/vehicles'],
+    enabled: !!user
+  });
   
   // Fetch inspection items from API
   const { data: inspectionItems, isLoading: itemsLoading, error: itemsError } = useQuery({
@@ -1004,17 +1010,28 @@ export default function Inspections() {
                     <Label htmlFor="vehicleNumber" className="flex items-center gap-1">
                       Vehicle Number <span className="text-red-500">*</span>
                     </Label>
-                    <Input
-                      id="vehicleNumber"
+                    <Select
                       value={vehicleInfo.vehicleNumber}
-                      onChange={(e) => setVehicleInfo(prev => ({ ...prev, vehicleNumber: e.target.value }))}
-                      placeholder="Enter vehicle number"
-                      className={cn(
-                        "border-2",
-                        !vehicleInfo.vehicleNumber.trim() ? "border-red-300 focus:border-red-500" : "border-gray-300"
-                      )}
-                      required
-                    />
+                      onValueChange={(value) => setVehicleInfo(prev => ({ ...prev, vehicleNumber: value }))}
+                    >
+                      <SelectTrigger 
+                        id="vehicleNumber"
+                        className={cn(
+                          "border-2",
+                          !vehicleInfo.vehicleNumber.trim() ? "border-red-300 focus:border-red-500" : "border-gray-300"
+                        )}
+                        data-testid="select-vehicle-number-pretrip"
+                      >
+                        <SelectValue placeholder="Select vehicle number" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(vehicles as any[]).map((vehicle: any) => (
+                          <SelectItem key={vehicle.id} value={vehicle.vehicleNumber}>
+                            {vehicle.vehicleNumber} {vehicle.licensePlate ? `(${vehicle.licensePlate})` : ''}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div>
                     <Label htmlFor="licensePlate">License Plate</Label>
@@ -1281,17 +1298,28 @@ export default function Inspections() {
                     <Label htmlFor="vehicleNumberPost" className="flex items-center gap-1">
                       Vehicle Number <span className="text-red-500">*</span>
                     </Label>
-                    <Input
-                      id="vehicleNumberPost"
+                    <Select
                       value={vehicleInfo.vehicleNumber}
-                      onChange={(e) => setVehicleInfo(prev => ({ ...prev, vehicleNumber: e.target.value }))}
-                      placeholder="Enter vehicle number"
-                      className={cn(
-                        "border-2",
-                        !vehicleInfo.vehicleNumber.trim() ? "border-red-300 focus:border-red-500" : "border-gray-300"
-                      )}
-                      required
-                    />
+                      onValueChange={(value) => setVehicleInfo(prev => ({ ...prev, vehicleNumber: value }))}
+                    >
+                      <SelectTrigger 
+                        id="vehicleNumberPost"
+                        className={cn(
+                          "border-2",
+                          !vehicleInfo.vehicleNumber.trim() ? "border-red-300 focus:border-red-500" : "border-gray-300"
+                        )}
+                        data-testid="select-vehicle-number-posttrip"
+                      >
+                        <SelectValue placeholder="Select vehicle number" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(vehicles as any[]).map((vehicle: any) => (
+                          <SelectItem key={vehicle.id} value={vehicle.vehicleNumber}>
+                            {vehicle.vehicleNumber} {vehicle.licensePlate ? `(${vehicle.licensePlate})` : ''}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div>
                     <Label htmlFor="licensePlatePost">License Plate</Label>
