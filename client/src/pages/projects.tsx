@@ -3042,21 +3042,13 @@ export default function Jobs() {
                     <p className="text-xs text-gray-400">{user.role}</p>
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleAssignUserToProject(user.id, "member")}
-                  >
-                    Member
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={() => handleAssignUserToProject(user.id, "manager")}
-                  >
-                    Manager
-                  </Button>
-                </div>
+                <Button
+                  size="sm"
+                  onClick={() => handleAssignUserToProject(user.id, "member")}
+                  data-testid={`button-assign-user-${user.id}`}
+                >
+                  Assign
+                </Button>
               </div>
             ))}
             {allUsers.filter(user => !selectedProject?.users?.some(({ user: projectUser }) => projectUser.id === user.id)).length === 0 && (
