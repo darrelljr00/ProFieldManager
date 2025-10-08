@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -26,6 +27,28 @@ export function SimpleVehicleMap({ locations, selectedVehicleId, className = "" 
   const mapRef = useRef<L.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const markersRef = useRef<Map<string, L.Marker>>(new Map());
+  const tileLayerRef = useRef<L.TileLayer | null>(null);
+
+  // Fetch GPS settings for map layer preference
+  const { data: gpsSettings } = useQuery<any>({
+    queryKey: ['/api/gps-settings'],
+    refetchInterval: 5000, // Refetch every 5 seconds to pick up changes
+  });
+
+  const mapLayer = gpsSettings?.mapDefaultLayer || 'dark';
+
+  // Get tile layer URL based on preference
+  const getTileLayerUrl = (layer: string) => {
+    switch (layer) {
+      case 'light':
+        return 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+      case 'medium':
+        return 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+      case 'dark':
+      default:
+        return 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+    }
+  };
 
   // Initialize map
   useEffect(() => {
@@ -37,20 +60,42 @@ export function SimpleVehicleMap({ locations, selectedVehicleId, className = "" 
       zoomControl: true,
     });
 
-    // Add dark tile layer
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    // Add initial tile layer
+    const tileLayer = L.tileLayer(getTileLayerUrl(mapLayer), {
       attribution: '© OpenStreetMap contributors © CARTO',
       subdomains: 'abcd',
       maxZoom: 19,
     }).addTo(map);
 
     mapRef.current = map;
+    tileLayerRef.current = tileLayer;
 
     return () => {
       map.remove();
       mapRef.current = null;
+      tileLayerRef.current = null;
     };
   }, []);
+
+  // Update tile layer when map layer preference changes
+  useEffect(() => {
+    if (!mapRef.current || !tileLayerRef.current) return;
+
+    const map = mapRef.current;
+    const currentLayer = tileLayerRef.current;
+
+    // Remove old tile layer
+    map.removeLayer(currentLayer);
+
+    // Add new tile layer
+    const newTileLayer = L.tileLayer(getTileLayerUrl(mapLayer), {
+      attribution: '© OpenStreetMap contributors © CARTO',
+      subdomains: 'abcd',
+      maxZoom: 19,
+    }).addTo(map);
+
+    tileLayerRef.current = newTileLayer;
+  }, [mapLayer]);
 
   // Update markers when locations change
   useEffect(() => {
