@@ -15,14 +15,14 @@ export default function GPSTrackingOBD() {
     refetchInterval: 5000,
   });
 
-  // Fetch OBD locations
+  // Fetch OBD locations for all vehicles
   const { data: obdLocationResponse } = useQuery<any>({
     queryKey: ['/api/obd/latest-location'],
     refetchInterval: 3000,
   });
   
-  // Extract locations from response (API returns { location: {...} })
-  const obdLocations = obdLocationResponse?.location ? [obdLocationResponse.location] : [];
+  // Extract locations from response (API returns { locations: [...] } for all vehicles)
+  const obdLocations = obdLocationResponse?.locations || [];
 
   // Fetch trips
   const { data: obdTripsResponse } = useQuery<any>({

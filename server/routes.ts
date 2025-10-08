@@ -17626,24 +17626,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = getAuthenticatedUser(req);
       const { deviceId, vehicleId } = req.query;
 
-      let whereCondition = eq(obdLocationData.organizationId, user.organizationId);
+      // If specific vehicleId or deviceId is requested, return single location
+      if (deviceId || vehicleId) {
+        let whereCondition = eq(obdLocationData.organizationId, user.organizationId);
 
-      if (deviceId) {
-        whereCondition = and(whereCondition, eq(obdLocationData.deviceId, deviceId as string));
+        if (deviceId) {
+          whereCondition = and(whereCondition, eq(obdLocationData.deviceId, deviceId as string));
+        }
+
+        if (vehicleId) {
+          whereCondition = and(whereCondition, eq(obdLocationData.vehicleId, parseInt(vehicleId as string)));
+        }
+
+        const [location] = await db
+          .select()
+          .from(obdLocationData)
+          .where(whereCondition)
+          .orderBy(desc(obdLocationData.timestamp))
+          .limit(1);
+
+        res.json({ location });
+      } else {
+        // Return latest location for ALL vehicles in the organization
+        const locations = await db
+          .select()
+          .from(obdLocationData)
+          .where(eq(obdLocationData.organizationId, user.organizationId))
+          .orderBy(desc(obdLocationData.timestamp));
+
+        // Group by vehicleId to get latest for each
+        const latestByVehicle = locations.reduce((acc: any[], loc: any) => {
+          if (!acc.find(l => l.vehicleId === loc.vehicleId)) {
+            acc.push(loc);
+          }
+          return acc;
+        }, []);
+
+        res.json({ locations: latestByVehicle });
       }
-
-      if (vehicleId) {
-        whereCondition = and(whereCondition, eq(obdLocationData.vehicleId, parseInt(vehicleId as string)));
-      }
-
-      const [location] = await db
-        .select()
-        .from(obdLocationData)
-        .where(whereCondition)
-        .orderBy(desc(obdLocationData.timestamp))
-        .limit(1);
-
-      res.json({ location });
     } catch (error: any) {
       console.error("Error fetching latest location:", error);
       res.status(500).json({ message: "Error fetching location: " + error.message });
