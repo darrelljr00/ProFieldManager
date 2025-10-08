@@ -28,6 +28,8 @@ export function SimpleVehicleMap({ locations, selectedVehicleId, className = "" 
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const markersRef = useRef<Map<string, L.Marker>>(new Map());
   const tileLayerRef = useRef<L.TileLayer | null>(null);
+  const pathLinesRef = useRef<Map<string, L.Polyline>>(new Map());
+  const pathHistoryRef = useRef<Map<string, [number, number][]>>(new Map());
 
   // Fetch GPS settings for map layer preference
   const { data: gpsSettings } = useQuery<any>({
@@ -71,6 +73,11 @@ export function SimpleVehicleMap({ locations, selectedVehicleId, className = "" 
     tileLayerRef.current = tileLayer;
 
     return () => {
+      // Clean up path lines
+      pathLinesRef.current.forEach(line => map.removeLayer(line));
+      pathLinesRef.current.clear();
+      pathHistoryRef.current.clear();
+      
       map.remove();
       mapRef.current = null;
       tileLayerRef.current = null;
@@ -97,30 +104,67 @@ export function SimpleVehicleMap({ locations, selectedVehicleId, className = "" 
     tileLayerRef.current = newTileLayer;
   }, [mapLayer]);
 
-  // Update markers when locations change
+  // Update markers and path lines when locations change
   useEffect(() => {
     if (!mapRef.current || !locations || locations.length === 0) return;
 
     const map = mapRef.current;
     const markers = markersRef.current;
+    const pathLines = pathLinesRef.current;
+    const pathHistory = pathHistoryRef.current;
 
     // Clear old markers
     markers.forEach(marker => map.removeLayer(marker));
     markers.clear();
 
-    // Add new markers
+    // Add new markers and update paths
     const bounds: L.LatLngBounds[] = [];
+    const MAX_PATH_POINTS = 100; // Keep last 100 points
 
     locations.forEach(location => {
       if (location.latitude && location.longitude) {
         const lat = parseFloat(location.latitude);
         const lng = parseFloat(location.longitude);
+        const vehicleId = location.vehicleId?.toString() || location.deviceId || 'unknown';
+        
+        // Update path history for this vehicle
+        if (!pathHistory.has(vehicleId)) {
+          pathHistory.set(vehicleId, []);
+        }
+        const history = pathHistory.get(vehicleId)!;
+        
+        // Add new point if it's different from the last point
+        const lastPoint = history[history.length - 1];
+        if (!lastPoint || lastPoint[0] !== lat || lastPoint[1] !== lng) {
+          history.push([lat, lng]);
+          
+          // Limit path history to MAX_PATH_POINTS
+          if (history.length > MAX_PATH_POINTS) {
+            history.shift();
+          }
+        }
+
+        // Create or update polyline for vehicle path
+        if (history.length > 1) {
+          if (pathLines.has(vehicleId)) {
+            // Update existing polyline
+            pathLines.get(vehicleId)!.setLatLngs(history);
+          } else {
+            // Create new polyline
+            const pathLine = L.polyline(history, {
+              color: '#3b82f6',
+              weight: 3,
+              opacity: 0.7,
+              smoothFactor: 1
+            }).addTo(map);
+            pathLines.set(vehicleId, pathLine);
+          }
+        }
         
         const marker = L.marker([lat, lng], {
           icon: createVehicleIcon()
         }).addTo(map);
 
-        const vehicleId = location.vehicleId?.toString() || 'unknown';
         const displayName = location.displayName || `Vehicle ${vehicleId}`;
         
         // Add popup with location info
@@ -141,8 +185,8 @@ export function SimpleVehicleMap({ locations, selectedVehicleId, className = "" 
       }
     });
 
-    // Fit map to show all markers
-    if (bounds.length > 0) {
+    // Fit map to show all markers on first load
+    if (bounds.length > 0 && pathHistory.size === locations.length) {
       const group = L.featureGroup(Array.from(markers.values()));
       map.fitBounds(group.getBounds(), { padding: [50, 50] });
     }
