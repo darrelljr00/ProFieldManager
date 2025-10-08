@@ -174,19 +174,53 @@ export function SimpleVehicleMap({ locations, selectedVehicleId, className = "" 
         const statusColor = isMoving ? '#22c55e' : '#ef4444';
         const statusText = isMoving ? 'In Motion' : 'Stopped';
         
-        // Add popup with location info
-        marker.bindPopup(`
-          <div style="color: black; min-width: 200px;">
+        // Create popup with initial content (address will load asynchronously)
+        const popupContent = `
+          <div style="color: black; min-width: 250px;">
             <strong style="font-size: 14px;">${displayName}</strong>
             <span style="background-color: ${statusColor}; color: white; padding: 2px 8px; border-radius: 4px; font-size: 10px; margin-left: 8px;">${statusText}</span><br/>
             ${location.deviceId ? `<span style="color: #666; font-size: 11px;">Device: ${location.deviceId}</span><br/>` : ''}
             <div style="margin-top: 8px;">
+              <div id="address-${vehicleId}" style="margin-bottom: 8px; color: #666; font-size: 12px;">
+                📍 <span style="font-style: italic;">Loading address...</span>
+              </div>
               <span style="color: #333;">Speed:</span> <strong>${Math.round(speed)} mph</strong><br/>
               <span style="color: #333;">Heading:</span> ${location.heading || 0}°<br/>
               <span style="color: #333;">Last Update:</span> ${location.timestamp ? new Date(location.timestamp).toLocaleTimeString() : 'N/A'}
             </div>
           </div>
-        `);
+        `;
+        
+        marker.bindPopup(popupContent);
+        
+        // When popup opens, fetch the address
+        marker.on('popupopen', async () => {
+          const addressElement = document.getElementById(`address-${vehicleId}`);
+          if (addressElement) {
+            try {
+              // Use Nominatim for reverse geocoding
+              const response = await fetch(
+                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
+                {
+                  headers: {
+                    'User-Agent': 'ProFieldManager/1.0'
+                  }
+                }
+              );
+              
+              if (response.ok) {
+                const data = await response.json();
+                const address = data.display_name || 'Address not found';
+                addressElement.innerHTML = `📍 <strong>${address}</strong>`;
+              } else {
+                addressElement.innerHTML = `📍 <span style="color: #999;">Address unavailable</span>`;
+              }
+            } catch (error) {
+              console.error('Error fetching address:', error);
+              addressElement.innerHTML = `📍 <span style="color: #999;">Address unavailable</span>`;
+            }
+          }
+        });
 
         markers.set(vehicleId, marker);
         bounds.push(L.latLngBounds([lat, lng], [lat, lng]));
