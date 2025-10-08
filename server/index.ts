@@ -10,6 +10,9 @@ const app = express();
 // Enable trust proxy for Replit infrastructure
 app.set('trust proxy', 1);
 
+// Disable ETags to prevent 304 caching issues with live GPS data
+app.set('etag', false);
+
 // CORS configuration to support custom domain profieldmanager.com
 app.use((req, res, next) => {
   const origin = req.headers.origin;
@@ -56,6 +59,22 @@ app.use((req, res, next) => {
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
+
+// FORCE remove ETags AND If-None-Match to prevent 304 caching
+app.use((req, res, next) => {
+  // Remove If-None-Match header to prevent Express from returning 304
+  delete req.headers['if-none-match'];
+  
+  // Override setHeader to block ETags
+  const originalSetHeader = res.setHeader.bind(res);
+  res.setHeader = function(name: string, value: any) {
+    if (name.toLowerCase() === 'etag') {
+      return res; // Block ETag headers
+    }
+    return originalSetHeader(name, value);
+  };
+  next();
+});
 
 app.use((req, res, next) => {
   const start = Date.now();

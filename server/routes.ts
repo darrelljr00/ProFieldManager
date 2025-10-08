@@ -17624,9 +17624,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/obd/latest-location", requireAuth, async (req, res) => {
     try {
       const user = getAuthenticatedUser(req);
-      const { deviceId, vehicleId } = req.query;
+      const { deviceId, vehicleId} = req.query;
 
-      // If specific vehicleId or deviceId is requested, return single location
+      // Disable caching for live GPS data - AGGRESSIVE approach
+      res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private, max-age=0');
+      res.set('Pragma', 'no-cache');
+      res.set('Expires', '0');
+      res.set('Last-Modified', new Date().toUTCString());
+      // Don't remove ETag here, Express hasn't generated it yet
+
+      // Get One Step GPS API key from settings
+      const apiKeySetting = await db
+        .select()
+        .from(settings)
+        .where(and(
+          eq(settings.category, 'gps'),
+          eq(settings.key, 'oneStepGpsApiKey')
+        ))
+        .limit(1);
+
+      // If OneStep GPS is configured, fetch live data from API
+      if (apiKeySetting && apiKeySetting.length > 0 && apiKeySetting[0].value) {
+        const apiKey = apiKeySetting[0].value;
+        
+        try {
+          // Fetch live device data from One Step GPS API
+          console.log('🚗 Fetching live data from OneStep GPS API...');
+          const response = await fetch(
+            `https://track.onestepgps.com/v3/api/public/device-info?lat_lng=1&api-key=${apiKey}`
+          );
+
+          console.log('📡 OneStep GPS API Response Status:', response.status);
+          
+          if (response.ok) {
+            const devices = await response.json();
+            console.log(`✅ Received ${devices.length} devices from OneStep GPS`);
+            
+            // Transform OneStep GPS response to our location format
+            const locations = devices
+              .filter((device: any) => device.latest_device_point?.lat && device.latest_device_point?.lng)
+              .map((device: any) => {
+                const point = device.latest_device_point;
+                return {
+                  deviceId: device.device_id,
+                  displayName: device.display_name || `Device ${device.device_id}`,
+                  latitude: String(point.lat),
+                  longitude: String(point.lng),
+                  speed: point.device_speed || 0,
+                  heading: point.direction || 0,
+                  altitude: point.altitude || 0,
+                  timestamp: new Date(point.dt_tracker),
+                  batteryVoltage: device.latest_accurate_device_point?.params?.pwr_ext || null,
+                  organizationId: user.organizationId,
+                  vehicleId: null // Will be populated if mapped in database
+                };
+              });
+
+            // If specific device or vehicle requested, filter results
+            if (deviceId) {
+              const location = locations.find((loc: any) => loc.deviceId === deviceId);
+              return res.json({ location: location || null, _timestamp: Date.now() });
+            }
+            
+            if (vehicleId) {
+              const location = locations.find((loc: any) => loc.vehicleId === parseInt(vehicleId as string));
+              return res.json({ location: location || null, _timestamp: Date.now() });
+            }
+
+            // Return all locations with timestamp to prevent caching
+            return res.json({ locations, _timestamp: Date.now() });
+          }
+        } catch (apiError) {
+          console.error("Error fetching from One Step GPS API, falling back to database:", apiError);
+          // Fall through to database query if API fails
+        }
+      }
+
+      // Fallback to database if no API key or API fails
       if (deviceId || vehicleId) {
         let whereCondition = eq(obdLocationData.organizationId, user.organizationId);
 
@@ -17645,7 +17719,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .orderBy(desc(obdLocationData.timestamp))
           .limit(1);
 
-        res.json({ location });
+        res.json({ location, _timestamp: Date.now() });
       } else {
         // Return latest location for ALL vehicles in the organization
         const locations = await db
@@ -17662,7 +17736,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return acc;
         }, []);
 
-        res.json({ locations: latestByVehicle });
+        res.json({ locations: latestByVehicle, _timestamp: Date.now() });
       }
     } catch (error: any) {
       console.error("Error fetching latest location:", error);
