@@ -17665,12 +17665,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const locations = devices
               .filter((device: any) => device.lat && device.lng)
               .map((device: any) => {
+                const speed = device.speed || 0;
                 return {
                   deviceId: device.device_id || device.display_name,
                   displayName: device.display_name || `Device ${device.device_id}`,
                   latitude: String(device.lat),
                   longitude: String(device.lng),
-                  speed: device.speed || 0,
+                  speed: speed,
                   heading: device.heading || 0,
                   altitude: device.altitude || 0,
                   timestamp: device.dt_tracker ? new Date(device.dt_tracker) : new Date(),
@@ -17681,6 +17682,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               });
             
             console.log(`📍 Transformed ${locations.length} devices with coordinates`);
+            console.log('🚦 Vehicle Speeds:', locations.map(loc => `${loc.displayName}: ${loc.speed} mph`).join(', '));
 
             // If specific device or vehicle requested, filter results
             if (deviceId) {
