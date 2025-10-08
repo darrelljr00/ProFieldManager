@@ -17660,9 +17660,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const devices = await response.json();
             console.log(`✅ Received ${devices.length} devices from OneStep GPS`);
             
+            // Debug: Check first device structure
+            if (devices[0]) {
+              console.log('🔍 First device keys:', Object.keys(devices[0]));
+              console.log('🔍 Has latest_device_point?', !!devices[0].latest_device_point);
+              console.log('🔍 Latest point keys:', devices[0].latest_device_point ? Object.keys(devices[0].latest_device_point) : 'N/A');
+            }
+            
             // Transform OneStep GPS response to our location format
             const locations = devices
-              .filter((device: any) => device.latest_device_point?.lat && device.latest_device_point?.lng)
+              .filter((device: any) => {
+                const hasLocation = device.latest_device_point?.lat && device.latest_device_point?.lng;
+                if (!hasLocation) {
+                  console.log(`⚠️ Device ${device.device_id || device.device_name} FILTERED OUT - Missing location`);
+                }
+                return hasLocation;
+              })
               .map((device: any) => {
                 const point = device.latest_device_point;
                 return {
