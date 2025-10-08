@@ -23,15 +23,6 @@ export default function GPSTrackingOBD() {
   
   // Extract locations from response (API returns { locations: [...] } for all vehicles)
   const obdLocations = obdLocationResponse?.locations || [];
-  
-  // Debug: log locations data
-  useEffect(() => {
-    console.log('🗺️ OBD Locations Data:', {
-      response: obdLocationResponse,
-      locations: obdLocations,
-      count: obdLocations.length
-    });
-  }, [obdLocationResponse, obdLocations]);
 
   // Fetch trips
   const { data: obdTripsResponse } = useQuery<any>({
