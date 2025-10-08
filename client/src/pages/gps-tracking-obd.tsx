@@ -100,8 +100,8 @@ export default function GPSTrackingOBD() {
   const [replayLocations, setReplayLocations] = useState<ObdLocationData[]>([]);
   const wsRef = useRef<WebSocket | null>(null);
   const mapRef = useRef<HTMLDivElement>(null);
-  const googleMapRef = useRef<google.maps.Map | null>(null);
-  const markerRef = useRef<google.maps.Marker | null>(null);
+  const googleMapRef = useRef<any | null>(null);
+  const markerRef = useRef<any | null>(null);
 
   // Fetch vehicles
   const { data: vehicles } = useQuery<Vehicle[]>({
@@ -109,26 +109,26 @@ export default function GPSTrackingOBD() {
   });
 
   // Fetch latest location
-  const { data: locationResponse, refetch: refetchLocation } = useQuery({
+  const { data: locationResponse, refetch: refetchLocation } = useQuery<{ location: ObdLocationData | null }>({
     queryKey: ['/api/obd/latest-location', selectedDeviceId, selectedVehicleId],
     enabled: !!selectedDeviceId || !!selectedVehicleId,
     refetchInterval: 5000, // Fallback polling
   });
 
   // Fetch trips
-  const { data: tripsResponse } = useQuery({
+  const { data: tripsResponse } = useQuery<{ trips: ObdTrip[] }>({
     queryKey: ['/api/obd/trips', selectedDeviceId, selectedVehicleId],
     enabled: !!selectedDeviceId || !!selectedVehicleId,
   });
 
   // Fetch weekly summary
-  const { data: summaryResponse } = useQuery({
+  const { data: summaryResponse } = useQuery<{ summary: WeeklySummary }>({
     queryKey: ['/api/obd/weekly-summary', selectedDeviceId, selectedVehicleId],
     enabled: !!selectedDeviceId || !!selectedVehicleId,
   });
 
   const trips = tripsResponse?.trips || [];
-  const summary = summaryResponse?.summary as WeeklySummary | undefined;
+  const summary = summaryResponse?.summary;
 
   // WebSocket connection for real-time updates
   useEffect(() => {

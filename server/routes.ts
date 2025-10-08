@@ -70,7 +70,8 @@ import {
   lateArrivals, notifications, notificationSettings,
   partsSupplies, inventoryTransactions, stockAlerts,
   partsCategories, meetings, meetingParticipants, meetingMessages, meetingRecordings,
-  jobSiteGeofences, jobSiteEvents, gpsTrackingData
+  jobSiteGeofences, jobSiteEvents, gpsTrackingData,
+  obdLocationData, obdDiagnosticData, obdTrips
 } from "@shared/schema";
 import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull } from "drizzle-orm";
 import { DocuSignService, getDocuSignConfig } from "./docusign";
@@ -17454,9 +17455,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Import OBD schemas from shared schema
-      const { obdLocationData, obdTrips } = await import("@shared/schema");
-
       // Save location data
       const [locationRecord] = await db
         .insert(obdLocationData)
@@ -17570,8 +17568,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const { obdDiagnosticData } = await import("@shared/schema");
-
       // Save diagnostic data
       const [diagnosticRecord] = await db
         .insert(obdDiagnosticData)
@@ -17630,8 +17626,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = getAuthenticatedUser(req);
       const { deviceId, vehicleId } = req.query;
 
-      const { obdLocationData } = await import("@shared/schema");
-
       let whereCondition = eq(obdLocationData.organizationId, user.organizationId);
 
       if (deviceId) {
@@ -17661,8 +17655,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const user = getAuthenticatedUser(req);
       const { deviceId, vehicleId, status, limit = '50' } = req.query;
-
-      const { obdTrips } = await import("@shared/schema");
 
       let whereCondition = eq(obdTrips.organizationId, user.organizationId);
 
@@ -17697,8 +17689,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const user = getAuthenticatedUser(req);
       const { deviceId, vehicleId } = req.query;
-
-      const { obdTrips } = await import("@shared/schema");
 
       const oneWeekAgo = new Date();
       oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
@@ -17750,8 +17740,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const user = getAuthenticatedUser(req);
       const { tripId, deviceId, startTime, endTime } = req.query;
-
-      const { obdLocationData } = await import("@shared/schema");
 
       let whereCondition = eq(obdLocationData.organizationId, user.organizationId);
 
