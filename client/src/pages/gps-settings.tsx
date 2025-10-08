@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -45,7 +45,7 @@ export default function GPSSettings() {
   const [formData, setFormData] = useState(settings || {});
 
   // Update form data when settings load
-  useState(() => {
+  useEffect(() => {
     if (settings) {
       setFormData(settings);
     }
@@ -54,7 +54,7 @@ export default function GPSSettings() {
   // Save settings mutation
   const saveSettingsMutation = useMutation({
     mutationFn: async (data: any) => {
-      return apiRequest('/api/gps-settings', 'POST', data);
+      return apiRequest('POST', '/api/gps-settings', data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/gps-settings'] });
