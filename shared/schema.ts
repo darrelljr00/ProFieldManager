@@ -5020,6 +5020,113 @@ export const insertJobSiteEventSchema = createInsertSchema(jobSiteEvents, {
   createdAt: true,
 });
 
+// OBD GPS Tracking Tables
+export const obdLocationData = pgTable("obd_location_data", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").references(() => organizations.id).notNull(),
+  vehicleId: integer("vehicle_id").references(() => vehicles.id),
+  deviceId: text("device_id").notNull(), // OBD device identifier
+  latitude: decimal("latitude", { precision: 10, scale: 8 }).notNull(),
+  longitude: decimal("longitude", { precision: 11, scale: 8 }).notNull(),
+  speed: decimal("speed", { precision: 5, scale: 2 }), // mph
+  heading: decimal("heading", { precision: 5, scale: 2 }), // degrees
+  altitude: decimal("altitude", { precision: 7, scale: 2 }), // meters
+  accuracy: decimal("accuracy", { precision: 6, scale: 2 }), // meters
+  timestamp: timestamp("timestamp").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const obdDiagnosticData = pgTable("obd_diagnostic_data", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").references(() => organizations.id).notNull(),
+  vehicleId: integer("vehicle_id").references(() => vehicles.id),
+  deviceId: text("device_id").notNull(),
+  rpm: integer("rpm"), // Engine RPM
+  engineTemp: decimal("engine_temp", { precision: 5, scale: 2 }), // Celsius
+  coolantTemp: decimal("coolant_temp", { precision: 5, scale: 2 }), // Celsius
+  fuelLevel: decimal("fuel_level", { precision: 5, scale: 2 }), // Percentage
+  batteryVoltage: decimal("battery_voltage", { precision: 4, scale: 2 }), // Volts
+  throttlePosition: decimal("throttle_position", { precision: 5, scale: 2 }), // Percentage
+  engineLoad: decimal("engine_load", { precision: 5, scale: 2 }), // Percentage
+  maf: decimal("maf", { precision: 6, scale: 2 }), // Mass Air Flow (g/s)
+  timestamp: timestamp("timestamp").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const obdTrips = pgTable("obd_trips", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").references(() => organizations.id).notNull(),
+  vehicleId: integer("vehicle_id").references(() => vehicles.id),
+  deviceId: text("device_id").notNull(),
+  startTime: timestamp("start_time").notNull(),
+  endTime: timestamp("end_time"),
+  startLatitude: decimal("start_latitude", { precision: 10, scale: 8 }),
+  startLongitude: decimal("start_longitude", { precision: 11, scale: 8 }),
+  endLatitude: decimal("end_latitude", { precision: 10, scale: 8 }),
+  endLongitude: decimal("end_longitude", { precision: 11, scale: 8 }),
+  startLocation: text("start_location"),
+  endLocation: text("end_location"),
+  distanceMiles: decimal("distance_miles", { precision: 10, scale: 2 }),
+  durationMinutes: integer("duration_minutes"),
+  averageSpeed: decimal("average_speed", { precision: 5, scale: 2 }), // mph
+  maxSpeed: decimal("max_speed", { precision: 5, scale: 2 }), // mph
+  status: text("status").default("active"), // active, completed
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Insert schemas for OBD tables
+export const insertObdLocationDataSchema = createInsertSchema(obdLocationData, {
+  deviceId: z.string().min(1, "Device ID is required"),
+  latitude: z.number().min(-90).max(90),
+  longitude: z.number().min(-180).max(180),
+  speed: z.number().min(0).optional(),
+  heading: z.number().min(0).max(360).optional(),
+  altitude: z.number().optional(),
+  accuracy: z.number().min(0).optional(),
+  timestamp: z.string().datetime().or(z.date()),
+}).omit({
+  id: true,
+  organizationId: true,
+  createdAt: true,
+});
+
+export const insertObdDiagnosticDataSchema = createInsertSchema(obdDiagnosticData, {
+  deviceId: z.string().min(1, "Device ID is required"),
+  rpm: z.number().int().min(0).max(10000).optional(),
+  engineTemp: z.number().optional(),
+  coolantTemp: z.number().optional(),
+  fuelLevel: z.number().min(0).max(100).optional(),
+  batteryVoltage: z.number().min(0).max(20).optional(),
+  throttlePosition: z.number().min(0).max(100).optional(),
+  engineLoad: z.number().min(0).max(100).optional(),
+  maf: z.number().min(0).optional(),
+  timestamp: z.string().datetime().or(z.date()),
+}).omit({
+  id: true,
+  organizationId: true,
+  createdAt: true,
+});
+
+export const insertObdTripSchema = createInsertSchema(obdTrips, {
+  deviceId: z.string().min(1, "Device ID is required"),
+  startTime: z.string().datetime().or(z.date()),
+  endTime: z.string().datetime().or(z.date()).optional(),
+}).omit({
+  id: true,
+  organizationId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// OBD types
+export type ObdLocationData = typeof obdLocationData.$inferSelect;
+export type InsertObdLocationData = z.infer<typeof insertObdLocationDataSchema>;
+export type ObdDiagnosticData = typeof obdDiagnosticData.$inferSelect;
+export type InsertObdDiagnosticData = z.infer<typeof insertObdDiagnosticDataSchema>;
+export type ObdTrip = typeof obdTrips.$inferSelect;
+export type InsertObdTrip = z.infer<typeof insertObdTripSchema>;
+
 // GPS Tracking types
 export type GpsTrackingData = typeof gpsTrackingData.$inferSelect;
 export type InsertGpsTrackingData = z.infer<typeof insertGpsTrackingDataSchema>;
