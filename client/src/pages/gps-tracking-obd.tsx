@@ -4,10 +4,11 @@ import { SimpleVehicleMap } from "@/components/map/simple-vehicle-map";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Calendar, Bell, Gauge, Zap, Thermometer, Activity } from "lucide-react";
+import { Calendar, Bell, Gauge, Zap, Thermometer, Activity, Car } from "lucide-react";
 
 export default function GPSTrackingOBD() {
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
+  const [focusVehicleId, setFocusVehicleId] = useState<string | null>(null);
 
   // Fetch vehicles
   const { data: vehicles = [], isLoading: vehiclesLoading } = useQuery<any[]>({
@@ -186,6 +187,7 @@ export default function GPSTrackingOBD() {
                 <SimpleVehicleMap 
                   locations={obdLocations}
                   selectedVehicleId={effectiveVehicleId}
+                  focusVehicleId={focusVehicleId}
                 />
               </div>
               
@@ -217,47 +219,64 @@ export default function GPSTrackingOBD() {
               </Card>
             </div>
             
-            {/* Right Panel - Trip History (30%) */}
+            {/* Right Panel - Vehicles List (30%) */}
             <div className="col-span-4">
               <Card className="p-4 h-full overflow-auto">
-                <h3 className="text-lg font-semibold mb-4 dark:text-white">Trip History</h3>
+                <h3 className="text-lg font-semibold mb-4 dark:text-white">Vehicles</h3>
                 <div className="space-y-3">
-                  {obdTrips.filter((t: any) => t.vehicleId?.toString() === effectiveVehicleId).length === 0 ? (
-                    <p className="text-sm text-gray-600 dark:text-gray-400">No trips recorded yet</p>
+                  {obdLocations.length === 0 ? (
+                    <p className="text-sm text-gray-600 dark:text-gray-400">No vehicles tracking</p>
                   ) : (
-                    obdTrips
-                      .filter((t: any) => t.vehicleId?.toString() === effectiveVehicleId)
-                      .map((trip: any) => (
-                        <div key={trip.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-3">
-                          <div className="flex justify-between items-start mb-2">
-                            <div>
-                              <p className="font-medium text-sm dark:text-white">{trip.startLocation || 'Trip'}</p>
-                              <p className="text-xs text-gray-600 dark:text-gray-400">{trip.endLocation || 'In Progress'}</p>
+                    obdLocations.map((location: any) => {
+                      const vehicleId = location.vehicleId?.toString() || location.deviceId || 'unknown';
+                      const vehicle = vehicles.find(v => v.id.toString() === vehicleId);
+                      const speed = parseFloat(location.speed) || 0;
+                      const isMoving = speed >= 1;
+                      
+                      return (
+                        <div 
+                          key={vehicleId}
+                          onClick={() => setFocusVehicleId(vehicleId)}
+                          className="border border-gray-200 dark:border-gray-700 rounded-lg p-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                          data-testid={`vehicle-item-${vehicleId}`}
+                        >
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex items-center space-x-2">
+                              <div className={`p-2 rounded-lg ${isMoving ? 'bg-green-100 dark:bg-green-900' : 'bg-red-100 dark:bg-red-900'}`}>
+                                <Car className={`w-4 h-4 ${isMoving ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`} />
+                              </div>
+                              <div>
+                                <p className="font-medium text-sm dark:text-white">
+                                  {location.displayName || vehicle?.vehicleNumber || `Vehicle ${vehicleId}`}
+                                </p>
+                                <p className="text-xs text-gray-600 dark:text-gray-400">
+                                  {vehicle?.licensePlate || `Device ${location.deviceId}`}
+                                </p>
+                              </div>
                             </div>
                             <span className={`px-2 py-1 rounded-full text-xs ${
-                              trip.status === 'active' 
+                              isMoving 
                                 ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' 
-                                : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
+                                : 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'
                             }`}>
-                              {trip.status}
+                              {isMoving ? 'Moving' : 'Stopped'}
                             </span>
                           </div>
-                          <div className="grid grid-cols-3 gap-2 text-xs">
+                          <div className="grid grid-cols-2 gap-2 text-xs">
                             <div>
-                              <p className="text-gray-600 dark:text-gray-400">Distance</p>
-                              <p className="font-medium dark:text-white">{trip.distanceMiles ? parseFloat(trip.distanceMiles).toFixed(1) : 0} mi</p>
+                              <p className="text-gray-600 dark:text-gray-400">Speed</p>
+                              <p className="font-medium dark:text-white">{Math.round(speed)} mph</p>
                             </div>
                             <div>
-                              <p className="text-gray-600 dark:text-gray-400">Duration</p>
-                              <p className="font-medium dark:text-white">{trip.durationMinutes || 0} min</p>
-                            </div>
-                            <div>
-                              <p className="text-gray-600 dark:text-gray-400">Avg Speed</p>
-                              <p className="font-medium dark:text-white">{trip.averageSpeed ? parseFloat(trip.averageSpeed).toFixed(0) : 0} mph</p>
+                              <p className="text-gray-600 dark:text-gray-400">Last Update</p>
+                              <p className="font-medium dark:text-white">
+                                {location.timestamp ? new Date(location.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
+                              </p>
                             </div>
                           </div>
                         </div>
-                      ))
+                      );
+                    })
                   )}
                 </div>
               </Card>

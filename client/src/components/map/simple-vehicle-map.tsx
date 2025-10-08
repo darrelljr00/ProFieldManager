@@ -6,6 +6,7 @@ import "leaflet/dist/leaflet.css";
 interface SimpleVehicleMapProps {
   locations: any[];
   selectedVehicleId?: string;
+  focusVehicleId?: string | null;
   className?: string;
 }
 
@@ -24,7 +25,7 @@ const createVehicleIcon = (isMoving: boolean) => {
   });
 };
 
-export function SimpleVehicleMap({ locations, selectedVehicleId, className = "" }: SimpleVehicleMapProps) {
+export function SimpleVehicleMap({ locations, selectedVehicleId, focusVehicleId, className = "" }: SimpleVehicleMapProps) {
   const mapRef = useRef<L.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const markersRef = useRef<Map<string, L.Marker>>(new Map());
@@ -258,6 +259,21 @@ export function SimpleVehicleMap({ locations, selectedVehicleId, className = "" 
       map.fitBounds(group.getBounds(), { padding: [50, 50] });
     }
   }, [locations]);
+
+  // Focus on specific vehicle when focusVehicleId changes
+  useEffect(() => {
+    if (!mapRef.current || !focusVehicleId) return;
+
+    const map = mapRef.current;
+    const markers = markersRef.current;
+    const marker = markers.get(focusVehicleId);
+
+    if (marker) {
+      const latLng = marker.getLatLng();
+      map.setView(latLng, 16, { animate: true, duration: 1 });
+      marker.openPopup();
+    }
+  }, [focusVehicleId]);
 
   return (
     <div ref={mapContainerRef} className={`w-full h-full min-h-[400px] ${className}`} />
