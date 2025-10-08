@@ -54,7 +54,16 @@ export function SimpleVehicleMap({ locations, selectedVehicleId, className = "" 
 
   // Update markers when locations change
   useEffect(() => {
-    if (!mapRef.current || !locations || locations.length === 0) return;
+    console.log('📍 SimpleVehicleMap: Locations changed', { locations, count: locations?.length, hasMap: !!mapRef.current });
+    
+    if (!mapRef.current || !locations || locations.length === 0) {
+      console.log('📍 SimpleVehicleMap: Skipping marker update -', { 
+        hasMap: !!mapRef.current, 
+        hasLocations: !!locations, 
+        count: locations?.length 
+      });
+      return;
+    }
 
     const map = mapRef.current;
     const markers = markersRef.current;
@@ -67,9 +76,11 @@ export function SimpleVehicleMap({ locations, selectedVehicleId, className = "" 
     const bounds: L.LatLngBounds[] = [];
 
     locations.forEach(location => {
+      console.log('📍 Processing location:', location);
       if (location.latitude && location.longitude) {
         const lat = parseFloat(location.latitude);
         const lng = parseFloat(location.longitude);
+        console.log('📍 Adding marker at:', { lat, lng });
         
         const marker = L.marker([lat, lng], {
           icon: createVehicleIcon()

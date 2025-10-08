@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { SimpleVehicleMap } from "@/components/map/simple-vehicle-map";
 import { Card } from "@/components/ui/card";
@@ -23,6 +23,15 @@ export default function GPSTrackingOBD() {
   
   // Extract locations from response (API returns { locations: [...] } for all vehicles)
   const obdLocations = obdLocationResponse?.locations || [];
+  
+  // Debug: log locations data
+  useEffect(() => {
+    console.log('🗺️ OBD Locations Data:', {
+      response: obdLocationResponse,
+      locations: obdLocations,
+      count: obdLocations.length
+    });
+  }, [obdLocationResponse, obdLocations]);
 
   // Fetch trips
   const { data: obdTripsResponse } = useQuery<any>({
