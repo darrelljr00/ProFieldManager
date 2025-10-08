@@ -17682,7 +17682,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
               });
             
             console.log(`📍 Transformed ${locations.length} devices with coordinates`);
-            console.log('🚦 Vehicle Speeds:', locations.map(loc => `${loc.displayName}: ${loc.speed} mph`).join(', '));
 
             // If specific device or vehicle requested, filter results
             if (deviceId) {

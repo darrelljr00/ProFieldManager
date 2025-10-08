@@ -162,9 +162,9 @@ export function SimpleVehicleMap({ locations, selectedVehicleId, className = "" 
           }
         }
         
-        // Determine if vehicle is moving (speed > 0)
+        // Determine if vehicle is moving (speed >= 1 mph to avoid GPS drift)
         const speed = parseFloat(location.speed) || 0;
-        const isMoving = speed > 0;
+        const isMoving = speed >= 1;
         
         const marker = L.marker([lat, lng], {
           icon: createVehicleIcon(isMoving)
