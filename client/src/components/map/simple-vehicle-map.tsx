@@ -121,13 +121,18 @@ export function SimpleVehicleMap({ locations, selectedVehicleId, className = "" 
         }).addTo(map);
 
         const vehicleId = location.vehicleId?.toString() || 'unknown';
+        const displayName = location.displayName || `Vehicle ${vehicleId}`;
         
         // Add popup with location info
         marker.bindPopup(`
-          <div style="color: black;">
-            <strong>Vehicle ${vehicleId}</strong><br/>
-            Speed: ${location.speed ? Math.round(parseFloat(location.speed)) : 0} mph<br/>
-            Time: ${location.timestamp ? new Date(location.timestamp).toLocaleTimeString() : 'N/A'}
+          <div style="color: black; min-width: 200px;">
+            <strong style="font-size: 14px;">${displayName}</strong><br/>
+            ${location.deviceId ? `<span style="color: #666; font-size: 11px;">Device: ${location.deviceId}</span><br/>` : ''}
+            <div style="margin-top: 8px;">
+              <span style="color: #333;">Speed:</span> <strong>${location.speed ? Math.round(parseFloat(location.speed)) : 0} mph</strong><br/>
+              <span style="color: #333;">Heading:</span> ${location.heading || 0}°<br/>
+              <span style="color: #333;">Last Update:</span> ${location.timestamp ? new Date(location.timestamp).toLocaleTimeString() : 'N/A'}
+            </div>
           </div>
         `);
 
