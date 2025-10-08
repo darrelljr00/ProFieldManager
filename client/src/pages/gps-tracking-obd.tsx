@@ -1,61 +1,10 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { VehicleMap } from "@/components/map/vehicle-map";
+import { SimpleVehicleMap } from "@/components/map/simple-vehicle-map";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Calendar, Bell, Gauge, Zap, Thermometer, Activity } from "lucide-react";
-import type { Vehicle, VehicleLocation, ObdData, Trip } from "@shared/schema";
-
-// Adapter to convert our data to OBDTracker format
-function convertToOBDTrackerFormat(vehicles: any[], locations: any[], trips: any[]) {
-  const vehiclesFormatted = vehicles?.map(v => ({
-    id: v.id.toString(),
-    name: v.name || `Vehicle ${v.id}`,
-    plate: v.licensePlate || 'N/A',
-    vin: v.vin || '',
-    make: v.make || '',
-    model: v.model || '',
-    year: v.year || new Date().getFullYear(),
-    vehicleType: 'car' as const,
-    isActive: 1,
-  })) || [];
-
-  const locationsFormatted = locations?.map(loc => ({
-    id: loc.id.toString(),
-    vehicleId: loc.vehicleId?.toString() || '',
-    tripId: null,
-    latitude: parseFloat(loc.latitude),
-    longitude: parseFloat(loc.longitude),
-    speed: parseFloat(loc.speed || '0'),
-    heading: parseFloat(loc.heading || '0'),
-    altitude: 0,
-    accuracy: 0,
-    timestamp: loc.timestamp || new Date().toISOString(),
-  })) || [];
-
-  const tripsFormatted = trips?.map(trip => ({
-    id: trip.id.toString(),
-    vehicleId: trip.vehicleId?.toString() || '',
-    driverId: null,
-    startLocation: trip.startLocation || 'Unknown',
-    endLocation: trip.endLocation || 'In Progress',
-    startCoords: trip.startLatitude && trip.startLongitude ? 
-      { lat: parseFloat(trip.startLatitude), lng: parseFloat(trip.startLongitude) } : null,
-    endCoords: trip.endLatitude && trip.endLongitude ?
-      { lat: parseFloat(trip.endLatitude), lng: parseFloat(trip.endLongitude) } : null,
-    distance: parseFloat(trip.distanceMiles || '0'),
-    duration: trip.durationMinutes || 0,
-    avgSpeed: parseFloat(trip.averageSpeed || '0'),
-    maxSpeed: parseFloat(trip.maxSpeed || '0'),
-    route: [],
-    startTime: trip.startTime,
-    endTime: trip.endTime,
-    status: trip.status === 'active' ? 'active' : 'completed',
-  })) || [];
-
-  return { vehiclesFormatted, locationsFormatted, tripsFormatted };
-}
 
 export default function GPSTrackingOBD() {
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
@@ -67,16 +16,22 @@ export default function GPSTrackingOBD() {
   });
 
   // Fetch OBD locations
-  const { data: obdLocations = [] } = useQuery<any[]>({
+  const { data: obdLocationResponse } = useQuery<any>({
     queryKey: ['/api/obd/latest-location'],
     refetchInterval: 3000,
   });
+  
+  // Extract locations from response (API returns { location: {...} })
+  const obdLocations = obdLocationResponse?.location ? [obdLocationResponse.location] : [];
 
   // Fetch trips
-  const { data: obdTrips = [] } = useQuery<any[]>({
+  const { data: obdTripsResponse } = useQuery<any>({
     queryKey: ['/api/obd/trips'],
     refetchInterval: 10000,
   });
+  
+  // Extract trips from response (API returns { trips: [...] })
+  const obdTrips = obdTripsResponse?.trips || [];
 
   // Fetch OBD diagnostics for selected vehicle
   const { data: diagnosticData } = useQuery<any>({
@@ -85,14 +40,10 @@ export default function GPSTrackingOBD() {
     refetchInterval: 2000,
   });
 
-  // Convert data to OBDTracker format
-  const { vehiclesFormatted, locationsFormatted, tripsFormatted } = 
-    convertToOBDTrackerFormat(vehicles, obdLocations, obdTrips);
-
-  const effectiveVehicleId = selectedVehicleId || (vehiclesFormatted.length > 0 ? vehiclesFormatted[0].id : null);
-  const selectedVehicle = vehiclesFormatted.find(v => v.id === effectiveVehicleId);
-  const selectedLocation = locationsFormatted.find(loc => loc.vehicleId === effectiveVehicleId);
-  const activeTrip = tripsFormatted.find(t => t.vehicleId === effectiveVehicleId && t.status === 'active');
+  const effectiveVehicleId = selectedVehicleId || (vehicles.length > 0 ? vehicles[0].id.toString() : null);
+  const selectedVehicle = vehicles.find(v => v.id.toString() === effectiveVehicleId);
+  const selectedLocation = obdLocations.find(loc => loc.vehicleId?.toString() === effectiveVehicleId);
+  const activeTrip = obdTrips.find((t: any) => t.vehicleId?.toString() === effectiveVehicleId && t.status === 'active');
 
   if (vehiclesLoading) {
     return (
@@ -105,7 +56,7 @@ export default function GPSTrackingOBD() {
     );
   }
 
-  if (vehiclesFormatted.length === 0) {
+  if (vehicles.length === 0) {
     return (
       <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
@@ -137,9 +88,9 @@ export default function GPSTrackingOBD() {
                     <SelectValue placeholder="Select vehicle" />
                   </SelectTrigger>
                   <SelectContent>
-                    {vehiclesFormatted.map(vehicle => (
-                      <SelectItem key={vehicle.id} value={vehicle.id}>
-                        {vehicle.name} - {vehicle.plate}
+                    {vehicles.map(vehicle => (
+                      <SelectItem key={vehicle.id} value={vehicle.id.toString()}>
+                        {vehicle.vehicleNumber} - {vehicle.licensePlate}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -222,12 +173,9 @@ export default function GPSTrackingOBD() {
               
               {/* Map Container */}
               <div className="flex-1 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-                <VehicleMap 
-                  vehicles={vehiclesFormatted}
-                  allLocations={locationsFormatted}
-                  selectedVehicle={selectedVehicle}
-                  activeTrip={activeTrip}
-                  isLive={true}
+                <SimpleVehicleMap 
+                  locations={obdLocations}
+                  selectedVehicleId={effectiveVehicleId}
                 />
               </div>
               
@@ -243,7 +191,7 @@ export default function GPSTrackingOBD() {
                   <div>
                     <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Coordinates</p>
                     <p className="text-sm font-mono dark:text-white">
-                      {selectedLocation ? `${selectedLocation.latitude.toFixed(4)}°, ${selectedLocation.longitude.toFixed(4)}°` : "N/A"}
+                      {selectedLocation ? `${parseFloat(selectedLocation.latitude).toFixed(4)}°, ${parseFloat(selectedLocation.longitude).toFixed(4)}°` : "N/A"}
                     </p>
                   </div>
                   <div>
@@ -264,16 +212,16 @@ export default function GPSTrackingOBD() {
               <Card className="p-4 h-full overflow-auto">
                 <h3 className="text-lg font-semibold mb-4 dark:text-white">Trip History</h3>
                 <div className="space-y-3">
-                  {tripsFormatted.filter(t => t.vehicleId === effectiveVehicleId).length === 0 ? (
+                  {obdTrips.filter((t: any) => t.vehicleId?.toString() === effectiveVehicleId).length === 0 ? (
                     <p className="text-sm text-gray-600 dark:text-gray-400">No trips recorded yet</p>
                   ) : (
-                    tripsFormatted
-                      .filter(t => t.vehicleId === effectiveVehicleId)
-                      .map(trip => (
+                    obdTrips
+                      .filter((t: any) => t.vehicleId?.toString() === effectiveVehicleId)
+                      .map((trip: any) => (
                         <div key={trip.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-3">
                           <div className="flex justify-between items-start mb-2">
                             <div>
-                              <p className="font-medium text-sm dark:text-white">{trip.startLocation}</p>
+                              <p className="font-medium text-sm dark:text-white">{trip.startLocation || 'Trip'}</p>
                               <p className="text-xs text-gray-600 dark:text-gray-400">{trip.endLocation || 'In Progress'}</p>
                             </div>
                             <span className={`px-2 py-1 rounded-full text-xs ${
@@ -287,15 +235,15 @@ export default function GPSTrackingOBD() {
                           <div className="grid grid-cols-3 gap-2 text-xs">
                             <div>
                               <p className="text-gray-600 dark:text-gray-400">Distance</p>
-                              <p className="font-medium dark:text-white">{trip.distance.toFixed(1)} mi</p>
+                              <p className="font-medium dark:text-white">{trip.distanceMiles ? parseFloat(trip.distanceMiles).toFixed(1) : 0} mi</p>
                             </div>
                             <div>
                               <p className="text-gray-600 dark:text-gray-400">Duration</p>
-                              <p className="font-medium dark:text-white">{trip.duration} min</p>
+                              <p className="font-medium dark:text-white">{trip.durationMinutes || 0} min</p>
                             </div>
                             <div>
                               <p className="text-gray-600 dark:text-gray-400">Avg Speed</p>
-                              <p className="font-medium dark:text-white">{trip.avgSpeed.toFixed(0)} mph</p>
+                              <p className="font-medium dark:text-white">{trip.averageSpeed ? parseFloat(trip.averageSpeed).toFixed(0) : 0} mph</p>
                             </div>
                           </div>
                         </div>
