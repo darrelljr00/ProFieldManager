@@ -234,7 +234,7 @@ const DEFAULT_NAVIGATION_ORDER = [
   "SMS",
   "Messages",
   "Mobile Tracking",
-  "GPS Tracking",
+  "Live Tracking",
   "Reviews",
   "Market Research",
   "Screen Sharing",
@@ -443,7 +443,18 @@ export function Sidebar() {
     { name: "SMS", href: "/sms", icon: Smartphone, requiresAuth: true, permission: "canAccessSMS" },
     { name: "Messages", href: "/messages", icon: Mail, requiresAuth: true, permission: "canAccessMessages" },
     { name: "Mobile Tracking", href: "/gps-tracking", icon: MapPin, requiresAuth: true, permission: "canAccessGpsTracking" },
-    { name: "GPS Tracking", href: "/gps-tracking-obd", icon: MapPin, requiresAuth: true, permission: "canAccessGpsTracking" },
+    { 
+      name: "Live Tracking", 
+      href: "/gps-tracking-obd", 
+      icon: MapPin, 
+      requiresAuth: true, 
+      permission: "canAccessGpsTracking",
+      subItems: [
+        { name: "Map View", href: "/gps-tracking-obd", icon: MapPin },
+        { name: "Analytics", href: "/gps-analytics", icon: BarChart3 },
+        { name: "Settings", href: "/gps-settings", icon: Settings }
+      ]
+    },
     { name: "Reviews", href: "/reviews", icon: Star, requiresAuth: true, permission: "canAccessReviews" },
     { name: "Market Research", href: "/market-research", icon: BarChart3, requiresAuth: true, permission: "canAccessMarketResearch" },
     { name: "Call Manager", href: "/call-manager", icon: Phone, requiresAuth: true, permission: "canAccessSaasAdmin" },
