@@ -17648,7 +17648,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const apiKey = apiKeySetting[0].value;
         
         try {
-          // Fetch live device data from One Step GPS API
+          // Fetch live device data from One Step GPS API  
+          // Note: OneStep GPS API doesn't include speed data with basic lat_lng parameter
+          // Speed will need to be calculated from position changes or obtained from a different endpoint
           console.log('🚗 Fetching live data from OneStep GPS API...');
           const response = await fetch(
             `https://track.onestepgps.com/v3/api/public/device-info?lat_lng=1&api-key=${apiKey}`
@@ -17661,11 +17663,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.log(`✅ Received ${devices.length} devices from OneStep GPS`);
             
             // Transform OneStep GPS response to our location format
-            // OneStep API returns lat/lng directly on device object
+            // Note: lat_lng=1 parameter only returns display_name, lat, lng (no speed/telemetry)
             const locations = devices
               .filter((device: any) => device.lat && device.lng)
               .map((device: any) => {
-                const speed = device.speed || 0;
+                // Speed not available with basic API, set to 0 (parked status)
+                const speed = 0;
                 return {
                   deviceId: device.device_id || device.display_name,
                   displayName: device.display_name || `Device ${device.device_id}`,
@@ -17680,8 +17683,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   vehicleId: null // Will be populated if mapped in database
                 };
               });
-            
-            console.log(`📍 Transformed ${locations.length} devices with coordinates`);
 
             // If specific device or vehicle requested, filter results
             if (deviceId) {
