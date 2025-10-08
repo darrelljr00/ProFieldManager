@@ -17660,38 +17660,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const devices = await response.json();
             console.log(`✅ Received ${devices.length} devices from OneStep GPS`);
             
-            // Debug: Check first device structure
-            if (devices[0]) {
-              console.log('🔍 First device keys:', Object.keys(devices[0]));
-              console.log('🔍 Has latest_device_point?', !!devices[0].latest_device_point);
-              console.log('🔍 Latest point keys:', devices[0].latest_device_point ? Object.keys(devices[0].latest_device_point) : 'N/A');
-            }
-            
             // Transform OneStep GPS response to our location format
+            // OneStep API returns lat/lng directly on device object
             const locations = devices
-              .filter((device: any) => {
-                const hasLocation = device.latest_device_point?.lat && device.latest_device_point?.lng;
-                if (!hasLocation) {
-                  console.log(`⚠️ Device ${device.device_id || device.device_name} FILTERED OUT - Missing location`);
-                }
-                return hasLocation;
-              })
+              .filter((device: any) => device.lat && device.lng)
               .map((device: any) => {
-                const point = device.latest_device_point;
                 return {
-                  deviceId: device.device_id,
+                  deviceId: device.device_id || device.display_name,
                   displayName: device.display_name || `Device ${device.device_id}`,
-                  latitude: String(point.lat),
-                  longitude: String(point.lng),
-                  speed: point.device_speed || 0,
-                  heading: point.direction || 0,
-                  altitude: point.altitude || 0,
-                  timestamp: new Date(point.dt_tracker),
-                  batteryVoltage: device.latest_accurate_device_point?.params?.pwr_ext || null,
+                  latitude: String(device.lat),
+                  longitude: String(device.lng),
+                  speed: device.speed || 0,
+                  heading: device.heading || 0,
+                  altitude: device.altitude || 0,
+                  timestamp: device.dt_tracker ? new Date(device.dt_tracker) : new Date(),
+                  batteryVoltage: null,
                   organizationId: user.organizationId,
                   vehicleId: null // Will be populated if mapped in database
                 };
               });
+            
+            console.log(`📍 Transformed ${locations.length} devices with coordinates`);
 
             // If specific device or vehicle requested, filter results
             if (deviceId) {
