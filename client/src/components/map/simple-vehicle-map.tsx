@@ -40,16 +40,38 @@ export function SimpleVehicleMap({ locations, selectedVehicleId, className = "" 
 
   const mapLayer = gpsSettings?.mapDefaultLayer || 'dark';
 
-  // Get tile layer URL based on preference
-  const getTileLayerUrl = (layer: string) => {
+  // Get tile layer URL and config based on preference
+  const getTileLayerConfig = (layer: string) => {
     switch (layer) {
       case 'light':
-        return 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+        return {
+          url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+          attribution: '© OpenStreetMap contributors © CARTO',
+          subdomains: 'abcd',
+          maxZoom: 22
+        };
       case 'medium':
-        return 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+        return {
+          url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+          attribution: '© OpenStreetMap contributors © CARTO',
+          subdomains: 'abcd',
+          maxZoom: 22
+        };
+      case 'satellite':
+        return {
+          url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+          attribution: 'Tiles © Esri — Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+          subdomains: '',
+          maxZoom: 22
+        };
       case 'dark':
       default:
-        return 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+        return {
+          url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+          attribution: '© OpenStreetMap contributors © CARTO',
+          subdomains: 'abcd',
+          maxZoom: 22
+        };
     }
   };
 
@@ -61,13 +83,15 @@ export function SimpleVehicleMap({ locations, selectedVehicleId, className = "" 
       center: [32.7767, -96.7970], // Dallas, TX default
       zoom: 13,
       zoomControl: true,
+      maxZoom: 22,
     });
 
     // Add initial tile layer
-    const tileLayer = L.tileLayer(getTileLayerUrl(mapLayer), {
-      attribution: '© OpenStreetMap contributors © CARTO',
-      subdomains: 'abcd',
-      maxZoom: 19,
+    const layerConfig = getTileLayerConfig(mapLayer);
+    const tileLayer = L.tileLayer(layerConfig.url, {
+      attribution: layerConfig.attribution,
+      subdomains: layerConfig.subdomains,
+      maxZoom: layerConfig.maxZoom,
     }).addTo(map);
 
     mapRef.current = map;
@@ -96,10 +120,11 @@ export function SimpleVehicleMap({ locations, selectedVehicleId, className = "" 
     map.removeLayer(currentLayer);
 
     // Add new tile layer
-    const newTileLayer = L.tileLayer(getTileLayerUrl(mapLayer), {
-      attribution: '© OpenStreetMap contributors © CARTO',
-      subdomains: 'abcd',
-      maxZoom: 19,
+    const layerConfig = getTileLayerConfig(mapLayer);
+    const newTileLayer = L.tileLayer(layerConfig.url, {
+      attribution: layerConfig.attribution,
+      subdomains: layerConfig.subdomains,
+      maxZoom: layerConfig.maxZoom,
     }).addTo(map);
 
     tileLayerRef.current = newTileLayer;
