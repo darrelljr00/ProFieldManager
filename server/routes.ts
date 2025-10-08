@@ -17835,6 +17835,199 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // One Step GPS Integration - Fetch devices from One Step GPS API
+  app.get("/api/onestep/devices", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      // Get One Step GPS API key from settings
+      const apiKeySetting = await db
+        .select()
+        .from(settings)
+        .where(and(
+          eq(settings.category, 'gps'),
+          eq(settings.key, 'oneStepGpsApiKey')
+        ))
+        .limit(1);
+
+      if (!apiKeySetting || apiKeySetting.length === 0 || !apiKeySetting[0].value) {
+        return res.status(400).json({ 
+          message: "One Step GPS API key not configured. Please add it in GPS Settings." 
+        });
+      }
+
+      const apiKey = apiKeySetting[0].value;
+
+      // Fetch device data from One Step GPS API
+      const response = await fetch(
+        `https://track.onestepgps.com/v3/api/public/device-info?lat_lng=1&api-key=${apiKey}`
+      );
+
+      if (!response.ok) {
+        throw new Error(`One Step GPS API error: ${response.statusText}`);
+      }
+
+      const devices = await response.json();
+      
+      res.json({ devices });
+    } catch (error: any) {
+      console.error("Error fetching One Step GPS devices:", error);
+      res.status(500).json({ message: "Error fetching devices: " + error.message });
+    }
+  });
+
+  // Sync One Step GPS device data to OBD tracking system
+  app.post("/api/onestep/sync", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      // Get One Step GPS API key from settings
+      const apiKeySetting = await db
+        .select()
+        .from(settings)
+        .where(and(
+          eq(settings.category, 'gps'),
+          eq(settings.key, 'oneStepGpsApiKey')
+        ))
+        .limit(1);
+
+      if (!apiKeySetting || apiKeySetting.length === 0 || !apiKeySetting[0].value) {
+        return res.status(400).json({ 
+          message: "One Step GPS API key not configured" 
+        });
+      }
+
+      const apiKey = apiKeySetting[0].value;
+
+      // Fetch device data from One Step GPS API
+      const response = await fetch(
+        `https://track.onestepgps.com/v3/api/public/device-info?lat_lng=1&api-key=${apiKey}`
+      );
+
+      if (!response.ok) {
+        throw new Error(`One Step GPS API error: ${response.statusText}`);
+      }
+
+      const devicesData = await response.json();
+      let syncedCount = 0;
+      let errors: string[] = [];
+
+      // Process each device
+      for (const device of devicesData) {
+        try {
+          // Check if device has valid location data
+          if (!device.latest_device_point || !device.latest_device_point.lat || !device.latest_device_point.lng) {
+            continue;
+          }
+
+          const point = device.latest_device_point;
+
+          // Insert or update location data
+          await db.insert(obdLocationData).values({
+            organizationId: user.organizationId,
+            deviceId: device.device_id,
+            latitude: String(point.lat),
+            longitude: String(point.lng),
+            speed: point.device_speed || 0,
+            heading: point.direction || 0,
+            altitude: point.altitude || 0,
+            timestamp: new Date(point.dt_tracker)
+          }).onConflictDoNothing();
+
+          // Insert diagnostic data if available
+          if (device.latest_accurate_device_point) {
+            const diagPoint = device.latest_accurate_device_point;
+            await db.insert(obdDiagnosticData).values({
+              organizationId: user.organizationId,
+              deviceId: device.device_id,
+              batteryVoltage: diagPoint.params?.pwr_ext || 0,
+              timestamp: new Date(diagPoint.dt_tracker)
+            }).onConflictDoNothing();
+          }
+
+          syncedCount++;
+
+          // Broadcast location update via WebSocket
+          broadcastToOrganization(user.organizationId, {
+            type: 'obd_location_update',
+            deviceId: device.device_id,
+            location: {
+              latitude: point.lat,
+              longitude: point.lng,
+              speed: point.device_speed || 0,
+              heading: point.direction || 0,
+              timestamp: point.dt_tracker
+            }
+          });
+
+        } catch (err: any) {
+          errors.push(`Device ${device.device_id}: ${err.message}`);
+        }
+      }
+
+      res.json({ 
+        success: true,
+        message: `Synced ${syncedCount} devices`,
+        syncedCount,
+        totalDevices: devicesData.length,
+        errors: errors.length > 0 ? errors : undefined
+      });
+
+    } catch (error: any) {
+      console.error("Error syncing One Step GPS data:", error);
+      res.status(500).json({ message: "Error syncing devices: " + error.message });
+    }
+  });
+
+  // Map One Step GPS device to vehicle
+  app.post("/api/onestep/map-device", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { deviceId, vehicleId } = req.body;
+
+      if (!deviceId) {
+        return res.status(400).json({ message: "Device ID is required" });
+      }
+
+      // Update all existing location data for this device with the vehicle mapping
+      await db
+        .update(obdLocationData)
+        .set({ vehicleId: vehicleId || null })
+        .where(and(
+          eq(obdLocationData.deviceId, deviceId),
+          eq(obdLocationData.organizationId, user.organizationId)
+        ));
+
+      // Update all diagnostic data for this device
+      await db
+        .update(obdDiagnosticData)
+        .set({ vehicleId: vehicleId || null })
+        .where(and(
+          eq(obdDiagnosticData.deviceId, deviceId),
+          eq(obdDiagnosticData.organizationId, user.organizationId)
+        ));
+
+      // Update all trips for this device
+      await db
+        .update(obdTrips)
+        .set({ vehicleId: vehicleId || null })
+        .where(and(
+          eq(obdTrips.deviceId, deviceId),
+          eq(obdTrips.organizationId, user.organizationId)
+        ));
+
+      res.json({ 
+        success: true, 
+        message: vehicleId 
+          ? "Device mapped to vehicle successfully" 
+          : "Device unmapped from vehicle successfully"
+      });
+    } catch (error: any) {
+      console.error("Error mapping device to vehicle:", error);
+      res.status(500).json({ message: "Error mapping device: " + error.message });
+    }
+  });
+
   // WebSocket connection handling
   wss.on('connection', (ws, req) => {
     console.log('New WebSocket connection');

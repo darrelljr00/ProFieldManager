@@ -7,9 +7,173 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, Save, Eye, EyeOff } from "lucide-react";
+import { Settings, Save, Eye, EyeOff, RefreshCw, Link as LinkIcon } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+
+// One Step GPS Devices Component
+function OneStepGPSDevices({ formData }: { formData: any }) {
+  const { toast } = useToast();
+
+  // Fetch vehicles for device mapping
+  const { data: vehicles } = useQuery<any[]>({
+    queryKey: ['/api/vehicles']
+  });
+
+  // Fetch One Step GPS devices
+  const { data: devicesData, isLoading: devicesLoading, refetch: refetchDevices } = useQuery<{ devices: any[] }>({
+    queryKey: ['/api/onestep/devices'],
+    enabled: !!formData.oneStepGpsEnabled && !!formData.oneStepGpsApiKey,
+    retry: false
+  });
+
+  // Sync devices mutation
+  const syncDevicesMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest('POST', '/api/onestep/sync');
+    },
+    onSuccess: async () => {
+      await refetchDevices();
+      queryClient.invalidateQueries({ queryKey: ['/api/obd/latest-location'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/obd/trips'] });
+      toast({
+        title: "Sync complete",
+        description: "Devices synced successfully from One Step GPS.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Sync failed",
+        description: error.message || "Failed to sync devices.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Map device mutation
+  const mapDeviceMutation = useMutation({
+    mutationFn: async ({ deviceId, vehicleId }: { deviceId: string; vehicleId: number | null }) => {
+      return apiRequest('POST', '/api/onestep/map-device', { deviceId, vehicleId });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Device mapped",
+        description: "Device mapped to vehicle successfully.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Mapping failed",
+        description: error.message || "Failed to map device.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  if (!formData.oneStepGpsEnabled) {
+    return (
+      <Card className="p-6">
+        <p className="text-gray-600 dark:text-gray-400 text-center">
+          Enable One Step GPS integration in the API Integration tab to view devices.
+        </p>
+      </Card>
+    );
+  }
+
+  if (!formData.oneStepGpsApiKey) {
+    return (
+      <Card className="p-6">
+        <p className="text-gray-600 dark:text-gray-400 text-center">
+          Add your One Step GPS API key in the API Integration tab to view devices.
+        </p>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="p-6">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h3 className="text-lg font-semibold dark:text-white">One Step GPS Devices</h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Sync and map your One Step GPS devices to vehicles
+          </p>
+        </div>
+        <Button
+          onClick={() => syncDevicesMutation.mutate()}
+          disabled={syncDevicesMutation.isPending || devicesLoading}
+          variant="outline"
+        >
+          {syncDevicesMutation.isPending ? (
+            <>
+              <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin mr-2"></div>
+              Syncing...
+            </>
+          ) : (
+            <>
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Sync Now
+            </>
+          )}
+        </Button>
+      </div>
+
+      {devicesLoading ? (
+        <div className="text-center py-8">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading devices...</p>
+        </div>
+      ) : devicesData?.devices && devicesData.devices.length > 0 ? (
+        <div className="space-y-3">
+          {devicesData.devices.map((device: any) => (
+            <div key={device.device_id} className="border dark:border-gray-700 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <h4 className="font-medium dark:text-white">
+                    {device.display_name || `Device ${device.device_id}`}
+                  </h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Device ID: {device.device_id}
+                  </p>
+                  {device.latest_device_point && (
+                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                      Last seen: {new Date(device.latest_device_point.dt_tracker).toLocaleString()}
+                    </p>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <LinkIcon className="w-4 h-4 text-gray-400" />
+                  <Select
+                    onValueChange={(value) => {
+                      const vehicleId = value === 'none' ? null : parseInt(value);
+                      mapDeviceMutation.mutate({ deviceId: device.device_id, vehicleId });
+                    }}
+                  >
+                    <SelectTrigger className="w-[200px]">
+                      <SelectValue placeholder="Select vehicle" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No vehicle</SelectItem>
+                      {vehicles?.map((vehicle: any) => (
+                        <SelectItem key={vehicle.id} value={vehicle.id.toString()}>
+                          {vehicle.vehicleNumber} - {vehicle.licensePlate}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-center text-gray-600 dark:text-gray-400 py-8">
+          No devices found. Click "Sync Now" to fetch devices from One Step GPS.
+        </p>
+      )}
+    </Card>
+  );
+}
 
 export default function GPSSettings() {
   const { toast } = useToast();
@@ -99,8 +263,9 @@ export default function GPSSettings() {
         </div>
 
         <Tabs defaultValue="api" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="api">API Integration</TabsTrigger>
+            <TabsTrigger value="devices">Devices</TabsTrigger>
             <TabsTrigger value="tracking">Tracking</TabsTrigger>
             <TabsTrigger value="display">Display</TabsTrigger>
             <TabsTrigger value="alerts">Alerts</TabsTrigger>
@@ -162,6 +327,11 @@ export default function GPSSettings() {
                 </div>
               </div>
             </Card>
+          </TabsContent>
+
+          {/* Devices Tab */}
+          <TabsContent value="devices" className="space-y-4">
+            <OneStepGPSDevices formData={formData} />
           </TabsContent>
 
           {/* Tracking Tab */}
