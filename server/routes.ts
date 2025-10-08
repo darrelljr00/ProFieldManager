@@ -17430,6 +17430,357 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // OBD GPS Tracking API Endpoints
+  
+  // Receive location data from OBD device
+  app.post("/api/obd/location", async (req, res) => {
+    try {
+      const { 
+        deviceId, 
+        vehicleId, 
+        latitude, 
+        longitude, 
+        speed, 
+        heading, 
+        altitude, 
+        accuracy,
+        timestamp,
+        organizationId 
+      } = req.body;
+
+      if (!deviceId || !latitude || !longitude || !timestamp || !organizationId) {
+        return res.status(400).json({ 
+          message: "Missing required fields: deviceId, latitude, longitude, timestamp, organizationId" 
+        });
+      }
+
+      // Import OBD schemas from shared schema
+      const { obdLocationData, obdTrips } = await import("@shared/schema");
+
+      // Save location data
+      const [locationRecord] = await db
+        .insert(obdLocationData)
+        .values({
+          organizationId: parseInt(organizationId),
+          vehicleId: vehicleId ? parseInt(vehicleId) : null,
+          deviceId,
+          latitude: latitude.toString(),
+          longitude: longitude.toString(),
+          speed: speed ? speed.toString() : null,
+          heading: heading ? heading.toString() : null,
+          altitude: altitude ? altitude.toString() : null,
+          accuracy: accuracy ? accuracy.toString() : null,
+          timestamp: new Date(timestamp),
+        })
+        .returning();
+
+      // Check for active trip
+      const [activeTrip] = await db
+        .select()
+        .from(obdTrips)
+        .where(
+          and(
+            eq(obdTrips.deviceId, deviceId),
+            eq(obdTrips.status, 'active')
+          )
+        )
+        .limit(1);
+
+      if (!activeTrip && speed && parseFloat(speed) > 5) {
+        // Start new trip if speed > 5 mph
+        await db
+          .insert(obdTrips)
+          .values({
+            organizationId: parseInt(organizationId),
+            vehicleId: vehicleId ? parseInt(vehicleId) : null,
+            deviceId,
+            startTime: new Date(timestamp),
+            startLatitude: latitude.toString(),
+            startLongitude: longitude.toString(),
+            status: 'active',
+          });
+      } else if (activeTrip && speed && parseFloat(speed) < 2) {
+        // End trip if speed < 2 mph for potential stop
+        const startTime = new Date(activeTrip.startTime);
+        const endTime = new Date(timestamp);
+        const durationMinutes = Math.floor((endTime.getTime() - startTime.getTime()) / (1000 * 60));
+
+        await db
+          .update(obdTrips)
+          .set({
+            endTime: new Date(timestamp),
+            endLatitude: latitude.toString(),
+            endLongitude: longitude.toString(),
+            durationMinutes,
+            status: 'completed',
+          })
+          .where(eq(obdTrips.id, activeTrip.id));
+      }
+
+      // Broadcast location update to WebSocket clients
+      if (wss) {
+        wss.clients.forEach((client) => {
+          const clientInfo = connectedClients.get(client);
+          if (client.readyState === WebSocket.OPEN && 
+              clientInfo?.organizationId === parseInt(organizationId)) {
+            client.send(JSON.stringify({
+              type: 'obd_location_update',
+              data: {
+                deviceId,
+                vehicleId,
+                latitude: parseFloat(latitude),
+                longitude: parseFloat(longitude),
+                speed: speed ? parseFloat(speed) : null,
+                heading: heading ? parseFloat(heading) : null,
+                timestamp,
+              }
+            }));
+          }
+        });
+      }
+
+      res.json({ success: true, data: locationRecord });
+    } catch (error: any) {
+      console.error("Error processing OBD location data:", error);
+      res.status(500).json({ message: "Error processing location data: " + error.message });
+    }
+  });
+
+  // Receive diagnostic data from OBD device
+  app.post("/api/obd/data", async (req, res) => {
+    try {
+      const { 
+        deviceId,
+        vehicleId,
+        rpm,
+        engineTemp,
+        coolantTemp,
+        fuelLevel,
+        batteryVoltage,
+        throttlePosition,
+        engineLoad,
+        maf,
+        timestamp,
+        organizationId
+      } = req.body;
+
+      if (!deviceId || !timestamp || !organizationId) {
+        return res.status(400).json({ 
+          message: "Missing required fields: deviceId, timestamp, organizationId" 
+        });
+      }
+
+      const { obdDiagnosticData } = await import("@shared/schema");
+
+      // Save diagnostic data
+      const [diagnosticRecord] = await db
+        .insert(obdDiagnosticData)
+        .values({
+          organizationId: parseInt(organizationId),
+          vehicleId: vehicleId ? parseInt(vehicleId) : null,
+          deviceId,
+          rpm: rpm ? parseInt(rpm) : null,
+          engineTemp: engineTemp ? engineTemp.toString() : null,
+          coolantTemp: coolantTemp ? coolantTemp.toString() : null,
+          fuelLevel: fuelLevel ? fuelLevel.toString() : null,
+          batteryVoltage: batteryVoltage ? batteryVoltage.toString() : null,
+          throttlePosition: throttlePosition ? throttlePosition.toString() : null,
+          engineLoad: engineLoad ? engineLoad.toString() : null,
+          maf: maf ? maf.toString() : null,
+          timestamp: new Date(timestamp),
+        })
+        .returning();
+
+      // Broadcast diagnostic update to WebSocket clients
+      if (wss) {
+        wss.clients.forEach((client) => {
+          const clientInfo = connectedClients.get(client);
+          if (client.readyState === WebSocket.OPEN && 
+              clientInfo?.organizationId === parseInt(organizationId)) {
+            client.send(JSON.stringify({
+              type: 'obd_diagnostic_update',
+              data: {
+                deviceId,
+                vehicleId,
+                rpm,
+                engineTemp,
+                coolantTemp,
+                fuelLevel,
+                batteryVoltage,
+                throttlePosition,
+                engineLoad,
+                maf,
+                timestamp,
+              }
+            }));
+          }
+        });
+      }
+
+      res.json({ success: true, data: diagnosticRecord });
+    } catch (error: any) {
+      console.error("Error processing OBD diagnostic data:", error);
+      res.status(500).json({ message: "Error processing diagnostic data: " + error.message });
+    }
+  });
+
+  // Get latest location for a device/vehicle
+  app.get("/api/obd/latest-location", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { deviceId, vehicleId } = req.query;
+
+      const { obdLocationData } = await import("@shared/schema");
+
+      let whereCondition = eq(obdLocationData.organizationId, user.organizationId);
+
+      if (deviceId) {
+        whereCondition = and(whereCondition, eq(obdLocationData.deviceId, deviceId as string));
+      }
+
+      if (vehicleId) {
+        whereCondition = and(whereCondition, eq(obdLocationData.vehicleId, parseInt(vehicleId as string)));
+      }
+
+      const [location] = await db
+        .select()
+        .from(obdLocationData)
+        .where(whereCondition)
+        .orderBy(desc(obdLocationData.timestamp))
+        .limit(1);
+
+      res.json({ location });
+    } catch (error: any) {
+      console.error("Error fetching latest location:", error);
+      res.status(500).json({ message: "Error fetching location: " + error.message });
+    }
+  });
+
+  // Get trip history
+  app.get("/api/obd/trips", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { deviceId, vehicleId, status, limit = '50' } = req.query;
+
+      const { obdTrips } = await import("@shared/schema");
+
+      let whereCondition = eq(obdTrips.organizationId, user.organizationId);
+
+      if (deviceId) {
+        whereCondition = and(whereCondition, eq(obdTrips.deviceId, deviceId as string));
+      }
+
+      if (vehicleId) {
+        whereCondition = and(whereCondition, eq(obdTrips.vehicleId, parseInt(vehicleId as string)));
+      }
+
+      if (status) {
+        whereCondition = and(whereCondition, eq(obdTrips.status, status as string));
+      }
+
+      const trips = await db
+        .select()
+        .from(obdTrips)
+        .where(whereCondition)
+        .orderBy(desc(obdTrips.startTime))
+        .limit(parseInt(limit as string));
+
+      res.json({ trips });
+    } catch (error: any) {
+      console.error("Error fetching trips:", error);
+      res.status(500).json({ message: "Error fetching trips: " + error.message });
+    }
+  });
+
+  // Get weekly summary statistics
+  app.get("/api/obd/weekly-summary", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { deviceId, vehicleId } = req.query;
+
+      const { obdTrips } = await import("@shared/schema");
+
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+      let whereCondition = and(
+        eq(obdTrips.organizationId, user.organizationId),
+        eq(obdTrips.status, 'completed'),
+        gte(obdTrips.startTime, oneWeekAgo)
+      );
+
+      if (deviceId) {
+        whereCondition = and(whereCondition, eq(obdTrips.deviceId, deviceId as string));
+      }
+
+      if (vehicleId) {
+        whereCondition = and(whereCondition, eq(obdTrips.vehicleId, parseInt(vehicleId as string)));
+      }
+
+      const trips = await db
+        .select()
+        .from(obdTrips)
+        .where(whereCondition);
+
+      // Calculate summary statistics
+      const totalTrips = trips.length;
+      const totalDistance = trips.reduce((sum, trip) => sum + (parseFloat(trip.distanceMiles || '0')), 0);
+      const totalDuration = trips.reduce((sum, trip) => sum + (trip.durationMinutes || 0), 0);
+      const averageSpeed = totalTrips > 0 
+        ? trips.reduce((sum, trip) => sum + (parseFloat(trip.averageSpeed || '0')), 0) / totalTrips 
+        : 0;
+
+      res.json({ 
+        summary: {
+          totalTrips,
+          totalDistance: totalDistance.toFixed(2),
+          totalDuration,
+          averageSpeed: averageSpeed.toFixed(2),
+          period: 'Last 7 days'
+        }
+      });
+    } catch (error: any) {
+      console.error("Error fetching weekly summary:", error);
+      res.status(500).json({ message: "Error fetching summary: " + error.message });
+    }
+  });
+
+  // Get location history for route replay
+  app.get("/api/obd/location-history", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { tripId, deviceId, startTime, endTime } = req.query;
+
+      const { obdLocationData } = await import("@shared/schema");
+
+      let whereCondition = eq(obdLocationData.organizationId, user.organizationId);
+
+      if (deviceId) {
+        whereCondition = and(whereCondition, eq(obdLocationData.deviceId, deviceId as string));
+      }
+
+      if (startTime) {
+        whereCondition = and(whereCondition, gte(obdLocationData.timestamp, new Date(startTime as string)));
+      }
+
+      if (endTime) {
+        whereCondition = and(whereCondition, lte(obdLocationData.timestamp, new Date(endTime as string)));
+      }
+
+      const locations = await db
+        .select()
+        .from(obdLocationData)
+        .where(whereCondition)
+        .orderBy(asc(obdLocationData.timestamp))
+        .limit(1000); // Limit for performance
+
+      res.json({ locations });
+    } catch (error: any) {
+      console.error("Error fetching location history:", error);
+      res.status(500).json({ message: "Error fetching location history: " + error.message });
+    }
+  });
+
   // WebSocket connection handling
   wss.on('connection', (ws, req) => {
     console.log('New WebSocket connection');
