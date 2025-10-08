@@ -17769,6 +17769,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get GPS settings
+  app.get("/api/gps-settings", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      // Fetch all GPS settings from the settings table
+      const gpsSettings = await db
+        .select()
+        .from(settings)
+        .where(eq(settings.category, 'gps'));
+
+      // Convert to key-value object
+      const settingsObj: any = {};
+      gpsSettings.forEach(setting => {
+        settingsObj[setting.key] = setting.value;
+      });
+
+      // Return with defaults if no settings exist
+      res.json({
+        oneStepGpsApiKey: settingsObj.oneStepGpsApiKey || '',
+        oneStepGpsEnabled: settingsObj.oneStepGpsEnabled === 'true',
+        locationRefreshInterval: parseInt(settingsObj.locationRefreshInterval || '5'),
+        tripHistoryDays: parseInt(settingsObj.tripHistoryDays || '30'),
+        showSpeed: settingsObj.showSpeed !== 'false',
+        showFuelLevel: settingsObj.showFuelLevel !== 'false',
+        showEngineTemp: settingsObj.showEngineTemp !== 'false',
+        mapDefaultZoom: parseInt(settingsObj.mapDefaultZoom || '13'),
+        mapDefaultLayer: settingsObj.mapDefaultLayer || 'dark',
+        enableGeofenceAlerts: settingsObj.enableGeofenceAlerts !== 'false',
+        enableSpeedAlerts: settingsObj.enableSpeedAlerts !== 'false',
+        speedAlertThreshold: parseInt(settingsObj.speedAlertThreshold || '80')
+      });
+    } catch (error: any) {
+      console.error("Error fetching GPS settings:", error);
+      res.status(500).json({ message: "Error fetching GPS settings: " + error.message });
+    }
+  });
+
+  // Save GPS settings
+  app.post("/api/gps-settings", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const settingsData = req.body;
+
+      // Delete existing GPS settings
+      await db.delete(settings).where(eq(settings.category, 'gps'));
+
+      // Insert new settings
+      const settingsToInsert = Object.entries(settingsData).map(([key, value]) => ({
+        category: 'gps',
+        key,
+        value: String(value),
+        isSecret: key === 'oneStepGpsApiKey' // Mark API key as secret
+      }));
+
+      if (settingsToInsert.length > 0) {
+        await db.insert(settings).values(settingsToInsert);
+      }
+
+      res.json({ success: true, message: "GPS settings saved successfully" });
+    } catch (error: any) {
+      console.error("Error saving GPS settings:", error);
+      res.status(500).json({ message: "Error saving GPS settings: " + error.message });
+    }
+  });
+
   // WebSocket connection handling
   wss.on('connection', (ws, req) => {
     console.log('New WebSocket connection');

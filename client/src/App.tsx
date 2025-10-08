@@ -44,6 +44,8 @@ import MyTasks from "@/pages/my-tasks";
 import JobTasks from "@/pages/job-tasks";
 import GpsTracking from "@/pages/gps-tracking";
 import GPSTrackingOBD from "@/pages/gps-tracking-obd";
+import GPSAnalytics from "@/pages/gps-analytics";
+import GPSSettings from "@/pages/gps-settings";
 import FormBuilder from "@/pages/form-builder";
 import MobileTest from "@/pages/mobile-test";
 import TimeClock from "@/pages/time-clock";
@@ -197,6 +199,8 @@ function AuthenticatedApp() {
           <Route path="/task-groups" component={TaskGroups} />
           <Route path="/gps-tracking" component={GpsTracking} />
           <Route path="/gps-tracking-obd" component={GPSTrackingOBD} />
+          <Route path="/gps-analytics" component={GPSAnalytics} />
+          <Route path="/gps-settings" component={GPSSettings} />
           <Route path="/weather" component={Weather} />
           <Route path="/time-clock" component={TimeClock} />
           <Route path="/form-builder" component={FormBuilder} />
