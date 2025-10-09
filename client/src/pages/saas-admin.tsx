@@ -1231,6 +1231,22 @@ export default function SaasAdminPage() {
                     <p className="mt-2 text-muted-foreground">Loading subscription plans...</p>
                   </div>
                 </div>
+              ) : plansError ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="text-center">
+                    <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
+                    <p className="text-lg font-semibold mb-2">Failed to Load Subscription Plans</p>
+                    <p className="text-muted-foreground mb-4">
+                      {plansError instanceof Error ? plansError.message : 'An error occurred while loading subscription plans'}
+                    </p>
+                    <Button 
+                      onClick={() => queryClient.invalidateQueries({ queryKey: ["/api/subscription-plans"] })}
+                      variant="outline"
+                    >
+                      Retry
+                    </Button>
+                  </div>
+                </div>
               ) : (
                 <div className="space-y-8">
                   <div>
