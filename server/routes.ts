@@ -4574,29 +4574,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
       });
 
-      // Calculate quote totals
-      const subtotal = quote.lineItems.reduce((sum, item) => {
-        const qty = parseFloat(item.quantity) || 0;
-        const price = parseFloat(item.price) || 0;
-        return sum + (qty * price);
-      }, 0);
-      const tax = quote.lineItems.reduce((sum, item) => sum + (parseFloat(item.tax) || 0), 0);
-      const total = subtotal + tax;
+      // Get company settings for email
+      const companySettings = await storage.getCompanySettings(user.organizationId);
 
-      // Create email HTML content
+      // Create email HTML content - match quote preview format
       const lineItemsHTML = quote.lineItems.map(item => {
         const qty = parseFloat(item.quantity) || 0;
-        const price = parseFloat(item.price) || 0;
-        const itemTotal = qty * price;
+        const amount = parseFloat(item.amount) || 0;
         return `
         <tr>
-          <td style="padding: 8px; border: 1px solid #ddd;">${item.description || ''}</td>
-          <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${qty.toFixed(0)}</td>
-          <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">$${price.toFixed(2)}</td>
-          <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">$${itemTotal.toFixed(2)}</td>
+          <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">${item.description || ''}</td>
+          <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center;">${qty.toFixed(0)}</td>
+          <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">$${amount.toFixed(2)}</td>
         </tr>
       `;
       }).join('');
+
+      // Format dates to match preview format
+      const quoteDate = new Date(quote.quoteDate);
+      const expiryDate = new Date(quote.expiryDate);
+      const formatDate = (date: Date) => {
+        return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+      };
+
+      // Build company header HTML
+      const companyLogoHTML = companySettings?.logo ? `
+        <img src="${companySettings.logo.startsWith('/uploads') ? companySettings.logo : `/uploads/${companySettings.logo}`}" 
+             alt="Company logo" 
+             style="height: 60px; object-fit: contain; margin-bottom: 10px;" />
+      ` : '';
+
+      const companyInfoHTML = companySettings ? `
+        <div style="margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #e5e7eb;">
+          <div style="display: flex; justify-content: space-between; align-items: start;">
+            <div>
+              ${companyLogoHTML}
+              <h3 style="margin: 10px 0 5px 0; font-size: 18px; color: #111827;">${companySettings.companyName || 'Your Company'}</h3>
+              <div style="font-size: 14px; color: #6b7280; line-height: 1.6;">
+                ${companySettings.companyEmail ? `<p style="margin: 4px 0;">${companySettings.companyEmail}</p>` : ''}
+                ${companySettings.companyPhone ? `<p style="margin: 4px 0;">${companySettings.companyPhone}</p>` : ''}
+                ${companySettings.companyStreetAddress ? `<p style="margin: 4px 0;">${companySettings.companyStreetAddress}</p>` : ''}
+                ${(companySettings.companyCity || companySettings.companyState || companySettings.companyZipCode) ? `
+                  <p style="margin: 4px 0;">
+                    ${[companySettings.companyCity, companySettings.companyState, companySettings.companyZipCode].filter(Boolean).join(', ')}
+                  </p>
+                ` : ''}
+                ${companySettings.companyWebsite ? `
+                  <p style="margin: 4px 0;">
+                    <a href="${companySettings.companyWebsite.startsWith('http') ? companySettings.companyWebsite : `https://${companySettings.companyWebsite}`}" 
+                       style="color: #2563eb; text-decoration: none;">
+                      ${companySettings.companyWebsite}
+                    </a>
+                  </p>
+                ` : ''}
+              </div>
+            </div>
+            <div style="text-align: right;">
+              <h2 style="margin: 0; font-size: 28px; color: #111827;">QUOTE</h2>
+              <p style="margin: 5px 0; font-size: 14px; color: #6b7280;">#${quote.quoteNumber}</p>
+            </div>
+          </div>
+        </div>
+      ` : `
+        <div style="margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #e5e7eb;">
+          <h2 style="margin: 0; font-size: 28px; color: #111827;">QUOTE #${quote.quoteNumber}</h2>
+        </div>
+      `;
 
       const emailHTML = `
         <!DOCTYPE html>
@@ -4605,48 +4648,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
         </head>
-        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h2 style="color: #2563eb; border-bottom: 2px solid #2563eb; padding-bottom: 10px;">Quote #${quote.quoteNumber}</h2>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #111827; max-width: 700px; margin: 0 auto; padding: 40px 20px; background-color: #ffffff;">
+          ${companyInfoHTML}
           
-          <p>${message || 'Please find your quote details below:'}</p>
+          ${message ? `<p style="margin: 20px 0; font-size: 16px; color: #374151;">${message}</p>` : ''}
           
-          <div style="background-color: #f3f4f6; padding: 15px; border-radius: 5px; margin: 20px 0;">
-            <p><strong>Quote Date:</strong> ${new Date(quote.createdAt).toLocaleDateString()}</p>
-            <p><strong>Valid Until:</strong> ${new Date(quote.validUntil).toLocaleDateString()}</p>
-            ${quote.projectAddress ? `<p><strong>Project Address:</strong> ${quote.projectAddress}</p>` : ''}
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 30px 0;">
+            <div>
+              <p style="margin: 0 0 5px 0; font-weight: 600; font-size: 14px; color: #111827;">Customer</p>
+              <p style="margin: 0; font-size: 14px; color: #374151;">${quote.customer.name}</p>
+            </div>
+            <div>
+              <p style="margin: 0 0 5px 0; font-weight: 600; font-size: 14px; color: #111827;">Status</p>
+              <p style="margin: 0; font-size: 14px; color: #374151; text-transform: capitalize;">${quote.status}</p>
+            </div>
+            <div>
+              <p style="margin: 0 0 5px 0; font-weight: 600; font-size: 14px; color: #111827;">Quote Date</p>
+              <p style="margin: 0; font-size: 14px; color: #374151;">${formatDate(quoteDate)}</p>
+            </div>
+            <div>
+              <p style="margin: 0 0 5px 0; font-weight: 600; font-size: 14px; color: #111827;">Expiry Date</p>
+              <p style="margin: 0; font-size: 14px; color: #374151;">${formatDate(expiryDate)}</p>
+            </div>
           </div>
 
-          <h3 style="color: #2563eb; margin-top: 30px;">Items</h3>
-          <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
-            <thead>
-              <tr style="background-color: #2563eb; color: white;">
-                <th style="padding: 10px; text-align: left;">Description</th>
-                <th style="padding: 10px; text-align: center;">Qty</th>
-                <th style="padding: 10px; text-align: right;">Price</th>
-                <th style="padding: 10px; text-align: right;">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${lineItemsHTML}
-            </tbody>
-          </table>
-
-          <div style="text-align: right; margin-top: 20px; padding-top: 20px; border-top: 2px solid #ddd;">
-            <p style="margin: 5px 0;"><strong>Subtotal:</strong> $${subtotal.toFixed(2)}</p>
-            ${tax > 0 ? `<p style="margin: 5px 0;"><strong>Tax:</strong> $${tax.toFixed(2)}</p>` : ''}
-            <p style="margin: 10px 0; font-size: 1.2em; color: #2563eb;"><strong>Total:</strong> $${total.toFixed(2)}</p>
+          <div style="margin-top: 40px;">
+            <p style="margin: 0 0 15px 0; font-weight: 600; font-size: 14px; color: #111827;">Line Items</p>
+            <table style="width: 100%; border-collapse: collapse;">
+              <thead>
+                <tr style="background-color: #f9fafb; border-bottom: 2px solid #e5e7eb;">
+                  <th style="padding: 12px; text-align: left; font-weight: 600; font-size: 14px; color: #111827;">Description</th>
+                  <th style="padding: 12px; text-align: center; font-weight: 600; font-size: 14px; color: #111827;">Quantity</th>
+                  <th style="padding: 12px; text-align: right; font-weight: 600; font-size: 14px; color: #111827;">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${lineItemsHTML}
+              </tbody>
+            </table>
+            <div style="text-align: right; margin-top: 20px; padding-top: 20px; border-top: 2px solid #e5e7eb;">
+              <p style="margin: 0; font-size: 18px; font-weight: 600; color: #111827;">Total: $${parseFloat(quote.total).toFixed(2)}</p>
+            </div>
           </div>
 
           ${quote.notes ? `
-            <div style="margin-top: 30px; padding: 15px; background-color: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 4px;">
-              <h4 style="margin-top: 0; color: #92400e;">Notes:</h4>
-              <p style="margin-bottom: 0;">${quote.notes}</p>
+            <div style="margin-top: 30px;">
+              <p style="margin: 0 0 10px 0; font-weight: 600; font-size: 14px; color: #111827;">Notes</p>
+              <p style="margin: 0; font-size: 14px; color: #374151; line-height: 1.6;">${quote.notes}</p>
             </div>
           ` : ''}
 
-          <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; color: #666; font-size: 0.9em;">
-            <p>Thank you for your business!</p>
-            <p>${fromName || 'Pro Field Manager'}</p>
+          <div style="margin-top: 50px; padding-top: 30px; border-top: 1px solid #e5e7eb; text-align: center; color: #6b7280; font-size: 14px;">
+            <p style="margin: 0;">Thank you for your business!</p>
+            ${fromName ? `<p style="margin: 10px 0 0 0;">${fromName}</p>` : ''}
           </div>
         </body>
         </html>
