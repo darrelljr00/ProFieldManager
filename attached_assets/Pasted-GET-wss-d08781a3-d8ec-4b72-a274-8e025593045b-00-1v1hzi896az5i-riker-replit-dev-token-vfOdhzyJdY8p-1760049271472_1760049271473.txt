@@ -1,0 +1,90 @@
+GET
+wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/?token=vfOdhzyJdY8p
+NS_ERROR_WEBSOCKET_CONNECTION_REFUSED
+
+	
+GET
+	wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/?token=vfOdhzyJdY8p
+Status
+400
+Bad Request
+VersionHTTP/1.1
+Transferred291 B (0 B size)
+DNS ResolutionDNS over HTTPS
+
+	
+Content-Length
+	11
+Content-Type
+	text/html
+Date
+	Thu, 09 Oct 2025 22:33:42 GMT
+Replit-Cluster
+	riker
+X-Robots-Tag
+	none, noindex, noarchive, nofollow, nositelinkssearchbox, noimageindex
+X-Robots-Tag
+	none, noindex, noarchive, nofollow, nositelinkssearchbox, noimageindex
+	
+Accept
+	*/*
+Accept-Encoding
+	gzip, deflate, br, zstd
+Accept-Language
+	en-US,en;q=0.5
+Cache-Control
+	no-cache
+Connection
+	keep-alive, Upgrade
+DNT
+	1
+Host
+	d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev
+Origin
+	https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev
+Pragma
+	no-cache
+Sec-Fetch-Dest
+	empty
+Sec-Fetch-Mode
+	websocket
+Sec-Fetch-Site
+	same-origin
+Sec-WebSocket-Extensions
+	permessage-deflate
+Sec-WebSocket-Key
+	9+hX741kcXT38VnYAf1MVg==
+Sec-WebSocket-Protocol
+	vite-hmr
+Sec-WebSocket-Version
+	13
+Upgrade
+	websocket
+User-Agent
+	Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:143.0) Gecko/20100101 Firefox/143.0
+Firefox can’t establish a connection to the server at wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/?token=vfOdhzyJdY8p. client:536:19
+Uncaught (in promise) DOMException: An invalid or illegal string was specified
+    setupWebSocket client:536
+    fallback client:509
+    setupWebSocket client:555
+    setupWebSocket client:552
+    <anonymous> client:531
+client:536
+Cookie warnings 2
+Partitioned cookie or storage access was provided to “https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/saas-admin” because it is loaded in the third-party context and dynamic state partitioning is enabled.
+api-config.ts:88:5
+Partitioned cookie or storage access was provided to “https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/__replco/workspace_iframe.html?initialPath=%2Fsaas-admin&id=%3Aran%3A” because it is loaded in the third-party context and dynamic state partitioning is enabled.
+workspace_iframe.html:92:32
+Firefox can’t establish a connection to the server at wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws. useWebSocket.ts:37:16
+Firefox can’t establish a connection to the server at wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws. useWebSocket.ts:37:16
+The connection to wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws was interrupted while the page was loading. useWebSocket.ts:37:16
+The connection to wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws was interrupted while the page was loading. useWebSocket.ts:37:16
+WebSocket error: 
+error { target: WebSocket, isTrusted: true, srcElement: WebSocket, currentTarget: WebSocket, eventPhase: 2, bubbles: false, cancelable: false, returnValue: true, defaultPrevented: false, composed: false, … }
+injected.js:27:27
+WebSocket error: 
+error { target: WebSocket, isTrusted: true, srcElement: WebSocket, currentTarget: WebSocket, eventPhase: 2, bubbles: false, cancelable: false, returnValue: true, defaultPrevented: false, composed: false, … }
+injected.js:27:27
+
+​
+

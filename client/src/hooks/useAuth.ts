@@ -21,12 +21,19 @@ interface AuthData {
 export function useAuth() {
   const queryClient = useQueryClient();
 
+  // Clear any cached auth errors on mount
+  React.useEffect(() => {
+    queryClient.removeQueries({ queryKey: ["/api/auth/me"] });
+  }, [queryClient]);
+
   const { data, isLoading, error, refetch } = useQuery<AuthData>({
     queryKey: ["/api/auth/me", isCustomDomain() ? 'custom' : 'replit'],
     staleTime: isCustomDomain() ? 0 : 5 * 60 * 1000, // Force refresh for custom domain
     gcTime: isCustomDomain() ? 0 : 5 * 60 * 1000, // No caching for custom domain
     refetchOnMount: isCustomDomain() ? 'always' : true, // Always refetch for custom domain
     refetchOnWindowFocus: isCustomDomain() ? 'always' : true, // Always refetch for custom domain
+    retry: 3,
+    retryDelay: 1000,
     queryFn: async () => {
       console.log('🔍 USEAUTH: Calling /api/auth/me endpoint');
       
@@ -137,8 +144,7 @@ export function useAuth() {
         
         throw authError;
       }
-    },
-    retry: false
+    }
   });
 
   const logout = async () => {

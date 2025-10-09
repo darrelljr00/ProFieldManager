@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -68,8 +68,10 @@ import FileSecurityTab from "@/components/FileSecurityTab";
 import { ApiIntegrationManager } from "@/components/api-integration-manager";
 import { SubscriptionPlanSelector } from "@/components/subscription-plan-selector";
 
+console.log('🚀 SAAS ADMIN MODULE LOADED - Component file is being executed');
 
 export default function SaasAdminPage() {
+  console.log('🎯 SAAS ADMIN COMPONENT RENDERING - Function component is executing');
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("plans");
@@ -105,33 +107,67 @@ export default function SaasAdminPage() {
   });
   const [planFeatures, setPlanFeatures] = useState<Record<string, string>>({});
 
-  // SaaS-specific queries
+  // Clear cached query errors on component mount to force fresh data fetch
+  useEffect(() => {
+    console.log('🔄 SAAS ADMIN: Clearing cached queries and forcing refetch...');
+    const queriesToRefetch = [
+      ["/api/subscription-plans"],
+      ["/api/admin/saas/organizations"],
+      ["/api/admin/saas/metrics"],
+      ["/api/admin/saas/billing"],
+      ["/api/admin/system/settings"]
+    ];
+    
+    // Remove existing queries completely to clear errors
+    queriesToRefetch.forEach(queryKey => {
+      queryClient.removeQueries({ queryKey });
+      console.log('🗑️ Removed cached query:', queryKey);
+    });
+    
+    // Then refetch after a brief delay to ensure removal completed
+    setTimeout(() => {
+      queriesToRefetch.forEach(queryKey => {
+        queryClient.refetchQueries({ queryKey, type: 'all' });
+        console.log('🔄 Refetching query:', queryKey);
+      });
+    }, 100);
+  }, [queryClient]);
+
+  // SaaS-specific queries with retry logic
   const { data: subscriptionPlans = [], isLoading: plansLoading, error: plansError } = useQuery({
     queryKey: ["/api/subscription-plans"],
+    retry: 3,
+    retryDelay: 1000,
   });
-
-
 
   // Type the subscription plans data properly
   const typedSubscriptionPlans = subscriptionPlans as any[] | undefined;
 
-  const { data: allOrganizations } = useQuery({
+  const { data: allOrganizations = [] } = useQuery({
     queryKey: ["/api/admin/saas/organizations"],
+    retry: 3,
+    retryDelay: 1000,
   });
 
-  const { data: saasMetrics } = useQuery({
+  const { data: saasMetrics = {} } = useQuery({
     queryKey: ["/api/admin/saas/metrics"],
+    retry: 3,
+    retryDelay: 1000,
   });
 
-  const { data: billingData } = useQuery({
+  const { data: billingData = {} } = useQuery({
     queryKey: ["/api/admin/saas/billing"],
+    retry: 3,
+    retryDelay: 1000,
   });
 
-  const { data: systemSettings } = useQuery({
+  const { data: systemSettings = [] } = useQuery({
     queryKey: ["/api/admin/system/settings"],
+    retry: 3,
+    retryDelay: 1000,
   });
 
-  const systemSettingsData = systemSettings?.reduce((acc: any, setting: any) => {
+  const systemSettingsData = (systemSettings as any[])?.reduce((acc: any, setting: any) => {
     acc[setting.key] = setting.value === 'true' ? true : setting.value === 'false' ? false : setting.value;
     return acc;
   }, {}) || {};
