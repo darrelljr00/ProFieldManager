@@ -18820,14 +18820,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Subscription Plan Management API Routes
   
-  // Get all subscription plans
+  // Get all subscription plans (read-only for all admins)
   app.get("/api/subscription-plans", requireAuth, async (req, res) => {
     try {
       const user = getAuthenticatedUser(req);
       
-      // Only super admins can view subscription plans
-      if (user.role !== 'admin' || user.organizationId !== 1) {
-        return res.status(403).json({ message: "Access denied" });
+      // Allow all admins to view subscription plans (needed for SaaS admin page)
+      // But they can only modify them if they're super admins (org ID 1)
+      if (user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
       }
 
       const plans = await storage.getAllSubscriptionPlans();
