@@ -222,11 +222,24 @@ export default function SaasAdminPage() {
   const fetchOrganizationUsers = async (orgId: number) => {
     if (!orgId) return;
     try {
-      const response = await fetch(`/api/admin/saas/organizations/${orgId}/users`);
+      const response = await fetch(`/api/admin/saas/organizations/${orgId}/users`, {
+        credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+        },
+      });
+      
+      if (!response.ok) {
+        console.error("Failed to fetch organization users:", response.status);
+        setOrganizationUsers([]);
+        return;
+      }
+      
       const users = await response.json();
-      setOrganizationUsers(users);
+      setOrganizationUsers(Array.isArray(users) ? users : []);
     } catch (error) {
       console.error("Error fetching organization users:", error);
+      setOrganizationUsers([]);
     }
   };
 
@@ -235,14 +248,32 @@ export default function SaasAdminPage() {
     try {
       let response;
       if (orgId) {
-        response = await fetch(`/api/admin/saas/organizations/${orgId}/users`);
+        response = await fetch(`/api/admin/saas/organizations/${orgId}/users`, {
+          credentials: 'include',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+          },
+        });
       } else {
-        response = await fetch(`/api/admin/users`);
+        response = await fetch(`/api/admin/users`, {
+          credentials: 'include',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+          },
+        });
       }
+      
+      if (!response.ok) {
+        console.error("Failed to fetch users:", response.status);
+        setUserManagementUsers([]);
+        return;
+      }
+      
       const users = await response.json();
-      setUserManagementUsers(users);
+      setUserManagementUsers(Array.isArray(users) ? users : []);
     } catch (error) {
       console.error("Error fetching users:", error);
+      setUserManagementUsers([]);
     }
   };
 
