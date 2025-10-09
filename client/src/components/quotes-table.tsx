@@ -173,6 +173,7 @@ export function QuotesTable({ quotes, isLoading }: QuotesTableProps) {
     mutationFn: ({ quoteId, subject, message }: { quoteId: number; subject: string; message: string }) =>
       apiRequest("POST", `/api/quotes/${quoteId}/send-email`, { subject, message }),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/quotes"] });
       toast({
         title: "Success",
         description: "Quote sent via email successfully",

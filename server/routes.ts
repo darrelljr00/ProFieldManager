@@ -4527,6 +4527,142 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Send quote email
+  app.post("/api/quotes/:id/send-email", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { subject, message } = req.body;
+
+      // Fetch the quote with customer details
+      const quote = await storage.getQuote(parseInt(req.params.id), user.organizationId);
+      
+      if (!quote) {
+        return res.status(404).json({ message: "Quote not found" });
+      }
+
+      // Fetch email settings from database
+      const emailSettings = await storage.getSettingsByCategory('email');
+      
+      const smtpHost = emailSettings.find(s => s.key === 'email_smtpHost')?.value;
+      const smtpPort = emailSettings.find(s => s.key === 'email_smtpPort')?.value;
+      const smtpUser = emailSettings.find(s => s.key === 'email_smtpUser')?.value;
+      const smtpPassword = emailSettings.find(s => s.key === 'email_smtpPassword')?.value;
+      const smtpSecure = emailSettings.find(s => s.key === 'email_smtpSecure')?.value === 'true';
+      const fromEmail = emailSettings.find(s => s.key === 'email_fromEmail')?.value;
+      const fromName = emailSettings.find(s => s.key === 'email_fromName')?.value;
+      const emailEnabled = emailSettings.find(s => s.key === 'email_emailEnabled')?.value === 'true';
+
+      if (!emailEnabled) {
+        return res.status(400).json({ message: "Email is not enabled in settings" });
+      }
+
+      if (!smtpHost || !smtpPort || !smtpUser || !smtpPassword) {
+        return res.status(400).json({ message: "SMTP settings are not configured properly" });
+      }
+
+      // Import nodemailer
+      const nodemailer = await import('nodemailer');
+
+      // Create transporter
+      const transporter = nodemailer.default.createTransport({
+        host: smtpHost,
+        port: parseInt(smtpPort),
+        secure: smtpSecure,
+        auth: {
+          user: smtpUser,
+          pass: smtpPassword,
+        },
+      });
+
+      // Calculate quote totals
+      const subtotal = quote.lineItems.reduce((sum, item) => sum + (item.quantity * item.price), 0);
+      const tax = quote.lineItems.reduce((sum, item) => sum + (item.tax || 0), 0);
+      const total = subtotal + tax;
+
+      // Create email HTML content
+      const lineItemsHTML = quote.lineItems.map(item => `
+        <tr>
+          <td style="padding: 8px; border: 1px solid #ddd;">${item.description}</td>
+          <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${item.quantity}</td>
+          <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">$${item.price.toFixed(2)}</td>
+          <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">$${(item.quantity * item.price).toFixed(2)}</td>
+        </tr>
+      `).join('');
+
+      const emailHTML = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #2563eb; border-bottom: 2px solid #2563eb; padding-bottom: 10px;">Quote #${quote.quoteNumber}</h2>
+          
+          <p>${message || 'Please find your quote details below:'}</p>
+          
+          <div style="background-color: #f3f4f6; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p><strong>Quote Date:</strong> ${new Date(quote.createdAt).toLocaleDateString()}</p>
+            <p><strong>Valid Until:</strong> ${new Date(quote.validUntil).toLocaleDateString()}</p>
+            ${quote.projectAddress ? `<p><strong>Project Address:</strong> ${quote.projectAddress}</p>` : ''}
+          </div>
+
+          <h3 style="color: #2563eb; margin-top: 30px;">Items</h3>
+          <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+            <thead>
+              <tr style="background-color: #2563eb; color: white;">
+                <th style="padding: 10px; text-align: left;">Description</th>
+                <th style="padding: 10px; text-align: center;">Qty</th>
+                <th style="padding: 10px; text-align: right;">Price</th>
+                <th style="padding: 10px; text-align: right;">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${lineItemsHTML}
+            </tbody>
+          </table>
+
+          <div style="text-align: right; margin-top: 20px; padding-top: 20px; border-top: 2px solid #ddd;">
+            <p style="margin: 5px 0;"><strong>Subtotal:</strong> $${subtotal.toFixed(2)}</p>
+            ${tax > 0 ? `<p style="margin: 5px 0;"><strong>Tax:</strong> $${tax.toFixed(2)}</p>` : ''}
+            <p style="margin: 10px 0; font-size: 1.2em; color: #2563eb;"><strong>Total:</strong> $${total.toFixed(2)}</p>
+          </div>
+
+          ${quote.notes ? `
+            <div style="margin-top: 30px; padding: 15px; background-color: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 4px;">
+              <h4 style="margin-top: 0; color: #92400e;">Notes:</h4>
+              <p style="margin-bottom: 0;">${quote.notes}</p>
+            </div>
+          ` : ''}
+
+          <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; color: #666; font-size: 0.9em;">
+            <p>Thank you for your business!</p>
+            <p>${fromName || 'Pro Field Manager'}</p>
+          </div>
+        </body>
+        </html>
+      `;
+
+      // Send email
+      await transporter.sendMail({
+        from: `"${fromName || 'Pro Field Manager'}" <${fromEmail}>`,
+        to: quote.customer.email,
+        subject: subject || `Quote #${quote.quoteNumber}`,
+        html: emailHTML,
+      });
+
+      // Update quote status to sent if not already
+      if (quote.status === 'draft') {
+        await storage.updateQuote(parseInt(req.params.id), user.id, { status: 'sent' });
+      }
+
+      res.json({ message: "Email sent successfully" });
+    } catch (error: any) {
+      console.error('Email send error:', error);
+      res.status(500).json({ message: `Failed to send email: ${error.message}` });
+    }
+  });
+
   // Quote download endpoints
   app.get("/api/quotes/:id/download/pdf", requireAuth, async (req, res) => {
     try {
