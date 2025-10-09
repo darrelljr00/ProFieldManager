@@ -4575,19 +4575,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Calculate quote totals
-      const subtotal = quote.lineItems.reduce((sum, item) => sum + (item.quantity * item.price), 0);
-      const tax = quote.lineItems.reduce((sum, item) => sum + (item.tax || 0), 0);
+      const subtotal = quote.lineItems.reduce((sum, item) => {
+        const qty = parseFloat(item.quantity) || 0;
+        const price = parseFloat(item.price) || 0;
+        return sum + (qty * price);
+      }, 0);
+      const tax = quote.lineItems.reduce((sum, item) => sum + (parseFloat(item.tax) || 0), 0);
       const total = subtotal + tax;
 
       // Create email HTML content
-      const lineItemsHTML = quote.lineItems.map(item => `
+      const lineItemsHTML = quote.lineItems.map(item => {
+        const qty = parseFloat(item.quantity) || 0;
+        const price = parseFloat(item.price) || 0;
+        const itemTotal = qty * price;
+        return `
         <tr>
-          <td style="padding: 8px; border: 1px solid #ddd;">${item.description}</td>
-          <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${item.quantity}</td>
-          <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">$${item.price.toFixed(2)}</td>
-          <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">$${(item.quantity * item.price).toFixed(2)}</td>
+          <td style="padding: 8px; border: 1px solid #ddd;">${item.description || ''}</td>
+          <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${qty.toFixed(0)}</td>
+          <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">$${price.toFixed(2)}</td>
+          <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">$${itemTotal.toFixed(2)}</td>
         </tr>
-      `).join('');
+      `;
+      }).join('');
 
       const emailHTML = `
         <!DOCTYPE html>
