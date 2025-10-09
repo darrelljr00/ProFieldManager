@@ -4660,11 +4660,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         html: emailHTML,
       });
 
-      // Update quote status to sent if not already
-      if (quote.status === 'draft') {
-        await storage.updateQuote(parseInt(req.params.id), { status: 'sent' });
-      }
-
       res.json({ message: "Email sent successfully" });
     } catch (error: any) {
       console.error('Email send error:', error);
