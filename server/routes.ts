@@ -4662,7 +4662,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Update quote status to sent if not already
       if (quote.status === 'draft') {
-        await storage.updateQuote(parseInt(req.params.id), user.id, { status: 'sent' });
+        await storage.updateQuote(parseInt(req.params.id), { status: 'sent' });
       }
 
       res.json({ message: "Email sent successfully" });
