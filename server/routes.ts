@@ -15740,8 +15740,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get subscription plans for landing page
-  app.get("/api/subscription-plans", async (req, res) => {
+  // Get subscription plans for landing page (public - active plans only)
+  app.get("/api/pricing-plans", async (req, res) => {
     try {
       const plans = await storage.getSubscriptionPlans();
       res.json(plans);
