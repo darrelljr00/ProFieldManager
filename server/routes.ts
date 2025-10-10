@@ -4575,7 +4575,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Get company settings for email
-      const companySettings = await storage.getCompanySettings(user.organizationId);
+      const companySettingsRows = await db
+        .select()
+        .from(settings)
+        .where(and(
+          eq(settings.organizationId, user.organizationId),
+          eq(settings.category, 'company')
+        ));
+
+      const companySettings: any = {};
+      const orgId = user.organizationId;
+      companySettingsRows.forEach(setting => {
+        // Parse keys like: company_org_2_companyName or company_org_2_company_companyName
+        if (setting.key === `company_org_${orgId}_companyName` || setting.key === `company_org_${orgId}_company_companyName`) {
+          companySettings.companyName = setting.value;
+        } else if (setting.key === `company_org_${orgId}_companyEmail` || setting.key === `company_org_${orgId}_company_companyEmail`) {
+          companySettings.companyEmail = setting.value;
+        } else if (setting.key === `company_org_${orgId}_companyPhone` || setting.key === `company_org_${orgId}_company_companyPhone`) {
+          companySettings.companyPhone = setting.value;
+        } else if (setting.key === `company_org_${orgId}_companyWebsite` || setting.key === `company_org_${orgId}_company_companyWebsite`) {
+          companySettings.companyWebsite = setting.value;
+        } else if (setting.key === `company_org_${orgId}_companyStreetAddress` || setting.key === `company_org_${orgId}_company_companyStreetAddress`) {
+          companySettings.companyStreetAddress = setting.value;
+        } else if (setting.key === `company_org_${orgId}_companyCity` || setting.key === `company_org_${orgId}_company_companyCity`) {
+          companySettings.companyCity = setting.value;
+        } else if (setting.key === `company_org_${orgId}_companyState` || setting.key === `company_org_${orgId}_company_companyState`) {
+          companySettings.companyState = setting.value;
+        } else if (setting.key === `company_org_${orgId}_companyZipCode` || setting.key === `company_org_${orgId}_company_companyZipCode`) {
+          companySettings.companyZipCode = setting.value;
+        } else if (setting.key === `company_org_${orgId}_logo` || setting.key === `company_org_${orgId}_company_logo`) {
+          companySettings.logo = setting.value;
+        }
+      });
 
       // Create email HTML content - match quote preview format
       const lineItemsHTML = quote.lineItems.map(item => {
