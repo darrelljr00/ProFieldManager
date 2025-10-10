@@ -255,12 +255,19 @@ export function QuotesTable({ quotes, isLoading }: QuotesTableProps) {
       case "pending":
         return "secondary";
       case "accepted":
-        return "default";
+        return "default"; // Will add custom green styling
       case "declined":
         return "destructive";
       default:
         return "secondary";
     }
+  };
+
+  const getStatusBadgeClassName = (status: string) => {
+    if (status === "accepted") {
+      return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 hover:bg-green-100 dark:hover:bg-green-900";
+    }
+    return "";
   };
 
   if (isLoading) {
@@ -312,7 +319,10 @@ export function QuotesTable({ quotes, isLoading }: QuotesTableProps) {
                   <TableCell>{format(new Date(quote.quoteDate), "MMM dd, yyyy")}</TableCell>
                   <TableCell>{format(new Date(quote.expiryDate), "MMM dd, yyyy")}</TableCell>
                   <TableCell>
-                    <Badge variant={getStatusBadgeVariant(quote.status)}>
+                    <Badge 
+                      variant={getStatusBadgeVariant(quote.status)}
+                      className={getStatusBadgeClassName(quote.status)}
+                    >
                       {quote.status}
                     </Badge>
                   </TableCell>
@@ -467,7 +477,10 @@ export function QuotesTable({ quotes, isLoading }: QuotesTableProps) {
                 </div>
                 <div>
                   <Label className="font-semibold">Status</Label>
-                  <Badge variant={getStatusBadgeVariant(selectedQuote.status)}>
+                  <Badge 
+                    variant={getStatusBadgeVariant(selectedQuote.status)}
+                    className={getStatusBadgeClassName(selectedQuote.status)}
+                  >
                     {selectedQuote.status}
                   </Badge>
                 </div>
