@@ -53,6 +53,11 @@ export function QuotesTable({ quotes, isLoading }: QuotesTableProps) {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
 
+  // Fetch company settings for business name
+  const { data: companySettings } = useQuery({
+    queryKey: ["/api/settings/company"],
+  });
+
   // Download handler for PDF and Word documents
   const handleDownload = async (quoteId: number, format: 'pdf' | 'word') => {
     try {
@@ -192,9 +197,10 @@ export function QuotesTable({ quotes, isLoading }: QuotesTableProps) {
   });
 
   const openEmailDialog = (quote: Quote & { customer: Customer }) => {
+    const businessName = companySettings?.businessName || companySettings?.name || 'Your Company';
     setEmailDialog(quote);
-    setEmailSubject(`Quote ${quote.quoteNumber} from Your Company`);
-    setEmailMessage(`Dear ${quote.customer.name},\n\nPlease find attached your quote ${quote.quoteNumber}.\n\nBest regards,\nYour Company`);
+    setEmailSubject(`Quote ${quote.quoteNumber} from ${businessName}`);
+    setEmailMessage(`Dear ${quote.customer.name},\n\nPlease find attached your quote ${quote.quoteNumber}.\n\nBest regards,\n${businessName}`);
   };
 
   // Mark quote as viewed mutation
