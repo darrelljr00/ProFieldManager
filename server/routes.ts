@@ -4071,7 +4071,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Invoice not found" });
       }
 
-      if (!invoice.customer || !invoice.customer.email) {
+      if (!invoice.customerEmail) {
         return res.status(400).json({ message: "Customer email not found" });
       }
 
@@ -4161,7 +4161,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const dueDate = invoice.dueDate || new Date();
 
       // Build line items HTML
-      const lineItemsHTML = (invoice.lineItems || []).map((item: any) => `
+      const lineItemsHTML = (invoice.items || []).map((item: any) => `
         <tr style="border-bottom: 1px solid #e5e7eb;">
           <td style="padding: 12px; text-align: left; font-size: 14px; color: #374151;">${item.description}</td>
           <td style="padding: 12px; text-align: center; font-size: 14px; color: #374151;">${parseFloat(item.quantity).toFixed(0)}</td>
@@ -4188,7 +4188,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 30px 0;">
             <div>
               <p style="margin: 0 0 5px 0; font-weight: 600; font-size: 14px; color: #111827;">Customer</p>
-              <p style="margin: 0; font-size: 14px; color: #374151;">${invoice.customer.name}</p>
+              <p style="margin: 0; font-size: 14px; color: #374151;">${invoice.customerName}</p>
             </div>
             <div>
               <p style="margin: 0 0 5px 0; font-weight: 600; font-size: 14px; color: #111827;">Status</p>
@@ -4243,7 +4243,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Send email
       await transporter.sendMail({
         from: `"${fromName || 'Pro Field Manager'}" <${fromEmail}>`,
-        to: invoice.customer.email,
+        to: invoice.customerEmail,
         subject: `Invoice #${invoice.invoiceNumber} from ${companySettings.companyName || 'Pro Field Manager'}`,
         html: emailHTML,
       });
