@@ -4058,18 +4058,208 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Send invoice (update status to sent)
-  app.post("/api/invoices/:id/send", async (req, res) => {
+  // Send invoice via email
+  app.post("/api/invoices/:id/send", requireAuth, async (req, res) => {
     try {
-      const invoice = await storage.updateInvoice(parseInt(req.params.id), req.user.id, { 
-        status: 'sent' 
-      });
+      const user = getAuthenticatedUser(req);
+      const invoiceId = parseInt(req.params.id);
+
+      // Get invoice with customer and line items
+      const invoice = await storage.getInvoice(invoiceId, user.organizationId);
+      
       if (!invoice) {
         return res.status(404).json({ message: "Invoice not found" });
       }
-      res.json(invoice);
+
+      if (!invoice.customer || !invoice.customer.email) {
+        return res.status(400).json({ message: "Customer email not found" });
+      }
+
+      // Get email settings from database (same as quote email)
+      const emailSettingsRows = await db
+        .select()
+        .from(settings)
+        .where(
+          like(settings.key, `email_org_${user.organizationId}_%`)
+        );
+
+      const emailSettings: any = {};
+      emailSettingsRows.forEach(setting => {
+        const keyPart = setting.key.replace(`email_org_${user.organizationId}_`, '');
+        emailSettings[keyPart] = setting.value;
+      });
+
+      const smtpHost = emailSettings.smtpHost;
+      const smtpPort = emailSettings.smtpPort ? parseInt(emailSettings.smtpPort) : 587;
+      const smtpUser = emailSettings.smtpUser;
+      const smtpPassword = emailSettings.smtpPassword;
+      const fromEmail = emailSettings.fromEmail || smtpUser;
+      const fromName = emailSettings.fromName || 'Pro Field Manager';
+
+      if (!smtpHost || !smtpUser || !smtpPassword) {
+        return res.status(400).json({ 
+          message: "Email settings not configured. Please configure SMTP settings first." 
+        });
+      }
+
+      // Create email transporter
+      const transporter = nodemailer.createTransport({
+        host: smtpHost,
+        port: smtpPort,
+        secure: smtpPort === 465,
+        auth: {
+          user: smtpUser,
+          pass: smtpPassword,
+        },
+      });
+
+      // Get company settings for email
+      const companySettingsRows = await db
+        .select()
+        .from(settings)
+        .where(
+          like(settings.key, `company_org_${user.organizationId}_%`)
+        );
+
+      const companySettings: any = {};
+      companySettingsRows.forEach(setting => {
+        const keyPart = setting.key.replace(`company_org_${user.organizationId}_`, '');
+        companySettings[keyPart] = setting.value;
+      });
+
+      // Build company info HTML
+      let companyInfoHTML = '';
+      if (companySettings.logo) {
+        companyInfoHTML += `<div style="margin-bottom: 20px;"><img src="${companySettings.logo}" alt="Company Logo" style="max-height: 80px; max-width: 200px;" /></div>`;
+      }
+      if (companySettings.companyName) {
+        companyInfoHTML += `<h2 style="margin: 0 0 10px 0; color: #111827; font-size: 24px;">${companySettings.companyName}</h2>`;
+      }
+      if (companySettings.companyStreetAddress || companySettings.companyCity) {
+        companyInfoHTML += `<p style="margin: 0; font-size: 14px; color: #6b7280;">`;
+        if (companySettings.companyStreetAddress) companyInfoHTML += `${companySettings.companyStreetAddress}<br>`;
+        if (companySettings.companyCity || companySettings.companyState || companySettings.companyZipCode) {
+          companyInfoHTML += `${companySettings.companyCity || ''}, ${companySettings.companyState || ''} ${companySettings.companyZipCode || ''}`;
+        }
+        companyInfoHTML += `</p>`;
+      }
+      if (companySettings.companyPhone) {
+        companyInfoHTML += `<p style="margin: 5px 0 0 0; font-size: 14px; color: #6b7280;">Phone: ${companySettings.companyPhone}</p>`;
+      }
+      if (companySettings.companyEmail) {
+        companyInfoHTML += `<p style="margin: 5px 0 0 0; font-size: 14px; color: #6b7280;">Email: ${companySettings.companyEmail}</p>`;
+      }
+
+      // Format dates
+      const formatDate = (date: any) => {
+        if (!date) return 'N/A';
+        const d = new Date(date);
+        return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+      };
+
+      const invoiceDate = invoice.invoiceDate || new Date();
+      const dueDate = invoice.dueDate || new Date();
+
+      // Build line items HTML
+      const lineItemsHTML = (invoice.lineItems || []).map((item: any) => `
+        <tr style="border-bottom: 1px solid #e5e7eb;">
+          <td style="padding: 12px; text-align: left; font-size: 14px; color: #374151;">${item.description}</td>
+          <td style="padding: 12px; text-align: center; font-size: 14px; color: #374151;">${parseFloat(item.quantity).toFixed(0)}</td>
+          <td style="padding: 12px; text-align: right; font-size: 14px; color: #374151;">$${parseFloat(item.amount).toFixed(2)}</td>
+        </tr>
+      `).join('');
+
+      // Build email HTML
+      const emailHTML = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #111827; max-width: 700px; margin: 0 auto; padding: 40px 20px; background-color: #ffffff;">
+          ${companyInfoHTML}
+          
+          <div style="margin-top: 40px;">
+            <h1 style="margin: 0 0 10px 0; font-size: 32px; color: #111827;">INVOICE</h1>
+            <p style="margin: 0; font-size: 18px; color: #6b7280;">#${invoice.invoiceNumber}</p>
+          </div>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 30px 0;">
+            <div>
+              <p style="margin: 0 0 5px 0; font-weight: 600; font-size: 14px; color: #111827;">Customer</p>
+              <p style="margin: 0; font-size: 14px; color: #374151;">${invoice.customer.name}</p>
+            </div>
+            <div>
+              <p style="margin: 0 0 5px 0; font-weight: 600; font-size: 14px; color: #111827;">Status</p>
+              <p style="margin: 0; font-size: 14px; color: #374151; text-transform: capitalize;">${invoice.status}</p>
+            </div>
+            <div>
+              <p style="margin: 0 0 5px 0; font-weight: 600; font-size: 14px; color: #111827;">Invoice Date</p>
+              <p style="margin: 0; font-size: 14px; color: #374151;">${formatDate(invoiceDate)}</p>
+            </div>
+            <div>
+              <p style="margin: 0 0 5px 0; font-weight: 600; font-size: 14px; color: #111827;">Due Date</p>
+              <p style="margin: 0; font-size: 14px; color: #374151;">${formatDate(dueDate)}</p>
+            </div>
+          </div>
+
+          <div style="margin-top: 40px;">
+            <p style="margin: 0 0 15px 0; font-weight: 600; font-size: 14px; color: #111827;">Line Items</p>
+            <table style="width: 100%; border-collapse: collapse;">
+              <thead>
+                <tr style="background-color: #f9fafb; border-bottom: 2px solid #e5e7eb;">
+                  <th style="padding: 12px; text-align: left; font-weight: 600; font-size: 14px; color: #111827;">Description</th>
+                  <th style="padding: 12px; text-align: center; font-weight: 600; font-size: 14px; color: #111827;">Quantity</th>
+                  <th style="padding: 12px; text-align: right; font-weight: 600; font-size: 14px; color: #111827;">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${lineItemsHTML}
+              </tbody>
+            </table>
+            <div style="text-align: right; margin-top: 20px; padding-top: 20px; border-top: 2px solid #e5e7eb;">
+              <p style="margin: 0 0 8px 0; font-size: 16px; color: #374151;">Subtotal: $${parseFloat(invoice.subtotal).toFixed(2)}</p>
+              <p style="margin: 0 0 8px 0; font-size: 16px; color: #374151;">Tax: $${parseFloat(invoice.taxAmount || '0').toFixed(2)}</p>
+              <p style="margin: 0; font-size: 20px; font-weight: 600; color: #111827;">Total: $${parseFloat(invoice.total).toFixed(2)}</p>
+            </div>
+          </div>
+
+          ${invoice.notes ? `
+            <div style="margin-top: 30px;">
+              <p style="margin: 0 0 10px 0; font-weight: 600; font-size: 14px; color: #111827;">Notes</p>
+              <p style="margin: 0; font-size: 14px; color: #374151; line-height: 1.6;">${invoice.notes}</p>
+            </div>
+          ` : ''}
+
+          <div style="margin-top: 50px; padding-top: 30px; border-top: 1px solid #e5e7eb; text-align: center; color: #6b7280; font-size: 14px;">
+            <p style="margin: 0;">Thank you for your business!</p>
+            ${fromName ? `<p style="margin: 10px 0 0 0;">${fromName}</p>` : ''}
+          </div>
+        </body>
+        </html>
+      `;
+
+      // Send email
+      await transporter.sendMail({
+        from: `"${fromName || 'Pro Field Manager'}" <${fromEmail}>`,
+        to: invoice.customer.email,
+        subject: `Invoice #${invoice.invoiceNumber} from ${companySettings.companyName || 'Pro Field Manager'}`,
+        html: emailHTML,
+      });
+
+      // Update invoice status to sent
+      const updatedInvoice = await storage.updateInvoice(invoiceId, user.id, { 
+        status: 'sent' 
+      });
+
+      res.json({ 
+        message: "Invoice sent successfully",
+        invoice: updatedInvoice 
+      });
     } catch (error: any) {
-      res.status(500).json({ message: error.message });
+      console.error('Invoice send error:', error);
+      res.status(500).json({ message: `Failed to send invoice: ${error.message}` });
     }
   });
 
