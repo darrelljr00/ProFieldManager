@@ -4245,7 +4245,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Update invoice status to sent
-      const updatedInvoice = await storage.updateInvoice(invoiceId, user.id, { 
+      const updatedInvoice = await storage.updateInvoice(invoiceId, { 
         status: 'sent' 
       });
 
