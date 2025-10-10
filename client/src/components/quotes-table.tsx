@@ -53,11 +53,6 @@ export function QuotesTable({ quotes, isLoading }: QuotesTableProps) {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
 
-  // Fetch company settings for business name
-  const { data: companySettings } = useQuery({
-    queryKey: ["/api/settings/company"],
-  });
-
   // Download handler for PDF and Word documents
   const handleDownload = async (quoteId: number, format: 'pdf' | 'word') => {
     try {
@@ -197,7 +192,7 @@ export function QuotesTable({ quotes, isLoading }: QuotesTableProps) {
   });
 
   const openEmailDialog = (quote: Quote & { customer: Customer }) => {
-    const businessName = companySettings?.businessName || companySettings?.name || 'Your Company';
+    const businessName = companySettings?.companyName || 'Your Company';
     setEmailDialog(quote);
     setEmailSubject(`Quote ${quote.quoteNumber} from ${businessName}`);
     setEmailMessage(`Dear ${quote.customer.name},\n\nPlease find attached your quote ${quote.quoteNumber}.\n\nBest regards,\n${businessName}`);
@@ -205,11 +200,8 @@ export function QuotesTable({ quotes, isLoading }: QuotesTableProps) {
 
   // Mark quote as viewed mutation
   const markAsViewedMutation = useMutation({
-    mutationFn: async (quoteId: number) => {
-      await apiRequest(`/api/quotes/${quoteId}/mark-viewed`, {
-        method: 'POST',
-      });
-    },
+    mutationFn: (quoteId: number) =>
+      apiRequest("POST", `/api/quotes/${quoteId}/mark-viewed`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/quotes'] });
     },
