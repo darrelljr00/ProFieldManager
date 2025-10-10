@@ -4095,8 +4095,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "SMTP settings are not configured properly" });
       }
 
+      // Import nodemailer
+      const nodemailer = await import('nodemailer');
+
       // Create transporter
-      const transporter = nodemailer.createTransport({
+      const transporter = nodemailer.default.createTransport({
         host: smtpHost,
         port: parseInt(smtpPort),
         secure: smtpSecure,
