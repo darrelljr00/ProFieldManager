@@ -197,11 +197,27 @@ export function QuotesTable({ quotes, isLoading }: QuotesTableProps) {
     setEmailMessage(`Dear ${quote.customer.name},\n\nPlease find attached your quote ${quote.quoteNumber}.\n\nBest regards,\nYour Company`);
   };
 
+  // Mark quote as viewed mutation
+  const markAsViewedMutation = useMutation({
+    mutationFn: async (quoteId: number) => {
+      await apiRequest(`/api/quotes/${quoteId}/mark-viewed`, {
+        method: 'POST',
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/quotes'] });
+    },
+  });
+
   const openViewDialog = (quote: Quote) => {
     const fullQuote = quotes.find(q => q.id === quote.id);
     if (fullQuote) {
       setSelectedQuote(fullQuote);
       setViewDialog(quote);
+      // Mark as viewed if not already viewed
+      if (!quote.viewedAt) {
+        markAsViewedMutation.mutate(quote.id);
+      }
     }
   };
 
@@ -283,7 +299,17 @@ export function QuotesTable({ quotes, isLoading }: QuotesTableProps) {
             ) : (
               quotes.map((quote) => (
                 <TableRow key={quote.id}>
-                  <TableCell className="font-medium">{quote.quoteNumber}</TableCell>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-2">
+                      {!quote.viewedAt && (
+                        <span className="relative flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                        </span>
+                      )}
+                      {quote.quoteNumber}
+                    </div>
+                  </TableCell>
                   <TableCell>{quote.customer.name}</TableCell>
                   <TableCell>{format(new Date(quote.quoteDate), "MMM dd, yyyy")}</TableCell>
                   <TableCell>{format(new Date(quote.expiryDate), "MMM dd, yyyy")}</TableCell>

@@ -349,6 +349,7 @@ export const quotes = pgTable("quotes", {
   denialToken: text("denial_token"),
   respondedAt: timestamp("responded_at"),
   responseMethod: text("response_method"), // email, sms
+  viewedAt: timestamp("viewed_at"), // Track when quote is viewed by customer
   isDeleted: boolean("is_deleted").default(false).notNull(),
   deletedAt: timestamp("deleted_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),

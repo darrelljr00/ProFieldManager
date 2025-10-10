@@ -4721,6 +4721,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Mark quote as viewed
+  app.post("/api/quotes/:id/mark-viewed", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const quote = await storage.getQuote(parseInt(req.params.id), user.organizationId);
+      
+      if (!quote) {
+        return res.status(404).json({ message: "Quote not found" });
+      }
+
+      // Update viewedAt timestamp
+      await db
+        .update(quotes)
+        .set({ viewedAt: new Date() })
+        .where(eq(quotes.id, parseInt(req.params.id)));
+
+      res.json({ message: "Quote marked as viewed" });
+    } catch (error: any) {
+      console.error('Error marking quote as viewed:', error);
+      res.status(500).json({ message: "Failed to mark quote as viewed" });
+    }
+  });
+
   // Quote download endpoints
   app.get("/api/quotes/:id/download/pdf", requireAuth, async (req, res) => {
     try {
