@@ -71,6 +71,7 @@ export interface IStorage {
   
   // Invoice methods
   getInvoices(organizationId: number): Promise<any[]>;
+  getInvoice(id: number, organizationId: number): Promise<any>;
   createInvoice(invoiceData: any): Promise<any>;
   createUploadedInvoice(invoiceData: any): Promise<any>;
   updateInvoice(id: number, updates: any): Promise<any>;
@@ -1237,6 +1238,59 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(invoices.createdAt));
 
     return results;
+  }
+
+  async getInvoice(id: number, organizationId: number): Promise<any> {
+    const [invoice] = await db
+      .select({
+        id: invoices.id,
+        userId: invoices.userId,
+        customerId: invoices.customerId,
+        invoiceNumber: invoices.invoiceNumber,
+        status: invoices.status,
+        subtotal: invoices.subtotal,
+        taxRate: invoices.taxRate,
+        taxAmount: invoices.taxAmount,
+        total: invoices.total,
+        currency: invoices.currency,
+        notes: invoices.notes,
+        invoiceDate: invoices.invoiceDate,
+        dueDate: invoices.dueDate,
+        paidAt: invoices.paidAt,
+        stripePaymentIntentId: invoices.stripePaymentIntentId,
+        squarePaymentId: invoices.squarePaymentId,
+        paymentMethod: invoices.paymentMethod,
+        attachmentUrl: invoices.attachmentUrl,
+        originalFileName: invoices.originalFileName,
+        isUploadedInvoice: invoices.isUploadedInvoice,
+        createdAt: invoices.createdAt,
+        updatedAt: invoices.updatedAt,
+        customerName: customers.name,
+        customerEmail: customers.email,
+      })
+      .from(invoices)
+      .leftJoin(customers, eq(invoices.customerId, customers.id))
+      .innerJoin(users, eq(invoices.userId, users.id))
+      .where(and(
+        eq(invoices.id, id),
+        eq(users.organizationId, organizationId)
+      ))
+      .limit(1);
+
+    if (!invoice) {
+      return null;
+    }
+
+    // Get line items if they exist
+    const lineItems = await db
+      .select()
+      .from(invoiceLineItems)
+      .where(eq(invoiceLineItems.invoiceId, id));
+
+    return {
+      ...invoice,
+      items: lineItems
+    };
   }
 
   async createInvoice(invoiceData: any): Promise<any> {
