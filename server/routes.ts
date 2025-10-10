@@ -4578,10 +4578,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const companySettingsRows = await db
         .select()
         .from(settings)
-        .where(and(
-          eq(settings.organizationId, user.organizationId),
-          eq(settings.category, 'company')
-        ));
+        .where(
+          sql`${settings.key} LIKE ${'company_org_' + user.organizationId + '_%'}`
+        );
 
       const companySettings: any = {};
       const orgId = user.organizationId;
