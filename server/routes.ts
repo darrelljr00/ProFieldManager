@@ -4579,7 +4579,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .select()
         .from(settings)
         .where(
-          sql`${settings.key} LIKE ${'company_org_' + user.organizationId + '_%'}`
+          like(settings.key, `company_org_${user.organizationId}_%`)
         );
 
       const companySettings: any = {};
