@@ -4728,6 +4728,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             </div>
           ` : ''}
 
+          <div style="margin-top: 40px; text-align: center;">
+            <a href="${process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : 'http://localhost:5000'}/api/quotes/${quote.id}/accept" 
+               style="display: inline-block; background-color: #10b981; color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);">
+              Accept Quote
+            </a>
+          </div>
+
           <div style="margin-top: 50px; padding-top: 30px; border-top: 1px solid #e5e7eb; text-align: center; color: #6b7280; font-size: 14px;">
             <p style="margin: 0;">Thank you for your business!</p>
             ${fromName ? `<p style="margin: 10px 0 0 0;">${fromName}</p>` : ''}
@@ -4771,6 +4778,109 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error('Error marking quote as viewed:', error);
       res.status(500).json({ message: "Failed to mark quote as viewed" });
+    }
+  });
+
+  // Accept quote (public endpoint - no auth required)
+  app.get("/api/quotes/:id/accept", async (req, res) => {
+    try {
+      const quoteId = parseInt(req.params.id);
+      
+      // Get quote without organization filter (public endpoint)
+      const quote = await db.select().from(quotes).where(eq(quotes.id, quoteId)).limit(1);
+      
+      if (!quote || quote.length === 0) {
+        return res.status(404).send(`
+          <!DOCTYPE html>
+          <html>
+          <head><title>Quote Not Found</title></head>
+          <body style="font-family: sans-serif; text-align: center; padding: 50px;">
+            <h1>Quote not found</h1>
+            <p>The quote you're looking for doesn't exist.</p>
+          </body>
+          </html>
+        `);
+      }
+
+      const quoteData = quote[0];
+
+      // Update quote status to accepted and mark as viewed
+      await db
+        .update(quotes)
+        .set({ 
+          status: 'accepted',
+          viewedAt: new Date() 
+        })
+        .where(eq(quotes.id, quoteId));
+
+      // Create notification for admins/managers
+      const admins = await db
+        .select()
+        .from(users)
+        .where(and(
+          eq(users.organizationId, quoteData.organizationId),
+          or(
+            eq(users.role, 'admin'),
+            eq(users.role, 'manager')
+          )
+        ));
+
+      // Send notification to all admins/managers
+      for (const admin of admins) {
+        await db.insert(notifications).values({
+          userId: admin.id,
+          type: 'quote_accepted',
+          title: 'Quote Accepted',
+          message: `Quote #${quoteData.quoteNumber} has been accepted by the customer`,
+          category: 'quote',
+          priority: 'high',
+          link: `/quotes`,
+          createdAt: new Date()
+        });
+      }
+
+      // Broadcast notification via WebSocket
+      broadcastToOrganization(quoteData.organizationId, 'notification', {
+        type: 'quote_accepted',
+        quoteId: quoteId,
+        quoteNumber: quoteData.quoteNumber,
+        message: `Quote #${quoteData.quoteNumber} has been accepted`
+      });
+
+      // Return success page
+      res.send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Quote Accepted</title>
+        </head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; text-align: center; padding: 50px; background-color: #f3f4f6;">
+          <div style="background: white; border-radius: 12px; padding: 40px; max-width: 500px; margin: 0 auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <div style="width: 64px; height: 64px; background-color: #10b981; border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
+              <svg width="32" height="32" fill="white" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+              </svg>
+            </div>
+            <h1 style="color: #111827; margin: 0 0 16px 0; font-size: 28px;">Quote Accepted!</h1>
+            <p style="color: #6b7280; margin: 0; font-size: 16px;">Thank you for accepting quote #${quoteData.quoteNumber}. We've notified our team and will be in touch soon.</p>
+          </div>
+        </body>
+        </html>
+      `);
+    } catch (error: any) {
+      console.error('Error accepting quote:', error);
+      res.status(500).send(`
+        <!DOCTYPE html>
+        <html>
+        <head><title>Error</title></head>
+        <body style="font-family: sans-serif; text-align: center; padding: 50px;">
+          <h1>Error</h1>
+          <p>Failed to accept quote. Please try again or contact support.</p>
+        </body>
+        </html>
+      `);
     }
   });
 
