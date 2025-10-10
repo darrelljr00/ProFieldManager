@@ -4075,38 +4075,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Customer email not found" });
       }
 
-      // Get email settings from database (same as quote email)
-      const emailSettingsRows = await db
-        .select()
-        .from(settings)
-        .where(
-          like(settings.key, `email_org_${user.organizationId}_%`)
-        );
+      // Fetch email settings from database (same as quote email)
+      const emailSettings = await storage.getSettingsByCategory('email');
+      
+      const smtpHost = emailSettings.find(s => s.key === 'email_smtpHost')?.value;
+      const smtpPort = emailSettings.find(s => s.key === 'email_smtpPort')?.value;
+      const smtpUser = emailSettings.find(s => s.key === 'email_smtpUser')?.value;
+      const smtpPassword = emailSettings.find(s => s.key === 'email_smtpPassword')?.value;
+      const smtpSecure = emailSettings.find(s => s.key === 'email_smtpSecure')?.value === 'true';
+      const fromEmail = emailSettings.find(s => s.key === 'email_fromEmail')?.value;
+      const fromName = emailSettings.find(s => s.key === 'email_fromName')?.value;
+      const emailEnabled = emailSettings.find(s => s.key === 'email_emailEnabled')?.value === 'true';
 
-      const emailSettings: any = {};
-      emailSettingsRows.forEach(setting => {
-        const keyPart = setting.key.replace(`email_org_${user.organizationId}_`, '');
-        emailSettings[keyPart] = setting.value;
-      });
-
-      const smtpHost = emailSettings.smtpHost;
-      const smtpPort = emailSettings.smtpPort ? parseInt(emailSettings.smtpPort) : 587;
-      const smtpUser = emailSettings.smtpUser;
-      const smtpPassword = emailSettings.smtpPassword;
-      const fromEmail = emailSettings.fromEmail || smtpUser;
-      const fromName = emailSettings.fromName || 'Pro Field Manager';
-
-      if (!smtpHost || !smtpUser || !smtpPassword) {
-        return res.status(400).json({ 
-          message: "Email settings not configured. Please configure SMTP settings first." 
-        });
+      if (!emailEnabled) {
+        return res.status(400).json({ message: "Email is not enabled in settings" });
       }
 
-      // Create email transporter
+      if (!smtpHost || !smtpPort || !smtpUser || !smtpPassword) {
+        return res.status(400).json({ message: "SMTP settings are not configured properly" });
+      }
+
+      // Create transporter
       const transporter = nodemailer.createTransport({
         host: smtpHost,
-        port: smtpPort,
-        secure: smtpPort === 465,
+        port: parseInt(smtpPort),
+        secure: smtpSecure,
         auth: {
           user: smtpUser,
           pass: smtpPassword,
