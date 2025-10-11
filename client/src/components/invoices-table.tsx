@@ -62,6 +62,136 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll }: Invoi
     },
   });
 
+  // Download/Print invoice function
+  const handleDownloadInvoice = (invoice: Invoice & { customer: Customer; lineItems: InvoiceLineItem[] }) => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Invoice ${invoice.invoiceNumber}</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; }
+          .header { display: flex; justify-content: space-between; margin-bottom: 40px; border-bottom: 2px solid #e5e7eb; padding-bottom: 20px; }
+          .company-info { flex: 1; }
+          .invoice-title { text-align: right; }
+          .invoice-title h1 { font-size: 32px; margin: 0; }
+          .invoice-title p { font-size: 18px; color: #6b7280; margin: 5px 0 0 0; }
+          .info-section { display: flex; gap: 40px; margin-bottom: 30px; }
+          .info-box { flex: 1; }
+          .info-box h3 { font-size: 16px; font-weight: 600; margin-bottom: 10px; }
+          .info-box p { margin: 5px 0; font-size: 14px; color: #374151; }
+          .label { color: #6b7280; font-size: 12px; font-weight: 500; }
+          table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+          th { background: #f3f4f6; padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #e5e7eb; }
+          td { padding: 12px; border-bottom: 1px solid #e5e7eb; }
+          .text-right { text-align: right; }
+          .totals { margin-top: 20px; text-align: right; }
+          .totals-box { display: inline-block; min-width: 300px; }
+          .total-row { display: flex; justify-content: space-between; padding: 8px 0; }
+          .total-row.final { border-top: 2px solid #e5e7eb; margin-top: 10px; padding-top: 10px; font-weight: 600; font-size: 18px; }
+          .notes { margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; }
+          .footer { margin-top: 50px; text-align: center; color: #6b7280; font-size: 14px; }
+          @media print {
+            body { padding: 0; }
+            .no-print { display: none; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="company-info">
+            ${companySettings?.logo ? `<img src="${companySettings.logo}" alt="Logo" style="max-height: 80px; max-width: 200px; margin-bottom: 10px;">` : ''}
+            <h2>${companySettings?.companyName || 'Your Company'}</h2>
+            <p>${companySettings?.companyStreetAddress || ''}</p>
+            <p>${companySettings?.companyCity || ''}, ${companySettings?.companyState || ''} ${companySettings?.companyZipCode || ''}</p>
+            <p>Phone: ${companySettings?.companyPhone || ''}</p>
+            ${companySettings?.companyEmail ? `<p>Email: ${companySettings.companyEmail}</p>` : ''}
+          </div>
+          <div class="invoice-title">
+            <h1>INVOICE</h1>
+            <p>#${invoice.invoiceNumber}</p>
+          </div>
+        </div>
+
+        <div class="info-section">
+          <div class="info-box">
+            <h3>Invoice Information</h3>
+            <p><span class="label">Date:</span> ${formatSafeDate(invoice.invoiceDate)}</p>
+            <p><span class="label">Due Date:</span> ${formatSafeDate(invoice.dueDate)}</p>
+            <p><span class="label">Status:</span> ${invoice.status.toUpperCase()}</p>
+          </div>
+          <div class="info-box">
+            <h3>Bill To</h3>
+            <p><strong>${invoice.customer?.name || 'N/A'}</strong></p>
+            <p>${invoice.customer?.email || ''}</p>
+            <p>${invoice.customer?.phone || ''}</p>
+            <p>${invoice.customer?.address || ''}</p>
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Description</th>
+              <th class="text-right">Quantity</th>
+              <th class="text-right">Rate</th>
+              <th class="text-right">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${invoice.lineItems?.map(item => `
+              <tr>
+                <td>${item.description}</td>
+                <td class="text-right">${item.quantity}</td>
+                <td class="text-right">$${parseFloat(item.rate).toFixed(2)}</td>
+                <td class="text-right">$${parseFloat(item.amount).toFixed(2)}</td>
+              </tr>
+            `).join('') || ''}
+          </tbody>
+        </table>
+
+        <div class="totals">
+          <div class="totals-box">
+            <div class="total-row">
+              <span>Subtotal:</span>
+              <span>$${parseFloat(invoice.subtotal).toFixed(2)}</span>
+            </div>
+            <div class="total-row">
+              <span>Tax:</span>
+              <span>$${parseFloat(invoice.taxAmount || '0').toFixed(2)}</span>
+            </div>
+            <div class="total-row final">
+              <span>Total:</span>
+              <span>$${parseFloat(invoice.total).toFixed(2)}</span>
+            </div>
+          </div>
+        </div>
+
+        ${invoice.notes ? `
+          <div class="notes">
+            <h3>Notes</h3>
+            <p>${invoice.notes}</p>
+          </div>
+        ` : ''}
+
+        <div class="footer">
+          <p>Thank you for your business!</p>
+        </div>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+    }, 250);
+  };
+
   const updateStatusMutation = useMutation({
     mutationFn: ({ invoiceId, status, paymentMethod }: { invoiceId: number; status: string; paymentMethod?: string }) => 
       apiRequest("PATCH", `/api/invoices/${invoiceId}/status`, {
@@ -213,7 +343,12 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll }: Invoi
                           >
                             <Eye className="w-4 h-4" />
                           </Button>
-                          <Button variant="ghost" size="icon">
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            onClick={() => handleDownloadInvoice(invoice)}
+                            data-testid="button-download-invoice"
+                          >
                             <Download className="w-4 h-4" />
                           </Button>
                           <DropdownMenu>
