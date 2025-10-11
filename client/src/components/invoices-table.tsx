@@ -80,6 +80,14 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll }: Invoi
     },
   });
 
+  const markAsViewedMutation = useMutation({
+    mutationFn: (invoiceId: number) =>
+      apiRequest("POST", `/api/invoices/${invoiceId}/mark-viewed`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
+    },
+  });
+
   // Download/Print invoice function
   const handleDownloadInvoice = (invoice: Invoice & { customer: Customer; lineItems: InvoiceLineItem[] }) => {
     const printWindow = window.open('', '_blank');
@@ -357,9 +365,19 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll }: Invoi
                             onClick={() => {
                               setSelectedInvoice(invoice);
                               setIsViewDialogOpen(true);
+                              if (!invoice.viewedAt) {
+                                markAsViewedMutation.mutate(invoice.id);
+                              }
                             }}
+                            className="relative"
                           >
                             <Eye className="w-4 h-4" />
+                            {!invoice.viewedAt && (
+                              <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                              </span>
+                            )}
                           </Button>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
