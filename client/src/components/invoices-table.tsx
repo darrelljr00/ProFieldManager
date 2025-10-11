@@ -337,9 +337,23 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll }: Invoi
                   {invoices.map((invoice) => (
                     <tr key={invoice.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{invoice.invoiceNumber}</div>
-                        <div className="text-sm text-gray-500">
-                          {formatSafeDate(invoice.invoiceDate)}
+                        <div className="flex items-center gap-2">
+                          {invoice.viewedAt ? (
+                            <span className="relative flex h-2 w-2">
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                            </span>
+                          ) : (
+                            <span className="relative flex h-2 w-2">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                            </span>
+                          )}
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">{invoice.invoiceNumber}</div>
+                            <div className="text-sm text-gray-500">
+                              {formatSafeDate(invoice.invoiceDate)}
+                            </div>
+                          </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -369,15 +383,8 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll }: Invoi
                                 markAsViewedMutation.mutate(invoice.id);
                               }
                             }}
-                            className="relative"
                           >
                             <Eye className="w-4 h-4" />
-                            {!invoice.viewedAt && (
-                              <span className="absolute -top-1 -right-1 flex h-2 w-2">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
-                              </span>
-                            )}
                           </Button>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
