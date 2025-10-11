@@ -177,7 +177,13 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
   AuthService.validateSession(token)
     .then((sessionData) => {
       if (!sessionData) {
-        console.log('🚨 SESSION VALIDATION FAILED - Invalid session data');
+        console.log('🚨 SESSION VALIDATION FAILED - Invalid session data', {
+          url: req.url,
+          tokenLength: token?.length,
+          tokenStart: token?.substring(0, 20),
+          hasAuthHeader: !!authHeader,
+          hasCookie: !!req.cookies?.auth_token
+        });
         return res.status(401).json({ message: "Invalid or expired session" });
       }
 

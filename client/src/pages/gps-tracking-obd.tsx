@@ -16,19 +16,9 @@ export default function GPSTrackingOBD() {
     refetchInterval: 5000,
   });
 
-  // Fetch OBD locations for all vehicles with cache busting
+  // Fetch OBD locations for all vehicles
   const { data: obdLocationResponse } = useQuery<any>({
     queryKey: ['/api/obd/latest-location'],
-    queryFn: async () => {
-      const response = await fetch(`/api/obd/latest-location?_t=${Date.now()}`, {
-        credentials: 'include',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-        },
-      });
-      if (!response.ok) throw new Error('Failed to fetch');
-      return response.json();
-    },
     refetchInterval: 3000,
   });
   
