@@ -231,7 +231,6 @@ const DEFAULT_NAVIGATION_ORDER = [
   "Inspections",
   "Team Messages",
   "Image Gallery",
-  "SMS",
   "Messages",
   "Mobile Tracking",
   "Live Tracking",
@@ -440,7 +439,6 @@ export function Sidebar() {
     { name: "Live Stream", href: "/live-stream", icon: Video, requiresAuth: true, permission: "canAccessLiveStream" },
     { name: "Notifications", href: "/notifications", icon: Bell, requiresAuth: true, permission: "canAccessNotifications", unreadCount: unreadNotificationsCount },
     { name: "Image Gallery", href: "/image-gallery", icon: ImageIcon, requiresAuth: true, permission: "canAccessImageGallery" },
-    { name: "SMS", href: "/sms", icon: Smartphone, requiresAuth: true, permission: "canAccessSMS" },
     { name: "Messages", href: "/messages", icon: Mail, requiresAuth: true, permission: "canAccessMessages" },
     { name: "Mobile Tracking", href: "/gps-tracking", icon: MapPin, requiresAuth: true, permission: "canAccessGpsTracking" },
     { 
@@ -498,6 +496,7 @@ export function Sidebar() {
         { name: "Notifications", href: "/settings?tab=notifications", icon: Bell },
         { name: "Messages", href: "/settings?tab=messages", icon: MessageCircle },
         { name: "Weather", href: "/settings?tab=weather", icon: Cloud },
+        { name: "SMS", href: "/settings?tab=sms", icon: Smartphone },
         { name: "Invoice Templates", href: "/invoice-templates", icon: FileType }
       ]
     }
