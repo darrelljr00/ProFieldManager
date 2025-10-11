@@ -4345,6 +4345,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Mark invoice as viewed
+  app.post("/api/invoices/:id/mark-viewed", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const invoice = await storage.getInvoice(parseInt(req.params.id), user.organizationId);
+      
+      if (!invoice) {
+        return res.status(404).json({ message: "Invoice not found" });
+      }
+
+      // Update viewedAt timestamp
+      await db
+        .update(invoices)
+        .set({ viewedAt: new Date() })
+        .where(eq(invoices.id, parseInt(req.params.id)));
+
+      res.json({ message: "Invoice marked as viewed" });
+    } catch (error: any) {
+      console.error('Error marking invoice as viewed:', error);
+      res.status(500).json({ message: "Failed to mark invoice as viewed" });
+    }
+  });
+
   // Update invoice payment status
   app.patch("/api/invoices/:id/status", requireAuth, async (req, res) => {
     try {
