@@ -10,7 +10,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Eye, Download, MoreHorizontal, Send, CheckCircle, ArrowRight, Clock, X, AlertTriangle } from "lucide-react";
+import { Eye, Download, MoreHorizontal, Send, CheckCircle, ArrowRight, Clock, X, AlertTriangle, Mail, MessageSquare } from "lucide-react";
 import { format } from "date-fns";
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -50,13 +50,31 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll }: Invoi
       queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
       toast({
         title: "Success",
-        description: "Invoice sent successfully",
+        description: "Invoice sent via email successfully",
       });
     },
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to send invoice",
+        description: error.message || "Failed to send invoice via email",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const sendInvoiceSmsMutation = useMutation({
+    mutationFn: (invoiceId: number) => apiRequest("POST", `/api/invoices/${invoiceId}/send-sms`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
+      toast({
+        title: "Success",
+        description: "Invoice sent via SMS successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send invoice via SMS",
         variant: "destructive",
       });
     },
@@ -343,14 +361,42 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll }: Invoi
                           >
                             <Eye className="w-4 h-4" />
                           </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="icon"
-                            onClick={() => handleDownloadInvoice(invoice)}
-                            data-testid="button-download-invoice"
-                          >
-                            <Download className="w-4 h-4" />
-                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                data-testid="button-share-invoice"
+                              >
+                                <Send className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem 
+                                onClick={() => handleDownloadInvoice(invoice)}
+                                data-testid="menu-download-invoice"
+                              >
+                                <Download className="w-4 h-4 mr-2" />
+                                Download/Print
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => sendInvoiceMutation.mutate(invoice.id)}
+                                disabled={sendInvoiceMutation.isPending}
+                                data-testid="menu-email-invoice"
+                              >
+                                <Mail className="w-4 h-4 mr-2" />
+                                Send via Email
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => sendInvoiceSmsMutation.mutate(invoice.id)}
+                                disabled={sendInvoiceSmsMutation.isPending}
+                                data-testid="menu-sms-invoice"
+                              >
+                                <MessageSquare className="w-4 h-4 mr-2" />
+                                Send via SMS
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="icon">
@@ -358,15 +404,6 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll }: Invoi
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              {invoice.status === 'draft' && (
-                                <DropdownMenuItem 
-                                  onClick={() => sendInvoiceMutation.mutate(invoice.id)}
-                                  disabled={sendInvoiceMutation.isPending}
-                                >
-                                  <Send className="w-4 h-4 mr-2" />
-                                  Send Invoice
-                                </DropdownMenuItem>
-                              )}
                               
                               {/* Mark as Paid */}
                               {(invoice.status === 'sent' || invoice.status === 'overdue' || invoice.status === 'draft') && (

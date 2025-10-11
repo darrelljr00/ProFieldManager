@@ -4259,6 +4259,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Send invoice via SMS
+  app.post("/api/invoices/:id/send-sms", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const invoiceId = parseInt(req.params.id);
+
+      // Get invoice with customer and line items
+      const invoice = await storage.getInvoice(invoiceId, user.organizationId);
+      
+      if (!invoice) {
+        return res.status(404).json({ message: "Invoice not found" });
+      }
+
+      // Get customer phone from invoice.customer object
+      const customerPhone = invoice.customer?.phone;
+      
+      if (!customerPhone) {
+        return res.status(400).json({ message: "Customer phone number not found" });
+      }
+
+      // Fetch Twilio settings from database
+      const twilioSettings = await storage.getSettingsByCategory('twilio');
+      
+      const twilioEnabled = twilioSettings.find(s => s.key === 'twilio_twilioEnabled')?.value === 'true';
+      const twilioAccountSid = twilioSettings.find(s => s.key === 'twilio_twilioAccountSid')?.value;
+      const twilioAuthToken = twilioSettings.find(s => s.key === 'twilio_twilioAuthToken')?.value;
+      const twilioPhoneNumber = twilioSettings.find(s => s.key === 'twilio_twilioPhoneNumber')?.value;
+
+      if (!twilioEnabled) {
+        return res.status(400).json({ message: "SMS is not enabled in settings" });
+      }
+
+      if (!twilioAccountSid || !twilioAuthToken || !twilioPhoneNumber) {
+        return res.status(400).json({ message: "Twilio settings are not configured properly" });
+      }
+
+      // Get company name for SMS
+      const companySettingsRows = await db
+        .select()
+        .from(settings)
+        .where(
+          like(settings.key, `company_org_${user.organizationId}_%`)
+        );
+
+      const companySettings: any = {};
+      companySettingsRows.forEach(setting => {
+        const keyPart = setting.key.replace(`company_org_${user.organizationId}_`, '');
+        companySettings[keyPart] = setting.value;
+      });
+
+      const companyName = companySettings.companyName || 'Pro Field Manager';
+
+      // Create Twilio client
+      const client = twilio(twilioAccountSid, twilioAuthToken);
+
+      // Build SMS message
+      const smsMessage = `${companyName} Invoice\n\n` +
+        `Invoice #: ${invoice.invoiceNumber}\n` +
+        `Customer: ${invoice.customerName}\n` +
+        `Amount: $${parseFloat(invoice.total).toFixed(2)}\n` +
+        `Due: ${new Date(invoice.dueDate).toLocaleDateString()}\n\n` +
+        `${invoice.notes ? `Note: ${invoice.notes}\n\n` : ''}` +
+        `Thank you for your business!`;
+
+      // Send SMS
+      await client.messages.create({
+        body: smsMessage,
+        from: twilioPhoneNumber,
+        to: customerPhone
+      });
+
+      // Update invoice status to sent
+      const updatedInvoice = await storage.updateInvoice(invoiceId, { 
+        status: 'sent' 
+      });
+
+      res.json({ 
+        message: "Invoice sent via SMS successfully",
+        invoice: updatedInvoice 
+      });
+    } catch (error: any) {
+      console.error('Invoice SMS send error:', error);
+      res.status(500).json({ message: `Failed to send invoice via SMS: ${error.message}` });
+    }
+  });
+
   // Update invoice payment status
   app.patch("/api/invoices/:id/status", requireAuth, async (req, res) => {
     try {
