@@ -307,6 +307,7 @@ export const invoices = pgTable("invoices", {
   rejectedBy: integer("rejected_by").references(() => users.id),
   rejectedAt: timestamp("rejected_at"),
   rejectionReason: text("rejection_reason"),
+  viewedAt: timestamp("viewed_at"), // Track when invoice is viewed by customer
   
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
