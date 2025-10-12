@@ -5653,8 +5653,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }
             }
 
-            document.getElementById('submit-btn').onclick = submitAvailability;
-            generateCalendar();
+            document.addEventListener('DOMContentLoaded', function() {
+              generateCalendar();
+              document.getElementById('submit-btn').onclick = submitAvailability;
+            });
           </script>
         </body>
         </html>
