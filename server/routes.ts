@@ -5369,7 +5369,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               margin-bottom: 20px;
               box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             }
-            .calendar-grid {
+            #calendar {
               display: grid;
               grid-template-columns: repeat(7, 1fr);
               gap: 8px;
