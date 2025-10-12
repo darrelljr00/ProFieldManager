@@ -5324,7 +5324,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Return success page
+      // Generate availability token (reuse the quote token for simplicity)
+      const availabilityToken = quoteData.token;
+
+      // Redirect to availability calendar page
       res.send(`
         <!DOCTYPE html>
         <html>
@@ -5332,6 +5335,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>Quote Accepted</title>
+          <script>
+            setTimeout(() => {
+              window.location.href = '/quote-availability/${availabilityToken}';
+            }, 2000);
+          </script>
         </head>
         <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; text-align: center; padding: 50px; background-color: #f3f4f6;">
           <div style="background: white; border-radius: 12px; padding: 40px; max-width: 500px; margin: 0 auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
@@ -5341,7 +5349,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               </svg>
             </div>
             <h1 style="color: #111827; margin: 0 0 16px 0; font-size: 28px;">Quote Accepted!</h1>
-            <p style="color: #6b7280; margin: 0; font-size: 16px;">Thank you for accepting quote #${quoteData.quoteNumber}. We've notified our team and will be in touch soon.</p>
+            <p style="color: #6b7280; margin: 0 0 24px 0; font-size: 16px;">Thank you for accepting quote #${quoteData.quoteNumber}. We've notified our team.</p>
+            <p style="color: #3b82f6; margin: 0; font-size: 14px;">Redirecting you to select your availability...</p>
           </div>
         </body>
         </html>
