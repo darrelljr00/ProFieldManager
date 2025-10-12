@@ -3644,7 +3644,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const isQuoteAcceptDecline = req.path.match(/^\/quotes\/\d+\/(accept|decline)$/);
     const isPublic = publicRoutes.some(route => req.path.startsWith(route) || req.path === route) || sharedPhotoRoute || isSharedRoute || isDebugRoute || isQuoteAcceptDecline;
     
-    console.log(`🔍 AUTH DEBUG - Path: ${req.path}, SharedPhotoRoute: ${!!sharedPhotoRoute}, IsSharedRoute: ${isSharedRoute}, IsPublic: ${isPublic}`);
+    console.log(`🔍 AUTH DEBUG - Path: ${req.path}, QuoteAcceptDecline: ${!!isQuoteAcceptDecline}, SharedPhotoRoute: ${!!sharedPhotoRoute}, IsSharedRoute: ${isSharedRoute}, IsPublic: ${isPublic}`);
     
     if (isPublic) {
       console.log(`🔓 PUBLIC ROUTE - Skipping auth for ${req.path}`);
