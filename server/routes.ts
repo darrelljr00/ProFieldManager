@@ -5324,14 +5324,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Broadcast notification via WebSocket
-      broadcastToOrganization(quoteData.organizationId, 'notification', {
-        type: 'quote_accepted',
-        quoteId: quoteId,
-        quoteNumber: quoteData.quoteNumber,
-        message: `Quote #${quoteData.quoteNumber} has been accepted`
-      });
-
       // Return success page
       res.send(`
         <!DOCTYPE html>
@@ -18894,19 +18886,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
 
           syncedCount++;
-
-          // Broadcast location update via WebSocket
-          broadcastToOrganization(user.organizationId, {
-            type: 'obd_location_update',
-            deviceId: device.device_id,
-            location: {
-              latitude: point.lat,
-              longitude: point.lng,
-              speed: point.device_speed || 0,
-              heading: point.direction || 0,
-              timestamp: point.dt_tracker
-            }
-          });
 
         } catch (err: any) {
           errors.push(`Device ${device.device_id}: ${err.message}`);
