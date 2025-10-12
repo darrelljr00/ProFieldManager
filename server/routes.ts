@@ -5327,31 +5327,335 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate availability token (reuse the quote token for simplicity)
       const availabilityToken = quoteData.token;
 
-      // Redirect to availability calendar page
+      // Show success with integrated calendar
       res.send(`
         <!DOCTYPE html>
         <html>
         <head>
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Quote Accepted</title>
-          <script>
-            setTimeout(() => {
-              window.location.href = '/quote-availability/${availabilityToken}';
-            }, 2000);
-          </script>
+          <title>Quote Accepted - Select Availability</title>
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { 
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+              background-color: #f3f4f6;
+              padding: 20px;
+            }
+            .container { max-width: 800px; margin: 0 auto; }
+            .success-banner {
+              background: white;
+              border-radius: 12px;
+              padding: 30px;
+              margin-bottom: 24px;
+              box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+              text-align: center;
+              border-left: 4px solid #10b981;
+            }
+            .check-icon {
+              width: 48px;
+              height: 48px;
+              background-color: #10b981;
+              border-radius: 50%;
+              display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              margin-bottom: 16px;
+            }
+            .card {
+              background: white;
+              border-radius: 12px;
+              padding: 24px;
+              margin-bottom: 20px;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .calendar-grid {
+              display: grid;
+              grid-template-columns: repeat(7, 1fr);
+              gap: 8px;
+              margin-top: 16px;
+            }
+            .calendar-header {
+              text-align: center;
+              font-weight: 600;
+              padding: 8px;
+              font-size: 14px;
+              color: #6b7280;
+            }
+            .calendar-day {
+              aspect-ratio: 1;
+              border: 2px solid #e5e7eb;
+              border-radius: 8px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              cursor: pointer;
+              transition: all 0.2s;
+              font-size: 14px;
+            }
+            .calendar-day:hover:not(.disabled) {
+              border-color: #3b82f6;
+              background-color: #eff6ff;
+            }
+            .calendar-day.selected {
+              background-color: #3b82f6;
+              color: white;
+              border-color: #3b82f6;
+            }
+            .calendar-day.disabled {
+              opacity: 0.3;
+              cursor: not-allowed;
+            }
+            .time-slots {
+              display: grid;
+              grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+              gap: 8px;
+              margin-top: 12px;
+            }
+            .time-slot {
+              padding: 8px 12px;
+              border: 2px solid #e5e7eb;
+              border-radius: 6px;
+              cursor: pointer;
+              text-align: center;
+              font-size: 14px;
+              transition: all 0.2s;
+            }
+            .time-slot:hover {
+              border-color: #3b82f6;
+              background-color: #eff6ff;
+            }
+            .time-slot.selected {
+              background-color: #3b82f6;
+              color: white;
+              border-color: #3b82f6;
+            }
+            .btn {
+              background-color: #3b82f6;
+              color: white;
+              padding: 12px 32px;
+              border: none;
+              border-radius: 8px;
+              font-size: 16px;
+              font-weight: 600;
+              cursor: pointer;
+              transition: background-color 0.2s;
+            }
+            .btn:hover { background-color: #2563eb; }
+            .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+            .date-section { 
+              margin-top: 20px;
+              padding: 16px;
+              border: 1px solid #e5e7eb;
+              border-radius: 8px;
+            }
+            h1 { color: #111827; font-size: 24px; margin-bottom: 8px; }
+            h2 { color: #111827; font-size: 20px; margin-bottom: 12px; }
+            h3 { color: #374151; font-size: 16px; margin-bottom: 8px; }
+            p { color: #6b7280; line-height: 1.5; }
+            .hidden { display: none; }
+          </style>
         </head>
-        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; text-align: center; padding: 50px; background-color: #f3f4f6;">
-          <div style="background: white; border-radius: 12px; padding: 40px; max-width: 500px; margin: 0 auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-            <div style="width: 64px; height: 64px; background-color: #10b981; border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
-              <svg width="32" height="32" fill="white" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-              </svg>
+        <body>
+          <div class="container">
+            <div class="success-banner">
+              <div class="check-icon">
+                <svg width="24" height="24" fill="white" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                </svg>
+              </div>
+              <h1>Quote Accepted!</h1>
+              <p>Thank you for accepting quote #${quoteData.quoteNumber}. We've notified our team.</p>
             </div>
-            <h1 style="color: #111827; margin: 0 0 16px 0; font-size: 28px;">Quote Accepted!</h1>
-            <p style="color: #6b7280; margin: 0 0 24px 0; font-size: 16px;">Thank you for accepting quote #${quoteData.quoteNumber}. We've notified our team.</p>
-            <p style="color: #3b82f6; margin: 0; font-size: 14px;">Redirecting you to select your availability...</p>
+
+            <div id="availability-section">
+              <div class="card">
+                <h2>📅 Select Your Availability</h2>
+                <p>Choose dates and times that work best for you</p>
+                
+                <div style="margin-top: 24px;">
+                  <h3>Step 1: Select Dates</h3>
+                  <div id="calendar"></div>
+                </div>
+              </div>
+
+              <div id="time-selection" class="card hidden">
+                <h3>Step 2: Select Available Times</h3>
+                <div id="time-slots-container"></div>
+              </div>
+
+              <div style="text-align: center; margin-top: 20px;">
+                <button id="submit-btn" class="btn" disabled>Submit Availability</button>
+              </div>
+            </div>
+
+            <div id="success-message" class="card hidden" style="text-align: center;">
+              <div class="check-icon" style="margin: 0 auto 16px;">
+                <svg width="24" height="24" fill="white" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                </svg>
+              </div>
+              <h2>Availability Submitted!</h2>
+              <p style="margin-top: 8px;">Thank you for providing your availability. We'll contact you shortly to schedule a time.</p>
+            </div>
           </div>
+
+          <script>
+            const token = '${availabilityToken}';
+            const timeSlots = ['8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM', '6:00 PM'];
+            let selectedDates = {};
+            let timeSelections = {};
+
+            function generateCalendar() {
+              const calendar = document.getElementById('calendar');
+              const today = new Date();
+              const currentMonth = today.getMonth();
+              const currentYear = today.getFullYear();
+              
+              // Calendar header
+              const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+              days.forEach(day => {
+                const header = document.createElement('div');
+                header.className = 'calendar-header';
+                header.textContent = day;
+                calendar.appendChild(header);
+              });
+
+              // Get first day of month and total days
+              const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+              const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+              // Empty cells before first day
+              for (let i = 0; i < firstDay; i++) {
+                calendar.appendChild(document.createElement('div'));
+              }
+
+              // Calendar days
+              for (let day = 1; day <= daysInMonth; day++) {
+                const date = new Date(currentYear, currentMonth, day);
+                const dateStr = date.toISOString().split('T')[0];
+                const dayEl = document.createElement('div');
+                dayEl.className = 'calendar-day';
+                dayEl.textContent = day;
+                
+                if (date < today.setHours(0,0,0,0)) {
+                  dayEl.classList.add('disabled');
+                } else {
+                  dayEl.onclick = () => toggleDate(dateStr, dayEl);
+                }
+                
+                calendar.appendChild(dayEl);
+              }
+            }
+
+            function toggleDate(dateStr, element) {
+              if (selectedDates[dateStr]) {
+                delete selectedDates[dateStr];
+                delete timeSelections[dateStr];
+                element.classList.remove('selected');
+              } else {
+                selectedDates[dateStr] = true;
+                timeSelections[dateStr] = [];
+                element.classList.add('selected');
+              }
+              updateTimeSlots();
+              updateSubmitButton();
+            }
+
+            function updateTimeSlots() {
+              const container = document.getElementById('time-slots-container');
+              const section = document.getElementById('time-selection');
+              
+              if (Object.keys(selectedDates).length === 0) {
+                section.classList.add('hidden');
+                return;
+              }
+              
+              section.classList.remove('hidden');
+              container.innerHTML = '';
+              
+              Object.keys(selectedDates).sort().forEach(dateStr => {
+                const date = new Date(dateStr + 'T00:00:00');
+                const dateSection = document.createElement('div');
+                dateSection.className = 'date-section';
+                
+                const dateHeader = document.createElement('h3');
+                dateHeader.textContent = date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+                dateSection.appendChild(dateHeader);
+                
+                const slotsGrid = document.createElement('div');
+                slotsGrid.className = 'time-slots';
+                
+                timeSlots.forEach(time => {
+                  const slot = document.createElement('div');
+                  slot.className = 'time-slot';
+                  slot.textContent = time;
+                  slot.onclick = () => toggleTime(dateStr, time, slot);
+                  if (timeSelections[dateStr]?.includes(time)) {
+                    slot.classList.add('selected');
+                  }
+                  slotsGrid.appendChild(slot);
+                });
+                
+                dateSection.appendChild(slotsGrid);
+                container.appendChild(dateSection);
+              });
+            }
+
+            function toggleTime(dateStr, time, element) {
+              if (!timeSelections[dateStr]) timeSelections[dateStr] = [];
+              
+              const index = timeSelections[dateStr].indexOf(time);
+              if (index > -1) {
+                timeSelections[dateStr].splice(index, 1);
+                element.classList.remove('selected');
+              } else {
+                timeSelections[dateStr].push(time);
+                element.classList.add('selected');
+              }
+              updateSubmitButton();
+            }
+
+            function updateSubmitButton() {
+              const btn = document.getElementById('submit-btn');
+              const hasSelections = Object.values(timeSelections).some(times => times.length > 0);
+              btn.disabled = !hasSelections;
+            }
+
+            async function submitAvailability() {
+              const btn = document.getElementById('submit-btn');
+              btn.disabled = true;
+              btn.textContent = 'Submitting...';
+              
+              const selectedData = Object.keys(timeSelections)
+                .filter(date => timeSelections[date].length > 0)
+                .map(date => ({ date, times: timeSelections[date] }));
+
+              try {
+                const response = await fetch('/api/quotes/availability/' + token, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ selectedDates: selectedData })
+                });
+
+                if (response.ok) {
+                  document.getElementById('availability-section').classList.add('hidden');
+                  document.getElementById('success-message').classList.remove('hidden');
+                } else {
+                  alert('Failed to submit availability. Please try again.');
+                  btn.disabled = false;
+                  btn.textContent = 'Submit Availability';
+                }
+              } catch (err) {
+                alert('Error submitting availability. Please try again.');
+                btn.disabled = false;
+                btn.textContent = 'Submit Availability';
+              }
+            }
+
+            document.getElementById('submit-btn').onclick = submitAvailability;
+            generateCalendar();
+          </script>
         </body>
         </html>
       `);
