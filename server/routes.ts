@@ -3640,7 +3640,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const sharedPhotoRoute = req.path.match(/^\/shared\/[^\/]+$/); // Match /shared/{token}
     const isSharedRoute = req.path.startsWith('/shared/'); // Also check for startsWith to catch all shared routes
     const isDebugRoute = debugRoutes.some(route => req.path === route);
-    const isPublic = publicRoutes.some(route => req.path.startsWith(route) || req.path === route) || sharedPhotoRoute || isSharedRoute || isDebugRoute;
+    // Allow specific quote actions without auth (old system compatibility)
+    const isQuoteAcceptDecline = req.path.match(/^\/quotes\/\d+\/(accept|decline)$/);
+    const isPublic = publicRoutes.some(route => req.path.startsWith(route) || req.path === route) || sharedPhotoRoute || isSharedRoute || isDebugRoute || isQuoteAcceptDecline;
     
     console.log(`🔍 AUTH DEBUG - Path: ${req.path}, SharedPhotoRoute: ${!!sharedPhotoRoute}, IsSharedRoute: ${isSharedRoute}, IsPublic: ${isPublic}`);
     
