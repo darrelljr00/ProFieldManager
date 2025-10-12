@@ -5421,6 +5421,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   If you have any questions, please reply to this email or contact us directly.
                 </p>
               </div>
+
+              <!-- Bottom Action Button -->
+              <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+                <p style="color: #555; font-size: 14px; margin-bottom: 15px;">Ready to approve this quote?</p>
+                <a href="${approveUrl}" style="display: inline-block; background-color: #28a745; color: white; padding: 15px 40px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">
+                  ✓ APPROVE QUOTE
+                </a>
+              </div>
             </div>
           </div>
         `
