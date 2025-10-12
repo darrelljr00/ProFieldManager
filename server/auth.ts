@@ -266,10 +266,6 @@ export const requireAdmin = requireRole(['admin']);
 export const requireManagerOrAdmin = requireRole(['admin', 'manager']);
 
 export function requireTaskDelegationPermission(req: Request, res: Response, next: NextFunction) {
-  if (!req.isAuthenticated()) {
-    return res.sendStatus(401);
-  }
-
   const user = req.user;
   if (!user) {
     return res.sendStatus(401);
