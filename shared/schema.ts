@@ -366,6 +366,19 @@ export const quoteLineItems = pgTable("quote_line_items", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const quoteAvailability = pgTable("quote_availability", {
+  id: serial("id").primaryKey(),
+  quoteId: integer("quote_id").notNull().references(() => quotes.id),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  customerEmail: text("customer_email").notNull(),
+  selectedDates: jsonb("selected_dates").notNull(), // Array of {date: string, times: string[]}
+  availabilityToken: text("availability_token").notNull().unique(),
+  submittedAt: timestamp("submitted_at").defaultNow().notNull(),
+  notificationSent: boolean("notification_sent").default(false),
+  emailSent: boolean("email_sent").default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const payments = pgTable("payments", {
   id: serial("id").primaryKey(),
   invoiceId: integer("invoice_id").notNull().references(() => invoices.id),
@@ -1777,6 +1790,17 @@ export const insertQuoteLineItemSchema = z.object({
   amount: z.number().positive(),
 });
 
+export const insertQuoteAvailabilitySchema = z.object({
+  quoteId: z.number(),
+  organizationId: z.number(),
+  customerEmail: z.string().email(),
+  selectedDates: z.array(z.object({
+    date: z.string(), // ISO date string
+    times: z.array(z.string()), // Array of time strings like "9:00 AM", "2:00 PM"
+  })),
+  availabilityToken: z.string(),
+});
+
 export const insertInvoiceLineItemSchema = z.object({
   invoiceId: z.number(),
   description: z.string().min(1),
@@ -2223,6 +2247,9 @@ export type InsertQuote = z.infer<typeof insertQuoteSchema>;
 
 export type QuoteLineItem = typeof quoteLineItems.$inferSelect;
 export type InsertQuoteLineItem = z.infer<typeof insertQuoteLineItemSchema>;
+
+export type QuoteAvailability = typeof quoteAvailability.$inferSelect;
+export type InsertQuoteAvailability = z.infer<typeof insertQuoteAvailabilitySchema>;
 
 export type Payment = typeof payments.$inferSelect;
 export type InsertPayment = z.infer<typeof insertPaymentSchema>;
