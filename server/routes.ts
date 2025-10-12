@@ -60,7 +60,7 @@ import { seedDatabase } from "./seed-data";
 import { nanoid } from "nanoid";
 import { db } from "./db";
 import { 
-  users, customers, invoices, quotes, projects, tasks, 
+  users, customers, invoices, quotes, quoteAvailability, projects, tasks, 
   expenses, expenseCategories, expenseReports, gasCards, 
   gasCardAssignments, leads, leadSettings, messages, internalMessages,
   recurringJobSeries, recurringJobOccurrences,
@@ -4618,13 +4618,201 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Generate availability token for approved quotes
+      let availabilityToken;
+      if (action === 'approve') {
+        const crypto = await import('crypto');
+        availabilityToken = crypto.randomBytes(32).toString('hex');
+        
+        // Insert placeholder availability record to reserve the token
+        await db.insert(quoteAvailability).values({
+          quoteId: updatedQuote.id,
+          organizationId: organizationId!,
+          customerEmail: existingQuote.customer.email,
+          selectedDates: [],
+          availabilityToken,
+          notificationSent: false,
+          emailSent: false,
+        });
+      }
+      
       res.json({
         success: true,
         quote: updatedQuote,
-        message: `Quote ${action === 'approve' ? 'approved' : 'denied'} successfully`
+        message: `Quote ${action === 'approve' ? 'approved' : 'denied'} successfully`,
+        availabilityToken: action === 'approve' ? availabilityToken : undefined
       });
     } catch (error: any) {
       console.error("Error updating quote response:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Quote availability calendar endpoints (public - no auth required)
+  app.get("/api/quotes/availability/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+      
+      const [availabilityRecord] = await db
+        .select()
+        .from(quoteAvailability)
+        .where(eq(quoteAvailability.availabilityToken, token))
+        .limit(1);
+      
+      if (!availabilityRecord) {
+        return res.status(404).json({ message: "Invalid availability link" });
+      }
+
+      // Fetch the quote with customer and organization details
+      const quote = await storage.getQuote(availabilityRecord.quoteId, availabilityRecord.organizationId);
+      
+      if (!quote) {
+        return res.status(404).json({ message: "Quote not found" });
+      }
+      
+      res.json(quote);
+    } catch (error: any) {
+      console.error("Error fetching quote by availability token:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.post("/api/quotes/availability/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+      const { selectedDates } = req.body;
+      
+      if (!selectedDates || !Array.isArray(selectedDates) || selectedDates.length === 0) {
+        return res.status(400).json({ message: "Selected dates are required" });
+      }
+
+      const [availabilityRecord] = await db
+        .select()
+        .from(quoteAvailability)
+        .where(eq(quoteAvailability.availabilityToken, token))
+        .limit(1);
+      
+      if (!availabilityRecord) {
+        return res.status(404).json({ message: "Invalid availability link" });
+      }
+
+      // Check if already submitted (has non-empty selectedDates)
+      if (availabilityRecord.selectedDates && Array.isArray(availabilityRecord.selectedDates) && availabilityRecord.selectedDates.length > 0) {
+        return res.status(400).json({ message: "Availability has already been submitted" });
+      }
+
+      // Update availability with selected dates
+      await db
+        .update(quoteAvailability)
+        .set({
+          selectedDates: selectedDates,
+          submittedAt: new Date(),
+        })
+        .where(eq(quoteAvailability.availabilityToken, token));
+
+      // Fetch quote and organization details for notifications
+      const quote = await storage.getQuote(availabilityRecord.quoteId, availabilityRecord.organizationId);
+      
+      if (!quote) {
+        return res.status(500).json({ message: "Failed to fetch quote details" });
+      }
+
+      // Format selected dates for email
+      const formattedDates = selectedDates.map((d: any) => {
+        const date = new Date(d.date).toLocaleDateString('en-US', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        });
+        return `${date}: ${d.times.join(', ')}`;
+      }).join('\n');
+
+      // Send notification to organization
+      await NotificationService.create({
+        organizationId: availabilityRecord.organizationId,
+        title: `Customer Availability Submitted`,
+        message: `${quote.customer.name} has submitted their availability for Quote ${quote.quoteNumber}`,
+        type: 'quote_availability',
+        priority: 'normal',
+        userId: null, // Visible to all admin/manager users
+        category: 'team_based',
+        data: {
+          quoteId: quote.id,
+          quoteNumber: quote.quoteNumber,
+          customerName: quote.customer.name,
+          selectedDates: selectedDates
+        }
+      });
+
+      // Send email to customer (confirmation)
+      const customerEmailContent = `
+        <h2>Availability Confirmation</h2>
+        <p>Thank you for submitting your availability for Quote ${quote.quoteNumber}!</p>
+        <h3>Your Selected Times:</h3>
+        <pre>${formattedDates}</pre>
+        <p>${quote.organization?.name || 'The company'} will review your availability and contact you shortly.</p>
+      `;
+
+      // Send email to organization admins
+      const orgEmailContent = `
+        <h2>Customer Availability Submitted</h2>
+        <p><strong>${quote.customer.name}</strong> has submitted their availability for Quote ${quote.quoteNumber}.</p>
+        <h3>Selected Times:</h3>
+        <pre>${formattedDates}</pre>
+        <p>Please review and contact the customer to confirm the appointment.</p>
+      `;
+
+      // Get email settings from database
+      const emailSettings = await storage.getSettingsByCategory('email');
+      const sendgridApiKey = emailSettings.find((s: any) => s.key === 'email_sendgridApiKey')?.value || process.env.SENDGRID_API_KEY;
+      
+      if (sendgridApiKey) {
+        try {
+          const sgMail = require('@sendgrid/mail');
+          sgMail.setApiKey(sendgridApiKey);
+
+          // Send to customer
+          await sgMail.send({
+            to: quote.customer.email,
+            from: {
+              email: quote.organization?.email || quote.user.email,
+              name: quote.organization?.name || `${quote.user.firstName} ${quote.user.lastName}`
+            },
+            subject: `Availability Confirmation - Quote ${quote.quoteNumber}`,
+            html: customerEmailContent
+          });
+
+          // Send to organization
+          await sgMail.send({
+            to: quote.organization?.email || quote.user.email,
+            from: {
+              email: quote.organization?.email || quote.user.email,
+              name: quote.organization?.name || `${quote.user.firstName} ${quote.user.lastName}`
+            },
+            subject: `Customer Availability Submitted - Quote ${quote.quoteNumber}`,
+            html: orgEmailContent
+          });
+
+          // Mark emails as sent
+          await db
+            .update(quoteAvailability)
+            .set({
+              emailSent: true,
+              notificationSent: true,
+            })
+            .where(eq(quoteAvailability.availabilityToken, token));
+        } catch (emailError) {
+          console.error("Error sending availability emails:", emailError);
+        }
+      }
+
+      res.json({ 
+        success: true,
+        message: "Availability submitted successfully" 
+      });
+    } catch (error: any) {
+      console.error("Error submitting availability:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });

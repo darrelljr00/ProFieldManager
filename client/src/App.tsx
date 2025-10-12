@@ -69,6 +69,7 @@ import AuthDebug from "@/pages/auth-debug";
 import NotFound from "@/pages/not-found";
 import SharedPhotosViewer from "@/pages/shared-photos";
 import QuoteResponsePage from "@/pages/quote-response";
+import QuoteAvailabilityPage from "@/pages/quote-availability";
 import { DeletedJobs } from "@/pages/deleted-jobs";
 import { CancelledJobs } from "@/pages/cancelled-jobs";
 import FrontendManagement from "@/pages/frontend-management";
@@ -300,6 +301,7 @@ function Router() {
           <Route path="/auth-debug" component={AuthDebug} />
           <Route path="/shared/:token" component={SharedPhotosViewer} />
           <Route path="/quote/:action/:token" component={QuoteResponsePage} />
+          <Route path="/quote-availability/:token" component={QuoteAvailabilityPage} />
           <Route component={DirectLogin} />
         </Switch>
       </Suspense>

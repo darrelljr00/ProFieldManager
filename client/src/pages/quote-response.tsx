@@ -105,7 +105,14 @@ export default function QuoteResponsePage() {
         throw new Error(`Failed to ${action} quote`);
       }
 
-      setSuccess(true);
+      const data = await response.json();
+      
+      // If approved and got availability token, redirect to calendar
+      if (action === 'approve' && data.availabilityToken) {
+        window.location.href = `/quote-availability/${data.availabilityToken}`;
+      } else {
+        setSuccess(true);
+      }
     } catch (err: any) {
       setError(err.message || `Failed to ${action} quote`);
     } finally {
