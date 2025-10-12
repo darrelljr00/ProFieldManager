@@ -67,6 +67,10 @@ export default function QuoteResponsePage() {
     try {
       const response = await fetch(`/api/quotes/response/${action}/${token}`, {
         method: 'GET',
+        credentials: 'same-origin',
+        headers: {
+          'Accept': 'application/json',
+        },
       });
 
       if (!response.ok) {
@@ -94,6 +98,11 @@ export default function QuoteResponsePage() {
     try {
       const response = await fetch(`/api/quotes/response/${action}/${token}`, {
         method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
       });
 
       if (!response.ok) {

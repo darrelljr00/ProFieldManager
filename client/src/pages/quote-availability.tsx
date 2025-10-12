@@ -45,6 +45,10 @@ export default function QuoteAvailabilityPage() {
     try {
       const response = await fetch(`/api/quotes/availability/${token}`, {
         method: 'GET',
+        credentials: 'same-origin',
+        headers: {
+          'Accept': 'application/json',
+        },
       });
 
       if (!response.ok) {
@@ -125,7 +129,11 @@ export default function QuoteAvailabilityPage() {
 
       const response = await fetch(`/api/quotes/availability/${token}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({ selectedDates: selectedData }),
       });
 
