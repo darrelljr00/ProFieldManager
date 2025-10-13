@@ -5525,8 +5525,36 @@ ${fromName || ''}
         });
       }
 
-      // Generate availability token (reuse the quote token for simplicity)
-      const availabilityToken = quoteData.token;
+      // Get customer info for availability record
+      const customer = await db.select().from(customers).where(eq(customers.id, quoteData.customerId)).limit(1);
+      const customerEmail = customer[0]?.email || '';
+
+      // Check if availability record already exists
+      let availabilityToken: string;
+      const existingAvailability = await db
+        .select()
+        .from(quoteAvailability)
+        .where(eq(quoteAvailability.quoteId, quoteId))
+        .limit(1);
+
+      if (existingAvailability.length > 0) {
+        availabilityToken = existingAvailability[0].availabilityToken;
+      } else {
+        // Import nanoid
+        const { nanoid } = await import('nanoid');
+        availabilityToken = nanoid(32);
+        
+        // Create availability record
+        await db.insert(quoteAvailability).values({
+          quoteId: quoteId,
+          organizationId: quoteData.organizationId,
+          customerEmail: customerEmail,
+          selectedDates: [],
+          availabilityToken: availabilityToken,
+          notificationSent: false,
+          emailSent: false,
+        });
+      }
 
       // Show success with integrated calendar
       res.send(`
