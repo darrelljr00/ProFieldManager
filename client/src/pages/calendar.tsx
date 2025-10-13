@@ -1,12 +1,14 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { buildApiUrl, getAuthHeaders } from "@/lib/api-config";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
 import { 
   Calendar, 
   ChevronLeft, 
@@ -16,7 +18,9 @@ import {
   Repeat, 
   CloudRain,
   Sun,
-  Cloud
+  Cloud,
+  CheckCircle,
+  User
 } from "lucide-react";
 
 interface CalendarJob {
@@ -47,7 +51,28 @@ interface JobWeather {
   chance_of_rain?: number;
 }
 
+interface AvailabilityRequest {
+  id: number;
+  quoteId: number;
+  customerEmail: string;
+  selectedDates: Array<{ date: string; times: string[] }>;
+  submittedAt: string;
+  quote: {
+    id: number;
+    quoteNumber: string;
+    total: string;
+    customerId: number;
+  };
+  customer: {
+    id: number;
+    name: string;
+    email: string;
+    phone: string;
+  };
+}
+
 export default function CalendarPage() {
+  const { toast } = useToast();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'1month' | '3months' | '1week' | '2weeks'>('1month');
   const [selectedJob, setSelectedJob] = useState<CalendarJob | null>(null);
@@ -234,6 +259,37 @@ export default function CalendarPage() {
       return weatherData;
     },
     enabled: !!jobs?.length
+  });
+
+  // Fetch pending availability requests
+  const { data: availabilityRequests, isLoading: availabilityLoading } = useQuery<AvailabilityRequest[]>({
+    queryKey: ['/api/quote-availability/pending'],
+    refetchInterval: 30000, // Refetch every 30 seconds
+  });
+
+  // Mutation to confirm availability
+  const confirmAvailabilityMutation = useMutation({
+    mutationFn: async ({ id, selectedDate, selectedTime }: { id: number; selectedDate: string; selectedTime: string }) => {
+      return await apiRequest(`/api/quote-availability/${id}/confirm`, {
+        method: 'POST',
+        body: JSON.stringify({ selectedDate, selectedTime }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/quote-availability/pending'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/jobs/calendar'] });
+      toast({
+        title: "Success",
+        description: "Availability confirmed and job created successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to confirm availability",
+        variant: "destructive",
+      });
+    },
   });
 
   // Group jobs by date
@@ -539,6 +595,101 @@ export default function CalendarPage() {
               );
             })}
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Customer Requests */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <User className="h-5 w-5" />
+            Customer Requests
+          </CardTitle>
+          <CardDescription>
+            Availability submissions from accepted quotes
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {availabilityLoading ? (
+            <div className="space-y-2">
+              <Skeleton className="h-20 w-full" />
+              <Skeleton className="h-20 w-full" />
+            </div>
+          ) : availabilityRequests && availabilityRequests.length > 0 ? (
+            <div className="space-y-4">
+              {availabilityRequests.map((request) => (
+                <div
+                  key={request.id}
+                  className="border rounded-lg p-4 space-y-3 hover:bg-accent/50 transition-colors"
+                  data-testid={`availability-request-${request.id}`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h4 className="font-semibold text-lg">{request.customer.name}</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Quote #{request.quote.quoteNumber} • ${parseFloat(request.quote.total).toFixed(2)}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Submitted {new Date(request.submittedAt).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: 'numeric',
+                          minute: '2-digit'
+                        })}
+                      </p>
+                    </div>
+                    <Badge variant="secondary">Pending</Badge>
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium">Requested Availability:</p>
+                    {request.selectedDates.map((dateSlot, idx) => (
+                      <div
+                        key={idx}
+                        className="bg-muted/50 rounded-md p-3 space-y-2"
+                      >
+                        <p className="text-sm font-medium">
+                          {new Date(dateSlot.date).toLocaleDateString('en-US', {
+                            weekday: 'long',
+                            month: 'long',
+                            day: 'numeric',
+                            year: 'numeric'
+                          })}
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {dateSlot.times.map((time) => (
+                            <Button
+                              key={time}
+                              size="sm"
+                              variant="outline"
+                              className="text-xs"
+                              disabled={confirmAvailabilityMutation.isPending}
+                              onClick={() => {
+                                confirmAvailabilityMutation.mutate({
+                                  id: request.id,
+                                  selectedDate: dateSlot.date,
+                                  selectedTime: time,
+                                });
+                              }}
+                              data-testid={`button-confirm-${request.id}-${time}`}
+                            >
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              {time}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <User className="h-12 w-12 mx-auto mb-2 opacity-50" />
+              <p>No pending customer availability requests</p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
