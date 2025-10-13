@@ -5490,6 +5490,10 @@ ${fromName || ''}
 
       const quoteData = quote[0];
 
+      // Get the user who created the quote to access organizationId
+      const quoteUser = await db.select().from(users).where(eq(users.id, quoteData.userId)).limit(1);
+      const quoteOrgId = quoteUser[0]?.organizationId || 0;
+
       // Update quote status to accepted and mark as viewed
       await db
         .update(quotes)
@@ -5504,7 +5508,7 @@ ${fromName || ''}
         .select()
         .from(users)
         .where(and(
-          eq(users.organizationId, quoteData.organizationId),
+          eq(users.organizationId, quoteOrgId),
           or(
             eq(users.role, 'admin'),
             eq(users.role, 'manager')
@@ -5525,7 +5529,7 @@ ${fromName || ''}
         });
       }
 
-      // Get customer info for availability record
+      // Get customer info for availability record (reuse quoteUser/quoteOrgId from above)
       const customer = await db.select().from(customers).where(eq(customers.id, quoteData.customerId)).limit(1);
       const customerEmail = customer[0]?.email || '';
 
@@ -5544,15 +5548,13 @@ ${fromName || ''}
         const { nanoid } = await import('nanoid');
         availabilityToken = nanoid(32);
         
-        // Create availability record
+        // Create availability record (defaults will be set by database)
         await db.insert(quoteAvailability).values({
           quoteId: quoteId,
-          organizationId: quoteData.organizationId,
+          organizationId: quoteOrgId,
           customerEmail: customerEmail,
           selectedDates: [],
           availabilityToken: availabilityToken,
-          notificationSent: false,
-          emailSent: false,
         });
       }
 
