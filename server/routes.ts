@@ -5228,12 +5228,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
         </html>
       `;
 
-      // Send email
+      // Create plain text version for better deliverability
+      const plainText = `
+${companySettings?.companyName || 'Your Company'}
+${subject || `Quote #${quote.quoteNumber}`}
+
+${message || ''}
+
+Customer: ${quote.customer.name}
+Status: ${quote.status}
+Quote Date: ${formatDate(quoteDate)}
+Expiry Date: ${formatDate(expiryDate)}
+
+LINE ITEMS:
+${quote.lineItems.map(item => {
+  const qty = parseFloat(item.quantity) || 0;
+  const amount = parseFloat(item.amount) || 0;
+  return `${item.description || ''} - Qty: ${qty.toFixed(0)} - $${amount.toFixed(2)}`;
+}).join('\n')}
+
+TOTAL: $${parseFloat(quote.total).toFixed(2)}
+
+${quote.notes ? `\nNotes: ${quote.notes}` : ''}
+
+To accept this quote, click here:
+${process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : 'http://localhost:5000'}/api/quotes/${quote.id}/accept
+
+Thank you for your business!
+${fromName || ''}
+      `.trim();
+
+      // Send email with improved headers
       await transporter.sendMail({
         from: `"${fromName || 'Pro Field Manager'}" <${fromEmail}>`,
+        replyTo: fromEmail,
         to: quote.customer.email,
         subject: subject || `Quote #${quote.quoteNumber}`,
+        text: plainText,
         html: emailHTML,
+        headers: {
+          'X-Mailer': 'Pro Field Manager',
+          'X-Priority': '3',
+          'Importance': 'normal',
+        }
       });
 
       res.json({ message: "Email sent successfully" });
