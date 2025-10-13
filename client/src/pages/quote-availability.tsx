@@ -195,10 +195,18 @@ export default function QuoteAvailabilityPage() {
           </CardHeader>
           <CardContent className="text-center space-y-4">
             <p className="text-muted-foreground">
-              Thank you for providing your availability! We've sent a confirmation to your email and notified our team.
+              Thank you for providing your availability! Your request has been sent to {quoteData?.organization?.name || 'our team'}.
             </p>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-left">
+              <p className="text-sm font-medium text-blue-900 mb-2">What happens next?</p>
+              <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
+                <li>Your availability request appears in their calendar system</li>
+                <li>They'll select a time that works from your available slots</li>
+                <li>You'll receive a confirmation email with the scheduled date and time</li>
+              </ol>
+            </div>
             <p className="text-sm text-muted-foreground">
-              {quoteData?.organization?.name || 'The company'} will review your availability and contact you shortly to schedule a time that works best.
+              You should hear back within 1-2 business days.
             </p>
           </CardContent>
         </Card>
@@ -215,9 +223,15 @@ export default function QuoteAvailabilityPage() {
             <CalendarIcon className="h-8 w-8 text-blue-600" />
             <h1 className="text-3xl font-bold text-gray-900">Select Your Availability</h1>
           </div>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground mb-4">
             Choose the dates and times that work best for you regarding Quote #{quoteData?.quoteNumber}
           </p>
+          <div className="max-w-2xl mx-auto bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <p className="text-sm text-blue-900">
+              <strong>How this works:</strong> After you submit your availability, it will appear in the {quoteData?.organization?.name || 'company'}'s calendar system. 
+              They'll pick a time from your available slots and send you a confirmation email with the scheduled appointment.
+            </p>
+          </div>
         </div>
 
         {/* Quote Info */}
