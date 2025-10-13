@@ -4819,6 +4819,170 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Fetch pending quote availability requests
+  app.get("/api/quote-availability/pending", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      const availabilityRequests = await db
+        .select({
+          id: quoteAvailability.id,
+          quoteId: quoteAvailability.quoteId,
+          customerEmail: quoteAvailability.customerEmail,
+          selectedDates: quoteAvailability.selectedDates,
+          submittedAt: quoteAvailability.submittedAt,
+          quote: {
+            id: quotes.id,
+            quoteNumber: quotes.quoteNumber,
+            total: quotes.total,
+            customerId: quotes.customerId,
+          },
+          customer: {
+            id: customers.id,
+            name: customers.name,
+            email: customers.email,
+            phone: customers.phone,
+          }
+        })
+        .from(quoteAvailability)
+        .leftJoin(quotes, eq(quoteAvailability.quoteId, quotes.id))
+        .leftJoin(customers, eq(quotes.customerId, customers.id))
+        .where(
+          and(
+            eq(quoteAvailability.organizationId, user.organizationId),
+            sql`${quoteAvailability.selectedDates} IS NOT NULL`,
+            sql`jsonb_array_length(${quoteAvailability.selectedDates}) > 0`
+          )
+        )
+        .orderBy(desc(quoteAvailability.submittedAt));
+
+      res.json(availabilityRequests);
+    } catch (error: any) {
+      console.error("Error fetching pending availability:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Confirm quote availability and create job
+  app.post("/api/quote-availability/:id/confirm", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { id } = req.params;
+      const { selectedDate, selectedTime } = req.body;
+
+      if (!selectedDate || !selectedTime) {
+        return res.status(400).json({ message: "Selected date and time are required" });
+      }
+
+      // Fetch the availability request
+      const [availabilityRequest] = await db
+        .select()
+        .from(quoteAvailability)
+        .where(
+          and(
+            eq(quoteAvailability.id, parseInt(id)),
+            eq(quoteAvailability.organizationId, user.organizationId)
+          )
+        )
+        .limit(1);
+
+      if (!availabilityRequest) {
+        return res.status(404).json({ message: "Availability request not found" });
+      }
+
+      // Fetch quote details
+      const quote = await storage.getQuote(availabilityRequest.quoteId, user.organizationId);
+      if (!quote) {
+        return res.status(404).json({ message: "Quote not found" });
+      }
+
+      // Create job from quote
+      const jobDate = new Date(selectedDate);
+      const [result] = await db
+        .insert(projects)
+        .values({
+          name: `${quote.customer.name} - Quote ${quote.quoteNumber}`,
+          description: `Job scheduled from quote ${quote.quoteNumber}`,
+          customerId: quote.customerId,
+          organizationId: user.organizationId,
+          startDate: jobDate,
+          endDate: jobDate,
+          status: 'scheduled',
+          priority: 'medium',
+        })
+        .returning();
+
+      // Delete the availability request after confirmation
+      await db
+        .delete(quoteAvailability)
+        .where(eq(quoteAvailability.id, parseInt(id)));
+
+      // Send notification to organization
+      await NotificationService.create({
+        organizationId: user.organizationId,
+        title: `Job Scheduled from Quote`,
+        message: `Job scheduled for ${quote.customer.name} on ${jobDate.toLocaleDateString()} at ${selectedTime}`,
+        type: 'job_scheduled',
+        priority: 'normal',
+        userId: null,
+        category: 'team_based',
+        data: {
+          jobId: result.id,
+          quoteId: quote.id,
+          customerId: quote.customerId,
+        }
+      });
+
+      // Send confirmation email to customer
+      const sendgridApiKey = process.env.SENDGRID_API_KEY;
+      if (sendgridApiKey) {
+        try {
+          const sgMail = await import('@sendgrid/mail');
+          sgMail.default.setApiKey(sendgridApiKey);
+
+          const confirmationEmail = `
+            <!DOCTYPE html>
+            <html>
+            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+              <h2 style="color: #10b981;">Appointment Confirmed</h2>
+              <p>Dear ${quote.customer.name},</p>
+              <p>Your appointment has been confirmed for:</p>
+              <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <p style="margin: 5px 0;"><strong>Date:</strong> ${jobDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                <p style="margin: 5px 0;"><strong>Time:</strong> ${selectedTime}</p>
+                <p style="margin: 5px 0;"><strong>Quote:</strong> #${quote.quoteNumber}</p>
+              </div>
+              <p>We look forward to serving you!</p>
+              <p>Best regards,<br>${quote.organization?.name || 'Your Service Team'}</p>
+            </body>
+            </html>
+          `;
+
+          await sgMail.default.send({
+            to: quote.customer.email,
+            from: {
+              email: quote.organization?.email || quote.user.email,
+              name: quote.organization?.name || `${quote.user.firstName} ${quote.user.lastName}`
+            },
+            subject: `Appointment Confirmed - ${jobDate.toLocaleDateString()}`,
+            html: confirmationEmail
+          });
+        } catch (emailError) {
+          console.error("Error sending confirmation email:", emailError);
+        }
+      }
+
+      res.json({
+        success: true,
+        message: "Availability confirmed and job created",
+        job: result
+      });
+    } catch (error: any) {
+      console.error("Error confirming availability:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   app.get("/api/quotes", requireAuth, async (req, res) => {
     try {
       const user = getAuthenticatedUser(req);
