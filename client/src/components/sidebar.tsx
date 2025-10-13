@@ -227,7 +227,6 @@ const DEFAULT_NAVIGATION_ORDER = [
   "Payments",
   "File Manager",
   "Parts & Supplies",
-  "Form Builder",
   "Inspections",
   "Team Messages",
   "Image Gallery",
@@ -426,7 +425,6 @@ export function Sidebar() {
     { name: "File Manager", href: "/file-manager", icon: FolderOpen, requiresAuth: true, permission: "canAccessFileManager" },
     { name: "Parts & Supplies", href: "/parts-supplies", icon: Box, requiresAuth: true, permission: "canAccessPartsSupplies" },
     { name: "Smart Capture", href: "/smart-capture", icon: Scan, requiresAuth: true, permission: "canAccessPartsSupplies" },
-    { name: "Form Builder", href: "/form-builder", icon: ClipboardList, requiresAuth: true, permission: "canAccessFormBuilder" },
     { name: "Inspections", href: "/inspections", icon: CheckSquare, requiresAuth: true, permission: "canAccessInspections" },
     { 
       name: "Team Messages", 
