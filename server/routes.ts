@@ -4633,8 +4633,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           customerEmail: existingQuote.customer.email,
           selectedDates: [],
           availabilityToken,
-          notificationSent: false,
-          emailSent: false,
         });
       }
       
