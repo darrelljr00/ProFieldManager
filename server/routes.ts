@@ -4728,22 +4728,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return `${date}: ${d.times.join(', ')}`;
       }).join('\n');
 
-      // Send notification to organization
-      await NotificationService.create({
-        organizationId: availabilityRecord.organizationId,
-        title: `Customer Availability Submitted`,
-        message: `${quote.customer.name} has submitted their availability for Quote ${quote.quoteNumber}`,
-        type: 'quote_availability',
-        priority: 'normal',
-        userId: null, // Visible to all admin/manager users
-        category: 'team_based',
-        data: {
-          quoteId: quote.id,
-          quoteNumber: quote.quoteNumber,
-          customerName: quote.customer.name,
-          selectedDates: selectedDates
+      // Send notification to all admin/manager users
+      try {
+        const adminUsers = await db
+          .select()
+          .from(users)
+          .where(
+            and(
+              eq(users.organizationId, availabilityRecord.organizationId),
+              eq(users.isActive, true)
+            )
+          );
+        
+        const adminsAndManagers = adminUsers.filter(u => u.role === 'admin' || u.role === 'manager');
+        
+        for (const admin of adminsAndManagers) {
+          await NotificationService.createNotification({
+            type: 'quote_availability',
+            title: `Customer Availability Submitted`,
+            message: `${quote.customer.name} has submitted their availability for Quote ${quote.quoteNumber}`,
+            userId: admin.id,
+            organizationId: availabilityRecord.organizationId,
+            relatedEntityType: 'quote',
+            relatedEntityId: quote.id,
+            priority: 'normal',
+            category: 'team_based'
+          });
         }
-      });
+        
+        console.log(`📢 Availability notifications sent to ${adminsAndManagers.length} admins/managers`);
+      } catch (notificationError) {
+        console.error('Error sending availability notifications:', notificationError);
+      }
 
       // Send email to customer (confirmation)
       const customerEmailContent = `
