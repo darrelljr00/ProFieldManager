@@ -270,14 +270,29 @@ export default function CalendarPage() {
   // Mutation to confirm availability
   const confirmAvailabilityMutation = useMutation({
     mutationFn: async ({ id, selectedDate, selectedTime }: { id: number; selectedDate: string; selectedTime: string }) => {
-      return await apiRequest(`/api/quote-availability/${id}/confirm`, {
+      const response = await fetch(buildApiUrl(`/api/quote-availability/${id}/confirm`), {
         method: 'POST',
+        headers: {
+          ...getAuthHeaders(),
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
         body: JSON.stringify({ selectedDate, selectedTime }),
       });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to confirm availability');
+      }
+      
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/quote-availability/pending'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/jobs/calendar'] });
+      // Invalidate all calendar queries regardless of date
+      queryClient.invalidateQueries({ 
+        predicate: (query) => query.queryKey[0] === '/api/jobs/calendar'
+      });
       toast({
         title: "Success",
         description: "Availability confirmed and job created successfully",
