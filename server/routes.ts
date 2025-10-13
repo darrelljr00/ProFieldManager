@@ -5517,6 +5517,7 @@ ${fromName || ''}
       for (const admin of admins) {
         await db.insert(notifications).values({
           userId: admin.id,
+          organizationId: quoteOrgId,
           type: 'quote_accepted',
           title: 'Quote Accepted',
           message: `Quote #${quoteData.quoteNumber} has been accepted by the customer`,
