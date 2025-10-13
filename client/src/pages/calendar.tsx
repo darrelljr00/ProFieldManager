@@ -127,6 +127,15 @@ export default function CalendarPage() {
     return days;
   };
 
+  const hasPendingAvailabilityRequest = (date: Date): boolean => {
+    if (!availabilityRequests || availabilityRequests.length === 0) return false;
+    
+    const dateStr = date.toISOString().split('T')[0];
+    return availabilityRequests.some(request => 
+      request.selectedDates.some(slot => slot.date === dateStr)
+    );
+  };
+
   const getThreeMonthDays = (date: Date) => {
     const days = [];
     const startMonth = new Date(date.getFullYear(), date.getMonth() - 1, 1);
@@ -489,6 +498,7 @@ export default function CalendarPage() {
               const isCurrentMonth = getIsCurrentPeriod(day);
               const isToday = day.toDateString() === new Date().toDateString();
               const dayJobs = getJobsForDate(day);
+              const hasPendingRequest = hasPendingAvailabilityRequest(day);
               
               // Get weather summary for this day (from jobs with weather data)
               const dayWeatherData = dayJobs
@@ -508,7 +518,9 @@ export default function CalendarPage() {
                   key={index}
                   className={`min-h-[120px] p-2 border rounded-lg ${
                     isCurrentMonth ? 'bg-background' : 'bg-muted/30'
-                  } ${isToday ? 'ring-2 ring-primary' : ''}`}
+                  } ${isToday ? 'ring-2 ring-primary' : ''} ${
+                    hasPendingRequest ? 'animate-pulse ring-2 ring-orange-500 bg-orange-50/50' : ''
+                  }`}
                 >
                   <div className="flex items-center justify-between mb-2">
                     <div className={`text-sm font-medium ${
