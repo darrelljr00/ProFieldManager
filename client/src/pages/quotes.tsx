@@ -27,6 +27,7 @@ export default function Quotes() {
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [serviceName, setServiceName] = useState("");
   const [servicePrice, setServicePrice] = useState("");
+  const [serviceMaterialsCost, setServiceMaterialsCost] = useState("");
   const [serviceTime, setServiceTime] = useState("");
   const { toast } = useToast();
 
@@ -89,6 +90,7 @@ export default function Quotes() {
     setSelectedService(null);
     setServiceName("");
     setServicePrice("");
+    setServiceMaterialsCost("");
     setServiceTime("");
   };
 
@@ -97,6 +99,7 @@ export default function Quotes() {
       setSelectedService(service);
       setServiceName(service.name);
       setServicePrice(service.price);
+      setServiceMaterialsCost(service.materialsCost || "0");
       setServiceTime(service.estimatedCompletionTime.toString());
     } else {
       resetServiceForm();
@@ -111,10 +114,16 @@ export default function Quotes() {
     }
 
     const priceValue = parseFloat(servicePrice);
+    const materialsCostValue = parseFloat(serviceMaterialsCost || "0");
     const timeValue = parseInt(serviceTime);
 
     if (isNaN(priceValue) || priceValue <= 0) {
       toast({ title: "Please enter a valid price greater than 0", variant: "destructive" });
+      return;
+    }
+
+    if (isNaN(materialsCostValue) || materialsCostValue < 0) {
+      toast({ title: "Please enter a valid materials cost (0 or greater)", variant: "destructive" });
       return;
     }
 
@@ -126,6 +135,7 @@ export default function Quotes() {
     const data = {
       name: serviceName.trim(),
       price: priceValue.toFixed(2),
+      materialsCost: materialsCostValue.toFixed(2),
       estimatedCompletionTime: timeValue,
     };
 
@@ -460,6 +470,21 @@ export default function Quotes() {
                         placeholder="e.g., 150.00"
                         data-testid="input-service-price"
                       />
+                    </div>
+                    <div>
+                      <Label htmlFor="service-materials-cost">Materials & Supplies Cost ($)</Label>
+                      <Input
+                        id="service-materials-cost"
+                        type="number"
+                        step="0.01"
+                        value={serviceMaterialsCost}
+                        onChange={(e) => setServiceMaterialsCost(e.target.value)}
+                        placeholder="e.g., 25.00"
+                        data-testid="input-service-materials-cost"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Cost of materials and supplies needed for this service
+                      </p>
                     </div>
                     <div>
                       <Label htmlFor="service-time">Estimated Completion Time (minutes)</Label>
