@@ -4922,7 +4922,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           organizationId: user.organizationId,
           startDate: jobDate,
           endDate: jobDate,
-          status: 'scheduled',
+          status: 'active',
           priority: 'medium',
         })
         .returning();
