@@ -102,7 +102,42 @@ export function QuoteForm({ onSuccess }: QuoteFormProps) {
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const subtotal = formData.lineItems.reduce((sum, item) => sum + item.amount, 0);
+    
+    // Validate customer selection
+    if (!formData.customerId || formData.customerId === 0) {
+      toast({
+        title: "Validation Error",
+        description: "Please select a customer",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate dates
+    if (!formData.quoteDate || !formData.expiryDate) {
+      toast({
+        title: "Validation Error",
+        description: "Please enter quote and expiry dates",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate line items
+    const validLineItems = formData.lineItems.filter(item => 
+      item.description.trim() && item.amount > 0
+    );
+
+    if (validLineItems.length === 0) {
+      toast({
+        title: "Validation Error",
+        description: "Please add at least one line item with description and amount",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const subtotal = validLineItems.reduce((sum, item) => sum + item.amount, 0);
     const tax = subtotal * 0.08; // 8% tax rate - you can make this configurable
     const total = subtotal + tax;
     
@@ -111,7 +146,7 @@ export function QuoteForm({ onSuccess }: QuoteFormProps) {
       subtotal: subtotal,
       tax: tax,
       total: total,
-      lineItems: formData.lineItems
+      lineItems: validLineItems
     };
     mutation.mutate(quoteData);
   };
