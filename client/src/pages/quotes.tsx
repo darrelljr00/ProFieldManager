@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { QuoteForm } from "@/components/quote-form";
 import { QuotesTable } from "@/components/quotes-table";
 import { TrashedQuotesTable } from "@/components/trashed-quotes-table";
-import { Plus, FileText, TrendingUp, Clock, CheckCircle, Search, Filter, Trash2 } from "lucide-react";
+import { Plus, FileText, TrendingUp, Clock, CheckCircle, Search, Filter, Trash2, Wrench } from "lucide-react";
 import type { Quote, Customer, QuoteLineItem } from "@shared/schema";
 
 export default function Quotes() {
@@ -116,7 +116,7 @@ export default function Quotes() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="active" className="flex items-center gap-2 relative">
             <FileText className="h-4 w-4" />
             Active Quotes ({quotes.length})
@@ -129,6 +129,10 @@ export default function Quotes() {
                 {pendingApprovalsCount}
               </Badge>
             )}
+          </TabsTrigger>
+          <TabsTrigger value="services" className="flex items-center gap-2">
+            <Wrench className="h-4 w-4" />
+            Services
           </TabsTrigger>
           <TabsTrigger value="trash" className="flex items-center gap-2">
             <Trash2 className="h-4 w-4" />
@@ -300,6 +304,32 @@ export default function Quotes() {
 
           {/* Quotes Table */}
           <QuotesTable quotes={filteredQuotes} isLoading={isLoading} />
+        </TabsContent>
+
+        <TabsContent value="services" className="space-y-6 mt-6">
+          {/* Services Content */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Wrench className="h-5 w-5" />
+                  Service Catalog
+                </CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Manage your services with pricing and estimated completion times
+                </p>
+              </div>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Service
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">
+                Service management coming soon...
+              </p>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="trash" className="space-y-6 mt-6">
