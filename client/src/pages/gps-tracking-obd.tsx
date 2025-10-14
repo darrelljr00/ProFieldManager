@@ -4,11 +4,22 @@ import { SimpleVehicleMap } from "@/components/map/simple-vehicle-map";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Calendar, Bell, Gauge, Zap, Thermometer, Activity, Car } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Calendar, Bell, Gauge, Zap, Thermometer, Activity, Car, Play, Pause, RotateCcw } from "lucide-react";
 
 export default function GPSTrackingOBD() {
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
   const [focusVehicleId, setFocusVehicleId] = useState<string | null>(null);
+  
+  // History playback state
+  const [historyVehicleId, setHistoryVehicleId] = useState<string | null>(null);
+  const [historyDate, setHistoryDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [historyStartTime, setHistoryStartTime] = useState<string>("00:00");
+  const [historyEndTime, setHistoryEndTime] = useState<string>("23:59");
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [playbackSpeed, setPlaybackSpeed] = useState<number>(1);
 
   // Fetch vehicles
   const { data: vehicles = [], isLoading: vehiclesLoading } = useQuery<any[]>({
@@ -209,66 +220,204 @@ export default function GPSTrackingOBD() {
               </Card>
             </div>
             
-            {/* Right Panel - Vehicles List (30%) */}
+            {/* Right Panel - Vehicles List & History (30%) */}
             <div className="col-span-4">
-              <Card className="p-4 h-full overflow-auto">
-                <h3 className="text-lg font-semibold mb-4 dark:text-white">Vehicles</h3>
-                <div className="space-y-3">
-                  {obdLocations.length === 0 ? (
-                    <p className="text-sm text-gray-600 dark:text-gray-400">No vehicles tracking</p>
-                  ) : (
-                    obdLocations.map((location: any) => {
-                      const vehicleId = location.vehicleId?.toString() || location.deviceId || 'unknown';
-                      const vehicle = vehicles.find(v => v.id.toString() === vehicleId);
-                      const speed = parseFloat(location.speed) || 0;
-                      const isMoving = speed >= 1;
-                      
-                      return (
-                        <div 
-                          key={vehicleId}
-                          onClick={() => setFocusVehicleId(vehicleId)}
-                          className="border border-gray-200 dark:border-gray-700 rounded-lg p-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                          data-testid={`vehicle-item-${vehicleId}`}
+              <Card className="p-4 h-full overflow-hidden flex flex-col">
+                <Tabs defaultValue="vehicles" className="flex-1 flex flex-col">
+                  <TabsList className="w-full grid grid-cols-2 mb-4">
+                    <TabsTrigger value="vehicles">Vehicles</TabsTrigger>
+                    <TabsTrigger value="history">History</TabsTrigger>
+                  </TabsList>
+                  
+                  {/* Vehicles Tab */}
+                  <TabsContent value="vehicles" className="flex-1 overflow-auto mt-0">
+                    <div className="space-y-3">
+                      {obdLocations.length === 0 ? (
+                        <p className="text-sm text-gray-600 dark:text-gray-400">No vehicles tracking</p>
+                      ) : (
+                        obdLocations.map((location: any) => {
+                          const vehicleId = location.vehicleId?.toString() || location.deviceId || 'unknown';
+                          const vehicle = vehicles.find(v => v.id.toString() === vehicleId);
+                          const speed = parseFloat(location.speed) || 0;
+                          const isMoving = speed >= 1;
+                          
+                          return (
+                            <div 
+                              key={vehicleId}
+                              onClick={() => setFocusVehicleId(vehicleId)}
+                              className="border border-gray-200 dark:border-gray-700 rounded-lg p-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                              data-testid={`vehicle-item-${vehicleId}`}
+                            >
+                              <div className="flex items-start justify-between mb-2">
+                                <div className="flex items-center space-x-2">
+                                  <div className={`p-2 rounded-lg ${isMoving ? 'bg-green-100 dark:bg-green-900' : 'bg-red-100 dark:bg-red-900'}`}>
+                                    <Car className={`w-4 h-4 ${isMoving ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`} />
+                                  </div>
+                                  <div>
+                                    <p className="font-medium text-sm dark:text-white">
+                                      {location.displayName || vehicle?.vehicleNumber || `Vehicle ${vehicleId}`}
+                                    </p>
+                                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                                      {vehicle?.licensePlate || `Device ${location.deviceId}`}
+                                    </p>
+                                  </div>
+                                </div>
+                                <span className={`px-2 py-1 rounded-full text-xs ${
+                                  isMoving 
+                                    ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' 
+                                    : 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'
+                                }`}>
+                                  {isMoving ? 'Moving' : 'Stopped'}
+                                </span>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2 text-xs">
+                                <div>
+                                  <p className="text-gray-600 dark:text-gray-400">Speed</p>
+                                  <p className="font-medium dark:text-white">{Math.round(speed)} mph</p>
+                                </div>
+                                <div>
+                                  <p className="text-gray-600 dark:text-gray-400">Last Update</p>
+                                  <p className="font-medium dark:text-white">
+                                    {location.timestamp ? new Date(location.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </TabsContent>
+                  
+                  {/* History Tab */}
+                  <TabsContent value="history" className="flex-1 overflow-auto mt-0">
+                    <div className="space-y-4">
+                      {/* Vehicle Selection */}
+                      <div>
+                        <Label htmlFor="history-vehicle" className="text-sm font-medium mb-2 block">
+                          Select Vehicle
+                        </Label>
+                        <Select 
+                          value={historyVehicleId || ""} 
+                          onValueChange={setHistoryVehicleId}
                         >
-                          <div className="flex items-start justify-between mb-2">
-                            <div className="flex items-center space-x-2">
-                              <div className={`p-2 rounded-lg ${isMoving ? 'bg-green-100 dark:bg-green-900' : 'bg-red-100 dark:bg-red-900'}`}>
-                                <Car className={`w-4 h-4 ${isMoving ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`} />
-                              </div>
-                              <div>
-                                <p className="font-medium text-sm dark:text-white">
-                                  {location.displayName || vehicle?.vehicleNumber || `Vehicle ${vehicleId}`}
-                                </p>
-                                <p className="text-xs text-gray-600 dark:text-gray-400">
-                                  {vehicle?.licensePlate || `Device ${location.deviceId}`}
-                                </p>
-                              </div>
-                            </div>
-                            <span className={`px-2 py-1 rounded-full text-xs ${
-                              isMoving 
-                                ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' 
-                                : 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'
-                            }`}>
-                              {isMoving ? 'Moving' : 'Stopped'}
-                            </span>
-                          </div>
-                          <div className="grid grid-cols-2 gap-2 text-xs">
-                            <div>
-                              <p className="text-gray-600 dark:text-gray-400">Speed</p>
-                              <p className="font-medium dark:text-white">{Math.round(speed)} mph</p>
-                            </div>
-                            <div>
-                              <p className="text-gray-600 dark:text-gray-400">Last Update</p>
-                              <p className="font-medium dark:text-white">
-                                {location.timestamp ? new Date(location.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
-                              </p>
-                            </div>
-                          </div>
+                          <SelectTrigger id="history-vehicle">
+                            <SelectValue placeholder="Choose a vehicle" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {vehicles.map(vehicle => (
+                              <SelectItem key={vehicle.id} value={vehicle.id.toString()}>
+                                {vehicle.vehicleNumber} - {vehicle.licensePlate}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Date Selection */}
+                      <div>
+                        <Label htmlFor="history-date" className="text-sm font-medium mb-2 block">
+                          Date
+                        </Label>
+                        <Input
+                          id="history-date"
+                          type="date"
+                          value={historyDate}
+                          onChange={(e) => setHistoryDate(e.target.value)}
+                          max={new Date().toISOString().split('T')[0]}
+                        />
+                      </div>
+
+                      {/* Time Range */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label htmlFor="start-time" className="text-sm font-medium mb-2 block">
+                            Start Time
+                          </Label>
+                          <Input
+                            id="start-time"
+                            type="time"
+                            value={historyStartTime}
+                            onChange={(e) => setHistoryStartTime(e.target.value)}
+                          />
                         </div>
-                      );
-                    })
-                  )}
-                </div>
+                        <div>
+                          <Label htmlFor="end-time" className="text-sm font-medium mb-2 block">
+                            End Time
+                          </Label>
+                          <Input
+                            id="end-time"
+                            type="time"
+                            value={historyEndTime}
+                            onChange={(e) => setHistoryEndTime(e.target.value)}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Load Button */}
+                      <Button 
+                        className="w-full"
+                        disabled={!historyVehicleId}
+                        data-testid="load-history-btn"
+                      >
+                        Load History
+                      </Button>
+
+                      {/* Playback Controls */}
+                      <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                        <Label className="text-sm font-medium mb-3 block">
+                          Playback Controls
+                        </Label>
+                        <div className="flex items-center gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => setIsPlaying(!isPlaying)}
+                            disabled={!historyVehicleId}
+                            data-testid="play-pause-btn"
+                          >
+                            {isPlaying ? (
+                              <Pause className="w-4 h-4" />
+                            ) : (
+                              <Play className="w-4 h-4" />
+                            )}
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            disabled={!historyVehicleId}
+                            data-testid="reset-btn"
+                          >
+                            <RotateCcw className="w-4 h-4" />
+                          </Button>
+                          <Select 
+                            value={playbackSpeed.toString()} 
+                            onValueChange={(value) => setPlaybackSpeed(parseFloat(value))}
+                            disabled={!historyVehicleId}
+                          >
+                            <SelectTrigger className="w-24">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="0.5">0.5x</SelectItem>
+                              <SelectItem value="1">1x</SelectItem>
+                              <SelectItem value="2">2x</SelectItem>
+                              <SelectItem value="5">5x</SelectItem>
+                              <SelectItem value="10">10x</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      {/* Info Message */}
+                      {!historyVehicleId && (
+                        <div className="text-sm text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 p-3 rounded-lg">
+                          Select a vehicle and date range to view historical movement data.
+                        </div>
+                      )}
+                    </div>
+                  </TabsContent>
+                </Tabs>
               </Card>
             </div>
           </div>
