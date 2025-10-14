@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Calendar, Bell, Gauge, Zap, Thermometer, Activity, Car, Play, Pause, RotateCcw } from "lucide-react";
-import { getAuthHeaders } from "@/lib/auth";
+import { getAuthHeaders } from "@/lib/api-config";
 
 export default function GPSTrackingOBD() {
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
