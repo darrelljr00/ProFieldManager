@@ -30,6 +30,7 @@ export function SimpleVehicleMap({ locations, selectedVehicleId, focusVehicleId,
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const markersRef = useRef<Map<string, L.Marker>>(new Map());
   const tileLayerRef = useRef<L.TileLayer | null>(null);
+  const labelsLayerRef = useRef<L.TileLayer | null>(null); // For hybrid satellite view
   const pathLinesRef = useRef<Map<string, L.Polyline>>(new Map());
   const pathHistoryRef = useRef<Map<string, [number, number][]>>(new Map());
   const isFocusedRef = useRef<boolean>(false);
@@ -50,21 +51,34 @@ export function SimpleVehicleMap({ locations, selectedVehicleId, focusVehicleId,
           url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
           attribution: '© OpenStreetMap contributors © CARTO',
           subdomains: 'abcd',
-          maxZoom: 22
+          maxZoom: 22,
+          isHybrid: false
         };
       case 'medium':
         return {
           url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
           attribution: '© OpenStreetMap contributors © CARTO',
           subdomains: 'abcd',
-          maxZoom: 22
+          maxZoom: 22,
+          isHybrid: false
         };
       case 'satellite':
         return {
           url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
           attribution: 'Tiles © Esri — Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
           subdomains: '',
-          maxZoom: 22
+          maxZoom: 22,
+          isHybrid: false
+        };
+      case 'hybrid':
+        return {
+          url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+          attribution: 'Tiles © Esri — Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community | © OpenStreetMap contributors © CARTO',
+          subdomains: '',
+          maxZoom: 22,
+          isHybrid: true,
+          labelsUrl: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png',
+          labelsSubdomains: 'abcd'
         };
       case 'dark':
       default:
@@ -72,7 +86,8 @@ export function SimpleVehicleMap({ locations, selectedVehicleId, focusVehicleId,
           url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
           attribution: '© OpenStreetMap contributors © CARTO',
           subdomains: 'abcd',
-          maxZoom: 22
+          maxZoom: 22,
+          isHybrid: false
         };
     }
   };
@@ -99,6 +114,15 @@ export function SimpleVehicleMap({ locations, selectedVehicleId, focusVehicleId,
     mapRef.current = map;
     tileLayerRef.current = tileLayer;
 
+    // Add labels layer if hybrid mode
+    if (layerConfig.isHybrid && layerConfig.labelsUrl) {
+      const labelsLayer = L.tileLayer(layerConfig.labelsUrl, {
+        subdomains: layerConfig.labelsSubdomains || 'abcd',
+        maxZoom: layerConfig.maxZoom,
+      }).addTo(map);
+      labelsLayerRef.current = labelsLayer;
+    }
+
     return () => {
       // Clean up path lines
       pathLinesRef.current.forEach(line => map.removeLayer(line));
@@ -108,6 +132,7 @@ export function SimpleVehicleMap({ locations, selectedVehicleId, focusVehicleId,
       map.remove();
       mapRef.current = null;
       tileLayerRef.current = null;
+      labelsLayerRef.current = null;
     };
   }, []);
 
@@ -121,6 +146,12 @@ export function SimpleVehicleMap({ locations, selectedVehicleId, focusVehicleId,
     // Remove old tile layer
     map.removeLayer(currentLayer);
 
+    // Remove old labels layer if exists
+    if (labelsLayerRef.current) {
+      map.removeLayer(labelsLayerRef.current);
+      labelsLayerRef.current = null;
+    }
+
     // Add new tile layer
     const layerConfig = getTileLayerConfig(mapLayer);
     const newTileLayer = L.tileLayer(layerConfig.url, {
@@ -130,6 +161,15 @@ export function SimpleVehicleMap({ locations, selectedVehicleId, focusVehicleId,
     }).addTo(map);
 
     tileLayerRef.current = newTileLayer;
+
+    // Add labels layer if hybrid mode
+    if (layerConfig.isHybrid && layerConfig.labelsUrl) {
+      const labelsLayer = L.tileLayer(layerConfig.labelsUrl, {
+        subdomains: layerConfig.labelsSubdomains || 'abcd',
+        maxZoom: layerConfig.maxZoom,
+      }).addTo(map);
+      labelsLayerRef.current = labelsLayer;
+    }
   }, [mapLayer]);
 
   // Update markers and path lines when locations change

@@ -407,6 +407,7 @@ export default function GPSSettings() {
                       <SelectItem value="light">Light Theme</SelectItem>
                       <SelectItem value="medium">Medium Theme</SelectItem>
                       <SelectItem value="satellite">Satellite View</SelectItem>
+                      <SelectItem value="hybrid">Hybrid Satellite (with street names)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
