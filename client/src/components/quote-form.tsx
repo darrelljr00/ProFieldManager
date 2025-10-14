@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { type Customer } from "@shared/schema";
+import { type Customer, type Service } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,8 @@ type LineItem = {
   description: string;
   quantity: number;
   amount: number;
+  serviceId?: number;
+  unitPrice?: number;
 };
 
 type QuoteFormData = {
@@ -57,6 +59,10 @@ export function QuoteForm({ onSuccess }: QuoteFormProps) {
 
   const { data: customers = [] } = useQuery<Customer[]>({
     queryKey: ["/api/customers"],
+  });
+
+  const { data: services = [] } = useQuery<Service[]>({
+    queryKey: ["/api/services"],
   });
 
   const mutation = useMutation({
@@ -177,10 +183,44 @@ export function QuoteForm({ onSuccess }: QuoteFormProps) {
   const updateLineItem = (index: number, field: keyof LineItem, value: any) => {
     setFormData(prev => ({
       ...prev,
-      lineItems: prev.lineItems.map((item, i) => 
-        i === index ? { ...item, [field]: value } : item
-      )
+      lineItems: prev.lineItems.map((item, i) => {
+        if (i !== index) return item;
+        
+        const updated = { ...item, [field]: value };
+        
+        // If quantity changes and we have a unit price from a service, recalculate amount
+        if (field === 'quantity' && item.unitPrice !== undefined) {
+          updated.amount = item.unitPrice * (value || 0);
+        }
+        
+        // If amount is manually changed, clear the service link
+        if (field === 'amount') {
+          updated.serviceId = undefined;
+          updated.unitPrice = undefined;
+        }
+        
+        return updated;
+      })
     }));
+  };
+
+  const selectService = (index: number, serviceId: string) => {
+    const service = services.find(s => s.id.toString() === serviceId);
+    if (service) {
+      const unitPrice = parseFloat(service.price);
+      setFormData(prev => ({
+        ...prev,
+        lineItems: prev.lineItems.map((item, i) => 
+          i === index ? { 
+            ...item, 
+            serviceId: service.id,
+            unitPrice: unitPrice,
+            description: service.name,
+            amount: unitPrice * item.quantity
+          } : item
+        )
+      }));
+    }
   };
 
   return (
@@ -254,21 +294,44 @@ export function QuoteForm({ onSuccess }: QuoteFormProps) {
             
             {/* Header row for line items */}
             <div className="grid grid-cols-12 gap-2 mb-2 font-medium text-sm text-muted-foreground">
-              <div className="col-span-6">Description</div>
+              <div className="col-span-3">Service / Item</div>
+              <div className="col-span-4">Description</div>
               <div className="col-span-2">Quantity</div>
-              <div className="col-span-3">Amount ($)</div>
+              <div className="col-span-2">Amount ($)</div>
               <div className="col-span-1">Action</div>
             </div>
             
             {formData.lineItems.map((item, index) => (
               <div key={index} className="grid grid-cols-12 gap-2 mb-3 p-3 border rounded-lg bg-muted/30">
-                <div className="col-span-6">
+                <div className="col-span-3">
+                  <Label className="text-xs text-muted-foreground">Select Service</Label>
+                  <Select onValueChange={(value) => selectService(index, value)}>
+                    <SelectTrigger className="mt-1" data-testid={`select-service-${index}`}>
+                      <SelectValue placeholder="Choose service..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {services.length === 0 ? (
+                        <div className="p-2 text-sm text-muted-foreground">
+                          No services available
+                        </div>
+                      ) : (
+                        services.map((service) => (
+                          <SelectItem key={service.id} value={service.id.toString()}>
+                            {service.name} - ${parseFloat(service.price).toFixed(2)}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="col-span-4">
                   <Label className="text-xs text-muted-foreground">Description</Label>
                   <Input
-                    placeholder="Enter item description..."
+                    placeholder="Or enter custom description..."
                     value={item.description}
                     onChange={(e) => updateLineItem(index, 'description', e.target.value)}
                     className="mt-1"
+                    data-testid={`input-description-${index}`}
                   />
                 </div>
                 <div className="col-span-2">
@@ -280,9 +343,10 @@ export function QuoteForm({ onSuccess }: QuoteFormProps) {
                     onChange={(e) => updateLineItem(index, 'quantity', parseInt(e.target.value) || 0)}
                     className="mt-1"
                     min="0"
+                    data-testid={`input-quantity-${index}`}
                   />
                 </div>
-                <div className="col-span-3">
+                <div className="col-span-2">
                   <Label className="text-xs text-muted-foreground">Amount ($)</Label>
                   <Input
                     type="number"
@@ -292,6 +356,7 @@ export function QuoteForm({ onSuccess }: QuoteFormProps) {
                     onChange={(e) => updateLineItem(index, 'amount', parseFloat(e.target.value) || 0)}
                     className="mt-1"
                     min="0"
+                    data-testid={`input-amount-${index}`}
                   />
                 </div>
                 <div className="col-span-1 flex items-end">
@@ -302,6 +367,7 @@ export function QuoteForm({ onSuccess }: QuoteFormProps) {
                     onClick={() => removeLineItem(index)}
                     disabled={formData.lineItems.length === 1}
                     className="mt-6"
+                    data-testid={`button-remove-item-${index}`}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
