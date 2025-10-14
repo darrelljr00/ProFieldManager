@@ -10,18 +10,58 @@ interface SimpleVehicleMapProps {
   className?: string;
 }
 
-// Custom vehicle icon with motion status color
-const createVehicleIcon = (isMoving: boolean) => {
+// Custom vehicle icon with motion status color and type-specific design
+const createVehicleIcon = (isMoving: boolean, vehicleType: string = 'truck') => {
   const color = isMoving ? '#22c55e' : '#ef4444'; // Green for moving, red for stopped
+  
+  // Different SVG paths for different vehicle types
+  const getTruckSvg = () => `
+    <svg style="width: 36px; height: 36px; color: white;" fill="currentColor" viewBox="0 0 24 24">
+      <path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
+    </svg>`;
+  
+  const getCarSvg = () => `
+    <svg style="width: 36px; height: 36px; color: white;" fill="currentColor" viewBox="0 0 24 24">
+      <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>
+    </svg>`;
+  
+  const getVanSvg = () => `
+    <svg style="width: 36px; height: 36px; color: white;" fill="currentColor" viewBox="0 0 24 24">
+      <path d="M17 5H3c-1.1 0-2 .89-2 2v9h2c0 1.65 1.34 3 3 3s3-1.35 3-3h5.5c0 1.65 1.34 3 3 3s3-1.35 3-3H23v-5l-6-6zM6 17.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM15 7l4 4h-4V7zm2.5 10.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
+    </svg>`;
+  
+  const getEquipmentSvg = () => `
+    <svg style="width: 36px; height: 36px; color: white;" fill="currentColor" viewBox="0 0 24 24">
+      <path d="M20 6h-3V4c0-1.11-.89-2-2-2H9c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-5 0H9V4h6v2z"/>
+    </svg>`;
+  
+  // Select appropriate SVG based on vehicle type
+  let vehicleSvg;
+  switch (vehicleType.toLowerCase()) {
+    case 'car':
+    case 'sedan':
+      vehicleSvg = getCarSvg();
+      break;
+    case 'van':
+      vehicleSvg = getVanSvg();
+      break;
+    case 'equipment':
+    case 'trailer':
+      vehicleSvg = getEquipmentSvg();
+      break;
+    case 'truck':
+    default:
+      vehicleSvg = getTruckSvg();
+      break;
+  }
+  
   return L.divIcon({
-    html: `<div style="background-color: ${color}; border: 2px solid white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-center; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">
-      <svg style="width: 14px; height: 14px; color: white;" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>
-      </svg>
+    html: `<div style="background-color: ${color}; border: 3px solid white; border-radius: 8px; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 6px rgba(0,0,0,0.4);">
+      ${vehicleSvg}
     </div>`,
     className: '',
-    iconSize: [24, 24],
-    iconAnchor: [12, 12],
+    iconSize: [48, 48],
+    iconAnchor: [24, 24],
   });
 };
 
@@ -39,6 +79,12 @@ export function SimpleVehicleMap({ locations, selectedVehicleId, focusVehicleId,
   const { data: gpsSettings } = useQuery<any>({
     queryKey: ['/api/gps-settings'],
     refetchInterval: 5000, // Refetch every 5 seconds to pick up changes
+  });
+
+  // Fetch vehicles to get vehicle type information
+  const { data: vehicles = [] } = useQuery<any[]>({
+    queryKey: ['/api/vehicles'],
+    refetchInterval: 5000,
   });
 
   const mapLayer = gpsSettings?.mapDefaultLayer || 'dark';
@@ -233,8 +279,12 @@ export function SimpleVehicleMap({ locations, selectedVehicleId, focusVehicleId,
         const speed = parseFloat(location.speed) || 0;
         const isMoving = speed >= 1;
         
+        // Find vehicle to get type information
+        const vehicle = vehicles.find(v => v.id.toString() === vehicleId);
+        const vehicleType = vehicle?.vehicleType || 'truck';
+        
         const marker = L.marker([lat, lng], {
-          icon: createVehicleIcon(isMoving)
+          icon: createVehicleIcon(isMoving, vehicleType)
         }).addTo(map);
 
         const displayName = location.displayName || `Vehicle ${vehicleId}`;
@@ -299,7 +349,7 @@ export function SimpleVehicleMap({ locations, selectedVehicleId, focusVehicleId,
       const group = L.featureGroup(Array.from(markers.values()));
       map.fitBounds(group.getBounds(), { padding: [50, 50] });
     }
-  }, [locations]);
+  }, [locations, vehicles]);
 
   // Focus on specific vehicle when focusVehicleId changes
   useEffect(() => {
