@@ -81,8 +81,10 @@ export default function GPSTrackingOBD() {
 
       console.log('📡 Fetching from:', `/api/obd/history?${params.toString()}`);
       const headers = getAuthHeaders();
+      console.log('🔑 Auth headers:', headers);
       const response = await fetch(`/api/obd/history?${params}`, {
-        headers
+        headers,
+        credentials: 'include'
       });
       
       console.log('📥 Response status:', response.status);
