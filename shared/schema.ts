@@ -1815,7 +1815,7 @@ export const insertQuoteAvailabilitySchema = z.object({
 
 export const insertServiceSchema = createInsertSchema(services, {
   name: z.string().min(1, "Service name is required"),
-  price: z.string().transform(val => parseFloat(val)),
+  price: z.string().regex(/^\d+(\.\d{1,2})?$/, "Price must be a valid decimal"),
   estimatedCompletionTime: z.number().positive("Estimated time must be positive"),
 }).omit({
   id: true,
