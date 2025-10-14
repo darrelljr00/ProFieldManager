@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { QuoteForm } from "@/components/quote-form";
 import { QuotesTable } from "@/components/quotes-table";
 import { TrashedQuotesTable } from "@/components/trashed-quotes-table";
-import { Plus, FileText, TrendingUp, Clock, CheckCircle, Search, Filter, Trash2, Wrench, Edit, DollarSign } from "lucide-react";
+import { Plus, FileText, TrendingUp, Clock, CheckCircle, Search, Filter, Trash2, Wrench, Edit, DollarSign, X } from "lucide-react";
 import type { Quote, Customer, QuoteLineItem, Service } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -28,6 +28,7 @@ export default function Quotes() {
   const [serviceName, setServiceName] = useState("");
   const [servicePrice, setServicePrice] = useState("");
   const [serviceMaterialsCost, setServiceMaterialsCost] = useState("");
+  const [serviceMaterials, setServiceMaterials] = useState<{ name: string; cost: number }[]>([]);
   const [serviceTime, setServiceTime] = useState("");
   const { toast } = useToast();
 
@@ -91,6 +92,7 @@ export default function Quotes() {
     setServiceName("");
     setServicePrice("");
     setServiceMaterialsCost("");
+    setServiceMaterials([]);
     setServiceTime("");
   };
 
@@ -100,11 +102,30 @@ export default function Quotes() {
       setServiceName(service.name);
       setServicePrice(service.price);
       setServiceMaterialsCost(service.materialsCost || "0");
+      setServiceMaterials((service.materials as any) || []);
       setServiceTime(service.estimatedCompletionTime.toString());
     } else {
       resetServiceForm();
     }
     setIsServiceDialogOpen(true);
+  };
+
+  const addMaterialItem = () => {
+    setServiceMaterials([...serviceMaterials, { name: "", cost: 0 }]);
+  };
+
+  const removeMaterialItem = (index: number) => {
+    setServiceMaterials(serviceMaterials.filter((_, i) => i !== index));
+  };
+
+  const updateMaterialItem = (index: number, field: "name" | "cost", value: string | number) => {
+    const updated = [...serviceMaterials];
+    if (field === "name") {
+      updated[index].name = value as string;
+    } else {
+      updated[index].cost = typeof value === "string" ? parseFloat(value) || 0 : value;
+    }
+    setServiceMaterials(updated);
   };
 
   const handleServiceSubmit = () => {
@@ -114,16 +135,10 @@ export default function Quotes() {
     }
 
     const priceValue = parseFloat(servicePrice);
-    const materialsCostValue = parseFloat(serviceMaterialsCost || "0");
     const timeValue = parseInt(serviceTime);
 
     if (isNaN(priceValue) || priceValue <= 0) {
       toast({ title: "Please enter a valid price greater than 0", variant: "destructive" });
-      return;
-    }
-
-    if (isNaN(materialsCostValue) || materialsCostValue < 0) {
-      toast({ title: "Please enter a valid materials cost (0 or greater)", variant: "destructive" });
       return;
     }
 
@@ -132,10 +147,15 @@ export default function Quotes() {
       return;
     }
 
+    // Validate materials if any exist
+    const validMaterials = serviceMaterials.filter(m => m.name.trim() && m.cost >= 0);
+    const totalMaterialsCost = validMaterials.reduce((sum, item) => sum + item.cost, 0);
+
     const data = {
       name: serviceName.trim(),
       price: priceValue.toFixed(2),
-      materialsCost: materialsCostValue.toFixed(2),
+      materialsCost: totalMaterialsCost.toFixed(2),
+      materials: validMaterials,
       estimatedCompletionTime: timeValue,
     };
 
@@ -472,19 +492,65 @@ export default function Quotes() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="service-materials-cost">Materials & Supplies Cost ($)</Label>
-                      <Input
-                        id="service-materials-cost"
-                        type="number"
-                        step="0.01"
-                        value={serviceMaterialsCost}
-                        onChange={(e) => setServiceMaterialsCost(e.target.value)}
-                        placeholder="e.g., 25.00"
-                        data-testid="input-service-materials-cost"
-                      />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Cost of materials and supplies needed for this service
-                      </p>
+                      <div className="flex items-center justify-between mb-2">
+                        <Label>Materials & Supplies</Label>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={addMaterialItem}
+                          data-testid="button-add-material"
+                        >
+                          <Plus className="h-3 w-3 mr-1" />
+                          Add Material
+                        </Button>
+                      </div>
+                      
+                      {serviceMaterials.length === 0 ? (
+                        <p className="text-xs text-muted-foreground py-4 text-center border border-dashed rounded">
+                          No materials added yet. Click "Add Material" to add items.
+                        </p>
+                      ) : (
+                        <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                          {serviceMaterials.map((material, index) => (
+                            <div key={index} className="flex gap-2 items-start" data-testid={`material-item-${index}`}>
+                              <div className="flex-1">
+                                <Input
+                                  placeholder="Material name"
+                                  value={material.name}
+                                  onChange={(e) => updateMaterialItem(index, "name", e.target.value)}
+                                  data-testid={`input-material-name-${index}`}
+                                />
+                              </div>
+                              <div className="w-28">
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  placeholder="Cost"
+                                  value={material.cost || ""}
+                                  onChange={(e) => updateMaterialItem(index, "cost", e.target.value)}
+                                  data-testid={`input-material-cost-${index}`}
+                                />
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => removeMaterialItem(index)}
+                                data-testid={`button-remove-material-${index}`}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {serviceMaterials.length > 0 && (
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Total Materials Cost: ${serviceMaterials.reduce((sum, m) => sum + (m.cost || 0), 0).toFixed(2)}
+                        </p>
+                      )}
                     </div>
                     <div>
                       <Label htmlFor="service-time">Estimated Completion Time (minutes)</Label>
