@@ -6215,6 +6215,102 @@ ${fromName || ''}
     }
   });
 
+  // Services Routes
+  // Get all services for organization
+  app.get("/api/services", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const result = await db
+        .select()
+        .from(services)
+        .where(eq(services.organizationId, user.organizationId))
+        .orderBy(services.name);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Create service
+  app.post("/api/services", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const validated = insertServiceSchema.parse({
+        ...req.body,
+        organizationId: user.organizationId
+      });
+      
+      const [service] = await db
+        .insert(services)
+        .values(validated)
+        .returning();
+      
+      res.status(201).json(service);
+    } catch (error: any) {
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Update service
+  app.put("/api/services/:id", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const id = parseInt(req.params.id);
+      
+      const validated = insertServiceSchema.parse({
+        ...req.body,
+        organizationId: user.organizationId
+      });
+      
+      const [service] = await db
+        .update(services)
+        .set({ ...validated, updatedAt: new Date() })
+        .where(and(
+          eq(services.id, id),
+          eq(services.organizationId, user.organizationId)
+        ))
+        .returning();
+      
+      if (!service) {
+        return res.status(404).json({ message: "Service not found" });
+      }
+      
+      res.json(service);
+    } catch (error: any) {
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Delete service
+  app.delete("/api/services/:id", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const id = parseInt(req.params.id);
+      
+      const [deleted] = await db
+        .delete(services)
+        .where(and(
+          eq(services.id, id),
+          eq(services.organizationId, user.organizationId)
+        ))
+        .returning();
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "Service not found" });
+      }
+      
+      res.json({ message: "Service deleted successfully" });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Get settings by category
   app.get("/api/settings/:category", async (req, res) => {
     try {
