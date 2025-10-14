@@ -46,7 +46,7 @@ export default function Quotes() {
   });
 
   const createServiceMutation = useMutation({
-    mutationFn: async (data: { name: string; price: string; estimatedCompletionTime: number }) => {
+    mutationFn: async (data: { name: string; price: string; materialsCost: string; materials: { name: string; cost: number }[]; estimatedCompletionTime: number }) => {
       return await apiRequest("POST", "/api/services", data);
     },
     onSuccess: () => {
@@ -61,7 +61,7 @@ export default function Quotes() {
   });
 
   const updateServiceMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: number; data: { name: string; price: string; estimatedCompletionTime: number } }) => {
+    mutationFn: async ({ id, data }: { id: number; data: { name: string; price: string; materialsCost: string; materials: { name: string; cost: number }[]; estimatedCompletionTime: number } }) => {
       return await apiRequest("PUT", `/api/services/${id}`, data);
     },
     onSuccess: () => {
