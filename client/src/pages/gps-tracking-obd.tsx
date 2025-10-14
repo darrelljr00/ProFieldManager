@@ -63,10 +63,18 @@ export default function GPSTrackingOBD() {
 
   // Load historical data function
   const loadHistoricalData = async () => {
-    console.log('🔍 Loading historical data...', { historyDeviceId, historyDate, historyStartTime, historyEndTime });
+    console.log('🔍 Loading historical data...', { 
+      historyDeviceId, 
+      historyDate, 
+      historyStartTime, 
+      historyEndTime,
+      obdLocations: obdLocations.length,
+      availableDevices: obdLocations.map(l => l.deviceId)
+    });
     
     if (!historyDeviceId) {
       console.warn('⚠️ No device ID selected');
+      alert('Please select a vehicle first');
       return;
     }
 
@@ -384,7 +392,10 @@ export default function GPSTrackingOBD() {
                         </Label>
                         <Select 
                           value={historyDeviceId || ""} 
-                          onValueChange={setHistoryDeviceId}
+                          onValueChange={(value) => {
+                            console.log('📍 Selected history device:', value);
+                            setHistoryDeviceId(value);
+                          }}
                         >
                           <SelectTrigger id="history-vehicle">
                             <SelectValue placeholder="Choose a vehicle" />
