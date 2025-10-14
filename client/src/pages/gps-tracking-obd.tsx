@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Calendar, Bell, Gauge, Zap, Thermometer, Activity, Car, Play, Pause, RotateCcw } from "lucide-react";
+import { getAuthHeaders } from "@/lib/auth";
 
 export default function GPSTrackingOBD() {
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
@@ -79,7 +80,10 @@ export default function GPSTrackingOBD() {
       });
 
       console.log('📡 Fetching from:', `/api/obd/history?${params.toString()}`);
-      const response = await fetch(`/api/obd/history?${params}`);
+      const headers = getAuthHeaders();
+      const response = await fetch(`/api/obd/history?${params}`, {
+        headers
+      });
       
       console.log('📥 Response status:', response.status);
       
