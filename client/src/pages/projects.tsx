@@ -466,15 +466,6 @@ export default function Jobs() {
   const [selectedWaivers, setSelectedWaivers] = useState<number[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // State for job site address dropdown
-  const [selectedJobSiteAddress, setSelectedJobSiteAddress] = useState<string>("");
-  const [addressFormData, setAddressFormData] = useState({
-    address: "",
-    city: "",
-    state: "",
-    zipCode: ""
-  });
-  
   // State for Smart Capture feature
   const [enableSmartCapture, setEnableSmartCapture] = useState(false);
   const [createSmartCaptureDialogOpen, setCreateSmartCaptureDialogOpen] = useState(false);
@@ -627,39 +618,6 @@ export default function Jobs() {
       );
     },
   });
-
-  // Fetch unique job site addresses for dropdown
-  const { data: jobSiteAddresses = [] } = useQuery({
-    queryKey: ["/api/projects", "addresses"],
-    queryFn: async () => {
-      const response = await apiRequest("GET", "/api/projects");
-      const projects = await response.json();
-      
-      // Get unique addresses that have complete address information
-      const addressMap = new Map();
-      projects.forEach((project: any) => {
-        if (project.address && project.city && project.state) {
-          const fullAddress = `${project.address}, ${project.city}, ${project.state}${project.zipCode ? ` ${project.zipCode}` : ''}`;
-          const addressKey = `${project.address}-${project.city}-${project.state}`;
-          
-          if (!addressMap.has(addressKey)) {
-            addressMap.set(addressKey, {
-              fullAddress,
-              address: project.address,
-              city: project.city,
-              state: project.state,
-              zipCode: project.zipCode || ""
-            });
-          }
-        }
-      });
-      
-      return Array.from(addressMap.values());
-    },
-  });
-
-
-
 
 
   const createJobMutation = useMutation({
@@ -1006,51 +964,6 @@ export default function Jobs() {
       });
     },
   });
-
-  // Handle job site address selection
-  const handleJobSiteAddressSelect = (addressKey: string) => {
-    setSelectedJobSiteAddress(addressKey);
-    
-    if (addressKey && addressKey !== "new-address") {
-      const selectedAddress = jobSiteAddresses.find((addr: any) => 
-        `${addr.address}-${addr.city}-${addr.state}` === addressKey
-      );
-      
-      if (selectedAddress) {
-        setAddressFormData({
-          address: selectedAddress.address,
-          city: selectedAddress.city,
-          state: selectedAddress.state,
-          zipCode: selectedAddress.zipCode
-        });
-        
-        // Update the form fields
-        const form = document.getElementById('job-create-form') as HTMLFormElement;
-        if (form) {
-          (form.querySelector('#address') as HTMLInputElement).value = selectedAddress.address;
-          (form.querySelector('#city') as HTMLInputElement).value = selectedAddress.city;
-          (form.querySelector('#state') as HTMLInputElement).value = selectedAddress.state;
-          (form.querySelector('#zipCode') as HTMLInputElement).value = selectedAddress.zipCode;
-        }
-      }
-    } else {
-      // Clear the form data when "Enter new address" is selected
-      setAddressFormData({
-        address: "",
-        city: "",
-        state: "",
-        zipCode: ""
-      });
-      
-      const form = document.getElementById('job-create-form') as HTMLFormElement;
-      if (form) {
-        (form.querySelector('#address') as HTMLInputElement).value = "";
-        (form.querySelector('#city') as HTMLInputElement).value = "";
-        (form.querySelector('#state') as HTMLInputElement).value = "";
-        (form.querySelector('#zipCode') as HTMLInputElement).value = "";
-      }
-    }
-  };
 
   const handleCreateJob = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -2236,34 +2149,6 @@ export default function Jobs() {
                     </div>
                   </div>
                 )}
-              </div>
-
-              <div className="space-y-4 p-4 border rounded-lg bg-blue-50 dark:bg-blue-900/20">
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Job Site Address</Label>
-                  <Select 
-                    value={selectedJobSiteAddress} 
-                    onValueChange={handleJobSiteAddressSelect}
-                  >
-                    <SelectTrigger data-testid="select-job-site-address">
-                      <SelectValue placeholder="Select existing address or enter new" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="new-address">Enter new address</SelectItem>
-                      {jobSiteAddresses.map((addr: any) => (
-                        <SelectItem 
-                          key={`${addr.address}-${addr.city}-${addr.state}`}
-                          value={`${addr.address}-${addr.city}-${addr.state}`}
-                        >
-                          {addr.fullAddress}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-gray-500">
-                    Choose from previous job addresses or select "Enter new address" to type manually
-                  </p>
-                </div>
               </div>
 
               <div>
