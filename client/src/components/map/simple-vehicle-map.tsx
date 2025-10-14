@@ -270,7 +270,7 @@ export function SimpleVehicleMap({ locations, selectedVehicleId, focusVehicleId,
 
     if (marker) {
       const latLng = marker.getLatLng();
-      map.setView(latLng, 16, { animate: true, duration: 1 });
+      map.setView(latLng, 18, { animate: true, duration: 1 });
       marker.openPopup();
     }
   }, [focusVehicleId]);
