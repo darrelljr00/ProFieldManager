@@ -4932,21 +4932,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .delete(quoteAvailability)
         .where(eq(quoteAvailability.id, parseInt(id)));
 
-      // Send notification to organization
-      await NotificationService.create({
-        organizationId: user.organizationId,
-        title: `Job Scheduled from Quote`,
-        message: `Job scheduled for ${quote.customer.name} on ${jobDate.toLocaleDateString()} at ${selectedTime}`,
-        type: 'job_scheduled',
-        priority: 'normal',
-        userId: null,
-        category: 'team_based',
-        data: {
-          jobId: result.id,
-          quoteId: quote.id,
-          customerId: quote.customerId,
-        }
-      });
+      // Send notification to organization (send to all admins/managers)
+      const adminUsers = await db
+        .select()
+        .from(users)
+        .where(
+          and(
+            eq(users.organizationId, user.organizationId),
+            or(eq(users.role, 'admin'), eq(users.role, 'manager'))
+          )
+        );
+      
+      for (const adminUser of adminUsers) {
+        await NotificationService.createNotification({
+          organizationId: user.organizationId,
+          userId: adminUser.id,
+          title: `Job Scheduled from Quote`,
+          message: `Job scheduled for ${quote.customer.name} on ${jobDate.toLocaleDateString()} at ${selectedTime}`,
+          type: 'job_scheduled',
+          priority: 'normal',
+          category: 'team_based',
+          data: {
+            jobId: result.id,
+            quoteId: quote.id,
+            customerId: quote.customerId,
+          }
+        });
+      }
 
       // Send confirmation email to customer
       const sendgridApiKey = process.env.SENDGRID_API_KEY;
