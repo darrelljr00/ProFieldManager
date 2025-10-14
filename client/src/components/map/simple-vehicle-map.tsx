@@ -32,6 +32,7 @@ export function SimpleVehicleMap({ locations, selectedVehicleId, focusVehicleId,
   const tileLayerRef = useRef<L.TileLayer | null>(null);
   const pathLinesRef = useRef<Map<string, L.Polyline>>(new Map());
   const pathHistoryRef = useRef<Map<string, [number, number][]>>(new Map());
+  const isFocusedRef = useRef<boolean>(false);
 
   // Fetch GPS settings for map layer preference
   const { data: gpsSettings } = useQuery<any>({
@@ -253,8 +254,8 @@ export function SimpleVehicleMap({ locations, selectedVehicleId, focusVehicleId,
       }
     });
 
-    // Fit map to show all markers on first load
-    if (bounds.length > 0 && pathHistory.size === locations.length) {
+    // Fit map to show all markers on first load (only if not manually focused on a vehicle)
+    if (bounds.length > 0 && pathHistory.size === locations.length && !isFocusedRef.current) {
       const group = L.featureGroup(Array.from(markers.values()));
       map.fitBounds(group.getBounds(), { padding: [50, 50] });
     }
@@ -262,7 +263,30 @@ export function SimpleVehicleMap({ locations, selectedVehicleId, focusVehicleId,
 
   // Focus on specific vehicle when focusVehicleId changes
   useEffect(() => {
-    if (!mapRef.current || !focusVehicleId) return;
+    if (!mapRef.current) return;
+
+    const map = mapRef.current;
+    const markers = markersRef.current;
+
+    if (!focusVehicleId) {
+      // Reset focus state when no vehicle is selected
+      isFocusedRef.current = false;
+      return;
+    }
+
+    const marker = markers.get(focusVehicleId);
+
+    if (marker) {
+      isFocusedRef.current = true;
+      const latLng = marker.getLatLng();
+      map.setView(latLng, 18, { animate: true, duration: 1 });
+      marker.openPopup();
+    }
+  }, [focusVehicleId]);
+
+  // Keep focused vehicle centered when locations update
+  useEffect(() => {
+    if (!mapRef.current || !focusVehicleId || !isFocusedRef.current) return;
 
     const map = mapRef.current;
     const markers = markersRef.current;
@@ -270,10 +294,10 @@ export function SimpleVehicleMap({ locations, selectedVehicleId, focusVehicleId,
 
     if (marker) {
       const latLng = marker.getLatLng();
-      map.setView(latLng, 18, { animate: true, duration: 1 });
-      marker.openPopup();
+      // Update view without animation to follow vehicle smoothly
+      map.setView(latLng, 18, { animate: false });
     }
-  }, [focusVehicleId]);
+  }, [locations, focusVehicleId]);
 
   return (
     <div ref={mapContainerRef} className={`w-full h-full min-h-[400px] ${className}`} />
