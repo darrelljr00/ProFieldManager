@@ -2106,7 +2106,7 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(customers, eq(quotes.customerId, customers.id))
       .where(and(
         eq(users.organizationId, organizationId),
-        eq(quotes.isDeleted, true)
+        sql`${quotes.isDeleted} IS TRUE`
       ))
       .orderBy(desc(quotes.deletedAt));
 

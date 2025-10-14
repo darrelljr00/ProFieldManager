@@ -1608,6 +1608,50 @@ export default function Jobs() {
               </div>
 
               <div>
+                <Label htmlFor="address">Job Address</Label>
+                <Input
+                  id="address"
+                  name="address"
+                  placeholder="Street address"
+                  data-testid="input-address"
+                  defaultValue={quoteConversionData?.customerAddress || undefined}
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="city">City</Label>
+                  <Input
+                    id="city"
+                    name="city"
+                    placeholder="City"
+                    data-testid="input-city"
+                    defaultValue={quoteConversionData?.customerCity || undefined}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="state">State</Label>
+                  <Input
+                    id="state"
+                    name="state"
+                    placeholder="State"
+                    data-testid="input-state"
+                    defaultValue={quoteConversionData?.customerState || undefined}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="zipCode">ZIP Code</Label>
+                  <Input
+                    id="zipCode"
+                    name="zipCode"
+                    placeholder="ZIP Code"
+                    data-testid="input-zip-code"
+                    defaultValue={quoteConversionData?.customerZipCode || undefined}
+                  />
+                </div>
+              </div>
+
+              <div>
                 <Label htmlFor="description">Description</Label>
                 <Textarea
                   id="description"
@@ -2149,50 +2193,6 @@ export default function Jobs() {
                     </div>
                   </div>
                 )}
-              </div>
-
-              <div>
-                <Label htmlFor="address">Job Address</Label>
-                <Input
-                  id="address"
-                  name="address"
-                  placeholder="Street address"
-                  data-testid="input-address"
-                  defaultValue={quoteConversionData?.customerAddress || undefined}
-                />
-              </div>
-
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <Label htmlFor="city">City</Label>
-                  <Input
-                    id="city"
-                    name="city"
-                    placeholder="City"
-                    data-testid="input-city"
-                    defaultValue={quoteConversionData?.customerCity || undefined}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="state">State</Label>
-                  <Input
-                    id="state"
-                    name="state"
-                    placeholder="State"
-                    data-testid="input-state"
-                    defaultValue={quoteConversionData?.customerState || undefined}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="zipCode">ZIP Code</Label>
-                  <Input
-                    id="zipCode"
-                    name="zipCode"
-                    placeholder="ZIP Code"
-                    data-testid="input-zip-code"
-                    defaultValue={quoteConversionData?.customerZipCode || undefined}
-                  />
-                </div>
               </div>
 
               <div className="flex justify-end space-x-2 pt-4">
