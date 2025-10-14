@@ -105,15 +105,28 @@ export default function Quotes() {
   };
 
   const handleServiceSubmit = () => {
-    if (!serviceName || !servicePrice || !serviceTime) {
+    if (!serviceName.trim() || !servicePrice.trim() || !serviceTime.trim()) {
       toast({ title: "Please fill in all fields", variant: "destructive" });
       return;
     }
 
+    const priceValue = parseFloat(servicePrice);
+    const timeValue = parseInt(serviceTime);
+
+    if (isNaN(priceValue) || priceValue <= 0) {
+      toast({ title: "Please enter a valid price greater than 0", variant: "destructive" });
+      return;
+    }
+
+    if (isNaN(timeValue) || timeValue <= 0) {
+      toast({ title: "Please enter a valid completion time greater than 0", variant: "destructive" });
+      return;
+    }
+
     const data = {
-      name: serviceName,
-      price: servicePrice,
-      estimatedCompletionTime: parseInt(serviceTime),
+      name: serviceName.trim(),
+      price: priceValue.toFixed(2),
+      estimatedCompletionTime: timeValue,
     };
 
     if (selectedService) {
