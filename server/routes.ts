@@ -19162,10 +19162,10 @@ ${fromName || ''}
         
         try {
           // Fetch live device data from One Step GPS API  
-          // Call WITHOUT lat_lng=1 to get full device object including device_id
+          // Use lat_lng=1 to get location coordinates (lat/lng)
           console.log('🚗 Fetching live data from OneStep GPS API...');
           const response = await fetch(
-            `https://track.onestepgps.com/v3/api/public/device-info?api-key=${apiKey}`
+            `https://track.onestepgps.com/v3/api/public/device-info?api-key=${apiKey}&lat_lng=1`
           );
 
           console.log('📡 OneStep GPS API Response Status:', response.status);
