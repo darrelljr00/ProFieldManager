@@ -62,7 +62,12 @@ export default function GPSTrackingOBD() {
 
   // Load historical data function
   const loadHistoricalData = async () => {
-    if (!historyDeviceId) return;
+    console.log('🔍 Loading historical data...', { historyDeviceId, historyDate, historyStartTime, historyEndTime });
+    
+    if (!historyDeviceId) {
+      console.warn('⚠️ No device ID selected');
+      return;
+    }
 
     setIsLoadingHistory(true);
     try {
@@ -73,18 +78,25 @@ export default function GPSTrackingOBD() {
         endTime: historyEndTime
       });
 
+      console.log('📡 Fetching from:', `/api/obd/history?${params.toString()}`);
       const response = await fetch(`/api/obd/history?${params}`);
       
+      console.log('📥 Response status:', response.status);
+      
       if (!response.ok) {
-        throw new Error('Failed to fetch historical data');
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        console.error('❌ API Error:', errorData);
+        throw new Error(errorData.message || 'Failed to fetch historical data');
       }
 
       const data = await response.json();
+      console.log('✅ Received data:', data);
+      
       setHistoryPoints(data.points || []);
       setCurrentPointIndex(0);
       setIsPlaying(false);
     } catch (error) {
-      console.error('Error loading historical data:', error);
+      console.error('💥 Error loading historical data:', error);
       setHistoryPoints([]);
     } finally {
       setIsLoadingHistory(false);
