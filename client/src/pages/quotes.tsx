@@ -533,6 +533,7 @@ export default function Quotes() {
                     <TableRow>
                       <TableHead>Service Name</TableHead>
                       <TableHead>Price</TableHead>
+                      <TableHead>Materials Cost</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -546,6 +547,12 @@ export default function Quotes() {
                           <div className="flex items-center">
                             <DollarSign className="h-4 w-4 mr-1" />
                             {parseFloat(service.price).toFixed(2)}
+                          </div>
+                        </TableCell>
+                        <TableCell data-testid={`text-service-materials-cost-${service.id}`}>
+                          <div className="flex items-center">
+                            <DollarSign className="h-4 w-4 mr-1" />
+                            {parseFloat(service.materialsCost || "0").toFixed(2)}
                           </div>
                         </TableCell>
                         <TableCell className="text-right">
