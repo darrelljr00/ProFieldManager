@@ -171,6 +171,7 @@ export function SimpleVehicleMap({ locations, selectedVehicleId, focusVehicleId,
   const pathLinesRef = useRef<Map<string, L.Polyline>>(new Map());
   const pathHistoryRef = useRef<Map<string, [number, number][]>>(new Map());
   const isFocusedRef = useRef<boolean>(false);
+  const hasInitialFitRef = useRef<boolean>(false); // Track if we've done initial fit
 
   // Fetch GPS settings for map layer preference
   const { data: gpsSettings } = useQuery<any>({
@@ -441,10 +442,11 @@ export function SimpleVehicleMap({ locations, selectedVehicleId, focusVehicleId,
       }
     });
 
-    // Fit map to show all markers on first load (only if not manually focused on a vehicle)
-    if (bounds.length > 0 && pathHistory.size === locations.length && !isFocusedRef.current) {
+    // Fit map to show all markers ONLY on very first load
+    if (bounds.length > 0 && !hasInitialFitRef.current && !isFocusedRef.current) {
       const group = L.featureGroup(Array.from(markers.values()));
       map.fitBounds(group.getBounds(), { padding: [50, 50] });
+      hasInitialFitRef.current = true; // Mark that we've done the initial fit
     }
   }, [locations, vehicles]);
 
