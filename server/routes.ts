@@ -19261,6 +19261,106 @@ ${fromName || ''}
     }
   });
 
+  // Get historical location data for playback
+  app.get("/api/obd/history", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { vehicleId, date, startTime, endTime } = req.query;
+
+      if (!vehicleId || !date) {
+        return res.status(400).json({ message: "Vehicle ID and date are required" });
+      }
+
+      // Get the vehicle to find its device ID
+      const [vehicle] = await db
+        .select()
+        .from(vehicles)
+        .where(and(
+          eq(vehicles.id, parseInt(vehicleId as string)),
+          eq(vehicles.organizationId, user.organizationId)
+        ))
+        .limit(1);
+
+      if (!vehicle) {
+        return res.status(404).json({ message: "Vehicle not found" });
+      }
+
+      // Get OneStep GPS API key
+      const apiKeySetting = await db
+        .select()
+        .from(settings)
+        .where(and(
+          eq(settings.category, 'gps'),
+          eq(settings.key, 'oneStepGpsApiKey')
+        ))
+        .limit(1);
+
+      if (!apiKeySetting || apiKeySetting.length === 0 || !apiKeySetting[0].value) {
+        return res.status(400).json({ message: "OneStep GPS API key not configured" });
+      }
+
+      const apiKey = apiKeySetting[0].value;
+
+      // Build date range for OneStep GPS API
+      const dateStr = date as string; // Format: YYYY-MM-DD
+      const start = startTime ? `${dateStr} ${startTime}:00` : `${dateStr} 00:00:00`;
+      const end = endTime ? `${dateStr} ${endTime}:59` : `${dateStr} 23:59:59`;
+
+      // Convert to Unix timestamps (OneStep GPS uses seconds)
+      const startTimestamp = Math.floor(new Date(start).getTime() / 1000);
+      const endTimestamp = Math.floor(new Date(end).getTime() / 1000);
+
+      console.log(`📜 Fetching historical data for vehicle ${vehicleId} from ${start} to ${end}`);
+
+      // Find the device ID from location data or use vehicle number as device name
+      const deviceName = vehicle.vehicleNumber;
+
+      // Fetch historical results from OneStep GPS
+      // Using device/result-list endpoint for historical trip data
+      const response = await fetch(
+        `https://track.onestepgps.com/v3/api/public/device/result-list?` +
+        `api-key=${apiKey}&` +
+        `device=${encodeURIComponent(deviceName)}&` +
+        `start_timestamp=${startTimestamp}&` +
+        `end_timestamp=${endTimestamp}&` +
+        `max_points=1000`
+      );
+
+      if (!response.ok) {
+        console.error(`❌ OneStep GPS API error: ${response.status} ${response.statusText}`);
+        return res.status(response.status).json({ 
+          message: `OneStep GPS API error: ${response.statusText}` 
+        });
+      }
+
+      const historyData = await response.json();
+      console.log(`✅ Received ${historyData.result_list?.length || 0} historical points`);
+
+      // Transform OneStep GPS history to our format
+      const points = (historyData.result_list || [])
+        .filter((point: any) => point.lat && point.lng)
+        .map((point: any) => ({
+          latitude: String(point.lat),
+          longitude: String(point.lng),
+          speed: point.speed || 0,
+          heading: point.angle || 0,
+          timestamp: point.dt_tracker ? new Date(point.dt_tracker) : new Date(point.timestamp * 1000),
+          altitude: point.altitude || 0
+        }));
+
+      res.json({ 
+        points,
+        vehicleId: parseInt(vehicleId as string),
+        deviceName,
+        dateRange: { start, end },
+        count: points.length
+      });
+    } catch (error: any) {
+      console.error("Error fetching historical location data:", error);
+      res.status(500).json({ message: "Error fetching historical data: " + error.message });
+    }
+  });
+
   // Get trip history
   app.get("/api/obd/trips", requireAuth, async (req, res) => {
     try {

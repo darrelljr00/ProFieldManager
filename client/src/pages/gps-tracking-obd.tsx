@@ -20,6 +20,9 @@ export default function GPSTrackingOBD() {
   const [historyEndTime, setHistoryEndTime] = useState<string>("23:59");
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState<number>(1);
+  const [historyPoints, setHistoryPoints] = useState<any[]>([]);
+  const [currentPointIndex, setCurrentPointIndex] = useState<number>(0);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
   // Fetch vehicles
   const { data: vehicles = [], isLoading: vehiclesLoading } = useQuery<any[]>({
@@ -56,6 +59,70 @@ export default function GPSTrackingOBD() {
   const selectedVehicle = vehicles.find(v => v.id.toString() === effectiveVehicleId);
   const selectedLocation = obdLocations.find(loc => loc.vehicleId?.toString() === effectiveVehicleId);
   const activeTrip = obdTrips.find((t: any) => t.vehicleId?.toString() === effectiveVehicleId && t.status === 'active');
+
+  // Load historical data function
+  const loadHistoricalData = async () => {
+    if (!historyVehicleId) return;
+
+    setIsLoadingHistory(true);
+    try {
+      const params = new URLSearchParams({
+        vehicleId: historyVehicleId,
+        date: historyDate,
+        startTime: historyStartTime,
+        endTime: historyEndTime
+      });
+
+      const response = await fetch(`/api/obd/history?${params}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch historical data');
+      }
+
+      const data = await response.json();
+      setHistoryPoints(data.points || []);
+      setCurrentPointIndex(0);
+      setIsPlaying(false);
+    } catch (error) {
+      console.error('Error loading historical data:', error);
+      setHistoryPoints([]);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
+
+  // Playback animation
+  useEffect(() => {
+    if (!isPlaying || historyPoints.length === 0) return;
+
+    const interval = setInterval(() => {
+      setCurrentPointIndex((prevIndex) => {
+        if (prevIndex >= historyPoints.length - 1) {
+          setIsPlaying(false);
+          return prevIndex;
+        }
+        return prevIndex + 1;
+      });
+    }, 1000 / playbackSpeed); // Adjust speed
+
+    return () => clearInterval(interval);
+  }, [isPlaying, historyPoints.length, playbackSpeed]);
+
+  // Reset playback
+  const resetPlayback = () => {
+    setCurrentPointIndex(0);
+    setIsPlaying(false);
+  };
+
+  // Get current playback location
+  const playbackLocations = historyPoints.length > 0 ? [
+    {
+      ...historyPoints[currentPointIndex],
+      vehicleId: historyVehicleId,
+      deviceId: `history-${historyVehicleId}`,
+      displayName: `${vehicles.find(v => v.id.toString() === historyVehicleId)?.vehicleNumber || 'Vehicle'} (History)`
+    }
+  ] : [];
 
   if (vehiclesLoading) {
     return (
@@ -186,9 +253,9 @@ export default function GPSTrackingOBD() {
               {/* Map Container */}
               <div className="flex-1 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
                 <SimpleVehicleMap 
-                  locations={obdLocations}
+                  locations={historyPoints.length > 0 ? playbackLocations : obdLocations}
                   selectedVehicleId={effectiveVehicleId}
-                  focusVehicleId={focusVehicleId}
+                  focusVehicleId={historyPoints.length > 0 ? historyVehicleId : focusVehicleId}
                 />
               </div>
               
@@ -357,10 +424,11 @@ export default function GPSTrackingOBD() {
                       {/* Load Button */}
                       <Button 
                         className="w-full"
-                        disabled={!historyVehicleId}
+                        disabled={!historyVehicleId || isLoadingHistory}
+                        onClick={loadHistoricalData}
                         data-testid="load-history-btn"
                       >
-                        Load History
+                        {isLoadingHistory ? 'Loading...' : 'Load History'}
                       </Button>
 
                       {/* Playback Controls */}
@@ -373,7 +441,7 @@ export default function GPSTrackingOBD() {
                             variant="outline" 
                             size="sm"
                             onClick={() => setIsPlaying(!isPlaying)}
-                            disabled={!historyVehicleId}
+                            disabled={historyPoints.length === 0}
                             data-testid="play-pause-btn"
                           >
                             {isPlaying ? (
@@ -385,7 +453,8 @@ export default function GPSTrackingOBD() {
                           <Button 
                             variant="outline" 
                             size="sm"
-                            disabled={!historyVehicleId}
+                            onClick={resetPlayback}
+                            disabled={historyPoints.length === 0}
                             data-testid="reset-btn"
                           >
                             <RotateCcw className="w-4 h-4" />
@@ -409,10 +478,38 @@ export default function GPSTrackingOBD() {
                         </div>
                       </div>
 
+                      {/* Playback Progress */}
+                      {historyPoints.length > 0 && (
+                        <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                          <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400 mb-2">
+                            <span>Point {currentPointIndex + 1} of {historyPoints.length}</span>
+                            <span>{Math.round((currentPointIndex / historyPoints.length) * 100)}%</span>
+                          </div>
+                          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                            <div 
+                              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                              style={{ width: `${(currentPointIndex / historyPoints.length) * 100}%` }}
+                            />
+                          </div>
+                          {historyPoints[currentPointIndex] && (
+                            <div className="mt-3 text-xs text-gray-600 dark:text-gray-400">
+                              <div>Time: {new Date(historyPoints[currentPointIndex].timestamp).toLocaleString()}</div>
+                              <div>Speed: {Math.round(historyPoints[currentPointIndex].speed || 0)} mph</div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
                       {/* Info Message */}
                       {!historyVehicleId && (
                         <div className="text-sm text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 p-3 rounded-lg">
                           Select a vehicle and date range to view historical movement data.
+                        </div>
+                      )}
+                      
+                      {historyPoints.length > 0 && (
+                        <div className="text-sm text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 p-3 rounded-lg">
+                          ✓ Loaded {historyPoints.length} location points
                         </div>
                       )}
                     </div>
