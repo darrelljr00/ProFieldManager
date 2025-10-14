@@ -1,17 +1,21 @@
 import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Label } from "@/components/ui/label";
 import { QuoteForm } from "@/components/quote-form";
 import { QuotesTable } from "@/components/quotes-table";
 import { TrashedQuotesTable } from "@/components/trashed-quotes-table";
-import { Plus, FileText, TrendingUp, Clock, CheckCircle, Search, Filter, Trash2, Wrench } from "lucide-react";
-import type { Quote, Customer, QuoteLineItem } from "@shared/schema";
+import { Plus, FileText, TrendingUp, Clock, CheckCircle, Search, Filter, Trash2, Wrench, Edit, DollarSign } from "lucide-react";
+import type { Quote, Customer, QuoteLineItem, Service } from "@shared/schema";
+import { useToast } from "@/hooks/use-toast";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 
 export default function Quotes() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -19,6 +23,12 @@ export default function Quotes() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("all");
   const [activeTab, setActiveTab] = useState("active");
+  const [isServiceDialogOpen, setIsServiceDialogOpen] = useState(false);
+  const [selectedService, setSelectedService] = useState<Service | null>(null);
+  const [serviceName, setServiceName] = useState("");
+  const [servicePrice, setServicePrice] = useState("");
+  const [serviceTime, setServiceTime] = useState("");
+  const { toast } = useToast();
 
   const { data: quotes = [], isLoading, error } = useQuery<(Quote & { customer: Customer; lineItems: QuoteLineItem[] })[]>({
     queryKey: ["/api/quotes"],
@@ -27,6 +37,91 @@ export default function Quotes() {
   const { data: trashedQuotes = [], isLoading: trashedLoading, error: trashedError } = useQuery<(Quote & { customer: Customer; lineItems: QuoteLineItem[] })[]>({
     queryKey: ["/api/quotes/trash"],
   });
+
+  const { data: services = [], isLoading: servicesLoading } = useQuery<Service[]>({
+    queryKey: ["/api/services"],
+  });
+
+  const createServiceMutation = useMutation({
+    mutationFn: async (data: { name: string; price: string; estimatedCompletionTime: number }) => {
+      return await apiRequest("POST", "/api/services", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/services"] });
+      setIsServiceDialogOpen(false);
+      resetServiceForm();
+      toast({ title: "Service created successfully" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Error creating service", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const updateServiceMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: { name: string; price: string; estimatedCompletionTime: number } }) => {
+      return await apiRequest("PUT", `/api/services/${id}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/services"] });
+      setIsServiceDialogOpen(false);
+      resetServiceForm();
+      toast({ title: "Service updated successfully" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Error updating service", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const deleteServiceMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return await apiRequest("DELETE", `/api/services/${id}`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/services"] });
+      toast({ title: "Service deleted successfully" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Error deleting service", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const resetServiceForm = () => {
+    setSelectedService(null);
+    setServiceName("");
+    setServicePrice("");
+    setServiceTime("");
+  };
+
+  const openServiceDialog = (service?: Service) => {
+    if (service) {
+      setSelectedService(service);
+      setServiceName(service.name);
+      setServicePrice(service.price);
+      setServiceTime(service.estimatedCompletionTime.toString());
+    } else {
+      resetServiceForm();
+    }
+    setIsServiceDialogOpen(true);
+  };
+
+  const handleServiceSubmit = () => {
+    if (!serviceName || !servicePrice || !serviceTime) {
+      toast({ title: "Please fill in all fields", variant: "destructive" });
+      return;
+    }
+
+    const data = {
+      name: serviceName,
+      price: servicePrice,
+      estimatedCompletionTime: parseInt(serviceTime),
+    };
+
+    if (selectedService) {
+      updateServiceMutation.mutate({ id: selectedService.id, data });
+    } else {
+      createServiceMutation.mutate(data);
+    }
+  };
 
   // Calculate pending approvals count (sent quotes without response)
   const pendingApprovalsCount = useMemo(() => {
@@ -319,15 +414,131 @@ export default function Quotes() {
                   Manage your services with pricing and estimated completion times
                 </p>
               </div>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Service
-              </Button>
+              <Dialog open={isServiceDialogOpen} onOpenChange={setIsServiceDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button onClick={() => openServiceDialog()} data-testid="button-add-service">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Service
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>{selectedService ? "Edit Service" : "Add New Service"}</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="service-name">Service Name</Label>
+                      <Input
+                        id="service-name"
+                        value={serviceName}
+                        onChange={(e) => setServiceName(e.target.value)}
+                        placeholder="e.g., House Washing"
+                        data-testid="input-service-name"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="service-price">Price ($)</Label>
+                      <Input
+                        id="service-price"
+                        type="number"
+                        step="0.01"
+                        value={servicePrice}
+                        onChange={(e) => setServicePrice(e.target.value)}
+                        placeholder="e.g., 150.00"
+                        data-testid="input-service-price"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="service-time">Estimated Completion Time (minutes)</Label>
+                      <Input
+                        id="service-time"
+                        type="number"
+                        value={serviceTime}
+                        onChange={(e) => setServiceTime(e.target.value)}
+                        placeholder="e.g., 120"
+                        data-testid="input-service-time"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        This time is hidden in the UI and only used for analytics/reports
+                      </p>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsServiceDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button 
+                      onClick={handleServiceSubmit} 
+                      disabled={createServiceMutation.isPending || updateServiceMutation.isPending}
+                      data-testid="button-save-service"
+                    >
+                      {selectedService ? "Update" : "Create"} Service
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">
-                Service management coming soon...
-              </p>
+              {servicesLoading ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Loading services...
+                </div>
+              ) : services.length === 0 ? (
+                <div className="text-center py-8">
+                  <Wrench className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+                  <p className="text-lg font-medium mb-2">No services yet</p>
+                  <p className="text-muted-foreground">Add your first service to get started</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Service Name</TableHead>
+                      <TableHead>Price</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {services.map((service) => (
+                      <TableRow key={service.id} data-testid={`row-service-${service.id}`}>
+                        <TableCell className="font-medium" data-testid={`text-service-name-${service.id}`}>
+                          {service.name}
+                        </TableCell>
+                        <TableCell data-testid={`text-service-price-${service.id}`}>
+                          <div className="flex items-center">
+                            <DollarSign className="h-4 w-4 mr-1" />
+                            {parseFloat(service.price).toFixed(2)}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openServiceDialog(service)}
+                              data-testid={`button-edit-service-${service.id}`}
+                            >
+                              <Edit className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                if (confirm(`Delete "${service.name}"?`)) {
+                                  deleteServiceMutation.mutate(service.id);
+                                }
+                              }}
+                              data-testid={`button-delete-service-${service.id}`}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
