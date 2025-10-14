@@ -4918,6 +4918,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           name: `${quote.customer.name} - Quote ${quote.quoteNumber}`,
           description: `Job scheduled from quote ${quote.quoteNumber}`,
           customerId: quote.customerId,
+          userId: user.id,
           organizationId: user.organizationId,
           startDate: jobDate,
           endDate: jobDate,
