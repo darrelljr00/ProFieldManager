@@ -19312,15 +19312,19 @@ ${fromName || ''}
 
       console.log(`📜 Fetching historical data for vehicle ${vehicleId} from ${start} to ${end}`);
 
-      // Find the device ID from location data or use vehicle number as device name
-      const deviceName = vehicle.vehicleNumber;
+      // Use OneStep GPS device ID if available, otherwise fall back to vehicle number
+      const deviceId = vehicle.oneStepGpsDeviceId || vehicle.vehicleNumber;
+      
+      if (!vehicle.oneStepGpsDeviceId) {
+        console.warn(`⚠️ Vehicle ${vehicleId} does not have a OneStep GPS device ID configured`);
+      }
 
       // Fetch historical results from OneStep GPS
       // Using device/result-list endpoint for historical trip data
       const response = await fetch(
         `https://track.onestepgps.com/v3/api/public/device/result-list?` +
         `api-key=${apiKey}&` +
-        `device=${encodeURIComponent(deviceName)}&` +
+        `device=${encodeURIComponent(deviceId)}&` +
         `start_timestamp=${startTimestamp}&` +
         `end_timestamp=${endTimestamp}&` +
         `max_points=1000`
@@ -19351,7 +19355,7 @@ ${fromName || ''}
       res.json({ 
         points,
         vehicleId: parseInt(vehicleId as string),
-        deviceName,
+        deviceId,
         dateRange: { start, end },
         count: points.length
       });

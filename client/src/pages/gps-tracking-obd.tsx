@@ -374,7 +374,7 @@ export default function GPSTrackingOBD() {
                           <SelectContent>
                             {vehicles.map(vehicle => (
                               <SelectItem key={vehicle.id} value={vehicle.id.toString()}>
-                                {vehicle.vehicleNumber} - {vehicle.licensePlate}
+                                {vehicle.vehicleNumber} {vehicle.make && vehicle.model ? `- ${vehicle.make} ${vehicle.model}` : ''} ({vehicle.licensePlate})
                               </SelectItem>
                             ))}
                           </SelectContent>

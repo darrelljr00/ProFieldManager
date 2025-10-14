@@ -4451,6 +4451,9 @@ export const vehicles = pgTable("vehicles", {
   notes: text("notes"),
   photoUrl: text("photo_url"), // Vehicle photo
   
+  // GPS Tracking Integration
+  oneStepGpsDeviceId: text("onestep_gps_device_id"), // OneStep GPS device ID for tracking
+  
   // Tracking
   isActive: boolean("is_active").default(true),
   createdBy: integer("created_by").notNull().references(() => users.id),
