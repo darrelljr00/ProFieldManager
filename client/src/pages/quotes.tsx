@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
 import { QuoteForm } from "@/components/quote-form";
 import { QuotesTable } from "@/components/quotes-table";
@@ -616,10 +617,43 @@ export default function Quotes() {
                           </div>
                         </TableCell>
                         <TableCell data-testid={`text-service-materials-cost-${service.id}`}>
-                          <div className="flex items-center">
-                            <DollarSign className="h-4 w-4 mr-1" />
-                            {parseFloat(service.materialsCost || "0").toFixed(2)}
-                          </div>
+                          {service.materials && (service.materials as any[]).length > 0 ? (
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button variant="ghost" className="h-auto py-1 px-2" data-testid={`button-materials-details-${service.id}`}>
+                                  <div className="flex items-center">
+                                    <DollarSign className="h-4 w-4 mr-1" />
+                                    {parseFloat(service.materialsCost || "0").toFixed(2)}
+                                    <span className="ml-1 text-xs text-muted-foreground">({(service.materials as any[]).length} items)</span>
+                                  </div>
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-64">
+                                <div className="space-y-2">
+                                  <h4 className="font-medium text-sm">Materials Breakdown</h4>
+                                  <div className="space-y-1">
+                                    {(service.materials as any[]).map((material: any, idx: number) => (
+                                      <div key={idx} className="flex justify-between text-xs" data-testid={`material-breakdown-${service.id}-${idx}`}>
+                                        <span className="truncate flex-1">{material.name}</span>
+                                        <span className="ml-2 font-medium">${parseFloat(material.cost || 0).toFixed(2)}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                  <div className="border-t pt-1 mt-2">
+                                    <div className="flex justify-between text-sm font-medium">
+                                      <span>Total:</span>
+                                      <span>${parseFloat(service.materialsCost || "0").toFixed(2)}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                          ) : (
+                            <div className="flex items-center">
+                              <DollarSign className="h-4 w-4 mr-1" />
+                              {parseFloat(service.materialsCost || "0").toFixed(2)}
+                            </div>
+                          )}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
