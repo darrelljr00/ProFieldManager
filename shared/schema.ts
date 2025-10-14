@@ -386,6 +386,7 @@ export const services = pgTable("services", {
   organizationId: integer("organization_id").notNull().references(() => organizations.id),
   name: text("name").notNull(),
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  materialsCost: decimal("materials_cost", { precision: 10, scale: 2 }).default("0").notNull(),
   estimatedCompletionTime: integer("estimated_completion_time").notNull(), // in minutes
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -1816,6 +1817,7 @@ export const insertQuoteAvailabilitySchema = z.object({
 export const insertServiceSchema = createInsertSchema(services, {
   name: z.string().min(1, "Service name is required"),
   price: z.string().regex(/^\d+(\.\d{1,2})?$/, "Price must be a valid decimal"),
+  materialsCost: z.string().regex(/^\d+(\.\d{1,2})?$/, "Materials cost must be a valid decimal").optional(),
   estimatedCompletionTime: z.number().positive("Estimated time must be positive"),
 }).omit({
   id: true,
