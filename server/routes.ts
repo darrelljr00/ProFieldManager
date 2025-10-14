@@ -19177,8 +19177,10 @@ ${fromName || ''}
             
             // Log first device structure to understand API response
             if (devices && Array.isArray(devices) && devices.length > 0) {
-              console.log('🔍 Sample OneStep GPS device data:');
+              console.log('🔍 FULL OneStep GPS device data (first device):');
               console.log(JSON.stringify(devices[0], null, 2));
+              console.log('🔍 All device display names:', devices.map((d: any) => d.display_name));
+              console.log('🔍 Devices with coordinates:', devices.filter((d: any) => d.lat && d.lng).length);
             } else {
               console.log('⚠️ No devices in response or response is not an array');
             }
