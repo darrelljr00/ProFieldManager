@@ -19265,24 +19265,10 @@ ${fromName || ''}
   app.get("/api/obd/history", requireAuth, async (req, res) => {
     try {
       const user = getAuthenticatedUser(req);
-      const { vehicleId, date, startTime, endTime } = req.query;
+      const { deviceId, date, startTime, endTime } = req.query;
 
-      if (!vehicleId || !date) {
-        return res.status(400).json({ message: "Vehicle ID and date are required" });
-      }
-
-      // Get the vehicle to find its device ID
-      const [vehicle] = await db
-        .select()
-        .from(vehicles)
-        .where(and(
-          eq(vehicles.id, parseInt(vehicleId as string)),
-          eq(vehicles.organizationId, user.organizationId)
-        ))
-        .limit(1);
-
-      if (!vehicle) {
-        return res.status(404).json({ message: "Vehicle not found" });
+      if (!deviceId || !date) {
+        return res.status(400).json({ message: "Device ID and date are required" });
       }
 
       // Get OneStep GPS API key
@@ -19310,14 +19296,7 @@ ${fromName || ''}
       const startTimestamp = Math.floor(new Date(start).getTime() / 1000);
       const endTimestamp = Math.floor(new Date(end).getTime() / 1000);
 
-      console.log(`📜 Fetching historical data for vehicle ${vehicleId} from ${start} to ${end}`);
-
-      // Use OneStep GPS device ID if available, otherwise fall back to vehicle number
-      const deviceId = vehicle.oneStepGpsDeviceId || vehicle.vehicleNumber;
-      
-      if (!vehicle.oneStepGpsDeviceId) {
-        console.warn(`⚠️ Vehicle ${vehicleId} does not have a OneStep GPS device ID configured`);
-      }
+      console.log(`📜 Fetching historical data for device ${deviceId} from ${start} to ${end}`);
 
       // Fetch historical results from OneStep GPS
       // Using device/result-list endpoint for historical trip data
@@ -19354,8 +19333,7 @@ ${fromName || ''}
 
       res.json({ 
         points,
-        vehicleId: parseInt(vehicleId as string),
-        deviceId,
+        deviceId: deviceId as string,
         dateRange: { start, end },
         count: points.length
       });

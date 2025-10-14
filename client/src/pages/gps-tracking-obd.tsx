@@ -14,7 +14,7 @@ export default function GPSTrackingOBD() {
   const [focusVehicleId, setFocusVehicleId] = useState<string | null>(null);
   
   // History playback state
-  const [historyVehicleId, setHistoryVehicleId] = useState<string | null>(null);
+  const [historyDeviceId, setHistoryDeviceId] = useState<string | null>(null);
   const [historyDate, setHistoryDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [historyStartTime, setHistoryStartTime] = useState<string>("00:00");
   const [historyEndTime, setHistoryEndTime] = useState<string>("23:59");
@@ -62,12 +62,12 @@ export default function GPSTrackingOBD() {
 
   // Load historical data function
   const loadHistoricalData = async () => {
-    if (!historyVehicleId) return;
+    if (!historyDeviceId) return;
 
     setIsLoadingHistory(true);
     try {
       const params = new URLSearchParams({
-        vehicleId: historyVehicleId,
+        deviceId: historyDeviceId,
         date: historyDate,
         startTime: historyStartTime,
         endTime: historyEndTime
@@ -115,12 +115,12 @@ export default function GPSTrackingOBD() {
   };
 
   // Get current playback location
+  const selectedHistoryVehicle = obdLocations.find(loc => loc.deviceId === historyDeviceId);
   const playbackLocations = historyPoints.length > 0 ? [
     {
       ...historyPoints[currentPointIndex],
-      vehicleId: historyVehicleId,
-      deviceId: `history-${historyVehicleId}`,
-      displayName: `${vehicles.find(v => v.id.toString() === historyVehicleId)?.vehicleNumber || 'Vehicle'} (History)`
+      deviceId: `history-${historyDeviceId}`,
+      displayName: `${selectedHistoryVehicle?.displayName || historyDeviceId} (History)`
     }
   ] : [];
 
@@ -255,7 +255,7 @@ export default function GPSTrackingOBD() {
                 <SimpleVehicleMap 
                   locations={historyPoints.length > 0 ? playbackLocations : obdLocations}
                   selectedVehicleId={effectiveVehicleId}
-                  focusVehicleId={historyPoints.length > 0 ? historyVehicleId : focusVehicleId}
+                  focusVehicleId={historyPoints.length > 0 ? historyDeviceId : focusVehicleId}
                 />
               </div>
               
@@ -365,16 +365,16 @@ export default function GPSTrackingOBD() {
                           Select Vehicle
                         </Label>
                         <Select 
-                          value={historyVehicleId || ""} 
-                          onValueChange={setHistoryVehicleId}
+                          value={historyDeviceId || ""} 
+                          onValueChange={setHistoryDeviceId}
                         >
                           <SelectTrigger id="history-vehicle">
                             <SelectValue placeholder="Choose a vehicle" />
                           </SelectTrigger>
                           <SelectContent>
-                            {vehicles.map(vehicle => (
-                              <SelectItem key={vehicle.id} value={vehicle.id.toString()}>
-                                {vehicle.vehicleNumber} {vehicle.make && vehicle.model ? `- ${vehicle.make} ${vehicle.model}` : ''} ({vehicle.licensePlate})
+                            {obdLocations.map(location => (
+                              <SelectItem key={location.deviceId} value={location.deviceId}>
+                                {location.displayName || location.deviceId}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -424,7 +424,7 @@ export default function GPSTrackingOBD() {
                       {/* Load Button */}
                       <Button 
                         className="w-full"
-                        disabled={!historyVehicleId || isLoadingHistory}
+                        disabled={!historyDeviceId || isLoadingHistory}
                         onClick={loadHistoricalData}
                         data-testid="load-history-btn"
                       >
@@ -462,7 +462,7 @@ export default function GPSTrackingOBD() {
                           <Select 
                             value={playbackSpeed.toString()} 
                             onValueChange={(value) => setPlaybackSpeed(parseFloat(value))}
-                            disabled={!historyVehicleId}
+                            disabled={!historyDeviceId}
                           >
                             <SelectTrigger className="w-24">
                               <SelectValue />
@@ -501,7 +501,7 @@ export default function GPSTrackingOBD() {
                       )}
 
                       {/* Info Message */}
-                      {!historyVehicleId && (
+                      {!historyDeviceId && (
                         <div className="text-sm text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 p-3 rounded-lg">
                           Select a vehicle and date range to view historical movement data.
                         </div>
