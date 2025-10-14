@@ -1,0 +1,4058 @@
+
+One Step GPS REST API
+
+The One Step GPS REST API is designed to make integration with your custom application simple and fast.
+
+For a basic use case of the One Step REST API, please take a look at the API User Guide.
+Please Note: This API is currently under development and subject to change. Effort will be made to keep the URLs, parameters, and fields documented below functioning as documented on a best-effort basis. The result of these API calls may also contain additional undocumented fields, likely to change as development continues. Calls and data which become stable will be added to the documentation to express the intention to support this feature moving forward.
+Getting Started
+Endpoint
+
+The REST API is accessed over HTTPS and all endpoints have this prefix: https://track.onestepgps.com/v3/api/public/
+Authentication
+
+To use the One Step GPS REST API you will need an API key. API keys can be obtained upon request. Please email integration@onestepgps.com and include a brief description of your intended use of the API.
+
+Important Note: API keys should be kept secure and only used on trusted machines. All calls are made over HTTPS. Do not provide your API key to anyone who should not have full access to your One Step GPS account. Do not expose API keys in the source code of public web pages.
+
+API keys shown below are for demonstration purposes only, use your own API key when testing/developing.
+
+Once an API key is obtained you can use it to authenticate your requests using the Authorization HTTP request header, like so:
+
+GET /v3/api/public/device-info HTTP/1.1
+Host: track.onestepgps.com
+Authorization: Bearer V8rjndh7Kv8b5DOvYzdJuhXJLiuDZdgywDEiWGrMECg
+
+Or you can provide it as the api-key query parameter:
+
+https://track.onestepgps.com/v3/api/public/device-info?lat_lng=1&api-key=V8rjndh7Kv8b5DOvYzdJuhXJLiuDZdgywDEiWGrMECg
+CURL Example
+
+The examples below use curl. If you are using Mac or Linux you most likely already have this tool installed. For Windows it can be downloaded here. The API key should be included in the Authorization header preceded by "Bearer ".
+
+To get a list of devices associated with your user account (and API key) with curl is as simple as:
+
+curl -H 'Authorization: Bearer V8rjndh7Kv8b5DOvYzdJuhXJLiuDZdgywDEiWGrMECg' https://track.onestepgps.com/v3/api/public/device-info?lat_lng=1
+
+You can alternatively provide the API key with the api-key query parameter. For example:
+
+ curl 'https://track.onestepgps.com/v3/api/public/device-info?lat_lng=1&api-key=<your-api-key>'
+
+Note: For ease of development, if you are logged in the API key can be omitted from requests.
+API Calls
+
+The rest of this document shows the available calls. For simple use cases to display devices and their current/recent history, the usual pattern is to search the devices (/v3/api/public/device-info) and then query for individual points (/v3/api/public/device-point).
+Times
+
+All times are sent and received in RFC3339 format (which includes the timezone offset). For example: 2020-01-02T10:11:12.321-07:00 means 2 Jan 2020 10:11am and 12.321 seconds with an offset of -7 hours from UTC. For UTC times, Z can be substituted for the time zone, e.g. this is the same exact moment in time in UTC: 2020-01-02T17:11:12.321Z The fractional seconds portion is optional when sending times. Times received from the API may or may not have fractional seconds, depending on the context. Any standard RFC3339 time formatter and parser will work correctly with the API.
+Advanced Usage and Integration
+
+The REST API described here is intended to work for the most common integration patterns. API keys are issued with an hourly request limit that should be suitable for most needs.
+
+If you find something in this API doesn't suite your needs, contact us at integration@onestepgps.com and let us know. We'll do our best to accommodate your custom integration request.
+Alert
+Alert - Get Alert by Alert ID
+
+Fetch a specific alert using the alert_id and device_id.
+
+get
+
+/v3/api/public/alert/:alert_id/device/:device_id
+
+path
+Field 	Type 	Description
+alert_id 	string 	
+
+the unique identifier for this alert
+device_id 	string 	
+
+the unique identifier for this device
+
+    Success-Response:
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+{
+	// Alert
+}
+
+Alert - Get Alerts by Device ID
+
+Retrieve specific alerts by device ID. Returns an encoded cursor marking the start of the next 'page' of alerts.
+
+get
+
+/v3/api/public/alert/device/:device_id
+
+path
+Field 	Type 	Description
+device_id 	string 	
+
+the unique identifier for this device
+query
+Field 	Type 	Description
+limit 	Number 	
+
+The maximum number of alerts to return. Max is 5000.
+alert_cursor 	string 	
+
+The cursor marking the start of the next 'page' of alerts.
+alert_at_from 	string 	
+
+The start time for filtering alerts.
+alert_at_to 	string 	
+
+The end time for filtering alerts.
+asc optional 	Boolean 	
+
+Order the results in ascending order if true, otherwise in descending order.
+
+Default value: false
+search_text optional 	string 	
+
+Text to search within the alert descriptions. Case-insensitive.
+Success 200
+Field 	Type 	Description
+result_length 	Number 	
+
+The number of alerts returned.
+result_list 	Object[] 	
+
+The list of alerts.
+alert_cursor optional 	String 	
+
+The cursor marking the start of the next 'page' of alerts.
+outside_time_bound 	String 	
+
+The outer bound of the alert search time period. This is the latest time when going forward, and the earliest time when going backward.
+
+    Success-Response:
+
+	HTTP/1.1 200 OK
+	Content-Type: application/json
+{
+  "alert_cursor": "MjAyNC0wNy0yNVQyMTowNToyMVosNmpIZ2FXQkdQcFBJZC04MWYwNy0xaw==",
+  "outside_time_bound": "2024-07-25T21:05:21Z",
+  "result_length": 50,
+  "result_list": [
+			{
+				// Alert
+			},
+			// ...
+		]
+}
+
+Alert - Get Alerts by Device Point
+
+Retrieve all alerts for a specific device point identified by device_id and device_point_id
+
+get
+
+/v3/api/public/alert/device/:device_id/device-point/:device_point_id
+
+path
+Field 	Type 	Description
+device_point_id 	string 	
+
+the unique identifier for this device point
+device_id 	string 	
+
+the unique identifier for this device
+Success 200
+Field 	Type 	Description
+result_length 	Number 	
+
+The number of alerts returned.
+result_list 	Object[] 	
+
+The list of alerts.
+
+    Success-Response:
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+{
+   "result_length":1,
+   "result_list":[
+	{
+		// Alert
+	}
+   ]
+}
+
+Alert - Get Alerts for User
+
+Get alerts for a user. Returns an encoded cursor with the start of the next 'page' of alerts.
+
+get
+
+v3/api/public/alert/user/devices/
+
+query
+Field 	Type 	Description
+limit 	Number 	
+
+The maximum number of alerts to return. Max is 5000.
+alert_cursor 	string 	
+
+The cursor marking the start of the next 'page' of alerts.
+alert_at_from 	string 	
+
+The start time for filtering alerts.
+alert_at_to 	string 	
+
+The end time for filtering alerts.
+asc optional 	Boolean 	
+
+Order the results in ascending order if true, otherwise in descending order.
+
+Default value: false
+search_text optional 	string 	
+
+Text to search within the alert descriptions. Case-insensitive.
+Success 200
+Field 	Type 	Description
+result_length 	Number 	
+
+The number of alerts returned.
+result_list 	Object[] 	
+
+The list of alerts.
+alert_cursor optional 	String 	
+
+The cursor marking the start of the next 'page' of alerts.
+outside_time_bound 	String 	
+
+The outer bound of the alert search time period. This is the latest time when going forward, and the earliest time when going backward.
+
+    Success-Response:
+
+	HTTP/1.1 200 OK
+	Content-Type: application/json
+{
+  "alert_cursor": "MjAyNC0wNy0yNVQyMTowNToyMVosNmpIZ2FXQkdQcFBJZC04MWYwNy0xaw==",
+  "outside_time_bound": "2024-07-25T21:05:21Z",
+  "result_length": 50,
+  "result_list": [
+	 		{
+				// Alert
+	 		},
+	 		// ...
+ 	]
+	}
+
+Assignee
+Assignee - Create Assignee
+
+Create an Assignee
+
+post
+
+/v3/api/public/assignee
+
+Query
+Field 	Type 	Description
+create_user 	String 	
+
+boolean which indicates if a user should be created for this assignee
+Body
+Field 	Type 	Description
+assignee_type 	String 	
+
+Required. Options: person, trailer
+fob_id 	String 	
+
+Optional id of fob associated with the assignee
+time_zone 	String 	
+
+Required when create_user is true to set user timezone
+data 	String 	
+
+the data for the assignee
+  name 	String 	
+
+Required assignee name
+  address 	String 	
+
+Optional assignee address
+  phone 	String 	
+
+Optional assignee phone number
+  phone_provider 	String 	
+
+Optional assignee phone provider address, ex. @mms.att.net
+  email 	String 	
+
+Required when create_user is true to set user email address
+  description 	String 	
+
+Optional assignee description
+  trailer_model 	String 	
+
+Optional when assignee_type is 'trailer', set trailer model
+  trailer_vin 	String 	
+
+Optional when assignee_type is 'trailer', set trailer vin
+  trailer_plate_number 	String 	
+
+Optional when assignee_type is 'trailer', set trailer plate number
+  dispatching_driver 	Boolean 	
+
+Optional when create_user is true to make new user a dispatch driver
+
+    Request Example
+    Request Body
+
+https://track.onestepgps.com/v3/api/public/assignee
+
+    Success-Response:
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+{}   // Assignee
+
+Assignee - Delete Assignee
+
+Delete an Assignee by ID.
+
+delete
+
+/v3/api/public/assignee/:assignee_id
+
+Parameter
+Field 	Type 	Description
+assignee_id 	String 	
+
+ID of the Zone Group to delete
+
+    Request Example
+
+https://track.onestepgps.com/v3/api/public/assignee/6eIExvA7NIHmMk81f08-0-
+
+    Success-Response:
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+{}   // Assignee
+
+Assignee - Fetch Assignee
+
+Get an Assignee with the specified ID. Will return a 404 if the object cannot be found.
+
+get
+
+/v3/api/public/assignee/:assignee_id
+
+Parameter
+Field 	Type 	Description
+assignee_id 	String 	
+
+ID of the Assignee to return
+
+    Request Example
+
+https://track.onestepgps.com/v3/api/public/assignee/6eIExvA7NIHmMk81f08-0-
+
+    Success-Response:
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+{}   // Assignee
+
+Assignee - Search Assignees
+
+Returns a list of Assignees (drivers, passengers or trailers).
+
+get
+
+/v3/api/public/assignee
+
+Query
+Field 	Type 	Description
+assignee_type_list 	String 	
+
+filter by assignee types
+assignee_user_id_list 	String 	
+
+filter by the user_ids attached to some assignees
+customer_id 	String 	
+
+Customer to use for lookup (admin)
+limit 	Number 	
+
+limit of assignees to return
+user_groups 	Boolean 	
+
+return user_groups attached to assignees
+offset 	Number 	
+
+offset of assignees to return
+
+    Request Example
+
+https://track.onestepgps.com/v3/api/public/assignee?assignee_type_list=person
+
+    Success-Response:
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+[{},{}]   // Assignees
+
+Assignee - Update Assignee
+
+Update an Assignee by ID. Will return an error if the object cannot be found or validation error occurs. The updated object will be returned.
+
+put
+
+/v3/api/public/assignee/:assignee_id
+
+Parameter
+Field 	Type 	Description
+assignee_id 	String 	
+
+ID of the Assignee to update
+Body
+Field 	Type 	Description
+assignee_type 	String 	
+
+Required. Options: person, trailer
+fob_id 	String 	
+
+Optional id of fob associated with the assignee
+data 	String 	
+
+the data for the assignee
+  name 	String 	
+
+Required assignee name
+  address 	String 	
+
+Optional assignee address
+  phone 	String 	
+
+Optional assignee phone number
+  phone_provider 	String 	
+
+Optional assignee phone provider address, ex. @mms.att.net
+  email 	String 	
+
+Required when create_user is true to set user email address
+  description 	String 	
+
+Optional assignee description
+  trailer_model 	String 	
+
+Optional when assignee_type is 'trailer', set trailer model
+  trailer_vin 	String 	
+
+Optional when assignee_type is 'trailer', set trailer vin
+  trailer_plate_number 	String 	
+
+Optional when assignee_type is 'trailer', set trailer plate number
+  dispatching_driver 	Boolean 	
+
+Optional when create_user is true to make new user a dispatch driver
+
+    Request Example
+    Request Body
+
+https://track.onestepgps.com/v3/api/public/assignee/6eIExvA7NIHmMk81f08-0-
+
+    Success-Response:
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+{}   // Assignee
+
+DTCLog
+DTCLog - Search DTC Log list
+
+Returns a paginated list of DTC logs for the specified device(s) within the specified time range.
+
+get
+
+/v3/api/public/dtc-log/paginated
+
+query
+Field 	Type 	Description
+device_id 	Array 	
+
+Id of device for which the DTC logs will be returned. To search for DTC logs of multiple devices, you can pass multiple device_id query params. Optional, all devices will be used if no device_ids are passed.
+time_from 	String 	
+
+Starting time of the search time range. Optional, if not passed the current time - 24 hours will be used.
+time_to 	String 	
+
+Ending time of the search time range. Optional, if not passed the current time will be used.
+boundary_time 	String 	
+
+Time of the boundary log. Optional, if not passed the current time will be used.
+boundary_id 	String 	
+
+Id of the boundary log. Optional, if not passed the current time will be used.
+sord 	String 	
+
+Sort order of the logs. Optional, default is desc.
+limit 	Number 	
+
+Number of logs to return. Optional, default is 10.
+offset 	Number 	
+
+Number of logs to skip. Optional, default is 0.
+total 	Number 	
+
+Total number of logs to return. Optional, default is 0.
+
+    Request Example
+
+https://track.onestepgps.com/v3/api/public/dtc-log/paginated?device_id=4572335517&time_from=2025-02-03T06%3A00%3A00.000Z&time_to=2025-02-09T06%3A00%3A00.000Z&boundary_id=&sord=desc&limit=10&offset=0&total=0&vuid=6i_9Cd3CPHLNb-81f07-1V
+
+    Success-Response:
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+{
+   total: 641,
+   data: [{
+     dtc_log_id: "6cA6hJ6KQ6LZKk81f07--V",
+     device_point_id: "6cA6hJ5hN0TZKk81f07--V",
+     device_id: "6cA6hJ5MNfTZKk81f07--V",
+     point_detail_index: 2,
+     dt_server: "2021-07-02T19:29:06.192785Z",
+     dt_tracker: "2021-07-02T19:29:06Z",
+     created_at: "2021-07-02T19:29:07Z",
+     updated_at: "2021-07-02T19:29:07Z",
+     code: "S247",
+     fmi: "2",
+     mid: "128",
+     code_description: "Brake Pedal Switch #2",
+     fmi_description: "Data Erratic, Intermittent Or Incorrect",
+     position: {
+       lat: 47.123456,
+       lng: -122.123456
+     },
+     formatted_address: "1234 Main St, Anytown, USA"
+   },
+   {
+     // Next dtc log
+   },
+	  ...
+	  ],
+}
+
+Device
+Device
+
+Searches for devices with the given criteria from the request URL. Will return an error if validation error occurs.
+
+get
+
+/v3/api/public/device
+
+    Request Example
+
+https://track.onestepgps.com/v3/api/public/device?limit=3&criteria=[{"field":"active_state","op":"%3d","value":"active"}]
+
+Device
+
+Searches for devices with the given criteria from the body. Will return an error if validation error occurs.
+
+post
+
+/v3/api/public/device
+
+    Request Example
+
+https://track.onestepgps.com/v3/api/public/device?vuid=1234
+
+Device - Device Action
+
+Send a request for a specific action to a device. Currently supports starter enable and disable. The return is a JSON object describing the message sent to the device.
+
+get
+
+/v3/api/public/device-action/:id
+
+path
+Field 	Type 	Description
+id 	String 	
+
+the unique ID of the device
+query
+Field 	Type 	Description
+action 	String 	
+
+Either starter_enable or starter_disable
+
+    Request Example (starter_enable)
+    Request Example (starter_disable)
+
+https://track.onestepgps.com/v3/api/public/device-action/6dAzEXpeNMmXB-91f07-0-?action=starter_enable
+
+Device - Device Info
+
+Get information for one or more Devices. This endpoint makes it simple to retrieve commonly used information about devices, such as names, IDs, current location, etc. Results are limited to the devices accessible to your user account/API key. For more information on state and device values (e.g., speed, battery level, odometer), refer to the Device Point documentation.
+
+get
+
+/v3/api/public/device-info
+
+query
+Field 	Type 	Description
+display_name_match 	String 	
+
+Only show devices where the name matches this regexp
+display_name_not_match 	String 	
+
+Only show devices where the name does not match this regexp
+device_id_match 	String 	
+
+Only show devices where the ID matches this regexp
+device_id_not_match 	String 	
+
+Only show devices where the ID does not match this regexp
+active_state_match 	String 	
+
+Return devices that match parameter state
+device_group_match 	String 	
+
+Only show devices where the device group name matches this regexp
+device 	Boolean 	
+
+Return all fields directly connected to the device
+device_custom_fields 	Boolean 	
+
+Return all custom fields added to the device
+license_plate 	Boolean 	
+
+Return the license plate number for a device
+display_name 	Boolean 	
+
+Return the display name
+device_id 	Boolean 	
+
+Return the device ID
+factory_id 	Boolean 	
+
+Return the factory ID
+make 	Boolean 	
+
+Return the device make
+model 	Boolean 	
+
+Return the device model
+active_state 	Boolean 	
+
+Return the active state of the device
+state_detail 	Boolean 	
+
+Return all fields related to each device's state and detail plus fields returned with "device" option
+lat_lng 	Boolean 	
+
+Return the devices current location (latitude and longitude)
+dt_tracker 	Boolean 	
+
+Return the dt_tracker field (the time this info was recorded on the tracking device)
+drive_status 	Boolean 	
+
+Return drive_status field
+drive_status_duration_s 	Boolean 	
+
+Return drive_status_duration_s (in seconds)
+drive_status_distance_mi 	Boolean 	
+
+Return drive_status_distance_mi (in miles)
+drive_status_distance_km 	Boolean 	
+
+Return drive_status_distance_mi (in kilometers)
+drive_status_begin_time 	Boolean 	
+
+Return drive_status_begin_time
+v2_engine_hours 	Boolean 	
+
+Return v2 engine_hours field
+device_engine_hours 	Boolean 	
+
+Return engine_hours
+acc 	Boolean 	
+
+Return acc field
+speed_mph 	Boolean 	
+
+Return speed_mph field
+speed_kph 	Boolean 	
+
+Return speed_kph field
+altitude_m 	Boolean 	
+
+Return altitude_m field (altitude in meters)
+heading 	Boolean 	
+
+Return heading field
+num_satellites 	Boolean 	
+
+Return num_satellites field
+hdop 	Boolean 	
+
+Return hdop field
+fuel_percent 	Boolean 	
+
+Return fuel percentage field
+thermometer_temp_list_f 	Boolean 	
+
+Return json array of floats of temperatures in F
+thermometer_temp_list_c 	Boolean 	
+
+Return json array of floats of temperatures in C
+ev_battery_health_percent 	Boolean 	
+
+Return ev_battery_health_percent field
+ev_charge_percent 	Boolean 	
+
+Return ev_charge_percent field
+ev_average_energy_consumption 	Boolean 	
+
+Return ev_average_energy_consumption field
+vin 	Boolean 	
+
+Return vin field (either manually entered or detected from ECU)
+decode_vin 	Boolean 	
+
+returns decoded VIN information (Year, Make, Model)
+external_volt 	Boolean 	
+
+Return external_volt field
+backup_battery_volt 	Boolean 	
+
+Return backup_battery_volt field
+odometer_mi 	Boolean 	
+
+Return odometer_mi field (odometer value in miles)
+odometer_km 	Boolean 	
+
+Return odometer_km field (odometer value in kilometers)
+honored_gps_time 	Boolean 	
+
+Returns the time that the gps location is honored/trusted as of the request
+in_zones 	Boolean 	
+
+Return zone ID(s) and display name(s) as JSON
+in_zone_names 	Boolean 	
+
+Returns in_zone_names field as comma-separated list of zone names
+in_zone_ids 	Boolean 	
+
+Returns in_zone_ids field as comma-separated list of zone IDs
+in_device_groups 	Boolean 	
+
+Return device group ID(s) and display name(s) as JSON
+in_device_group_names 	Boolean 	
+
+Returns a comma-separated list of device group names
+in_device_group_ids 	Boolean 	
+
+Returns a comma-separated list of device group IDs
+latest_device_point 	Boolean 	
+
+Returns the latest device point
+latest_accurate_device_point 	Boolean 	
+
+Returns the latest accurate device point
+odometer_type 	Boolean 	
+
+    Returns the device's odometer type from settings
+
+auto_fix_stuck_odometer 	Boolean 	
+
+    Returns the device's auto fix stuck odometer settings
+
+format 	String 	
+
+"json" (default) or "csv", indicates the output format
+
+    Request Example (Device ID, Display Name and Coordinates)
+    Request Example (State and Detail Information)
+
+// This request fetches devices along with their display names and latitude/longitude coordinates.
+https://track.onestepgps.com/v3/api/public/device-info?device_id=1&display_name=1&lat_lng=1
+
+    Success-Response (Device ID, Display Name and Coordinates):
+    Success-Response (State and Detail Information):
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+[
+    {
+        "device_id": "6ceQekmYQ99YOF81f0B-01",
+        "display_name": "Example Vehicle 1"
+        "lat": 47.123456,
+        "lng": -122.123456
+        // additional fields based on the parameters requested
+    },
+    {
+        "device_id": "6ceQekmYQ99YOF81f0B-02",
+        "display_name": "Example Vehicle 2"
+        "lat": 47.123456,
+        "lng": -122.123456
+        // additional fields based on the parameters requested
+    }
+]
+
+Device - Fetch Device
+
+Get a Device with the specified ID. Will return an error if the object cannot be found.
+
+get
+
+/v3/api/public/device/:id
+
+Parameter
+Field 	Type 	Description
+id 	String 	
+
+ID of the Device to return
+Success 200
+Field 	Type 	Description
+device_id 	String 	
+
+Unique id of the device.
+activated_at 	String 	
+
+The first time we received a point after the device was activated on the customer's account
+active_state 	String 	
+
+Indicates the state of the device. "active" is the usual value. Devices which are not currently enabled may have other states including "none".
+display_name 	String 	
+
+The customer-provided name of this device.
+factory_id 	String 	
+
+Manufacturer-provided identifier for this device. Can be IMEI, ESN or other value depending on hardware.
+
+    Success-Response:
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+    "device_id": "6ceQekmYQ99YOF81f0B-0V",
+    "activated_at": "2018-08-27T05:33:12Z"
+    "active_state": "active",
+    "created_at": "2018-08-27T05:33:12Z",
+    "display_name": "Example Vehicle",
+    "factory_id": "4000000001",
+    "updated_at": "2018-08-27T05:33:12Z",
+}
+
+Device - Get troubleshooting messages for devices
+
+returns troubleshooting messages for specified device ids
+
+get
+
+/v3/api/public/troubleshooting/device
+
+query
+Field 	Type 	Description
+device_ids 	String 	
+
+the unique identifiers of the specified devices
+Device - Search for Devices
+
+Search for Devices. Results are limited to the devices accessible to your user account/API key.
+
+get
+
+/v3/api/public/device
+
+query
+Field 	Type 	Description
+limit 	Integer 	
+
+The maximum number of records to return. Default is 100. Value may not exceed 5000.
+offset 	Integer 	
+
+The offset into the results from which to start returning records. Default is 0. Value of offset+limit must not exceed 5000.
+Success 200
+Field 	Type 	Description
+result_list 	Array 	
+
+List of devices. See Fetch Device for record format.
+
+    Success-Response:
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+    "result_list": [
+        {
+            "device_id": "6ceQekmYQ99YOF81f0B-01",
+            "created_at": "2018-08-27T05:33:12Z",
+            "updated_at": "2018-08-27T05:33:12Z",
+            "factory_id": "4000000001",
+            "active_state": "active",
+            "display_name": "Example Vehicle 1"
+        },
+        {
+            "device_id": "6ceQekmYQ99YOF81f0B-02",
+            "created_at": "2018-08-27T05:44:12Z",
+            "updated_at": "2018-08-27T05:44:12Z",
+            "factory_id": "4000000002",
+            "active_state": "active",
+            "display_name": "Example Vehicle 2"
+        }
+    ]
+}
+
+Device - Update Device
+
+Update a Device by ID. Will return an error if the object cannot be found or validation error occurs. The updated object will be returned. Only the fields display_name and settings are eligible for update.
+
+patch
+
+/v3/api/public/device/:id
+
+Parameter
+Field 	Type 	Description
+id 	String 	
+
+ID of the Device to update
+DeviceGroup
+DeviceGroup - List Device Groups
+
+List all available Device Groups
+
+get
+
+/v3/api/public/device-group
+
+    Request Example
+
+https://track.onestepgps.com/v3/api/public/device-group
+
+DevicePoint
+DevicePoint - Search Device Points
+
+Retrieve a list of individual points associated with a device. Each active device connected to a running vehicle transmits a new point approximately every minute (or based on your usage plan's configured interval). This endpoint can be used to fetch historical data points, with all timestamps provided in RFC3339 format (e.g., 2018-08-27T05:34:15Z).
+
+Use either dt_server_from and dt_server_to or dt_tracker_from and dt_tracker_to to specify the desired time range. If the to parameter is omitted, it defaults to "now". The from parameter must be earlier than the to parameter.
+
+To fetch all new records since your last request, set dt_server_from to the time of your previous call. This approach ensures you receive any new data points, including those that might have been delayed due to connectivity issues. Refer to the descriptions of dt_server and dt_tracker fields below for further details.
+
+For more information on state and device attributes (e.g., speed, battery level, odometer), see the Device Point documentation.
+
+get
+
+/v3/api/public/device-point
+
+query
+Field 	Type 	Description
+device_id 	String 	
+
+Unique identifier of the device to return point for. Either this or device_id_list is required.
+device_id_list 	String 	
+
+Can be provided multiple times, one for each device (and instead of device_id) to search multiple devices. The return value will be wrapped in a device_list array which contains one result for each device searched.
+limit 	Integer 	
+
+The maximum number of records to return. Default is 100. Value may not exceed 5000.
+offset 	Integer 	
+
+The offset into the results from which to start returning records. Default is 0. Value of offset+limit must not exceed 5000.
+return_count 	Boolean 	
+
+Pass true to request that the count be returned in the output.
+return_deleted 	Boolean 	
+
+pass true to request count of deleted points
+dt_server_from 	Time 	
+
+Filter by server time starting from this moment (inclusive).
+dt_server_to 	Time 	
+
+Filter by server time up to this moment (exclusive, i.e. everything up to but not including this exact moment).
+dt_tracker_from 	Time 	
+
+Filter by tracker device time starting from this moment (inclusive).
+dt_tracker_to 	Time 	
+
+Filter by tracker device time up to this moment (exclusive, i.e. everything up to but not including this exact moment).
+sort 	String 	
+
+The order to use when searching and returning results. If provided must be one of the following: "sequence,desc" (default) or "sequence" (ascending)
+
+    Request-Example:
+
+https://track.onestepgps.com/v3/api/public/device-point?device_id=6ceQekmYQ99YOF81f0B-0V&dt_server_from=2018-09-27T00:00:00.0Z
+
+Result Object
+Field 	Type 	Description
+result_length 	Integer 	
+
+Length of result_list.
+count 	Integer 	
+
+Total length of all available results up to 5000 and queries returning more than this will need to be narrowed in order to retrieve all results. Up to this maximum, you can use the limit and offset parameters to retrieve records one "page" at a time. Will only be provided if you specify return_count in the request.
+result_list 	Array 	
+
+List of device points.
+Result List Item
+Field 	Type 	Description
+device_id 	String 	
+
+The unique ID of the device
+dt_server 	Time 	
+
+The time this point was received by the OneStepGPS servers. Note that while is normally within a few seconds from the value of dt_tracker, it may be considerably longer if the device was unable to connect to the cellular network for a period of time.
+dt_tracker 	Time 	
+
+The time the device recorded its location, regardless of when this information was relayed to our servers.
+lat 	Number 	
+
+Device latitude
+lng 	Number 	
+
+Device longitude
+
+    Success-Response:
+
+    HTTP/1.1 200 OK
+    Content-Type: application/json
+
+    {
+        "count": 100,
+        "result_length": 2,
+        "result_list": [
+            {
+				   "device_point_id":"6ceQfKmpOQyYOF81f0B-0V",
+				   "dt_server":"2018-08-27T05:35:05Z",
+				   "dt_tracker":"2018-08-27T05:34:55Z"",
+				   "lat":12.345678,
+				   "lng":23.456789,
+				   "altitude":13.52,
+				   "angle":146,
+				   "speed":0,
+				   "params":{},
+				   "packet_hex":"",
+				   "packet_format":"",
+				   "device_point_external":{
+					  "posted_speed_limit":{},
+					  "software_odometer_reading":{},
+					  "hardware_odometer_offset":{},
+					  "stuck_odometer_offset":{}
+				   },
+				   "device_point_detail":{
+					  "factory_id":"12341234",
+					  "transmit_time":"2018-08-27T05:35:05Z",
+					  "gps_time":"2018-08-27T05:35:05Z",
+					  "acc":false,
+					  "lat_lng":{
+						 "lat":12.345678,
+						 "lng":23.456789
+					  },
+					  "altitude":{
+						 "value":13.52,
+						 "unit":"m",
+						 "display":"13.5 m"
+					  },
+					  "speed":{
+						 "value":0,
+						 "unit":"km/h",
+						 "display":"0 km/h"
+					  },
+					  "heading":146,
+					  "hdop":0.7,
+					  "num_satellites":17,
+					  "remote_addr":"",
+					  "hevent_list":[
+						 {
+							"hevent_type":"ignition_off"
+						 }
+					  ],
+					  "dtc_list":[],
+					  "motion_log":{
+						 "start_time":null,
+						 "end_time":null,
+						 "start_heading":null,
+						 "end_heading":null,
+						 "max_accelerating_force":{},
+						 "max_decelerating_force":{},
+						 "max_right_turn_force":{},
+						 "max_left_turn_force":{}
+					  },
+					  "packet_sequence_id":"",
+					  "rssi":-60,
+					  "trip_distance":{
+						 "value":585,
+						 "unit":"m",
+						 "display":"585 m"
+					  },
+					  "travel_distance":{},
+					  "external_volt":12.464,
+					  "backup_battery_volt":4.136,
+					  "video_original_event":{
+						 "hevent_type":""
+					  },
+					  "calamp_service_type":"ack_request",
+					  "remaining_battery_percent":null,
+					  "historic":false,
+					  "session_connected":true,
+					  "diff_corrected":false,
+					  "predicted":false,
+					  "input_1_high":false,
+					  "input_2_high":false,
+					  "input_3_high":false,
+					  "input_4_high":false,
+					  "output_0_high":null,
+					  "output_1_high":null,
+					  "interpolated_speed":{},
+					  "vbus_odometer":{
+						 "value":36759516,
+						 "unit":"m",
+						 "display":"36759516 m"
+					  },
+					  "vbus_speed":{},
+					  "vbus_engine_on":null,
+					  "vbus_in_motion":null,
+					  "fuel_percent":30.3,
+					  "fuel_quantity":{},
+					  "fuel_level_height":{},
+					  "fuel_temp":{},
+					  "eng_oil_temp":{},
+					  "eng_hours_total":{},
+					  "eng_hours_device_derived":{},
+					  "trans_fluid_temp":{},
+					  "eng_rpm":null,
+					  "throttle_percent":null,
+					  "coolant_temp":{
+						 "value":-26,
+						 "unit":"c",
+						 "display":"-26 c"
+					  },
+					  "ambient_air_temp":{
+						 "value":88,
+						 "unit":"c",
+						 "display":"88 c"
+					  },
+					  "vbus_avg_fuel_economy":{
+						 "value":0.1,
+						 "unit":"km/l",
+						 "display":"0.1 km/l"
+					  },
+					  "barometric_pressure":{},
+					  "vbus_calamp_indicators_0":null,
+					  "vbus_calamp_indicators_1":null,
+					  "vbus_fuel_flow":{},
+					  "vbus_battery_volt":null,
+					  "vbus_trip_fuel":{},
+					  "vbus_fuel_usage":{},
+					  "vbus_calculated_odometer":{},
+					  "vbus_calculated_fuel_usage":{},
+					  "vbus_inst_fuel_economy":{},
+					  "vbus_dtc_count":null,
+					  "throttle_valve_percent":null,
+					  "vbus_engine_percent_torque":null,
+					  "vbus_total_idle_hours":null,
+					  "vbus_total_idle_fuel_used":{},
+					  "seatbelt_fastened":null,
+					  "can_get_seatbelt_fastened":null,
+					  "change_oil_lamp_on":null,
+					  "oil_pressure_lamp_on":null,
+					  "coolant_level_percent":null,
+					  "intake_temp":{},
+					  "diesel_exhaust_volume_percent":null,
+					  "diesel_exhaust_2_volume_percent":null,
+					  "dpf_1_soot_load_percent":null,
+					  "dpf_2_soot_load_percent":null,
+					  "ev_battery_health_percent":null,
+					  "ev_charge_percent":null,
+					  "ev_avg_energy_consumption":{},
+					  "def_sensor_output":{
+						 "concentration":null,
+						 "tank_temp":{},
+						 "tank_level":null
+					  },
+					  "diesel_filter_1_delta_pressure":{},
+					  "diesel_filter_1_inlet_pressure":{},
+					  "diesel_filter_1_outlet_pressure":{},
+					  "diesel_filter_2_delta_pressure":{},
+					  "diesel_filter_2_inlet_pressure":{},
+					  "diesel_filter_2_outlet_pressure":{}
+				   },
+				   "device_state":{
+					  "drive_status":"off",
+					  "drive_status_id":"6jXynTkPPsmeKV81f07-1k",
+					  "drive_status_duration":{
+						 "value":0,
+						 "unit":"s",
+						 "display":"0s"
+					  },
+					  "drive_status_distance":{
+						 "value":0,
+						 "unit":"m",
+						 "display":"0 m"
+					  },
+					  "drive_status_lat_lng_distance":{
+						 "value":0,
+						 "unit":"m",
+						 "display":"0 m"
+					  },
+					  "drive_status_begin_time":"2018-08-27T05:35:05Z",
+					  "best_distance_delta":{
+						 "value":0,
+						 "unit":"m",
+						 "display":"0 m"
+					  },
+					  "is_new_drive_status":true,
+					  "adjusted_lat_lng":{
+						 "lat":37.2751163,
+						 "lng":-121.84036019999999
+					  },
+					  "beyond_max_drift_distance":false,
+					  "prev_drive_status":"idle",
+					  "prev_drive_status_id":"6jXynQ2FNEueKV81f07-1k",
+					  "prev_drive_status_duration":{
+						 "value":6,
+						 "unit":"s",
+						 "display":"6s"
+					  },
+					  "prev_drive_status_distance":{
+						 "value":0,
+						 "unit":"m",
+						 "display":"0 m"
+					  },
+					  "prev_drive_status_lat_lng_distance":{
+						 "value":0,
+						 "unit":"m",
+						 "display":"0 m"
+					  },
+					  "prev_drive_status_begin_time":"2018-08-27T05:35:05Z",
+					  "prev_adjusted_lat_lng":{},,
+					  "inaccurate_per_device_settings":false,
+					  "fuel_percent":30.3,
+					  "software_odometer":{
+						 "value":44514.05315771551,
+						 "unit":"km",
+						 "display":"44514.1 km"
+					  },
+					  "last_software_odometer_reading_time":"2018-08-27T05:35:05Z",
+					  "last_device_counter_reading_time":"2018-08-27T05:35:05Z",
+					  "last_stuck_odometer_count_reading_time":null,
+					  "hardware_odometer":{},
+					  "stuck_odometer_count":0,
+					  "stuck_odometer_offset":{},
+					  "odometer":{
+						 "value":44514.05315771551,
+						 "unit":"km",
+						 "display":"44514.1 km"
+					  },
+					  "computed_vbus_fuel_delta":{
+						 "value":0,
+						 "unit":"l",
+						 "display":"0 l"
+					  },
+					  "vin":"KL77LJE21RC171788",
+					  "is_vin_from_device_point":true,
+					  "debug_best_distance_strategy":"trip_distance",
+					  "debug_best_distance":{
+						 "value":0,
+						 "unit":"m",
+						 "display":"0 m"
+					  },
+					  "last_known_seatbelt_fastened":false,
+					  "counter_list":[
+						 {
+							"key":"eh_acc",
+							"val":6074.0077777794895,
+							"offset":0
+						 },
+						 {
+							"key":"eh",
+							"val":6074.0077777794895,
+							"offset":0
+						 },
+						 {
+							"key":"eh_lt",
+							"val":6074.0077777794895,
+							"offset":0
+						 }
+					  ],
+					  "hardware_odometer_offset":{},
+					  "current_stop_begin_time":"2018-08-27T05:35:05Z",
+					  "sd_card_state":{
+						 "status_time":null
+					  },
+					  "latest_accurate_point_lat_lng":{
+						 "lat":12.345678,
+						 "lng":23.456789
+					  },
+					  "latest_accurate_point_trip_distance":{
+						 "value":55,
+						 "unit":"m",
+						 "display":"585 m"
+					  },
+					  "latest_accurate_point_vbus_odometer":{
+						 "value":3679516,
+						 "unit":"m",
+						 "display":"36759516 m"
+					  }
+				   },
+				   "device_state_stale":false,
+				   "sequence":"",
+				   "device_id":"6ceQekmYQ99YOF81f0B-0V",
+				}
+				...
+    	]
+    }
+
+Device Assignment
+Device_Assignment - Create Device Assignment
+
+Create a Device Assignment - associating an Assignee (e.g. a driver) with a specific device.
+
+post
+
+/v3/api/public/device-assignment
+
+Body
+Field 	Type 	Description
+device_id 	String 	
+
+Required The id of the device
+fob_id 	String 	
+
+Optional The id of any fobs used in assignment
+assignee_id 	String 	
+
+Required The id of the assignee
+start_time 	String 	
+
+Optionally set when the assignment starts, defaults to now
+end_time 	String 	
+
+Optionally set when the assignment ends, defaults to never
+assignment_type 	String 	
+
+Required options: driver, passenger, trailer
+
+    Request Example
+    Request Body
+
+https://track.onestepgps.com/v3/api/public/device-assignment
+
+    Success-Response:
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+[{
+    // Assignment
+}]
+
+Device_Assignment - End Device Assignment(s)
+
+Update Device Assignments to set the end time on each to now, making these assignments no longer active. Input body is a JSON array of Device Assignment objects.
+
+put
+
+/v3/api/public/device-assignment/end
+
+    Request Example
+    Request Body
+
+https://track.onestepgps.com/v3/api/public/device-assignment/end
+
+    Success-Response:
+
+HTTP/1.1 200 OK
+
+Device_Assignment - Fetch Device Assignment
+
+Get a Device Assignment with the specified ID. Will return a 404 if the object cannot be found.
+
+get
+
+/v3/api/public/device-assignment/:assignment_id
+
+Parameter
+Field 	Type 	Description
+assignment_id 	String 	
+
+ID of the assignment to return
+query
+Field 	Type 	Description
+device_id_list 	String 	
+
+ID of device that corresponds to this assignment (required)
+
+    Request Example
+
+https://track.onestepgps.com/v3/api/public/assignee/6eIExvA7MIHmMk81f08-0-?device_id_list=6eIExvB9ALHmMk91f09-0-
+
+    Success-Response:
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+{}   // Assignment
+
+Device_Assignment - Get All Active Device Assignments
+
+Retrieve the active Device Assignments for all Devices.
+
+get
+
+/v3/api/public/device-assignment/active
+
+    Request Example
+
+https://track.onestepgps.com/v3/api/public/device-assignment/active
+
+    Success-Response:
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+[{},{}]   // Assignments
+
+Device_Assignment - Get Assignments by Device
+
+Retrieve the active Device Assignments (if any) for a device.
+
+get
+
+/v3/api/public/device-assignment/active/:device_id
+
+Parameter
+Field 	Type 	Description
+device_id 	String 	
+
+ID of the Device to retrieve Device Assignments for.
+
+    Request Example
+
+https://track.onestepgps.com/v3/api/public/device-assignment/active/6eIExvB9ALHmMk91f09-0-
+
+    Success-Response:
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+[{},{}]      // Assignments
+
+Device_Assignment - Get Device Assignment Logs
+
+Retrieve the Device Assignments for all Devices in a given time range.
+
+get
+
+/v3/api/public/device-assignment/logs
+
+query
+Field 	Type 	Description
+device_id_list 	String 	
+
+ID of the Device(s) to retrieve Device Assignments for. (defaults to all devices user has permission to)
+start_time 	Time 	
+
+Start from this date/time (required)
+end_time 	Time 	
+
+End at this date/time (defaults to all end times)
+offset 	Integer 	
+
+Offset of where to start results from (defaults to 0)
+limit 	Integer 	
+
+Limit result to this many records (defaults to no limit)
+
+    Request Example
+
+https://track.onestepgps.com/v3/api/public/device-assignment/logs?device_id_list=6eIExvB9ALHmMk91f09-0-
+
+Device_Assignment - Search Device Assignments
+
+Returns a list of Device Assignments
+
+get
+
+/v3/api/public/device-assignment
+
+Query
+Field 	Type 	Description
+assignment_id_list 	String 	
+
+assignees ids to filter by
+device_id_list 	String 	
+
+device ids to filter by
+limit 	Number 	
+
+of assignments to return
+offset 	Number 	
+
+offset of assignments to return
+start_time 	String 	
+
+assignments that started after this time
+end_time 	String 	
+
+assignments that ended before this time
+assignee_id_list 	String 	
+
+assignee ids to filter by
+assignment_type_list 	String 	
+
+assignment types to filter by
+
+    Request Example
+
+https://track.onestepgps.com/v3/api/public/device-assignment?device_id_list=6eIExvB9ALHmMk91f09-0-&device_id_list=6eIExvB9ALHmMk47f09-0-
+
+Device_Assignment - Update Device Assignment
+
+Update a Device Assignment by ID. Will return an error if the object cannot be found or validation error occurs. The updated object will be returned.
+
+put
+
+/v3/api/public/device-assignment/:device_id
+
+Body
+Field 	Type 	Description
+assignee_id 	String 	
+
+Optionally update id of the assignee
+start_time 	String 	
+
+Optionally set when the assignment starts, defaults to now
+end_time 	String 	
+
+Optionally set when the assignment ends, defaults to never
+assignment_type 	String 	
+
+Optionally update the type. options: driver, passenger, trailer
+
+    Request Example
+    Request Body
+
+https://track.onestepgps.com/v3/api/public/device-assignment/6fU3AGbIQLHg3V81f47-0V
+
+    Success-Response:
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+{
+    // Assignment
+}
+
+Marker
+Marker - Create Marker List
+
+Create a list of markers
+
+post
+
+/v3/api/public/marker-list
+
+Body
+Field 	Type 	Description
+address_list 	Array 	
+
+The list of addresses to geocode
+marker_list 	Array 	
+
+The list of markers to create
+using_address 	Boolean 	
+
+Should the address be used to geocode the lat/lng
+
+    Request Example
+    Request Body Example
+
+https://track.onestepgps.com/v3/api/public/marker-list
+
+    Success Response
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+[
+    {
+        "marker_id": "...",
+        "customer_id": "...",
+        "display_name": "Crypto Arena",
+        "detail": {
+            "description": "Crypto Arena",
+            "marker_icon": "/v3/ui/assets/map-places-icons/location-dot.svg",
+            "marker_visible": true,
+            "lat_lng": {
+                "lat": 34.04338,
+                "lng": -118.26581
+            }
+        },
+        "created_by_user_id": "...",
+        "status": "active",
+        "created_at": "2024-06-07T20:00:39.501272Z",
+        "updated_at": "2024-06-07T20:00:39.501274Z",
+        "marker_group_id_list": null
+    },
+    {
+        "marker_id": "...",
+        "customer_id": "...",
+        "display_name": "Sofi Stadium",
+        "detail": {
+            "description": "Sofi Stadium",
+            "marker_icon": "/v3/ui/assets/map-places-icons/location-dot.svg",
+            "marker_visible": true,
+            "lat_lng": {
+                "lat": 33.953948,
+                "lng": -118.338362
+            }
+        },
+        "created_by_user_id": "...",
+        "status": "active",
+        "created_at": "2024-06-07T20:00:39.501295Z",
+        "updated_at": "2024-06-07T20:00:39.501296Z",
+        "marker_group_id_list": null
+    }
+]
+
+Marker - Create Marker
+
+Create a new marker
+
+post
+
+/v3/api/public/marker
+
+Body
+Field 	Type 	Description
+display_name 	String 	
+
+The name of the marker
+detail 	Object 	
+
+description, marker_icon, marker_visible, lat_lng
+  description 	String 	
+
+The description of the marker
+  maker_icon 	String 	
+
+The icon of the marker, defaults to /v3/ui/assets/map-places-icons/location-dot.svg if empty
+  marker_visible 	Boolean 	
+
+Should the marker be visible
+  lat_lng 	Object 	
+
+The latitude and longitude of the marker
+    lat 	Number 	
+
+The latitude of the marker
+    lng 	Number 	
+
+The longitude of the marker
+
+    Request Example
+    Request Body Example
+
+https://track.onestepgps.com/v3/api/public/marker
+
+    Success Response
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+{
+  "marker_id": "...",
+  "customer_id": "...",
+  "display_name": "Crypto Arena",
+  "detail": {
+    "description": "Formally known as the Staples Center",
+    "marker_icon": "/v3/ui/assets/map-places-icons/location-dot.svg",
+    "marker_visible": true,
+    "lat_lng": {
+      "lat": 34.043087,
+      "lng": -118.267616
+    },
+  },
+  "created_by_user_id": "...",
+  "status": "active",
+  "created_at": "2024-06-07T15:17:46.79024Z",
+  "updated_at": "2024-06-07T15:17:46.790248Z",
+  "marker_group_id_list": null
+}
+
+Marker - Delete Marker
+
+Delete a Marker by ID
+
+delete
+
+/v3/api/public/marker/:id
+
+Parameter
+Field 	Type 	Description
+id 	String 	
+
+The ID of the Marker to delete
+
+    Success Response
+
+HTTP/1.1 200 OK
+
+Marker - Search Markers
+
+Returns a list of markers
+
+get
+
+/v3/api/public/marker
+
+query
+Field 	Type 	Description
+limit 	Integer 	
+
+limit of markers to return
+offset 	Integer 	
+
+offset of markers to return
+return_count 	Boolean 	
+
+return the count of markers
+order_by 	Object 	
+
+set the order of the markers being returned
+criteria 	Object 	
+
+set the criteria for the markers being returned
+belonging_to_groups 	Array 	
+
+returns the zones that belongs to the given marker group ids
+ungrouped_markers 	Boolean 	
+
+adds ungrouped markers to the return
+
+    Request Example
+
+https://track.onestepgps.com/v3/api/public/marker?limit=10&offset=0&return_count=true
+
+    Success Response
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+[
+  {
+    "marker_id": "...",
+    "customer_id": "...",
+    "display_name": "Crypto Arena",
+    "detail": {
+      "description": "Formally known as the Staples Center",
+      "marker_icon": "/v3/ui/assets/map-places-icons/location-dot.svg",
+      "marker_visible": true,
+      "lat_lng": {
+        "lat": 34.043087,
+        "lng": -118.267616
+      }
+    },
+    "created_by_user_id": "...",
+    "status": "active",
+    "created_at": "2024-06-07T15:17:46.79024Z",
+    "updated_at": "2024-06-07T15:17:46.790248Z",
+    "marker_group_id_list": []
+  },
+  {
+    "marker_id": "...",
+    "customer_id": "...",
+    "display_name": "Staples Center",
+    "detail": {
+      "description": "Now known as Crypto Arena",
+      "marker_icon": "/v3/ui/assets/map-places-icons/location-dot.svg",
+      "marker_visible": true,
+      "lat_lng": {
+        "lat": 34.043087,
+        "lng": -118.267616
+      }
+    },
+    "created_by_user_id": "...",
+    "status": "active",
+    "created_at": "2024-06-07T19:19:31.724878Z",
+    "updated_at": "2024-06-07T19:20:24.18826Z",
+    "marker_group_id_list": []
+  }
+]
+
+// if return_count is requested the returned value will be formatted as
+{
+  "num_total_records": 2,
+  "result_list": [
+    {
+      "marker_id": "...",
+      "customer_id": "...",
+      "display_name": "Crypto Arena",
+      "detail": {
+        "description": "Formally known as the Staples Center",
+        "marker_icon": "/v3/ui/assets/map-places-icons/location-dot.svg",
+        "marker_visible": true,
+        "lat_lng": {
+          "lat": 34.043087,
+          "lng": -118.267616
+        }
+      },
+      "created_by_user_id": "...",
+      "status": "active",
+      "created_at": "2024-06-07T15:17:46.79024Z",
+      "updated_at": "2024-06-07T15:17:46.790248Z",
+      "marker_group_id_list": []
+    },
+    {
+      "marker_id": "...",
+      "customer_id": "...",
+      "display_name": "Staples Center",
+      "detail": {
+        "description": "Now known as Crypto Arena",
+        "marker_icon": "/v3/ui/assets/map-places-icons/location-dot.svg",
+        "marker_visible": true,
+        "lat_lng": {
+          "lat": 34.043087,
+          "lng": -118.267616
+        }
+      },
+      "created_by_user_id": "...",
+      "status": "active",
+      "created_at": "2024-06-07T19:19:31.724878Z",
+      "updated_at": "2024-06-07T19:20:24.18826Z",
+      "marker_group_id_list": []
+    }
+  ]
+}
+
+Marker - Update Marker
+
+Update a Marker. The updated marker will be returned.
+
+put
+
+/v3/api/public/marker
+
+Body
+Field 	Type 	Description
+display_name 	String 	
+
+The name of the marker
+detail 	Object 	
+
+description, marker_icon, marker_visible, lat_lng
+  description 	String 	
+
+The description of the marker
+  maker_icon 	String 	
+
+The icon of the marker
+  marker_visible 	Boolean 	
+
+Should the marker be visible
+  lat_lng 	Object 	
+
+The latitude and longitude of the marker
+    lat 	Number 	
+
+The latitude of the marker
+    lng 	Number 	
+
+The longitude of the marker
+status 	String 	
+
+The status of the marker
+marker_group_id_list 	Array 	
+
+The list of marker group IDs that the marker belongs to
+
+    Request Example
+    Request Body Example
+
+https://track.onestepgps.com/v3/api/public/marker
+
+    Success Response
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+{
+  "marker_id": "...",
+  "customer_id": "...",
+  "display_name": "Staples Center",
+  "detail": {
+    "description": "Now known as Crypto Arena",
+    "marker_icon": "/v3/ui/assets/map-places-icons/location-dot.svg",
+    "marker_visible": true,
+    "lat_lng": {
+      "lat": 34.043087,
+      "lng": -118.267616
+    }
+  },
+  "created_by_user_id": "...",
+  "status": "active",
+  "created_at": "2024-06-07T14:41:13.532743Z",
+  "updated_at": "2024-06-07T19:18:30.381658Z",
+  "marker_group_id_list": null
+}
+
+Odometer
+Odometer - Set Device Odometer
+
+Manually set the odometer value for a device
+
+post
+
+/v3/api/public/odometer/:device_id
+
+Path
+Field 	Type 	Description
+device_id 	String 	
+
+The ID of the device to set the odometer value for
+Body
+Field 	Type 	Description
+data 	Object 	
+
+The data for the odometer
+  odometer_value 	Object 	
+
+The odometer value to set for the odometer on the device
+
+    Request Example
+    Request Body
+
+https://track.onestepgps.com/v3/api/public/odometer/6gewxzhVQH9WWV81f07-0V
+
+    Success Response
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+{
+  "odometer_changelog_id": "...",
+  "created_at": "2024-07-11T19:41:59.01816Z",
+  "created_by_user_id": "...",
+  "device_id": "...",
+  "change_type": "user_set",
+  "apply_needed": true,
+  "data": {
+    "odometer_value": {
+      "value": 3001,
+      "unit": "mi",
+      "display": "3001 mi"
+    },
+    "hardware_odometer_offset": {}
+  },
+  "description": "setting odometer manually"
+}
+
+Report
+Report - Create Report (Based off Scheduled)
+
+Creates a report that is considered to have come from a scheduled report. The report specs of the scheduled report do not affect the generated report when created this way.
+
+Go here to understand how to generate a report linked to a scheduled report with an example: https://track.onestepgps.com/v3/ui/#/help/api-docs?id=create_generated_report_linked_scheduled_report
+
+post
+
+/v3/api/public/report-generated
+
+Parameter
+Field 	Type 	Description
+report_scheduled_id 	String 	
+
+ID of the scheduled report. (Required)
+report_spec 	Object 	
+
+The specifications of how the report should be created. A full list can be found under the normal "Create Report" call. (Required)
+  user_report_name 	String 	
+
+Name of the report. (Used by all reports)
+  report_type 	String 	
+
+Type of the Report. (Required) Learn more about different report types.
+  report_file_type_list 	String 	
+
+The list of file types to have the report exported into. The full supported list includes: csv, html, json, pdf, xlsx, xlsx_from_html. (Required)
+
+Note: Not all reports support all export options.
+  user_id 	String 	
+
+The id of the user who generated the report.
+  device_id_list 	Array 	
+
+A list of device IDs to have data collected for in the report. (Used by most reports)
+  all_active_devices 	Boolean 	
+
+Whether to collect data for all devices the requesting user has read permissions for. Takes precedence over the report_spec.all_device_groups flag. (Used by some reports)
+  device_group_id_list 	Array 	
+
+A list of device group IDs to have data collected for in the report. (Used by most reports)
+  all_device_groups 	Boolean 	
+
+Whether to collect data for all devices the requesting user has read permissions for.
+  zone_id_list 	Array 	
+
+A list of zone IDs to have data collected for in the report. (Used by some reports)
+  zone_group_id_list 	Array 	
+
+A list of zone group IDs to have data collected for in the report. (Used by some reports)
+  assignee_id_list 	Array 	
+
+A list of assignee IDs to have data collected for in the report. (Used by some reports)
+  team_id_list_for_assignees 	Array 	
+
+A list of user group IDs to have data collected for in the report. (Used by some reports)
+  all_assignees 	Boolean 	
+
+Whether to collect data for all assignees the requesting user has read permissions for. (Used by some reports)
+  datetime_from 	String 	
+
+The start time of the time range considered for a report. (Used by most reports)
+  datetime_to 	String 	
+
+The end time of the time range considered for a report. (Used by most reports)
+  report_output_field_list 	Array 	
+
+A list of columns to be displayed in the resulting report, with which columns being valid depending on the report type. (Used by all reports)
+  report_options 	Object 	
+
+Additional settings that are utilized by several reports.
+  scorecard_custom_config 	Object 	
+
+Additional settings that are utilized by the scorecard reports.
+  scorecard_custom_config_posted 	Object 	
+
+Additional settings that are utilized by the scorecard reports.
+  report_options_after_hours_driving 	Object 	
+
+Additional settings that is utilized by the After Hours Driving report.
+  report_options_day_start_end_breakdown 	Object 	
+
+Additional settings that is utilized by the Day Start End Breakdown report.
+  report_options_device_offline 	Object 	
+
+Additional settings that is utilized by the Device Offline report.
+  report_options_dispatch_summary 	Object 	
+
+Additional settings that is utilized by the Dispatch Summary report.
+  report_options_drive_stops 	Object 	
+
+Additional settings that is utilized by the Drive Stops report. Also known as the "Drives and Stops" report on the UI.
+  report_options_drive_detail_breakdown 	Object 	
+
+Additional settings that is utilized by the Drive Detail Breakdown report.
+  report_options_fuel_economy 	Object 	
+
+Additional settings that is utilized by the Fuel Economy report.
+  report_options_general_info 	Object 	
+
+Additional settings that is utilized by the General Info report.
+  report_options_near_address 	Object 	
+
+Additional settings that is utilized by the Near Address report.
+  report_options_overspeeds 	Object 	
+
+Additional settings that is utilized by the Overspeeds report.
+  report_options_posted_speed 	Object 	
+
+Additional settings that is utilized by the Posted Speeds report.
+  report_options_scorecard_sub_report 	Object 	
+  report_options_state_distance 	Object 	
+
+Additional settings that is utilized by the State Distance Summary report. Also known as the "IFTA Report" on the UI.
+  report_options_trip_posted_speed 	Object 	
+
+Additional settings that is utilized by the Trip Posted Speed report.
+  report_options_wex 	Object 	
+
+Additional settings that is utilized by the Wex report. Also known as the "Gas Transaction" report on the UI.
+  report_options_zone_in_out 	Object 	
+
+Additional settings that is utilized by the Zone In Out report
+  report_options_zone_out_in 	Object 	
+
+Additional settings that is utilized by the Zone Out In report.
+
+    Request Example
+    Request Body Example
+
+https://track.onestepgps.com/v3/api/public/report-generated?user_id=random_id
+
+    Success-Response:
+
+    HTTP/1.1 200 OK
+    Content-Type: application/json
+
+		{
+		  "report_generated_id": "...",
+		  "created_at": "2022-09-15T23:49:54.849629Z",
+		  "updated_at": "2022-09-15T23:49:54.84963Z",
+		  "priority": 1,
+		  "status": "running",
+		  "progress": {
+			"current_record": 0,
+			"total_records": 0,
+			"percentage": 0,
+			"data_node": "",
+			"step_durations": null,
+			"points_visited": 0
+		  },
+		  "report_scheduled_id": "...",
+		  "user_id": "...",
+		  "customer_id": "...",
+		  "error": "",
+		  "report_spec": {
+			"user_report_name": "Test Report",
+			"report_type": "drives_and_stops",
+			"report_file_type_list": [],
+			"user_id": "",
+			"device_id_list": [
+			  "...",
+			  "...",
+			  "...",
+			],
+			"all_devices": false,
+			"device_group_id_list": [],
+			"all_device_groups": false,
+			"zone_id_list": [],
+			"zone_group_id_list": [],
+			"task_id_list": null,
+			"assignee_id_list": [],
+			"all_assignees": false,
+			"datetime_from": "2022-09-14T07:00:00Z",
+			"datetime_to": "2022-09-15T07:00:00Z",
+			"report_output_field_list": [
+			  "status",
+			  "start_time",
+			  "end_time",
+			  "duration",
+			  "length",
+			  "speed_top",
+			  "speed_avg",
+			  "lat_lng",
+			  "address",
+			  "zone_name",
+			  "engine_idle",
+			  "odometer"
+			],
+			"report_options": {
+			  "min_stop_duration": {
+				"value": 300,
+				"unit": "s",
+				"display": "5m"
+			  },
+			  "page_breaks_between_tables": false,
+			  "use_xlsx_separated_format": false
+			},
+		  },
+		  "OutputFilePath": "",
+		  "data_node": "logdb014"
+		}
+
+Report - Create Report
+
+Creates a Report. The requirements for a report depends on its Report Type.
+
+Go here for more details and examples request bodies regarding each report type here: https://track.onestepgps.com/v3/ui/#/help/api-docs?id=report_types
+
+Go here for more details and examples regarding creating a Report: https://track.onestepgps.com/v3/ui/#/help/api-docs?id=create_generated_report
+
+post
+
+/v3/api/public/report/generate
+
+Parameter
+Field 	Type 	Description
+user_report_name 	String 	
+
+Name of the report. (Used by all reports)
+report_type 	String 	
+
+Type of the Report. (Required)
+device_id_list 	Array 	
+
+A list of device IDs to have data collected for in the report. (Used by most reports)
+all_devices 	Boolean 	
+
+Whether to collect data for all devices the requesting user has read permissions for. Takes precedence over the all_device_groups flag. (Used by some reports)
+device_group_id_list 	Array 	
+
+A list of device group IDs to have data collected for in the report. (Used by most reports)
+all_device_groups 	Boolean 	
+
+Whether to collect data for all the device groups the requesting user has read permissions for. (Used by some reports)
+zone_id_list 	Array 	
+
+A list of zone IDs to have data collected for in the report. (Used by some reports)
+zone_group_id_list 	Array 	
+
+A list of zone group IDs to have data collected for in the report. (Used by some reports)
+assignee_id_list 	Array 	
+
+A list of assignee IDs to have data collected for in the report. (Used by some reports)
+team_id_list_for_assignees 	Array 	
+
+A list of user group IDs to have data collected for in the report. (Used by some reports)
+all_assignees 	Boolean 	
+
+Whether to collect data for all assignees the requesting user has read permissions for. (Used by some reports)
+datetime_from 	String 	
+
+The start time of the time range considered for a report. (Used by most reports)
+datetime_to 	String 	
+
+The end time of the time range considered for a report.. (Used by most reports)
+report_output_field_list 	Array 	
+
+A list of columns to be displayed in the resulting report, with which columns being valid depending on the report type. (Used by all reports)
+report_options 	Object 	
+
+Additional settings that are utilized by several reports.
+scorecard_custom_config 	Object 	
+
+Additional settings that are utilized by the scorecard reports.
+scorecard_custom_config_posted 	Object 	
+
+Additional settings that are utilized by the scorecard reports.
+report_options_after_hours_driving 	Object 	
+
+Additional settings that is utilized by the After Hours Driving report.
+report_options_day_start_end_breakdown 	Object 	
+
+Additional settings that is utilized by the Day Start End Breakdown report.
+report_options_device_offline 	Object 	
+
+Additional settings that is utilized by the Device Offline report.
+report_options_dispatch_summary 	Object 	
+
+Additional settings that is utilized by the Dispatch Summary report.
+report_options_drive_stops 	Object 	
+
+Additional settings that is utilized by the Drive Stops report. Also known as the "Drives and Stops" report on the UI.
+report_options_drive_detail_breakdown 	Object 	
+
+Additional settings that is utilized by the Drive Detail Breakdown report.
+report_options_fuel_economy 	Object 	
+
+Additional settings that is utilized by the Fuel Economy report.
+report_options_general_info 	Object 	
+
+Additional settings that is utilized by the General Info report.
+report_options_near_address 	Object 	
+
+Additional settings that is utilized by the Near Address report.
+report_options_overspeeds 	Object 	
+
+Additional settings that is utilized by the Overspeeds report.
+report_options_posted_speed 	Object 	
+
+Additional settings that is utilized by the Posted Speeds report.
+report_options_scorecard_sub_report 	Object 	
+
+Additional settings that is utilized by the Scorecard Harsh Event report
+report_options_state_distance 	Object 	
+
+Additional settings that is utilized by the State Distance Summary report. Also known as the "IFTA Report" on the UI.
+report_options_trip_posted_speed 	Object 	
+
+Additional settings that is utilized by the Trip Posted Speed report.
+report_options_wex 	Object 	
+
+Additional settings that is utilized by the Wex report. Also known as the "Gas Transaction" report on the UI.
+report_options_zone_in_out 	Object 	
+
+Additional settings that is utilized by the Zone In Out report
+report_options_zone_out_in 	Object 	
+
+Additional settings that is utilized by the Zone Out In report.
+
+    Request Example
+    Request Body Example
+
+https://track.onestepgps.com/v3/api/public/report/generate
+
+    Success-Response:
+
+    HTTP/1.1 200 OK
+    Content-Type: application/json
+
+{
+    "report_generated_id": "6iXKmM-FAKE-ID-1-07-1V",
+    "created_at": "2023-11-22T17:28:45.927877Z",
+    "updated_at": "2023-11-22T17:28:45.927877Z",
+    "priority": 0,
+    "status": "queued",
+    "progress": {
+        "current_record": 0,
+        "total_records": 0,
+        "percentage": 0,
+        "data_node": "",
+        "start_time": "0001-01-01T00:00:00Z",
+        "end_time": "0001-01-01T00:00:00Z",
+        "step_durations": null,
+        "points_visited": 0,
+        "retry_count": 0
+    },
+    "report_scheduled_id": "",
+    "customer_id": "6-CUSTOMER-ID-1-12-1V",
+    "error": "",
+    "report_spec": {
+        "user_report_name": "Example Report",
+        "report_type": "drives_and_stops",
+        "report_file_type_list": [],
+        "user_id": "",
+        "device_id_list": [
+            "...",
+            "...",
+            "..."
+        ],
+		"all_devices": false,
+        "device_group_id_list": [
+            "...",
+            "...",
+            "..."
+        ],
+		"all_device_groups": false,
+        "zone_id_list": [
+            "...",
+            "...",
+            "..."
+        ],
+        "zone_group_id_list": [
+            "...",
+            "...",
+            "..."
+        ],
+        "task_id_list": [
+            "...",
+            "...",
+            "..."
+        ],
+        "assignee_id_list": [
+            "...",
+            "...",
+            "..."
+        ],
+        "team_id_list_for_assignees": [
+            "...",
+            "...",
+            "..."
+        ],
+        "all_assignees": false,
+        "datetime_from": "2022-09-14T07:00:00Z",
+        "datetime_to": "2022-09-15T07:00:00Z",
+        "report_output_field_list": [
+            "...",
+            "...",
+            "..."
+        ],
+        "report_options": {
+            "date_time_format": "standard",
+            "display_decimal_places": 1,
+            "duration_format": "standard",
+            "hide_individual_summary_data": false,
+            "hide_overall_summary_data": false,
+            "ignore_empty_table": false,
+            "lat_lng_format": "",
+            "min_idle_duration": {},
+            "min_stop_duration": {
+                "value": 5,
+                "unit": "m",
+                "display": "5m"
+            },
+            "page_breaks_between_tables": false,
+            "separate_rows_by_day": false,
+            "use_xlsx_separated_format": false,
+            "use_pdf_landscape": true
+        },
+        "report_options_drive_detail_breakdown": {
+            "lookup_addresses_for_non_stops": false
+        },
+        "report_options_drive_summary": {
+            "lookup_addresses_for_non_stops": false
+        },
+        "use_beta_testing": false
+    },
+    "OutputFilePath": "",
+    "data_node": "logdb006",
+    "active_device_count": 0
+}
+
+Report - Delete Report
+
+Deletes a generated report using the generated report ID.
+
+To find the generated report ID, use the search endpoint to obtain it: https://track.onestepgps.com/v3/ui#/help/api-docs?id=search_generated_report
+
+delete
+
+/v3/api/public/report-generated/:id
+
+Parameter
+Field 	Type 	Description
+id 	String 	
+
+ID of the report generation record. (Required)
+
+    Request Example
+
+https://track.onestepgps.com/v3/api/public/report-generated/random_id
+
+    Success-Response:
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"result":true}
+
+Report - Export Report
+
+Exports an already generated report.
+
+Go here for more details and an example on how to export: https://track.onestepgps.com/v3/ui/#/help/api-docs?id=export_generated_report
+
+Go here for to check which reports support which file types: https://track.onestepgps.com/v3/ui/#/help/api-docs?id=report_types
+
+get
+
+/v3/api/public/report-generated/export/:id
+
+Parameter
+Field 	Type 	Description
+id 	String 	
+
+ID of a report generation record. (Required)
+query
+Field 	Type 	Description
+file_type 	String 	
+
+The file type to have the report exported into. The full supported list includes: csv, html, json, pdf, xlsx, xlsx_from_html. Not all reports support all export options. (Required)
+
+    Request Example
+
+https://track.onestepgps.com/v3/api/public/report-generated/export/random_id?file_type=html
+
+Report - Fetch Report Generation Record
+
+Gets a report generation record ID. Will return an error if the object cannot be found.
+
+Go here to for a more detailed explanation: https://track.onestepgps.com/v3/ui#/help/api-docs?id=fetch_generated_report
+
+get
+
+/v3/api/public/report-generated/:id
+
+Parameter
+Field 	Type 	Description
+id 	String 	
+
+ID of the report generation record. (Required)
+
+    Request Example
+
+https://track.onestepgps.com/v3/api/public/report-generated/random_id
+
+Report - Search Report Generation Records
+
+Search/List Report Generated. A "Report Generated" is the output of running a "Report Scheduled" and includes the result of whatever calculations were involved with the report. This call and others return data describing the report, and the report contents themselves are available via the Export Report Generated call.
+
+To paginate, use Limit to set how many records you want returned at a time, then increase the Offset in intervals each time. It's recommended to increase the Offset by the same value as the Limit.
+
+For example: You want to paginate in intervals of 10, so you would set the Limit to 10, and the Offset to 0. Then you would increase the Offset by the same value as the Limit, which in this case the Offset would become 10 to view the 2nd set of records. And to view the 3rd set of records, you would increment the Offset by 10 again and the Offset would become 20.
+
+Go here for details for each search query parameter: https://track.onestepgps.com/v3/ui#/help/api-docs?id=generated_reports_search_parameters
+
+Go here for a complex query using these values: https://track.onestepgps.com/v3/ui#/help/api-docs?id=search_generated_report
+
+get
+
+/v3/api/public/report-generated
+
+query
+Field 	Type 	Description
+criteria 	String 	
+
+A JSON object containing the search criteria. Check out Criteria type from tmetautil package for more info.
+order_by 	String 	
+
+A JSON array of objects containing the order by criteria. Check out OrderBy type from tmetautil package for more info.
+limit 	Integer 	
+
+The maximum # of results to return. Used to paginate when used with Offset. The Offset will need to be incremented.
+offset 	Integer 	
+
+The # of records skipped over after the search has been filtered using the criteria and order_by. Used for pagination when incremented in intervals for each fetch. Recommended to increment by the same value as the Limit.
+related 	String 	
+
+A JSON array of strings containing the related objects to return.
+num_total_records 	Boolean 	
+
+Whether to return the total # of records that match the criteria.
+return_authed_device_count 	Boolean 	
+
+Returns the amount of devices in the ReportSpec the User had read permissions for at the time of generation. Including devices in device groups.
+
+    Request Example
+
+https://track.onestepgps.com/v3/api/public/report-generated?limit=10&offset=20
+
+ReportScheduled
+ReportScheduled - Create Scheduled Report
+
+Create a Scheduled Report that periodically generates Reports.
+
+For information regarding the report_spec, refer to the "Create Report" section above.
+
+When creating a Scheduled Report with the all_devices, all_device_groups or all_assignees flag set to true, the Scheduled Report will acknowledge any additions or removeals to the Devices, Device Groups or Assignees the User has access to. These changes will take effect the next time the Scheduled Report creates a Generated Report.
+
+Due to the complexity of creating a Scheduled Report, we recommend reading an in-depth explanation of how to set it up here.
+
+Go here for details regarding the parameters for Scheduled Reports: https://track.onestepgps.com/v3/ui/#/help/api-docs?id=scheduled_reports_parameters
+
+Go here for details regarding the Create endpoint: https://track.onestepgps.com/v3/ui/#/help/api-docs?id=create_scheduled_report
+
+post
+
+/v3/api/public/report-scheduled
+
+Parameter
+Field 	Type 	Description
+notify_spec_list 	List 	
+
+A list of emails to send out the newly generated report*
+cron_spec_list 	List 	
+
+A list of times when the report should be generated. (Crons are set up using this website: https://crontab.guru/#0_0_1_1,4,7,10_*)
+permission_mode 	String 	
+
+Used to define who has permission to access and modify the Scheduled Report and any reports generated from it. Leave blank for only the User who created it to have access.
+policy_object_user_id_list 	List 	
+
+A list of User IDs who have permission to access and modify the Scheduled Report. Only fill if permission_mode is set to "selected_users".
+policy_object_user_group_id_list 	List 	
+
+A list of Teams (User Groups) who have permission to access and modify the Scheduled Report. Only fill if permission_mode is set to "selected_user_groups".
+report_spec 	Object 	
+
+Settings, options and other information regarding which report type should be generated and with what data report. This will vary greately depending on the report_type within the report_spec. Read here for more details: https://track.onestepgps.com/v3/ui/#/help/api-docs?id=report_types
+
+    Request Body Example
+
+{
+    "notify_spec_list": [
+        {
+            "id": "example@email.com",
+            "type": "email_address"
+        }
+    ],
+    "cron_spec_list": [
+        {
+            "frequency_cron": "0 0***",
+            "active": true,
+            "location": "America/Los_Angeles"
+        }
+    ],
+    "permission_mode": "",
+    "policy_object_user_id_list": [],
+    "policy_object_user_group_id_list": [],
+    "report_spec": {
+        "user_report_name": "Test Report",
+        "report_type": "drives_and_stops",
+        "report_file_type_list": [
+            "pdf"
+        ],
+        "device_id_list": [
+            "...",
+            "..."
+        ],
+        "all_devices": false,
+        "device_group_id_list": [
+            "...",
+            "...",
+            "..."
+        ],
+        "all_device_groups": false,
+        "zone_id_list": [
+            "...",
+            "...",
+            "..."
+        ],
+        "zone_group_id_list": [
+            "...",
+            "...",
+            "..."
+        ],
+        "assignee_id_list": [
+            "...",
+            "...",
+            "..."
+        ],
+        "team_id_list_for_assignees": [
+            "...",
+            "...",
+            "..."
+        ],
+        "all_assignees": false,
+        "report_output_field_list": [
+            "...",
+            "...",
+            "..."
+        ],
+        "report_options": {
+            "date_time_format": "standard",
+            "display_decimal_places": 1,
+            "duration_format": "standard",
+            "min_stop_duration": {
+                "value": 5,
+                "unit": "m"
+            },
+            "page_breaks_between_tables": false,
+            "use_xlsx_separated_format": false,
+            "use_pdf_landscape": true
+        },
+        "report_options_drives_and_stop": {
+            "drive_stop_filter": "",
+            "show_drive_summary_table": false,
+            "use_assignee_layout": false
+        }
+    }
+}
+
+    Success-Response:
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+	  {
+	      "report_scheduled_id": "6iaX-FAKE-ID-V81f07-1V",
+	      "report_spec": {
+	          "user_report_name": "Test Report",
+	          "report_type": "drives_and_stops",
+	          "report_file_type_list": ["pdf"],
+	          "user_id": "",
+	          "device_id_list": [
+	              "...",
+	              "..."
+	          ],
+	          "device_group_id_list": [
+	              "...",
+	              "...",
+	              "..."
+	          ],
+	          "zone_id_list": [
+	              "...",
+	              "...",
+	              "..."
+	          ],
+	          "zone_group_id_list": [
+	              "...",
+	              "...",
+	              "..."
+	          ],
+	          "task_id_list": null,
+	          "assignee_id_list": [
+	              "...",
+	              "...",
+	              "..."
+	          ],
+	          "team_id_list_for_assignees": [
+	              "...",
+	              "...",
+	              "..."
+	          ],
+	          "trigger_id_list": null,
+	      	"all_devices": false,
+	      	"all_device_groups": false,
+	  		"all_assignees": false,
+	          "datetime_from": null,
+	          "datetime_to": null,
+	          "report_output_field_list": [
+	              "...",
+	              "...",
+	              "..."
+	          ],
+	          "report_options": {
+	              "date_time_format": "standard",
+	              "display_decimal_places": 1,
+	              "duration_format": "standard",
+	              "hide_individual_summary_data": false,
+	              "hide_overall_summary_data": false,
+	              "ignore_empty_table": false,
+	              "lat_lng_format": "",
+	              "min_idle_duration": {},
+	              "min_stop_duration": {
+	                  "value": 5,
+	                  "unit": "m",
+	                  "display": "5m"
+	              },
+	              "page_breaks_between_tables": false,
+	              "separate_rows_by_day": false,
+	              "use_xlsx_separated_format": false,
+	              "use_pdf_landscape": true
+	          },
+	          "use_beta_testing": false
+	      },
+	      "created_at": "2023-12-14T02:53:40.9866Z",
+	      "updated_at": "2023-12-14T02:53:40.986601Z",
+	      "user_id": "6h7Z082pOXH6wk81f07-0V",
+	      "customer_id": "6h7Z-bWZNPq6rk81f07-0V",
+	      "active": true,
+	      "cron_spec_list": [
+	          {
+	              "frequency_cron": "0 0***",
+	              "last_run_time": null,
+	              "next_run_time": "2023-12-14T00:00:00-08:00",
+	              "lookback_duration": {},
+	              "location": "America/Los_Angeles",
+	              "active": true,
+	              "custom_date_range": ""
+	          }
+	      ],
+	      "notify_spec_list": [
+	          {
+	              "type": "email_address",
+	              "id": "example@email.com",
+	              "sound_alert_file_name": "",
+	              "auto_hide": false
+	          }
+	      ],
+	      "next_run_time": "2023-12-14T00:00:00-08:00",
+	      "permission_mode": "",
+	      "policy_object_user_id_list": [],
+	      "policy_object_user_group_id_list": [],
+	      "active_device_count": 0
+	  }
+
+ReportScheduled - Delete Report Scheduled
+
+Delete a ReportScheduled by ID.
+
+delete
+
+/v3/api/public/report-scheduled/:id
+
+Parameter
+Field 	Type 	Description
+id 	String 	
+
+ID of the Report Scheduled to delete
+
+    Request Example
+
+https://track.onestepgps.com/v3/api/public/report-scheduled/6iaX-FAKE-ID-V81f07-1V
+
+    Success-Response:
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+true
+
+ReportScheduled - Fetch Scheduled Report
+
+Fetches a single Scheduled Report using a Scheduled Report ID.
+
+get
+
+/v3/api/public/report-scheduled/:id
+
+Parameter
+Field 	Type 	Description
+id 	String 	
+
+ID of the Report Scheduled to return
+
+    Request Example
+
+https://track.onestepgps.com/v3/api/public/report-scheduled/6iaX-FAKE-ID-V81f07-1V
+
+    Success-Response:
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+		  {
+		      "report_scheduled_id": "6iaX-FAKE-ID-V81f07-1V",
+		      "report_spec": {
+		          "user_report_name": "Test Report",
+		          "report_type": "drives_and_stops",
+		          "report_file_type_list": ["pdf"],
+		          "user_id": "",
+		          "device_id_list": [
+		              "..."
+		          ],
+		          "device_group_id_list": [
+		              "...",
+		              "...",
+		              "...",
+		              "..."
+		          ],
+		          "zone_id_list": [
+		              "...",
+		              "...",
+		              "..."
+		          ],
+		          "zone_group_id_list": [
+		              "...",
+		              "...",
+		              "..."
+		          ],
+		          "task_id_list": null,
+		          "assignee_id_list": [
+		              "...",
+		              "...",
+		              "..."
+		          ],
+		          "team_id_list_for_assignees": [
+		              "...",
+		              "...",
+		              "..."
+		          ],
+		          "trigger_id_list": null,
+		          "all_assignees": false,
+		          "datetime_from": null,
+		          "datetime_to": null,
+		          "report_output_field_list": [
+		              "status",
+		              "start_time",
+		              "end_time",
+		              "duration",
+		              "length",
+		              "speed_top",
+		              "speed_avg",
+		              "lat_lng",
+		              "address",
+		              "zone_name",
+		              "engine_idle",
+		              "odometer"
+		          ],
+		          "report_options": {
+		              "date_time_format": "standard",
+		              "display_decimal_places": 1,
+		              "duration_format": "standard",
+		              "hide_individual_summary_data": false,
+		              "hide_overall_summary_data": false,
+		              "ignore_empty_table": false,
+		              "lat_lng_format": "",
+		              "min_idle_duration": {},
+		              "min_stop_duration": {
+		                  "value": 10,
+		                  "unit": "m",
+		                  "display": "10m"
+		              },
+		              "page_breaks_between_tables": false,
+		              "separate_rows_by_day": false,
+		              "use_xlsx_separated_format": false,
+		              "use_pdf_landscape": true
+		          },
+		          "use_beta_testing": false
+		      },
+		      "created_at": "2023-12-14T02:53:40.9866Z",
+		      "updated_at": "2023-12-14T02:53:40.986601Z",
+		      "user_id": "6h7Z082pOXH6wk81f07-0V",
+		      "customer_id": "6h7Z-bWZNPq6rk81f07-0V",
+		      "active": true,
+		      "cron_spec_list": [
+		          {
+		              "frequency_cron": "0 0***",
+		              "last_run_time": null,
+		              "next_run_time": "2023-12-14T00:00:00-08:00",
+		              "lookback_duration": {},
+		              "location": "America/Los_Angeles",
+		              "active": true,
+		              "custom_date_range": ""
+		          }
+		      ],
+		      "notify_spec_list": [
+		          {
+		              "type": "email_address",
+		              "id": "example@email.com",
+		              "sound_alert_file_name": "",
+		              "auto_hide": false
+		          }
+		      ],
+		      "next_run_time": "2023-12-14T00:00:00-08:00",
+		      "permission_mode": "",
+		      "policy_object_user_id_list": [],
+		      "policy_object_user_group_id_list": [],
+		      "active_device_count":N
+		  }
+
+ReportScheduled - Search Scheduled Report
+
+Searches and returns a list of Scheduled Reports using specificed filters.
+
+To paginate, use Limit to set how many records you want returned at a time, then increase the Offset in intervals each time. It's recommended to increase the Offset by the same value as the Limit.
+
+For example: You want to paginate in intervals of 10, so you would set the Limit to 10, and the Offset to 0. Then you would increase the Offset by the same value as the Limit, which in this case the Offset would become 10 to view the 2nd set of records. And to view the 3rd set of records, you would increment the Offset by 10 again and the Offset would become 20.
+
+Go here for more details for each search query parameter: https://track.onestepgps.com/v3/ui/#/help/api-docs?id=scheduled_reports_search_parameters
+
+Go here for an example of a complex query using all of the search query parameters: https://track.onestepgps.com/v3/ui/#/help/api-docs?id=search_scheduled_report
+
+get
+
+/v3/api/public/report-scheduled
+
+query
+Field 	Type 	Description
+user_id 	String 	
+
+The ID of the User who created the Report.
+criteria 	List 	
+
+A list of Criterions for filtering results.
+order_by 	List 	
+
+A list of OrderBy objects used for sorting.
+limit 	Integer 	
+
+The maximum # of results to return. Used to paginate when used with Offset. The Offset will need to be incremented.
+offset 	Integer 	
+
+The # of records skipped over after the search has been filtered using the criteria and order_by. Used for pagination when incremented in intervals for each fetch. Recommended to increment by the same value as the Limit.
+include_policy_object_user_id_and_user_group_id 	Boolean 	
+
+A flag asking if the list of Users and Teams (User Groups) IDs should be returned for each report. Not needed for most things.
+return_active_device_count 	Boolean 	
+
+A flag asking if a count for how many active devices are currently associated for each Scheduled Report. Useful for knowing which Scheduled Report contain no active devices and should be disabled or replaced.
+
+    Request Example
+
+https://track.onestepgps.com/v3/api/public/report-scheduled?user_id=6h7Z08-FAKE-ID-1-07-0V&criteria=[{"not":false,"field":"created_at","op":">","value":"2023-12-14T00:00:00.00Z"},{"field":"__report_spec_report_type","op":"=","value":"device_info","or":[{"field":"__report_spec_report_type","op":"=","value":"general_info"}]}]&order_by=[{"field":"created_at","desc":true}]&limit=3&offest=1
+
+    Success-Response:
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+		  {
+		      "num_total_records": 4,
+		      "result_length": 3,
+		      "result_list": [
+		          {
+		              "report_scheduled_id": "6iaX-FAKE-ID-4-1f07-1V",
+		              "report_spec": {
+		                  "user_report_name": "Test Report 4",
+		                  "report_type": "drives_and_stops",
+		                  "report_file_type_list": ["pdf"],
+		                  "user_id": "",
+		                  "device_id_list": [
+		                      "...",
+		                      "...",
+		                      "..."
+		                  ],
+		  				"all_devices": false,
+		                  "device_group_id_list": [],
+		  				"all_device_groups": false,
+		                  "zone_id_list": [
+		                      "..."
+		                  ],
+		                  "zone_group_id_list": [],
+		                  "task_id_list": null,
+		                  "assignee_id_list": [],
+		                  "team_id_list_for_assignees": [],
+		                  "trigger_id_list": null,
+		                  "all_assignees": false,
+		                  "datetime_from": null,
+		                  "datetime_to": null,
+		                  "report_output_field_list": [
+		                      "..."
+		                  ],
+		                  "report_options": {
+		                      "date_time_format": "standard",
+		                      "display_decimal_places": 1,
+		                      "duration_format": "standard",
+		                      "hide_individual_summary_data": false,
+		                      "hide_overall_summary_data": false,
+		                      "ignore_empty_table": false,
+		                      "lat_lng_format": "",
+		                      "min_idle_duration": {},
+		                      "min_stop_duration": {
+		                          "value": 5,
+		                          "unit": "m",
+		                          "display": "5m"
+		                      },
+		                      "page_breaks_between_tables": false,
+		                      "separate_rows_by_day": false,
+		                      "use_xlsx_separated_format": false,
+		                      "use_pdf_landscape": true
+		                  },
+		                  "use_beta_testing": false
+		              },
+		              "created_at": "2023-12-14T04:53:40.9866Z",
+		              "updated_at": "2023-12-14T04:53:40.986601Z",
+		              "user_id": "6h7Z08-FAKE-ID-1-07-0V",
+		              "customer_id": "6h7Z-FAKE-ID-1-1f07-0V",
+		              "active": true,
+		              "cron_spec_list": [
+		                  {
+		                      "frequency_cron": "0 0***",
+		                      "last_run_time": null,
+		                      "next_run_time": "2023-12-14T00:00:00-08:00",
+		                      "lookback_duration": {},
+		                      "location": "America/Los_Angeles",
+		                      "active": true,
+		                      "custom_date_range": ""
+		                  }
+		              ],
+		              "notify_spec_list": [
+		                  {
+		                      "type": "email_address",
+		                      "id": "example@email.com",
+		                      "sound_alert_file_name": "",
+		                      "auto_hide": false
+		                  }
+		              ],
+		              "next_run_time": "2023-12-14T00:00:00-08:00",
+		              "permission_mode": "",
+		              "policy_object_user_id_list": [],
+		              "policy_object_user_group_id_list": [],
+		              "active_device_count": 0
+		          },
+		          {
+		              "report_scheduled_id": "6iaX-FAKE-ID-3-1f07-1V",
+		              "report_spec": {
+		                  "user_report_name": "Test Report 3",
+		                  "report_type": "drives_and_stops",
+		                  "report_file_type_list": ["pdf"],
+		                  "user_id": "",
+		                  "device_id_list": [],
+		                  "device_group_id_list": [],
+		                  "zone_id_list": [],
+		                  "zone_group_id_list": [],
+		                  "task_id_list": null,
+		                  "assignee_id_list": [],
+		                  "team_id_list_for_assignees": [
+		                      "...",
+		                      "...",
+		                      "..."
+		                  ],
+		                  "trigger_id_list": null,
+		                  "all_assignees": false,
+		                  "datetime_from": null,
+		                  "datetime_to": null,
+		                  "report_output_field_list": [
+		                      "..."
+		                  ],
+		                  "report_options": {
+		                      "date_time_format": "standard",
+		                      "display_decimal_places": 1,
+		                      "duration_format": "standard",
+		                      "hide_individual_summary_data": false,
+		                      "hide_overall_summary_data": false,
+		                      "ignore_empty_table": false,
+		                      "lat_lng_format": "",
+		                      "min_idle_duration": {},
+		                      "min_stop_duration": {
+		                          "value": 5,
+		                          "unit": "m",
+		                          "display": "5m"
+		                      },
+		                      "page_breaks_between_tables": false,
+		                      "separate_rows_by_day": false,
+		                      "use_xlsx_separated_format": false,
+		                      "use_pdf_landscape": true
+		                  },
+		                  "use_beta_testing": false
+		              },
+		              "created_at": "2023-12-14T03:53:40.9866Z",
+		              "updated_at": "2023-12-14T03:53:40.986601Z",
+		              "user_id": "6h7Z08-FAKE-ID-1-07-0V",
+		              "customer_id": "6h7Z-FAKE-ID-1-1f07-0V",
+		              "active": true,
+		              "cron_spec_list": [
+		                  {
+		                      "frequency_cron": "0 0***",
+		                      "last_run_time": null,
+		                      "next_run_time": "2023-12-14T00:00:00-08:00",
+		                      "lookback_duration": {},
+		                      "location": "America/Los_Angeles",
+		                      "active": true,
+		                      "custom_date_range": ""
+		                  }
+		              ],
+		              "notify_spec_list": [
+		                  {
+		                      "type": "email_address",
+		                      "id": "example@email.com",
+		                      "sound_alert_file_name": "",
+		                      "auto_hide": false
+		                  }
+		              ],
+		              "next_run_time": "2023-12-14T00:00:00-08:00",
+		              "permission_mode": "",
+		              "policy_object_user_id_list": [],
+		              "policy_object_user_group_id_list": [],
+		              "active_device_count": 0
+		          },
+		          {
+		              "report_scheduled_id": "6iaX-FAKE-ID-2-1f07-1V",
+		              "report_spec": {
+		                  "user_report_name": "Test Report 2",
+		                  "report_type": "drives_and_stops",
+		                  "report_file_type_list": ["pdf"],
+		                  "user_id": "",
+		                  "device_id_list": [
+		                      "...",
+		                      "...",
+		                      "..."
+		                  ],
+		                  "device_group_id_list": [
+		                      "...",
+		                      "...",
+		                      "..."
+		                  ],
+		                  "zone_id_list": [
+		                      "...",
+		                      "...",
+		                      "..."
+		                  ],
+		                  "zone_group_id_list": [
+		                      "...",
+		                      "...",
+		                      "..."
+		                  ],
+		                  "task_id_list": null,
+		                  "assignee_id_list": [
+		                      "...",
+		                      "...",
+		                      "..."
+		                  ],
+		                  "team_id_list_for_assignees": [
+		                      "...",
+		                      "...",
+		                      "..."
+		                  ],
+		                  "trigger_id_list": null,
+		                  "all_assignees": false,
+		                  "datetime_from": null,
+		                  "datetime_to": null,
+		                  "report_output_field_list": [
+		                      "..."
+		                  ],
+		                  "report_options": {
+		                      "date_time_format": "standard",
+		                      "display_decimal_places": 1,
+		                      "duration_format": "standard",
+		                      "hide_individual_summary_data": false,
+		                      "hide_overall_summary_data": false,
+		                      "ignore_empty_table": false,
+		                      "lat_lng_format": "",
+		                      "min_idle_duration": {},
+		                      "min_stop_duration": {
+		                          "value": 5,
+		                          "unit": "m",
+		                          "display": "5m"
+		                      },
+		                      "page_breaks_between_tables": false,
+		                      "separate_rows_by_day": false,
+		                      "use_xlsx_separated_format": false,
+		                      "use_pdf_landscape": true
+		                  },
+		                  "use_beta_testing": false
+		              },
+		              "created_at": "2023-12-14T02:53:40.9866Z",
+		              "updated_at": "2023-12-14T02:53:40.986601Z",
+		              "user_id": "6h7Z08-FAKE-ID-1-07-0V",
+		              "customer_id": "6h7Z-FAKE-ID-1-1f07-0V",
+		              "active": true,
+		              "cron_spec_list": [
+		                  {
+		                      "frequency_cron": "0 0***",
+		                      "last_run_time": null,
+		                      "next_run_time": "2023-12-14T00:00:00-08:00",
+		                      "lookback_duration": {},
+		                      "location": "America/Los_Angeles",
+		                      "active": true,
+		                      "custom_date_range": ""
+		                  }
+		              ],
+		              "notify_spec_list": [
+		                  {
+		                      "type": "email_address",
+		                      "id": "example@email.com",
+		                      "sound_alert_file_name": "",
+		                      "auto_hide": false
+		                  }
+		              ],
+		              "next_run_time": "2023-12-14T00:00:00-08:00",
+		              "permission_mode": "",
+		              "policy_object_user_id_list": [],
+		              "policy_object_user_group_id_list": [],
+		              "active_device_count": 0
+		          }
+		      ]
+		  }
+
+ReportScheduled - Update Report Scheduled
+
+Update a ReportScheduled by ID.
+
+Every value in the payload must be filled out as if creating a new Scheduled Report.
+
+Details regarding the parameter here: https://track.onestepgps.com/v3/ui/#/help/api-docs?id=update_scheduled_report
+
+patch
+
+/v3/api/public/report-scheduled/:id
+
+Parameter
+Field 	Type 	Description
+id 	String 	
+
+ID of the Report Scheduled to update
+
+    Request Example
+    Request Body Example
+
+https://track.onestepgps.com/v3/api/public/report-scheduled/6iaX-FAKE-ID-V81f07-1V
+
+    Success-Response:
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+		  {
+		      "report_scheduled_id": "6iaX-FAKE-ID-V81f07-1V",
+		      "report_spec": {
+		          "user_report_name": "Test Report",
+		          "report_type": "drives_and_stops",
+		          "report_file_type_list": ["pdf"],
+		          "user_id": "",
+		          "device_id_list": [
+		              "..."
+		          ],
+		          "device_group_id_list": [
+		              "...",
+		              "...",
+		              "...",
+		              "..."
+		          ],
+		          "zone_id_list": [
+		              "...",
+		              "...",
+		              "...",
+		              "..."
+		          ],
+		          "zone_group_id_list": [
+		              "...",
+		              "...",
+		              "..."
+		          ],
+		          "task_id_list": null,
+		          "assignee_id_list": [
+		              "...",
+		              "...",
+		              "..."
+		          ],
+		          "team_id_list_for_assignees": [
+		              "...",
+		              "...",
+		              "..."
+		          ],
+		          "trigger_id_list": null,
+		          "all_assignees": false,
+		          "datetime_from": null,
+		          "datetime_to": null,
+		          "report_output_field_list": [
+		              "status",
+		              "start_time",
+		              "end_time",
+		              "duration",
+		              "length",
+		              "speed_top",
+		              "speed_avg",
+		              "lat_lng",
+		              "address",
+		              "zone_name",
+		              "engine_idle",
+		              "odometer"
+		          ],
+		          "report_options": {
+		              "date_time_format": "standard",
+		              "display_decimal_places": 1,
+		              "duration_format": "standard",
+		              "hide_individual_summary_data": false,
+		              "hide_overall_summary_data": false,
+		              "ignore_empty_table": false,
+		              "lat_lng_format": "",
+		              "min_idle_duration": {},
+		              "min_stop_duration": {
+		                  "value": 10,
+		                  "unit": "m",
+		                  "display": "10m"
+		              },
+		              "page_breaks_between_tables": false,
+		              "separate_rows_by_day": false,
+		              "use_xlsx_separated_format": false,
+		              "use_pdf_landscape": true
+		          },
+		          "use_beta_testing": false
+		      },
+		      "created_at": "2023-12-14T02:53:40.9866Z",
+		      "updated_at": "2023-12-14T02:53:40.986601Z",
+		      "user_id": "6h7Z082pOXH6wk81f07-0V",
+		      "customer_id": "6h7Z-bWZNPq6rk81f07-0V",
+		      "active": true,
+		      "cron_spec_list": [
+		          {
+		              "frequency_cron": "0 0***",
+		              "last_run_time": null,
+		              "next_run_time": "2023-12-14T00:00:00-08:00",
+		              "lookback_duration": {},
+		              "location": "America/Los_Angeles",
+		              "active": true,
+		              "custom_date_range": ""
+		          }
+		      ],
+		      "notify_spec_list": [
+		          {
+		              "type": "email_address",
+		              "id": "example@email.com",
+		              "sound_alert_file_name": "",
+		              "auto_hide": false
+		          }
+		      ],
+		      "next_run_time": "2023-12-14T00:00:00-08:00",
+		      "permission_mode": "",
+		      "policy_object_user_id_list": [],
+		      "policy_object_user_group_id_list": [],
+		      "active_device_count":N
+		  }
+
+Route
+Route - Get Drives and Stops for device
+
+Get drives and stops for a specified device. This call can be used to retrieve the route information for a device.
+
+get
+
+/v3/api/public/route/drive-stop
+
+query
+Field 	Type 	Description
+device_id 	String 	
+
+The unique identifier for this device. Required
+dt_tracker_from 	Time 	
+
+The start time for requested route information. Required
+dt_tracker_to 	Time 	
+
+The end time for the requested route information. Required
+stop_duration 	Duration 	
+
+The length of time the device needs to be immobile before it is considered a "stop." Example: stop_duration of 1 minute may return most times when a vehicle waited for a traffic light, while a duration of 5 or 10 minutes will not. Defaults to 5 minutes. Optional
+return_points 	Boolean 	
+
+Pass true to request the Device Points which make up the route information. Defaults to False. Optional
+max_return_points 	Integer 	
+
+The maximum number of Device Points to return. Value may not exceed 200,000.
+include_incomplete_drive_stops 	Boolean 	
+
+Adds the DriveStop that the device was in the middle of at the end time if isn’t finished
+
+    Request-Example:
+
+https://track.onestepgps.com/v3/api/public/route/drive-stop?device_id=6ceQekmYQ99YOF81f0B-0V&dt_tracker_from=2018-09-27T00:00:00.0Z&dt_tracker_to=2018-09-28T00:00:00.0Z&stop_duration=5m0s&return_points=true&max_return_points=100000
+
+Result Object
+Field 	Type 	Description
+time_from 	Time 	
+
+Start time of the returned route information.
+time_to 	Time 	
+
+End time of the returned route information.
+duration 	Duration 	
+
+Duration of the returned route information.
+distance 	Distance 	
+
+Distance of the returned route information.
+average_speed 	Speed 	
+
+Average speed for the returned route information.
+idle_duration 	Duration 	
+
+Total duration of engine idle time for the returned route information.
+engine_work_duration 	Duration 	
+
+Total duration of engine work time for the returned route information.
+top_speed 	Speed 	
+
+Fastest speed for the returned route information.
+drive_stop_list 	Array 	
+
+List of Drive/Stops
+Drive/Stop Item
+Field 	Type 	Description
+type 	String 	
+
+"drive" or "stop"
+time_from 	Time 	
+
+Start time of the Drive/Stop
+time_to 	Time 	
+
+End time of the Drive/Stop
+duration 	Duration 	
+
+Duration of the Drive/Stop item
+distance 	Distance 	
+
+Total distance traveled during the Drive/Stop
+average_speed 	Speed 	
+
+Average speed of the Drive/Stop
+idle_duration 	Duration 	
+
+Duration of engine idle time during the Drive/Stop
+engine_work_duration 	Duration 	
+
+Duration of the engine work during the Drive/Stop
+top_speed 	Speed 	
+
+Fastest speed during the Drive/Stop
+point_list 	Array 	
+
+If requested, it is a list of Device Points which make up the Drive/Stop.
+Shareable Link
+Shareable_Link - Create Public API Key
+
+Create an expirable public API key for sharing device locations on a map. The returned key can be used in a URL format: https://track.onestepgps.com/v3/ui/shareable-map?api-key={key_value}
+
+post
+
+/v3/api/public/api-key
+
+Header
+Field 	Type 	Description
+Authorization 	String 	
+
+Bearer API key required for authentication
+Body
+Field 	Type 	Description
+datetime_from 	String 	
+
+Start time for the shareable link's validity (RFC3339 format)
+datetime_to 	String 	
+
+End time for the shareable link's validity (RFC3339 format)
+device_ids 	Array 	
+
+Array of device IDs to display on the map
+zone_ids optional 	Array 	
+
+Optional array of zone IDs to display on the map
+display_options 	Object 	
+
+Configuration object for map display options
+  display_name optional 	String 	
+
+Optional name for the shared map
+  show_device_name optional 	Boolean 	
+
+Whether to display device names on the map
+  show_device_status optional 	Boolean 	
+
+Whether to display device status information
+  show_device_speed optional 	Boolean 	
+
+Whether to display device speed information
+  show_device_popup optional 	Boolean 	
+
+Whether to enable clickable device popups with details
+  show_device_address optional 	Boolean 	
+
+Whether to display device addresses
+  map_type optional 	String 	
+
+Map view type: either 'roadmap' or 'satellite'
+  theme optional 	String 	
+
+Map theme: either 'light' or 'dark'
+  startup_zoom optional 	Number 	
+
+Initial map zoom level (available values: 15, 18, or 20)
+  stop_duration optional 	Object 	
+
+Configuration for hiding stopped devices
+    value optional 	Number 	
+
+Duration value
+    unit optional 	String 	
+
+Duration unit ('m' for minutes)
+
+    Single Device Example:
+
+{
+    "device_ids": [
+        "random_id"
+    ],
+    "datetime_from": "2025-02-14T18:12:20.44Z",
+    "datetime_to": "2025-02-14T19:12:20.44Z",
+    "display_options": {
+        "show_device_name": true,
+        "show_device_popup": true,
+        "map_type": "roadmap",
+        "theme": "light",
+        "startup_zoom": 15,
+        "stop_duration": {
+            "value": 0,
+            "unit": "m"
+        }
+    }
+}
+
+    Success-Response:
+
+{
+    "api_key_id": "random_id",
+    "key_value": "random_key_value",
+    "user_id": "random_user_id",
+    "valid_from": "2025-02-13T17:25:37.938Z",
+    "valid_to": "2025-02-14T01:25:37.938Z",
+    "hourly_limit": 5000,
+    "key_type": "public_anon",
+    "key_data": {
+        "public_read_device_ids": [
+            "random_id"
+        ],
+        "public_anon_api_key_display_options": {
+            "display_name": "",
+            "show_device_name": true,
+            "show_device_popup": true,
+            "map_type": "satellite",
+            "theme": "light",
+            "startup_zoom": 15,
+            "stop_duration": {
+                "value": 0,
+                "unit": "m",
+                "display": "0s"
+            }
+        }
+    },
+    "created_at": "2025-02-13T17:25:38.49556Z",
+    "updated_at": "2025-02-13T17:25:38.495561Z"
+}
+
+Shareable_Link - Delete Public API Key
+
+Delete a Public API Key by ID.
+
+delete
+
+/v3/api/public/api-key/:id
+
+Parameter
+Field 	Type 	Description
+api_key_id 	String 	
+
+ID of the Public API Key to delete
+
+    Request Example
+
+https://track.onestepgps.com/v3/api/public/api-key/6fVErReANJaNL-81f0a-0V
+
+Shareable_Link - Expire Public API Key
+
+Expire a Public API Key by ID, setting its expiration date to 24 hours into the future if it is longer than 24 hours away
+
+put
+
+/v3/api/public/api-key/:id/expire
+
+Parameter
+Field 	Type 	Description
+api_key_id 	String 	
+
+ID of the Public API Key to expire
+
+    Request Example
+
+https://track.onestepgps.com/v3/api/public/api-key/6fVErReANJaNL-81f0a-0V/expire
+
+Shareable_Link - Search Public API Key
+
+Search/List Public API Keys.
+
+get
+
+/v3/api/public/api-key
+
+Query
+Field 	Type 	Description
+key_type 	String 	
+
+Use type 'public_anon' to search for public api keys
+user_id 	String 	
+
+ID of user to search by
+api_key_ids 	Array 	
+
+returns only the api keys with the given ids
+valid 	Boolean 	
+
+only return keys that have a valid_to in the future
+
+    Request Example
+
+https://track.onestepgps.com/v3/api/public/api-key?key_type=public_anon&user_id=6eM_e76dOxX6aF81f07--V&valid=true
+
+    Success-Response:
+
+   HTTP/1.1 200 OK
+   Content-Type: application/json
+   [{
+    "api_key_id": "6fVErReANJaNL-81f0a-0V",
+    "key_value": "dYByveDaEPTlmjIUpsd6y79lQ9X9Ve2aCwwPS708gzM",
+    "user_id": "6eM_e76dOxX6aF81f07--V",
+    "valid_from": "2021-03-09T17:35:38.205625Z",
+    "valid_to": "2021-03-09T18:35:38.205625Z",
+    "hourly_limit": 5000,
+    "key_type": "public_anon",
+    "key_data": {
+        "public_read_device_ids": [
+            "6fASayZOP_1r_F81f07-0V"
+        ]
+    },
+    "created_at": "2021-03-09T17:35:38.206653Z",
+    "updated_at": "2021-03-09T17:35:38.206654Z"
+},
+...
+]
+
+User
+User - Get Logged in User Data
+
+Get user record for currently logged in user. If an API key is used for the request, the user owning the API key will be returned. If not authenticated, HTTP error code 403 will be returned.
+
+get
+
+/v3/api/public/user/me
+
+Success 200
+Field 	Type 	Description
+user_id 	String 	
+
+The unique identifier for this user
+user_name 	String 	
+
+The user name for this user
+email 	String 	
+
+The email address for this user
+
+    Success-Response:
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+"user_id": "6cRpJqQ2QtTUwa2s6PZi6V",
+"created_at": "2018-06-19T00:10:47Z",
+"updated_at": "2018-06-19T00:10:47Z",
+"user_name": "user@example.com",
+"email": "user@example.com"
+}
+
+Webhooks
+Webhooks - Webhooks
+
+One Step GPS can use webhooks to send data to your servers. Go here to view the webhook api docs
+
+post
+
+https://www.externalserver.com/onestepgps/alerts
+
+Zone
+Zone - Create Zone
+
+Create a Zone
+
+post
+
+/v3/api/public/zone
+
+Body
+Field 	Type 	Description
+display_name 	String 	
+
+The name of the zone
+zone_type 	String 	
+
+Currently only "polygon" is supported
+detail 	Object 	
+
+zone color, zone label color, and visibility settings
+  hex_color 	String 	
+
+The color of the zone, #000000
+  label_visible 	Boolean 	
+
+Should the zone label be visible
+  visible 	Boolean 	
+
+Should the zone be visible
+  zone_label_color_setting 	String 	
+
+represents if the color of the zone label will follow zone color, zone group color, or custom color
+  label_hex_color 	String 	
+
+The color of the custom zone label, #000000; This field is ONLY USED if zone_label_color_setting = 'custom'
+shape_data 	Object 	
+
+the data used to build the array
+  vertices 	Array 	
+
+An array of floats representing latlng coordinates. [Lat, Lng, Lat, Lng, Lat, Lng]
+
+    Request Example
+    Request Body Example
+
+https://track.onestepgps.com/v3/api/public/zone/
+
+    Success-Response:
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+[{
+    // Zone
+}]
+
+Zone - Create Zones by Address
+
+Create multiple Zones by providing a list of addresses. The number of addresses must match the number of zones.
+
+post
+
+/v3/api/public/zone-address-list
+
+Body
+Field 	Type 	Description
+  address_list 	String[] 	
+
+An array of addresses
+  zone_list 	Object[] 	
+
+An array of zone objects
+  zone_size 	String 	
+
+The size of the zone. Possible values: "large", "medium", "small", "x-small". Default is "medium".
+
+    Request Example
+    Request Body Example
+
+https://track.onestepgps.com/v3/api/public/zone-address-list
+
+    Success-Response:
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+    "googleMisses": [],
+    "zoneList": [
+        // Array of created Zones
+    ]
+}
+
+Zone - Create Zones by LatLng
+
+Create multiple Zones by providing a list of zone objects with latitude and longitude coordinates.
+
+post
+
+/v3/api/public/zone-list
+
+Body
+Field 	Type 	Description
+zone_list 	Array 	
+
+List of zone objects.
+
+    Request Example
+    Request Body Example
+
+https://track.onestepgps.com/v3/api/public/zone-list
+
+    Success-Response:
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+[
+    // Array of created Zones
+]
+
+Zone - Delete Zone
+
+Delete a Zone by ID.
+
+delete
+
+/v3/api/public/zone/:zone_id
+
+Parameter
+Field 	Type 	Description
+zone_id 	String 	
+
+ID of the Zone to delete
+
+    Success-Response:
+
+HTTP/1.1 200 OK
+
+Zone - Devices in Zones
+
+Return which devices current locations are in a specified list of zones.
+
+get
+
+/v3/api/public/device-zone/current
+
+query
+Field 	Type 	Description
+zone_id 	String 	
+
+The ID for the zone(s) to check, can be specified multiple times. If either zone_id or zone_group_id is provided then these are used to specify zones. Otherwise all zones accessible to the requesting user are used.
+zone_group_id 	String 	
+
+The ID for zone groups(s) to check, will be expanded to all zones in the group, can be specified multiple times.
+zone_detail 	Boolean 	
+
+Pass true to request the detail of matching zones be provided.
+device_detail 	Boolean 	
+
+Pass true to request the detail of matching device be provided.
+detail 	Boolean 	
+
+Passing true is enables zone_detail and device_detail
+
+    Request-Example:
+
+https://track.onestepgps.com/v3/api/public/device-zone/current?zone_id=6eVACZrRPrimWF81f0B-1k&detail=true
+
+Zone - Fetch Zone
+
+Get a Zone with the specified ID. Will return a 404 if the object cannot be found.
+
+get
+
+/v3/api/public/zone/:zone_id
+
+Parameter
+Field 	Type 	Description
+zone_id 	String 	
+
+ID of the Zone to return
+
+    Request Example
+
+https://track.onestepgps.com/v3/api/public/zone/6eIExvAbOVemLk81f07-0-
+
+    Success-Response:
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+[{
+    // Zone
+}]
+
+Zone - Get Zone List by Zone IDs
+
+Retrieves a list of zones based on given Zone IDs.
+
+post
+
+/v3/api/public/zone-list-by-ids
+
+body
+Field 	Type 	Description
+zone_ids 	Array 	
+
+List of Zone IDs to fetch.
+
+    Request Example
+
+{
+    "zone_ids": [
+        "zone1",
+        "zone2",
+        "zone3"
+    ]
+}
+
+Zone - Search Zones
+
+Returns a list of defined zones (geographic regions).
+
+get
+
+/v3/api/public/zone
+
+query
+Field 	Type 	Description
+limit 	Integer 	
+
+limit of zones to return
+offset 	Integer 	
+
+offset of zones to return
+return_count 	Boolean 	
+
+returns the count of total zones when paginating
+order_by 	Object 	
+
+set the order of the zones being returned
+criteria 	Object 	
+
+set the criteria for which zones to return
+ungrouped_zones 	Boolean 	
+
+adds ungrouped zones to the return
+belonging_to_groups 	Array 	
+
+returns zones that belong to the given zone group ids
+
+    Request Example
+
+https://track.onestepgps.com/v3/api/public/zone?limit=100&offset=0&ungrouped_zones=true
+
+    Success-Response:
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+[{}] //returns an array of zone objects
+
+//if return_count is requested the returned value will be formatted as
+{
+   num_total_records: 0 //number of zones,
+   result_list: [] //array of zones
+}
+
+Zone - Update Zone
+
+Update a Zone by ID. Will return an error if the object cannot be found or validation error occurs. The updated object will be returned.
+
+put
+
+/v3/api/public/zone/:zone_id
+
+Parameter
+Field 	Type 	Description
+zone_id 	String 	
+
+ID of the Zone to update
+Body
+Field 	Type 	Description
+display_name 	String 	
+
+The name of the zone
+detail 	Object 	
+
+zone color and visibility settings
+  hex_color 	String 	
+
+The color of the zone, #000000
+  label_visible 	Boolean 	
+
+Should the zone label be visible
+  visible 	Boolean 	
+
+Should the zone be visible
+shape_data 	Object 	
+
+the dat used to build the array
+  vertices 	Array 	
+
+An array of floats representing latlng coordinates. [Lat, Lng, Lat, Lng, Lat, Lng]
+
+    Request Example
+    Request Body Example
+
+https://track.onestepgps.com/v3/api/public/zone/6eIExvAbOVemLk81f07-0-
+
+    Success-Response:
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+[{
+    // Zone
+}]
+
+ZoneGroup
+ZoneGroup - Create Zone Group
+
+Create a Zone Group
+
+post
+
+/v3/api/public/zone
+
+    Request Example
+
+TODO: document structure/fields
+
+ZoneGroup - Delete Zone Group
+
+Delete a Zone Group by ID.
+
+delete
+
+/v3/api/public/zone-group/:id
+
+Parameter
+Field 	Type 	Description
+id 	String 	
+
+ID of the Zone Group to delete
+ZoneGroup - Fetch Zone Group
+
+Get a Zone Group with the specified ID. Will return a 404 if the object cannot be found.
+
+get
+
+/v3/api/public/zone/:id
+
+Parameter
+Field 	Type 	Description
+id 	String 	
+
+ID of the Zone Group to return
+
+    Request Example
+
+https://track.onestepgps.com/v3/api/public/zone-group/6eIExvA7NIHmLk81f08-0-
+
+ZoneGroup - Search Zone Groups
+
+Returns a list of defined zones groups.
+
+get
+
+/v3/api/public/zone
+
+    Request Example
+
+https://track.onestepgps.com/v3/api/public/zone-group
+
+ZoneGroup - Update Zone Group
+
+Update a Zone Group by ID. Will return an error if the object cannot be found or validation error occurs. The updated object will be returned.
+
+put
+
+/v3/api/public/zone-group/:id
+
+Parameter
+Field 	Type 	Description
+id 	String 	
+
+ID of the Zone Group to update
+
+    Request Example
+
+TODO: document structure/fields
+

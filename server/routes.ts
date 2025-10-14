@@ -19162,11 +19162,10 @@ ${fromName || ''}
         
         try {
           // Fetch live device data from One Step GPS API  
-          // Note: OneStep GPS API doesn't include speed data with basic lat_lng parameter
-          // Speed will need to be calculated from position changes or obtained from a different endpoint
+          // Call WITHOUT lat_lng=1 to get full device object including device_id
           console.log('🚗 Fetching live data from OneStep GPS API...');
           const response = await fetch(
-            `https://track.onestepgps.com/v3/api/public/device-info?lat_lng=1&api-key=${apiKey}`
+            `https://track.onestepgps.com/v3/api/public/device-info?api-key=${apiKey}`
           );
 
           console.log('📡 OneStep GPS API Response Status:', response.status);
@@ -19174,22 +19173,28 @@ ${fromName || ''}
           if (response.ok) {
             const devices = await response.json();
             console.log(`✅ Received ${devices.length} devices from OneStep GPS`);
+            console.log('📋 Device array type:', Array.isArray(devices) ? 'array' : typeof devices);
             
             // Log first device structure to understand API response
-            if (devices.length > 0) {
-              console.log('🔍 Sample OneStep GPS device data:', JSON.stringify(devices[0], null, 2));
+            if (devices && Array.isArray(devices) && devices.length > 0) {
+              console.log('🔍 Sample OneStep GPS device data:');
+              console.log(JSON.stringify(devices[0], null, 2));
+            } else {
+              console.log('⚠️ No devices in response or response is not an array');
             }
             
             // Transform OneStep GPS response to our location format
-            // Note: lat_lng=1 parameter only returns display_name, lat, lng (no speed/telemetry)
             const locations = devices
               .filter((device: any) => device.lat && device.lng)
               .map((device: any) => {
                 // Speed not available with basic API, set to 0 (parked status)
                 const speed = 0;
+                // OneStep GPS returns both device_id and display_name
+                // Use device_id as primary identifier, fallback to display_name
+                const deviceIdentifier = device.device_id || device.display_name;
                 return {
-                  deviceId: device.device_id || device.display_name,
-                  displayName: device.display_name || `Device ${device.device_id}`,
+                  deviceId: deviceIdentifier,
+                  displayName: device.display_name || deviceIdentifier,
                   latitude: String(device.lat),
                   longitude: String(device.lng),
                   speed: speed,
@@ -19315,14 +19320,20 @@ ${fromName || ''}
       );
 
       if (!response.ok) {
+        const errorText = await response.text();
         console.error(`❌ OneStep GPS API error: ${response.status} ${response.statusText}`);
+        console.error(`❌ Error details: ${errorText}`);
         return res.status(response.status).json({ 
-          message: `OneStep GPS API error: ${response.statusText}` 
+          message: `OneStep GPS API error: ${response.statusText}`,
+          details: errorText
         });
       }
 
       const historyData = await response.json();
       console.log(`✅ Received ${historyData.result_list?.length || 0} historical points`);
+      if (historyData.result_list?.length === 0) {
+        console.warn(`⚠️ No historical data found for device ${deviceId} in the specified time range`);
+      }
 
       // Transform OneStep GPS history to our format
       const points = (historyData.result_list || [])
