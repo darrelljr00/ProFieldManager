@@ -381,6 +381,16 @@ export const quoteAvailability = pgTable("quote_availability", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const services = pgTable("services", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  name: text("name").notNull(),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  estimatedCompletionTime: integer("estimated_completion_time").notNull(), // in minutes
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const payments = pgTable("payments", {
   id: serial("id").primaryKey(),
   invoiceId: integer("invoice_id").notNull().references(() => invoices.id),
@@ -1802,6 +1812,19 @@ export const insertQuoteAvailabilitySchema = z.object({
   })),
   availabilityToken: z.string(),
 });
+
+export const insertServiceSchema = createInsertSchema(services, {
+  name: z.string().min(1, "Service name is required"),
+  price: z.string().transform(val => parseFloat(val)),
+  estimatedCompletionTime: z.number().positive("Estimated time must be positive"),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertService = z.infer<typeof insertServiceSchema>;
+export type Service = typeof services.$inferSelect;
 
 export const insertInvoiceLineItemSchema = z.object({
   invoiceId: z.number(),
