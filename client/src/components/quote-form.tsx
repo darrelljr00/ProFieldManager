@@ -5,14 +5,6 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -48,7 +40,6 @@ interface QuoteFormProps {
 }
 
 export function QuoteForm({ onSuccess }: QuoteFormProps) {
-  const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState<QuoteFormData>({
     customerId: 0,
     quoteNumber: "",
@@ -76,7 +67,6 @@ export function QuoteForm({ onSuccess }: QuoteFormProps) {
         title: "Success",
         description: "Quote created successfully",
       });
-      setOpen(false);
       setFormData({
         customerId: 0,
         quoteNumber: "",
@@ -92,10 +82,27 @@ export function QuoteForm({ onSuccess }: QuoteFormProps) {
       onSuccess?.();
     },
     onError: (error: any) => {
+      console.error("Quote creation error:", error);
+      
+      // Parse validation errors if they exist
+      let errorMessage = "Failed to create quote";
+      
+      if (error.errors && Array.isArray(error.errors)) {
+        // Format validation errors
+        const errorList = error.errors.map((err: any) => {
+          const field = err.path?.join('.') || 'unknown field';
+          return `${field}: ${err.message}`;
+        }).join('\n');
+        errorMessage = `Validation failed:\n${errorList}`;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
       toast({
-        title: "Error",
-        description: error.message || "Failed to create quote",
+        title: "Cannot Create Quote",
+        description: errorMessage,
         variant: "destructive",
+        duration: 10000, // Show for 10 seconds
       });
     },
   });
@@ -177,17 +184,6 @@ export function QuoteForm({ onSuccess }: QuoteFormProps) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>Create Quote</Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Create New Quote</DialogTitle>
-          <DialogDescription>
-            Create a new quote for a customer. You can add multiple line items.
-          </DialogDescription>
-        </DialogHeader>
         <form onSubmit={onSubmit} className="space-y-6">
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -349,19 +345,10 @@ export function QuoteForm({ onSuccess }: QuoteFormProps) {
           </div>
 
           <div className="flex justify-end space-x-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setOpen(false)}
-            >
-              Cancel
-            </Button>
             <Button type="submit" disabled={mutation.isPending}>
               {mutation.isPending ? "Creating..." : "Create Quote"}
             </Button>
           </div>
         </form>
-      </DialogContent>
-    </Dialog>
   );
 }
