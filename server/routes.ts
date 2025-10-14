@@ -24733,6 +24733,85 @@ ${fromName || ''}
   console.log("🤖 Starting lead automation scheduler...");
   checkAutomation();
 
+  // Set up quote follow-up reminder scheduler (runs every hour)
+  const checkQuoteFollowUps = async () => {
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      // Find quotes with follow-up date today or past, that haven't been notified yet
+      const quotesNeedingFollowUp = await db
+        .select({
+          quote: quotes,
+          customer: customers,
+          user: users,
+        })
+        .from(quotes)
+        .leftJoin(customers, eq(quotes.customerId, customers.id))
+        .leftJoin(users, eq(quotes.userId, users.id))
+        .where(
+          and(
+            lte(quotes.followUpDate, new Date()),
+            eq(quotes.followUpNotificationSent, false),
+            eq(quotes.isDeleted, false)
+          )
+        );
+
+      for (const { quote, customer, user } of quotesNeedingFollowUp) {
+        if (!customer || !user) continue;
+
+        // Send notification to all admins and managers in the organization
+        const adminUsers = await db
+          .select()
+          .from(users)
+          .where(
+            and(
+              eq(users.organizationId, user.organizationId),
+              or(eq(users.role, 'admin'), eq(users.role, 'manager'))
+            )
+          );
+
+        for (const adminUser of adminUsers) {
+          await NotificationService.createNotification({
+            organizationId: user.organizationId,
+            userId: adminUser.id,
+            title: `Quote Follow-up Reminder`,
+            message: `It's time to follow up on quote ${quote.quoteNumber} for ${customer.name}`,
+            type: 'quote_follow_up',
+            priority: 'normal',
+            category: 'team_based',
+            data: {
+              quoteId: quote.id,
+              customerId: customer.id,
+              quoteNumber: quote.quoteNumber,
+            }
+          });
+        }
+
+        // Mark quote as notified
+        await db
+          .update(quotes)
+          .set({ followUpNotificationSent: true })
+          .where(eq(quotes.id, quote.id));
+          
+        console.log(`📬 Sent follow-up reminder for quote ${quote.quoteNumber}`);
+      }
+      
+      if (quotesNeedingFollowUp.length > 0) {
+        console.log(`✅ Processed ${quotesNeedingFollowUp.length} quote follow-up reminders`);
+      }
+    } catch (error) {
+      console.error("❌ Error checking quote follow-ups:", error);
+    }
+
+    // Schedule next check in 1 hour
+    setTimeout(checkQuoteFollowUps, 60 * 60 * 1000);
+  };
+
+  // Start quote follow-up reminder scheduler
+  console.log("📅 Starting quote follow-up reminder scheduler...");
+  checkQuoteFollowUps();
+
   return httpServer;
 }
 

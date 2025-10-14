@@ -351,6 +351,8 @@ export const quotes = pgTable("quotes", {
   respondedAt: timestamp("responded_at"),
   responseMethod: text("response_method"), // email, sms
   viewedAt: timestamp("viewed_at"), // Track when quote is viewed by customer
+  followUpDate: timestamp("follow_up_date"), // Reminder date to follow up on quote
+  followUpNotificationSent: boolean("follow_up_notification_sent").default(false), // Track if reminder notification was sent
   isDeleted: boolean("is_deleted").default(false).notNull(),
   deletedAt: timestamp("deleted_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
