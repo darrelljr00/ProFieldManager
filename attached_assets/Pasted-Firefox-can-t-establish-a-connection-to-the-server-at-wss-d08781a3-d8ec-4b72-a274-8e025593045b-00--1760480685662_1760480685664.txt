@@ -1,0 +1,57 @@
+Firefox can’t establish a connection to the server at wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws. 6 useWebSocket.ts:37:16
+The connection to wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws was interrupted while the page was loading. 6 useWebSocket.ts:37:16
+Firefox can’t establish a connection to the server at wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws. 6 useWebSocket.ts:37:16
+The connection to wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws was interrupted while the page was loading. 6 useWebSocket.ts:37:16
+❌ API Error: 
+Object { message: "OneStep GPS API error: Forbidden" }
+injected.js:27:27
+💥 Error loading historical data: Error: OneStep GPS API error: Forbidden
+    loadHistoricalData gps-tracking-obd.tsx:95
+injected.js:27:27
+❌ API Error: 
+Object { message: "OneStep GPS API error: Forbidden" }
+injected.js:27:27
+💥 Error loading historical data: Error: OneStep GPS API error: Forbidden
+    loadHistoricalData gps-tracking-obd.tsx:95
+injected.js:27:27
+❌ API Error: 
+Object { message: "OneStep GPS API error: Forbidden" }
+injected.js:27:27
+💥 Error loading historical data: Error: OneStep GPS API error: Forbidden
+    loadHistoricalData gps-tracking-obd.tsx:95
+injected.js:27:27
+❌ API Error: 
+Object { message: "OneStep GPS API error: Forbidden" }
+injected.js:27:27
+💥 Error loading historical data: Error: OneStep GPS API error: Forbidden
+    loadHistoricalData gps-tracking-obd.tsx:95
+injected.js:27:27
+❌ API Error: 
+Object { message: "OneStep GPS API error: Forbidden" }
+injected.js:27:27
+💥 Error loading historical data: Error: OneStep GPS API error: Forbidden
+    loadHistoricalData gps-tracking-obd.tsx:95
+injected.js:27:27
+❌ API Error: 
+Object { message: "OneStep GPS API error: Forbidden" }
+injected.js:27:27
+💥 Error loading historical data: Error: OneStep GPS API error: Forbidden
+    loadHistoricalData gps-tracking-obd.tsx:95
+injected.js:27:27
+❌ API Error: 
+Object { message: "OneStep GPS API error: Forbidden" }
+injected.js:27:27
+💥 Error loading historical data: Error: OneStep GPS API error: Forbidden
+    loadHistoricalData gps-tracking-obd.tsx:95
+injected.js:27:27
+❌ API Error: 
+Object { message: "OneStep GPS API error: Forbidden" }
+injected.js:27:27
+💥 Error loading historical data: Error: OneStep GPS API error: Forbidden
+    loadHistoricalData gps-tracking-obd.tsx:95
+injected.js:27:27
+❌ API Error: 
+Object { message: "OneStep GPS API error: Forbidden" }
+injected.js:27:27
+💥 Error loading historical data: Error: OneStep GPS API error: Forbidden
+    loadHistoricalData gps-tracking-obd.tsx:95

@@ -19175,6 +19175,11 @@ ${fromName || ''}
             const devices = await response.json();
             console.log(`✅ Received ${devices.length} devices from OneStep GPS`);
             
+            // Log first device structure to understand API response
+            if (devices.length > 0) {
+              console.log('🔍 Sample OneStep GPS device data:', JSON.stringify(devices[0], null, 2));
+            }
+            
             // Transform OneStep GPS response to our location format
             // Note: lat_lng=1 parameter only returns display_name, lat, lng (no speed/telemetry)
             const locations = devices
