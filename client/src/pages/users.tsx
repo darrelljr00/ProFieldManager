@@ -90,6 +90,7 @@ type User = {
   canAccessLeads?: boolean;
   canAccessExpenses?: boolean;
   canAccessExpenseCategories?: boolean;
+  canAccessTechnicianExpenses?: boolean;
   canAccessGasCards?: boolean;
   canAccessGasCardProviders?: boolean;
   canAccessQuotes?: boolean;
@@ -1536,6 +1537,7 @@ export default function UsersPage() {
                         <TableHead>Expenses</TableHead>
                         <TableHead>Exp. Reports</TableHead>
                         <TableHead>Exp. Categories</TableHead>
+                        <TableHead>Tech. Expenses</TableHead>
                         <TableHead>Gas Cards</TableHead>
                         <TableHead>Gas Providers</TableHead>
                         <TableHead>Quotes</TableHead>
@@ -1660,6 +1662,18 @@ export default function UsersPage() {
                                 updateUserPermissionsMutation.mutate({
                                   userId: user.id,
                                   permissions: { canAccessExpenseCategories: checked }
+                                })
+                              }
+                              disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Switch
+                              checked={user.canAccessTechnicianExpenses === true}
+                              onCheckedChange={(checked) => 
+                                updateUserPermissionsMutation.mutate({
+                                  userId: user.id,
+                                  permissions: { canAccessTechnicianExpenses: checked }
                                 })
                               }
                               disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
