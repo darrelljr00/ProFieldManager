@@ -193,8 +193,9 @@ export default function TechnicianExpenses() {
     
     // For technicians, show only their own expenses
     // For managers/admins, show all expenses
-    if (currentUser?.role !== 'admin' && currentUser?.role !== 'manager') {
-      return expense.userId === currentUser?.id;
+    // If currentUser hasn't loaded yet, show all expenses temporarily
+    if (currentUser && currentUser.role !== 'admin' && currentUser.role !== 'manager') {
+      return expense.userId === currentUser.id;
     }
     
     return true;
