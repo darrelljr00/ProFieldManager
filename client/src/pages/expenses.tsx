@@ -1127,7 +1127,14 @@ export default function Expenses() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <p className="font-medium">{expense.description}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">{expense.description}</p>
+                            {(expense as any).source === 'technician_expenses' && (
+                              <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                Technician
+                              </Badge>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell>
                           {expense.vendor ? (
@@ -1245,7 +1252,14 @@ export default function Expenses() {
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
                       <div>
-                        <CardTitle className="text-lg">{expense.description}</CardTitle>
+                        <div className="flex items-center gap-2">
+                          <CardTitle className="text-lg">{expense.description}</CardTitle>
+                          {(expense as any).source === 'technician_expenses' && (
+                            <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                              Technician
+                            </Badge>
+                          )}
+                        </div>
                         {expense.vendor && (
                           <CardDescription className="flex items-center gap-1 mt-1">
                             <Building2 className="h-3 w-3" />
