@@ -294,12 +294,12 @@ export default function GPSTrackingOBD() {
                 </Card>
               </div>
               
-              {/* Map Container */}
+              {/* Map Container - LIVE TRACKING ONLY */}
               <div className="flex-1 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
                 <SimpleVehicleMap 
-                  locations={historyPoints.length > 0 ? playbackLocations : obdLocations}
+                  locations={obdLocations}
                   selectedVehicleId={effectiveVehicleId}
-                  focusVehicleId={historyPoints.length > 0 ? historyDeviceId : focusVehicleId}
+                  focusVehicleId={focusVehicleId}
                 />
               </div>
               
