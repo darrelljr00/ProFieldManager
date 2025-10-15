@@ -15159,7 +15159,23 @@ ${fromName || ''}
       const { id } = req.params;
       const updates = req.body;
       
+      console.log('🔧 UPDATE EMPLOYEE - Received data:', {
+        id,
+        payType: updates.payType,
+        salary: updates.salary,
+        hourlyRate: updates.hourlyRate,
+        fullUpdates: updates
+      });
+      
       const employee = await storage.updateEmployee(parseInt(id), updates);
+      
+      console.log('✅ UPDATE EMPLOYEE - Result:', {
+        id: employee.id,
+        payType: employee.payType,
+        salary: employee.salary,
+        hourlyRate: employee.hourlyRate
+      });
+      
       res.json(employee);
     } catch (error: any) {
       console.error("Error updating employee:", error);
