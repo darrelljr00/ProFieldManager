@@ -20,6 +20,7 @@ import Expenses from "@/pages/expenses";
 import TechnicianExpenses from "@/pages/technician-expenses";
 import ExpenseReports from "@/pages/expense-reports";
 import ExpenseCategories from "@/pages/expense-categories";
+import ExpenseCategoryManagement from "@/pages/expense-category-management";
 import Reports from "@/pages/reports";
 import GasCardProviders from "@/pages/gas-card-providers";
 import GasCards from "@/pages/gas-cards";
@@ -180,6 +181,7 @@ function AuthenticatedApp() {
           <Route path="/expenses" component={Expenses} />
           <Route path="/technician-expenses" component={TechnicianExpenses} />
           <Route path="/expense-reports" component={ExpenseReports} />
+          <Route path="/expense-category-management" component={ExpenseCategoryManagement} />
           <Route path="/expense-categories" component={ExpenseCategories} />
           <Route path="/gas-card-providers" component={GasCardProviders} />
           <Route path="/gas-cards" component={GasCards} />

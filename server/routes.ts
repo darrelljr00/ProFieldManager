@@ -9841,6 +9841,28 @@ ${fromName || ''}
     }
   });
 
+  app.put("/api/expense-categories/:id", requireAuth, async (req, res) => {
+    try {
+      const categoryId = parseInt(req.params.id);
+      const category = await storage.updateExpenseCategory(categoryId, req.body);
+      res.json(category);
+    } catch (error: any) {
+      console.error("Error updating expense category:", error);
+      res.status(500).json({ message: "Failed to update expense category" });
+    }
+  });
+
+  app.delete("/api/expense-categories/:id", requireAuth, async (req, res) => {
+    try {
+      const categoryId = parseInt(req.params.id);
+      await storage.deleteExpenseCategory(categoryId);
+      res.json({ message: "Expense category deleted successfully" });
+    } catch (error: any) {
+      console.error("Error deleting expense category:", error);
+      res.status(500).json({ message: "Failed to delete expense category" });
+    }
+  });
+
   // Vendor management routes
   app.get("/api/vendors", requireAuth, async (req, res) => {
     try {
