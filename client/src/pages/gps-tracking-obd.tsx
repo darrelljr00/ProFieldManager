@@ -454,7 +454,17 @@ export default function GPSTrackingOBD() {
                       <Button 
                         className="w-full"
                         disabled={!historyDeviceId || isLoadingHistory}
-                        onClick={loadHistoricalData}
+                        onClick={() => {
+                          console.log('🎯 LOAD HISTORY BUTTON CLICKED!', {
+                            historyDeviceId,
+                            historyDate,
+                            historyStartTime,
+                            historyEndTime,
+                            isLoadingHistory,
+                            buttonDisabled: !historyDeviceId || isLoadingHistory
+                          });
+                          loadHistoricalData();
+                        }}
                         data-testid="load-history-btn"
                       >
                         {isLoadingHistory ? 'Loading...' : 'Load History'}
