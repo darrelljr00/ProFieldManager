@@ -522,10 +522,9 @@ export default function TechnicianExpenses() {
                 onValueChange={setSelectedProjectId}
               >
                 <SelectTrigger data-testid="select-expense-project">
-                  <SelectValue placeholder="Select a project" />
+                  <SelectValue placeholder="Select a project (optional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
                   {projects.map((project: any) => (
                     <SelectItem key={project.id} value={project.id.toString()}>
                       {project.name}
