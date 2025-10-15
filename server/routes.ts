@@ -118,11 +118,17 @@ const twilioClient = twilio(
   process.env.TWILIO_AUTH_TOKEN || "your_auth_token_here"
 );
 
-// Initialize OpenAI for OCR and AI features
+// Initialize OpenAI for OCR and AI features (conditional)
 // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
-const openai = new OpenAI({ 
-  apiKey: process.env.OPENAI_API_KEY 
-});
+let openai: OpenAI | null = null;
+if (process.env.OPENAI_API_KEY) {
+  openai = new OpenAI({ 
+    apiKey: process.env.OPENAI_API_KEY 
+  });
+  console.log("✅ OpenAI client initialized for OCR features");
+} else {
+  console.log("⚠️ OpenAI API key not configured - OCR features will be disabled");
+}
 
 // Helper function to get organization-based upload directory
 function getOrgUploadDir(organizationId: number, type: 'expenses' | 'images' | 'files' | 'image_gallery' | 'receipt_images' | 'inspection_report_images' | 'historical_job_images' | 'profile_pictures'): string {
@@ -9604,6 +9610,14 @@ ${fromName || ''}
   // OCR receipt analysis endpoint
   app.post("/api/expenses/ocr-receipt", requireAuth, async (req, res) => {
     try {
+      // Check if OpenAI is available
+      if (!openai) {
+        return res.status(503).json({ 
+          success: false,
+          message: "OCR feature is not available. Please configure OPENAI_API_KEY." 
+        });
+      }
+
       const { image } = req.body; // Expecting base64 image
       
       if (!image) {
