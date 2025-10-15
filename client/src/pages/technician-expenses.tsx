@@ -40,6 +40,7 @@ export default function TechnicianExpenses() {
   const [receiptImage, setReceiptImage] = useState<File | null>(null);
   const [receiptPreview, setReceiptPreview] = useState<string>("");
   const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>("");
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -142,6 +143,7 @@ export default function TechnicianExpenses() {
     setReceiptImage(null);
     setReceiptPreview("");
     setUploadProgress(0);
+    setSelectedProjectId("");
   };
 
   // Handle form submit
@@ -167,6 +169,9 @@ export default function TechnicianExpenses() {
     setEditingExpense(expense);
     if (expense.receiptUrl) {
       setReceiptPreview(expense.receiptUrl);
+    }
+    if (expense.projectId) {
+      setSelectedProjectId(expense.projectId.toString());
     }
     setIsDialogOpen(true);
   };
@@ -512,7 +517,10 @@ export default function TechnicianExpenses() {
             {/* Project (Optional) */}
             <div>
               <Label htmlFor="projectId">Project (Optional)</Label>
-              <Select name="projectId" defaultValue={editingExpense?.projectId?.toString()}>
+              <Select 
+                value={selectedProjectId} 
+                onValueChange={setSelectedProjectId}
+              >
                 <SelectTrigger data-testid="select-expense-project">
                   <SelectValue placeholder="Select a project" />
                 </SelectTrigger>
@@ -525,6 +533,12 @@ export default function TechnicianExpenses() {
                   ))}
                 </SelectContent>
               </Select>
+              {/* Hidden input to submit project ID in FormData */}
+              <input 
+                type="hidden" 
+                name="projectId" 
+                value={selectedProjectId} 
+              />
             </div>
 
             {/* Vendor */}
