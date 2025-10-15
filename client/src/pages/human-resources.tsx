@@ -2021,6 +2021,12 @@ export default function HumanResources() {
                           location: editedEmployee.location || null,
                           notes: editedEmployee.notes || null,
                         };
+                        console.log('💾 Saving employee data:', {
+                          editPayType,
+                          editedEmployee_salary: editedEmployee.salary,
+                          editedEmployee_hourlyRate: editedEmployee.hourlyRate,
+                          updateData
+                        });
                         updateEmployeeMutation.mutate({
                           id: editedEmployee.id,
                           data: updateData
