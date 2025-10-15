@@ -174,6 +174,18 @@ export default function TechnicianExpenses() {
               const categorySelect = form.querySelector('[name="category"]') as HTMLSelectElement;
               if (categorySelect) categorySelect.value = result.data.category;
             }
+            
+            // Set gallons (for fuel/gas receipts)
+            if (result.data.gallons) {
+              const gallonsInput = form.querySelector('[name="gallons"]') as HTMLInputElement;
+              if (gallonsInput) gallonsInput.value = result.data.gallons.toString();
+            }
+            
+            // Set price per gallon (for fuel/gas receipts)
+            if (result.data.pricePerGallon) {
+              const pricePerGallonInput = form.querySelector('[name="pricePerGallon"]') as HTMLInputElement;
+              if (pricePerGallonInput) pricePerGallonInput.value = result.data.pricePerGallon.toString();
+            }
           }
           
           toast({
@@ -553,6 +565,36 @@ export default function TechnicianExpenses() {
                 placeholder="e.g., Gas, Tools, Meals"
                 data-testid="input-expense-category"
               />
+            </div>
+
+            {/* Fuel-Specific Fields (for gas receipts) */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="gallons">Gallons (Optional)</Label>
+                <Input
+                  id="gallons"
+                  name="gallons"
+                  type="number"
+                  step="0.001"
+                  defaultValue={editingExpense?.gallons}
+                  placeholder="0.000"
+                  data-testid="input-expense-gallons"
+                />
+                <p className="text-xs text-muted-foreground mt-1">For fuel/gas receipts</p>
+              </div>
+              <div>
+                <Label htmlFor="pricePerGallon">Price per Gallon (Optional)</Label>
+                <Input
+                  id="pricePerGallon"
+                  name="pricePerGallon"
+                  type="number"
+                  step="0.001"
+                  defaultValue={editingExpense?.pricePerGallon}
+                  placeholder="0.000"
+                  data-testid="input-expense-price-per-gallon"
+                />
+                <p className="text-xs text-muted-foreground mt-1">Auto-extracted from receipt</p>
+              </div>
             </div>
 
             {/* Description */}
