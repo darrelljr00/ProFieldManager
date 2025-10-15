@@ -9644,6 +9644,7 @@ ${fromName || ''}
         receiptData,
         notes: expenseData.notes || null,
         tags: expenseData.tags && typeof expenseData.tags === 'string' ? expenseData.tags.split(',').map((tag: string) => tag.trim()) : [],
+        source: expenseData.source || 'general',
       });
       
       console.log("Expense created successfully:", expense);
