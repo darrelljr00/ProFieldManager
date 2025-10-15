@@ -157,6 +157,11 @@ export default function TechnicianExpenses() {
       formData.append("receipt", receiptImage);
     }
 
+    // Add logged-in user's ID as the submitter
+    if (currentUser?.id) {
+      formData.append("userId", currentUser.id.toString());
+    }
+
     if (editingExpense) {
       updateExpenseMutation.mutate({ id: editingExpense.id, formData });
     } else {
@@ -549,6 +554,18 @@ export default function TechnicianExpenses() {
                 defaultValue={editingExpense?.vendor || ''}
                 placeholder="Store or vendor name"
                 data-testid="input-expense-vendor"
+              />
+            </div>
+
+            {/* Submitted By (Read-only) */}
+            <div>
+              <Label htmlFor="submittedBy">Submitted By</Label>
+              <Input
+                id="submittedBy"
+                value={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : ''}
+                readOnly
+                className="bg-gray-50 dark:bg-gray-800 cursor-not-allowed"
+                data-testid="input-expense-submitter"
               />
             </div>
 
