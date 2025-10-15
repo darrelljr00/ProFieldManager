@@ -206,6 +206,7 @@ export const users = pgTable("users", {
   canAccessQuotes: boolean("can_access_quotes").default(true),
   canAccessExpenses: boolean("can_access_expenses").default(true),
   canAccessExpenseReports: boolean("can_access_expense_reports").default(true),
+  canAccessTechnicianExpenses: boolean("can_access_technician_expenses").default(true),
   canAccessPayments: boolean("can_access_payments").default(true),
   canAccessMessages: boolean("can_access_messages").default(true),
   canAccessInternalMessages: boolean("can_access_internal_messages").default(true),
