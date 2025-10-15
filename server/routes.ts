@@ -19209,6 +19209,29 @@ ${fromName || ''}
                 };
               });
 
+            // Save each location to database for historical playback
+            // This allows us to build up historical data over time
+            for (const location of locations) {
+              try {
+                await db.insert(obdLocationData).values({
+                  organizationId: user.organizationId,
+                  deviceId: location.deviceId,
+                  vehicleId: location.vehicleId,
+                  latitude: location.latitude,
+                  longitude: location.longitude,
+                  speed: location.speed,
+                  heading: location.heading,
+                  altitude: location.altitude,
+                  batteryVoltage: location.batteryVoltage,
+                  timestamp: location.timestamp,
+                });
+                console.log(`💾 Saved location for device: ${location.deviceId}`);
+              } catch (dbError) {
+                console.error(`Failed to save location for device ${location.deviceId}:`, dbError);
+                // Continue processing other locations even if one fails
+              }
+            }
+
             // If specific device or vehicle requested, filter results
             if (deviceId) {
               const location = locations.find((loc: any) => loc.deviceId === deviceId);
@@ -19309,45 +19332,41 @@ ${fromName || ''}
       const endTimestamp = Math.floor(new Date(end).getTime() / 1000);
 
       console.log(`📜 Fetching historical data for device ${deviceId} from ${start} to ${end}`);
+      console.log(`📅 Timestamp range: ${startTimestamp} to ${endTimestamp}`);
 
-      // Fetch historical results from OneStep GPS
-      // Using device/result-list endpoint for historical trip data
-      const response = await fetch(
-        `https://track.onestepgps.com/v3/api/public/device/result-list?` +
-        `api-key=${apiKey}&` +
-        `device=${encodeURIComponent(deviceId)}&` +
-        `start_timestamp=${startTimestamp}&` +
-        `end_timestamp=${endTimestamp}&` +
-        `max_points=1000`
-      );
+      // NOTE: OneStep GPS API key doesn't have permission for device/result-list endpoint (403 Forbidden)
+      // Instead, we'll use our stored database location history from the live GPS tracking
+      
+      // Query our database for historical location data
+      const historicalLocations = await db
+        .select()
+        .from(obdLocationData)
+        .where(
+          and(
+            eq(obdLocationData.organizationId, user.organizationId),
+            eq(obdLocationData.deviceId, deviceId as string),
+            sql`${obdLocationData.timestamp} >= ${new Date(start)}`,
+            sql`${obdLocationData.timestamp} <= ${new Date(end)}`
+          )
+        )
+        .orderBy(obdLocationData.timestamp);
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`❌ OneStep GPS API error: ${response.status} ${response.statusText}`);
-        console.error(`❌ Error details: ${errorText}`);
-        return res.status(response.status).json({ 
-          message: `OneStep GPS API error: ${response.statusText}`,
-          details: errorText
-        });
-      }
-
-      const historyData = await response.json();
-      console.log(`✅ Received ${historyData.result_list?.length || 0} historical points`);
-      if (historyData.result_list?.length === 0) {
+      console.log(`✅ Found ${historicalLocations.length} historical points in database`);
+      
+      if (historicalLocations.length === 0) {
         console.warn(`⚠️ No historical data found for device ${deviceId} in the specified time range`);
+        console.warn(`💡 Note: Historical data is built from live tracking. The system only has data from when live tracking started.`);
       }
 
-      // Transform OneStep GPS history to our format
-      const points = (historyData.result_list || [])
-        .filter((point: any) => point.lat && point.lng)
-        .map((point: any) => ({
-          latitude: String(point.lat),
-          longitude: String(point.lng),
-          speed: point.speed || 0,
-          heading: point.angle || 0,
-          timestamp: point.dt_tracker ? new Date(point.dt_tracker) : new Date(point.timestamp * 1000),
-          altitude: point.altitude || 0
-        }));
+      // Transform database records to our playback format
+      const points = historicalLocations.map((loc: any) => ({
+        latitude: loc.latitude,
+        longitude: loc.longitude,
+        speed: loc.speed || 0,
+        heading: loc.heading || 0,
+        timestamp: loc.timestamp,
+        altitude: loc.altitude || 0
+      }));
 
       res.json({ 
         points,
