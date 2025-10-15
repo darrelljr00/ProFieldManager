@@ -386,6 +386,12 @@ export function Sidebar() {
     }
   }, [isCollapsed]);
 
+  // Fetch expense categories for dynamic tabs
+  const { data: expenseCategories = [] } = useQuery({
+    queryKey: ["/api/expense-categories"],
+    enabled: !!user,
+  });
+
   // Build Expenses sub-items based on user role
   const expenseSubItems = [
     { name: "All Expenses", href: "/expenses", icon: Receipt },
@@ -398,6 +404,18 @@ export function Sidebar() {
   // For managers and admins, add Technician Expenses as a sub-item
   if (user?.role === 'admin' || user?.role === 'manager') {
     expenseSubItems.push({ name: "Technician Expenses", href: "/technician-expenses", icon: User });
+    
+    // Add dynamic expense categories as sub-items for managers/admins
+    expenseCategories
+      .filter((cat: any) => cat.showAsTab && cat.isActive && cat.isSubItem)
+      .sort((a: any, b: any) => a.sortOrder - b.sortOrder)
+      .forEach((cat: any) => {
+        expenseSubItems.push({
+          name: cat.name,
+          href: `/expense-category/${cat.slug}`,
+          icon: Receipt, // Default icon, can be customized later
+        });
+      });
   }
 
   const navigationItems: NavigationItem[] = [
@@ -421,6 +439,20 @@ export function Sidebar() {
     // For non-managers/admins, add Technician Expenses as a main tab
     ...(user?.role !== 'admin' && user?.role !== 'manager' 
       ? [{ name: "Technician Expenses", href: "/technician-expenses", icon: User, requiresAuth: true, permission: "canAccessTechnicianExpenses" }] 
+      : []
+    ),
+    // Add dynamic expense categories as main tabs for non-managers/admins
+    ...(user?.role !== 'admin' && user?.role !== 'manager'
+      ? expenseCategories
+          .filter((cat: any) => cat.showAsTab && cat.isActive && !cat.isSubItem)
+          .sort((a: any, b: any) => a.sortOrder - b.sortOrder)
+          .map((cat: any) => ({
+            name: cat.name,
+            href: `/expense-category/${cat.slug}`,
+            icon: Receipt,
+            requiresAuth: true,
+            permission: cat.permissionField || undefined,
+          }))
       : []
     ),
     { 
@@ -492,7 +524,8 @@ export function Sidebar() {
       subItems: [
         { name: "General Settings", href: "/admin-settings", icon: Settings },
         { name: "File Security", href: "/file-security", icon: Shield },
-        { name: "Mobile Test", href: "/mobile-test", icon: Smartphone }
+        { name: "Mobile Test", href: "/mobile-test", icon: Smartphone },
+        { name: "Expense Categories", href: "/expense-category-management", icon: Folder }
       ]
     },
     { name: "Reports", href: "/reports", icon: BarChart3, requiresAuth: true, permission: "canAccessReports" },
