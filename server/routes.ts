@@ -19565,6 +19565,75 @@ ${fromName || ''}
     }
   });
 
+  // Cleanup old GPS location data (automatic 30-day retention)
+  app.post("/api/obd/cleanup-old-data", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      // Only admin/manager can trigger cleanup
+      if (!['admin', 'manager'].includes(user.role)) {
+        return res.status(403).json({ message: "Permission denied - Admin or Manager role required" });
+      }
+
+      // Get retention days from settings (default 30 days)
+      const retentionSetting = await db
+        .select()
+        .from(settings)
+        .where(and(
+          eq(settings.category, 'gps'),
+          eq(settings.key, 'tripHistoryDays')
+        ))
+        .limit(1);
+
+      const retentionDays = retentionSetting.length > 0 
+        ? parseInt(retentionSetting[0].value) 
+        : 30;
+
+      // Calculate cutoff date
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
+
+      console.log(`🗑️ Cleaning up GPS location data older than ${retentionDays} days (before ${cutoffDate.toISOString()})`);
+
+      // Delete old location data
+      const deletedLocations = await db
+        .delete(obdLocationData)
+        .where(
+          and(
+            eq(obdLocationData.organizationId, user.organizationId),
+            sql`${obdLocationData.timestamp} < ${cutoffDate}`
+          )
+        )
+        .returning();
+
+      // Delete old completed trips
+      const deletedTrips = await db
+        .delete(obdTrips)
+        .where(
+          and(
+            eq(obdTrips.organizationId, user.organizationId),
+            eq(obdTrips.status, 'completed'),
+            sql`${obdTrips.startTime} < ${cutoffDate}`
+          )
+        )
+        .returning();
+
+      console.log(`✅ Cleanup complete: Removed ${deletedLocations.length} location records and ${deletedTrips.length} trips`);
+
+      res.json({ 
+        success: true,
+        message: `Cleaned up data older than ${retentionDays} days`,
+        deletedLocations: deletedLocations.length,
+        deletedTrips: deletedTrips.length,
+        retentionDays,
+        cutoffDate: cutoffDate.toISOString()
+      });
+    } catch (error: any) {
+      console.error("Error cleaning up old GPS data:", error);
+      res.status(500).json({ message: "Error cleaning up data: " + error.message });
+    }
+  });
+
   // One Step GPS Integration - Fetch devices from One Step GPS API
   app.get("/api/onestep/devices", requireAuth, async (req, res) => {
     try {
