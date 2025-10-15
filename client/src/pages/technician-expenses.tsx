@@ -161,6 +161,9 @@ export default function TechnicianExpenses() {
     if (currentUser?.id) {
       formData.append("userId", currentUser.id.toString());
     }
+    
+    // Mark this expense as created from technician expenses page
+    formData.append("source", "technician_expenses");
 
     if (editingExpense) {
       updateExpenseMutation.mutate({ id: editingExpense.id, formData });
@@ -191,9 +194,9 @@ export default function TechnicianExpenses() {
   const filteredExpenses = expenses.filter((expense: any) => {
     if (statusFilter !== "all" && expense.status !== statusFilter) return false;
     
-    // Only show expenses created by technicians (based on creator's role)
-    // This filters out general business expenses created by admins/managers
-    if (expense.userRole !== 'technician') {
+    // Only show expenses created through the Technician Expenses page
+    // This filters out expenses created from other pages/forms
+    if (expense.source !== 'technician_expenses') {
       return false;
     }
     

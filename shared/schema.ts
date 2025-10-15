@@ -816,6 +816,7 @@ export const expenses = pgTable("expenses", {
   approvedBy: integer("approved_by").references(() => users.id),
   approvedAt: timestamp("approved_at"),
   reimbursedAt: timestamp("reimbursed_at"),
+  source: text("source").default("general"), // Tracks which page/form created the expense: "general", "technician_expenses", etc.
   deletedAt: timestamp("deleted_at"), // Soft delete timestamp
   deletedBy: integer("deleted_by").references(() => users.id), // Who deleted it
   createdAt: timestamp("created_at").defaultNow().notNull(),

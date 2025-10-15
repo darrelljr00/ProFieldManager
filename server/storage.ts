@@ -3213,6 +3213,7 @@ export class DatabaseStorage implements IStorage {
         approvedBy: expenses.approvedBy,
         approvedAt: expenses.approvedAt,
         reimbursedAt: expenses.reimbursedAt,
+        source: expenses.source,
         createdAt: expenses.createdAt,
         updatedAt: expenses.updatedAt,
         userRole: users.role,
