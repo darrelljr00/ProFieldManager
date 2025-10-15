@@ -386,6 +386,20 @@ export function Sidebar() {
     }
   }, [isCollapsed]);
 
+  // Build Expenses sub-items based on user role
+  const expenseSubItems = [
+    { name: "All Expenses", href: "/expenses", icon: Receipt },
+    { name: "Expense Reports", href: "/expense-reports", icon: FileBarChart },
+    { name: "Categories", href: "/expense-categories", icon: Folder },
+    { name: "Gas Card Providers", href: "/gas-card-providers", icon: CreditCard },
+    { name: "Gas Cards", href: "/gas-cards", icon: CreditCard }
+  ];
+
+  // For managers and admins, add Technician Expenses as a sub-item
+  if (user?.role === 'admin' || user?.role === 'manager') {
+    expenseSubItems.push({ name: "Technician Expenses", href: "/technician-expenses", icon: User });
+  }
+
   const navigationItems: NavigationItem[] = [
     { name: "Dashboard", href: "/", icon: BarChart3, requiresAuth: true, permission: "canAccessDashboard" },
     { name: "Calendar", href: "/calendar", icon: Calendar, requiresAuth: true, permission: "canAccessCalendar" },
@@ -404,19 +418,18 @@ export function Sidebar() {
     },
     { name: "My Tasks", href: "/my-tasks", icon: CheckSquare, requiresAuth: true, permission: "canAccessMyTasks" },
     { name: "Leads", href: "/leads", icon: UserPlus, requiresAuth: true, permission: "canAccessLeads" },
+    // For non-managers/admins, add Technician Expenses as a main tab
+    ...(user?.role !== 'admin' && user?.role !== 'manager' 
+      ? [{ name: "Technician Expenses", href: "/technician-expenses", icon: User, requiresAuth: true, permission: "canAccessTechnicianExpenses" }] 
+      : []
+    ),
     { 
       name: "Expenses", 
       href: "/expenses", 
       icon: Receipt, 
       requiresAuth: true,
       permission: "canAccessExpenses",
-      subItems: [
-        { name: "All Expenses", href: "/expenses", icon: Receipt },
-        { name: "Expense Reports", href: "/expense-reports", icon: FileBarChart },
-        { name: "Categories", href: "/expense-categories", icon: Folder },
-        { name: "Gas Card Providers", href: "/gas-card-providers", icon: CreditCard },
-        { name: "Gas Cards", href: "/gas-cards", icon: CreditCard }
-      ]
+      subItems: expenseSubItems
     },
     { name: "Quotes", href: "/quotes", icon: Quote, requiresAuth: true, permission: "canAccessQuotes" },
     { name: "Invoices", href: "/invoices", icon: FileText, requiresAuth: true, permission: "canAccessInvoices" },
