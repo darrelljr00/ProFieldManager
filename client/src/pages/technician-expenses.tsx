@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -6,6 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Plus, 
   Receipt, 
@@ -15,7 +20,11 @@ import {
   Edit, 
   Trash2, 
   TrendingUp,
-  Filter
+  Filter,
+  Camera,
+  Upload,
+  X,
+  Image as ImageIcon
 } from "lucide-react";
 import type { Expense } from "@shared/schema";
 
@@ -26,6 +35,13 @@ interface ExpenseWithDetails extends Expense {
 
 export default function TechnicianExpenses() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<ExpenseWithDetails | null>(null);
+  const [receiptImage, setReceiptImage] = useState<File | null>(null);
+  const [receiptPreview, setReceiptPreview] = useState<string>("");
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -36,6 +52,131 @@ export default function TechnicianExpenses() {
   const { data: currentUser } = useQuery({
     queryKey: ["/api/users/me"],
   });
+
+  const { data: projects = [] } = useQuery({
+    queryKey: ["/api/projects"],
+  });
+
+  // Create expense mutation
+  const createExpenseMutation = useMutation({
+    mutationFn: async (formData: FormData) => {
+      const response = await apiRequest("POST", "/api/expenses", formData);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/expenses"] });
+      setIsDialogOpen(false);
+      resetForm();
+      toast({
+        title: "Success",
+        description: "Expense created successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create expense",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Update expense mutation
+  const updateExpenseMutation = useMutation({
+    mutationFn: async ({ id, formData }: { id: number; formData: FormData }) => {
+      const response = await apiRequest("PUT", `/api/expenses/${id}`, formData);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/expenses"] });
+      setIsDialogOpen(false);
+      resetForm();
+      toast({
+        title: "Success",
+        description: "Expense updated successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update expense",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete expense mutation
+  const deleteExpenseMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest("DELETE", `/api/expenses/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/expenses"] });
+      toast({
+        title: "Success",
+        description: "Expense deleted successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete expense",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Handle image selection from camera or file
+  const handleImageSelect = (file: File) => {
+    setReceiptImage(file);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setReceiptPreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Reset form
+  const resetForm = () => {
+    setEditingExpense(null);
+    setReceiptImage(null);
+    setReceiptPreview("");
+    setUploadProgress(0);
+  };
+
+  // Handle form submit
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+
+    // Add receipt image if selected
+    if (receiptImage) {
+      formData.append("receipt", receiptImage);
+    }
+
+    if (editingExpense) {
+      updateExpenseMutation.mutate({ id: editingExpense.id, formData });
+    } else {
+      createExpenseMutation.mutate(formData);
+    }
+  };
+
+  // Handle edit
+  const handleEdit = (expense: ExpenseWithDetails) => {
+    setEditingExpense(expense);
+    if (expense.receiptUrl) {
+      setReceiptPreview(expense.receiptUrl);
+    }
+    setIsDialogOpen(true);
+  };
+
+  // Handle delete
+  const handleDelete = (id: number) => {
+    if (window.confirm("Are you sure you want to delete this expense?")) {
+      deleteExpenseMutation.mutate(id);
+    }
+  };
 
   const filteredExpenses = expenses.filter((expense) => {
     if (statusFilter !== "all" && expense.status !== statusFilter) return false;
@@ -103,7 +244,10 @@ export default function TechnicianExpenses() {
               Track and manage field technician expenses
             </p>
           </div>
-          <Button data-testid="button-add-expense">
+          <Button 
+            onClick={() => setIsDialogOpen(true)} 
+            data-testid="button-add-expense"
+          >
             <Plus className="mr-2 h-4 w-4" />
             Add Expense
           </Button>
@@ -213,6 +357,7 @@ export default function TechnicianExpenses() {
                       )}
                       <TableHead>Category</TableHead>
                       <TableHead>Amount</TableHead>
+                      <TableHead>Receipt</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
@@ -242,6 +387,21 @@ export default function TechnicianExpenses() {
                           {formatCurrency(parseFloat(expense.amount || "0"))}
                         </TableCell>
                         <TableCell>
+                          {expense.receiptUrl ? (
+                            <a 
+                              href={expense.receiptUrl} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800"
+                            >
+                              <Receipt className="h-4 w-4" />
+                              <span className="text-xs">View</span>
+                            </a>
+                          ) : (
+                            <span className="text-xs text-gray-400">No receipt</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
                           <Badge className={getStatusColor(expense.status || 'pending')}>
                             {expense.status || 'pending'}
                           </Badge>
@@ -251,6 +411,7 @@ export default function TechnicianExpenses() {
                             <Button 
                               variant="ghost" 
                               size="sm"
+                              onClick={() => handleEdit(expense)}
                               data-testid={`button-edit-expense-${expense.id}`}
                             >
                               <Edit className="h-4 w-4" />
@@ -258,6 +419,7 @@ export default function TechnicianExpenses() {
                             <Button 
                               variant="ghost" 
                               size="sm"
+                              onClick={() => handleDelete(expense.id)}
                               data-testid={`button-delete-expense-${expense.id}`}
                             >
                               <Trash2 className="h-4 w-4" />
@@ -273,6 +435,242 @@ export default function TechnicianExpenses() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Expense Form Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={(open) => {
+        setIsDialogOpen(open);
+        if (!open) resetForm();
+      }}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingExpense ? "Edit Expense" : "Add New Expense"}</DialogTitle>
+            <DialogDescription>
+              {editingExpense ? "Update expense details" : "Create a new expense entry with receipt photo"}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Amount */}
+            <div>
+              <Label htmlFor="amount">Amount *</Label>
+              <div className="relative">
+                <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                <Input
+                  id="amount"
+                  name="amount"
+                  type="number"
+                  step="0.01"
+                  required
+                  defaultValue={editingExpense?.amount}
+                  className="pl-10"
+                  placeholder="0.00"
+                  data-testid="input-expense-amount"
+                />
+              </div>
+            </div>
+
+            {/* Category */}
+            <div>
+              <Label htmlFor="category">Category *</Label>
+              <Input
+                id="category"
+                name="category"
+                required
+                defaultValue={editingExpense?.category}
+                placeholder="e.g., Gas, Tools, Meals"
+                data-testid="input-expense-category"
+              />
+            </div>
+
+            {/* Description */}
+            <div>
+              <Label htmlFor="description">Description *</Label>
+              <Textarea
+                id="description"
+                name="description"
+                required
+                defaultValue={editingExpense?.description}
+                placeholder="Enter expense details"
+                rows={3}
+                data-testid="input-expense-description"
+              />
+            </div>
+
+            {/* Date */}
+            <div>
+              <Label htmlFor="expenseDate">Expense Date *</Label>
+              <Input
+                id="expenseDate"
+                name="expenseDate"
+                type="date"
+                required
+                defaultValue={editingExpense?.expenseDate ? new Date(editingExpense.expenseDate).toISOString().split('T')[0] : ''}
+                data-testid="input-expense-date"
+              />
+            </div>
+
+            {/* Project (Optional) */}
+            <div>
+              <Label htmlFor="projectId">Project (Optional)</Label>
+              <Select name="projectId" defaultValue={editingExpense?.projectId?.toString()}>
+                <SelectTrigger data-testid="select-expense-project">
+                  <SelectValue placeholder="Select a project" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">None</SelectItem>
+                  {projects.map((project: any) => (
+                    <SelectItem key={project.id} value={project.id.toString()}>
+                      {project.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Vendor */}
+            <div>
+              <Label htmlFor="vendor">Vendor</Label>
+              <Input
+                id="vendor"
+                name="vendor"
+                defaultValue={editingExpense?.vendor || ''}
+                placeholder="Store or vendor name"
+                data-testid="input-expense-vendor"
+              />
+            </div>
+
+            {/* Receipt Photo Upload */}
+            <div className="space-y-3">
+              <Label>Receipt Photo</Label>
+              
+              {/* Camera and File Upload Buttons */}
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => cameraInputRef.current?.click()}
+                  data-testid="button-camera-capture"
+                >
+                  <Camera className="mr-2 h-4 w-4" />
+                  Take Photo
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => fileInputRef.current?.click()}
+                  data-testid="button-file-upload"
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  Upload File
+                </Button>
+              </div>
+
+              {/* Hidden camera input (mobile will open camera) */}
+              <input
+                ref={cameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleImageSelect(file);
+                }}
+                className="hidden"
+              />
+
+              {/* Hidden file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleImageSelect(file);
+                }}
+                className="hidden"
+              />
+
+              {/* Image Preview */}
+              {receiptPreview && (
+                <div className="relative border rounded-lg p-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute top-1 right-1 h-6 w-6 p-0"
+                    onClick={() => {
+                      setReceiptImage(null);
+                      setReceiptPreview("");
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                  <img
+                    src={receiptPreview}
+                    alt="Receipt preview"
+                    className="w-full h-48 object-contain rounded"
+                  />
+                  <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                    <ImageIcon className="h-3 w-3" />
+                    {receiptImage?.name || "Current receipt"}
+                  </p>
+                </div>
+              )}
+
+              {editingExpense?.receiptUrl && !receiptPreview && (
+                <p className="text-sm text-muted-foreground">
+                  Current receipt: <a href={editingExpense.receiptUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">View</a>
+                </p>
+              )}
+            </div>
+
+            {/* Notes */}
+            <div>
+              <Label htmlFor="notes">Notes (Optional)</Label>
+              <Textarea
+                id="notes"
+                name="notes"
+                defaultValue={editingExpense?.notes || ''}
+                placeholder="Additional notes"
+                rows={2}
+                data-testid="input-expense-notes"
+              />
+            </div>
+
+            {/* Submit Button */}
+            <div className="flex gap-2 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                onClick={() => {
+                  setIsDialogOpen(false);
+                  resetForm();
+                }}
+                data-testid="button-cancel-expense"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                className="flex-1"
+                disabled={createExpenseMutation.isPending || updateExpenseMutation.isPending}
+                data-testid="button-submit-expense"
+              >
+                {createExpenseMutation.isPending || updateExpenseMutation.isPending ? (
+                  "Saving..."
+                ) : editingExpense ? (
+                  "Update Expense"
+                ) : (
+                  "Create Expense"
+                )}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
