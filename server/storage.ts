@@ -3214,7 +3214,9 @@ export class DatabaseStorage implements IStorage {
         approvedAt: expenses.approvedAt,
         reimbursedAt: expenses.reimbursedAt,
         createdAt: expenses.createdAt,
-        updatedAt: expenses.updatedAt
+        updatedAt: expenses.updatedAt,
+        userRole: users.role,
+        userName: sql<string>`CONCAT(${users.firstName}, ' ', ${users.lastName})`
       })
       .from(expenses)
       .innerJoin(users, eq(expenses.userId, users.id))

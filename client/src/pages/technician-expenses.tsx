@@ -188,14 +188,13 @@ export default function TechnicianExpenses() {
     }
   };
 
-  const filteredExpenses = expenses.filter((expense) => {
+  const filteredExpenses = expenses.filter((expense: any) => {
     if (statusFilter !== "all" && expense.status !== statusFilter) return false;
     
-    // For technicians, show only their own expenses
-    // For managers/admins, show all expenses
-    // If currentUser hasn't loaded yet, show all expenses temporarily
-    if (currentUser && currentUser.role !== 'admin' && currentUser.role !== 'manager') {
-      return expense.userId === currentUser.id;
+    // Only show expenses created by technicians (based on creator's role)
+    // This filters out general business expenses created by admins/managers
+    if (expense.userRole !== 'technician') {
+      return false;
     }
     
     return true;
@@ -389,7 +388,7 @@ export default function TechnicianExpenses() {
                           <TableCell>
                             <div className="flex items-center gap-2">
                               <User className="h-4 w-4 text-gray-400" />
-                              {expense.user ? `${expense.user.firstName} ${expense.user.lastName}` : 'Unknown'}
+                              {(expense as any).userName || 'Unknown'}
                             </div>
                           </TableCell>
                         )}
