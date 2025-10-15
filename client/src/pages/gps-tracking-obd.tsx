@@ -105,10 +105,14 @@ export default function GPSTrackingOBD() {
 
       const data = await response.json();
       console.log('✅ Received data:', data);
+      console.log('📊 Points count:', data.points?.length);
+      console.log('📅 First point timestamp:', data.points?.[0]?.timestamp);
+      console.log('📅 Last point timestamp:', data.points?.[data.points.length - 1]?.timestamp);
       
       setHistoryPoints(data.points || []);
       setCurrentPointIndex(0);
       setIsPlaying(false);
+      console.log('🎬 Reset playback to index 0');
     } catch (error) {
       console.error('💥 Error loading historical data:', error);
       setHistoryPoints([]);
@@ -139,6 +143,20 @@ export default function GPSTrackingOBD() {
     setCurrentPointIndex(0);
     setIsPlaying(false);
   };
+
+  // Debug playback progress
+  useEffect(() => {
+    if (historyPoints.length > 0) {
+      const percent = (currentPointIndex / historyPoints.length) * 100;
+      console.log('📊 Playback Progress:', { 
+        currentPointIndex, 
+        total: historyPoints.length, 
+        point: `${currentPointIndex + 1} of ${historyPoints.length}`,
+        percent: `${Math.round(percent)}%`,
+        actualPercent: percent
+      });
+    }
+  }, [currentPointIndex, historyPoints.length]);
 
   // Get current playback location
   const selectedHistoryVehicle = obdLocations.find(loc => loc.deviceId === historyDeviceId);
@@ -562,6 +580,7 @@ export default function GPSTrackingOBD() {
                             </div>
                             <div className="h-96">
                               <SimpleVehicleMap 
+                                key={`replay-${historyDeviceId}-${historyPoints.length}`}
                                 locations={playbackLocations}
                                 selectedVehicleId={null}
                                 focusVehicleId={historyDeviceId}
