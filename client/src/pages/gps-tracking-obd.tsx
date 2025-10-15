@@ -552,7 +552,7 @@ export default function GPSTrackingOBD() {
                             ✓ Loaded {historyPoints.length} location points
                           </div>
                           
-                          {/* Replay Map */}
+                          {/* Replay Map - Shows ONLY historical route */}
                           <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-white dark:bg-gray-800">
                             <div className="p-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
                               <h3 className="text-sm font-semibold dark:text-white">Route Replay</h3>
@@ -565,6 +565,8 @@ export default function GPSTrackingOBD() {
                                 locations={playbackLocations}
                                 selectedVehicleId={null}
                                 focusVehicleId={historyDeviceId}
+                                replayMode={true}
+                                fullRoute={historyPoints}
                               />
                             </div>
                           </div>

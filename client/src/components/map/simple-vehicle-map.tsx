@@ -8,6 +8,8 @@ interface SimpleVehicleMapProps {
   selectedVehicleId?: string;
   focusVehicleId?: string | null;
   className?: string;
+  replayMode?: boolean;
+  fullRoute?: any[];
 }
 
 // Custom 3D vehicle icon with motion status color and type-specific design
@@ -162,12 +164,13 @@ const createVehicleIcon = (isMoving: boolean, vehicleType: string = 'truck') => 
   });
 };
 
-export function SimpleVehicleMap({ locations, selectedVehicleId, focusVehicleId, className = "" }: SimpleVehicleMapProps) {
+export function SimpleVehicleMap({ locations, selectedVehicleId, focusVehicleId, className = "", replayMode = false, fullRoute = [] }: SimpleVehicleMapProps) {
   const mapRef = useRef<L.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const markersRef = useRef<Map<string, L.Marker>>(new Map());
   const tileLayerRef = useRef<L.TileLayer | null>(null);
   const labelsLayerRef = useRef<L.TileLayer | null>(null); // For hybrid satellite view
+  const routePolylineRef = useRef<L.Polyline | null>(null); // For historical route path
   const pathLinesRef = useRef<Map<string, L.Polyline>>(new Map());
   const pathHistoryRef = useRef<Map<string, [number, number][]>>(new Map());
   const isFocusedRef = useRef<boolean>(false);
@@ -329,7 +332,66 @@ export function SimpleVehicleMap({ locations, selectedVehicleId, focusVehicleId,
     markers.forEach(marker => map.removeLayer(marker));
     markers.clear();
 
-    // Add new markers and update paths
+    // REPLAY MODE: Draw full route polyline and show only current position
+    if (replayMode && fullRoute && fullRoute.length > 0) {
+      // Draw the full historical route as a polyline
+      const routeCoords = fullRoute
+        .filter(point => point.latitude && point.longitude)
+        .map(point => [parseFloat(point.latitude), parseFloat(point.longitude)] as [number, number]);
+
+      // Remove old route polyline if it exists
+      if (routePolylineRef.current) {
+        map.removeLayer(routePolylineRef.current);
+      }
+
+      // Create new route polyline
+      if (routeCoords.length > 1) {
+        const routeLine = L.polyline(routeCoords, {
+          color: '#3b82f6',
+          weight: 4,
+          opacity: 0.8,
+          smoothFactor: 2
+        }).addTo(map);
+        routePolylineRef.current = routeLine;
+
+        // Fit map to show full route on first load
+        if (!hasInitialFitRef.current) {
+          map.fitBounds(routeLine.getBounds(), { padding: [50, 50] });
+          hasInitialFitRef.current = true;
+        }
+      }
+
+      // Show ONLY the current playback position marker
+      if (locations.length > 0) {
+        const location = locations[0]; // Current playback position
+        if (location.latitude && location.longitude) {
+          const lat = parseFloat(location.latitude);
+          const lng = parseFloat(location.longitude);
+          const speed = parseFloat(location.speed) || 0;
+          const isMoving = speed >= 1;
+
+          const marker = L.marker([lat, lng], {
+            icon: createVehicleIcon(isMoving, 'truck')
+          }).addTo(map);
+
+          const displayName = location.displayName || 'Vehicle';
+          const popupContent = `
+            <div style="color: black; min-width: 200px;">
+              <strong style="font-size: 14px;">📍 ${displayName}</strong><br/>
+              <div style="margin-top: 8px;">
+                <span style="color: #333;">Speed:</span> <strong>${Math.round(speed)} mph</strong><br/>
+                <span style="color: #333;">Time:</span> ${location.timestamp ? new Date(location.timestamp).toLocaleString() : 'N/A'}
+              </div>
+            </div>
+          `;
+          marker.bindPopup(popupContent).openPopup();
+          markers.set('replay', marker);
+        }
+      }
+      return; // Exit early, don't process normal markers
+    }
+
+    // NORMAL MODE: Add new markers and update paths
     const bounds: L.LatLngBounds[] = [];
     const MAX_PATH_POINTS = 100; // Keep last 100 points
 
@@ -448,7 +510,15 @@ export function SimpleVehicleMap({ locations, selectedVehicleId, focusVehicleId,
       map.fitBounds(group.getBounds(), { padding: [50, 50] });
       hasInitialFitRef.current = true; // Mark that we've done the initial fit
     }
-  }, [locations, vehicles]);
+
+    // Cleanup route polyline when exiting replay mode
+    return () => {
+      if (!replayMode && routePolylineRef.current && mapRef.current) {
+        mapRef.current.removeLayer(routePolylineRef.current);
+        routePolylineRef.current = null;
+      }
+    };
+  }, [locations, vehicles, replayMode, fullRoute]);
 
   // Focus on specific vehicle when focusVehicleId changes
   useEffect(() => {
