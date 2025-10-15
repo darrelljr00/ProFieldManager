@@ -7,6 +7,7 @@ Pro Field Manager is a comprehensive SaaS field service management platform desi
 Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (October 2025)
+- **Receipt OCR Auto-Extraction**: Implemented OpenAI Vision-powered OCR for Technician Expenses to automatically extract receipt data. When taking or uploading a receipt photo, the system analyzes the image and auto-populates vendor name, amount, date, and category fields using GPT-5 Vision API. Features include real-time processing feedback with loading overlay, success notifications, and graceful degradation when API key is not configured. Requires OPENAI_API_KEY environment variable.
 - **Customer Availability Requests Management**: Implemented Customer Requests tab in calendar page to manage quote availability submissions. When customers accept quotes and provide their available dates/times, requests appear in the calendar interface grouped by customer. Admins can click any time slot to confirm, which automatically creates a scheduled job and sends a confirmation email to the customer. The availability request is removed once confirmed, streamlining the quote-to-job workflow.
 - **Quote Email Deliverability Improvements**: Enhanced quote email system with plain text version alongside HTML, Reply-To headers, and anti-spam headers (X-Mailer, X-Priority, Importance) to improve email deliverability and avoid spam filters.
 - **OBD GPS Tracking System Complete**: Fully implemented cellular SIM card OBD GPS tracking system with database schema (obd_location_data, obd_diagnostic_data, obd_trips tables), 6 backend API endpoints for device data reception and retrieval, WebSocket real-time broadcasting, Google Maps integration with live vehicle monitoring dashboard, trip history with route replay functionality, weekly statistics, and dark mode automotive-themed interface. Devices POST location/diagnostic data to /api/obd/location and /api/obd/data endpoints for seamless integration.
@@ -73,6 +74,7 @@ Preferred communication style: Simple, everyday language.
 - **Stripe**: For subscription billing and payment processing.
 - **Twilio**: For SMS messaging.
 - **SendGrid**: For email notifications.
+- **OpenAI**: For receipt OCR (Optical Character Recognition) using GPT-5 Vision API to automatically extract data from receipt images.
 - **Google Maps API**: For address geocoding, directions, and map visualization.
 - **DocuSign**: For electronic signature integration.
 - **Cloudinary**: For cloud-based image and file storage, optimization, and delivery.
