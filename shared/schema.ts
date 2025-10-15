@@ -826,8 +826,14 @@ export const expenseCategories = pgTable("expense_categories", {
   id: serial("id").primaryKey(),
   organizationId: integer("organization_id").notNull().references(() => organizations.id),
   name: text("name").notNull(),
+  slug: text("slug").notNull(), // URL-friendly identifier for routing (e.g., "gas-receipts")
   description: text("description"),
   color: text("color").default("#3B82F6"),
+  icon: text("icon").default("Receipt"), // Lucide icon name
+  showAsTab: boolean("show_as_tab").default(false), // Whether to show as a navigation tab
+  sortOrder: integer("sort_order").default(0), // Order in navigation
+  isSubItem: boolean("is_sub_item").default(false), // Show under Expenses or as main tab
+  permissionField: text("permission_field"), // Optional permission field (e.g., "canAccessGasReceipts")
   isActive: boolean("is_active").default(true),
   isDefault: boolean("is_default").default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -1962,7 +1968,14 @@ export const insertExpenseSchema = z.object({
 
 export const insertExpenseCategorySchema = z.object({
   name: z.string().min(1),
+  slug: z.string().min(1),
   description: z.string().optional(),
+  color: z.string().default("#3B82F6"),
+  icon: z.string().default("Receipt"),
+  showAsTab: z.boolean().default(false),
+  sortOrder: z.number().default(0),
+  isSubItem: z.boolean().default(false),
+  permissionField: z.string().optional(),
   isActive: z.boolean().default(true),
   organizationId: z.number(),
 });
