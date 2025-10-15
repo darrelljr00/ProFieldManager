@@ -28,12 +28,15 @@ import {
 } from "lucide-react";
 import type { Expense } from "@shared/schema";
 
+console.log("🔥 TECHNICIAN EXPENSES FILE LOADED!");
+
 interface ExpenseWithDetails extends Expense {
   project?: { name: string };
   user?: { firstName: string; lastName: string };
 }
 
 export default function TechnicianExpenses() {
+  console.log("🎯 TECHNICIAN EXPENSES COMPONENT RENDERING!");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<ExpenseWithDetails | null>(null);
@@ -56,11 +59,11 @@ export default function TechnicianExpenses() {
     expenses: expenses?.slice(0, 2) // Log first 2 expenses
   });
 
-  const { data: currentUser } = useQuery({
+  const { data: currentUser } = useQuery<any>({
     queryKey: ["/api/users/me"],
   });
 
-  const { data: projects = [] } = useQuery({
+  const { data: projects = [] } = useQuery<any[]>({
     queryKey: ["/api/projects"],
   });
 
