@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import Stripe from "stripe";
 import twilio from "twilio";
+import OpenAI from "openai";
 import multer from "multer";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { ObjectPermission } from "./objectAcl";
@@ -116,6 +117,12 @@ const twilioClient = twilio(
   process.env.TWILIO_ACCOUNT_SID || "AC123456789abcdef123456789abcdef12",
   process.env.TWILIO_AUTH_TOKEN || "your_auth_token_here"
 );
+
+// Initialize OpenAI for OCR and AI features
+// the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
+const openai = new OpenAI({ 
+  apiKey: process.env.OPENAI_API_KEY 
+});
 
 // Helper function to get organization-based upload directory
 function getOrgUploadDir(organizationId: number, type: 'expenses' | 'images' | 'files' | 'image_gallery' | 'receipt_images' | 'inspection_report_images' | 'historical_job_images' | 'profile_pictures'): string {
@@ -9591,6 +9598,70 @@ ${fromName || ''}
     } catch (error: any) {
       console.error("Error fetching expense:", error);
       res.status(500).json({ message: "Failed to fetch expense" });
+    }
+  });
+
+  // OCR receipt analysis endpoint
+  app.post("/api/expenses/ocr-receipt", requireAuth, async (req, res) => {
+    try {
+      const { image } = req.body; // Expecting base64 image
+      
+      if (!image) {
+        return res.status(400).json({ message: "No image provided" });
+      }
+
+      // Extract base64 data (remove data:image/...;base64, prefix if present)
+      const base64Image = image.replace(/^data:image\/\w+;base64,/, '');
+
+      // Use OpenAI Vision to analyze the receipt
+      // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
+      const response = await openai.chat.completions.create({
+        model: "gpt-5",
+        messages: [
+          {
+            role: "system",
+            content: "You are an expert at reading receipts and extracting structured data. Analyze the receipt image and extract the vendor/merchant name, total amount, date, and suggest an expense category. Return the data in JSON format with keys: vendor, amount (as number), date (in ISO format YYYY-MM-DD), category (one of: fuel, materials, equipment, labor, vehicle_maintenance, tools, supplies, travel, meals, permits, insurance, utilities, rent, professional_services, office_supplies, marketing, technology, general). If you cannot find a field, use null for that field."
+          },
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: "Extract the vendor name, total amount, date, and category from this receipt image. Return as JSON."
+              },
+              {
+                type: "image_url",
+                image_url: {
+                  url: `data:image/jpeg;base64,${base64Image}`
+                }
+              }
+            ],
+          },
+        ],
+        response_format: { type: "json_object" },
+        max_completion_tokens: 500,
+      });
+
+      const extractedData = JSON.parse(response.choices[0].message.content || '{}');
+      
+      console.log("OCR extracted data:", extractedData);
+      
+      res.json({
+        success: true,
+        data: {
+          vendor: extractedData.vendor || null,
+          amount: extractedData.amount || null,
+          date: extractedData.date || null,
+          category: extractedData.category || 'general',
+        }
+      });
+    } catch (error: any) {
+      console.error("Error processing OCR:", error);
+      res.status(500).json({ 
+        success: false,
+        message: "Failed to process receipt image",
+        error: error.message 
+      });
     }
   });
 
