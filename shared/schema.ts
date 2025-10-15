@@ -817,6 +817,8 @@ export const expenses = pgTable("expenses", {
   approvedAt: timestamp("approved_at"),
   reimbursedAt: timestamp("reimbursed_at"),
   source: text("source").default("general"), // Tracks which page/form created the expense: "general", "technician_expenses", etc.
+  gallons: decimal("gallons", { precision: 10, scale: 3 }), // For fuel/gas receipts
+  pricePerGallon: decimal("price_per_gallon", { precision: 10, scale: 3 }), // For fuel/gas receipts
   deletedAt: timestamp("deleted_at"), // Soft delete timestamp
   deletedBy: integer("deleted_by").references(() => users.id), // Who deleted it
   createdAt: timestamp("created_at").defaultNow().notNull(),
