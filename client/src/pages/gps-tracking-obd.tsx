@@ -547,9 +547,28 @@ export default function GPSTrackingOBD() {
                       )}
                       
                       {historyPoints.length > 0 && (
-                        <div className="text-sm text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 p-3 rounded-lg">
-                          ✓ Loaded {historyPoints.length} location points
-                        </div>
+                        <>
+                          <div className="text-sm text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 p-3 rounded-lg">
+                            ✓ Loaded {historyPoints.length} location points
+                          </div>
+                          
+                          {/* Replay Map */}
+                          <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-white dark:bg-gray-800">
+                            <div className="p-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+                              <h3 className="text-sm font-semibold dark:text-white">Route Replay</h3>
+                              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                                Watch the vehicle's journey play back in real-time
+                              </p>
+                            </div>
+                            <div className="h-96">
+                              <SimpleVehicleMap 
+                                locations={playbackLocations}
+                                selectedVehicleId={null}
+                                focusVehicleId={historyDeviceId}
+                              />
+                            </div>
+                          </div>
+                        </>
                       )}
                     </div>
                   </TabsContent>
