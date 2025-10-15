@@ -50,6 +50,12 @@ export default function TechnicianExpenses() {
     queryKey: ["/api/expenses"],
   });
 
+  console.log("Technician Expenses Debug:", { 
+    expensesCount: expenses?.length, 
+    isLoading,
+    expenses: expenses?.slice(0, 2) // Log first 2 expenses
+  });
+
   const { data: currentUser } = useQuery({
     queryKey: ["/api/users/me"],
   });
