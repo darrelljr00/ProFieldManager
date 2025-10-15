@@ -9634,14 +9634,14 @@ ${fromName || ''}
         messages: [
           {
             role: "system",
-            content: "You are an expert at reading receipts and extracting structured data. Analyze the receipt image and extract the vendor/merchant name, total amount, date, and suggest an expense category. Return the data in JSON format with keys: vendor, amount (as number), date (in ISO format YYYY-MM-DD), category (one of: fuel, materials, equipment, labor, vehicle_maintenance, tools, supplies, travel, meals, permits, insurance, utilities, rent, professional_services, office_supplies, marketing, technology, general). If you cannot find a field, use null for that field."
+            content: "You are an expert at reading receipts and extracting structured data. Analyze the receipt image and extract the vendor/merchant name, total amount, date, and suggest an expense category. For gas/fuel receipts, also extract gallons (fuel quantity) and price per gallon. Return the data in JSON format with keys: vendor, amount (as number), date (in ISO format YYYY-MM-DD), category (one of: fuel, materials, equipment, labor, vehicle_maintenance, tools, supplies, travel, meals, permits, insurance, utilities, rent, professional_services, office_supplies, marketing, technology, general), gallons (as number, for fuel receipts only), pricePerGallon (as number, for fuel receipts only). If you cannot find a field, use null for that field."
           },
           {
             role: "user",
             content: [
               {
                 type: "text",
-                text: "Extract the vendor name, total amount, date, and category from this receipt image. Return as JSON."
+                text: "Extract the vendor name, total amount, date, and category from this receipt image. If this is a gas/fuel receipt, also extract the number of gallons and price per gallon. Return as JSON."
               },
               {
                 type: "image_url",
@@ -9667,6 +9667,8 @@ ${fromName || ''}
           amount: extractedData.amount || null,
           date: extractedData.date || null,
           category: extractedData.category || 'general',
+          gallons: extractedData.gallons || null,
+          pricePerGallon: extractedData.pricePerGallon || null,
         }
       });
     } catch (error: any) {
