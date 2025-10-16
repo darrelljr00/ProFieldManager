@@ -19094,12 +19094,32 @@ ${fromName || ''}
         });
       }
 
+      // Auto-link deviceId to vehicleId by looking up vehicle with matching GPS device ID
+      let resolvedVehicleId = vehicleId ? parseInt(vehicleId) : null;
+      
+      if (!resolvedVehicleId) {
+        const [matchingVehicle] = await db
+          .select({ id: vehicles.id })
+          .from(vehicles)
+          .where(
+            and(
+              eq(vehicles.organizationId, parseInt(organizationId)),
+              eq(vehicles.oneStepGpsDeviceId, deviceId)
+            )
+          )
+          .limit(1);
+        
+        if (matchingVehicle) {
+          resolvedVehicleId = matchingVehicle.id;
+        }
+      }
+
       // Save location data
       const [locationRecord] = await db
         .insert(obdLocationData)
         .values({
           organizationId: parseInt(organizationId),
-          vehicleId: vehicleId ? parseInt(vehicleId) : null,
+          vehicleId: resolvedVehicleId,
           deviceId,
           latitude: latitude.toString(),
           longitude: longitude.toString(),
@@ -19129,7 +19149,7 @@ ${fromName || ''}
           .insert(obdTrips)
           .values({
             organizationId: parseInt(organizationId),
-            vehicleId: vehicleId ? parseInt(vehicleId) : null,
+            vehicleId: resolvedVehicleId,
             deviceId,
             startTime: new Date(timestamp),
             startLatitude: latitude.toString(),
@@ -19164,7 +19184,7 @@ ${fromName || ''}
               type: 'obd_location_update',
               data: {
                 deviceId,
-                vehicleId,
+                vehicleId: resolvedVehicleId,
                 latitude: parseFloat(latitude),
                 longitude: parseFloat(longitude),
                 speed: speed ? parseFloat(speed) : null,
@@ -19207,12 +19227,32 @@ ${fromName || ''}
         });
       }
 
+      // Auto-link deviceId to vehicleId by looking up vehicle with matching GPS device ID
+      let resolvedVehicleId = vehicleId ? parseInt(vehicleId) : null;
+      
+      if (!resolvedVehicleId) {
+        const [matchingVehicle] = await db
+          .select({ id: vehicles.id })
+          .from(vehicles)
+          .where(
+            and(
+              eq(vehicles.organizationId, parseInt(organizationId)),
+              eq(vehicles.oneStepGpsDeviceId, deviceId)
+            )
+          )
+          .limit(1);
+        
+        if (matchingVehicle) {
+          resolvedVehicleId = matchingVehicle.id;
+        }
+      }
+
       // Save diagnostic data
       const [diagnosticRecord] = await db
         .insert(obdDiagnosticData)
         .values({
           organizationId: parseInt(organizationId),
-          vehicleId: vehicleId ? parseInt(vehicleId) : null,
+          vehicleId: resolvedVehicleId,
           deviceId,
           rpm: rpm ? parseInt(rpm) : null,
           engineTemp: engineTemp ? engineTemp.toString() : null,
@@ -19236,7 +19276,7 @@ ${fromName || ''}
               type: 'obd_diagnostic_update',
               data: {
                 deviceId,
-                vehicleId,
+                vehicleId: resolvedVehicleId,
                 rpm,
                 engineTemp,
                 coolantTemp,
@@ -19527,8 +19567,40 @@ ${fromName || ''}
       }
 
       const trips = await db
-        .select()
+        .select({
+          id: obdTrips.id,
+          organizationId: obdTrips.organizationId,
+          vehicleId: obdTrips.vehicleId,
+          deviceId: obdTrips.deviceId,
+          startTime: obdTrips.startTime,
+          endTime: obdTrips.endTime,
+          startLatitude: obdTrips.startLatitude,
+          startLongitude: obdTrips.startLongitude,
+          endLatitude: obdTrips.endLatitude,
+          endLongitude: obdTrips.endLongitude,
+          startLocation: obdTrips.startLocation,
+          endLocation: obdTrips.endLocation,
+          distanceMiles: obdTrips.distanceMiles,
+          durationMinutes: obdTrips.durationMinutes,
+          averageSpeed: obdTrips.averageSpeed,
+          maxSpeed: obdTrips.maxSpeed,
+          status: obdTrips.status,
+          createdAt: obdTrips.createdAt,
+          updatedAt: obdTrips.updatedAt,
+          // Vehicle details
+          vehicle: {
+            id: vehicles.id,
+            vehicleNumber: vehicles.vehicleNumber,
+            licensePlate: vehicles.licensePlate,
+            year: vehicles.year,
+            make: vehicles.make,
+            model: vehicles.model,
+            color: vehicles.color,
+            vehicleType: vehicles.vehicleType,
+          }
+        })
         .from(obdTrips)
+        .leftJoin(vehicles, eq(obdTrips.vehicleId, vehicles.id))
         .where(whereCondition)
         .orderBy(desc(obdTrips.startTime))
         .limit(parseInt(limit as string));
@@ -21273,6 +21345,57 @@ ${fromName || ''}
     } catch (error: any) {
       console.error("Error fetching vehicle:", error);
       res.status(500).json({ message: "Failed to fetch vehicle" });
+    }
+  });
+
+  // Get all vehicles with tracking status
+  app.get("/api/vehicles/with-tracking-status", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      // Get all vehicles for the organization
+      const allVehicles = await storage.getVehicles(user.organizationId);
+      
+      // Get recent location data (last 10 minutes) for all vehicles
+      const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+      const recentLocations = await db
+        .select({
+          vehicleId: obdLocationData.vehicleId,
+          deviceId: obdLocationData.deviceId,
+          timestamp: obdLocationData.timestamp,
+          latitude: obdLocationData.latitude,
+          longitude: obdLocationData.longitude,
+          speed: obdLocationData.speed,
+        })
+        .from(obdLocationData)
+        .where(
+          and(
+            eq(obdLocationData.organizationId, user.organizationId),
+            gte(obdLocationData.timestamp, tenMinutesAgo)
+          )
+        )
+        .orderBy(desc(obdLocationData.timestamp));
+      
+      // Create a map of vehicleId to latest location
+      const locationMap = new Map();
+      recentLocations.forEach(loc => {
+        if (loc.vehicleId && !locationMap.has(loc.vehicleId)) {
+          locationMap.set(loc.vehicleId, loc);
+        }
+      });
+      
+      // Enhance vehicles with tracking status
+      const vehiclesWithStatus = allVehicles.map(vehicle => ({
+        ...vehicle,
+        isTracking: locationMap.has(vehicle.id),
+        hasGpsDevice: !!vehicle.oneStepGpsDeviceId,
+        lastLocation: locationMap.get(vehicle.id) || null,
+      }));
+      
+      res.json(vehiclesWithStatus);
+    } catch (error: any) {
+      console.error("Error fetching vehicles with tracking status:", error);
+      res.status(500).json({ message: "Failed to fetch vehicles with tracking status" });
     }
   });
 

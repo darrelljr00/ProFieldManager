@@ -213,7 +213,10 @@ export default function GPSTrackingOBD() {
                   <SelectContent>
                     {vehicles.map(vehicle => (
                       <SelectItem key={vehicle.id} value={vehicle.id.toString()}>
-                        {vehicle.vehicleNumber} - {vehicle.licensePlate}
+                        {vehicle.vehicleNumber} 
+                        {vehicle.year || vehicle.make || vehicle.model ? 
+                          ` (${[vehicle.year, vehicle.make, vehicle.model].filter(Boolean).join(' ')})` : 
+                          ''} - {vehicle.licensePlate}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -369,7 +372,17 @@ export default function GPSTrackingOBD() {
                                       {location.displayName || vehicle?.vehicleNumber || `Vehicle ${vehicleId}`}
                                     </p>
                                     <p className="text-xs text-gray-600 dark:text-gray-400">
-                                      {vehicle?.licensePlate || `Device ${location.deviceId}`}
+                                      {vehicle ? (
+                                        <>
+                                          {vehicle.year || vehicle.make || vehicle.model ? 
+                                            `${[vehicle.year, vehicle.make, vehicle.model].filter(Boolean).join(' ')} • ` : 
+                                            ''
+                                          }
+                                          {vehicle.licensePlate}
+                                        </>
+                                      ) : (
+                                        `Device ${location.deviceId}`
+                                      )}
                                     </p>
                                   </div>
                                 </div>
@@ -419,11 +432,20 @@ export default function GPSTrackingOBD() {
                             <SelectValue placeholder="Choose a vehicle" />
                           </SelectTrigger>
                           <SelectContent>
-                            {obdLocations.map(location => (
-                              <SelectItem key={location.deviceId} value={location.deviceId}>
-                                {location.displayName || location.deviceId}
-                              </SelectItem>
-                            ))}
+                            {obdLocations.map(location => {
+                              const vehicle = vehicles.find(v => v.id === location.vehicleId);
+                              return (
+                                <SelectItem key={location.deviceId} value={location.deviceId}>
+                                  {vehicle ? (
+                                    `${vehicle.vehicleNumber}${vehicle.year || vehicle.make || vehicle.model ? 
+                                      ` (${[vehicle.year, vehicle.make, vehicle.model].filter(Boolean).join(' ')})` : 
+                                      ''} - ${vehicle.licensePlate}`
+                                  ) : (
+                                    location.displayName || location.deviceId
+                                  )}
+                                </SelectItem>
+                              );
+                            })}
                           </SelectContent>
                         </Select>
                       </div>

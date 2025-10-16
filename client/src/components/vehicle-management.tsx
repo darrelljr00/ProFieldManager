@@ -34,6 +34,7 @@ interface Vehicle {
   inspectionDue?: string;
   notes?: string;
   photoUrl?: string;
+  oneStepGpsDeviceId?: string; // GPS tracking device ID
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -555,6 +556,7 @@ function VehicleFormDialog({ mode, vehicle, onSubmit, isLoading }: VehicleFormDi
     registrationExpiry: vehicle?.registrationExpiry ? vehicle.registrationExpiry.split('T')[0] : "",
     inspectionDue: vehicle?.inspectionDue ? vehicle.inspectionDue.split('T')[0] : "",
     notes: vehicle?.notes || "",
+    oneStepGpsDeviceId: vehicle?.oneStepGpsDeviceId || "", // GPS Device ID
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -687,6 +689,19 @@ function VehicleFormDialog({ mode, vehicle, onSubmit, isLoading }: VehicleFormDi
               value={formData.vin}
               onChange={(e) => setFormData({ ...formData, vin: e.target.value })}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="oneStepGpsDeviceId">GPS Device ID</Label>
+            <Input
+              id="oneStepGpsDeviceId"
+              placeholder="OBD GPS Device ID for tracking"
+              value={formData.oneStepGpsDeviceId}
+              onChange={(e) => setFormData({ ...formData, oneStepGpsDeviceId: e.target.value })}
+            />
+            <p className="text-xs text-muted-foreground">
+              Enter the OBD device ID to enable live vehicle tracking
+            </p>
           </div>
 
           <div className="space-y-2">
