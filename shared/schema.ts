@@ -335,6 +335,7 @@ export const quotes = pgTable("quotes", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
   customerId: integer("customer_id").notNull().references(() => customers.id),
+  leadId: integer("lead_id").references(() => leads.id), // Track original lead if converted from lead->quote
   quoteNumber: text("quote_number").notNull(),
   status: text("status").notNull().default("draft"), // draft, sent, accepted, rejected, expired
   subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
@@ -469,6 +470,8 @@ export const projects = pgTable("projects", {
   deadline: timestamp("deadline"),
   progress: integer("progress").default(0), // 0-100
   budget: decimal("budget", { precision: 10, scale: 2 }),
+  leadId: integer("lead_id").references(() => leads.id), // Track original lead if converted from lead->quote->job
+  quoteId: integer("quote_id").references(() => quotes.id), // Track quote if converted from quote->job
   customerId: integer("customer_id").references(() => customers.id),
   contactName: text("contact_name"),
   contactEmail: text("contact_email"),

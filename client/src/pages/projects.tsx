@@ -976,7 +976,9 @@ export default function Jobs() {
       customerId: formData.get("customerId") ? parseInt(formData.get("customerId") as string) : null,
       startDate: formData.get("startDate") ? new Date(formData.get("startDate") as string) : null,
       deadline: formData.get("deadline") ? new Date(formData.get("deadline") as string) : null,
-      budget: formData.get("budget") ? parseFloat(formData.get("budget") as string) : null,
+      budget: formData.get("budget") ? parseFloat(formData.get("budget") as string) : (quoteConversionData?.budget ? parseFloat(quoteConversionData.budget) : null),
+      leadId: quoteConversionData?.leadId || null, // Track lead if converted from lead->quote->job
+      quoteId: quoteConversionData?.quoteId || null, // Track quote if converted from quote->job
       address: formData.get("address"),
       city: formData.get("city"),
       state: formData.get("state"),
@@ -1722,6 +1724,7 @@ export default function Jobs() {
                   min="0"
                   max="99999999.99"
                   placeholder="0.00"
+                  defaultValue={quoteConversionData?.budget || undefined}
                 />
               </div>
 
@@ -2508,7 +2511,7 @@ export default function Jobs() {
                 <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-lg border border-amber-200 dark:border-amber-800">
                   <div className="flex items-center gap-2 mb-3">
                     <DollarSign className="h-5 w-5 text-amber-600" />
-                    <Label className="text-sm font-semibold text-amber-900 dark:text-amber-100">Financial Summary</Label>
+                    <Label className="text-sm font-semibold text-amber-900 dark:text-amber-100">Financial Summary (Admin/Manager Only)</Label>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     {selectedProject.budget && (
@@ -2524,11 +2527,21 @@ export default function Jobs() {
                     <div>
                       <Label className="text-xs font-medium text-amber-700 dark:text-amber-300">Associated Lead Cost</Label>
                       <div className="flex items-center gap-1 mt-1">
-                        <span className="text-sm text-gray-500 dark:text-gray-400 italic">
-                          Not tracked
-                        </span>
+                        {selectedProject.lead?.leadPrice ? (
+                          <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                            ${parseFloat(selectedProject.lead.leadPrice).toLocaleString()}
+                          </span>
+                        ) : (
+                          <span className="text-sm text-gray-500 dark:text-gray-400 italic">
+                            No lead cost
+                          </span>
+                        )}
                       </div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Lead cost tracking not configured</p>
+                      {selectedProject.lead && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          From: {selectedProject.lead.name} ({selectedProject.lead.leadSource})
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>

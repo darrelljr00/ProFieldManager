@@ -236,7 +236,9 @@ export function QuotesTable({ quotes, isLoading }: QuotesTableProps) {
       description: description,
       notes: quote.notes || '',
       quoteId: quote.id,
-      quoteNumber: quote.quoteNumber
+      quoteNumber: quote.quoteNumber,
+      leadId: (quote as any).leadId || null, // Include leadId if quote was created from a lead
+      budget: quote.total // Set budget to quote total
     };
 
     sessionStorage.setItem('quoteToJobConversion', JSON.stringify(conversionData));

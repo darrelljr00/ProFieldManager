@@ -2343,6 +2343,8 @@ export class DatabaseStorage implements IStorage {
         deadline: projects.deadline,
         progress: projects.progress,
         budget: projects.budget,
+        leadId: projects.leadId,
+        quoteId: projects.quoteId,
         customerId: projects.customerId,
         contactName: projects.contactName,
         contactEmail: projects.contactEmail,
@@ -2394,12 +2396,20 @@ export class DatabaseStorage implements IStorage {
           .innerJoin(users, eq(projectUsers.userId, users.id))
           .where(eq(projectUsers.projectId, project.id));
 
+        // Fetch lead information if leadId exists
+        const lead = project.leadId ? await db
+          .select()
+          .from(leads)
+          .where(eq(leads.id, project.leadId))
+          .limit(1) : [];
+
         return {
           ...project,
           taskCount: Number(taskCounts[0]?.total) || 0,
           completedTasks: Number(taskCounts[0]?.completed) || 0,
           customer: customer[0] || null,
           users: projectTeam || [],
+          lead: lead[0] || null,
         };
       })
     );
