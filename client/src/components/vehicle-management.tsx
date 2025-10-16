@@ -38,6 +38,15 @@ interface Vehicle {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  // Tracking status fields
+  isTracking?: boolean;
+  hasGpsDevice?: boolean;
+  lastLocation?: {
+    latitude: number;
+    longitude: number;
+    speed: number;
+    timestamp: string;
+  } | null;
 }
 
 interface MaintenanceInterval {
@@ -83,13 +92,14 @@ export function VehicleManagement() {
   const queryClient = useQueryClient();
 
   const { data: vehicles = [], isLoading } = useQuery({
-    queryKey: ["/api/vehicles"],
+    queryKey: ["/api/vehicles/with-tracking-status"],
   });
 
   const createVehicleMutation = useMutation({
     mutationFn: (vehicleData: any) => apiRequest("POST", "/api/vehicles", vehicleData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/vehicles"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/vehicles/with-tracking-status"] });
       setIsCreateDialogOpen(false);
       toast({
         title: "Success",
@@ -110,6 +120,7 @@ export function VehicleManagement() {
       apiRequest("PUT", `/api/vehicles/${id}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/vehicles"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/vehicles/with-tracking-status"] });
       setIsEditDialogOpen(false);
       setEditingVehicle(null);
       toast({
@@ -130,6 +141,7 @@ export function VehicleManagement() {
     mutationFn: (id: number) => apiRequest("DELETE", `/api/vehicles/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/vehicles"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/vehicles/with-tracking-status"] });
       toast({
         title: "Success",
         description: "Vehicle deleted successfully",
@@ -416,6 +428,7 @@ export function VehicleManagement() {
                     <TableHead>Type</TableHead>
                     <TableHead>Make/Model</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>GPS Tracking</TableHead>
                     <TableHead>Maintenance</TableHead>
                     <TableHead>Mileage</TableHead>
                     <TableHead>Fuel Type</TableHead>
@@ -442,6 +455,23 @@ export function VehicleManagement() {
                         <Badge className={getStatusColor(vehicle.status)}>
                           {vehicle.status.replace('_', ' ')}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {vehicle.isTracking ? (
+                          <Badge className="bg-green-600 text-white hover:bg-green-700">
+                            <MapPin className="h-3 w-3 mr-1" />
+                            Live
+                          </Badge>
+                        ) : vehicle.hasGpsDevice ? (
+                          <Badge variant="outline" className="text-gray-600 dark:text-gray-400">
+                            <MapPin className="h-3 w-3 mr-1" />
+                            Inactive
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-gray-400 dark:text-gray-600">
+                            No Device
+                          </Badge>
+                        )}
                       </TableCell>
                       <TableCell>
                         {renderMaintenanceStatus(vehicle.id)}
