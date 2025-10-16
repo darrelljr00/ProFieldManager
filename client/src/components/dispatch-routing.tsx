@@ -114,6 +114,20 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
     },
   });
 
+  // Fetch all vehicles
+  const { data: vehiclesData } = useQuery({
+    queryKey: ['/api/vehicles'],
+    queryFn: async () => {
+      try {
+        const response = await apiRequest('GET', '/api/vehicles');
+        return response as any[];
+      } catch (error) {
+        console.error('Error fetching vehicles:', error);
+        return [];
+      }
+    },
+  });
+
   // Fetch vehicle-to-technician mapping from pre-trip inspections
   const { data: inspectionAssignments } = useQuery({
     queryKey: ['/api/vehicles/inspection-assignments', selectedDateState],
@@ -136,6 +150,23 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
       techToVehicleMap[userId as number] = parseInt(vehicleId);
     });
   }
+
+  // Create mapping from vehicle index to actual vehicle data
+  // MUST use the same ordering as job assignments to ensure alignment
+  const getVehicleByIndex = (index: number) => {
+    if (!vehiclesData || vehiclesData.length === 0) return null;
+    
+    // Use inspectionAssignments ordering (same as job assignment logic at line 187)
+    if (inspectionAssignments && Object.keys(inspectionAssignments).length > 0) {
+      const vehicleIds = Object.keys(inspectionAssignments).map(id => parseInt(id)).sort((a, b) => a - b);
+      const actualVehicleId = vehicleIds[index - 1]; // index is 1-based
+      return vehiclesData.find((v: any) => v.id === actualVehicleId) || null;
+    }
+    
+    // Fallback: if no inspections, use all vehicles sorted by ID
+    const sortedVehicles = [...vehiclesData].sort((a: any, b: any) => a.id - b.id);
+    return sortedVehicles[index - 1] || null;
+  };
 
   // Ensure scheduledJobs is always an array and auto-assign based on inspections
   const scheduledJobs = Array.isArray(scheduledJobsData) ? scheduledJobsData.map((job: any) => {
@@ -938,17 +969,24 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
           />
           
           {/* Dynamic Scheduled Jobs Vehicle Windows */}
-          {Array.from({ length: dispatchSettings?.vehicleTabsCount || 1 }, (_, index) => (
-            <DroppableVehicleContainer
-              key={index + 1}
-              vehicleId={`vehicle-${index + 1}`}
-              vehicleNumber={String(index + 1)}
-              jobs={scheduledJobs}
-              selectedDate={selectedDateState}
-              onStatusUpdate={handleStatusUpdate}
-              maxJobsPerVehicle={dispatchSettings?.maxJobsPerVehicle}
-            />
-          ))}
+          {Array.from({ length: dispatchSettings?.vehicleTabsCount || 1 }, (_, index) => {
+            const vehicle = getVehicleByIndex(index + 1);
+            const vehicleDisplay = vehicle 
+              ? `${vehicle.vehicleNumber || (index + 1)} ${vehicle.make && vehicle.model ? `(${vehicle.make} ${vehicle.model})` : ''}`
+              : String(index + 1);
+            
+            return (
+              <DroppableVehicleContainer
+                key={index + 1}
+                vehicleId={`vehicle-${index + 1}`}
+                vehicleNumber={vehicleDisplay}
+                jobs={scheduledJobs}
+                selectedDate={selectedDateState}
+                onStatusUpdate={handleStatusUpdate}
+                maxJobsPerVehicle={dispatchSettings?.maxJobsPerVehicle}
+              />
+            );
+          })}
         
         {/* Multi-Map View Section - Only show if there's space or single column */}
         {((dispatchSettings?.vehicleTabsCount || 1) === 1 || (dispatchSettings?.vehicleTabsCount || 1) >= 3) && (
