@@ -154,7 +154,7 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
   // Create mapping from vehicle index to actual vehicle data
   // MUST use the same ordering as job assignments to ensure alignment
   const getVehicleByIndex = (index: number) => {
-    if (!vehiclesData || vehiclesData.length === 0) return null;
+    if (!vehiclesData || !Array.isArray(vehiclesData) || vehiclesData.length === 0) return null;
     
     // Use inspectionAssignments ordering (same as job assignment logic at line 187)
     if (inspectionAssignments && Object.keys(inspectionAssignments).length > 0) {
