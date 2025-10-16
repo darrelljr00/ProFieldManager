@@ -11721,6 +11721,137 @@ ${fromName || ''}
     }
   });
 
+  // Comprehensive Profit/Loss Calculation with All Costs  
+  app.get("/api/reports/profit-loss-detailed", requireAuth, async (req, res) => {
+    try {
+      console.log("=== PROFIT/LOSS ENDPOINT CALLED ===");
+      const user = getAuthenticatedUser(req);
+      const organizationId = user.organizationId;
+      console.log("User org ID:", organizationId);
+      
+      // Parse date range
+      const { startDate: startParam, endDate: endParam, view = 'monthly' } = req.query;
+      const startDate = startParam ? new Date(startParam as string) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const endDate = endParam ? new Date(endParam as string) : new Date();
+      console.log("Date range:", startDate, "to", endDate);
+
+      // Get all data using storage methods
+      console.log("Fetching projects...");
+      const allProjects = await storage.getProjects(organizationId);
+      console.log("Projects count:", allProjects?.length);
+      
+      console.log("Fetching invoices...");
+      const allInvoices = await storage.getInvoices(organizationId);
+      console.log("Invoices count:", allInvoices?.length);
+      
+      console.log("Fetching expenses...");
+      const allExpenses = await storage.getExpenses(organizationId, user.id);
+      console.log("Expenses count:", allExpenses?.length);
+      
+      // Filter projects by date range
+      const filteredProjects = allProjects.filter((p: any) => {
+        const projectDate = new Date(p.createdAt);
+        return projectDate >= startDate && projectDate <= endDate;
+      });
+
+      // Calculate simplified costs per job (without gas/employee data for now)
+      const jobProfitData = filteredProjects.map((project: any) => {
+        // Find invoice for this project
+        const invoice = allInvoices.find((inv: any) => inv.projectId === project.id);
+        const revenue = invoice?.status === 'paid' ? parseFloat(invoice.totalAmount || '0') : 0;
+        
+        // Material/supply costs from expenses linked to this project
+        const jobMaterials = allExpenses.filter((e: any) => e.projectId === project.id);
+        const materialsCost = jobMaterials.reduce((sum: number, exp: any) => 
+          sum + parseFloat(exp.amount || '0'), 0);
+
+        // For now, labor and fuel costs are 0 (to be enhanced later)
+        const laborCost = 0;
+        const fuelCost = 0;
+
+        // Total costs and profit
+        const totalExpenses = laborCost + fuelCost + materialsCost;
+        const netProfit = revenue - totalExpenses;
+        const profitMargin = revenue > 0 ? ((netProfit / revenue) * 100) : 0;
+
+        return {
+          projectId: project.id,
+          projectName: project.name,
+          date: project.createdAt || project.scheduledDate,
+          revenue,
+          costs: {
+            labor: laborCost,
+            fuel: fuelCost,
+            materials: materialsCost,
+            total: totalExpenses
+          },
+          netProfit,
+          profitMargin,
+          technicianCount: 0,
+        };
+      });
+
+      // Group by view type
+      let groupedData: any[] = [];
+      
+      if (view === 'job') {
+        groupedData = jobProfitData.filter(j => j.revenue > 0); // Only jobs with revenue
+      } else if (view === 'daily') {
+        const dailyMap: Record<string, any> = {};
+        jobProfitData.forEach(job => {
+          if (!job.date) return;
+          const dayKey = new Date(job.date).toISOString().split('T')[0];
+          if (!dailyMap[dayKey]) {
+            dailyMap[dayKey] = {
+              date: dayKey,
+              revenue: 0,
+              laborCost: 0,
+              fuelCost: 0,
+              materialsCost: 0,
+              totalCosts: 0,
+              netProfit: 0,
+              profitMargin: 0,
+              jobs: []
+            };
+          }
+          dailyMap[dayKey].revenue += job.revenue;
+          dailyMap[dayKey].laborCost += job.costs.labor;
+          dailyMap[dayKey].fuelCost += job.costs.fuel;
+          dailyMap[dayKey].materialsCost += job.costs.materials;
+          dailyMap[dayKey].totalCosts += job.costs.total;
+          dailyMap[dayKey].netProfit += job.netProfit;
+          if (job.revenue > 0) {
+            dailyMap[dayKey].jobs.push(job);
+          }
+        });
+        
+        Object.values(dailyMap).forEach((day: any) => {
+          day.profitMargin = day.revenue > 0 ? ((day.netProfit / day.revenue) * 100) : 0;
+        });
+        groupedData = Object.values(dailyMap).sort((a: any, b: any) => a.date.localeCompare(b.date));
+      }
+
+      res.json({
+        view,
+        dateRange: { startDate, endDate },
+        data: groupedData,
+        summary: {
+          totalRevenue: jobProfitData.reduce((s, j) => s + j.revenue, 0),
+          totalLaborCost: jobProfitData.reduce((s, j) => s + j.costs.labor, 0),
+          totalFuelCost: jobProfitData.reduce((s, j) => s + j.costs.fuel, 0),
+          totalMaterialsCost: jobProfitData.reduce((s, j) => s + j.costs.materials, 0),
+          totalExpenses: jobProfitData.reduce((s, j) => s + j.costs.total, 0),
+          totalNetProfit: jobProfitData.reduce((s, j) => s + j.netProfit, 0),
+        }
+      });
+    } catch (error: any) {
+      console.error("Error calculating profit/loss:", error);
+      console.error("Error stack:", error.stack);
+      console.error("Error message:", error.message);
+      res.status(500).json({ message: "Failed to calculate profit/loss", error: error.message });
+    }
+  });
+
   // Job Analytics API endpoint
   app.get("/api/job-analytics", requireAuth, async (req, res) => {
     try {

@@ -4462,6 +4462,7 @@ export const vehicles = pgTable("vehicles", {
   status: text("status").notNull().default("active"), // active, maintenance, out_of_service, retired
   currentMileage: integer("current_mileage"),
   fuelType: text("fuel_type"), // gasoline, diesel, electric, hybrid
+  fuelEconomyMpg: decimal("fuel_economy_mpg", { precision: 5, scale: 2 }), // Miles per gallon for fuel cost calculations
   
   // Insurance and registration
   insuranceExpiry: timestamp("insurance_expiry"),
