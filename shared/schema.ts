@@ -3798,6 +3798,7 @@ export const inspectionRecords = pgTable("inspection_records", {
   organizationId: integer("organization_id").notNull().references(() => organizations.id),
   templateId: integer("template_id").notNull().references(() => inspectionTemplates.id),
   type: text("type").notNull(), // 'pre-trip', 'post-trip'
+  vehicleId: integer("vehicle_id").references(() => vehicles.id), // Link to actual vehicle record
   vehicleInfo: jsonb("vehicle_info"), // Vehicle details like license plate, mileage, etc.
   status: text("status").notNull().default("pending"), // 'pending', 'completed', 'requires_attention'
   submittedAt: timestamp("submitted_at"),

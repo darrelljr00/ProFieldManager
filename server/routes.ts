@@ -73,7 +73,8 @@ import {
   partsSupplies, inventoryTransactions, stockAlerts,
   partsCategories, meetings, meetingParticipants, meetingMessages, meetingRecordings,
   jobSiteGeofences, jobSiteEvents, gpsTrackingData,
-  obdLocationData, obdDiagnosticData, obdTrips, services
+  obdLocationData, obdDiagnosticData, obdTrips, services,
+  inspectionRecords
 } from "@shared/schema";
 import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull } from "drizzle-orm";
 import { DocuSignService, getDocuSignConfig } from "./docusign";
