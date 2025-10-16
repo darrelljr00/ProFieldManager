@@ -168,6 +168,22 @@ export default function Reports() {
     refetchInterval: realTimeUpdates ? 30000 : false,
   });
 
+  // Fetch profit per vehicle data
+  const getProfitPerVehicleParams = () => {
+    const { start, end } = getDateRangeFromSelection(timeRange);
+    return `startDate=${start.toISOString()}&endDate=${end.toISOString()}`;
+  };
+
+  const { data: profitPerVehicleData, isLoading: profitPerVehicleLoading } = useQuery({
+    queryKey: ["/api/reports/profit-per-vehicle", timeRange],
+    queryFn: async () => {
+      const params = getProfitPerVehicleParams();
+      const response = await fetch(`/api/reports/profit-per-vehicle?${params}`);
+      if (!response.ok) throw new Error('Failed to fetch profit per vehicle data');
+      return response.json();
+    },
+  });
+
   // All employees with realistic performance metrics
   const getAllEmployeeData = () => [
     {
@@ -2323,53 +2339,125 @@ export default function Reports() {
                   <CardDescription>Profitability analysis by vehicle for the selected period</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {/* Bar Chart */}
-                    <div className="h-80">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={[]} margin={{ top: 10, right: 30, left: 20, bottom: 60 }}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis 
-                            dataKey="vehicleNumber" 
-                            angle={-45}
-                            textAnchor="end"
-                            height={80}
-                          />
-                          <YAxis />
-                          <Tooltip 
-                            formatter={(value: any) => `$${Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                          />
-                          <Legend />
-                          <Bar dataKey="revenue" name="Revenue" fill="#10b981" />
-                          <Bar dataKey="expenses" name="Expenses" fill="#ef4444" />
-                          <Bar dataKey="profit" name="Net Profit" fill="#3b82f6" />
-                        </BarChart>
-                      </ResponsiveContainer>
+                  {profitPerVehicleLoading ? (
+                    <div className="flex items-center justify-center h-64">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
                     </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {/* Bar Chart */}
+                      <div className="h-80">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart 
+                            data={profitPerVehicleData?.vehicles || []} 
+                            margin={{ top: 10, right: 30, left: 20, bottom: 60 }}
+                          >
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis 
+                              dataKey="vehicleNumber" 
+                              angle={-45}
+                              textAnchor="end"
+                              height={80}
+                            />
+                            <YAxis />
+                            <Tooltip 
+                              formatter={(value: any) => `$${Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                            />
+                            <Legend />
+                            <Bar dataKey="revenue" name="Revenue" fill="#10b981" />
+                            <Bar dataKey="expenses" name="Expenses" fill="#ef4444" />
+                            <Bar dataKey="profit" name="Net Profit" fill="#3b82f6" />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
 
-                    {/* Summary Table */}
-                    <div className="overflow-x-auto">
-                      <table className="w-full border-collapse">
-                        <thead>
-                          <tr className="border-b bg-gray-50">
-                            <th className="text-left p-3 font-medium">Vehicle</th>
-                            <th className="text-right p-3 font-medium">Jobs Completed</th>
-                            <th className="text-right p-3 font-medium">Revenue</th>
-                            <th className="text-right p-3 font-medium">Expenses</th>
-                            <th className="text-right p-3 font-medium">Net Profit</th>
-                            <th className="text-right p-3 font-medium">Profit Margin</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr className="border-b">
-                            <td colSpan={6} className="p-4 text-center text-gray-500">
-                              No vehicle data available for the selected period
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
+                      {/* Summary Table */}
+                      <div className="overflow-x-auto">
+                        <table className="w-full border-collapse">
+                          <thead>
+                            <tr className="border-b bg-gray-50">
+                              <th className="text-left p-3 font-medium">Vehicle</th>
+                              <th className="text-right p-3 font-medium">Jobs Completed</th>
+                              <th className="text-right p-3 font-medium">Revenue</th>
+                              <th className="text-right p-3 font-medium">Expenses</th>
+                              <th className="text-right p-3 font-medium">Net Profit</th>
+                              <th className="text-right p-3 font-medium">Profit Margin</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {profitPerVehicleData?.vehicles && profitPerVehicleData.vehicles.length > 0 ? (
+                              profitPerVehicleData.vehicles.map((vehicle: any, index: number) => (
+                                <tr key={index} className="border-b hover:bg-gray-50" data-testid={`row-vehicle-profit-${vehicle.vehicleId}`}>
+                                  <td className="p-3 font-medium" data-testid={`text-vehicle-number-${vehicle.vehicleId}`}>
+                                    {vehicle.vehicleNumber}
+                                    {vehicle.make && vehicle.model && (
+                                      <span className="text-sm text-gray-500 ml-2">
+                                        ({vehicle.make} {vehicle.model})
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className="text-right p-3" data-testid={`text-jobs-completed-${vehicle.vehicleId}`}>
+                                    {vehicle.jobsCompleted}
+                                  </td>
+                                  <td className="text-right p-3 text-green-600" data-testid={`text-revenue-${vehicle.vehicleId}`}>
+                                    ${vehicle.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                  </td>
+                                  <td className="text-right p-3 text-red-600" data-testid={`text-expenses-${vehicle.vehicleId}`}>
+                                    ${vehicle.expenses.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                  </td>
+                                  <td 
+                                    className={`text-right p-3 font-semibold ${vehicle.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}
+                                    data-testid={`text-profit-${vehicle.vehicleId}`}
+                                  >
+                                    ${vehicle.profit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                  </td>
+                                  <td 
+                                    className={`text-right p-3 ${vehicle.profitMargin >= 0 ? 'text-green-600' : 'text-red-600'}`}
+                                    data-testid={`text-profit-margin-${vehicle.vehicleId}`}
+                                  >
+                                    {vehicle.profitMargin}%
+                                  </td>
+                                </tr>
+                              ))
+                            ) : (
+                              <tr className="border-b">
+                                <td colSpan={6} className="p-4 text-center text-gray-500">
+                                  No vehicle data available for the selected period
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                          {profitPerVehicleData?.totals && profitPerVehicleData.vehicles.length > 0 && (
+                            <tfoot className="border-t-2 bg-gray-50">
+                              <tr className="font-bold">
+                                <td className="p-3">Total</td>
+                                <td className="text-right p-3" data-testid="text-total-jobs">
+                                  {profitPerVehicleData.totals.totalJobs}
+                                </td>
+                                <td className="text-right p-3 text-green-600" data-testid="text-total-revenue">
+                                  ${profitPerVehicleData.totals.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </td>
+                                <td className="text-right p-3 text-red-600" data-testid="text-total-expenses">
+                                  ${profitPerVehicleData.totals.totalExpenses.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </td>
+                                <td 
+                                  className={`text-right p-3 ${profitPerVehicleData.totals.totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}
+                                  data-testid="text-total-profit"
+                                >
+                                  ${profitPerVehicleData.totals.totalProfit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </td>
+                                <td className="text-right p-3" data-testid="text-avg-profit-margin">
+                                  {profitPerVehicleData.totals.totalRevenue > 0 
+                                    ? ((profitPerVehicleData.totals.totalProfit / profitPerVehicleData.totals.totalRevenue) * 100).toFixed(1)
+                                    : 0}%
+                                </td>
+                              </tr>
+                            </tfoot>
+                          )}
+                        </table>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </CardContent>
               </Card>
             </>

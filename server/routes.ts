@@ -64,7 +64,7 @@ import { db } from "./db";
 import { 
   users, customers, invoices, quotes, quoteAvailability, projects, tasks, 
   expenses, expenseCategories, expenseReports, gasCards, 
-  gasCardAssignments, leads, leadSettings, messages, internalMessages,
+  gasCardAssignments, gasCardUsage, leads, leadSettings, messages, internalMessages,
   recurringJobSeries, recurringJobOccurrences,
   images, settings, organizations, userSessions, vendors, vehicles,
   soundSettings, userDashboardSettings, dashboardProfiles,
@@ -11849,6 +11849,133 @@ ${fromName || ''}
       console.error("Error stack:", error.stack);
       console.error("Error message:", error.message);
       res.status(500).json({ message: "Failed to calculate profit/loss", error: error.message });
+    }
+  });
+
+  // Profit per Vehicle API endpoint
+  app.get("/api/reports/profit-per-vehicle", requireAuth, async (req, res) => {
+    console.log('🚗 Profit per vehicle endpoint hit');
+    try {
+      const user = getAuthenticatedUser(req);
+      const organizationId = user.organizationId;
+      console.log('🔍 User org ID:', organizationId);
+      
+      // Parse date range
+      const { startDate: startParam, endDate: endParam } = req.query;
+      const startDate = startParam ? new Date(startParam as string) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const endDate = endParam ? new Date(endParam as string) : new Date();
+
+      // Get all vehicles for this organization
+      const allVehicles = await db.select()
+        .from(vehicles)
+        .where(eq(vehicles.organizationId, organizationId));
+
+      // Get all projects with vehicle assignments
+      const allProjects = await db.select()
+        .from(projects)
+        .where(
+          and(
+            eq(projects.organizationId, organizationId),
+            gte(projects.createdAt, startDate),
+            lte(projects.createdAt, endDate)
+          )
+        );
+
+      // Get all invoices
+      const allInvoices = await db.select()
+        .from(invoices)
+        .where(eq(invoices.organizationId, organizationId));
+
+      // Get all expenses (filter by projectId later since expenses table doesn't have organizationId)
+      const allExpenses = await db.select()
+        .from(expenses);
+
+      // Get gas card usage (join through gasCards to filter by organization via users)
+      // Since gasCardUsage doesn't have organizationId, we'll filter later by projectId
+      const allGasCardUsage = await db.select()
+        .from(gasCardUsage);
+
+      // Build vehicle profit map
+      const vehicleMap = new Map();
+
+      // Initialize all vehicles
+      allVehicles.forEach(vehicle => {
+        vehicleMap.set(String(vehicle.id), {
+          vehicleId: vehicle.id,
+          vehicleNumber: vehicle.vehicleNumber || `Vehicle ${vehicle.id}`,
+          make: vehicle.make || '',
+          model: vehicle.model || '',
+          jobsCompleted: 0,
+          revenue: 0,
+          expenses: 0,
+          fuelCosts: 0,
+          profit: 0,
+          profitMargin: 0
+        });
+      });
+
+      // Process each project
+      allProjects.forEach(project => {
+        if (!project.vehicleId) return;
+
+        const vehicleKey = String(project.vehicleId);
+        if (!vehicleMap.has(vehicleKey)) {
+          // Vehicle not in our list, skip
+          return;
+        }
+
+        const vehicleData = vehicleMap.get(vehicleKey);
+        vehicleData.jobsCompleted++;
+
+        // Calculate revenue from paid invoices
+        const projectInvoices = allInvoices.filter(inv => 
+          inv.projectId === project.id && inv.status === 'paid'
+        );
+        const projectRevenue = projectInvoices.reduce((sum, inv) => sum + (Number(inv.total) || 0), 0);
+        vehicleData.revenue += projectRevenue;
+
+        // Calculate expenses
+        const projectExpenses = allExpenses.filter(exp => exp.projectId === project.id);
+        const projectExpenseCost = projectExpenses.reduce((sum, exp) => sum + (Number(exp.amount) || 0), 0);
+        vehicleData.expenses += projectExpenseCost;
+
+        // Calculate fuel costs from gas card usage
+        const projectFuelCosts = allGasCardUsage.filter(gas => gas.projectId === project.id);
+        const projectFuelCost = projectFuelCosts.reduce((sum, gas) => sum + (Number(gas.totalAmount) || 0), 0);
+        vehicleData.fuelCosts += projectFuelCost;
+      });
+
+      // Calculate profit and margin for each vehicle
+      const vehicleResults = Array.from(vehicleMap.values()).map(vehicle => {
+        const totalExpenses = vehicle.expenses + vehicle.fuelCosts;
+        vehicle.profit = vehicle.revenue - totalExpenses;
+        vehicle.profitMargin = vehicle.revenue > 0 
+          ? Number(((vehicle.profit / vehicle.revenue) * 100).toFixed(1))
+          : 0;
+        vehicle.expenses = totalExpenses; // Update to include fuel costs
+        return vehicle;
+      }).filter(v => v.jobsCompleted > 0); // Only include vehicles with jobs
+
+      // Sort by profit (highest first)
+      vehicleResults.sort((a, b) => b.profit - a.profit);
+
+      // Calculate totals
+      const totals = {
+        totalRevenue: vehicleResults.reduce((sum, v) => sum + v.revenue, 0),
+        totalExpenses: vehicleResults.reduce((sum, v) => sum + v.expenses, 0),
+        totalFuelCosts: vehicleResults.reduce((sum, v) => sum + v.fuelCosts, 0),
+        totalProfit: vehicleResults.reduce((sum, v) => sum + v.profit, 0),
+        totalJobs: vehicleResults.reduce((sum, v) => sum + v.jobsCompleted, 0)
+      };
+
+      res.json({
+        vehicles: vehicleResults,
+        totals,
+        dateRange: { startDate, endDate }
+      });
+    } catch (error: any) {
+      console.error("Error calculating profit per vehicle:", error);
+      res.status(500).json({ message: "Failed to calculate profit per vehicle", error: error.message });
     }
   });
 
