@@ -11748,13 +11748,26 @@ ${fromName || ''}
       const allExpenses = await storage.getExpenses(organizationId, user.id);
       console.log("Expenses count:", allExpenses?.length);
       
+      // Fetch travel segments for job-to-job travel costs
+      console.log("Fetching travel segments...");
+      const allTravelSegments = await db.select()
+        .from(jobTravelSegments)
+        .where(
+          and(
+            eq(jobTravelSegments.organizationId, organizationId),
+            gte(jobTravelSegments.createdAt, startDate),
+            lte(jobTravelSegments.createdAt, endDate)
+          )
+        );
+      console.log("Travel segments count:", allTravelSegments?.length);
+      
       // Filter projects by date range
       const filteredProjects = allProjects.filter((p: any) => {
         const projectDate = new Date(p.createdAt);
         return projectDate >= startDate && projectDate <= endDate;
       });
 
-      // Calculate simplified costs per job (without gas/employee data for now)
+      // Calculate costs per job including travel costs
       const jobProfitData = filteredProjects.map((project: any) => {
         // Find invoice for this project
         const invoice = allInvoices.find((inv: any) => inv.projectId === project.id);
@@ -11765,9 +11778,15 @@ ${fromName || ''}
         const materialsCost = jobMaterials.reduce((sum: number, exp: any) => 
           sum + parseFloat(exp.amount || '0'), 0);
 
-        // For now, labor and fuel costs are 0 (to be enhanced later)
-        const laborCost = 0;
-        const fuelCost = 0;
+        // Travel costs - segments where this job is the destination
+        const travelToJob = allTravelSegments.filter((seg: any) => seg.toProjectId === project.id);
+        const travelFuelCost = travelToJob.reduce((sum: number, seg: any) => 
+          sum + parseFloat(seg.fuelCostCalculated || '0'), 0);
+        const travelLaborCost = travelToJob.reduce((sum: number, seg: any) => 
+          sum + parseFloat(seg.laborCostCalculated || '0'), 0);
+        
+        const laborCost = travelLaborCost; // Travel labor cost
+        const fuelCost = travelFuelCost; // Travel fuel cost
 
         // Total costs and profit
         const totalExpenses = laborCost + fuelCost + materialsCost;
@@ -11783,6 +11802,8 @@ ${fromName || ''}
             labor: laborCost,
             fuel: fuelCost,
             materials: materialsCost,
+            travelFuel: travelFuelCost,
+            travelLabor: travelLaborCost,
             total: totalExpenses
           },
           netProfit,
@@ -11893,6 +11914,17 @@ ${fromName || ''}
         .from(gasCardUsage)
         .where(eq(gasCardUsage.organizationId, organizationId));
 
+      // Get travel segments (job-to-job travel costs)
+      const allTravelSegments = await db.select()
+        .from(jobTravelSegments)
+        .where(
+          and(
+            eq(jobTravelSegments.organizationId, organizationId),
+            gte(jobTravelSegments.createdAt, startDate),
+            lte(jobTravelSegments.createdAt, endDate)
+          )
+        );
+
       // Build vehicle profit map
       const vehicleMap = new Map();
 
@@ -11907,6 +11939,9 @@ ${fromName || ''}
           revenue: 0,
           expenses: 0,
           fuelCosts: 0,
+          travelFuelCosts: 0, // Travel-specific fuel costs
+          travelLaborCosts: 0, // Travel-specific labor costs
+          travelSegments: 0, // Number of job-to-job travels
           profit: 0,
           profitMargin: 0
         });
@@ -11943,14 +11978,26 @@ ${fromName || ''}
         vehicleData.fuelCosts += projectFuelCost;
       });
 
+      // Process travel segments for each vehicle
+      allTravelSegments.forEach(segment => {
+        const vehicleKey = String(segment.vehicleId);
+        if (!vehicleMap.has(vehicleKey)) return;
+
+        const vehicleData = vehicleMap.get(vehicleKey);
+        vehicleData.travelFuelCosts += Number(segment.fuelCostCalculated) || 0;
+        vehicleData.travelLaborCosts += Number(segment.laborCostCalculated) || 0;
+        vehicleData.travelSegments++;
+      });
+
       // Calculate profit and margin for each vehicle
       const vehicleResults = Array.from(vehicleMap.values()).map(vehicle => {
-        const totalExpenses = vehicle.expenses + vehicle.fuelCosts;
+        const totalExpenses = vehicle.expenses + vehicle.fuelCosts + vehicle.travelFuelCosts + vehicle.travelLaborCosts;
         vehicle.profit = vehicle.revenue - totalExpenses;
         vehicle.profitMargin = vehicle.revenue > 0 
           ? Number(((vehicle.profit / vehicle.revenue) * 100).toFixed(1))
           : 0;
-        vehicle.expenses = totalExpenses; // Update to include fuel costs
+        vehicle.totalExpenses = totalExpenses; // Total expenses including travel
+        vehicle.totalTravelCost = vehicle.travelFuelCosts + vehicle.travelLaborCosts; // Total travel cost
         return vehicle;
       }).filter(v => v.jobsCompleted > 0); // Only include vehicles with jobs
 
@@ -11960,8 +12007,12 @@ ${fromName || ''}
       // Calculate totals
       const totals = {
         totalRevenue: vehicleResults.reduce((sum, v) => sum + v.revenue, 0),
-        totalExpenses: vehicleResults.reduce((sum, v) => sum + v.expenses, 0),
+        totalExpenses: vehicleResults.reduce((sum, v) => sum + (v.totalExpenses || v.expenses), 0),
         totalFuelCosts: vehicleResults.reduce((sum, v) => sum + v.fuelCosts, 0),
+        totalTravelFuelCosts: vehicleResults.reduce((sum, v) => sum + v.travelFuelCosts, 0),
+        totalTravelLaborCosts: vehicleResults.reduce((sum, v) => sum + v.travelLaborCosts, 0),
+        totalTravelCost: vehicleResults.reduce((sum, v) => sum + (v.totalTravelCost || 0), 0),
+        totalTravelSegments: vehicleResults.reduce((sum, v) => sum + v.travelSegments, 0),
         totalProfit: vehicleResults.reduce((sum, v) => sum + v.profit, 0),
         totalJobs: vehicleResults.reduce((sum, v) => sum + v.jobsCompleted, 0)
       };
@@ -14701,6 +14752,230 @@ ${fromName || ''}
     } catch (error: any) {
       console.error('Error fetching scheduled jobs:', error);
       res.status(500).json({ message: 'Failed to fetch scheduled jobs' });
+    }
+  });
+
+  // Calculate travel costs between jobs for a vehicle's route
+  app.post('/api/dispatch/calculate-travel-costs', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { vehicleId, jobIds, date } = req.body;
+      
+      if (!vehicleId || !jobIds || !Array.isArray(jobIds) || jobIds.length < 2) {
+        return res.status(400).json({ message: 'Vehicle ID and at least 2 job IDs are required' });
+      }
+      
+      // Get vehicle details for MPG and other data
+      const actualVehicleId = typeof vehicleId === 'string' && vehicleId.startsWith('vehicle-')
+        ? parseInt(vehicleId.split('-')[1])
+        : parseInt(vehicleId);
+      
+      const vehicles = await storage.getVehicles(user.organizationId);
+      const vehicle = vehicles.find(v => v.id === actualVehicleId);
+      
+      if (!vehicle) {
+        return res.status(404).json({ message: 'Vehicle not found' });
+      }
+      
+      // Get projects/jobs with location data
+      const projects = await storage.getProjectsWithLocation({ userId: user.id });
+      const orderedJobs = jobIds.map(id => projects.find(p => p.id === id)).filter(Boolean);
+      
+      if (orderedJobs.length < 2) {
+        return res.status(404).json({ message: 'Jobs not found' });
+      }
+      
+      // Get Google Maps API key from settings
+      const settings = await db
+        .select()
+        .from(integrationSettings)
+        .where(eq(integrationSettings.organizationId, user.organizationId))
+        .limit(1);
+      
+      const googleMapsApiKey = settings[0]?.googleMapsApiKey || process.env.GOOGLE_MAPS_API_KEY;
+      
+      // Get technician hourly rate (from assigned user or default)
+      const technicianId = orderedJobs[0]?.users?.[0]?.user?.id;
+      let hourlyRate = 25; // Default rate
+      
+      if (technicianId) {
+        const technician = await storage.getUser(technicianId);
+        if (technician && technician.hourlyRate) {
+          hourlyRate = parseFloat(technician.hourlyRate.toString());
+        }
+      }
+      
+      // Get fuel price (use recent gas card usage or default)
+      let fuelPricePerGallon = 3.50; // Default price
+      const recentGasUsage = await db
+        .select()
+        .from(gasCardUsage)
+        .where(eq(gasCardUsage.organizationId, user.organizationId))
+        .orderBy(desc(gasCardUsage.purchaseDate))
+        .limit(1);
+      
+      if (recentGasUsage.length > 0 && recentGasUsage[0].pricePerGallon) {
+        fuelPricePerGallon = parseFloat(recentGasUsage[0].pricePerGallon.toString());
+      }
+      
+      // Calculate travel costs between consecutive jobs
+      const travelSegments = [];
+      const client = new Client({});
+      
+      for (let i = 1; i < orderedJobs.length; i++) {
+        const fromJob = orderedJobs[i - 1];
+        const toJob = orderedJobs[i];
+        
+        const fromAddress = `${fromJob.address || ''}, ${fromJob.city || ''}, ${fromJob.state || ''} ${fromJob.zipCode || ''}`.trim();
+        const toAddress = `${toJob.address || ''}, ${toJob.city || ''}, ${toJob.state || ''} ${toJob.zipCode || ''}`.trim();
+        
+        let distanceMiles = 0;
+        let durationMinutes = 0;
+        
+        // Try to get actual distance from Google Maps
+        if (googleMapsApiKey) {
+          try {
+            const response = await client.directions({
+              params: {
+                origin: fromAddress,
+                destination: toAddress,
+                mode: 'driving',
+                key: googleMapsApiKey,
+              },
+            });
+            
+            if (response.data.routes.length > 0) {
+              const route = response.data.routes[0];
+              const leg = route.legs[0];
+              distanceMiles = leg.distance.value / 1609.34; // meters to miles
+              durationMinutes = leg.duration.value / 60; // seconds to minutes
+            }
+          } catch (error) {
+            console.warn('Failed to get Google Maps directions:', error);
+          }
+        }
+        
+        // Fallback to estimated distance if API fails
+        if (distanceMiles === 0) {
+          distanceMiles = 10; // Default estimate
+          durationMinutes = 20; // Default estimate
+        }
+        
+        // Calculate costs
+        const vehicleMPG = vehicle.mpg || 20; // Default 20 MPG if not set
+        const fuelGallons = distanceMiles / vehicleMPG;
+        const fuelCost = fuelGallons * fuelPricePerGallon;
+        const laborCost = (durationMinutes / 60) * hourlyRate;
+        const totalCost = fuelCost + laborCost;
+        
+        travelSegments.push({
+          fromProjectId: fromJob.id,
+          toProjectId: toJob.id,
+          fromAddress,
+          toAddress,
+          distanceMiles: Math.round(distanceMiles * 100) / 100,
+          durationMinutes: Math.round(durationMinutes),
+          fuelCostCalculated: Math.round(fuelCost * 100) / 100,
+          laborCostCalculated: Math.round(laborCost * 100) / 100,
+          totalTravelCost: Math.round(totalCost * 100) / 100,
+          vehicleMPG,
+          fuelPricePerGallon,
+          hourlyRate,
+        });
+      }
+      
+      // Calculate totals
+      const totalDistance = travelSegments.reduce((sum, seg) => sum + seg.distanceMiles, 0);
+      const totalDuration = travelSegments.reduce((sum, seg) => sum + seg.durationMinutes, 0);
+      const totalFuelCost = travelSegments.reduce((sum, seg) => sum + seg.fuelCostCalculated, 0);
+      const totalLaborCost = travelSegments.reduce((sum, seg) => sum + seg.laborCostCalculated, 0);
+      const totalTravelCost = totalFuelCost + totalLaborCost;
+      
+      res.json({
+        vehicleId: actualVehicleId,
+        vehicleName: `${vehicle.make || ''} ${vehicle.model || ''}`.trim() || `Vehicle ${vehicle.vehicleNumber}`,
+        segments: travelSegments,
+        summary: {
+          totalDistance: Math.round(totalDistance * 100) / 100,
+          totalDuration: Math.round(totalDuration),
+          totalFuelCost: Math.round(totalFuelCost * 100) / 100,
+          totalLaborCost: Math.round(totalLaborCost * 100) / 100,
+          totalTravelCost: Math.round(totalTravelCost * 100) / 100,
+        }
+      });
+    } catch (error: any) {
+      console.error('Error calculating travel costs:', error);
+      res.status(500).json({ message: 'Failed to calculate travel costs' });
+    }
+  });
+
+  // Save travel segment to database for P&L tracking
+  app.post('/api/dispatch/save-travel-segment', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const segmentData = req.body;
+      
+      // Insert travel segment
+      const [segment] = await db.insert(jobTravelSegments).values({
+        organizationId: user.organizationId,
+        vehicleId: segmentData.vehicleId,
+        driverId: segmentData.driverId || null,
+        fromProjectId: segmentData.fromProjectId || null,
+        toProjectId: segmentData.toProjectId,
+        fromAddress: segmentData.fromAddress,
+        toAddress: segmentData.toAddress,
+        fromLatitude: segmentData.fromLatitude,
+        fromLongitude: segmentData.fromLongitude,
+        toLatitude: segmentData.toLatitude,
+        toLongitude: segmentData.toLongitude,
+        distanceMiles: segmentData.distanceMiles,
+        durationMinutes: segmentData.durationMinutes,
+        fuelCostCalculated: segmentData.fuelCostCalculated,
+        laborCostCalculated: segmentData.laborCostCalculated,
+        totalTravelCost: segmentData.totalTravelCost,
+        departureTime: segmentData.departureTime,
+        arrivalTime: segmentData.arrivalTime,
+        calculationMethod: segmentData.calculationMethod || 'gps_tracking',
+        gpsDataPoints: segmentData.gpsDataPoints || 0,
+      }).returning();
+      
+      res.json({ success: true, segment });
+    } catch (error: any) {
+      console.error('Error saving travel segment:', error);
+      res.status(500).json({ message: 'Failed to save travel segment' });
+    }
+  });
+
+  // Get travel segments for date range (for P&L reporting)
+  app.get('/api/dispatch/travel-segments', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { startDate, endDate, vehicleId } = req.query;
+      
+      const conditions = [eq(jobTravelSegments.organizationId, user.organizationId)];
+      
+      if (startDate) {
+        conditions.push(gte(jobTravelSegments.createdAt, new Date(startDate as string)));
+      }
+      
+      if (endDate) {
+        conditions.push(lte(jobTravelSegments.createdAt, new Date(endDate as string)));
+      }
+      
+      if (vehicleId) {
+        conditions.push(eq(jobTravelSegments.vehicleId, parseInt(vehicleId as string)));
+      }
+      
+      const segments = await db
+        .select()
+        .from(jobTravelSegments)
+        .where(and(...conditions))
+        .orderBy(desc(jobTravelSegments.createdAt));
+      
+      res.json(segments);
+    } catch (error: any) {
+      console.error('Error fetching travel segments:', error);
+      res.status(500).json({ message: 'Failed to fetch travel segments' });
     }
   });
 

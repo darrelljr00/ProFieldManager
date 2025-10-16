@@ -5213,6 +5213,63 @@ export type InsertObdDiagnosticData = z.infer<typeof insertObdDiagnosticDataSche
 export type ObdTrip = typeof obdTrips.$inferSelect;
 export type InsertObdTrip = z.infer<typeof insertObdTripSchema>;
 
+// Job-to-Job Travel Segments for P&L Cost Tracking
+export const jobTravelSegments = pgTable("job_travel_segments", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").references(() => organizations.id).notNull(),
+  vehicleId: integer("vehicle_id").references(() => vehicles.id).notNull(),
+  driverId: integer("driver_id").references(() => users.id), // Technician driving
+  
+  // Source and destination jobs
+  fromProjectId: integer("from_project_id").references(() => projects.id),
+  toProjectId: integer("to_project_id").references(() => projects.id).notNull(),
+  
+  // Location data
+  fromAddress: text("from_address"),
+  toAddress: text("to_address"),
+  fromLatitude: decimal("from_latitude", { precision: 10, scale: 8 }),
+  fromLongitude: decimal("from_longitude", { precision: 11, scale: 8 }),
+  toLatitude: decimal("to_latitude", { precision: 10, scale: 8 }),
+  toLongitude: decimal("to_longitude", { precision: 11, scale: 8 }),
+  
+  // Travel metrics
+  distanceMiles: decimal("distance_miles", { precision: 10, scale: 2 }),
+  durationMinutes: integer("duration_minutes"),
+  
+  // Cost calculations
+  fuelCostCalculated: decimal("fuel_cost_calculated", { precision: 10, scale: 2 }), // Based on MPG and distance
+  laborCostCalculated: decimal("labor_cost_calculated", { precision: 10, scale: 2 }), // Based on hourly rate and duration
+  totalTravelCost: decimal("total_travel_cost", { precision: 10, scale: 2 }), // fuel + labor
+  
+  // Tracking details
+  departureTime: timestamp("departure_time"),
+  arrivalTime: timestamp("arrival_time"),
+  
+  // Data source
+  calculationMethod: text("calculation_method").default("gps_tracking"), // gps_tracking, manual, estimated
+  gpsDataPoints: integer("gps_data_points"), // Number of GPS points used for tracking
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertJobTravelSegmentSchema = createInsertSchema(jobTravelSegments, {
+  vehicleId: z.number().int().positive(),
+  toProjectId: z.number().int().positive(),
+  distanceMiles: z.number().min(0).optional(),
+  durationMinutes: z.number().int().min(0).optional(),
+  departureTime: z.string().datetime().or(z.date()).optional(),
+  arrivalTime: z.string().datetime().or(z.date()).optional(),
+}).omit({
+  id: true,
+  organizationId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type JobTravelSegment = typeof jobTravelSegments.$inferSelect;
+export type InsertJobTravelSegment = z.infer<typeof insertJobTravelSegmentSchema>;
+
 // GPS Tracking types
 export type GpsTrackingData = typeof gpsTrackingData.$inferSelect;
 export type InsertGpsTrackingData = z.infer<typeof insertGpsTrackingDataSchema>;

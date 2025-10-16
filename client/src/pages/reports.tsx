@@ -2377,11 +2377,14 @@ export default function Reports() {
                           <thead>
                             <tr className="border-b bg-gray-50">
                               <th className="text-left p-3 font-medium">Vehicle</th>
-                              <th className="text-right p-3 font-medium">Jobs Completed</th>
+                              <th className="text-right p-3 font-medium">Jobs</th>
                               <th className="text-right p-3 font-medium">Revenue</th>
-                              <th className="text-right p-3 font-medium">Expenses</th>
+                              <th className="text-right p-3 font-medium">Base Expenses</th>
+                              <th className="text-right p-3 font-medium">Travel Fuel</th>
+                              <th className="text-right p-3 font-medium">Travel Labor</th>
+                              <th className="text-right p-3 font-medium">Total Travel</th>
                               <th className="text-right p-3 font-medium">Net Profit</th>
-                              <th className="text-right p-3 font-medium">Profit Margin</th>
+                              <th className="text-right p-3 font-medium">Margin %</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -2403,7 +2406,16 @@ export default function Reports() {
                                     ${vehicle.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                   </td>
                                   <td className="text-right p-3 text-red-600" data-testid={`text-expenses-${vehicle.vehicleId}`}>
-                                    ${vehicle.expenses.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    ${(vehicle.expenses - (vehicle.travelFuelCosts || 0) - (vehicle.travelLaborCosts || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                  </td>
+                                  <td className="text-right p-3 text-orange-600" data-testid={`text-travel-fuel-${vehicle.vehicleId}`}>
+                                    ${(vehicle.travelFuelCosts || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                  </td>
+                                  <td className="text-right p-3 text-orange-600" data-testid={`text-travel-labor-${vehicle.vehicleId}`}>
+                                    ${(vehicle.travelLaborCosts || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                  </td>
+                                  <td className="text-right p-3 text-red-600 font-medium" data-testid={`text-total-travel-${vehicle.vehicleId}`}>
+                                    ${(vehicle.totalTravelCost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                   </td>
                                   <td 
                                     className={`text-right p-3 font-semibold ${vehicle.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}
@@ -2421,7 +2433,7 @@ export default function Reports() {
                               ))
                             ) : (
                               <tr className="border-b">
-                                <td colSpan={6} className="p-4 text-center text-gray-500">
+                                <td colSpan={9} className="p-4 text-center text-gray-500">
                                   No vehicle data available for the selected period
                                 </td>
                               </tr>
@@ -2437,8 +2449,17 @@ export default function Reports() {
                                 <td className="text-right p-3 text-green-600" data-testid="text-total-revenue">
                                   ${profitPerVehicleData.totals.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </td>
-                                <td className="text-right p-3 text-red-600" data-testid="text-total-expenses">
-                                  ${profitPerVehicleData.totals.totalExpenses.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                <td className="text-right p-3 text-red-600" data-testid="text-base-expenses">
+                                  ${(profitPerVehicleData.totals.totalExpenses - (profitPerVehicleData.totals.totalTravelCost || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </td>
+                                <td className="text-right p-3 text-orange-600" data-testid="text-total-travel-fuel">
+                                  ${(profitPerVehicleData.totals.totalTravelFuelCosts || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </td>
+                                <td className="text-right p-3 text-orange-600" data-testid="text-total-travel-labor">
+                                  ${(profitPerVehicleData.totals.totalTravelLaborCosts || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </td>
+                                <td className="text-right p-3 text-red-600 font-medium" data-testid="text-total-travel-cost">
+                                  ${(profitPerVehicleData.totals.totalTravelCost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </td>
                                 <td 
                                   className={`text-right p-3 ${profitPerVehicleData.totals.totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}
