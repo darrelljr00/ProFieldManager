@@ -11854,11 +11854,9 @@ ${fromName || ''}
 
   // Profit per Vehicle API endpoint
   app.get("/api/reports/profit-per-vehicle", requireAuth, async (req, res) => {
-    console.log('🚗 Profit per vehicle endpoint hit');
     try {
       const user = getAuthenticatedUser(req);
       const organizationId = user.organizationId;
-      console.log('🔍 User org ID:', organizationId);
       
       // Parse date range
       const { startDate: startParam, endDate: endParam } = req.query;
@@ -11890,10 +11888,10 @@ ${fromName || ''}
       const allExpenses = await db.select()
         .from(expenses);
 
-      // Get gas card usage (join through gasCards to filter by organization via users)
-      // Since gasCardUsage doesn't have organizationId, we'll filter later by projectId
+      // Get gas card usage filtered by organization  
       const allGasCardUsage = await db.select()
-        .from(gasCardUsage);
+        .from(gasCardUsage)
+        .where(eq(gasCardUsage.organizationId, organizationId));
 
       // Build vehicle profit map
       const vehicleMap = new Map();
