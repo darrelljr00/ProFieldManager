@@ -645,8 +645,8 @@ export default function Reports() {
       const dailyMap: Record<string, any> = {};
       
       salesData?.forEach((invoice: any) => {
-        if (invoice.date) {
-          const date = format(new Date(invoice.date), 'MM/dd/yyyy');
+        if (invoice.createdAt) {
+          const date = format(new Date(invoice.createdAt), 'MM/dd/yyyy');
           if (!dailyMap[date]) {
             dailyMap[date] = { date, revenue: 0, expenses: 0, profit: 0, jobs: [] };
           }
@@ -671,8 +671,8 @@ export default function Reports() {
       });
 
       expensesData?.forEach((expense: any) => {
-        if (expense.date) {
-          const date = format(new Date(expense.date), 'MM/dd/yyyy');
+        if (expense.createdAt) {
+          const date = format(new Date(expense.createdAt), 'MM/dd/yyyy');
           if (!dailyMap[date]) {
             dailyMap[date] = { date, revenue: 0, expenses: 0, profit: 0, jobs: [] };
           }
