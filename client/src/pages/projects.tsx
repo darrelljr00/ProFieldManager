@@ -1713,7 +1713,7 @@ export default function Jobs() {
               </div>
 
               <div>
-                <Label htmlFor="budget">Budget</Label>
+                <Label htmlFor="budget">Job Total Price</Label>
                 <Input
                   id="budget"
                   name="budget"
@@ -2507,7 +2507,7 @@ export default function Jobs() {
               <div className="grid grid-cols-2 gap-4">
                 {selectedProject.budget && (
                   <div>
-                    <Label className="text-sm font-medium text-gray-500">Budget</Label>
+                    <Label className="text-sm font-medium text-gray-500">Job Total Price</Label>
                     <div className="flex items-center gap-1 mt-1">
                       <span className="text-base font-medium text-green-600">
                         ${parseFloat(selectedProject.budget).toLocaleString()}
