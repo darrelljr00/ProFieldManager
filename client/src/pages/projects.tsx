@@ -2503,9 +2503,40 @@ export default function Jobs() {
                 </div>
               )}
 
+              {/* Financial Summary for Admin/Manager */}
+              {isAdminOrManager && (
+                <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-lg border border-amber-200 dark:border-amber-800">
+                  <div className="flex items-center gap-2 mb-3">
+                    <DollarSign className="h-5 w-5 text-amber-600" />
+                    <Label className="text-sm font-semibold text-amber-900 dark:text-amber-100">Financial Summary</Label>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    {selectedProject.budget && (
+                      <div>
+                        <Label className="text-xs font-medium text-amber-700 dark:text-amber-300">Job Total Price (Budget)</Label>
+                        <div className="flex items-center gap-1 mt-1">
+                          <span className="text-lg font-bold text-green-600 dark:text-green-400">
+                            ${parseFloat(selectedProject.budget).toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                    <div>
+                      <Label className="text-xs font-medium text-amber-700 dark:text-amber-300">Associated Lead Cost</Label>
+                      <div className="flex items-center gap-1 mt-1">
+                        <span className="text-sm text-gray-500 dark:text-gray-400 italic">
+                          Not tracked
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Lead cost tracking not configured</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Project Details */}
               <div className="grid grid-cols-2 gap-4">
-                {selectedProject.budget && (
+                {!isAdminOrManager && selectedProject.budget && (
                   <div>
                     <Label className="text-sm font-medium text-gray-500">Job Total Price</Label>
                     <div className="flex items-center gap-1 mt-1">
