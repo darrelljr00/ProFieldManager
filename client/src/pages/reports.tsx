@@ -2315,6 +2315,63 @@ export default function Reports() {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Profit per Vehicle */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Profit per Vehicle</CardTitle>
+                  <CardDescription>Profitability analysis by vehicle for the selected period</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {/* Bar Chart */}
+                    <div className="h-80">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={[]} margin={{ top: 10, right: 30, left: 20, bottom: 60 }}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis 
+                            dataKey="vehicleNumber" 
+                            angle={-45}
+                            textAnchor="end"
+                            height={80}
+                          />
+                          <YAxis />
+                          <Tooltip 
+                            formatter={(value: any) => `$${Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                          />
+                          <Legend />
+                          <Bar dataKey="revenue" name="Revenue" fill="#10b981" />
+                          <Bar dataKey="expenses" name="Expenses" fill="#ef4444" />
+                          <Bar dataKey="profit" name="Net Profit" fill="#3b82f6" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+
+                    {/* Summary Table */}
+                    <div className="overflow-x-auto">
+                      <table className="w-full border-collapse">
+                        <thead>
+                          <tr className="border-b bg-gray-50">
+                            <th className="text-left p-3 font-medium">Vehicle</th>
+                            <th className="text-right p-3 font-medium">Jobs Completed</th>
+                            <th className="text-right p-3 font-medium">Revenue</th>
+                            <th className="text-right p-3 font-medium">Expenses</th>
+                            <th className="text-right p-3 font-medium">Net Profit</th>
+                            <th className="text-right p-3 font-medium">Profit Margin</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr className="border-b">
+                            <td colSpan={6} className="p-4 text-center text-gray-500">
+                              No vehicle data available for the selected period
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </>
           )}
 
