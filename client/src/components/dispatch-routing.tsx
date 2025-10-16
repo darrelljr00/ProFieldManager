@@ -114,16 +114,68 @@ export function DispatchRouting({ selectedDate }: DispatchRoutingProps) {
     },
   });
 
-  // Ensure scheduledJobs is always an array and add vehicleId if not present
-  const scheduledJobs = Array.isArray(scheduledJobsData) ? scheduledJobsData.map((job: JobLocation) => ({
-    ...job,
-    vehicleId: job.vehicleId || 'unassigned'
-  })) : [];
+  // Fetch vehicle-to-technician mapping from pre-trip inspections
+  const { data: inspectionAssignments } = useQuery({
+    queryKey: ['/api/vehicles/inspection-assignments', selectedDateState],
+    queryFn: async () => {
+      try {
+        const response = await apiRequest('GET', `/api/vehicles/inspection-assignments?date=${selectedDateState}`);
+        return response as Record<number, number>; // vehicleId → userId
+      } catch (error) {
+        console.error('Error fetching inspection assignments:', error);
+        return {};
+      }
+    },
+    enabled: !!selectedDateState,
+  });
+
+  // Create reverse mapping: userId → vehicleId
+  const techToVehicleMap: Record<number, number> = {};
+  if (inspectionAssignments) {
+    Object.entries(inspectionAssignments).forEach(([vehicleId, userId]) => {
+      techToVehicleMap[userId as number] = parseInt(vehicleId);
+    });
+  }
+
+  // Ensure scheduledJobs is always an array and auto-assign based on inspections
+  const scheduledJobs = Array.isArray(scheduledJobsData) ? scheduledJobsData.map((job: any) => {
+    // If job already has a vehicle assignment (and it's not the default), keep it
+    if (job.vehicleId && job.vehicleId !== 'unassigned' && !job.vehicleId.startsWith('vehicle-')) {
+      return job;
+    }
+    
+    // If job has an assignedUserId, check if that tech inspected a vehicle today
+    if (job.assignedUserId) {
+      const techUserId = job.assignedUserId;
+      const assignedVehicleId = techToVehicleMap[techUserId];
+      
+      if (assignedVehicleId) {
+        // Find the vehicle index (1-based) to create vehicleId like "vehicle-1"
+        const vehicleIds = Object.keys(inspectionAssignments || {}).map(id => parseInt(id)).sort((a, b) => a - b);
+        const vehicleIndex = vehicleIds.indexOf(assignedVehicleId) + 1;
+        
+        if (vehicleIndex > 0) {
+          return {
+            ...job,
+            vehicleId: `vehicle-${vehicleIndex}`
+          };
+        }
+      }
+    }
+    
+    // No assignment found, mark as unassigned
+    return {
+      ...job,
+      vehicleId: job.vehicleId || 'unassigned'
+    };
+  }) : [];
   
   // Debug: Log scheduled jobs data to verify vehicleId assignments
   useEffect(() => {
+    console.log('Inspection assignments:', inspectionAssignments);
+    console.log('Tech to vehicle map:', techToVehicleMap);
     console.log('Scheduled jobs data:', scheduledJobs);
-  }, [scheduledJobs]);
+  }, [scheduledJobs, inspectionAssignments]);
 
   // Force refresh of data when component mounts to ensure fresh data
   useEffect(() => {

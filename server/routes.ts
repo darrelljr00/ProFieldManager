@@ -21382,6 +21382,56 @@ ${fromName || ''}
     }
   });
 
+  // Get vehicle-to-technician mapping based on pre-trip inspections for a date
+  app.get("/api/vehicles/inspection-assignments", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const date = req.query.date as string;
+      
+      if (!date) {
+        return res.status(400).json({ message: "Date parameter is required" });
+      }
+      
+      // Parse the date and get start/end of day
+      const selectedDate = new Date(date);
+      const startOfDay = new Date(selectedDate);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(selectedDate);
+      endOfDay.setHours(23, 59, 59, 999);
+      
+      // Get pre-trip inspections for the selected date
+      const inspections = await db
+        .select({
+          vehicleId: inspectionRecords.vehicleId,
+          userId: inspectionRecords.userId,
+          createdAt: inspectionRecords.createdAt,
+        })
+        .from(inspectionRecords)
+        .where(
+          and(
+            eq(inspectionRecords.organizationId, user.organizationId),
+            eq(inspectionRecords.type, 'pre-trip'),
+            gte(inspectionRecords.createdAt, startOfDay),
+            lte(inspectionRecords.createdAt, endOfDay)
+          )
+        )
+        .orderBy(desc(inspectionRecords.createdAt));
+      
+      // Create a map of vehicle → technician (most recent inspection wins)
+      const vehicleToTechMap: Record<number, number> = {};
+      inspections.forEach(inspection => {
+        if (inspection.vehicleId && inspection.userId && !vehicleToTechMap[inspection.vehicleId]) {
+          vehicleToTechMap[inspection.vehicleId] = inspection.userId;
+        }
+      });
+      
+      res.json(vehicleToTechMap);
+    } catch (error: any) {
+      console.error("Error fetching vehicle inspection assignments:", error);
+      res.status(500).json({ message: "Failed to fetch vehicle inspection assignments" });
+    }
+  });
+
   // Get single vehicle
   app.get("/api/vehicles/:id", requireAuth, async (req, res) => {
     try {
