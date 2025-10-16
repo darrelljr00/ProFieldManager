@@ -215,7 +215,7 @@ export function VehicleManagement() {
 
   // Handle custom maintenance setup with user-defined intervals
   const handleCustomMaintenanceSetup = async () => {
-    if (!vehicles || vehicles.length === 0) {
+    if (!vehicles || !Array.isArray(vehicles) || vehicles.length === 0) {
       toast({
         title: "No Vehicles",
         description: "Please add vehicles before setting up maintenance intervals.",
