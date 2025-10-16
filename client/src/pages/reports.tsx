@@ -2169,6 +2169,155 @@ export default function Reports() {
             </CardContent>
           </Card>
 
+          {/* Daily Detailed Analysis - Line by Line Daily Net Profit */}
+          {profitLossView === 'daily' && profitLossChartData.length > 0 && (
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Daily Net Profit Breakdown</CardTitle>
+                  <CardDescription>Line-by-line daily profit/loss analysis for the last 30 days</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse">
+                      <thead>
+                        <tr className="border-b bg-gray-50">
+                          <th className="text-left p-3 font-medium">Date</th>
+                          <th className="text-right p-3 font-medium">Revenue</th>
+                          <th className="text-right p-3 font-medium">Expenses</th>
+                          <th className="text-right p-3 font-medium">Net Profit</th>
+                          <th className="text-right p-3 font-medium">Profit Margin</th>
+                          <th className="text-left p-3 font-medium">Most Profitable Job</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {profitLossChartData.map((day: any, index: number) => (
+                          <tr key={index} className="border-b hover:bg-gray-50">
+                            <td className="p-3 font-medium">{day.date}</td>
+                            <td className="text-right p-3 text-green-600">
+                              ${day.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </td>
+                            <td className="text-right p-3 text-red-600">
+                              ${day.expenses.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </td>
+                            <td className={`text-right p-3 font-semibold ${day.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              ${day.profit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </td>
+                            <td className={`text-right p-3 ${parseFloat(day.profitMargin) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              {day.profitMargin}%
+                            </td>
+                            <td className="p-3">
+                              {day.mostProfitableJob ? (
+                                <div className="flex flex-col">
+                                  <span className="font-medium text-sm">{day.mostProfitableJob.jobName}</span>
+                                  <span className="text-xs text-green-600">
+                                    ${day.mostProfitableJob.profit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} profit
+                                  </span>
+                                </div>
+                              ) : (
+                                <span className="text-gray-400 text-sm">No jobs</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot className="border-t-2 bg-gray-50">
+                        <tr className="font-bold">
+                          <td className="p-3">Total (30 Days)</td>
+                          <td className="text-right p-3 text-green-600">
+                            ${profitLossChartData.reduce((sum: number, day: any) => sum + day.revenue, 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                          <td className="text-right p-3 text-red-600">
+                            ${profitLossChartData.reduce((sum: number, day: any) => sum + day.expenses, 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                          <td className={`text-right p-3 ${profitLossChartData.reduce((sum: number, day: any) => sum + day.profit, 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            ${profitLossChartData.reduce((sum: number, day: any) => sum + day.profit, 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                          <td className={`text-right p-3 ${
+                            (profitLossChartData.reduce((sum: number, day: any) => sum + day.profit, 0) / 
+                             profitLossChartData.reduce((sum: number, day: any) => sum + day.revenue, 0) * 100) >= 0 ? 'text-green-600' : 'text-red-600'
+                          }`}>
+                            {(profitLossChartData.reduce((sum: number, day: any) => sum + day.profit, 0) / 
+                              profitLossChartData.reduce((sum: number, day: any) => sum + day.revenue, 0) * 100).toFixed(1)}%
+                          </td>
+                          <td className="p-3"></td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Daily Most Profitable Jobs */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Daily Most Profitable Jobs</CardTitle>
+                  <CardDescription>Top performing jobs for each day with detailed profitability</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {profitLossChartData.filter((day: any) => day.jobs && day.jobs.length > 0).map((day: any, dayIndex: number) => (
+                      <div key={dayIndex} className="border rounded-lg p-4 bg-gray-50">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="font-semibold text-lg">{day.date}</h4>
+                          <Badge variant="outline" className="text-sm">
+                            {day.jobs.length} job{day.jobs.length !== 1 ? 's' : ''}
+                          </Badge>
+                        </div>
+                        <div className="overflow-x-auto">
+                          <table className="w-full">
+                            <thead>
+                              <tr className="border-b text-sm">
+                                <th className="text-left p-2 font-medium">Rank</th>
+                                <th className="text-left p-2 font-medium">Job Name</th>
+                                <th className="text-right p-2 font-medium">Revenue</th>
+                                <th className="text-right p-2 font-medium">Expenses</th>
+                                <th className="text-right p-2 font-medium">Profit</th>
+                                <th className="text-right p-2 font-medium">Margin</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {day.jobs.slice(0, 5).map((job: any, jobIndex: number) => (
+                                <tr key={jobIndex} className="border-b last:border-0 text-sm">
+                                  <td className="p-2">
+                                    <Badge 
+                                      variant={jobIndex === 0 ? "default" : "outline"}
+                                      className={jobIndex === 0 ? "bg-yellow-500" : ""}
+                                    >
+                                      #{jobIndex + 1}
+                                    </Badge>
+                                  </td>
+                                  <td className="p-2 font-medium">{job.jobName}</td>
+                                  <td className="text-right p-2 text-green-600">
+                                    ${job.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                  </td>
+                                  <td className="text-right p-2 text-red-600">
+                                    ${job.expenses.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                  </td>
+                                  <td className={`text-right p-2 font-semibold ${job.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                    ${job.profit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                  </td>
+                                  <td className={`text-right p-2 ${parseFloat(job.profitMargin) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                    {job.profitMargin}%
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    ))}
+                    {profitLossChartData.filter((day: any) => day.jobs && day.jobs.length > 0).length === 0 && (
+                      <div className="text-center py-8 text-gray-500">
+                        No job data available for the selected period
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          )}
+
           {/* Detailed Table View for Per Job */}
           {profitLossView === 'job' && profitLossChartData.length > 0 && (
             <Card>
