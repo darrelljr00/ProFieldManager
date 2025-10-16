@@ -21330,28 +21330,11 @@ ${fromName || ''}
     }
   });
 
-  // Get single vehicle
-  app.get("/api/vehicles/:id", requireAuth, async (req, res) => {
-    try {
-      const user = getAuthenticatedUser(req);
-      const vehicleId = parseInt(req.params.id);
-      
-      const vehicle = await storage.getVehicle(vehicleId, user.organizationId);
-      if (!vehicle) {
-        return res.status(404).json({ message: "Vehicle not found" });
-      }
-      
-      res.json(vehicle);
-    } catch (error: any) {
-      console.error("Error fetching vehicle:", error);
-      res.status(500).json({ message: "Failed to fetch vehicle" });
-    }
-  });
-
-  // Get all vehicles with tracking status
+  // Get all vehicles with tracking status (MUST be before /:id route)
   app.get("/api/vehicles/with-tracking-status", requireAuth, async (req, res) => {
     try {
       const user = getAuthenticatedUser(req);
+      console.log("🚗 Getting vehicles with tracking status for org:", user.organizationId, "type:", typeof user.organizationId);
       
       // Get all vehicles for the organization
       const allVehicles = await storage.getVehicles(user.organizationId);
@@ -21396,6 +21379,24 @@ ${fromName || ''}
     } catch (error: any) {
       console.error("Error fetching vehicles with tracking status:", error);
       res.status(500).json({ message: "Failed to fetch vehicles with tracking status" });
+    }
+  });
+
+  // Get single vehicle
+  app.get("/api/vehicles/:id", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const vehicleId = parseInt(req.params.id);
+      
+      const vehicle = await storage.getVehicle(vehicleId, user.organizationId);
+      if (!vehicle) {
+        return res.status(404).json({ message: "Vehicle not found" });
+      }
+      
+      res.json(vehicle);
+    } catch (error: any) {
+      console.error("Error fetching vehicle:", error);
+      res.status(500).json({ message: "Failed to fetch vehicle" });
     }
   });
 
