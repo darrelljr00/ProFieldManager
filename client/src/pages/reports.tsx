@@ -641,16 +641,32 @@ export default function Reports() {
     }
 
     if (profitLossView === 'daily') {
-      // Group by day
+      // Group by day with detailed job information
       const dailyMap: Record<string, any> = {};
       
       salesData?.forEach((invoice: any) => {
         if (invoice.date) {
           const date = format(new Date(invoice.date), 'MM/dd/yyyy');
           if (!dailyMap[date]) {
-            dailyMap[date] = { date, revenue: 0, expenses: 0, profit: 0 };
+            dailyMap[date] = { date, revenue: 0, expenses: 0, profit: 0, jobs: [] };
           }
           dailyMap[date].revenue += parseFloat(invoice.total || 0);
+          
+          // Track job details for this day
+          if (invoice.projectId && invoice.project) {
+            const existingJob = dailyMap[date].jobs.find((j: any) => j.jobId === invoice.projectId);
+            if (existingJob) {
+              existingJob.revenue += parseFloat(invoice.total || 0);
+            } else {
+              dailyMap[date].jobs.push({
+                jobId: invoice.projectId,
+                jobName: invoice.project.name || `Job #${invoice.projectId}`,
+                revenue: parseFloat(invoice.total || 0),
+                expenses: 0,
+                profit: 0
+              });
+            }
+          }
         }
       });
 
@@ -658,14 +674,39 @@ export default function Reports() {
         if (expense.date) {
           const date = format(new Date(expense.date), 'MM/dd/yyyy');
           if (!dailyMap[date]) {
-            dailyMap[date] = { date, revenue: 0, expenses: 0, profit: 0 };
+            dailyMap[date] = { date, revenue: 0, expenses: 0, profit: 0, jobs: [] };
           }
           dailyMap[date].expenses += parseFloat(expense.amount || 0);
+          
+          // Track job expenses for this day
+          if (expense.projectId && expense.project) {
+            const existingJob = dailyMap[date].jobs.find((j: any) => j.jobId === expense.projectId);
+            if (existingJob) {
+              existingJob.expenses += parseFloat(expense.amount || 0);
+            } else {
+              dailyMap[date].jobs.push({
+                jobId: expense.projectId,
+                jobName: expense.project.name || `Job #${expense.projectId}`,
+                revenue: 0,
+                expenses: parseFloat(expense.amount || 0),
+                profit: 0
+              });
+            }
+          }
         }
       });
 
       Object.values(dailyMap).forEach((day: any) => {
         day.profit = day.revenue - day.expenses;
+        day.profitMargin = day.revenue > 0 ? ((day.profit / day.revenue) * 100).toFixed(1) : 0;
+        
+        // Calculate profit for each job and sort by profitability
+        day.jobs.forEach((job: any) => {
+          job.profit = job.revenue - job.expenses;
+          job.profitMargin = job.revenue > 0 ? ((job.profit / job.revenue) * 100).toFixed(1) : 0;
+        });
+        day.jobs.sort((a: any, b: any) => b.profit - a.profit);
+        day.mostProfitableJob = day.jobs.length > 0 ? day.jobs[0] : null;
       });
 
       return Object.values(dailyMap).sort((a: any, b: any) => 
