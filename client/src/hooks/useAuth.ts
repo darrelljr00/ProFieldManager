@@ -37,15 +37,31 @@ export function useAuth() {
     queryFn: async () => {
       console.log('🔍 USEAUTH: Calling /api/auth/me endpoint');
       
-      // Check for stored authentication data
-      const storedToken = localStorage.getItem('auth_token');
+      // Check for stored authentication data (localStorage and cookies)
+      let storedToken = localStorage.getItem('auth_token');
       const storedUser = localStorage.getItem('user_data');
+      
+      // CRITICAL FIX: Check cookies if localStorage doesn't have token
+      if (!storedToken) {
+        const cookies = document.cookie.split(';').reduce((acc, cookie) => {
+          const [key, value] = cookie.trim().split('=');
+          acc[key] = value;
+          return acc;
+        }, {} as Record<string, string>);
+        
+        if (cookies.auth_token) {
+          console.log('🍪 USEAUTH: Found token in cookies, storing in localStorage');
+          storedToken = cookies.auth_token;
+          localStorage.setItem('auth_token', storedToken);
+        }
+      }
       
       console.log('🔍 USEAUTH: Authentication check:', {
         isCustomDomain: isCustomDomain(),
         hasStoredToken: !!storedToken,
         hasStoredUser: !!storedUser,
-        tokenLength: storedToken?.length
+        tokenLength: storedToken?.length,
+        hasCookie: document.cookie.includes('auth_token')
       });
       
       // ALWAYS try token-based auth first if we have a stored token

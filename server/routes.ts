@@ -2394,12 +2394,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Set auth cookie - CRITICAL: For cross-domain authentication
       const isCustomDomainRequest = req.headers.origin?.includes('profieldmanager.com');
+      
+      // CRITICAL FIX: Set cookie with proper path and without domain restriction
       res.cookie('auth_token', session.token, {
-        httpOnly: true,
-        secure: true,
-        sameSite: isCustomDomainRequest ? 'none' : 'lax', // 'none' for cross-domain requests
+        httpOnly: false, // Allow JavaScript access for localStorage fallback
+        secure: process.env.NODE_ENV === 'production', // Only secure in production
+        sameSite: 'lax', // Lax for same-site requests
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-        domain: undefined // Let browser handle domain automatically for cross-origin
+        path: '/' // Ensure cookie is available for all paths
+      });
+      
+      // Also set a non-httpOnly version for client-side access
+      res.cookie('has_auth', 'true', {
+        httpOnly: false,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        path: '/'
       });
 
       const userData = {
