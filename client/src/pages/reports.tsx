@@ -184,6 +184,26 @@ export default function Reports() {
     },
   });
 
+  // Fetch profit/loss detailed data with on-site labor costs
+  const { data: profitLossDetailedData, isLoading: profitLossDetailedLoading } = useQuery({
+    queryKey: ["/api/reports/profit-loss-detailed", profitLossView, timeRange, useCustomRange, startDate, endDate],
+    queryFn: async () => {
+      let start, end;
+      if (useCustomRange && startDate && endDate) {
+        start = startDate;
+        end = endDate;
+      } else {
+        const dateRange = getDateRangeFromSelection(timeRange);
+        start = dateRange.start;
+        end = dateRange.end;
+      }
+      const params = `startDate=${start.toISOString()}&endDate=${end.toISOString()}&view=${profitLossView}`;
+      const response = await fetch(`/api/reports/profit-loss-detailed?${params}`);
+      if (!response.ok) throw new Error('Failed to fetch profit/loss detailed data');
+      return response.json();
+    },
+  });
+
   // All employees with realistic performance metrics
   const getAllEmployeeData = () => [
     {
@@ -366,7 +386,7 @@ export default function Reports() {
   const employeesData = employeeData || getAllEmployeeData();
   
   // Use loading state from consolidated query
-  const isLoading = reportsLoading;
+  const isLoading = reportsLoading || profitLossDetailedLoading;
 
   // WebSocket connection for real-time updates
   const { isConnected, lastMessage, sendMessage } = useWebSocket();
@@ -787,7 +807,8 @@ export default function Reports() {
     return salesChartData;
   };
 
-  const profitLossChartData = getProfitLossDataByView();
+  // Use backend data if available, otherwise fall back to local calculation
+  const profitLossChartData = profitLossDetailedData?.data || getProfitLossDataByView();
 
   if (isLoading) {
     return (
