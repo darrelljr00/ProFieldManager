@@ -160,13 +160,7 @@ export default function Reports() {
 
   // Fetch consolidated reports data
   const { data: reportsData, isLoading: reportsLoading, refetch } = useQuery({
-    queryKey: ["/api/reports/data", getQueryParams()],
-    queryFn: async () => {
-      const params = getQueryParams();
-      const response = await fetch(`/api/reports/data?${params}`);
-      if (!response.ok) throw new Error('Failed to fetch reports data');
-      return response.json();
-    },
+    queryKey: [`/api/reports/data?${getQueryParams()}`],
     select: (data) => data || { metrics: {}, data: { invoices: [], leads: [], expenses: [], customers: [], employees: [] } }
   });
 
@@ -380,20 +374,16 @@ export default function Reports() {
 
   // Fetch employee metrics with separate date range
   const { data: employeeData, isLoading: employeeLoading, refetch: refetchEmployees } = useQuery({
-    queryKey: ["/api/reports/employee-data", getEmployeeQueryParams()],
-    queryFn: async () => {
+    queryKey: [`/api/reports/data?${getEmployeeQueryParams()}`],
+    select: (data) => {
       try {
-        const params = getEmployeeQueryParams();
-        const response = await fetch(`/api/reports/data?${params}`);
-        if (!response.ok) throw new Error('Failed to fetch employee data');
-        const data = await response.json();
-        return data?.data?.employees || getAllEmployeeData();
+        const employees = data?.data?.employees || getAllEmployeeData();
+        return Array.isArray(employees) ? employees : getAllEmployeeData();
       } catch (error) {
         console.log('Using all employee data due to API error:', error);
         return getAllEmployeeData();
       }
     },
-    select: (data) => Array.isArray(data) ? data : getAllEmployeeData(),
     staleTime: 0,
     gcTime: 0
   });
