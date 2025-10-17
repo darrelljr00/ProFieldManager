@@ -11820,10 +11820,13 @@ ${fromName || ''}
         const travelLaborCost = travelToJob.reduce((sum: number, seg: any) => 
           sum + parseFloat(seg.laborCostCalculated || '0'), 0);
         
-        // On-site labor costs based on job start/stop times
+        // On-site labor costs based on job start/stop times OR active time clock entries
         let onsiteLaborCost = 0;
         let onsiteHours = 0;
+        let isActiveJob = false;
+        
         if (project.startDate && project.endDate) {
+          // Completed job - use actual start/end times
           const startTime = new Date(project.startDate).getTime();
           const endTime = new Date(project.endDate).getTime();
           onsiteHours = (endTime - startTime) / (1000 * 60 * 60); // Convert ms to hours
@@ -11841,6 +11844,28 @@ ${fromName || ''}
               onsiteLaborCost += onsiteHours * hourlyRate;
             }
           });
+        } else if (project.startDate && !project.endDate) {
+          // In-progress job - calculate current elapsed time from active time clock entries
+          isActiveJob = true;
+          const now = new Date().getTime();
+          const startTime = new Date(project.startDate).getTime();
+          onsiteHours = (now - startTime) / (1000 * 60 * 60); // Current elapsed hours
+          
+          // Get assigned technicians for this project
+          const projectTechnicians = allProjectUsers
+            .filter((pu: any) => pu.project_users.projectId === project.id)
+            .map((pu: any) => pu.project_users.userId);
+          
+          // Calculate current labor cost for each assigned technician
+          projectTechnicians.forEach((techUserId: number) => {
+            const employee = allEmployees.find((emp: any) => emp.userId === techUserId);
+            if (employee && employee.hourlyRate) {
+              const hourlyRate = parseFloat(employee.hourlyRate);
+              onsiteLaborCost += onsiteHours * hourlyRate;
+            }
+          });
+          
+          console.log(`🔄 ACTIVE JOB: ${project.name} - Current hours: ${onsiteHours.toFixed(2)}, Current cost: $${onsiteLaborCost.toFixed(2)}`);
         }
         
         const laborCost = travelLaborCost + onsiteLaborCost; // Total labor cost (travel + on-site)
@@ -11854,8 +11879,11 @@ ${fromName || ''}
         return {
           projectId: project.id,
           projectName: project.name,
+          name: project.name, // For chart display
           date: project.createdAt || project.scheduledDate,
           revenue,
+          expenses: totalExpenses,
+          profit: netProfit,
           costs: {
             labor: laborCost,
             fuel: fuelCost,
@@ -11866,12 +11894,16 @@ ${fromName || ''}
             onsiteHours: onsiteHours,
             total: totalExpenses
           },
+          // Top-level fields for easier chart access
+          onsiteLaborCost,
+          onsiteHours,
           netProfit,
           profitMargin,
           technicianCount: 0,
           arrivedAt: project.arrivedAt, // GPS arrival timestamp
           timeExceededAt: project.timeExceededAt, // Time exceeded timestamp
           estimatedDuration: project.estimatedDuration, // Estimated duration in minutes
+          isActive: isActiveJob, // Flag for real-time active jobs
         };
       });
 
@@ -11887,23 +11919,36 @@ ${fromName || ''}
           const dayKey = new Date(job.date).toISOString().split('T')[0];
           if (!dailyMap[dayKey]) {
             dailyMap[dayKey] = {
+              name: dayKey,
               date: dayKey,
               revenue: 0,
+              expenses: 0,
+              profit: 0,
               laborCost: 0,
               fuelCost: 0,
               materialsCost: 0,
+              onsiteLaborCost: 0,
+              onsiteHours: 0,
               totalCosts: 0,
               netProfit: 0,
               profitMargin: 0,
-              jobs: []
+              jobs: [],
+              isActive: false
             };
           }
           dailyMap[dayKey].revenue += job.revenue;
+          dailyMap[dayKey].expenses += job.expenses;
+          dailyMap[dayKey].profit += job.profit;
           dailyMap[dayKey].laborCost += job.costs.labor;
           dailyMap[dayKey].fuelCost += job.costs.fuel;
           dailyMap[dayKey].materialsCost += job.costs.materials;
+          dailyMap[dayKey].onsiteLaborCost += job.onsiteLaborCost;
+          dailyMap[dayKey].onsiteHours += job.onsiteHours;
           dailyMap[dayKey].totalCosts += job.costs.total;
           dailyMap[dayKey].netProfit += job.netProfit;
+          if (job.isActive) {
+            dailyMap[dayKey].isActive = true; // Mark day as having active jobs
+          }
           if (job.revenue > 0) {
             dailyMap[dayKey].jobs.push(job);
           }

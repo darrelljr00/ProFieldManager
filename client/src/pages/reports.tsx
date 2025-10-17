@@ -1008,7 +1008,7 @@ export default function Reports() {
 
       {/* Chart Tabs */}
       <Tabs defaultValue="sales" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-8">
+        <TabsList className="grid w-full grid-cols-9">
           <TabsTrigger value="sales">Sales</TabsTrigger>
           <TabsTrigger value="leads">Leads</TabsTrigger>
           <TabsTrigger value="refunds">Refunds</TabsTrigger>
@@ -1017,6 +1017,7 @@ export default function Reports() {
           <TabsTrigger value="employees">Employees</TabsTrigger>
           <TabsTrigger value="job-analytics">Job Analytics</TabsTrigger>
           <TabsTrigger value="profit-loss">Profit Loss</TabsTrigger>
+          <TabsTrigger value="onsite-labor">On-Site Labor P&L</TabsTrigger>
         </TabsList>
 
         {/* Sales Charts */}
@@ -2818,6 +2819,201 @@ export default function Reports() {
                       </tr>
                     </tfoot>
                   </table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        {/* On-Site Labor P&L Tab */}
+        <TabsContent value="onsite-labor" className="space-y-6">
+          <div className="flex justify-end gap-2 mb-4">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => exportProfitLossReport(profitLossChartData, 'excel', 'onsite-labor')}
+              data-testid="button-export-onsite-labor-excel"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export Excel
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => exportProfitLossReport(profitLossChartData, 'pdf', 'onsite-labor')}
+              data-testid="button-export-onsite-labor-pdf"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export PDF
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* On-Site Labor Cost vs Revenue Chart */}
+            <Card>
+              <CardHeader>
+                <CardTitle>On-Site Labor Cost vs Revenue</CardTitle>
+                <CardDescription>Comparing revenue to on-site labor expenses</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={profitLossChartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip formatter={(value) => `$${Number(value).toLocaleString()}`} />
+                    <Legend />
+                    <Bar dataKey="revenue" fill="#10b981" name="Revenue" />
+                    <Bar dataKey="onsiteLaborCost" fill="#f59e0b" name="On-Site Labor Cost" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            {/* On-Site Labor Profit Margin Chart */}
+            <Card>
+              <CardHeader>
+                <CardTitle>On-Site Labor Profit Margin</CardTitle>
+                <CardDescription>Net profit after on-site labor costs</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={profitLossChartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip formatter={(value) => `${Number(value).toFixed(1)}%`} />
+                    <Legend />
+                    <Line 
+                      type="monotone" 
+                      dataKey="profitMargin" 
+                      stroke="#3b82f6" 
+                      strokeWidth={2}
+                      name="Profit Margin %"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* On-Site Labor Hours & Cost Breakdown */}
+          <Card>
+            <CardHeader>
+              <CardTitle>On-Site Labor Hours & Cost Analysis</CardTitle>
+              <CardDescription>Detailed breakdown of on-site labor time and expenses</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="border-b bg-gray-50">
+                      <th className="text-left p-3 font-semibold">Job/Period</th>
+                      <th className="text-right p-3 font-semibold">On-Site Hours</th>
+                      <th className="text-right p-3 font-semibold">On-Site Labor Cost</th>
+                      <th className="text-right p-3 font-semibold">Revenue</th>
+                      <th className="text-right p-3 font-semibold">Labor as % of Revenue</th>
+                      <th className="text-right p-3 font-semibold">Net Profit</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {profitLossChartData.map((item: any, index: number) => {
+                      const laborPercentage = item.revenue > 0 
+                        ? ((item.onsiteLaborCost || 0) / item.revenue * 100) 
+                        : 0;
+                      const netProfit = item.revenue - (item.onsiteLaborCost || 0);
+                      
+                      return (
+                        <tr key={index} className="border-b hover:bg-gray-50">
+                          <td className="p-3 font-medium">{item.name}</td>
+                          <td className="text-right p-3">
+                            {item.onsiteHours ? item.onsiteHours.toFixed(1) : '0.0'} hrs
+                          </td>
+                          <td className="text-right p-3 text-orange-600">
+                            ${(item.onsiteLaborCost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                          <td className="text-right p-3 text-green-600">
+                            ${item.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                          <td className="text-right p-3">
+                            <span className={`font-medium ${laborPercentage > 50 ? 'text-red-600' : 'text-green-600'}`}>
+                              {laborPercentage.toFixed(1)}%
+                            </span>
+                          </td>
+                          <td className={`text-right p-3 font-semibold ${netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            ${netProfit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot className="border-t-2 bg-gray-50">
+                    <tr className="font-bold">
+                      <td className="p-3">Total</td>
+                      <td className="text-right p-3">
+                        {profitLossChartData.reduce((sum: number, item: any) => sum + (item.onsiteHours || 0), 0).toFixed(1)} hrs
+                      </td>
+                      <td className="text-right p-3 text-orange-600">
+                        ${profitLossChartData.reduce((sum: number, item: any) => sum + (item.onsiteLaborCost || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </td>
+                      <td className="text-right p-3 text-green-600">
+                        ${profitLossChartData.reduce((sum: number, item: any) => sum + item.revenue, 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </td>
+                      <td className="text-right p-3">
+                        {(() => {
+                          const totalRevenue = profitLossChartData.reduce((sum: number, item: any) => sum + item.revenue, 0);
+                          const totalLaborCost = profitLossChartData.reduce((sum: number, item: any) => sum + (item.onsiteLaborCost || 0), 0);
+                          return totalRevenue > 0 ? ((totalLaborCost / totalRevenue) * 100).toFixed(1) : 0;
+                        })()}%
+                      </td>
+                      <td className={`text-right p-3 ${(() => {
+                        const totalRevenue = profitLossChartData.reduce((sum: number, item: any) => sum + item.revenue, 0);
+                        const totalLaborCost = profitLossChartData.reduce((sum: number, item: any) => sum + (item.onsiteLaborCost || 0), 0);
+                        return totalRevenue - totalLaborCost >= 0 ? 'text-green-600' : 'text-red-600';
+                      })()}`}>
+                        ${(() => {
+                          const totalRevenue = profitLossChartData.reduce((sum: number, item: any) => sum + item.revenue, 0);
+                          const totalLaborCost = profitLossChartData.reduce((sum: number, item: any) => sum + (item.onsiteLaborCost || 0), 0);
+                          return (totalRevenue - totalLaborCost).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                        })()}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Real-Time Active Jobs Alert */}
+          {profitLossChartData.some((item: any) => item.isActive) && (
+            <Card className="border-blue-500 bg-blue-50">
+              <CardHeader>
+                <CardTitle className="text-blue-700 flex items-center gap-2">
+                  <Clock className="h-5 w-5" />
+                  Active Jobs - Real-Time Labor Costs
+                </CardTitle>
+                <CardDescription className="text-blue-600">
+                  Labor costs updating in real-time for ongoing jobs
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {profitLossChartData
+                    .filter((item: any) => item.isActive)
+                    .map((job: any, index: number) => (
+                      <div key={index} className="flex justify-between items-center p-3 bg-white rounded border border-blue-200">
+                        <div>
+                          <p className="font-medium text-blue-900">{job.name}</p>
+                          <p className="text-sm text-blue-600">Currently in progress</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm text-gray-600">Current On-Site Hours: {job.onsiteHours?.toFixed(1) || '0.0'}</p>
+                          <p className="font-semibold text-orange-600">
+                            Current Labor Cost: ${(job.onsiteLaborCost || 0).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
                 </div>
               </CardContent>
             </Card>
