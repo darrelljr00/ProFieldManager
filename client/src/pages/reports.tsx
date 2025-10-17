@@ -21,6 +21,15 @@ import {
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useWebSocket } from "@/hooks/useWebSocket";
+import { 
+  exportSalesReport, 
+  exportLeadsReport, 
+  exportExpensesReport,
+  exportEmployeeReport,
+  exportProfitLossReport,
+  exportProfitPerVehicleReport,
+  exportJobAnalyticsReport
+} from "@/lib/reportExports";
 
 // Color palette for charts
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
@@ -1022,6 +1031,26 @@ export default function Reports() {
 
         {/* Sales Charts */}
         <TabsContent value="sales" className="space-y-6">
+          <div className="flex justify-end gap-2 mb-4">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => exportSalesReport(salesChartData, 'excel')}
+              data-testid="button-export-sales-excel"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export Excel
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => exportSalesReport(salesChartData, 'pdf')}
+              data-testid="button-export-sales-pdf"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export PDF
+            </Button>
+          </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
@@ -1072,6 +1101,26 @@ export default function Reports() {
 
         {/* Leads Charts */}
         <TabsContent value="leads" className="space-y-6">
+          <div className="flex justify-end gap-2 mb-4">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => exportLeadsReport(leadsChartData, 'excel')}
+              data-testid="button-export-leads-excel"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export Excel
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => exportLeadsReport(leadsChartData, 'pdf')}
+              data-testid="button-export-leads-pdf"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export PDF
+            </Button>
+          </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
@@ -1127,6 +1176,26 @@ export default function Reports() {
 
         {/* Refunds Charts */}
         <TabsContent value="refunds" className="space-y-6">
+          <div className="flex justify-end gap-2 mb-4">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => exportSalesReport(salesChartData, 'excel')}
+              data-testid="button-export-refunds-excel"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export Excel
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => exportSalesReport(salesChartData, 'pdf')}
+              data-testid="button-export-refunds-pdf"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export PDF
+            </Button>
+          </div>
           <Card>
             <CardHeader>
               <CardTitle>Refunds Analysis</CardTitle>
@@ -1149,6 +1218,26 @@ export default function Reports() {
 
         {/* Close Rate Charts */}
         <TabsContent value="close-rate" className="space-y-6">
+          <div className="flex justify-end gap-2 mb-4">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => exportLeadsReport(leadsChartData, 'excel')}
+              data-testid="button-export-closerate-excel"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export Excel
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => exportLeadsReport(leadsChartData, 'pdf')}
+              data-testid="button-export-closerate-pdf"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export PDF
+            </Button>
+          </div>
           <Card>
             <CardHeader>
               <CardTitle>Lead Close Rate</CardTitle>
@@ -1177,6 +1266,26 @@ export default function Reports() {
 
         {/* Monthly Expenses Charts */}
         <TabsContent value="expenses" className="space-y-6">
+          <div className="flex justify-end gap-2 mb-4">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => exportExpensesReport(expensesChartData, 'excel')}
+              data-testid="button-export-expenses-excel"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export Excel
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => exportExpensesReport(expensesChartData, 'pdf')}
+              data-testid="button-export-expenses-pdf"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export PDF
+            </Button>
+          </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
@@ -1227,6 +1336,26 @@ export default function Reports() {
 
         {/* Employee Performance Tab */}
         <TabsContent value="employees" className="space-y-6">
+          <div className="flex justify-end gap-2 mb-4">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => exportEmployeeReport(employeesData, 'excel')}
+              data-testid="button-export-employees-excel"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export Excel
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => exportEmployeeReport(employeesData, 'pdf')}
+              data-testid="button-export-employees-pdf"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export PDF
+            </Button>
+          </div>
           <div className="space-y-6">
             {/* Combined Employee Performance Analytics */}
           <Card>
@@ -1627,6 +1756,26 @@ export default function Reports() {
 
         {/* Job Analytics Tab */}
         <TabsContent value="job-analytics" className="space-y-6">
+          <div className="flex justify-end gap-2 mb-4">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => exportJobAnalyticsReport(jobAnalyticsData, 'excel')}
+              data-testid="button-export-jobanalytics-excel"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export Excel
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => exportJobAnalyticsReport(jobAnalyticsData, 'pdf')}
+              data-testid="button-export-jobanalytics-pdf"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export PDF
+            </Button>
+          </div>
           <div className="space-y-6">
             <Card>
               <CardHeader>
@@ -1993,6 +2142,26 @@ export default function Reports() {
 
         {/* Profit Loss Tab */}
         <TabsContent value="profit-loss" className="space-y-6">
+          <div className="flex justify-end gap-2 mb-4">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => exportProfitLossReport(profitLossChartData, 'excel', profitLossView)}
+              data-testid="button-export-profitloss-excel"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export Excel
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => exportProfitLossReport(profitLossChartData, 'pdf', profitLossView)}
+              data-testid="button-export-profitloss-pdf"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export PDF
+            </Button>
+          </div>
           {/* View Selector */}
           <Card>
             <CardHeader>
@@ -2367,8 +2536,32 @@ export default function Reports() {
               {/* Profit per Vehicle */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Profit per Vehicle</CardTitle>
-                  <CardDescription>Profitability analysis by vehicle for the selected period</CardDescription>
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                      <CardTitle>Profit per Vehicle</CardTitle>
+                      <CardDescription>Profitability analysis by vehicle for the selected period</CardDescription>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => exportProfitPerVehicleReport(profitPerVehicleData?.vehicles || [], 'excel')}
+                        data-testid="button-export-vehicleprofit-excel"
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Excel
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => exportProfitPerVehicleReport(profitPerVehicleData?.vehicles || [], 'pdf')}
+                        data-testid="button-export-vehicleprofit-pdf"
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        PDF
+                      </Button>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   {profitPerVehicleLoading ? (
