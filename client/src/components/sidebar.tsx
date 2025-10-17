@@ -154,7 +154,7 @@ function SortableNavItem({
                 <>
                   {item.name}
                   {(item.name === "Team Messages" || item.name === "Notifications") && item.unreadCount > 0 && (
-                    <Badge variant="destructive" className="ml-auto h-5 w-5 flex items-center justify-center p-0 text-xs">
+                    <Badge variant="destructive" className="ml-auto h-5 w-5 flex items-center justify-center p-0 text-xs notification-flash">
                       {item.unreadCount > 99 ? "99+" : item.unreadCount}
                     </Badge>
                   )}

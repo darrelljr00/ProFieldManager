@@ -16,6 +16,22 @@
   animation: walkthrough-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
+/* Notification flash animation */
+@keyframes notification-flash {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.1);
+  }
+}
+
+.notification-flash {
+  animation: notification-flash 1.5s ease-in-out infinite;
+}
+
 :root {
   --background: hsl(0, 0%, 100%);
   --foreground: hsl(20, 14.3%, 4.1%);
