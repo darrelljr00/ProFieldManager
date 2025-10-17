@@ -11784,6 +11784,18 @@ ${fromName || ''}
         .where(eq(employees.organizationId, organizationId));
       console.log("Employees count:", allEmployees?.length);
       
+      // Fetch active time clock entries for real-time P&L updates
+      console.log("Fetching active time clock entries...");
+      const activeTimeClockEntries = await db.select()
+        .from(timeClock)
+        .where(
+          and(
+            eq(timeClock.organizationId, organizationId),
+            isNull(timeClock.clockOutTime) // Still clocked in
+          )
+        );
+      console.log("Active time clock entries:", activeTimeClockEntries?.length);
+      
       // Filter projects by date range
       const filteredProjects = allProjects.filter((p: any) => {
         const projectDate = new Date(p.createdAt);
