@@ -11857,6 +11857,9 @@ ${fromName || ''}
           netProfit,
           profitMargin,
           technicianCount: 0,
+          arrivedAt: project.arrivedAt, // GPS arrival timestamp
+          timeExceededAt: project.timeExceededAt, // Time exceeded timestamp
+          estimatedDuration: project.estimatedDuration, // Estimated duration in minutes
         };
       });
 

@@ -2743,11 +2743,15 @@ export default function Reports() {
                         <th className="text-right p-3 font-medium">Expenses</th>
                         <th className="text-right p-3 font-medium">Profit</th>
                         <th className="text-right p-3 font-medium">Profit Margin</th>
+                        <th className="text-center p-3 font-medium">GPS Arrival</th>
+                        <th className="text-center p-3 font-medium">Time Status</th>
                       </tr>
                     </thead>
                     <tbody>
                       {profitLossChartData.map((job: any, index: number) => {
                         const profitMargin = job.revenue > 0 ? ((job.profit / job.revenue) * 100).toFixed(1) : 0;
+                        const arrivedTime = job.arrivedAt ? new Date(job.arrivedAt).toLocaleString() : '-';
+                        const timeExceeded = job.timeExceededAt ? 'Exceeded' : (job.estimatedDuration ? 'On Time' : '-');
                         return (
                           <tr key={index} className="border-b hover:bg-gray-50">
                             <td className="p-3 font-medium">{job.jobName}</td>
@@ -2762,6 +2766,12 @@ export default function Reports() {
                             </td>
                             <td className={`text-right p-3 ${parseFloat(profitMargin.toString()) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                               {profitMargin}%
+                            </td>
+                            <td className="text-center p-3 text-sm text-gray-600">
+                              {arrivedTime}
+                            </td>
+                            <td className={`text-center p-3 text-sm font-medium ${job.timeExceededAt ? 'text-red-600' : 'text-green-600'}`}>
+                              {timeExceeded}
                             </td>
                           </tr>
                         );
@@ -2786,6 +2796,8 @@ export default function Reports() {
                             return totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100).toFixed(1) : 0;
                           })()}%
                         </td>
+                        <td className="text-center p-3 text-sm text-gray-500">-</td>
+                        <td className="text-center p-3 text-sm text-gray-500">-</td>
                       </tr>
                     </tfoot>
                   </table>
