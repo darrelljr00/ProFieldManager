@@ -11990,6 +11990,12 @@ ${fromName || ''}
         .from(employees)
         .where(eq(employees.organizationId, organizationId));
 
+      // Get all tasks for job analytics
+      const allTasks = await db.select()
+        .from(tasks)
+        .innerJoin(projects, eq(tasks.projectId, projects.id))
+        .where(eq(projects.organizationId, organizationId));
+
       // Build vehicle profit map
       const vehicleMap = new Map();
 
@@ -12010,7 +12016,15 @@ ${fromName || ''}
           onsiteHours: 0, // Total on-site hours worked
           travelSegments: 0, // Number of job-to-job travels
           profit: 0,
-          profitMargin: 0
+          profitMargin: 0,
+          // Job Analytics Datapoints
+          tasksCompleted: 0,
+          totalTasks: 0,
+          totalJobDuration: 0, // Total time from creation to completion
+          totalOnsiteDuration: 0, // Total time from start to stop
+          avgJobCompletionTime: 0,
+          avgOnsiteDuration: 0,
+          avgTimePerTask: 0
         });
       });
 
@@ -12067,7 +12081,23 @@ ${fromName || ''}
 
           vehicleData.onsiteLaborCosts += projectLaborCost;
           vehicleData.onsiteHours += hoursWorked;
+          
+          // Track onsite duration for analytics
+          vehicleData.totalOnsiteDuration += hoursWorked;
         }
+
+        // Calculate job completion time (creation to completion)
+        if (project.createdAt && project.endDate) {
+          const createdTime = new Date(project.createdAt).getTime();
+          const completedTime = new Date(project.endDate).getTime();
+          const totalDuration = (completedTime - createdTime) / (1000 * 60 * 60); // hours
+          vehicleData.totalJobDuration += totalDuration;
+        }
+
+        // Track task completion analytics
+        const projectTasks = allTasks.filter(t => t.tasks.projectId === project.id);
+        vehicleData.totalTasks += projectTasks.length;
+        vehicleData.tasksCompleted += projectTasks.filter(t => t.tasks.status === 'completed').length;
       });
 
       // Process travel segments for each vehicle
@@ -12090,6 +12120,16 @@ ${fromName || ''}
           : 0;
         vehicle.totalExpenses = totalExpenses; // Total expenses including travel and on-site labor
         vehicle.totalTravelCost = vehicle.travelFuelCosts + vehicle.travelLaborCosts; // Total travel cost
+        
+        // Calculate job analytics averages
+        if (vehicle.jobsCompleted > 0) {
+          vehicle.avgJobCompletionTime = Number((vehicle.totalJobDuration / vehicle.jobsCompleted).toFixed(1));
+          vehicle.avgOnsiteDuration = Number((vehicle.totalOnsiteDuration / vehicle.jobsCompleted).toFixed(1));
+        }
+        if (vehicle.tasksCompleted > 0) {
+          vehicle.avgTimePerTask = Number((vehicle.totalOnsiteDuration * 60 / vehicle.tasksCompleted).toFixed(1)); // minutes per task
+        }
+        
         return vehicle;
       }).filter(v => v.jobsCompleted > 0); // Only include vehicles with jobs
 
@@ -12108,7 +12148,16 @@ ${fromName || ''}
         totalTravelCost: vehicleResults.reduce((sum, v) => sum + (v.totalTravelCost || 0), 0),
         totalTravelSegments: vehicleResults.reduce((sum, v) => sum + v.travelSegments, 0),
         totalProfit: vehicleResults.reduce((sum, v) => sum + v.profit, 0),
-        totalJobs: vehicleResults.reduce((sum, v) => sum + v.jobsCompleted, 0)
+        totalJobs: vehicleResults.reduce((sum, v) => sum + v.jobsCompleted, 0),
+        // Job Analytics Totals
+        totalTasksCompleted: vehicleResults.reduce((sum, v) => sum + v.tasksCompleted, 0),
+        totalTasks: vehicleResults.reduce((sum, v) => sum + v.totalTasks, 0),
+        avgJobCompletionTime: vehicleResults.length > 0 
+          ? Number((vehicleResults.reduce((sum, v) => sum + v.totalJobDuration, 0) / vehicleResults.reduce((sum, v) => sum + v.jobsCompleted, 0)).toFixed(1))
+          : 0,
+        avgOnsiteDuration: vehicleResults.length > 0 
+          ? Number((vehicleResults.reduce((sum, v) => sum + v.totalOnsiteDuration, 0) / vehicleResults.reduce((sum, v) => sum + v.jobsCompleted, 0)).toFixed(1))
+          : 0
       };
 
       res.json({
