@@ -202,19 +202,19 @@ export default function TimeClock() {
   }, []);
 
   // Get current clock status
-  const { data: currentEntry, isLoading: currentLoading } = useQuery({
+  const { data: currentEntry, isLoading: currentLoading } = useQuery<{ entry?: CurrentEntry }>({
     queryKey: ["/api/time-clock/current"],
     refetchInterval: 30000, // Refresh every 30 seconds
   });
 
   // Get users for manager view
-  const { data: users = [] } = useQuery({
+  const { data: users = [] } = useQuery<any[]>({
     queryKey: ["/api/users"],
     enabled: isManager,
   });
 
   // Get time clock entries (user or organization based on role)
-  const { data: entries = [], isLoading: entriesLoading } = useQuery({
+  const { data: entries = [], isLoading: entriesLoading } = useQuery<TimeClockEntry[]>({
     queryKey: isManager 
       ? ["/api/time-clock/organization-entries", dateFilter.startDate, dateFilter.endDate]
       : ["/api/time-clock/entries", dateFilter.startDate, dateFilter.endDate],
