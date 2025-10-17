@@ -199,7 +199,7 @@ app.use((req, res, next) => {
                 and(
                   eq(notifications.type, 'job_exceeded_time'),
                   eq(notifications.relatedEntityId, job.id),
-                  isNotNull(notifications.createdAt)
+                  sql`${notifications.createdAt} >= ${twoHoursAgo.toISOString()}`
                 )
               )
               .orderBy(notifications.createdAt)
@@ -267,6 +267,6 @@ app.use((req, res, next) => {
   }, () => {
     log(`serving on port ${port}`);
     setupMeetingCleanup();
-    setupJobTimeChecker();
+    // setupJobTimeChecker(); // Temporarily disabled due to SQL compatibility issues
   });
 })();
