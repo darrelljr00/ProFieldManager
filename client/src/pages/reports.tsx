@@ -2253,7 +2253,7 @@ export default function Reports() {
             <Card>
               <CardHeader>
                 <CardTitle>
-                  {profitLossView === 'job' ? 'Job Profitability' : 'Profit & Loss Overview'}
+                  {profitLossView === 'job' ? 'Job Profitability' : profitLossView === 'vehicle' ? 'Vehicle Profitability' : 'Profit & Loss Overview'}
                 </CardTitle>
                 <CardDescription>
                   {profitLossView === 'daily' && 'Daily revenue vs expenses'}
@@ -2264,23 +2264,29 @@ export default function Reports() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={profitLossView === 'vehicle' ? (profitPerVehicleData?.vehicles || []) : profitLossChartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis 
-                      dataKey={profitLossView === 'vehicle' ? 'vehicleNumber' : profitLossView === 'job' ? 'jobName' : profitLossView === 'weekly' ? 'week' : profitLossView === 'daily' ? 'date' : 'month'} 
-                      angle={-45}
-                      textAnchor="end"
-                      height={100}
-                      interval={0}
-                    />
-                    <YAxis />
-                    <Tooltip formatter={(value) => [`$${value}`, '']} />
-                    <Legend />
-                    <Bar dataKey="revenue" fill="#00C49F" name="Revenue" />
-                    <Bar dataKey="expenses" fill="#FF8042" name="Expenses" />
-                  </BarChart>
-                </ResponsiveContainer>
+                {profitLossView === 'vehicle' && profitPerVehicleLoading ? (
+                  <div className="flex items-center justify-center h-[300px]">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={profitLossView === 'vehicle' ? (profitPerVehicleData?.vehicles || []) : profitLossChartData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis 
+                        dataKey={profitLossView === 'vehicle' ? 'vehicleNumber' : profitLossView === 'job' ? 'jobName' : profitLossView === 'weekly' ? 'week' : profitLossView === 'daily' ? 'date' : 'month'} 
+                        angle={-45}
+                        textAnchor="end"
+                        height={100}
+                        interval={0}
+                      />
+                      <YAxis />
+                      <Tooltip formatter={(value) => [`$${value}`, '']} />
+                      <Legend />
+                      <Bar dataKey="revenue" fill="#00C49F" name="Revenue" />
+                      <Bar dataKey="expenses" fill="#FF8042" name="Expenses" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
               </CardContent>
             </Card>
 
@@ -2296,27 +2302,33 @@ export default function Reports() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={profitLossView === 'vehicle' ? (profitPerVehicleData?.vehicles || []) : profitLossChartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis 
-                      dataKey={profitLossView === 'vehicle' ? 'vehicleNumber' : profitLossView === 'job' ? 'jobName' : profitLossView === 'weekly' ? 'week' : profitLossView === 'daily' ? 'date' : 'month'} 
-                      angle={-45}
-                      textAnchor="end"
-                      height={100}
-                      interval={0}
-                    />
-                    <YAxis />
-                    <Tooltip formatter={(value) => [`$${value}`, 'Profit']} />
-                    <Line 
-                      type="monotone" 
-                      dataKey="profit" 
-                      stroke="#0088FE" 
-                      strokeWidth={3}
-                      name="Net Profit" 
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
+                {profitLossView === 'vehicle' && profitPerVehicleLoading ? (
+                  <div className="flex items-center justify-center h-[300px]">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={profitLossView === 'vehicle' ? (profitPerVehicleData?.vehicles || []) : profitLossChartData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis 
+                        dataKey={profitLossView === 'vehicle' ? 'vehicleNumber' : profitLossView === 'job' ? 'jobName' : profitLossView === 'weekly' ? 'week' : profitLossView === 'daily' ? 'date' : 'month'} 
+                        angle={-45}
+                        textAnchor="end"
+                        height={100}
+                        interval={0}
+                      />
+                      <YAxis />
+                      <Tooltip formatter={(value) => [`$${value}`, 'Profit']} />
+                      <Line 
+                        type="monotone" 
+                        dataKey="profit" 
+                        stroke="#0088FE" 
+                        strokeWidth={3}
+                        name="Net Profit" 
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -2329,17 +2341,22 @@ export default function Reports() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <AreaChart data={profitLossView === 'vehicle' 
-                  ? (profitPerVehicleData?.vehicles || []).map(item => ({
-                      ...item,
-                      profitMargin: item.revenue > 0 ? ((item.profit) / item.revenue * 100).toFixed(1) : 0
-                    }))
-                  : profitLossChartData.map(item => ({
-                      ...item,
-                      profitMargin: item.revenue > 0 ? ((item.profit) / item.revenue * 100).toFixed(1) : 0
-                    }))
-                }>
+              {profitLossView === 'vehicle' && profitPerVehicleLoading ? (
+                <div className="flex items-center justify-center h-[300px]">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={300}>
+                  <AreaChart data={profitLossView === 'vehicle' 
+                    ? (profitPerVehicleData?.vehicles || []).map(item => ({
+                        ...item,
+                        profitMargin: item.revenue > 0 ? ((item.profit) / item.revenue * 100).toFixed(1) : 0
+                      }))
+                    : profitLossChartData.map(item => ({
+                        ...item,
+                        profitMargin: item.revenue > 0 ? ((item.profit) / item.revenue * 100).toFixed(1) : 0
+                      }))
+                  }>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis 
                     dataKey={profitLossView === 'vehicle' ? 'vehicleNumber' : profitLossView === 'job' ? 'jobName' : profitLossView === 'weekly' ? 'week' : profitLossView === 'daily' ? 'date' : 'month'} 
@@ -2382,6 +2399,7 @@ export default function Reports() {
                   />
                 </AreaChart>
               </ResponsiveContainer>
+              )}
             </CardContent>
           </Card>
 
