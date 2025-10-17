@@ -11771,6 +11771,18 @@ ${fromName || ''}
           )
         );
       console.log("Travel segments count:", allTravelSegments?.length);
+
+      // Fetch project users and employees for on-site labor cost calculation
+      console.log("Fetching project assignments...");
+      const allProjectUsers = await db.select()
+        .from(projectUsers)
+        .innerJoin(projects, eq(projectUsers.projectId, projects.id))
+        .where(eq(projects.organizationId, organizationId));
+      
+      const allEmployees = await db.select()
+        .from(employees)
+        .where(eq(employees.organizationId, organizationId));
+      console.log("Employees count:", allEmployees?.length);
       
       // Filter projects by date range
       const filteredProjects = allProjects.filter((p: any) => {
@@ -11796,7 +11808,30 @@ ${fromName || ''}
         const travelLaborCost = travelToJob.reduce((sum: number, seg: any) => 
           sum + parseFloat(seg.laborCostCalculated || '0'), 0);
         
-        const laborCost = travelLaborCost; // Travel labor cost
+        // On-site labor costs based on job start/stop times
+        let onsiteLaborCost = 0;
+        let onsiteHours = 0;
+        if (project.startDate && project.endDate) {
+          const startTime = new Date(project.startDate).getTime();
+          const endTime = new Date(project.endDate).getTime();
+          onsiteHours = (endTime - startTime) / (1000 * 60 * 60); // Convert ms to hours
+          
+          // Get assigned technicians for this project
+          const projectTechnicians = allProjectUsers
+            .filter((pu: any) => pu.project_users.projectId === project.id)
+            .map((pu: any) => pu.project_users.userId);
+          
+          // Calculate labor cost for each assigned technician
+          projectTechnicians.forEach((techUserId: number) => {
+            const employee = allEmployees.find((emp: any) => emp.userId === techUserId);
+            if (employee && employee.hourlyRate) {
+              const hourlyRate = parseFloat(employee.hourlyRate);
+              onsiteLaborCost += onsiteHours * hourlyRate;
+            }
+          });
+        }
+        
+        const laborCost = travelLaborCost + onsiteLaborCost; // Total labor cost (travel + on-site)
         const fuelCost = travelFuelCost; // Travel fuel cost
 
         // Total costs and profit
@@ -11815,6 +11850,8 @@ ${fromName || ''}
             materials: materialsCost,
             travelFuel: travelFuelCost,
             travelLabor: travelLaborCost,
+            onsiteLabor: onsiteLaborCost,
+            onsiteHours: onsiteHours,
             total: totalExpenses
           },
           netProfit,
@@ -11870,6 +11907,9 @@ ${fromName || ''}
         summary: {
           totalRevenue: jobProfitData.reduce((s, j) => s + j.revenue, 0),
           totalLaborCost: jobProfitData.reduce((s, j) => s + j.costs.labor, 0),
+          totalTravelLaborCost: jobProfitData.reduce((s, j) => s + j.costs.travelLabor, 0),
+          totalOnsiteLaborCost: jobProfitData.reduce((s, j) => s + j.costs.onsiteLabor, 0),
+          totalOnsiteHours: jobProfitData.reduce((s, j) => s + j.costs.onsiteHours, 0),
           totalFuelCost: jobProfitData.reduce((s, j) => s + j.costs.fuel, 0),
           totalMaterialsCost: jobProfitData.reduce((s, j) => s + j.costs.materials, 0),
           totalExpenses: jobProfitData.reduce((s, j) => s + j.costs.total, 0),
