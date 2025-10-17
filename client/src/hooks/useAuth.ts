@@ -165,15 +165,45 @@ export function useAuth() {
 
   const logout = async () => {
     try {
-      await apiRequest("POST", "/api/auth/logout");
+      console.log('🚪 LOGOUT: Starting logout process');
+      const token = localStorage.getItem('auth_token');
+      
+      if (token) {
+        // Call logout endpoint with token
+        await fetch(buildApiUrl('/api/auth/logout'), {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include'
+        });
+      } else {
+        // Fallback to cookie-based logout
+        await apiRequest("POST", "/api/auth/logout");
+      }
+      console.log('✅ LOGOUT: Server logout successful');
     } catch (error) {
-      console.error("Logout error:", error);
+      console.error("❌ LOGOUT: Server logout error:", error);
     } finally {
-      // Clear stored token
+      // Clear ALL stored authentication data
+      console.log('🧹 LOGOUT: Clearing local storage and cache');
       localStorage.removeItem('auth_token');
+      localStorage.removeItem('user_data');
+      localStorage.removeItem('auth_success_timestamp');
+      
+      // Clear all cookies
+      document.cookie.split(";").forEach((c) => {
+        document.cookie = c
+          .replace(/^ +/, "")
+          .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+      });
+      
       // Clear React Query cache
       queryClient.clear();
-      // Redirect to login
+      
+      console.log('🔄 LOGOUT: Redirecting to login page');
+      // Force redirect to login
       window.location.href = '/login';
     }
   };
