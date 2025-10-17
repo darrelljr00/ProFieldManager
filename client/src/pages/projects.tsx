@@ -32,6 +32,61 @@ function getProjectFileUrl(file: any): string {
   return `/${file.filePath}`;
 }
 
+// Onsite Timer Component
+function OnsiteTimer({ project }: { project: any }) {
+  const [elapsed, setElapsed] = useState<string>("");
+  
+  useEffect(() => {
+    const calculateElapsed = () => {
+      if (!project.startDate) return "";
+      
+      const start = new Date(project.startDate);
+      const end = project.endDate ? new Date(project.endDate) : new Date();
+      const diff = end.getTime() - start.getTime();
+      
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+      
+      if (hours > 0) {
+        return `${hours}h ${minutes}m ${seconds}s`;
+      } else if (minutes > 0) {
+        return `${minutes}m ${seconds}s`;
+      } else {
+        return `${seconds}s`;
+      }
+    };
+    
+    setElapsed(calculateElapsed());
+    
+    // Update every second only for active jobs
+    if (project.startDate && !project.endDate) {
+      const interval = setInterval(() => {
+        setElapsed(calculateElapsed());
+      }, 1000);
+      
+      return () => clearInterval(interval);
+    }
+  }, [project.startDate, project.endDate]);
+  
+  if (!project.startDate) return null;
+  
+  const isActive = project.startDate && !project.endDate;
+  
+  return (
+    <div className={`flex items-center space-x-2 text-sm px-3 py-2 rounded-md ${
+      isActive 
+        ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300' 
+        : 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300'
+    }`}>
+      <Clock className="h-4 w-4" />
+      <span className="font-medium">
+        {isActive ? 'Onsite: ' : 'Total: '}{elapsed}
+      </span>
+    </div>
+  );
+}
+
 // Historical Jobs Component
 function HistoricalJobs() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -1386,6 +1441,9 @@ export default function Jobs() {
                 {project.description && (
                   <p className="text-sm text-gray-600 line-clamp-2">{project.description}</p>
                 )}
+                
+                {/* Onsite Timer */}
+                <OnsiteTimer project={project} />
                 
                 <div className="flex items-center justify-between text-sm text-gray-500">
                   <div className="flex items-center space-x-2">
