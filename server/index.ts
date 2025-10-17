@@ -159,6 +159,107 @@ app.use((req, res, next) => {
     log('📅 Meeting cleanup scheduler initialized - runs every 24 hours');
   };
 
+  // Setup automatic job time exceeded checker
+  const setupJobTimeChecker = () => {
+    const checkJobsExceededTime = async () => {
+      try {
+        const { db } = await import("./db");
+        const { projects, users, notifications } = await import("../shared/schema");
+        const { eq, and, isNotNull, inArray } = await import("drizzle-orm");
+
+        // Get all in-progress jobs with start dates and estimated durations
+        const inProgressJobs = await db
+          .select()
+          .from(projects)
+          .where(
+            and(
+              eq(projects.status, 'in-progress'),
+              isNotNull(projects.startDate),
+              isNotNull(projects.estimatedDuration)
+            )
+          );
+
+        const { NotificationService } = await import("./notificationService");
+
+        for (const job of inProgressJobs) {
+          if (!job.startDate || !job.estimatedDuration) continue;
+
+          const startTime = new Date(job.startDate).getTime();
+          const currentTime = Date.now();
+          const elapsedMinutes = (currentTime - startTime) / (1000 * 60);
+
+          // Check if job has exceeded estimated time
+          if (elapsedMinutes > job.estimatedDuration) {
+            // Check if we've already sent this notification in the last 2 hours
+            const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+            const [recentNotification] = await db
+              .select()
+              .from(notifications)
+              .where(
+                and(
+                  eq(notifications.type, 'job_exceeded_time'),
+                  eq(notifications.relatedEntityId, job.id),
+                  isNotNull(notifications.createdAt)
+                )
+              )
+              .orderBy(notifications.createdAt)
+              .limit(1);
+
+            const shouldNotify = !recentNotification || 
+                               (recentNotification.createdAt && 
+                                new Date(recentNotification.createdAt) < twoHoursAgo);
+
+            if (shouldNotify) {
+              // Get admin/manager users
+              const adminUsers = await db
+                .select()
+                .from(users)
+                .where(
+                  and(
+                    eq(users.organizationId, job.organizationId),
+                    inArray(users.role, ['admin', 'manager']),
+                    eq(users.isActive, true)
+                  )
+                );
+
+              const exceededBy = Math.round(elapsedMinutes - job.estimatedDuration);
+
+              for (const admin of adminUsers) {
+                await NotificationService.createNotification({
+                  type: 'job_exceeded_time',
+                  title: 'Job Exceeded Estimated Time',
+                  message: `Job "${job.name}" has exceeded its estimated time by ${exceededBy} minutes`,
+                  userId: admin.id,
+                  organizationId: job.organizationId,
+                  relatedEntityType: 'project',
+                  relatedEntityId: job.id,
+                  priority: 'high',
+                  category: 'team_based',
+                  createdBy: job.assignedUserId || undefined
+                });
+              }
+
+              log(`⏰ Time exceeded notification sent for job ${job.name} to ${adminUsers.length} admins/managers`);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error checking jobs for time exceeded:', error);
+      }
+    };
+
+    // Check every 15 minutes (15 * 60 * 1000 = 900000ms)
+    const checkInterval = 15 * 60 * 1000;
+    
+    // Run initial check after 2 minutes
+    setTimeout(checkJobsExceededTime, 2 * 60 * 1000);
+    
+    // Then run every 15 minutes
+    setInterval(checkJobsExceededTime, checkInterval);
+    
+    log('⏰ Job time exceeded checker initialized - runs every 15 minutes');
+  };
+
   server.listen({
     port,
     host: "0.0.0.0",
@@ -166,5 +267,6 @@ app.use((req, res, next) => {
   }, () => {
     log(`serving on port ${port}`);
     setupMeetingCleanup();
+    setupJobTimeChecker();
   });
 })();
