@@ -662,8 +662,13 @@ export function Sidebar() {
     return false;
   };
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    console.log('🔴 SIDEBAR: Logout button clicked');
+    try {
+      await logout();
+    } catch (error) {
+      console.error('🔴 SIDEBAR: Logout error:', error);
+    }
   };
 
   if (!isAuthenticated) {
@@ -795,6 +800,7 @@ export function Sidebar() {
               size="sm"
               onClick={handleLogout}
               className="w-full justify-start"
+              data-testid="button-logout"
             >
               <LogOut className="w-4 h-4 mr-2" />
               {!isCollapsed && "Logout"}
