@@ -165,7 +165,7 @@ app.use((req, res, next) => {
       try {
         const { db } = await import("./db");
         const { projects, users, notifications } = await import("../shared/schema");
-        const { eq, and, isNotNull, inArray } = await import("drizzle-orm");
+        const { eq, and, isNotNull, inArray, desc } = await import("drizzle-orm");
 
         // Get all in-progress jobs with start dates and estimated durations
         const inProgressJobs = await db
@@ -192,24 +192,34 @@ app.use((req, res, next) => {
           if (elapsedMinutes > job.estimatedDuration) {
             // Check if we've already sent this notification in the last 2 hours
             const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
-            const [recentNotification] = await db
+            const recentNotifications = await db
               .select()
               .from(notifications)
               .where(
                 and(
                   eq(notifications.type, 'job_exceeded_time'),
-                  eq(notifications.relatedEntityId, job.id),
-                  sql`${notifications.createdAt} >= ${twoHoursAgo.toISOString()}`
+                  eq(notifications.relatedEntityId, job.id)
                 )
               )
-              .orderBy(notifications.createdAt)
+              .orderBy(desc(notifications.createdAt))
               .limit(1);
 
-            const shouldNotify = !recentNotification || 
-                               (recentNotification.createdAt && 
-                                new Date(recentNotification.createdAt) < twoHoursAgo);
+            const shouldNotify = !recentNotifications.length || 
+                               (recentNotifications[0].createdAt && 
+                                new Date(recentNotifications[0].createdAt) < twoHoursAgo);
 
             if (shouldNotify) {
+              // Update project with time exceeded timestamp if not already set
+              if (!job.timeExceededAt) {
+                await db
+                  .update(projects)
+                  .set({ 
+                    timeExceededAt: new Date(),
+                    updatedAt: new Date()
+                  })
+                  .where(eq(projects.id, job.id));
+              }
+
               // Get admin/manager users
               const adminUsers = await db
                 .select()
@@ -267,6 +277,6 @@ app.use((req, res, next) => {
   }, () => {
     log(`serving on port ${port}`);
     setupMeetingCleanup();
-    // setupJobTimeChecker(); // Temporarily disabled due to SQL compatibility issues
+    setupJobTimeChecker();
   });
 })();
