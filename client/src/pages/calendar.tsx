@@ -507,7 +507,7 @@ export default function CalendarPage() {
               
               const dayWeather = dayWeatherData.length > 0 ? {
                 avgTemp: Math.round(dayWeatherData.reduce((sum, w) => sum + w!.temp_f, 0) / dayWeatherData.length),
-                conditions: dayWeatherData.map(w => w!.condition.text),
+                conditions: dayWeatherData.map(w => w!.condition.text).filter(Boolean),
                 avgRainChance: dayWeatherData.some(w => w!.chance_of_rain !== undefined) 
                   ? Math.round(dayWeatherData.filter(w => w!.chance_of_rain !== undefined).reduce((sum, w) => sum + (w!.chance_of_rain || 0), 0) / dayWeatherData.filter(w => w!.chance_of_rain !== undefined).length)
                   : undefined
@@ -532,9 +532,9 @@ export default function CalendarPage() {
                     {/* Day Weather Summary */}
                     {dayWeather && dayJobs.length > 0 && (
                       <div className="flex items-center gap-1 text-xs">
-                        {dayWeather.conditions.some(c => c.toLowerCase().includes('rain')) ? (
+                        {dayWeather.conditions.some(c => c && c.toLowerCase().includes('rain')) ? (
                           <CloudRain className="h-3 w-3 text-blue-600" />
-                        ) : dayWeather.conditions.some(c => c.toLowerCase().includes('cloud')) ? (
+                        ) : dayWeather.conditions.some(c => c && c.toLowerCase().includes('cloud')) ? (
                           <Cloud className="h-3 w-3 text-gray-600" />
                         ) : (
                           <Sun className="h-3 w-3 text-yellow-600" />
