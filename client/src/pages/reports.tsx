@@ -2382,6 +2382,7 @@ export default function Reports() {
                               <th className="text-right p-3 font-medium">Base Expenses</th>
                               <th className="text-right p-3 font-medium">Travel Fuel</th>
                               <th className="text-right p-3 font-medium">Travel Labor</th>
+                              <th className="text-right p-3 font-medium">On-Site Labor</th>
                               <th className="text-right p-3 font-medium">Total Travel</th>
                               <th className="text-right p-3 font-medium">Net Profit</th>
                               <th className="text-right p-3 font-medium">Margin %</th>
@@ -2414,6 +2415,14 @@ export default function Reports() {
                                   <td className="text-right p-3 text-orange-600" data-testid={`text-travel-labor-${vehicle.vehicleId}`}>
                                     ${(vehicle.travelLaborCosts || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                   </td>
+                                  <td className="text-right p-3 text-purple-600" data-testid={`text-onsite-labor-${vehicle.vehicleId}`}>
+                                    ${(vehicle.onsiteLaborCosts || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    {vehicle.onsiteHours > 0 && (
+                                      <span className="text-xs text-gray-500 block">
+                                        ({vehicle.onsiteHours.toFixed(1)}h)
+                                      </span>
+                                    )}
+                                  </td>
                                   <td className="text-right p-3 text-red-600 font-medium" data-testid={`text-total-travel-${vehicle.vehicleId}`}>
                                     ${(vehicle.totalTravelCost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                   </td>
@@ -2433,7 +2442,7 @@ export default function Reports() {
                               ))
                             ) : (
                               <tr className="border-b">
-                                <td colSpan={9} className="p-4 text-center text-gray-500">
+                                <td colSpan={10} className="p-4 text-center text-gray-500">
                                   No vehicle data available for the selected period
                                 </td>
                               </tr>
@@ -2457,6 +2466,14 @@ export default function Reports() {
                                 </td>
                                 <td className="text-right p-3 text-orange-600" data-testid="text-total-travel-labor">
                                   ${(profitPerVehicleData.totals.totalTravelLaborCosts || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </td>
+                                <td className="text-right p-3 text-purple-600" data-testid="text-total-onsite-labor">
+                                  ${(profitPerVehicleData.totals.totalOnsiteLaborCosts || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                  {profitPerVehicleData.totals.totalOnsiteHours > 0 && (
+                                    <span className="text-xs text-gray-500 block">
+                                      ({profitPerVehicleData.totals.totalOnsiteHours.toFixed(1)}h)
+                                    </span>
+                                  )}
                                 </td>
                                 <td className="text-right p-3 text-red-600 font-medium" data-testid="text-total-travel-cost">
                                   ${(profitPerVehicleData.totals.totalTravelCost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
