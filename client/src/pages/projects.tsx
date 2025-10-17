@@ -2549,7 +2549,7 @@ export default function Jobs() {
 
               {/* Project Details */}
               <div className="grid grid-cols-2 gap-4">
-                {!isAdminOrManager && selectedProject.budget && (
+                {isAdminOrManager && selectedProject.budget && (
                   <div>
                     <Label className="text-sm font-medium text-gray-500">Job Total Price</Label>
                     <div className="flex items-center gap-1 mt-1">
