@@ -662,13 +662,9 @@ export function Sidebar() {
     return false;
   };
 
-  const handleLogout = async () => {
-    console.log('🔴 SIDEBAR: Logout button clicked');
-    try {
-      await logout();
-    } catch (error) {
-      console.error('🔴 SIDEBAR: Logout error:', error);
-    }
+  const handleLogout = () => {
+    console.log('🔴 SIDEBAR: Logout button clicked - triggering logout');
+    logout();
   };
 
   if (!isAuthenticated) {
