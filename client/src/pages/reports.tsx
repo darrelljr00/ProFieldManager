@@ -94,7 +94,7 @@ export default function Reports() {
   const [performanceIssuesDateRange, setPerformanceIssuesDateRange] = useState("30days");
   const [timeOffDateRange, setTimeOffDateRange] = useState("30days");
   const [jobAnalyticsDateRange, setJobAnalyticsDateRange] = useState("30days");
-  const [profitLossView, setProfitLossView] = useState<'daily' | 'weekly' | 'monthly' | 'job'>('monthly');
+  const [profitLossView, setProfitLossView] = useState<'daily' | 'weekly' | 'monthly' | 'job' | 'vehicle'>('monthly');
   const queryClient = useQueryClient();
 
   // Helper function to get date range based on selection
@@ -2170,6 +2170,7 @@ export default function Reports() {
                     <SelectItem value="weekly">Per Week</SelectItem>
                     <SelectItem value="monthly">Per Month</SelectItem>
                     <SelectItem value="job">Per Job</SelectItem>
+                    <SelectItem value="vehicle">Per Vehicle</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -2259,14 +2260,15 @@ export default function Reports() {
                   {profitLossView === 'weekly' && 'Weekly revenue vs expenses'}
                   {profitLossView === 'monthly' && 'Monthly revenue vs expenses'}
                   {profitLossView === 'job' && 'Profitability by individual job'}
+                  {profitLossView === 'vehicle' && 'Revenue vs expenses by vehicle'}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={profitLossChartData}>
+                  <BarChart data={profitLossView === 'vehicle' ? (profitPerVehicleData?.vehicles || []) : profitLossChartData}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis 
-                      dataKey={profitLossView === 'job' ? 'jobName' : profitLossView === 'weekly' ? 'week' : profitLossView === 'daily' ? 'date' : 'month'} 
+                      dataKey={profitLossView === 'vehicle' ? 'vehicleNumber' : profitLossView === 'job' ? 'jobName' : profitLossView === 'weekly' ? 'week' : profitLossView === 'daily' ? 'date' : 'month'} 
                       angle={-45}
                       textAnchor="end"
                       height={100}
@@ -2290,14 +2292,15 @@ export default function Reports() {
                   {profitLossView === 'weekly' && 'Weekly profit/loss trends'}
                   {profitLossView === 'monthly' && 'Monthly profit/loss trends'}
                   {profitLossView === 'job' && 'Profit by job comparison'}
+                  {profitLossView === 'vehicle' && 'Profit by vehicle comparison'}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={profitLossChartData}>
+                  <LineChart data={profitLossView === 'vehicle' ? (profitPerVehicleData?.vehicles || []) : profitLossChartData}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis 
-                      dataKey={profitLossView === 'job' ? 'jobName' : profitLossView === 'weekly' ? 'week' : profitLossView === 'daily' ? 'date' : 'month'} 
+                      dataKey={profitLossView === 'vehicle' ? 'vehicleNumber' : profitLossView === 'job' ? 'jobName' : profitLossView === 'weekly' ? 'week' : profitLossView === 'daily' ? 'date' : 'month'} 
                       angle={-45}
                       textAnchor="end"
                       height={100}
@@ -2322,18 +2325,24 @@ export default function Reports() {
             <CardHeader>
               <CardTitle>Profit Margin Analysis</CardTitle>
               <CardDescription>
-                {profitLossView === 'job' ? 'Profit margin by job' : 'Revenue breakdown and profitability percentage'}
+                {profitLossView === 'job' ? 'Profit margin by job' : profitLossView === 'vehicle' ? 'Profit margin by vehicle' : 'Revenue breakdown and profitability percentage'}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
-                <AreaChart data={profitLossChartData.map(item => ({
-                  ...item,
-                  profitMargin: item.revenue > 0 ? ((item.profit) / item.revenue * 100).toFixed(1) : 0
-                }))}>
+                <AreaChart data={profitLossView === 'vehicle' 
+                  ? (profitPerVehicleData?.vehicles || []).map(item => ({
+                      ...item,
+                      profitMargin: item.revenue > 0 ? ((item.profit) / item.revenue * 100).toFixed(1) : 0
+                    }))
+                  : profitLossChartData.map(item => ({
+                      ...item,
+                      profitMargin: item.revenue > 0 ? ((item.profit) / item.revenue * 100).toFixed(1) : 0
+                    }))
+                }>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis 
-                    dataKey={profitLossView === 'job' ? 'jobName' : profitLossView === 'weekly' ? 'week' : profitLossView === 'daily' ? 'date' : 'month'} 
+                    dataKey={profitLossView === 'vehicle' ? 'vehicleNumber' : profitLossView === 'job' ? 'jobName' : profitLossView === 'weekly' ? 'week' : profitLossView === 'daily' ? 'date' : 'month'} 
                     angle={-45}
                     textAnchor="end"
                     height={100}
