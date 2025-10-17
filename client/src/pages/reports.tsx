@@ -202,6 +202,17 @@ export default function Reports() {
       if (!response.ok) throw new Error('Failed to fetch profit/loss detailed data');
       return response.json();
     },
+    select: (data) => {
+      // Map backend field names to frontend expectations
+      if (data?.data) {
+        data.data = data.data.map((item: any) => ({
+          ...item,
+          expenses: item.totalCosts || 0,
+          profit: item.netProfit || 0
+        }));
+      }
+      return data;
+    }
   });
 
   // All employees with realistic performance metrics
