@@ -498,6 +498,9 @@ export const projects = pgTable("projects", {
   currentLocation: text("current_location"), // Current GPS or text location
   dispatchNotes: text("dispatch_notes"), // Notes for dispatch routing
   vehicleId: text("vehicle_id"), // Vehicle assignment for dispatch routing
+  // GPS tracking and time tracking fields
+  arrivedAt: timestamp("arrived_at"), // When technician arrived on-site (GPS geofencing detection)
+  timeExceededAt: timestamp("time_exceeded_at"), // When job exceeded estimated duration
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

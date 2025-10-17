@@ -19435,8 +19435,117 @@ ${fromName || ''}
           });
       }
 
-      // Note: GPS geofencing for arrival notifications temporarily disabled due to SQL compatibility issues
-      // Will be re-enabled in a future update with proper timestamp handling
+      // Check for job site arrivals and send notifications to managers/admins
+      try {
+        // Get user's active assigned jobs
+        const assignedJobs = await db
+          .select()
+          .from(projects)
+          .where(
+            and(
+              eq(projects.organizationId, user.organizationId),
+              eq(projects.assignedUserId, user.id),
+              inArray(projects.status, ['pending', 'in-progress'])
+            )
+          );
+
+        // Function to calculate distance between two coordinates (Haversine formula)
+        function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+          const R = 6371e3; // Earth's radius in meters
+          const φ1 = lat1 * Math.PI / 180;
+          const φ2 = lat2 * Math.PI / 180;
+          const Δφ = (lat2 - lat1) * Math.PI / 180;
+          const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+          const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                    Math.cos(φ1) * Math.cos(φ2) *
+                    Math.sin(Δλ/2) * Math.sin(Δλ/2);
+          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+          return R * c; // Distance in meters
+        }
+
+        const ARRIVAL_RADIUS = 200; // 200 meters radius
+
+        for (const job of assignedJobs) {
+          if (!job.latitude || !job.longitude) continue;
+
+          const distance = calculateDistance(
+            parseFloat(latitude),
+            parseFloat(longitude),
+            parseFloat(job.latitude),
+            parseFloat(job.longitude)
+          );
+
+          if (distance <= ARRIVAL_RADIUS) {
+            // Check if we've already sent arrival notification for this job recently (within last hour)
+            const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+            const recentArrivalNotifications = await db
+              .select()
+              .from(notifications)
+              .where(
+                and(
+                  eq(notifications.type, 'technician_arrived_onsite'),
+                  eq(notifications.relatedEntityId, job.id),
+                  eq(notifications.createdBy, user.id)
+                )
+              )
+              .orderBy(desc(notifications.createdAt))
+              .limit(1);
+
+            const shouldNotifyArrival = !recentArrivalNotifications.length || 
+                                       (recentArrivalNotifications[0].createdAt && 
+                                        new Date(recentArrivalNotifications[0].createdAt) < oneHourAgo);
+
+            if (shouldNotifyArrival) {
+              // Update project with arrival timestamp if not already set
+              if (!job.arrivedAt) {
+                await db
+                  .update(projects)
+                  .set({ 
+                    arrivedAt: new Date(),
+                    updatedAt: new Date()
+                  })
+                  .where(eq(projects.id, job.id));
+              }
+
+              // Send arrival notification to managers/admins
+              const { NotificationService } = await import("./notificationService");
+
+              const adminUsers = await db
+                .select()
+                .from(users)
+                .where(
+                  and(
+                    eq(users.organizationId, user.organizationId),
+                    inArray(users.role, ['admin', 'manager']),
+                    eq(users.isActive, true)
+                  )
+                );
+
+              for (const admin of adminUsers) {
+                await NotificationService.createNotification({
+                  type: 'technician_arrived_onsite',
+                  title: 'Technician Arrived On-Site',
+                  message: `${user.firstName} ${user.lastName} has arrived at job site: ${job.name}`,
+                  userId: admin.id,
+                  organizationId: user.organizationId,
+                  relatedEntityType: 'project',
+                  relatedEntityId: job.id,
+                  priority: 'normal',
+                  category: 'team_based',
+                  createdBy: user.id
+                });
+              }
+
+              console.log(`📍 Arrival notification sent for ${user.firstName} at job ${job.name} to ${adminUsers.length} admins/managers`);
+            }
+          }
+        }
+      } catch (arrivalError) {
+        console.error('Error checking for job site arrivals:', arrivalError);
+        // Don't fail the location update if arrival check fails
+      }
 
       res.json({ 
         message: "Location updated successfully",
