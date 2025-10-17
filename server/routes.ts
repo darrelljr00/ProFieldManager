@@ -11936,6 +11936,17 @@ ${fromName || ''}
           )
         );
 
+      // Get project users (technician assignments) for on-site labor calculation
+      const allProjectUsers = await db.select()
+        .from(projectUsers)
+        .innerJoin(projects, eq(projectUsers.projectId, projects.id))
+        .where(eq(projects.organizationId, organizationId));
+
+      // Get employees with hourly rates
+      const allEmployees = await db.select()
+        .from(employees)
+        .where(eq(employees.organizationId, organizationId));
+
       // Build vehicle profit map
       const vehicleMap = new Map();
 
@@ -11952,6 +11963,8 @@ ${fromName || ''}
           fuelCosts: 0,
           travelFuelCosts: 0, // Travel-specific fuel costs
           travelLaborCosts: 0, // Travel-specific labor costs
+          onsiteLaborCosts: 0, // On-site labor costs (based on job start/stop times)
+          onsiteHours: 0, // Total on-site hours worked
           travelSegments: 0, // Number of job-to-job travels
           profit: 0,
           profitMargin: 0
@@ -11987,6 +12000,31 @@ ${fromName || ''}
         const projectFuelCosts = allGasCardUsage.filter(gas => gas.projectId === project.id);
         const projectFuelCost = projectFuelCosts.reduce((sum, gas) => sum + (Number(gas.totalAmount) || 0), 0);
         vehicleData.fuelCosts += projectFuelCost;
+
+        // Calculate on-site labor costs based on job start/stop times
+        if (project.startDate && project.endDate) {
+          const startTime = new Date(project.startDate).getTime();
+          const endTime = new Date(project.endDate).getTime();
+          const hoursWorked = (endTime - startTime) / (1000 * 60 * 60); // Convert ms to hours
+
+          // Get assigned technicians for this project
+          const projectTechnicians = allProjectUsers
+            .filter(pu => pu.project_users.projectId === project.id)
+            .map(pu => pu.project_users.userId);
+
+          // Calculate labor cost for each assigned technician
+          let projectLaborCost = 0;
+          projectTechnicians.forEach(techUserId => {
+            const employee = allEmployees.find(emp => emp.userId === techUserId);
+            if (employee && employee.hourlyRate) {
+              const hourlyRate = Number(employee.hourlyRate);
+              projectLaborCost += hoursWorked * hourlyRate;
+            }
+          });
+
+          vehicleData.onsiteLaborCosts += projectLaborCost;
+          vehicleData.onsiteHours += hoursWorked;
+        }
       });
 
       // Process travel segments for each vehicle
@@ -12002,12 +12040,12 @@ ${fromName || ''}
 
       // Calculate profit and margin for each vehicle
       const vehicleResults = Array.from(vehicleMap.values()).map(vehicle => {
-        const totalExpenses = vehicle.expenses + vehicle.fuelCosts + vehicle.travelFuelCosts + vehicle.travelLaborCosts;
+        const totalExpenses = vehicle.expenses + vehicle.fuelCosts + vehicle.travelFuelCosts + vehicle.travelLaborCosts + vehicle.onsiteLaborCosts;
         vehicle.profit = vehicle.revenue - totalExpenses;
         vehicle.profitMargin = vehicle.revenue > 0 
           ? Number(((vehicle.profit / vehicle.revenue) * 100).toFixed(1))
           : 0;
-        vehicle.totalExpenses = totalExpenses; // Total expenses including travel
+        vehicle.totalExpenses = totalExpenses; // Total expenses including travel and on-site labor
         vehicle.totalTravelCost = vehicle.travelFuelCosts + vehicle.travelLaborCosts; // Total travel cost
         return vehicle;
       }).filter(v => v.jobsCompleted > 0); // Only include vehicles with jobs
@@ -12022,6 +12060,8 @@ ${fromName || ''}
         totalFuelCosts: vehicleResults.reduce((sum, v) => sum + v.fuelCosts, 0),
         totalTravelFuelCosts: vehicleResults.reduce((sum, v) => sum + v.travelFuelCosts, 0),
         totalTravelLaborCosts: vehicleResults.reduce((sum, v) => sum + v.travelLaborCosts, 0),
+        totalOnsiteLaborCosts: vehicleResults.reduce((sum, v) => sum + v.onsiteLaborCosts, 0),
+        totalOnsiteHours: vehicleResults.reduce((sum, v) => sum + v.onsiteHours, 0),
         totalTravelCost: vehicleResults.reduce((sum, v) => sum + (v.totalTravelCost || 0), 0),
         totalTravelSegments: vehicleResults.reduce((sum, v) => sum + v.travelSegments, 0),
         totalProfit: vehicleResults.reduce((sum, v) => sum + v.profit, 0),
