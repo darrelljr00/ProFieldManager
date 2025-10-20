@@ -3112,7 +3112,7 @@ export default function Reports() {
                     .map((job: any, index: number) => (
                       <div key={index} className="flex justify-between items-center p-3 bg-white rounded border border-blue-200">
                         <div>
-                          <p className="font-medium text-blue-900">{job.name}</p>
+                          <p className="font-medium text-blue-900">Job #{job.projectId}{job.projectName ? ` - ${job.projectName}` : ''}</p>
                           <p className="text-sm text-blue-600">Currently in progress</p>
                         </div>
                         <div className="text-right">
