@@ -234,6 +234,28 @@ export default function Reports() {
     refetchOnMount: 'always', // Always refetch on mount
   });
 
+  // Fetch gas and maintenance cost data
+  const { data: gasMaintResponse, isLoading: gasMaintLoading } = useQuery({
+    queryKey: ["/api/reports/gas-maintenance", profitLossDates.startDate, profitLossDates.endDate],
+    queryFn: async () => {
+      const params = `startDate=${profitLossDates.startDate}&endDate=${profitLossDates.endDate}`;
+      const response = await fetch(`/api/reports/gas-maintenance?${params}`);
+      if (!response.ok) throw new Error('Failed to fetch gas/maintenance data');
+      return response.json();
+    },
+    enabled: true,
+  });
+
+  const gasMaintData = gasMaintResponse?.data || [];
+  const gasMaintSummary = gasMaintResponse?.summary || {
+    totalGasCost: 0,
+    totalMaintenanceCost: 0,
+    totalCost: 0,
+    totalGallons: 0,
+    totalGasExpenses: 0,
+    totalMaintenanceRecords: 0
+  };
+
   // All employees with realistic performance metrics
   const getAllEmployeeData = () => [
     {
@@ -3105,6 +3127,237 @@ export default function Reports() {
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+
+        {/* Gas & Maintenance Tab */}
+        <TabsContent value="gas-maintenance" className="space-y-6">
+          <div className="flex justify-end gap-2 mb-4">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => {
+                if (!gasMaintData || gasMaintData.length === 0) {
+                  toast({
+                    title: "No Data",
+                    description: "No gas or maintenance data available to export.",
+                    variant: "destructive"
+                  });
+                  return;
+                }
+                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.json_to_sheet(gasMaintData);
+                XLSX.utils.book_append_sheet(wb, ws, "Gas & Maintenance");
+                XLSX.writeFile(wb, `gas-maintenance-report-${new Date().toISOString().split('T')[0]}.xlsx`);
+              }}
+              data-testid="button-export-gas-maintenance-excel"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export Excel
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Total Gas Cost</p>
+                    <p className="text-2xl font-bold text-blue-600">
+                      ${gasMaintSummary?.totalGasCost?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {gasMaintSummary?.totalGallons?.toFixed(1) || '0.0'} gallons
+                    </p>
+                  </div>
+                  <div className="text-4xl">⛽</div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Total Maintenance Cost</p>
+                    <p className="text-2xl font-bold text-orange-600">
+                      ${gasMaintSummary?.totalMaintenanceCost?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {gasMaintSummary?.totalMaintenanceRecords || 0} records
+                    </p>
+                  </div>
+                  <div className="text-4xl">🔧</div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Total Cost</p>
+                    <p className="text-2xl font-bold text-purple-600">
+                      ${gasMaintSummary?.totalCost?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {(gasMaintSummary?.totalGasExpenses || 0) + (gasMaintSummary?.totalMaintenanceRecords || 0)} total records
+                    </p>
+                  </div>
+                  <div className="text-4xl">💰</div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Gas vs Maintenance Cost Comparison Chart */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Gas vs Maintenance Cost Trends</CardTitle>
+                <CardDescription>Monthly comparison of gas and maintenance expenses</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {!gasMaintData || gasMaintData.length === 0 ? (
+                  <div className="text-center py-12 text-gray-500">
+                    <p>No gas or maintenance data available for the selected period</p>
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <AreaChart data={gasMaintData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" />
+                      <YAxis />
+                      <Tooltip formatter={(value) => `$${Number(value).toLocaleString()}`} />
+                      <Legend />
+                      <Area 
+                        type="monotone" 
+                        dataKey="gasCost" 
+                        stackId="1"
+                        stroke="#3b82f6" 
+                        fill="#3b82f6" 
+                        name="Gas Cost"
+                      />
+                      <Area 
+                        type="monotone" 
+                        dataKey="maintenanceCost" 
+                        stackId="1"
+                        stroke="#f59e0b" 
+                        fill="#f59e0b" 
+                        name="Maintenance Cost"
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Total Cost Trend Chart */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Combined Cost Trend</CardTitle>
+                <CardDescription>Total gas and maintenance expenses over time</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {!gasMaintData || gasMaintData.length === 0 ? (
+                  <div className="text-center py-12 text-gray-500">
+                    <p>No data available for the selected period</p>
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={gasMaintData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" />
+                      <YAxis />
+                      <Tooltip formatter={(value) => `$${Number(value).toLocaleString()}`} />
+                      <Legend />
+                      <Line 
+                        type="monotone" 
+                        dataKey="totalCost" 
+                        stroke="#8b5cf6" 
+                        strokeWidth={3}
+                        name="Total Cost"
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Detailed Monthly Breakdown Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Monthly Breakdown</CardTitle>
+              <CardDescription>Detailed gas and maintenance cost analysis by month</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {!gasMaintData || gasMaintData.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="text-4xl mb-4">📊</div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No Data Available</h3>
+                  <p className="text-gray-600">
+                    No gas or maintenance expenses found in the selected time period.
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="border-b bg-gray-50">
+                        <th className="text-left p-3 font-semibold">Month</th>
+                        <th className="text-right p-3 font-semibold">Gas Expenses</th>
+                        <th className="text-right p-3 font-semibold">Gas Cost</th>
+                        <th className="text-right p-3 font-semibold">Gallons</th>
+                        <th className="text-right p-3 font-semibold">Maintenance Records</th>
+                        <th className="text-right p-3 font-semibold">Maintenance Cost</th>
+                        <th className="text-right p-3 font-semibold">Total Cost</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {gasMaintData.map((row: any, index: number) => (
+                        <tr key={index} className="border-b hover:bg-gray-50">
+                          <td className="p-3 font-medium">{row.month}</td>
+                          <td className="text-right p-3">{row.gasCount}</td>
+                          <td className="text-right p-3 text-blue-600">
+                            ${row.gasCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                          <td className="text-right p-3">
+                            {row.totalGallons.toFixed(1)}
+                          </td>
+                          <td className="text-right p-3">{row.maintenanceCount}</td>
+                          <td className="text-right p-3 text-orange-600">
+                            ${row.maintenanceCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                          <td className="text-right p-3 font-semibold text-purple-600">
+                            ${row.totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot className="border-t-2 bg-gray-50">
+                      <tr className="font-bold">
+                        <td className="p-3">Total</td>
+                        <td className="text-right p-3">{gasMaintSummary?.totalGasExpenses || 0}</td>
+                        <td className="text-right p-3 text-blue-600">
+                          ${gasMaintSummary?.totalGasCost?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
+                        </td>
+                        <td className="text-right p-3">
+                          {gasMaintSummary?.totalGallons?.toFixed(1) || '0.0'}
+                        </td>
+                        <td className="text-right p-3">{gasMaintSummary?.totalMaintenanceRecords || 0}</td>
+                        <td className="text-right p-3 text-orange-600">
+                          ${gasMaintSummary?.totalMaintenanceCost?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
+                        </td>
+                        <td className="text-right p-3 text-purple-600">
+                          ${gasMaintSummary?.totalCost?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
       </Tabs>
