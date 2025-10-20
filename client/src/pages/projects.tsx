@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { buildApiUrl, getAuthHeaders } from "@/lib/api-config";
@@ -1316,7 +1316,7 @@ export default function Jobs() {
   };
 
   // Filter jobs for regular users to only show assigned jobs
-  const filteredJobs = React.useMemo(() => {
+  const filteredJobs = useMemo(() => {
     console.log('🔍 JOB FILTERING DEBUG:', {
       isAdminOrManager,
       currentUserId: user?.id,
