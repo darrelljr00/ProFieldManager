@@ -1315,6 +1315,13 @@ export default function Jobs() {
     }
   };
 
+  // Filter jobs for regular users to only show assigned jobs
+  const filteredJobs = isAdminOrManager 
+    ? jobs 
+    : jobs.filter(job => 
+        job.users.some((userRel: any) => userRel.user?.id === user?.id)
+      );
+
   // Filter completed jobs based on search criteria
   const filterCompletedJobs = (jobs: ProjectWithDetails[]) => {
     return jobs.filter(job => {
@@ -1336,18 +1343,18 @@ export default function Jobs() {
   };
 
   const categorizeJobs = () => {
-    const upcoming = jobs.filter(job => 
+    const upcoming = filteredJobs.filter(job => 
       job.status === 'planning' || 
       (job.status === 'active' && job.startDate && new Date(job.startDate) > new Date())
     );
     
-    const inProgress = jobs.filter(job => 
+    const inProgress = filteredJobs.filter(job => 
       job.status === 'active' && 
       (!job.startDate || new Date(job.startDate) <= new Date()) &&
       job.progress < 100
     );
     
-    const allCompleted = jobs.filter(job => 
+    const allCompleted = filteredJobs.filter(job => 
       job.status === 'completed' || 
       job.status === 'delivered' || 
       job.progress === 100
@@ -1566,12 +1573,25 @@ export default function Jobs() {
     );
   }
 
+  // Get subtitle text based on user role
+  const getSubtitleText = () => {
+    if (isAdminOrManager) {
+      return "Manage your jobs, tasks, and team collaboration";
+    }
+    const today = new Date().toLocaleDateString('en-US', { 
+      month: 'long', 
+      day: 'numeric', 
+      year: 'numeric' 
+    });
+    return `Jobs I'm assigned (${today})`;
+  };
+
   return (
     <div className="container mx-auto p-4 md:p-6">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Jobs</h1>
-          <p className="text-gray-600 mt-1">Manage your jobs, tasks, and team collaboration</p>
+          <p className="text-gray-600 mt-1">{getSubtitleText()}</p>
           <div className="flex gap-2 mt-3">
             <Link href="/jobs/deleted">
               <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50">
@@ -1591,7 +1611,7 @@ export default function Jobs() {
           {isMobile && (
             <Button 
               onClick={() => {
-                if (jobs?.length === 0) {
+                if (filteredJobs?.length === 0) {
                   toast({
                     title: "No Jobs Available",
                     description: "Create a job first before taking photos",
@@ -1600,8 +1620,8 @@ export default function Jobs() {
                   return;
                 }
                 // Show project selection first, then camera
-                if (jobs?.length === 1) {
-                  setSelectedProject(jobs[0]);
+                if (filteredJobs?.length === 1) {
+                  setSelectedProject(filteredJobs[0]);
                   setShowMobileCamera(true);
                 } else {
                   toast({
