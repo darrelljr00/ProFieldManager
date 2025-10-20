@@ -858,6 +858,19 @@ export default function Reports() {
 
   // Use backend data if available, otherwise fall back to local calculation
   const profitLossChartData = profitLossDetailedData?.data || getProfitLossDataByView();
+  
+  // Debug logging for on-site labor data
+  useEffect(() => {
+    if (profitLossDetailedData) {
+      console.log('📊 PROFIT/LOSS DATA:', {
+        view: profitLossView,
+        dataLength: profitLossChartData?.length,
+        hasData: !!profitLossChartData,
+        sampleData: profitLossChartData?.[0],
+        allData: profitLossChartData
+      });
+    }
+  }, [profitLossDetailedData, profitLossChartData, profitLossView]);
 
   if (isLoading) {
     return (
@@ -2943,20 +2956,37 @@ export default function Reports() {
               <CardDescription>Detailed breakdown of on-site labor time and expenses</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse">
-                  <thead>
-                    <tr className="border-b bg-gray-50">
-                      <th className="text-left p-3 font-semibold">Job/Period</th>
-                      <th className="text-right p-3 font-semibold">On-Site Hours</th>
-                      <th className="text-right p-3 font-semibold">On-Site Labor Cost</th>
-                      <th className="text-right p-3 font-semibold">Revenue</th>
-                      <th className="text-right p-3 font-semibold">Labor as % of Revenue</th>
-                      <th className="text-right p-3 font-semibold">Net Profit</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {profitLossChartData.map((item: any, index: number) => {
+              {!profitLossChartData || profitLossChartData.length === 0 ? (
+                <div className="text-center py-12">
+                  <Clock className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No Labor Data Available</h3>
+                  <p className="text-gray-600 mb-4">
+                    No jobs with tracked labor hours found in the selected time period.
+                  </p>
+                  <div className="text-sm text-gray-500 space-y-2">
+                    <p>💡 Labor costs are tracked when:</p>
+                    <ul className="list-disc list-inside">
+                      <li>Jobs are started and completed with timestamps</li>
+                      <li>Employees are assigned to jobs</li>
+                      <li>Employee hourly rates are configured</li>
+                    </ul>
+                  </div>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="border-b bg-gray-50">
+                        <th className="text-left p-3 font-semibold">Job/Period</th>
+                        <th className="text-right p-3 font-semibold">On-Site Hours</th>
+                        <th className="text-right p-3 font-semibold">On-Site Labor Cost</th>
+                        <th className="text-right p-3 font-semibold">Revenue</th>
+                        <th className="text-right p-3 font-semibold">Labor as % of Revenue</th>
+                        <th className="text-right p-3 font-semibold">Net Profit</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {profitLossChartData.map((item: any, index: number) => {
                       const laborPercentage = item.revenue > 0 
                         ? ((item.onsiteLaborCost || 0) / item.revenue * 100) 
                         : 0;
@@ -3020,8 +3050,9 @@ export default function Reports() {
                   </tfoot>
                 </table>
               </div>
-            </CardContent>
-          </Card>
+            )}
+          </CardContent>
+        </Card>
 
           {/* Real-Time Active Jobs Alert */}
           {profitLossChartData.some((item: any) => item.isActive) && (
