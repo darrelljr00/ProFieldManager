@@ -15594,6 +15594,200 @@ ${fromName || ''}
     }
   });
 
+  // OBD-based fuel calculations - uses total miles from OBD trips database
+  app.get('/api/dispatch/obd-fuel-usage', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const user = (req as any).user;
+      if (!user || !user.organizationId) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      const { startDate, endDate, view = 'daily' } = req.query;
+
+      // Get all vehicles for this organization
+      const allVehicles = await db
+        .select()
+        .from(vehicles)
+        .where(
+          and(
+            eq(vehicles.organizationId, user.organizationId),
+            isNull(vehicles.deletedAt)
+          )
+        );
+
+      // Get OBD trips within the date range
+      const trips = await db
+        .select()
+        .from(obdTrips)
+        .where(
+          and(
+            eq(obdTrips.organizationId, user.organizationId),
+            startDate ? gte(obdTrips.startTime, new Date(startDate as string)) : sql`true`,
+            endDate ? lte(obdTrips.startTime, new Date(endDate as string)) : sql`true`,
+            eq(obdTrips.status, 'completed')
+          )
+        )
+        .orderBy(desc(obdTrips.startTime));
+
+      // Get fuel expenses with OCR prices for price fallback
+      const fuelExpenses = await db
+        .select()
+        .from(expenses)
+        .where(
+          and(
+            eq(expenses.organizationId, user.organizationId),
+            isNotNull(expenses.pricePerGallon),
+            isNull(expenses.deletedAt),
+            startDate ? gte(expenses.expenseDate, new Date(startDate as string)) : sql`true`,
+            endDate ? lte(expenses.expenseDate, new Date(endDate as string)) : sql`true`
+          )
+        )
+        .orderBy(desc(expenses.expenseDate));
+
+      // Aggregate based on view type
+      const aggregated = new Map<string, any>();
+
+      trips.forEach(trip => {
+        const tripDate = new Date(trip.startTime);
+        let key: string;
+        let period: string;
+
+        if (view === 'daily') {
+          // Group by day
+          key = `${tripDate.toISOString().split('T')[0]}-${trip.vehicleId}`;
+          period = tripDate.toISOString().split('T')[0];
+        } else if (view === 'weekly') {
+          // Group by week (ISO week)
+          const weekStart = new Date(tripDate);
+          weekStart.setDate(tripDate.getDate() - tripDate.getDay()); // Start of week (Sunday)
+          const weekKey = weekStart.toISOString().split('T')[0];
+          key = `${weekKey}-${trip.vehicleId}`;
+          period = weekKey;
+        } else if (view === 'monthly') {
+          // Group by month
+          const monthKey = `${tripDate.getFullYear()}-${String(tripDate.getMonth() + 1).padStart(2, '0')}`;
+          key = `${monthKey}-${trip.vehicleId}`;
+          period = monthKey;
+        } else {
+          // Default to daily
+          key = `${tripDate.toISOString().split('T')[0]}-${trip.vehicleId}`;
+          period = tripDate.toISOString().split('T')[0];
+        }
+
+        if (!aggregated.has(key)) {
+          const vehicle = allVehicles.find(v => v.id === trip.vehicleId);
+          aggregated.set(key, {
+            period,
+            view,
+            vehicleId: trip.vehicleId,
+            vehicleName: vehicle ? `${vehicle.make || ''} ${vehicle.model || ''}`.trim() || `Vehicle ${vehicle.vehicleNumber}` : 'Unknown Vehicle',
+            vehicleMPG: vehicle?.fuelEconomyMpg ? parseFloat(vehicle.fuelEconomyMpg.toString()) : 20,
+            totalMiles: 0,
+            tripCount: 0,
+            calculatedGallons: 0,
+            calculatedFuelCost: 0,
+            actualFuelCost: 0,
+            fuelPriceUsed: 0,
+          });
+        }
+
+        const usage = aggregated.get(key);
+        usage.totalMiles += parseFloat(trip.distanceMiles?.toString() || '0');
+        usage.tripCount += 1;
+      });
+
+      // Calculate fuel costs for each aggregation
+      const results = Array.from(aggregated.values()).map(usage => {
+        // Get fuel price for this period
+        let periodExpenses;
+        
+        if (view === 'daily') {
+          periodExpenses = fuelExpenses.filter(e => {
+            const expenseDate = new Date(e.expenseDate).toISOString().split('T')[0];
+            return expenseDate === usage.period;
+          });
+        } else if (view === 'weekly') {
+          periodExpenses = fuelExpenses.filter(e => {
+            const expenseDate = new Date(e.expenseDate);
+            const weekStart = new Date(expenseDate);
+            weekStart.setDate(expenseDate.getDate() - expenseDate.getDay());
+            const weekKey = weekStart.toISOString().split('T')[0];
+            return weekKey === usage.period;
+          });
+        } else if (view === 'monthly') {
+          periodExpenses = fuelExpenses.filter(e => {
+            const expenseDate = new Date(e.expenseDate);
+            const monthKey = `${expenseDate.getFullYear()}-${String(expenseDate.getMonth() + 1).padStart(2, '0')}`;
+            return monthKey === usage.period;
+          });
+        } else {
+          periodExpenses = fuelExpenses.filter(e => {
+            const expenseDate = new Date(e.expenseDate).toISOString().split('T')[0];
+            return expenseDate === usage.period;
+          });
+        }
+
+        let fuelPrice = 3.50; // Default fallback
+
+        if (periodExpenses.length > 0) {
+          // Use average price from that period
+          const prices = periodExpenses
+            .map(e => parseFloat(e.pricePerGallon?.toString() || '0'))
+            .filter(p => p > 0);
+
+          if (prices.length > 0) {
+            fuelPrice = prices.reduce((sum, p) => sum + p, 0) / prices.length;
+          }
+        } else if (fuelExpenses.length > 0) {
+          // Use organization average from all fuel expenses
+          const allPrices = fuelExpenses
+            .map(e => parseFloat(e.pricePerGallon?.toString() || '0'))
+            .filter(p => p > 0);
+
+          if (allPrices.length > 0) {
+            fuelPrice = allPrices.reduce((sum, p) => sum + p, 0) / allPrices.length;
+          }
+        }
+
+        usage.fuelPriceUsed = Math.round(fuelPrice * 100) / 100;
+        usage.calculatedGallons = usage.totalMiles / usage.vehicleMPG;
+        usage.calculatedFuelCost = usage.calculatedGallons * fuelPrice;
+
+        // Get actual fuel expenses for this period
+        usage.actualFuelCost = periodExpenses.reduce((sum, e) =>
+          sum + parseFloat(e.amount?.toString() || '0'), 0);
+
+        // Calculate variance
+        usage.variance = usage.actualFuelCost - usage.calculatedFuelCost;
+        usage.variancePercent = usage.calculatedFuelCost > 0
+          ? ((usage.variance / usage.calculatedFuelCost) * 100)
+          : 0;
+
+        // Round values
+        usage.totalMiles = Math.round(usage.totalMiles * 100) / 100;
+        usage.calculatedGallons = Math.round(usage.calculatedGallons * 100) / 100;
+        usage.calculatedFuelCost = Math.round(usage.calculatedFuelCost * 100) / 100;
+        usage.actualFuelCost = Math.round(usage.actualFuelCost * 100) / 100;
+        usage.variance = Math.round(usage.variance * 100) / 100;
+        usage.variancePercent = Math.round(usage.variancePercent * 10) / 10;
+
+        return usage;
+      });
+
+      // Sort by period descending
+      results.sort((a, b) => {
+        const dateA = new Date(a.period).getTime();
+        const dateB = new Date(b.period).getTime();
+        return dateB - dateA;
+      });
+
+      res.json(results);
+    } catch (error: any) {
+      console.error('Error calculating OBD fuel usage:', error);
+      res.status(500).json({ message: 'Failed to calculate OBD fuel usage' });
+    }
+  });
+
   // Helper function for simple route optimization (nearest neighbor)
   function optimizeRoute(jobs: any[], startLocation: string): number[] {
     if (jobs.length <= 1) return jobs.map((_, index) => index);
