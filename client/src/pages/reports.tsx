@@ -188,19 +188,27 @@ export default function Reports() {
   });
 
   // Fetch profit/loss detailed data with on-site labor costs
+  // Memoize dates to prevent React Query cache issues
+  const profitLossDates = useMemo(() => {
+    let start, end;
+    if (useCustomRange && startDate && endDate) {
+      start = startDate;
+      end = endDate;
+    } else {
+      const dateRange = getDateRangeFromSelection(timeRange);
+      start = dateRange.start;
+      end = dateRange.end;
+    }
+    return {
+      startDate: start.toISOString(),
+      endDate: end.toISOString()
+    };
+  }, [useCustomRange, startDate, endDate, timeRange]);
+
   const { data: profitLossDetailedData, isLoading: profitLossDetailedLoading, refetch: refetchProfitLossDetailed } = useQuery({
-    queryKey: ["/api/reports/profit-loss-detailed", profitLossView, timeRange, useCustomRange, startDate, endDate],
+    queryKey: ["/api/reports/profit-loss-detailed", profitLossView, profitLossDates.startDate, profitLossDates.endDate],
     queryFn: async () => {
-      let start, end;
-      if (useCustomRange && startDate && endDate) {
-        start = startDate;
-        end = endDate;
-      } else {
-        const dateRange = getDateRangeFromSelection(timeRange);
-        start = dateRange.start;
-        end = dateRange.end;
-      }
-      const params = `startDate=${start.toISOString()}&endDate=${end.toISOString()}&view=${profitLossView}`;
+      const params = `startDate=${profitLossDates.startDate}&endDate=${profitLossDates.endDate}&view=${profitLossView}`;
       console.log('🔍 FETCHING PROFIT/LOSS DATA:', `/api/reports/profit-loss-detailed?${params}`);
       const response = await fetch(`/api/reports/profit-loss-detailed?${params}`);
       if (!response.ok) throw new Error('Failed to fetch profit/loss detailed data');
@@ -223,7 +231,6 @@ export default function Reports() {
     },
     enabled: true,
     staleTime: 0, // Always consider data stale
-    gcTime: 0, // Don't cache
     refetchOnMount: 'always', // Always refetch on mount
   });
 
