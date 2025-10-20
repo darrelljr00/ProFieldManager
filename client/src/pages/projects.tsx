@@ -1316,11 +1316,45 @@ export default function Jobs() {
   };
 
   // Filter jobs for regular users to only show assigned jobs
-  const filteredJobs = isAdminOrManager 
-    ? jobs 
-    : jobs.filter(job => 
-        job.users.some((userRel: any) => userRel.user?.id === user?.id)
-      );
+  const filteredJobs = React.useMemo(() => {
+    console.log('🔍 JOB FILTERING DEBUG:', {
+      isAdminOrManager,
+      currentUserId: user?.id,
+      currentUserRole: user?.role,
+      totalJobs: jobs.length,
+      jobsWithUsers: jobs.map(j => ({
+        id: j.id,
+        name: j.name,
+        usersCount: j.users?.length || 0,
+        users: j.users?.map((u: any) => ({
+          userId: u.user?.id || u.userId,
+          userName: u.user?.firstName || u.user?.username
+        }))
+      }))
+    });
+
+    if (isAdminOrManager) {
+      console.log('✅ Admin/Manager - showing all jobs');
+      return jobs;
+    }
+
+    const filtered = jobs.filter(job => {
+      const hasAssignment = job.users?.some((userRel: any) => {
+        const assignedUserId = userRel.user?.id || userRel.userId;
+        const matches = assignedUserId === user?.id;
+        console.log('🔎 Checking job:', job.name, { assignedUserId, currentUserId: user?.id, matches });
+        return matches;
+      });
+      return hasAssignment;
+    });
+
+    console.log('🎯 Filtered jobs for regular user:', {
+      filteredCount: filtered.length,
+      filteredJobs: filtered.map(j => j.name)
+    });
+
+    return filtered;
+  }, [jobs, user?.id, isAdminOrManager, user?.role]);
 
   // Filter completed jobs based on search criteria
   const filterCompletedJobs = (jobs: ProjectWithDetails[]) => {
