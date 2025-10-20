@@ -3107,12 +3107,29 @@ export default function Reports() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {profitLossChartData
-                    .filter((item: any) => item.isActive)
-                    .map((job: any, index: number) => (
+                  {(() => {
+                    // For 'job' view, show jobs directly. For grouped views, extract jobs from the jobs array
+                    const activeJobs: any[] = [];
+                    
+                    profitLossChartData.forEach((item: any) => {
+                      if (item.isActive) {
+                        if (profitLossView === 'job' && item.projectId) {
+                          // Individual job view - show the job directly
+                          activeJobs.push(item);
+                        } else if (item.jobs && Array.isArray(item.jobs)) {
+                          // Grouped view (daily/weekly/monthly) - extract active jobs from the jobs array
+                          const periodActiveJobs = item.jobs.filter((j: any) => j.isActive);
+                          activeJobs.push(...periodActiveJobs);
+                        }
+                      }
+                    });
+                    
+                    return activeJobs.map((job: any, index: number) => (
                       <div key={index} className="flex justify-between items-center p-3 bg-white rounded border border-blue-200">
                         <div>
-                          <p className="font-medium text-blue-900">Job #{job.projectId}{job.projectName ? ` - ${job.projectName}` : ''}</p>
+                          <p className="font-medium text-blue-900">
+                            Job #{job.projectId}{job.projectName ? ` - ${job.projectName}` : ''}
+                          </p>
                           <p className="text-sm text-blue-600">Currently in progress</p>
                         </div>
                         <div className="text-right">
@@ -3122,7 +3139,8 @@ export default function Reports() {
                           </p>
                         </div>
                       </div>
-                    ))}
+                    ));
+                  })()}
                 </div>
               </CardContent>
             </Card>
