@@ -201,12 +201,16 @@ export default function Reports() {
         end = dateRange.end;
       }
       const params = `startDate=${start.toISOString()}&endDate=${end.toISOString()}&view=${profitLossView}`;
+      console.log('🔍 FETCHING PROFIT/LOSS DATA:', `/api/reports/profit-loss-detailed?${params}`);
       const response = await fetch(`/api/reports/profit-loss-detailed?${params}`);
       if (!response.ok) throw new Error('Failed to fetch profit/loss detailed data');
-      return response.json();
+      const data = await response.json();
+      console.log('📊 PROFIT/LOSS RESPONSE:', data);
+      return data;
     },
     select: (data) => {
       // Map backend field names to frontend expectations
+      console.log('🔄 SELECT TRANSFORM INPUT:', data);
       if (data?.data) {
         data.data = data.data.map((item: any) => ({
           ...item,
@@ -214,8 +218,10 @@ export default function Reports() {
           profit: item.netProfit || 0
         }));
       }
+      console.log('🔄 SELECT TRANSFORM OUTPUT:', data);
       return data;
-    }
+    },
+    enabled: true,
   });
 
   // All employees with realistic performance metrics
