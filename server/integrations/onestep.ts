@@ -56,7 +56,7 @@ export class OneStepGPSService {
       .where(
         and(
           eq(settings.organizationId, organizationId),
-          eq(settings.key, "onestep_gps_api_key")
+          eq(settings.key, "oneStepGpsApiKey")
         )
       )
       .limit(1);
