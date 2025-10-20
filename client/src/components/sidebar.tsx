@@ -662,9 +662,15 @@ export function Sidebar() {
     return false;
   };
 
-  const handleLogout = () => {
+  const handleLogout = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     console.log('🔴 SIDEBAR: Logout button clicked - triggering logout');
-    logout();
+    try {
+      await logout();
+    } catch (error) {
+      console.error('🚨 SIDEBAR: Logout error:', error);
+    }
   };
 
   if (!isAuthenticated) {
