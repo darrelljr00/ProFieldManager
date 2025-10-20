@@ -11803,9 +11803,15 @@ ${fromName || ''}
       });
 
       // Fetch quotes for revenue calculation
-      const allQuotes = await db.select()
+      // Join with users to get organization-wide quotes
+      const allQuotes = await db.select({
+        id: quotes.id,
+        total: quotes.total,
+        userId: quotes.userId
+      })
         .from(quotes)
-        .where(eq(quotes.userId, user.id));
+        .innerJoin(users, eq(quotes.userId, users.id))
+        .where(eq(users.organizationId, organizationId));
       
       // Calculate costs per job including travel costs
       const jobProfitData = filteredProjects.map((project: any) => {
@@ -11982,6 +11988,64 @@ ${fromName || ''}
           day.profitMargin = day.revenue > 0 ? ((day.netProfit / day.revenue) * 100) : 0;
         });
         groupedData = Object.values(dailyMap).sort((a: any, b: any) => a.date.localeCompare(b.date));
+      } else if (view === 'monthly' || view === 'weekly') {
+        // Monthly or weekly grouping
+        const periodMap: Record<string, any> = {};
+        jobProfitData.forEach(job => {
+          if (!job.date) return;
+          const jobDate = new Date(job.date);
+          let periodKey: string;
+          
+          if (view === 'monthly') {
+            periodKey = `${jobDate.getFullYear()}-${String(jobDate.getMonth() + 1).padStart(2, '0')}`;
+          } else {
+            // Weekly: use ISO week
+            const weekStart = new Date(jobDate);
+            weekStart.setDate(jobDate.getDate() - jobDate.getDay());
+            periodKey = weekStart.toISOString().split('T')[0];
+          }
+          
+          if (!periodMap[periodKey]) {
+            periodMap[periodKey] = {
+              name: periodKey,
+              date: periodKey,
+              revenue: 0,
+              expenses: 0,
+              profit: 0,
+              laborCost: 0,
+              fuelCost: 0,
+              materialsCost: 0,
+              onsiteLaborCost: 0,
+              onsiteHours: 0,
+              totalCosts: 0,
+              netProfit: 0,
+              profitMargin: 0,
+              jobs: [],
+              isActive: false
+            };
+          }
+          periodMap[periodKey].revenue += job.revenue;
+          periodMap[periodKey].expenses += job.expenses;
+          periodMap[periodKey].profit += job.profit;
+          periodMap[periodKey].laborCost += job.costs.labor;
+          periodMap[periodKey].fuelCost += job.costs.fuel;
+          periodMap[periodKey].materialsCost += job.costs.materials;
+          periodMap[periodKey].onsiteLaborCost += job.onsiteLaborCost;
+          periodMap[periodKey].onsiteHours += job.onsiteHours;
+          periodMap[periodKey].totalCosts += job.costs.total;
+          periodMap[periodKey].netProfit += job.netProfit;
+          if (job.isActive) {
+            periodMap[periodKey].isActive = true;
+          }
+          if (job.revenue > 0) {
+            periodMap[periodKey].jobs.push(job);
+          }
+        });
+        
+        Object.values(periodMap).forEach((period: any) => {
+          period.profitMargin = period.revenue > 0 ? ((period.netProfit / period.revenue) * 100) : 0;
+        });
+        groupedData = Object.values(periodMap).sort((a: any, b: any) => a.date.localeCompare(b.date));
       }
 
       res.json({
