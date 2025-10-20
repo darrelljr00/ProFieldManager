@@ -800,9 +800,13 @@ export function Sidebar() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={handleLogout}
+              onClick={(e) => {
+                console.log('🔴 LOGOUT BUTTON CLICKED - Event:', e);
+                handleLogout(e);
+              }}
               className="w-full justify-start"
               data-testid="button-logout"
+              type="button"
             >
               <LogOut className="w-4 h-4 mr-2" />
               {!isCollapsed && "Logout"}
