@@ -12072,6 +12072,123 @@ ${fromName || ''}
     }
   });
 
+  // Gas and Maintenance Cost Analysis
+  app.get("/api/reports/gas-maintenance", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const organizationId = user.organizationId;
+      
+      // Parse date range (default to last 12 months)
+      const { startDate: startParam, endDate: endParam } = req.query;
+      const startDate = startParam ? new Date(startParam as string) : new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
+      const endDate = endParam ? new Date(endParam as string) : new Date();
+      
+      // Fetch gas/fuel expenses
+      const gasExpenses = await db.select()
+        .from(expenses)
+        .innerJoin(users, eq(expenses.userId, users.id))
+        .where(
+          and(
+            eq(users.organizationId, organizationId),
+            or(
+              eq(expenses.category, 'gas'),
+              eq(expenses.category, 'fuel'),
+              eq(expenses.category, 'gas_card')
+            ),
+            gte(expenses.expenseDate, startDate),
+            lte(expenses.expenseDate, endDate),
+            isNull(expenses.deletedAt)
+          )
+        );
+      
+      // Fetch vehicle maintenance records
+      const maintenanceRecords = await db.select()
+        .from(vehicleMaintenanceRecords)
+        .where(
+          and(
+            eq(vehicleMaintenanceRecords.organizationId, organizationId),
+            gte(vehicleMaintenanceRecords.performedDate, startDate),
+            lte(vehicleMaintenanceRecords.performedDate, endDate)
+          )
+        );
+      
+      // Group by month
+      const monthlyData: Record<string, any> = {};
+      
+      // Process gas expenses
+      gasExpenses.forEach((record: any) => {
+        const expense = record.expenses;
+        const month = new Date(expense.expenseDate).toISOString().substring(0, 7); // YYYY-MM
+        
+        if (!monthlyData[month]) {
+          monthlyData[month] = {
+            month,
+            gasCost: 0,
+            maintenanceCost: 0,
+            totalGallons: 0,
+            gasCount: 0,
+            maintenanceCount: 0
+          };
+        }
+        
+        monthlyData[month].gasCost += parseFloat(expense.amount || '0');
+        monthlyData[month].gasCount += 1;
+        
+        if (expense.gallons) {
+          monthlyData[month].totalGallons += parseFloat(expense.gallons || '0');
+        }
+      });
+      
+      // Process maintenance records
+      maintenanceRecords.forEach((record: any) => {
+        const month = new Date(record.performedDate).toISOString().substring(0, 7); // YYYY-MM
+        
+        if (!monthlyData[month]) {
+          monthlyData[month] = {
+            month,
+            gasCost: 0,
+            maintenanceCost: 0,
+            totalGallons: 0,
+            gasCount: 0,
+            maintenanceCount: 0
+          };
+        }
+        
+        monthlyData[month].maintenanceCost += parseFloat(record.cost || '0');
+        monthlyData[month].maintenanceCount += 1;
+      });
+      
+      // Calculate total cost for each month
+      Object.values(monthlyData).forEach((data: any) => {
+        data.totalCost = data.gasCost + data.maintenanceCost;
+      });
+      
+      // Convert to array and sort by month
+      const chartData = Object.values(monthlyData).sort((a: any, b: any) => 
+        a.month.localeCompare(b.month)
+      );
+      
+      // Calculate summary
+      const summary = {
+        totalGasCost: chartData.reduce((sum: number, d: any) => sum + d.gasCost, 0),
+        totalMaintenanceCost: chartData.reduce((sum: number, d: any) => sum + d.maintenanceCost, 0),
+        totalCost: chartData.reduce((sum: number, d: any) => sum + d.totalCost, 0),
+        totalGallons: chartData.reduce((sum: number, d: any) => sum + d.totalGallons, 0),
+        totalGasExpenses: chartData.reduce((sum: number, d: any) => sum + d.gasCount, 0),
+        totalMaintenanceRecords: chartData.reduce((sum: number, d: any) => sum + d.maintenanceCount, 0)
+      };
+      
+      res.json({
+        dateRange: { startDate, endDate },
+        data: chartData,
+        summary
+      });
+    } catch (error: any) {
+      console.error("Error fetching gas/maintenance costs:", error);
+      res.status(500).json({ message: "Failed to fetch gas/maintenance costs", error: error.message });
+    }
+  });
+
   // Profit per Vehicle API endpoint
   app.get("/api/reports/profit-per-vehicle", requireAuth, async (req, res) => {
     try {
