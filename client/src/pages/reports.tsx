@@ -257,6 +257,18 @@ export default function Reports() {
     totalMaintenanceRecords: 0
   };
 
+  // Fetch daily fuel usage calculations (calculated vs actual)
+  const { data: dailyFuelUsage, isLoading: fuelUsageLoading } = useQuery({
+    queryKey: ["/api/dispatch/daily-fuel-usage", profitLossDates.startDate, profitLossDates.endDate],
+    queryFn: async () => {
+      const params = `startDate=${profitLossDates.startDate}&endDate=${profitLossDates.endDate}`;
+      const response = await fetch(`/api/dispatch/daily-fuel-usage?${params}`);
+      if (!response.ok) throw new Error('Failed to fetch daily fuel usage');
+      return response.json();
+    },
+    enabled: true,
+  });
+
   // All employees with realistic performance metrics
   const getAllEmployeeData = () => [
     {
@@ -3270,6 +3282,88 @@ export default function Reports() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Daily Fuel Usage Variance Analysis */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Daily Fuel Usage Analysis</CardTitle>
+              <CardDescription>
+                Calculated fuel costs based on miles driven, vehicle MPG, and OCR receipt prices vs actual expenses
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {fuelUsageLoading ? (
+                <div className="text-center py-12 text-gray-500">
+                  <p>Loading fuel usage data...</p>
+                </div>
+              ) : !dailyFuelUsage || dailyFuelUsage.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="text-4xl mb-4">⛽</div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No Fuel Usage Data</h3>
+                  <p className="text-gray-600">
+                    No travel segments or fuel expenses found in the selected time period.
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="border-b bg-gray-50">
+                        <th className="text-left p-3 font-semibold">Date</th>
+                        <th className="text-left p-3 font-semibold">Vehicle</th>
+                        <th className="text-right p-3 font-semibold">Miles</th>
+                        <th className="text-right p-3 font-semibold">MPG</th>
+                        <th className="text-right p-3 font-semibold">Calc. Gallons</th>
+                        <th className="text-right p-3 font-semibold">Fuel Price</th>
+                        <th className="text-right p-3 font-semibold">Calc. Cost</th>
+                        <th className="text-right p-3 font-semibold">Actual Cost</th>
+                        <th className="text-right p-3 font-semibold">Variance</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {dailyFuelUsage.map((usage: any, index: number) => (
+                        <tr key={index} className="border-b hover:bg-gray-50">
+                          <td className="p-3 font-medium">{usage.date}</td>
+                          <td className="p-3">{usage.vehicleName}</td>
+                          <td className="text-right p-3">{usage.totalMiles.toFixed(2)}</td>
+                          <td className="text-right p-3">{usage.vehicleMPG.toFixed(1)}</td>
+                          <td className="text-right p-3">{usage.calculatedGallons.toFixed(2)}</td>
+                          <td className="text-right p-3">${usage.fuelPriceUsed.toFixed(2)}</td>
+                          <td className="text-right p-3 text-blue-600">
+                            ${usage.calculatedFuelCost.toFixed(2)}
+                          </td>
+                          <td className="text-right p-3 text-green-600">
+                            ${usage.actualFuelCost.toFixed(2)}
+                          </td>
+                          <td className={`text-right p-3 font-semibold ${
+                            usage.variance > 0 
+                              ? 'text-red-600' 
+                              : usage.variance < 0 
+                                ? 'text-green-600' 
+                                : 'text-gray-600'
+                          }`}>
+                            {usage.variance > 0 ? '+' : ''}${usage.variance.toFixed(2)}
+                            {usage.variancePercent !== 0 && (
+                              <span className="text-xs ml-1">
+                                ({usage.variance > 0 ? '+' : ''}{usage.variancePercent.toFixed(1)}%)
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                    <p className="text-sm text-blue-800">
+                      <strong>How it works:</strong> Fuel costs are calculated by dividing total miles driven by vehicle MPG, 
+                      then multiplying by the fuel price from OCR'd expense receipts (or organization average). 
+                      Positive variance means actual expenses exceeded calculated costs; negative means savings.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Gas vs Maintenance Cost Comparison Chart */}

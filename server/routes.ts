@@ -15241,18 +15241,54 @@ ${fromName || ''}
         }
       }
       
-      // Get fuel price (use recent gas card usage or default)
+      // Get fuel price with fallback logic:
+      // 1. Same-day OCR'd expense receipts (pricePerGallon from technician expenses)
+      // 2. Organization average from recent fuel expenses
+      // 3. Default price ($3.50)
       let fuelPricePerGallon = 3.50; // Default price
-      const recentGasUsage = await db
-        .select()
-        .from(gasCardUsage)
-        .where(eq(gasCardUsage.organizationId, user.organizationId))
-        .orderBy(desc(gasCardUsage.purchaseDate))
-        .limit(1);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
       
-      if (recentGasUsage.length > 0 && recentGasUsage[0].pricePerGallon) {
-        fuelPricePerGallon = parseFloat(recentGasUsage[0].pricePerGallon.toString());
+      // Get fuel expenses with OCR prices
+      const recentFuelExpenses = await db
+        .select()
+        .from(expenses)
+        .where(
+          and(
+            eq(expenses.organizationId, user.organizationId),
+            isNotNull(expenses.pricePerGallon),
+            isNull(expenses.deletedAt)
+          )
+        )
+        .orderBy(desc(expenses.expenseDate))
+        .limit(20); // Get last 20 for averaging
+      
+      // Priority 1: Try same-day prices first
+      const todayExpenses = recentFuelExpenses.filter(e => {
+        const expenseDate = new Date(e.expenseDate);
+        expenseDate.setHours(0, 0, 0, 0);
+        return expenseDate.getTime() === today.getTime();
+      });
+      
+      if (todayExpenses.length > 0) {
+        const todayPrices = todayExpenses
+          .map(e => parseFloat(e.pricePerGallon?.toString() || '0'))
+          .filter(p => p > 0);
+        
+        if (todayPrices.length > 0) {
+          fuelPricePerGallon = todayPrices.reduce((sum, p) => sum + p, 0) / todayPrices.length;
+        }
+      } else if (recentFuelExpenses.length > 0) {
+        // Priority 2: Use organization average from recent expenses
+        const allPrices = recentFuelExpenses
+          .map(e => parseFloat(e.pricePerGallon?.toString() || '0'))
+          .filter(p => p > 0);
+        
+        if (allPrices.length > 0) {
+          fuelPricePerGallon = allPrices.reduce((sum, p) => sum + p, 0) / allPrices.length;
+        }
       }
+      // Priority 3: Default $3.50 is already set above
       
       // Calculate travel costs between consecutive jobs
       const travelSegments = [];
@@ -15412,6 +15448,149 @@ ${fromName || ''}
     } catch (error: any) {
       console.error('Error fetching travel segments:', error);
       res.status(500).json({ message: 'Failed to fetch travel segments' });
+    }
+  });
+
+  // Calculate daily fuel usage based on total miles driven, vehicle MPG, and OCR fuel prices
+  app.get('/api/dispatch/daily-fuel-usage', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { startDate, endDate, vehicleId } = req.query;
+      
+      const conditions = [eq(jobTravelSegments.organizationId, user.organizationId)];
+      
+      if (startDate) {
+        conditions.push(gte(jobTravelSegments.createdAt, new Date(startDate as string)));
+      }
+      
+      if (endDate) {
+        conditions.push(lte(jobTravelSegments.createdAt, new Date(endDate as string)));
+      }
+      
+      if (vehicleId) {
+        conditions.push(eq(jobTravelSegments.vehicleId, parseInt(vehicleId as string)));
+      }
+      
+      // Get all travel segments for the date range
+      const segments = await db
+        .select()
+        .from(jobTravelSegments)
+        .where(and(...conditions))
+        .orderBy(desc(jobTravelSegments.createdAt));
+      
+      // Get all vehicles
+      const allVehicles = await storage.getVehicles(user.organizationId);
+      
+      // Get fuel expenses with OCR prices
+      const fuelExpenses = await db
+        .select()
+        .from(expenses)
+        .where(
+          and(
+            eq(expenses.organizationId, user.organizationId),
+            isNotNull(expenses.pricePerGallon),
+            isNull(expenses.deletedAt),
+            startDate ? gte(expenses.expenseDate, new Date(startDate as string)) : sql`true`,
+            endDate ? lte(expenses.expenseDate, new Date(endDate as string)) : sql`true`
+          )
+        )
+        .orderBy(desc(expenses.expenseDate));
+      
+      // Group segments by date and vehicle
+      const dailyUsage = new Map<string, any>();
+      
+      segments.forEach(segment => {
+        const date = new Date(segment.createdAt).toISOString().split('T')[0];
+        const key = `${date}-${segment.vehicleId}`;
+        
+        if (!dailyUsage.has(key)) {
+          const vehicle = allVehicles.find(v => v.id === segment.vehicleId);
+          dailyUsage.set(key, {
+            date,
+            vehicleId: segment.vehicleId,
+            vehicleName: vehicle ? `${vehicle.make || ''} ${vehicle.model || ''}`.trim() || `Vehicle ${vehicle.vehicleNumber}` : 'Unknown Vehicle',
+            vehicleMPG: vehicle?.fuelEconomyMpg ? parseFloat(vehicle.fuelEconomyMpg.toString()) : 20,
+            totalMiles: 0,
+            segmentCount: 0,
+            calculatedGallons: 0,
+            calculatedFuelCost: 0,
+            actualFuelCost: 0,
+            fuelPriceUsed: 0,
+          });
+        }
+        
+        const usage = dailyUsage.get(key);
+        usage.totalMiles += parseFloat(segment.distanceMiles?.toString() || '0');
+        usage.segmentCount += 1;
+      });
+      
+      // Calculate fuel usage for each day
+      const results = Array.from(dailyUsage.values()).map(usage => {
+        // Get fuel price for this date (from expenses or average)
+        const dateExpenses = fuelExpenses.filter(e => {
+          const expenseDate = new Date(e.expenseDate).toISOString().split('T')[0];
+          return expenseDate === usage.date;
+        });
+        
+        let fuelPrice = 3.50; // Default fallback
+        
+        if (dateExpenses.length > 0) {
+          // Use average price from that day
+          const prices = dateExpenses
+            .map(e => parseFloat(e.pricePerGallon?.toString() || '0'))
+            .filter(p => p > 0);
+          
+          if (prices.length > 0) {
+            fuelPrice = prices.reduce((sum, p) => sum + p, 0) / prices.length;
+          }
+        } else if (fuelExpenses.length > 0) {
+          // Use organization average from all fuel expenses
+          const allPrices = fuelExpenses
+            .map(e => parseFloat(e.pricePerGallon?.toString() || '0'))
+            .filter(p => p > 0);
+          
+          if (allPrices.length > 0) {
+            fuelPrice = allPrices.reduce((sum, p) => sum + p, 0) / allPrices.length;
+          }
+        }
+        
+        usage.fuelPriceUsed = Math.round(fuelPrice * 100) / 100;
+        usage.calculatedGallons = usage.totalMiles / usage.vehicleMPG;
+        usage.calculatedFuelCost = usage.calculatedGallons * fuelPrice;
+        
+        // Get actual fuel expenses for this day and vehicle
+        const actualExpenses = fuelExpenses.filter(e => {
+          const expenseDate = new Date(e.expenseDate).toISOString().split('T')[0];
+          return expenseDate === usage.date;
+        });
+        
+        usage.actualFuelCost = actualExpenses.reduce((sum, e) => 
+          sum + parseFloat(e.amount?.toString() || '0'), 0);
+        
+        // Calculate variance
+        usage.variance = usage.actualFuelCost - usage.calculatedFuelCost;
+        usage.variancePercent = usage.calculatedFuelCost > 0 
+          ? ((usage.variance / usage.calculatedFuelCost) * 100)
+          : 0;
+        
+        // Round values
+        usage.totalMiles = Math.round(usage.totalMiles * 100) / 100;
+        usage.calculatedGallons = Math.round(usage.calculatedGallons * 100) / 100;
+        usage.calculatedFuelCost = Math.round(usage.calculatedFuelCost * 100) / 100;
+        usage.actualFuelCost = Math.round(usage.actualFuelCost * 100) / 100;
+        usage.variance = Math.round(usage.variance * 100) / 100;
+        usage.variancePercent = Math.round(usage.variancePercent * 10) / 10;
+        
+        return usage;
+      });
+      
+      // Sort by date descending
+      results.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      
+      res.json(results);
+    } catch (error: any) {
+      console.error('Error calculating daily fuel usage:', error);
+      res.status(500).json({ message: 'Failed to calculate daily fuel usage' });
     }
   });
 
