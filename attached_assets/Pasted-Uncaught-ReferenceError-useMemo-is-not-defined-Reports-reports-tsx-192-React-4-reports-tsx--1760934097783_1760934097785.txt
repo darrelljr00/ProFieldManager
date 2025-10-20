@@ -1,0 +1,34 @@
+Uncaught ReferenceError: useMemo is not defined
+    Reports reports.tsx:192
+    React 4
+reports.tsx:192:27
+Uncaught ReferenceError: useMemo is not defined
+    Reports reports.tsx:192
+    React 4
+reports.tsx:192:27
+The above error occurred in the <Reports> component:
+
+Reports@https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/src/pages/reports.tsx?t=1760934059323:76:45
+Route@https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=a3f3d7a9:191:13
+Switch@https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=a3f3d7a9:247:14
+div
+div
+div
+AuthenticatedApp@https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/src/App.tsx?t=1760934059323&v=RQRlzg6Uq-S3KWltKx6UK:102:23
+Router@https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/src/App.tsx?t=1760934059323&v=RQRlzg6Uq-S3KWltKx6UK:536:20
+Provider@https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=a3f3d7a9:38:47
+TooltipProvider@https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=a3f3d7a9:69:7
+QueryClientProvider@https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=a3f3d7a9:2804:27
+ErrorBoundary@https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/src/components/error-boundary.tsx:20:5
+App@https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/src/App.tsx?t=1760934059323&v=RQRlzg6Uq-S3KWltKx6UK:667:12
+
+React will try to recreate this component tree from scratch using the error boundary you provided, ErrorBoundary. injected.js:27:27
+ErrorBoundary caught an error: ReferenceError: useMemo is not defined
+    Reports reports.tsx:192
+    React 4
+ 
+Object { componentStack: "\nReports@https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/src/pages/reports.tsx?t=1760934059323:76:45\nRoute@https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=a3f3d7a9:191:13\nSwitch@https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=a3f3d7a9:247:14\ndiv\ndiv\ndiv\nAuthenticatedApp@https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/src/App.tsx?t=1760934059323&v=RQRlzg6Uq-S3KWltKx6UK:102:23\nRouter@https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/src/App.tsx?t=1760934059323&v=RQRlzg6Uq-S3KWltKx6UK:536:20\nProvider@https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=a3f3d7a9:38:47\nTooltipProvider@https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=a3f3d7a9:69:7\nQueryClientProvider@https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=a3f3d7a9:2804:27\nErrorBoundary@https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/src/components/error-boundary.tsx:20:5\nApp@https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/src/App.tsx?t=1760934059323&v=RQRlzg6Uq-S3KWltKx6UK:667:12" }
+injected.js:27:27
+
+​
+
