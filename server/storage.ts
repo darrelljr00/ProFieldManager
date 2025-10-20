@@ -2829,6 +2829,20 @@ export class DatabaseStorage implements IStorage {
       .values({ userId, projectId, role })
       .onConflictDoNothing()
       .returning();
+    
+    // If assignment exists, return the existing assignment
+    if (!assignment) {
+      const [existing] = await db
+        .select()
+        .from(projectUsers)
+        .where(and(
+          eq(projectUsers.userId, userId),
+          eq(projectUsers.projectId, projectId)
+        ))
+        .limit(1);
+      return existing;
+    }
+    
     return assignment;
   }
 
