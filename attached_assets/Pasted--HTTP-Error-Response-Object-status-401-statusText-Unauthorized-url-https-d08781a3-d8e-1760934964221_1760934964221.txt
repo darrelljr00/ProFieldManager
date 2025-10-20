@@ -1,0 +1,182 @@
+❌ HTTP Error Response: 
+Object { status: 401, statusText: "Unauthorized", url: "https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/reports/data?startDate=2025-09-20T04%3A35%3A58.868Z&endDate=2025-10-20T04%3A35%3A58.868Z", headers: {…}, body: '{"message":"Invalid or expired session"}' }
+injected.js:27:27
+XHRGET
+https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/reports/data?startDate=2025-09-20T04:35:58.992Z&endDate=2025-10-20T04:35:58.992Z
+[HTTP/1.1 401 Unauthorized 174ms]
+
+❌ HTTP Error Response: 
+Object { status: 401, statusText: "Unauthorized", url: "https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/reports/data?startDate=2025-09-20T04%3A35%3A58.992Z&endDate=2025-10-20T04%3A35%3A58.992Z", headers: {…}, body: '{"message":"Invalid or expired session"}' }
+injected.js:27:27
+XHRGET
+https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/reports/data?startDate=2025-09-20T04:35:59.199Z&endDate=2025-10-20T04:35:59.199Z
+[HTTP/1.1 401 Unauthorized 100ms]
+
+❌ HTTP Error Response: 
+Object { status: 401, statusText: "Unauthorized", url: "https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/reports/data?startDate=2025-09-20T04%3A35%3A59.199Z&endDate=2025-10-20T04%3A35%3A59.199Z", headers: {…}, body: '{"message":"Invalid or expired session"}' }
+injected.js:27:27
+XHRGET
+https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/reports/data?startDate=2025-09-20T04:35:59.328Z&endDate=2025-10-20T04:35:59.328Z
+[HTTP/1.1 401 Unauthorized 130ms]
+
+❌ HTTP Error Response: 
+Object { status: 401, statusText: "Unauthorized", url: "https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/reports/data?startDate=2025-09-20T04%3A35%3A59.328Z&endDate=2025-10-20T04%3A35%3A59.328Z", headers: {…}, body: '{"message":"Invalid or expired session"}' }
+injected.js:27:27
+XHRGET
+https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/reports/data?startDate=2025-09-20T04:35:59.503Z&endDate=2025-10-20T04:35:59.503Z
+[HTTP/1.1 401 Unauthorized 226ms]
+
+❌ HTTP Error Response: 
+Object { status: 401, statusText: "Unauthorized", url: "https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/reports/data?startDate=2025-09-20T04%3A35%3A59.503Z&endDate=2025-10-20T04%3A35%3A59.503Z", headers: {…}, body: '{"message":"Invalid or expired session"}' }
+injected.js:27:27
+XHRGET
+https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/reports/data?startDate=2025-09-20T04:35:59.796Z&endDate=2025-10-20T04:35:59.796Z
+[HTTP/1.1 401 Unauthorized 384ms]
+
+❌ HTTP Error Response: 
+Object { status: 401, statusText: "Unauthorized", url: "https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/reports/data?startDate=2025-09-20T04%3A35%3A59.796Z&endDate=2025-10-20T04%3A35%3A59.796Z", headers: {…}, body: '{"message":"Invalid or expired session"}' }
+injected.js:27:27
+XHRGET
+https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/reports/data?startDate=2025-09-20T04:36:00.239Z&endDate=2025-10-20T04:36:00.239Z
+[HTTP/1.1 401 Unauthorized 118ms]
+
+XHRPOST
+https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/gps-tracking/update
+[HTTP/1.1 401 Unauthorized 90ms]
+
+❌ HTTP Error Response: 
+Object { status: 401, statusText: "Unauthorized", url: "https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/reports/data?startDate=2025-09-20T04%3A36%3A00.239Z&endDate=2025-10-20T04%3A36%3A00.239Z", headers: {…}, body: '{"message":"Invalid or expired session"}' }
+injected.js:27:27
+XHRGET
+https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/reports/data?startDate=2025-09-20T04:36:00.414Z&endDate=2025-10-20T04:36:00.414Z
+[HTTP/1.1 401 Unauthorized 121ms]
+
+❌ HTTP Error Response: 
+Object { status: 401, statusText: "Unauthorized", url: "https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/gps-tracking/update", headers: {…}, body: '{"message":"Invalid or expired session"}' }
+injected.js:27:27
+Failed to send location update: Error: 401: {"message":"Invalid or expired session"}
+    throwIfResNotOk queryClient.ts:22
+    apiRequest queryClient.ts:78
+    sendLocationUpdate use-gps-tracking.ts:147
+injected.js:27:27
+❌ HTTP Error Response: 
+Object { status: 401, statusText: "Unauthorized", url: "https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/reports/data?startDate=2025-09-20T04%3A36%3A00.414Z&endDate=2025-10-20T04%3A36%3A00.414Z", headers: {…}, body: '{"message":"Invalid or expired session"}' }
+injected.js:27:27
+XHRGET
+https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/reports/data?startDate=2025-09-20T04:36:00.594Z&endDate=2025-10-20T04:36:00.594Z
+[HTTP/1.1 401 Unauthorized 64ms]
+
+❌ HTTP Error Response: 
+Object { status: 401, statusText: "Unauthorized", url: "https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/reports/data?startDate=2025-09-20T04%3A36%3A00.594Z&endDate=2025-10-20T04%3A36%3A00.594Z", headers: {…}, body: '{"message":"Invalid or expired session"}' }
+injected.js:27:27
+XHRGET
+https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/reports/data?startDate=2025-09-20T04:36:00.695Z&endDate=2025-10-20T04:36:00.695Z
+[HTTP/1.1 401 Unauthorized 83ms]
+
+❌ HTTP Error Response: 
+Object { status: 401, statusText: "Unauthorized", url: "https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/reports/data?startDate=2025-09-20T04%3A36%3A00.695Z&endDate=2025-10-20T04%3A36%3A00.695Z", headers: {…}, body: '{"message":"Invalid or expired session"}' }
+injected.js:27:27
+XHRGET
+https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/reports/data?startDate=2025-09-20T04:36:00.826Z&endDate=2025-10-20T04:36:00.826Z
+[HTTP/1.1 401 Unauthorized 93ms]
+
+❌ HTTP Error Response: 
+Object { status: 401, statusText: "Unauthorized", url: "https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/reports/data?startDate=2025-09-20T04%3A36%3A00.826Z&endDate=2025-10-20T04%3A36%3A00.826Z", headers: {…}, body: '{"message":"Invalid or expired session"}' }
+injected.js:27:27
+XHRGET
+https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/reports/data?startDate=2025-09-20T04:36:00.944Z&endDate=2025-10-20T04:36:00.944Z
+[HTTP/1.1 401 Unauthorized 80ms]
+
+❌ HTTP Error Response: 
+Object { status: 401, statusText: "Unauthorized", url: "https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/reports/data?startDate=2025-09-20T04%3A36%3A00.944Z&endDate=2025-10-20T04%3A36%3A00.944Z", headers: {…}, body: '{"message":"Invalid or expired session"}' }
+injected.js:27:27
+XHRGET
+https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/reports/data?startDate=2025-09-20T04:36:01.048Z&endDate=2025-10-20T04:36:01.048Z
+[HTTP/1.1 401 Unauthorized 153ms]
+
+❌ HTTP Error Response: 
+Object { status: 401, statusText: "Unauthorized", url: "https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/reports/data?startDate=2025-09-20T04%3A36%3A01.048Z&endDate=2025-10-20T04%3A36%3A01.048Z", headers: {…}, body: '{"message":"Invalid or expired session"}' }
+injected.js:27:27
+XHRGET
+https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/reports/data?startDate=2025-09-20T04:36:01.232Z&endDate=2025-10-20T04:36:01.232Z
+[HTTP/1.1 401 Unauthorized 78ms]
+
+❌ HTTP Error Response: 
+Object { status: 401, statusText: "Unauthorized", url: "https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/reports/data?startDate=2025-09-20T04%3A36%3A01.232Z&endDate=2025-10-20T04%3A36%3A01.232Z", headers: {…}, body: '{"message":"Invalid or expired session"}' }
+injected.js:27:27
+XHRGET
+https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/reports/data?startDate=2025-09-20T04:36:01.345Z&endDate=2025-10-20T04:36:01.345Z
+[HTTP/1.1 401 Unauthorized 76ms]
+
+❌ HTTP Error Response: 
+Object { status: 401, statusText: "Unauthorized", url: "https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/reports/data?startDate=2025-09-20T04%3A36%3A01.345Z&endDate=2025-10-20T04%3A36%3A01.345Z", headers: {…}, body: '{"message":"Invalid or expired session"}' }
+injected.js:27:27
+XHRGET
+https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/reports/data?startDate=2025-09-20T04:36:01.466Z&endDate=2025-10-20T04:36:01.466Z
+[HTTP/1.1 401 Unauthorized 64ms]
+
+❌ HTTP Error Response: 
+Object { status: 401, statusText: "Unauthorized", url: "https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/reports/data?startDate=2025-09-20T04%3A36%3A01.466Z&endDate=2025-10-20T04%3A36%3A01.466Z", headers: {…}, body: '{"message":"Invalid or expired session"}' }
+injected.js:27:27
+XHRGET
+https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/reports/data?startDate=2025-09-20T04:36:01.651Z&endDate=2025-10-20T04:36:01.651Z
+[HTTP/1.1 401 Unauthorized 67ms]
+
+❌ HTTP Error Response: 
+Object { status: 401, statusText: "Unauthorized", url: "https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/reports/data?startDate=2025-09-20T04%3A36%3A01.651Z&endDate=2025-10-20T04%3A36%3A01.651Z", headers: {…}, body: '{"message":"Invalid or expired session"}' }
+injected.js:27:27
+XHRGET
+https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/reports/data?startDate=2025-09-20T04:36:01.770Z&endDate=2025-10-20T04:36:01.770Z
+[HTTP/1.1 401 Unauthorized 75ms]
+
+❌ HTTP Error Response: 
+Object { status: 401, statusText: "Unauthorized", url: "https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/reports/data?startDate=2025-09-20T04%3A36%3A01.770Z&endDate=2025-10-20T04%3A36%3A01.770Z", headers: {…}, body: '{"message":"Invalid or expired session"}' }
+injected.js:27:27
+XHRGET
+https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/reports/data?startDate=2025-09-20T04:36:02.002Z&endDate=2025-10-20T04:36:02.002Z
+[HTTP/1.1 401 Unauthorized 126ms]
+
+❌ HTTP Error Response: 
+Object { status: 401, statusText: "Unauthorized", url: "https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/reports/data?startDate=2025-09-20T04%3A36%3A02.002Z&endDate=2025-10-20T04%3A36%3A02.002Z", headers: {…}, body: '{"message":"Invalid or expired session"}' }
+injected.js:27:27
+XHRGET
+https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/reports/data?startDate=2025-09-20T04:36:02.198Z&endDate=2025-10-20T04:36:02.198Z
+[HTTP/1.1 401 Unauthorized 98ms]
+
+❌ HTTP Error Response: 
+Object { status: 401, statusText: "Unauthorized", url: "https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/reports/data?startDate=2025-09-20T04%3A36%3A02.198Z&endDate=2025-10-20T04%3A36%3A02.198Z", headers: {…}, body: '{"message":"Invalid or expired session"}' }
+injected.js:27:27
+XHRGET
+https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/reports/data?startDate=2025-09-20T04:36:02.323Z&endDate=2025-10-20T04:36:02.323Z
+[HTTP/1.1 401 Unauthorized 82ms]
+
+❌ HTTP Error Response: 
+Object { status: 401, statusText: "Unauthorized", url: "https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/reports/data?startDate=2025-09-20T04%3A36%3A02.323Z&endDate=2025-10-20T04%3A36%3A02.323Z", headers: {…}, body: '{"message":"Invalid or expired session"}' }
+injected.js:27:27
+XHRGET
+https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/reports/data?startDate=2025-09-20T04:36:02.435Z&endDate=2025-10-20T04:36:02.435Z
+[HTTP/1.1 401 Unauthorized 71ms]
+
+❌ HTTP Error Response: 
+Object { status: 401, statusText: "Unauthorized", url: "https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/reports/data?startDate=2025-09-20T04%3A36%3A02.435Z&endDate=2025-10-20T04%3A36%3A02.435Z", headers: {…}, body: '{"message":"Invalid or expired session"}' }
+injected.js:27:27
+XHRGET
+https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/reports/data?startDate=2025-09-20T04:36:02.535Z&endDate=2025-10-20T04:36:02.535Z
+[HTTP/1.1 401 Unauthorized 64ms]
+
+❌ HTTP Error Response: 
+Object { status: 401, statusText: "Unauthorized", url: "https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/reports/data?startDate=2025-09-20T04%3A36%3A02.535Z&endDate=2025-10-20T04%3A36%3A02.535Z", headers: {…}, body: '{"message":"Invalid or expired session"}' }
+injected.js:27:27
+XHRGET
+https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/reports/data?startDate=2025-09-20T04:36:02.624Z&endDate=2025-10-20T04:36:02.624Z
+[HTTP/1.1 401 Unauthorized 67ms]
+
+❌ HTTP Error Response: 
+Object { status: 401, statusText: "Unauthorized", url: "https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/reports/data?startDate=2025-09-20T04%3A36%3A02.624Z&endDate=2025-10-20T04%3A36%3A02.624Z", headers: {…}, body: '{"message":"Invalid or expired session"}' }
+injected.js:27:27
+❌ HTTP Error Response: 
+Object { status: 401, statusText: "Unauthorized", url: "https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/reports/data?startDate=2025-09-20T04%3A36%3A02.742Z&endDate=2025-10-20T04%3A36%3A02.742Z", headers: {…}, body: '{"message":"Invalid or expired session"}' }
+injected.js:27:27
+
+​
+
