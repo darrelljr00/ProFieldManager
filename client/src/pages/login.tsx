@@ -109,22 +109,38 @@ export default function LoginPage() {
         throw fetchError;
       }
     },
-    onSuccess: (response) => {
+    onSuccess: async (response) => {
+      console.log('🎉 Login onSuccess called with response:', { hasToken: !!response.token, hasUser: !!response.user });
+      
       // Store token in localStorage for custom domain authentication
       if (response.token) {
         localStorage.setItem('auth_token', response.token);
-        console.log('🔑 Auth token stored in localStorage for custom domain');
+        console.log('🔑 Auth token stored in localStorage');
       }
       
-      // Invalidate auth queries to refresh user state
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      // CRITICAL: Store user data immediately so useAuth can recognize authenticated state
+      if (response.user) {
+        localStorage.setItem('user_data', JSON.stringify(response.user));
+        console.log('👤 User data stored in localStorage');
+      }
+      
+      // Show success toast
       toast({
         title: "Login Successful",
         description: `Welcome back, ${response.user.firstName || response.user.username}!`,
       });
       
+      // Invalidate auth queries to refresh user state
+      await queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      console.log('🔄 Auth queries invalidated');
+      
+      // Small delay to allow auth state to update
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       // Check for intended destination and redirect appropriately
       const intendedDestination = localStorage.getItem('intended_destination');
+      console.log('🧭 Redirecting to:', intendedDestination || '/dashboard');
+      
       if (intendedDestination && intendedDestination !== '/login') {
         localStorage.removeItem('intended_destination');
         setLocation(intendedDestination);
