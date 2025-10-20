@@ -408,6 +408,7 @@ export const payments = pgTable("payments", {
 
 export const settings = pgTable("settings", {
   id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").references(() => organizations.id),
   category: text("category").notNull(), // payment, company, email
   key: text("key").notNull(),
   value: text("value"),
@@ -4478,6 +4479,7 @@ export const vehicles = pgTable("vehicles", {
   
   // GPS Tracking Integration
   oneStepGpsDeviceId: text("onestep_gps_device_id"), // OneStep GPS device ID for tracking
+  oneStepGpsEnabled: boolean("onestep_gps_enabled").default(false), // Enable OneStep GPS sync
   
   // Tracking
   isActive: boolean("is_active").default(true),
@@ -5147,6 +5149,8 @@ export const obdTrips = pgTable("obd_trips", {
   organizationId: integer("organization_id").references(() => organizations.id).notNull(),
   vehicleId: integer("vehicle_id").references(() => vehicles.id),
   deviceId: text("device_id").notNull(),
+  externalTripId: text("external_trip_id"), // Trip ID from external provider (OneStep GPS)
+  provider: text("provider").default("onestep"), // GPS provider: onestep, custom, etc.
   startTime: timestamp("start_time").notNull(),
   endTime: timestamp("end_time"),
   startLatitude: decimal("start_latitude", { precision: 10, scale: 8 }),
@@ -5162,7 +5166,9 @@ export const obdTrips = pgTable("obd_trips", {
   status: text("status").default("active"), // active, completed
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => ({
+  uniqueProviderTrip: unique().on(table.provider, table.externalTripId),
+}));
 
 // Insert schemas for OBD tables
 export const insertObdLocationDataSchema = createInsertSchema(obdLocationData, {
@@ -5215,6 +5221,29 @@ export type ObdDiagnosticData = typeof obdDiagnosticData.$inferSelect;
 export type InsertObdDiagnosticData = z.infer<typeof insertObdDiagnosticDataSchema>;
 export type ObdTrip = typeof obdTrips.$inferSelect;
 export type InsertObdTrip = z.infer<typeof insertObdTripSchema>;
+
+// OneStep GPS Sync State Tracking
+export const onestepSyncState = pgTable("onestep_sync_state", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").references(() => organizations.id).notNull(),
+  vehicleId: integer("vehicle_id").references(() => vehicles.id),
+  lastSyncTimestamp: timestamp("last_sync_timestamp"),
+  lastSuccessfulSync: timestamp("last_successful_sync"),
+  syncStatus: text("sync_status").default("idle"), // idle, syncing, error
+  errorMessage: text("error_message"),
+  tripsImported: integer("trips_imported").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertOnestepSyncStateSchema = createInsertSchema(onestepSyncState).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type OnestepSyncState = typeof onestepSyncState.$inferSelect;
+export type InsertOnestepSyncState = z.infer<typeof insertOnestepSyncStateSchema>;
 
 // Job-to-Job Travel Segments for P&L Cost Tracking
 export const jobTravelSegments = pgTable("job_travel_segments", {

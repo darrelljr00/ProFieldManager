@@ -21465,6 +21465,176 @@ ${fromName || ''}
     }
   });
 
+  // OneStep GPS Trip Sync Integration
+  const { OneStepGPSService } = await import("./integrations/onestep");
+
+  app.post("/api/integrations/onestep/sync-trips", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { vehicleId, daysBack = 30 } = req.body;
+
+      if (!['admin', 'manager'].includes(user.role)) {
+        return res.status(403).json({ message: "Permission denied - Admin or Manager role required" });
+      }
+
+      const service = await OneStepGPSService.fromOrganization(user.organizationId);
+      if (!service) {
+        return res.status(400).json({ 
+          message: "OneStep GPS API key not configured. Please add it in Settings." 
+        });
+      }
+
+      if (vehicleId) {
+        const imported = await service.syncVehicleTrips(vehicleId, daysBack);
+        return res.json({ 
+          success: true, 
+          message: `Imported ${imported} trips for vehicle ${vehicleId}`,
+          vehicleId,
+          tripsImported: imported 
+        });
+      }
+
+      const enabledVehicles = await db
+        .select()
+        .from(vehicles)
+        .where(
+          and(
+            eq(vehicles.organizationId, user.organizationId),
+            eq(vehicles.oneStepGpsEnabled, true)
+          )
+        );
+
+      let totalImported = 0;
+      const results = [];
+
+      for (const vehicle of enabledVehicles) {
+        try {
+          const imported = await service.syncVehicleTrips(vehicle.id, daysBack);
+          totalImported += imported;
+          results.push({ vehicleId: vehicle.id, vehicleNumber: vehicle.vehicleNumber, tripsImported: imported });
+        } catch (error: any) {
+          results.push({ vehicleId: vehicle.id, vehicleNumber: vehicle.vehicleNumber, error: error.message });
+        }
+      }
+
+      res.json({ 
+        success: true, 
+        message: `Imported ${totalImported} trips across ${enabledVehicles.length} vehicles`,
+        totalTripsImported: totalImported,
+        results 
+      });
+
+    } catch (error: any) {
+      console.error("Error syncing OneStep GPS trips:", error);
+      res.status(500).json({ message: "Error syncing trips: " + error.message });
+    }
+  });
+
+  app.get("/api/integrations/onestep/sync-status", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+
+      const syncStates = await db
+        .select()
+        .from(onestepSyncState)
+        .where(eq(onestepSyncState.organizationId, user.organizationId));
+
+      const vehicleData = await db
+        .select()
+        .from(vehicles)
+        .where(
+          and(
+            eq(vehicles.organizationId, user.organizationId),
+            eq(vehicles.oneStepGpsEnabled, true)
+          )
+        );
+
+      const statusWithVehicles = syncStates.map(state => {
+        const vehicle = vehicleData.find(v => v.id === state.vehicleId);
+        return {
+          ...state,
+          vehicleNumber: vehicle?.vehicleNumber,
+          vehicleMake: vehicle?.make,
+          vehicleModel: vehicle?.model
+        };
+      });
+
+      res.json({ 
+        success: true,
+        syncStates: statusWithVehicles,
+        enabledVehicles: vehicleData.length
+      });
+
+    } catch (error: any) {
+      console.error("Error fetching sync status:", error);
+      res.status(500).json({ message: "Error fetching sync status: " + error.message });
+    }
+  });
+
+  app.post("/api/integrations/onestep/configure", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { apiKey, vehicleId, deviceId, enabled } = req.body;
+
+      if (!['admin', 'manager'].includes(user.role)) {
+        return res.status(403).json({ message: "Permission denied - Admin or Manager role required" });
+      }
+
+      if (apiKey) {
+        const existing = await db
+          .select()
+          .from(settings)
+          .where(
+            and(
+              eq(settings.organizationId, user.organizationId),
+              eq(settings.key, "onestep_gps_api_key")
+            )
+          )
+          .limit(1);
+
+        if (existing.length) {
+          await db
+            .update(settings)
+            .set({ value: apiKey, updatedAt: new Date() })
+            .where(eq(settings.id, existing[0].id));
+        } else {
+          await db.insert(settings).values({
+            organizationId: user.organizationId,
+            category: "integrations",
+            key: "onestep_gps_api_key",
+            value: apiKey,
+            isSecret: true
+          });
+        }
+      }
+
+      if (vehicleId) {
+        await db
+          .update(vehicles)
+          .set({ 
+            oneStepGpsDeviceId: deviceId,
+            oneStepGpsEnabled: enabled ?? true,
+            updatedAt: new Date()
+          })
+          .where(
+            and(
+              eq(vehicles.id, vehicleId),
+              eq(vehicles.organizationId, user.organizationId)
+            )
+          );
+      }
+
+      res.json({ 
+        success: true, 
+        message: "OneStep GPS configuration saved successfully" 
+      });
+
+    } catch (error: any) {
+      console.error("Error configuring OneStep GPS:", error);
+      res.status(500).json({ message: "Error saving configuration: " + error.message });
+    }
+  });
+
   // WebSocket connection handling
   wss.on('connection', (ws, req) => {
     console.log('New WebSocket connection');
