@@ -2983,15 +2983,15 @@ export default function Jobs() {
             <Button variant="outline" onClick={() => setViewDialogOpen(false)}>
               Close
             </Button>
-            {selectedProject?.status !== 'in-progress' && selectedProject?.status !== 'completed' && (
+            {selectedProject?.status !== 'completed' && (
               <Button 
                 onClick={() => selectedProject?.id && startJobMutation.mutate(selectedProject.id)}
-                disabled={startJobMutation.isPending}
-                className="bg-blue-600 hover:bg-blue-700"
+                disabled={startJobMutation.isPending || selectedProject?.status === 'in-progress' || !!selectedProject?.startDate}
+                className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 data-testid="button-start-job"
               >
                 <Play className="h-4 w-4 mr-2" />
-                {startJobMutation.isPending ? "Starting..." : "Start Job"}
+                {startJobMutation.isPending ? "Starting..." : (selectedProject?.status === 'in-progress' || selectedProject?.startDate) ? "Job Started" : "Start Job"}
               </Button>
             )}
             {selectedProject?.status !== 'completed' && (
