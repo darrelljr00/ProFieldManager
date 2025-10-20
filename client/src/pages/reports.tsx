@@ -1076,7 +1076,7 @@ export default function Reports() {
 
       {/* Chart Tabs */}
       <Tabs defaultValue="sales" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-9">
+        <TabsList className="grid w-full grid-cols-10">
           <TabsTrigger value="sales">Sales</TabsTrigger>
           <TabsTrigger value="leads">Leads</TabsTrigger>
           <TabsTrigger value="refunds">Refunds</TabsTrigger>
@@ -1086,6 +1086,7 @@ export default function Reports() {
           <TabsTrigger value="job-analytics">Job Analytics</TabsTrigger>
           <TabsTrigger value="profit-loss">Profit Loss</TabsTrigger>
           <TabsTrigger value="onsite-labor">On-Site Labor P&L</TabsTrigger>
+          <TabsTrigger value="gas-maintenance">Gas & Maintenance</TabsTrigger>
         </TabsList>
 
         {/* Sales Charts */}
