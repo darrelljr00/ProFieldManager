@@ -12079,7 +12079,7 @@ ${fromName || ''}
       const organizationId = user.organizationId;
       
       // Parse date range (default to last 12 months)
-      const { startDate: startParam, endDate: endParam } = req.query;
+      const { startDate: startParam, endDate: endParam, view = 'monthly' } = req.query;
       const startDate = startParam ? new Date(startParam as string) : new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
       const endDate = endParam ? new Date(endParam as string) : new Date();
       
@@ -12112,61 +12112,91 @@ ${fromName || ''}
           )
         );
       
-      // Group by month
-      const monthlyData: Record<string, any> = {};
+      // Group based on view type
+      const groupedData: Record<string, any> = {};
+      
+      // Helper function to get grouping key based on view
+      const getGroupKey = (date: Date, viewType: string): string => {
+        if (viewType === 'job') {
+          return date.toISOString(); // Unique key for each record
+        } else if (viewType === 'daily') {
+          return date.toISOString().split('T')[0]; // YYYY-MM-DD
+        } else if (viewType === 'weekly') {
+          const weekStart = new Date(date);
+          weekStart.setDate(date.getDate() - date.getDay());
+          return weekStart.toISOString().split('T')[0];
+        } else if (viewType === 'monthly') {
+          return date.toISOString().substring(0, 7); // YYYY-MM
+        } else if (viewType === 'yearly') {
+          return date.getFullYear().toString(); // YYYY
+        }
+        return date.toISOString().substring(0, 7); // Default to monthly
+      };
       
       // Process gas expenses
-      gasExpenses.forEach((record: any) => {
+      gasExpenses.forEach((record: any, index: number) => {
         const expense = record.expenses;
-        const month = new Date(expense.expenseDate).toISOString().substring(0, 7); // YYYY-MM
+        const expenseDate = new Date(expense.expenseDate);
+        const key = view === 'job' ? `gas-${expense.id}` : getGroupKey(expenseDate, view as string);
         
-        if (!monthlyData[month]) {
-          monthlyData[month] = {
-            month,
+        if (!groupedData[key]) {
+          groupedData[key] = {
+            name: view === 'job' ? `Gas Expense #${expense.id}` : key,
+            date: expenseDate.toISOString(),
             gasCost: 0,
             maintenanceCost: 0,
             totalGallons: 0,
             gasCount: 0,
-            maintenanceCount: 0
+            maintenanceCount: 0,
+            type: view === 'job' ? 'Gas Expense' : undefined,
+            projectId: expense.projectId || null,
+            vehicleId: expense.vehicleId || null
           };
         }
         
-        monthlyData[month].gasCost += parseFloat(expense.amount || '0');
-        monthlyData[month].gasCount += 1;
+        groupedData[key].gasCost += parseFloat(expense.amount || '0');
+        groupedData[key].gasCount += 1;
         
         if (expense.gallons) {
-          monthlyData[month].totalGallons += parseFloat(expense.gallons || '0');
+          groupedData[key].totalGallons += parseFloat(expense.gallons || '0');
         }
       });
       
       // Process maintenance records
       maintenanceRecords.forEach((record: any) => {
-        const month = new Date(record.performedDate).toISOString().substring(0, 7); // YYYY-MM
+        const maintenanceDate = new Date(record.performedDate);
+        const key = view === 'job' ? `maint-${record.id}` : getGroupKey(maintenanceDate, view as string);
         
-        if (!monthlyData[month]) {
-          monthlyData[month] = {
-            month,
+        if (!groupedData[key]) {
+          groupedData[key] = {
+            name: view === 'job' ? `Maintenance #${record.id}` : key,
+            date: maintenanceDate.toISOString(),
             gasCost: 0,
             maintenanceCost: 0,
             totalGallons: 0,
             gasCount: 0,
-            maintenanceCount: 0
+            maintenanceCount: 0,
+            type: view === 'job' ? 'Maintenance' : undefined,
+            vehicleId: record.vehicleId || null
           };
         }
         
-        monthlyData[month].maintenanceCost += parseFloat(record.cost || '0');
-        monthlyData[month].maintenanceCount += 1;
+        groupedData[key].maintenanceCost += parseFloat(record.cost || '0');
+        groupedData[key].maintenanceCount += 1;
       });
       
-      // Calculate total cost for each month
-      Object.values(monthlyData).forEach((data: any) => {
+      // Calculate total cost for each group
+      Object.values(groupedData).forEach((data: any) => {
         data.totalCost = data.gasCost + data.maintenanceCost;
       });
       
-      // Convert to array and sort by month
-      const chartData = Object.values(monthlyData).sort((a: any, b: any) => 
-        a.month.localeCompare(b.month)
-      );
+      // Convert to array and sort
+      const chartData = Object.values(groupedData).sort((a: any, b: any) => {
+        if (view === 'job') {
+          return new Date(a.date).getTime() - new Date(b.date).getTime();
+        }
+        return a.name.localeCompare(b.name);
+      });
       
       // Calculate summary
       const summary = {
@@ -12179,6 +12209,7 @@ ${fromName || ''}
       };
       
       res.json({
+        view,
         dateRange: { startDate, endDate },
         data: chartData,
         summary

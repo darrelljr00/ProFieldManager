@@ -95,6 +95,7 @@ export default function Reports() {
   const [timeOffDateRange, setTimeOffDateRange] = useState("30days");
   const [jobAnalyticsDateRange, setJobAnalyticsDateRange] = useState("30days");
   const [profitLossView, setProfitLossView] = useState<'daily' | 'weekly' | 'monthly' | 'job' | 'vehicle'>('monthly');
+  const [gasMaintView, setGasMaintView] = useState<'job' | 'daily' | 'weekly' | 'monthly' | 'yearly'>('job');
   const queryClient = useQueryClient();
 
   // Helper function to get date range based on selection
@@ -236,9 +237,9 @@ export default function Reports() {
 
   // Fetch gas and maintenance cost data
   const { data: gasMaintResponse, isLoading: gasMaintLoading } = useQuery({
-    queryKey: ["/api/reports/gas-maintenance", profitLossDates.startDate, profitLossDates.endDate],
+    queryKey: ["/api/reports/gas-maintenance", gasMaintView, profitLossDates.startDate, profitLossDates.endDate],
     queryFn: async () => {
-      const params = `startDate=${profitLossDates.startDate}&endDate=${profitLossDates.endDate}`;
+      const params = `startDate=${profitLossDates.startDate}&endDate=${profitLossDates.endDate}&view=${gasMaintView}`;
       const response = await fetch(`/api/reports/gas-maintenance?${params}`);
       if (!response.ok) throw new Error('Failed to fetch gas/maintenance data');
       return response.json();
@@ -3149,7 +3150,50 @@ export default function Reports() {
 
         {/* Gas & Maintenance Tab */}
         <TabsContent value="gas-maintenance" className="space-y-6">
-          <div className="flex justify-end gap-2 mb-4">
+          {/* View Selector */}
+          <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
+            <div className="flex flex-wrap gap-2">
+              <Button 
+                variant={gasMaintView === 'job' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setGasMaintView('job')}
+                data-testid="button-gasmaint-view-job"
+              >
+                Per Job
+              </Button>
+              <Button 
+                variant={gasMaintView === 'daily' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setGasMaintView('daily')}
+                data-testid="button-gasmaint-view-daily"
+              >
+                Per Day
+              </Button>
+              <Button 
+                variant={gasMaintView === 'weekly' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setGasMaintView('weekly')}
+                data-testid="button-gasmaint-view-weekly"
+              >
+                Per Week
+              </Button>
+              <Button 
+                variant={gasMaintView === 'monthly' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setGasMaintView('monthly')}
+                data-testid="button-gasmaint-view-monthly"
+              >
+                Per Month
+              </Button>
+              <Button 
+                variant={gasMaintView === 'yearly' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setGasMaintView('yearly')}
+                data-testid="button-gasmaint-view-yearly"
+              >
+                Per Year
+              </Button>
+            </div>
             <Button 
               variant="outline" 
               size="sm" 
@@ -3232,7 +3276,13 @@ export default function Reports() {
             <Card>
               <CardHeader>
                 <CardTitle>Gas vs Maintenance Cost Trends</CardTitle>
-                <CardDescription>Monthly comparison of gas and maintenance expenses</CardDescription>
+                <CardDescription>
+                  {gasMaintView === 'job' ? 'Per expense/maintenance comparison' : 
+                   gasMaintView === 'daily' ? 'Daily comparison of gas and maintenance expenses' : 
+                   gasMaintView === 'weekly' ? 'Weekly comparison of gas and maintenance expenses' : 
+                   gasMaintView === 'monthly' ? 'Monthly comparison of gas and maintenance expenses' : 
+                   'Yearly comparison of gas and maintenance expenses'}
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 {!gasMaintData || gasMaintData.length === 0 ? (
@@ -3243,7 +3293,7 @@ export default function Reports() {
                   <ResponsiveContainer width="100%" height={300}>
                     <AreaChart data={gasMaintData}>
                       <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="month" />
+                      <XAxis dataKey="name" />
                       <YAxis />
                       <Tooltip formatter={(value) => `$${Number(value).toLocaleString()}`} />
                       <Legend />
@@ -3273,7 +3323,9 @@ export default function Reports() {
             <Card>
               <CardHeader>
                 <CardTitle>Combined Cost Trend</CardTitle>
-                <CardDescription>Total gas and maintenance expenses over time</CardDescription>
+                <CardDescription>
+                  Total gas and maintenance expenses {gasMaintView === 'job' ? 'per record' : 'over time'}
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 {!gasMaintData || gasMaintData.length === 0 ? (
@@ -3284,7 +3336,7 @@ export default function Reports() {
                   <ResponsiveContainer width="100%" height={300}>
                     <LineChart data={gasMaintData}>
                       <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="month" />
+                      <XAxis dataKey="name" />
                       <YAxis />
                       <Tooltip formatter={(value) => `$${Number(value).toLocaleString()}`} />
                       <Legend />
@@ -3302,11 +3354,19 @@ export default function Reports() {
             </Card>
           </div>
 
-          {/* Detailed Monthly Breakdown Table */}
+          {/* Detailed Breakdown Table */}
           <Card>
             <CardHeader>
-              <CardTitle>Monthly Breakdown</CardTitle>
-              <CardDescription>Detailed gas and maintenance cost analysis by month</CardDescription>
+              <CardTitle>
+                {gasMaintView === 'job' ? 'Per Job Breakdown' : 
+                 gasMaintView === 'daily' ? 'Daily Breakdown' : 
+                 gasMaintView === 'weekly' ? 'Weekly Breakdown' : 
+                 gasMaintView === 'monthly' ? 'Monthly Breakdown' : 
+                 'Yearly Breakdown'}
+              </CardTitle>
+              <CardDescription>
+                Detailed gas and maintenance cost analysis {gasMaintView === 'job' ? 'by expense/maintenance record' : `by ${gasMaintView === 'daily' ? 'day' : gasMaintView === 'weekly' ? 'week' : gasMaintView === 'monthly' ? 'month' : 'year'}`}
+              </CardDescription>
             </CardHeader>
             <CardContent>
               {!gasMaintData || gasMaintData.length === 0 ? (
@@ -3322,7 +3382,13 @@ export default function Reports() {
                   <table className="w-full border-collapse">
                     <thead>
                       <tr className="border-b bg-gray-50">
-                        <th className="text-left p-3 font-semibold">Month</th>
+                        <th className="text-left p-3 font-semibold">
+                          {gasMaintView === 'job' ? 'Description' : 
+                           gasMaintView === 'daily' ? 'Date' : 
+                           gasMaintView === 'weekly' ? 'Week' : 
+                           gasMaintView === 'monthly' ? 'Month' : 
+                           'Year'}
+                        </th>
                         <th className="text-right p-3 font-semibold">Gas Expenses</th>
                         <th className="text-right p-3 font-semibold">Gas Cost</th>
                         <th className="text-right p-3 font-semibold">Gallons</th>
@@ -3334,7 +3400,7 @@ export default function Reports() {
                     <tbody>
                       {gasMaintData.map((row: any, index: number) => (
                         <tr key={index} className="border-b hover:bg-gray-50">
-                          <td className="p-3 font-medium">{row.month}</td>
+                          <td className="p-3 font-medium">{row.name}</td>
                           <td className="text-right p-3">{row.gasCount}</td>
                           <td className="text-right p-3 text-blue-600">
                             ${row.gasCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
