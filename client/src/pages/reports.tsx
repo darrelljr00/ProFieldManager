@@ -188,7 +188,7 @@ export default function Reports() {
   });
 
   // Fetch profit/loss detailed data with on-site labor costs
-  const { data: profitLossDetailedData, isLoading: profitLossDetailedLoading } = useQuery({
+  const { data: profitLossDetailedData, isLoading: profitLossDetailedLoading, refetch: refetchProfitLossDetailed } = useQuery({
     queryKey: ["/api/reports/profit-loss-detailed", profitLossView, timeRange, useCustomRange, startDate, endDate],
     queryFn: async () => {
       let start, end;
@@ -465,6 +465,45 @@ export default function Reports() {
       }
     }
   }, [lastMessage, isConnected, realTimeUpdates, queryClient, refetchEmployees]);
+
+  // Set up WebSocket listeners for real-time on-site labor P&L updates
+  useEffect(() => {
+    if (!isConnected || !lastMessage) return;
+
+    // Events that affect on-site labor costs and P&L calculations
+    const laborPLUpdateEvents = [
+      'time_clock_update',    // Time clock in/out events
+      'user_clock_in',        // User clock in notification
+      'user_clock_out',       // User clock out notification
+      'project_started',      // Job started
+      'project_completed',    // Job completed
+      'job_started',          // Job started event
+      'job_completed',        // Job completed event
+      'project_updated'       // Job status/time updates
+    ];
+
+    // Check if the event type matches any labor/P&L update events
+    const eventType = lastMessage.eventType || lastMessage.type;
+    
+    if (laborPLUpdateEvents.includes(eventType)) {
+      console.log(`💰 On-Site Labor P&L update triggered by: ${eventType}`);
+      console.log('📊 Real-time WebSocket update - Refreshing profit/loss data...');
+      
+      // Invalidate profit/loss queries to fetch fresh data with updated labor costs
+      queryClient.invalidateQueries({ queryKey: ["/api/reports/profit-loss-detailed"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/reports/data"] });
+      
+      // Show a subtle notification for real-time update
+      if (eventType === 'time_clock_update' || eventType === 'user_clock_in' || eventType === 'user_clock_out') {
+        const userName = lastMessage.data?.userName || lastMessage.data?.user || 'Team member';
+        const action = eventType.includes('in') ? 'clocked in' : eventType.includes('out') ? 'clocked out' : 'updated time clock';
+        console.log(`⏰ ${userName} ${action} - Labor costs updating in real-time`);
+      }
+      
+      // Force refetch to show updated on-site labor costs immediately
+      refetchProfitLossDetailed();
+    }
+  }, [lastMessage, isConnected, queryClient, refetchProfitLossDetailed]);
 
   // Process sales data for charts
   const processSalesData = () => {
