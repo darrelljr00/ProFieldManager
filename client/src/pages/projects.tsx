@@ -2695,14 +2695,16 @@ export default function Jobs() {
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <Label className="text-sm font-medium text-gray-500">Team Members</Label>
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      onClick={() => setShowUserAssignment(true)}
-                    >
-                      <Users className="h-3 w-3 mr-1" />
-                      Assign
-                    </Button>
+                    {isAdminOrManager && (
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => setShowUserAssignment(true)}
+                      >
+                        <Users className="h-3 w-3 mr-1" />
+                        Assign
+                      </Button>
+                    )}
                   </div>
                   <div className="flex flex-wrap gap-1">
                     {selectedProject.users && selectedProject.users.length > 0 ? (
@@ -2712,14 +2714,16 @@ export default function Jobs() {
                             {user.firstName} {user.lastName}
                             <span className="ml-1 text-xs text-gray-400">({user.role})</span>
                           </Badge>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-4 w-4 p-0"
-                            onClick={() => handleRemoveUserFromProject(user.id)}
-                          >
-                            ×
-                          </Button>
+                          {isAdminOrManager && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-4 w-4 p-0"
+                              onClick={() => handleRemoveUserFromProject(user.id)}
+                            >
+                              ×
+                            </Button>
+                          )}
                         </div>
                       ))
                     ) : (
