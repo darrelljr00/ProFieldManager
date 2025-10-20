@@ -222,6 +222,9 @@ export default function Reports() {
       return data;
     },
     enabled: true,
+    staleTime: 0, // Always consider data stale
+    gcTime: 0, // Don't cache
+    refetchOnMount: 'always', // Always refetch on mount
   });
 
   // All employees with realistic performance metrics
