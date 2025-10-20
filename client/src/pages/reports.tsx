@@ -257,7 +257,11 @@ export default function Reports() {
     totalMaintenanceRecords: 0
   };
 
-  // Fetch daily fuel usage calculations (calculated vs actual)
+  // Fuel tracking data source: 'jobs' (travel segments) or 'obd' (OBD trips)
+  const [fuelDataSource, setFuelDataSource] = useState<'jobs' | 'obd'>('jobs');
+  const [fuelView, setFuelView] = useState<'daily' | 'weekly' | 'monthly'>('daily');
+
+  // Fetch daily fuel usage calculations from job travel segments
   const { data: dailyFuelUsage, isLoading: fuelUsageLoading } = useQuery({
     queryKey: ["/api/dispatch/daily-fuel-usage", profitLossDates.startDate, profitLossDates.endDate],
     queryFn: async () => {
@@ -266,8 +270,23 @@ export default function Reports() {
       if (!response.ok) throw new Error('Failed to fetch daily fuel usage');
       return response.json();
     },
-    enabled: true,
+    enabled: fuelDataSource === 'jobs',
   });
+
+  // Fetch OBD-based fuel usage calculations from OBD trips database
+  const { data: obdFuelUsage, isLoading: obdFuelUsageLoading } = useQuery({
+    queryKey: ["/api/dispatch/obd-fuel-usage", profitLossDates.startDate, profitLossDates.endDate, fuelView],
+    queryFn: async () => {
+      const params = `startDate=${profitLossDates.startDate}&endDate=${profitLossDates.endDate}&view=${fuelView}`;
+      const response = await fetch(`/api/dispatch/obd-fuel-usage?${params}`);
+      if (!response.ok) throw new Error('Failed to fetch OBD fuel usage');
+      return response.json();
+    },
+    enabled: fuelDataSource === 'obd',
+  });
+
+  const currentFuelUsage = fuelDataSource === 'jobs' ? dailyFuelUsage : obdFuelUsage;
+  const currentFuelLoading = fuelDataSource === 'jobs' ? fuelUsageLoading : obdFuelUsageLoading;
 
   // All employees with realistic performance metrics
   const getAllEmployeeData = () => [
@@ -3286,22 +3305,81 @@ export default function Reports() {
           {/* Daily Fuel Usage Variance Analysis */}
           <Card>
             <CardHeader>
-              <CardTitle>Daily Fuel Usage Analysis</CardTitle>
-              <CardDescription>
-                Calculated fuel costs based on miles driven, vehicle MPG, and OCR receipt prices vs actual expenses
-              </CardDescription>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <CardTitle>Fuel Usage Analysis</CardTitle>
+                  <CardDescription>
+                    {fuelDataSource === 'jobs' 
+                      ? 'Fuel costs from job travel segments (job-to-job routing)'
+                      : `Fuel costs from OBD GPS trips database (${fuelView} totals for all vehicle miles)`}
+                  </CardDescription>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  {/* Data Source Toggle */}
+                  <div className="flex gap-2">
+                    <Button
+                      variant={fuelDataSource === 'jobs' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setFuelDataSource('jobs')}
+                      data-testid="button-fuel-source-jobs"
+                    >
+                      Job Routes
+                    </Button>
+                    <Button
+                      variant={fuelDataSource === 'obd' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setFuelDataSource('obd')}
+                      data-testid="button-fuel-source-obd"
+                    >
+                      OBD Trips
+                    </Button>
+                  </div>
+                  
+                  {/* View Selection (only for OBD) */}
+                  {fuelDataSource === 'obd' && (
+                    <div className="flex gap-2">
+                      <Button
+                        variant={fuelView === 'daily' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setFuelView('daily')}
+                        data-testid="button-fuel-view-daily"
+                      >
+                        Daily
+                      </Button>
+                      <Button
+                        variant={fuelView === 'weekly' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setFuelView('weekly')}
+                        data-testid="button-fuel-view-weekly"
+                      >
+                        Weekly
+                      </Button>
+                      <Button
+                        variant={fuelView === 'monthly' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setFuelView('monthly')}
+                        data-testid="button-fuel-view-monthly"
+                      >
+                        Monthly
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
-              {fuelUsageLoading ? (
+              {currentFuelLoading ? (
                 <div className="text-center py-12 text-gray-500">
                   <p>Loading fuel usage data...</p>
                 </div>
-              ) : !dailyFuelUsage || dailyFuelUsage.length === 0 ? (
+              ) : !currentFuelUsage || currentFuelUsage.length === 0 ? (
                 <div className="text-center py-12">
                   <div className="text-4xl mb-4">⛽</div>
                   <h3 className="text-lg font-medium text-gray-900 mb-2">No Fuel Usage Data</h3>
                   <p className="text-gray-600">
-                    No travel segments or fuel expenses found in the selected time period.
+                    {fuelDataSource === 'jobs' 
+                      ? 'No travel segments or fuel expenses found in the selected time period.'
+                      : 'No OBD trip data or fuel expenses found in the selected time period.'}
                   </p>
                 </div>
               ) : (
@@ -3309,9 +3387,16 @@ export default function Reports() {
                   <table className="w-full border-collapse">
                     <thead>
                       <tr className="border-b bg-gray-50">
-                        <th className="text-left p-3 font-semibold">Date</th>
+                        <th className="text-left p-3 font-semibold">
+                          {fuelDataSource === 'jobs' ? 'Date' : 
+                           fuelView === 'daily' ? 'Date' :
+                           fuelView === 'weekly' ? 'Week Starting' : 'Month'}
+                        </th>
                         <th className="text-left p-3 font-semibold">Vehicle</th>
                         <th className="text-right p-3 font-semibold">Miles</th>
+                        <th className="text-right p-3 font-semibold">
+                          {fuelDataSource === 'obd' ? 'Trips' : 'Segments'}
+                        </th>
                         <th className="text-right p-3 font-semibold">MPG</th>
                         <th className="text-right p-3 font-semibold">Calc. Gallons</th>
                         <th className="text-right p-3 font-semibold">Fuel Price</th>
@@ -3321,11 +3406,16 @@ export default function Reports() {
                       </tr>
                     </thead>
                     <tbody>
-                      {dailyFuelUsage.map((usage: any, index: number) => (
+                      {currentFuelUsage.map((usage: any, index: number) => (
                         <tr key={index} className="border-b hover:bg-gray-50">
-                          <td className="p-3 font-medium">{usage.date}</td>
+                          <td className="p-3 font-medium">
+                            {usage.date || usage.period || 'N/A'}
+                          </td>
                           <td className="p-3">{usage.vehicleName}</td>
                           <td className="text-right p-3">{usage.totalMiles.toFixed(2)}</td>
+                          <td className="text-right p-3">
+                            {usage.tripCount || usage.segmentCount || 0}
+                          </td>
                           <td className="text-right p-3">{usage.vehicleMPG.toFixed(1)}</td>
                           <td className="text-right p-3">{usage.calculatedGallons.toFixed(2)}</td>
                           <td className="text-right p-3">${usage.fuelPriceUsed.toFixed(2)}</td>
@@ -3355,9 +3445,10 @@ export default function Reports() {
                   </table>
                   <div className="mt-4 p-4 bg-blue-50 rounded-lg">
                     <p className="text-sm text-blue-800">
-                      <strong>How it works:</strong> Fuel costs are calculated by dividing total miles driven by vehicle MPG, 
-                      then multiplying by the fuel price from OCR'd expense receipts (or organization average). 
-                      Positive variance means actual expenses exceeded calculated costs; negative means savings.
+                      <strong>How it works:</strong> {fuelDataSource === 'jobs' 
+                        ? 'Fuel costs are calculated from job-to-job travel segments using vehicle MPG and fuel prices from OCR\'d receipts.'
+                        : `Total daily miles from OBD GPS trips are divided by vehicle MPG, then multiplied by fuel price (${fuelView} averages).`}
+                      {' '}Positive variance (red) means actual expenses exceeded calculated costs; negative (green) means savings.
                     </p>
                   </div>
                 </div>
