@@ -76,7 +76,7 @@ import {
   obdLocationData, obdDiagnosticData, obdTrips, services,
   inspectionRecords, jobTravelSegments, projectUsers, employees
 } from "@shared/schema";
-import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull } from "drizzle-orm";
+import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull, isNull } from "drizzle-orm";
 import { DocuSignService, getDocuSignConfig } from "./docusign";
 import { ensureOrganizationFolders, createOrganizationFolders } from "./folderCreation";
 import { Client } from '@googlemaps/google-maps-services-js';
@@ -11802,11 +11802,35 @@ ${fromName || ''}
         return projectDate >= startDate && projectDate <= endDate;
       });
 
+      // Fetch quotes for revenue calculation
+      const allQuotes = await db.select()
+        .from(quotes)
+        .where(eq(quotes.userId, user.id));
+      
       // Calculate costs per job including travel costs
       const jobProfitData = filteredProjects.map((project: any) => {
-        // Find invoice for this project
-        const invoice = allInvoices.find((inv: any) => inv.projectId === project.id);
-        const revenue = invoice?.status === 'paid' ? parseFloat(invoice.totalAmount || '0') : 0;
+        // Calculate revenue from multiple sources (in priority order)
+        // 1. Project budget (if set)
+        // 2. Linked quote total (if exists)
+        // 3. Linked invoice total (paid or unpaid)
+        let revenue = 0;
+        
+        if (project.budget) {
+          revenue = parseFloat(project.budget);
+        } else if (project.quoteId) {
+          const quote = allQuotes.find((q: any) => q.id === project.quoteId);
+          if (quote) {
+            revenue = parseFloat(quote.total || '0');
+          }
+        }
+        
+        // If no budget or quote, check for invoice (regardless of payment status)
+        if (revenue === 0) {
+          const invoice = allInvoices.find((inv: any) => inv.projectId === project.id);
+          if (invoice) {
+            revenue = parseFloat(invoice.total || '0');
+          }
+        }
         
         // Material/supply costs from expenses linked to this project
         const jobMaterials = allExpenses.filter((e: any) => e.projectId === project.id);
