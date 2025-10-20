@@ -689,9 +689,9 @@ export default function Reports() {
   const leadSourceData = getLeadSourceData();
   const metrics = getKeyMetrics();
   
-  // Calculate total revenue and expenses for Profit Loss tab
-  const totalRevenue = salesChartData.reduce((sum, item) => sum + (item.revenue || 0), 0);
-  const totalExpenses = salesChartData.reduce((sum, item) => sum + (item.expenses || 0), 0);
+  // Calculate total revenue and expenses for Profit Loss tab from detailed P&L data
+  const totalRevenue = profitLossDetailedData?.summary?.totalRevenue || 0;
+  const totalExpenses = profitLossDetailedData?.summary?.totalExpenses || 0;
 
   // Process profit/loss data by different views
   const getProfitLossDataByView = () => {
