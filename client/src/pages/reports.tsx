@@ -3713,6 +3713,7 @@ function TodayFuelUsage() {
   const { data: fuelData, isLoading, error, isFetching } = useQuery<any[]>({
     queryKey: ["/api/fuel/today"],
     refetchInterval: 30000, // Refresh every 30 seconds
+    staleTime: 0, // Override global staleTime: Infinity to allow fresh fetches
     enabled: true, // Explicitly enable the query
   });
   console.log('🚗 TodayFuelUsage query state:', { fuelData, isLoading, error, isFetching, dataType: typeof fuelData, isArray: Array.isArray(fuelData) });
