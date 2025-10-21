@@ -244,6 +244,9 @@ export default function Reports() {
     totalGasCost: 0,
     totalGasGallons: 0,
     totalGasRecords: 0,
+    totalGpsMiles: 0,
+    totalGpsFuelCost: 0,
+    totalGpsTrips: 0,
     totalMaintenanceCost: 0,
     totalMaintenanceRecords: 0,
     totalCost: 0,
@@ -262,6 +265,9 @@ export default function Reports() {
           totalGasCost: 0,
           totalGasGallons: 0,
           totalGasRecords: 0,
+          totalGpsMiles: 0,
+          totalGpsFuelCost: 0,
+          totalGpsTrips: 0,
           totalMaintenanceCost: 0,
           totalMaintenanceRecords: 0,
           totalCost: 0,
@@ -300,12 +306,15 @@ export default function Reports() {
         const backendSummary = result.summary || {};
         const normalizedSummary = {
           totalGasCost: backendSummary.totalGasCost || 0,
-          totalGasGallons: backendSummary.totalGallons || 0, // Backend sends totalGallons
-          totalGasRecords: backendSummary.totalGasExpenses || 0, // Backend sends totalGasExpenses for gas record count
+          totalGasGallons: backendSummary.totalGasGallons || 0,
+          totalGasRecords: backendSummary.totalGasRecords || 0,
+          totalGpsMiles: backendSummary.totalGpsMiles || 0,
+          totalGpsFuelCost: backendSummary.totalGpsFuelCost || 0,
+          totalGpsTrips: backendSummary.totalGpsTrips || 0,
           totalMaintenanceCost: backendSummary.totalMaintenanceCost || 0,
           totalMaintenanceRecords: backendSummary.totalMaintenanceRecords || 0,
           totalCost: backendSummary.totalCost || 0,
-          totalRecords: (backendSummary.totalGasExpenses || 0) + (backendSummary.totalMaintenanceRecords || 0) // Calculate total records
+          totalRecords: backendSummary.totalRecords || 0
         };
         
         setGasMaintSummary(normalizedSummary);
