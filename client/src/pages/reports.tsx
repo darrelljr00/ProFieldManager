@@ -239,10 +239,19 @@ export default function Reports() {
   });
 
   // Fetch gas and maintenance cost data
+  console.log('⛽ GAS MAINT QUERY SETUP:', { 
+    gasMaintView,
+    startDate: profitLossDates.startDate, 
+    endDate: profitLossDates.endDate,
+    enabled: !!profitLossDates.startDate && !!profitLossDates.endDate
+  });
+  
   const { data: gasMaintResponse, isLoading: gasMaintLoading } = useQuery({
     queryKey: ["/api/reports/gas-maintenance", gasMaintView, profitLossDates.startDate, profitLossDates.endDate],
     queryFn: async () => {
+      console.log('⛽ GAS MAINT QUERY EXECUTING...');
       if (!profitLossDates.startDate || !profitLossDates.endDate) {
+        console.log('⛽ NO DATES - RETURNING EMPTY');
         return { data: [], summary: { totalGasCost: 0, totalGasGallons: 0, totalMaintenanceCost: 0, totalMaintenanceRecords: 0, totalCost: 0, totalRecords: 0 } };
       }
       const params = new URLSearchParams({
@@ -250,14 +259,20 @@ export default function Reports() {
         endDate: profitLossDates.endDate,
         view: gasMaintView
       });
+      console.log('⛽ FETCHING:', `/api/reports/gas-maintenance?${params}`);
       const response = await fetch(`/api/reports/gas-maintenance?${params}`, {
         credentials: 'include'
       });
+      console.log('⛽ RESPONSE:', response.status, response.ok);
       if (!response.ok) throw new Error('Failed to fetch gas/maintenance data');
-      return await response.json();
+      const data = await response.json();
+      console.log('⛽ DATA:', data);
+      return data;
     },
     enabled: !!profitLossDates.startDate && !!profitLossDates.endDate,
   });
+  
+  console.log('⛽ GAS MAINT QUERY STATE:', { isLoading: gasMaintLoading, hasData: !!gasMaintResponse });
 
   const gasMaintData = gasMaintResponse?.data || [];
   const gasMaintSummary = gasMaintResponse?.summary || {
