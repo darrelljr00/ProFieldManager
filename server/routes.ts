@@ -15799,10 +15799,12 @@ ${fromName || ''}
         return res.status(401).json({ message: 'Unauthorized' });
       }
 
+      console.log('🚗 FUEL TODAY ENDPOINT CALLED - Org ID:', user.organizationId);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
+      console.log('📅 Date range:', { today, tomorrow });
 
       // Get all GPS-enabled vehicles
       const allVehicles = await db
