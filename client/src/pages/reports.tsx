@@ -238,54 +238,12 @@ export default function Reports() {
     refetchOnMount: 'always', // Always refetch on mount
   });
 
-  // TEST: Direct fetch to diagnose
-  useEffect(() => {
-    if (selectedTab === 'gas-maintenance') {
-      const testFetch = async () => {
-        try {
-          console.log('🧪 TEST FETCH GAS-MAINTENANCE ENDPOINT');
-          const testUrl = `/api/reports/gas-maintenance?startDate=2024-01-01&endDate=2025-12-31&view=job`;
-          const response = await fetch(testUrl);
-          const data = await response.json();
-          console.log('🧪 TEST RESPONSE:', { status: response.status, data });
-        } catch (error) {
-          console.error('🧪 TEST ERROR:', error);
-        }
-      };
-      testFetch();
-    }
-  }, [selectedTab]);
-
-  // Fetch gas and maintenance cost data  
-  const gasMaintEnabled = !!profitLossDates.startDate && !!profitLossDates.endDate;
-  console.log('⛽⛽⛽ GAS MAINT QUERY SETUP:', { 
-    gasMaintView, 
-    dates: profitLossDates, 
-    enabled: gasMaintEnabled,
-    startDateCheck: !!profitLossDates.startDate,
-    endDateCheck: !!profitLossDates.endDate
-  });
-  const { data: gasMaintResponse, isLoading: gasMaintLoading, error: gasMaintError, isFetching: gasMaintFetching } = useQuery({
+  // Fetch gas and maintenance cost data
+  const { data: gasMaintResponse, isLoading: gasMaintLoading } = useQuery({
     queryKey: ["/api/reports/gas-maintenance", gasMaintView, profitLossDates.startDate, profitLossDates.endDate],
-    queryFn: async () => {
-      const params = `startDate=${profitLossDates.startDate}&endDate=${profitLossDates.endDate}&view=${gasMaintView}`;
-      console.log('⛽ FETCHING GAS/MAINTENANCE DATA:', `/api/reports/gas-maintenance?${params}`);
-      const response = await fetch(`/api/reports/gas-maintenance?${params}`);
-      if (!response.ok) throw new Error('Failed to fetch gas/maintenance data');
-      const data = await response.json();
-      console.log('⛽ GAS/MAINTENANCE RESPONSE:', data);
-      return data;
-    },
-    enabled: gasMaintEnabled,
+   enabled: !!profitLossDates.startDate && !!profitLossDates.endDate,
     staleTime: 0,
     refetchOnMount: 'always',
-  });
-  console.log('⛽⛽⛽ GAS MAINT QUERY STATE:', { 
-    isLoading: gasMaintLoading, 
-    isFetching: gasMaintFetching,
-    hasData: !!gasMaintResponse,
-    hasError: !!gasMaintError,
-    error: gasMaintError 
   });
 
   const gasMaintData = gasMaintResponse?.data || [];
