@@ -3647,6 +3647,8 @@ export default function Reports() {
                         <th className="text-right p-3 font-semibold">Gas Expenses</th>
                         <th className="text-right p-3 font-semibold">Gas Cost</th>
                         <th className="text-right p-3 font-semibold">Gallons</th>
+                        <th className="text-right p-3 font-semibold">GPS Miles</th>
+                        <th className="text-right p-3 font-semibold">GPS Fuel Cost</th>
                         <th className="text-right p-3 font-semibold">Maintenance Records</th>
                         <th className="text-right p-3 font-semibold">Maintenance Cost</th>
                         <th className="text-right p-3 font-semibold">Total Cost</th>
@@ -3656,19 +3658,30 @@ export default function Reports() {
                       {gasMaintData.map((row: any, index: number) => (
                         <tr key={index} className="border-b hover:bg-gray-50">
                           <td className="p-3 font-medium">{row.name}</td>
-                          <td className="text-right p-3">{row.gasCount}</td>
+                          <td className="text-right p-3">{row.gasCount || 0}</td>
                           <td className="text-right p-3 text-blue-600">
-                            ${row.gasCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            ${row.gasCost?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
                           </td>
                           <td className="text-right p-3">
-                            {row.totalGallons.toFixed(1)}
+                            {row.totalGallons?.toFixed(1) || '0.0'}
                           </td>
-                          <td className="text-right p-3">{row.maintenanceCount}</td>
+                          <td className="text-right p-3 text-green-700">
+                            {row.gpsMiles?.toFixed(1) || '0.0'} mi
+                          </td>
+                          <td className="text-right p-3 text-green-600 font-semibold">
+                            ${row.gpsFuelCost?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
+                            {row.gpsTripCount > 0 && (
+                              <span className="text-xs ml-1 text-gray-500">
+                                ({row.gpsTripCount} trips)
+                              </span>
+                            )}
+                          </td>
+                          <td className="text-right p-3">{row.maintenanceCount || 0}</td>
                           <td className="text-right p-3 text-orange-600">
-                            ${row.maintenanceCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            ${row.maintenanceCost?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
                           </td>
                           <td className="text-right p-3 font-semibold text-purple-600">
-                            ${row.totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            ${row.totalCost?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
                           </td>
                         </tr>
                       ))}
@@ -3682,6 +3695,17 @@ export default function Reports() {
                         </td>
                         <td className="text-right p-3">
                           {gasMaintSummary?.totalGasGallons?.toFixed(1) || '0.0'}
+                        </td>
+                        <td className="text-right p-3 text-green-700">
+                          {gasMaintSummary?.totalGpsMiles?.toFixed(1) || '0.0'} mi
+                        </td>
+                        <td className="text-right p-3 text-green-600 font-semibold">
+                          ${gasMaintSummary?.totalGpsFuelCost?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
+                          {gasMaintSummary?.totalGpsTrips > 0 && (
+                            <span className="text-xs ml-1 text-gray-500">
+                              ({gasMaintSummary?.totalGpsTrips} trips)
+                            </span>
+                          )}
                         </td>
                         <td className="text-right p-3">{gasMaintSummary?.totalMaintenanceRecords || 0}</td>
                         <td className="text-right p-3 text-orange-600">
