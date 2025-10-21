@@ -269,7 +269,6 @@ export default function Reports() {
       console.log('⛽ DATA:', data);
       return data;
     },
-    enabled: !!profitLossDates.startDate && !!profitLossDates.endDate,
   });
   
   console.log('⛽ GAS MAINT QUERY STATE:', { isLoading: gasMaintLoading, hasData: !!gasMaintResponse });
