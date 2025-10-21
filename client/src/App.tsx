@@ -49,6 +49,7 @@ import GpsTracking from "@/pages/gps-tracking";
 import GPSTrackingOBD from "@/pages/gps-tracking-obd";
 import GPSAnalytics from "@/pages/gps-analytics";
 import GPSSettings from "@/pages/gps-settings";
+import FuelUsageToday from "@/pages/fuel-usage-today";
 import FormBuilder from "@/pages/form-builder";
 import MobileTest from "@/pages/mobile-test";
 import TimeClock from "@/pages/time-clock";

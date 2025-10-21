@@ -15791,6 +15791,97 @@ ${fromName || ''}
     }
   });
 
+  // Today's Fuel Usage - Simplified endpoint for current day
+  app.get('/api/fuel/today', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const user = (req as any).user;
+      if (!user || !user.organizationId) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      // Get all GPS-enabled vehicles
+      const allVehicles = await db
+        .select()
+        .from(vehicles)
+        .where(
+          and(
+            eq(vehicles.organizationId, user.organizationId),
+            eq(vehicles.onestepGpsEnabled, true),
+            isNull(vehicles.deletedAt)
+          )
+        );
+
+      // Get today's completed trips
+      const trips = await db
+        .select()
+        .from(obdTrips)
+        .where(
+          and(
+            eq(obdTrips.organizationId, user.organizationId),
+            gte(obdTrips.startTime, today),
+            lt(obdTrips.startTime, tomorrow),
+            eq(obdTrips.status, 'completed')
+          )
+        );
+
+      // Get recent fuel expenses for pricing
+      const recentExpenses = await db
+        .select()
+        .from(expenses)
+        .where(
+          and(
+            eq(expenses.organizationId, user.organizationId),
+            isNotNull(expenses.pricePerGallon),
+            isNull(expenses.deletedAt),
+            gte(expenses.expenseDate, new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)) // Last 30 days
+          )
+        )
+        .orderBy(desc(expenses.expenseDate));
+
+      // Calculate average fuel price
+      let avgFuelPrice = 3.50; // Default
+      if (recentExpenses.length > 0) {
+        const prices = recentExpenses
+          .map(e => parseFloat(e.pricePerGallon?.toString() || '0'))
+          .filter(p => p > 0);
+        if (prices.length > 0) {
+          avgFuelPrice = prices.reduce((sum, p) => sum + p, 0) / prices.length;
+        }
+      }
+
+      // Aggregate by vehicle
+      const vehicleData = allVehicles.map(vehicle => {
+        const vehicleTrips = trips.filter(t => t.vehicleId === vehicle.id);
+        const totalMiles = vehicleTrips.reduce((sum, t) => 
+          sum + parseFloat(t.distanceMiles?.toString() || '0'), 0);
+        
+        const mpg = parseFloat(vehicle.fuelEconomyMpg?.toString() || '20');
+        const estimatedGallons = mpg > 0 ? totalMiles / mpg : 0;
+        const estimatedCost = estimatedGallons * avgFuelPrice;
+
+        return {
+          vehicleId: vehicle.id,
+          vehicleNumber: vehicle.vehicleNumber,
+          fuelEconomyMpg: mpg,
+          tripCount: vehicleTrips.length,
+          totalMiles: Math.round(totalMiles * 100) / 100,
+          estimatedGallons: Math.round(estimatedGallons * 100) / 100,
+          estimatedCost: Math.round(estimatedCost * 100) / 100,
+        };
+      });
+
+      res.json(vehicleData);
+    } catch (error: any) {
+      console.error('Error calculating today\'s fuel usage:', error);
+      res.status(500).json({ message: 'Failed to calculate fuel usage' });
+    }
+  });
+
   // Helper function for simple route optimization (nearest neighbor)
   function optimizeRoute(jobs: any[], startLocation: string): number[] {
     if (jobs.length <= 1) return jobs.map((_, index) => index);
