@@ -3,17 +3,12 @@ import { vehicles, settings, obdLocationData, onestepSyncState } from "@shared/s
 import { eq, and, sql } from "drizzle-orm";
 
 interface OneStepDevice {
-  device_id: string; // Stable unique identifier
-  display_name: string; // Human-readable name (mutable)
-  lat?: number;
-  lng?: number;
-  latest_device_point?: {
-    lat: number;
-    lng: number;
-    dt_tracker: string;
-    device_speed?: number;
-    direction?: number;
-  };
+  display_name: string; // This IS the device identifier in the API
+  lat: number;
+  lng: number;
+  latest_accurate_dt_tracker?: string;
+  device_speed?: number;
+  direction?: number;
 }
 
 export class OneStepPoller {
@@ -101,6 +96,7 @@ export class OneStepPoller {
       }
 
       const devices: OneStepDevice[] = await response.json();
+      console.log(`📡 OneStep API returned ${devices.length} devices for org ${organizationId}`);
       
       const mappedVehicles = await db
         .select()
@@ -117,24 +113,33 @@ export class OneStepPoller {
 
       for (const vehicle of mappedVehicles) {
         const device = devices.find(
-          (d) => d.device_id === vehicle.oneStepGpsDeviceId
+          (d) => d.display_name === vehicle.oneStepGpsDeviceId
         );
 
-        if (!device) continue;
+        if (!device) {
+          console.log(`⚠️  No device found for vehicle ${vehicle.id} with device ID: ${vehicle.oneStepGpsDeviceId}`);
+          continue;
+        }
 
-        const point = device.latest_device_point;
-        if (!point || !point.lat || !point.lng) continue;
+        if (!device.lat || !device.lng) {
+          console.log(`⚠️  Device ${device.display_name} has no location data`);
+          continue;
+        }
 
         try {
+          const timestamp = device.latest_accurate_dt_tracker 
+            ? new Date(device.latest_accurate_dt_tracker)
+            : new Date();
+
           await db.insert(obdLocationData).values({
             organizationId,
             vehicleId: vehicle.id,
-            deviceId: device.device_id,
-            latitude: point.lat.toString(),
-            longitude: point.lng.toString(),
-            speed: point.device_speed?.toString() ?? "0",
-            heading: point.direction?.toString() ?? "0",
-            timestamp: new Date(point.dt_tracker),
+            deviceId: device.display_name,
+            latitude: device.lat.toString(),
+            longitude: device.lng.toString(),
+            speed: device.device_speed?.toString() ?? "0",
+            heading: device.direction?.toString() ?? "0",
+            timestamp,
           } as any).onConflictDoNothing();
 
           pingsStored++;

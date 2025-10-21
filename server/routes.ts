@@ -20248,8 +20248,6 @@ ${fromName || ''}
       }
 
       // Check for job site arrivals and send notifications to managers/admins
-      // TEMPORARILY DISABLED DUE TO SQL ERROR - NEEDS DEBUGGING
-      /*
       try {
         // Get user's active assigned jobs
         const assignedJobs = await db
@@ -20359,7 +20357,6 @@ ${fromName || ''}
         console.error('Error checking for job site arrivals:', arrivalError);
         // Don't fail the location update if arrival check fails
       }
-      */
 
       res.json({ 
         message: "Location updated successfully",
