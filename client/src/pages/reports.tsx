@@ -3181,6 +3181,9 @@ export default function Reports() {
 
         {/* Gas & Maintenance Tab */}
         <TabsContent value="gas-maintenance" className="space-y-6">
+          {/* Today's Fuel Usage - Live Tracking */}
+          <TodayFuelUsage />
+          
           {/* View Selector */}
           <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
             <div className="flex flex-wrap gap-2">
@@ -3631,5 +3634,151 @@ export default function Reports() {
 
       </Tabs>
     </div>
+  );
+}
+
+// Today's Fuel Usage Component
+function TodayFuelUsage() {
+  const { data: fuelData, isLoading } = useQuery<any[]>({
+    queryKey: ["/api/fuel/today"],
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
+
+  const totalMiles = fuelData?.reduce((sum, v) => sum + v.totalMiles, 0) || 0;
+  const totalGallons = fuelData?.reduce((sum, v) => sum + v.estimatedGallons, 0) || 0;
+  const totalCost = fuelData?.reduce((sum, v) => sum + v.estimatedCost, 0) || 0;
+  const totalTrips = fuelData?.reduce((sum, v) => sum + v.tripCount, 0) || 0;
+
+  return (
+    <Card className="border-2 border-blue-200 bg-blue-50/50">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="h-5 w-5 text-blue-600" />
+              Today's Live Fuel Usage
+            </CardTitle>
+            <CardDescription>
+              Real-time fuel consumption from GPS tracking • Updates every 30 seconds
+            </CardDescription>
+          </div>
+          <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300">
+            <Clock className="h-3 w-3 mr-1" />
+            {format(new Date(), "h:mm a")}
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="animate-pulse bg-gray-200 h-20 rounded" />
+            ))}
+          </div>
+        ) : !fuelData || fuelData.length === 0 || totalTrips === 0 ? (
+          <div className="text-center py-8 text-gray-600">
+            <div className="text-4xl mb-3">🚗</div>
+            <p className="font-medium">No driving data yet today</p>
+            <p className="text-sm mt-1">GPS tracking is active. Data will appear as vehicles drive.</p>
+          </div>
+        ) : (
+          <>
+            {/* Summary Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              <Card className="bg-white">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-medium text-gray-600">Total Miles</p>
+                      <p className="text-2xl font-bold text-blue-600">
+                        {totalMiles.toFixed(1)}
+                      </p>
+                      <p className="text-xs text-gray-500">{totalTrips} trips</p>
+                    </div>
+                    <TrendingUp className="h-8 w-8 text-blue-400" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-white">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-medium text-gray-600">Fuel Used</p>
+                      <p className="text-2xl font-bold text-orange-600">
+                        {totalGallons.toFixed(2)}
+                      </p>
+                      <p className="text-xs text-gray-500">gallons</p>
+                    </div>
+                    <div className="text-3xl">⛽</div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-white">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-medium text-gray-600">Estimated Cost</p>
+                      <p className="text-2xl font-bold text-green-600">
+                        ${totalCost.toFixed(2)}
+                      </p>
+                      <p className="text-xs text-gray-500">today</p>
+                    </div>
+                    <DollarSign className="h-8 w-8 text-green-400" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-white">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-medium text-gray-600">Avg MPG</p>
+                      <p className="text-2xl font-bold text-purple-600">
+                        {totalGallons > 0 ? (totalMiles / totalGallons).toFixed(1) : '0.0'}
+                      </p>
+                      <p className="text-xs text-gray-500">fleet average</p>
+                    </div>
+                    <Calculator className="h-8 w-8 text-purple-400" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Vehicle Breakdown */}
+            <div className="space-y-3">
+              <h4 className="font-semibold text-sm text-gray-700">Vehicle Breakdown</h4>
+              {fuelData.map((vehicle) => (
+                <div
+                  key={vehicle.vehicleId}
+                  className="flex items-center justify-between p-3 bg-white rounded-lg border"
+                >
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-900">{vehicle.vehicleNumber}</p>
+                    <p className="text-xs text-gray-500">
+                      {vehicle.fuelEconomyMpg} MPG • {vehicle.tripCount} {vehicle.tripCount === 1 ? 'trip' : 'trips'}
+                    </p>
+                  </div>
+                  <div className="text-right space-y-1">
+                    <p className="font-semibold text-gray-900">
+                      {vehicle.totalMiles.toFixed(1)} mi
+                    </p>
+                    <p className="text-xs text-gray-600">
+                      {vehicle.estimatedGallons.toFixed(2)} gal • ${vehicle.estimatedCost.toFixed(2)}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-4 p-3 bg-blue-100 rounded text-xs text-blue-800">
+              <strong>Calculation:</strong> Total miles ÷ vehicle MPG × fuel price. 
+              Updates automatically as vehicles complete trips today.
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
   );
 }
