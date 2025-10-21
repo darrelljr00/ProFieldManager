@@ -12123,6 +12123,31 @@ ${fromName || ''}
       
       console.log('⛽ FOUND MAINTENANCE RECORDS:', maintenanceRecords.length);
       
+      // Fetch GPS trip fuel consumption data
+      const fuelPrice = 2.50; // Fixed fuel price per gallon
+      const gpsTripsFuel = await db.select({
+        tripId: obdTrips.id,
+        vehicleId: obdTrips.vehicleId,
+        vehicleNumber: vehicles.vehicleNumber,
+        tripDate: obdTrips.startTime,
+        distanceMiles: obdTrips.distanceMiles,
+        fuelEconomyMpg: vehicles.fuelEconomyMpg
+      })
+        .from(obdTrips)
+        .innerJoin(vehicles, eq(obdTrips.vehicleId, vehicles.id))
+        .where(
+          and(
+            eq(obdTrips.organizationId, organizationId),
+            eq(obdTrips.status, 'completed'),
+            gte(obdTrips.startTime, startDate),
+            lte(obdTrips.startTime, endDate),
+            isNotNull(vehicles.fuelEconomyMpg),
+            isNotNull(obdTrips.distanceMiles)
+          )
+        );
+      
+      console.log('⛽ FOUND GPS TRIPS FOR FUEL CALC:', gpsTripsFuel.length);
+      
       // Group based on view type
       const groupedData: Record<string, any> = {};
       
@@ -12187,6 +12212,10 @@ ${fromName || ''}
             totalGallons: 0,
             gasCount: 0,
             maintenanceCount: 0,
+            gpsFuelCost: 0,
+            gpsMiles: 0,
+            gpsGallons: 0,
+            gpsTripCount: 0,
             type: view === 'job' ? 'Maintenance' : undefined,
             vehicleId: record.vehicleId || null
           };
@@ -12196,9 +12225,57 @@ ${fromName || ''}
         groupedData[key].maintenanceCount += 1;
       });
       
-      // Calculate total cost for each group
+      // Process GPS trips for fuel consumption
+      gpsTripsFuel.forEach((trip: any) => {
+        const tripDate = new Date(trip.tripDate);
+        const mpg = parseFloat(trip.fuelEconomyMpg || '0');
+        const miles = parseFloat(trip.distanceMiles || '0');
+        
+        if (mpg > 0 && miles > 0) {
+          const gallons = miles / mpg;
+          const cost = gallons * fuelPrice;
+          
+          // Determine grouping key
+          let key: string;
+          if (view === 'job') {
+            // For job view, group individual trips by trip ID
+            key = `gps-trip-${trip.tripId}`;
+          } else {
+            key = getGroupKey(tripDate, view as string);
+          }
+          
+          if (!groupedData[key]) {
+            groupedData[key] = {
+              name: view === 'job' ? `GPS Trip (${trip.vehicleNumber})` : key,
+              date: tripDate.toISOString(),
+              gasCost: 0,
+              maintenanceCost: 0,
+              totalGallons: 0,
+              gasCount: 0,
+              maintenanceCount: 0,
+              gpsFuelCost: 0,
+              gpsMiles: 0,
+              gpsGallons: 0,
+              gpsTripCount: 0,
+              type: view === 'job' ? 'GPS Fuel' : undefined,
+              vehicleId: trip.vehicleId || null
+            };
+          }
+          
+          groupedData[key].gpsFuelCost += cost;
+          groupedData[key].gpsMiles += miles;
+          groupedData[key].gpsGallons += gallons;
+          groupedData[key].gpsTripCount += 1;
+          
+          console.log(`⛽ GPS FUEL CALC: ${trip.vehicleNumber} - ${miles.toFixed(2)} mi ÷ ${mpg} MPG × $${fuelPrice} = $${cost.toFixed(2)}`);
+        }
+      });
+      
+      // Calculate total cost for each group (include GPS fuel cost)
       Object.values(groupedData).forEach((data: any) => {
-        data.totalCost = data.gasCost + data.maintenanceCost;
+        data.totalCost = data.gasCost + data.maintenanceCost + (data.gpsFuelCost || 0);
+        // Combine manual and GPS gallons
+        data.totalGallons = (data.totalGallons || 0) + (data.gpsGallons || 0);
       });
       
       // Convert to array and sort
@@ -12209,14 +12286,18 @@ ${fromName || ''}
         return a.name.localeCompare(b.name);
       });
       
-      // Calculate summary
+      // Calculate summary (include GPS fuel data)
       const summary = {
         totalGasCost: chartData.reduce((sum: number, d: any) => sum + d.gasCost, 0),
         totalMaintenanceCost: chartData.reduce((sum: number, d: any) => sum + d.maintenanceCost, 0),
+        totalGpsFuelCost: chartData.reduce((sum: number, d: any) => sum + (d.gpsFuelCost || 0), 0),
         totalCost: chartData.reduce((sum: number, d: any) => sum + d.totalCost, 0),
-        totalGallons: chartData.reduce((sum: number, d: any) => sum + d.totalGallons, 0),
-        totalGasExpenses: chartData.reduce((sum: number, d: any) => sum + d.gasCount, 0),
-        totalMaintenanceRecords: chartData.reduce((sum: number, d: any) => sum + d.maintenanceCount, 0)
+        totalGasGallons: chartData.reduce((sum: number, d: any) => sum + d.totalGallons, 0),
+        totalGasRecords: chartData.reduce((sum: number, d: any) => sum + d.gasCount, 0),
+        totalMaintenanceRecords: chartData.reduce((sum: number, d: any) => sum + d.maintenanceCount, 0),
+        totalGpsMiles: chartData.reduce((sum: number, d: any) => sum + (d.gpsMiles || 0), 0),
+        totalGpsTrips: chartData.reduce((sum: number, d: any) => sum + (d.gpsTripCount || 0), 0),
+        totalRecords: chartData.reduce((sum: number, d: any) => sum + d.gasCount + d.maintenanceCount + (d.gpsTripCount || 0), 0)
       };
       
       res.json({
