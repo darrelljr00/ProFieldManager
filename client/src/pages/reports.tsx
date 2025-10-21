@@ -238,50 +238,94 @@ export default function Reports() {
     refetchOnMount: 'always', // Always refetch on mount
   });
 
-  // Fetch gas and maintenance cost data
-  console.log('⛽ GAS MAINT QUERY SETUP:', { 
-    gasMaintView,
-    startDate: profitLossDates.startDate, 
-    endDate: profitLossDates.endDate,
-    enabled: !!profitLossDates.startDate && !!profitLossDates.endDate
-  });
-  
-  const { data: gasMaintResponse, isLoading: gasMaintLoading } = useQuery({
-    queryKey: ["/api/reports/gas-maintenance", gasMaintView, profitLossDates.startDate, profitLossDates.endDate],
-    queryFn: async () => {
-      console.log('⛽ GAS MAINT QUERY EXECUTING...');
-      if (!profitLossDates.startDate || !profitLossDates.endDate) {
-        console.log('⛽ NO DATES - RETURNING EMPTY');
-        return { data: [], summary: { totalGasCost: 0, totalGasGallons: 0, totalMaintenanceCost: 0, totalMaintenanceRecords: 0, totalCost: 0, totalRecords: 0 } };
-      }
-      const params = new URLSearchParams({
-        startDate: profitLossDates.startDate,
-        endDate: profitLossDates.endDate,
-        view: gasMaintView
-      });
-      console.log('⛽ FETCHING:', `/api/reports/gas-maintenance?${params}`);
-      const response = await fetch(`/api/reports/gas-maintenance?${params}`, {
-        credentials: 'include'
-      });
-      console.log('⛽ RESPONSE:', response.status, response.ok);
-      if (!response.ok) throw new Error('Failed to fetch gas/maintenance data');
-      const data = await response.json();
-      console.log('⛽ DATA:', data);
-      return data;
-    },
-  });
-  
-  console.log('⛽ GAS MAINT QUERY STATE:', { isLoading: gasMaintLoading, hasData: !!gasMaintResponse });
-
-  const gasMaintData = gasMaintResponse?.data || [];
-  const gasMaintSummary = gasMaintResponse?.summary || {
+  // Fetch gas and maintenance cost data with useEffect + fetch
+  const [gasMaintData, setGasMaintData] = useState<any[]>([]);
+  const [gasMaintSummary, setGasMaintSummary] = useState({
     totalGasCost: 0,
+    totalGasGallons: 0,
+    totalGasRecords: 0,
     totalMaintenanceCost: 0,
+    totalMaintenanceRecords: 0,
     totalCost: 0,
-    totalGallons: 0,
-    totalGasExpenses: 0,
-    totalMaintenanceRecords: 0
-  };
+    totalRecords: 0
+  });
+  const [gasMaintLoading, setGasMaintLoading] = useState(false);
+  const [gasMaintError, setGasMaintError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const abortController = new AbortController();
+    
+    async function fetchGasMaintData() {
+      if (!profitLossDates.startDate || !profitLossDates.endDate) {
+        setGasMaintData([]);
+        setGasMaintSummary({
+          totalGasCost: 0,
+          totalGasGallons: 0,
+          totalGasRecords: 0,
+          totalMaintenanceCost: 0,
+          totalMaintenanceRecords: 0,
+          totalCost: 0,
+          totalRecords: 0
+        });
+        return;
+      }
+
+      setGasMaintLoading(true);
+      setGasMaintError(null);
+      
+      try {
+        const params = new URLSearchParams({
+          startDate: profitLossDates.startDate,
+          endDate: profitLossDates.endDate,
+          view: gasMaintView
+        });
+        
+        console.log('⛽ FETCHING GAS/MAINTENANCE:', `/api/reports/gas-maintenance?${params}`);
+        
+        const response = await fetch(`/api/reports/gas-maintenance?${params}`, {
+          credentials: 'include',
+          signal: abortController.signal
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const result = await response.json();
+        console.log('⛽ GAS/MAINTENANCE DATA:', result);
+        
+        setGasMaintData(result.data || []);
+        
+        // Normalize backend response to match frontend property names
+        const backendSummary = result.summary || {};
+        const normalizedSummary = {
+          totalGasCost: backendSummary.totalGasCost || 0,
+          totalGasGallons: backendSummary.totalGallons || 0, // Backend sends totalGallons
+          totalGasRecords: backendSummary.totalGasExpenses || 0, // Backend sends totalGasExpenses for gas record count
+          totalMaintenanceCost: backendSummary.totalMaintenanceCost || 0,
+          totalMaintenanceRecords: backendSummary.totalMaintenanceRecords || 0,
+          totalCost: backendSummary.totalCost || 0,
+          totalRecords: (backendSummary.totalGasExpenses || 0) + (backendSummary.totalMaintenanceRecords || 0) // Calculate total records
+        };
+        
+        setGasMaintSummary(normalizedSummary);
+      } catch (error: any) {
+        if (error.name !== 'AbortError') {
+          console.error('⛽ ERROR FETCHING GAS/MAINTENANCE:', error);
+          setGasMaintError(error.message);
+        }
+      } finally {
+        setGasMaintLoading(false);
+      }
+    }
+
+    fetchGasMaintData();
+
+    return () => {
+      abortController.abort();
+    };
+  }, [gasMaintView, profitLossDates.startDate, profitLossDates.endDate]);
+
 
   // Fuel tracking data source: 'jobs' (travel segments) or 'obd' (OBD trips)
   const [fuelDataSource, setFuelDataSource] = useState<'jobs' | 'obd'>('jobs');
@@ -3288,7 +3332,7 @@ export default function Reports() {
                       ${gasMaintSummary?.totalGasCost?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
                     </p>
                     <p className="text-xs text-gray-500 mt-1">
-                      {gasMaintSummary?.totalGallons?.toFixed(1) || '0.0'} gallons
+                      {gasMaintSummary?.totalGasGallons?.toFixed(1) || '0.0'} gallons
                     </p>
                   </div>
                   <div className="text-4xl">⛽</div>
@@ -3322,7 +3366,7 @@ export default function Reports() {
                       ${gasMaintSummary?.totalCost?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
                     </p>
                     <p className="text-xs text-gray-500 mt-1">
-                      {(gasMaintSummary?.totalGasExpenses || 0) + (gasMaintSummary?.totalMaintenanceRecords || 0)} total records
+                      {gasMaintSummary?.totalRecords || 0} total records
                     </p>
                   </div>
                   <div className="text-4xl">💰</div>
@@ -3635,12 +3679,12 @@ export default function Reports() {
                     <tfoot className="border-t-2 bg-gray-50">
                       <tr className="font-bold">
                         <td className="p-3">Total</td>
-                        <td className="text-right p-3">{gasMaintSummary?.totalGasExpenses || 0}</td>
+                        <td className="text-right p-3">{gasMaintSummary?.totalGasRecords || 0}</td>
                         <td className="text-right p-3 text-blue-600">
                           ${gasMaintSummary?.totalGasCost?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
                         </td>
                         <td className="text-right p-3">
-                          {gasMaintSummary?.totalGallons?.toFixed(1) || '0.0'}
+                          {gasMaintSummary?.totalGasGallons?.toFixed(1) || '0.0'}
                         </td>
                         <td className="text-right p-3">{gasMaintSummary?.totalMaintenanceRecords || 0}</td>
                         <td className="text-right p-3 text-orange-600">
