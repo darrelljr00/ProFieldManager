@@ -1,0 +1,87 @@
+🚗 TodayFuelUsage query state: 
+Object { fuelData: undefined, isLoading: false, error: Error, isFetching: false, dataType: "undefined", isArray: false }
+injected.js:27:27
+🚗 TodayFuelUsage query state: 
+Object { fuelData: undefined, isLoading: false, error: Error, isFetching: false, dataType: "undefined", isArray: false }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-21T14%3A19%3A52.225Z&endDate=2025-10-21T14%3A19%3A52.225Z", fullUrl: "/api/reports/data?startDate=2025-09-21T14%3A19%3A52.225Z&endDate=2025-10-21T14%3A19%3A52.225Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🚗 TodayFuelUsage query state: 
+Object { fuelData: undefined, isLoading: false, error: Error, isFetching: false, dataType: "undefined", isArray: false }
+injected.js:27:27
+🚗 TodayFuelUsage query state: 
+Object { fuelData: undefined, isLoading: false, error: Error, isFetching: false, dataType: "undefined", isArray: false }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-21T14%3A19%3A52.514Z&endDate=2025-10-21T14%3A19%3A52.514Z", fullUrl: "/api/reports/data?startDate=2025-09-21T14%3A19%3A52.514Z&endDate=2025-10-21T14%3A19%3A52.514Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🚗 TodayFuelUsage query state: 
+Object { fuelData: undefined, isLoading: false, error: Error, isFetching: false, dataType: "undefined", isArray: false }
+injected.js:27:27
+🚗 TodayFuelUsage query state: 
+Object { fuelData: undefined, isLoading: false, error: Error, isFetching: false, dataType: "undefined", isArray: false }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-21T14%3A19%3A52.720Z&endDate=2025-10-21T14%3A19%3A52.720Z", fullUrl: "/api/reports/data?startDate=2025-09-21T14%3A19%3A52.720Z&endDate=2025-10-21T14%3A19%3A52.720Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🚗 TodayFuelUsage query state: 
+Object { fuelData: undefined, isLoading: false, error: Error, isFetching: false, dataType: "undefined", isArray: false }
+injected.js:27:27
+🚗 TodayFuelUsage query state: 
+Object { fuelData: undefined, isLoading: false, error: Error, isFetching: false, dataType: "undefined", isArray: false }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-21T14%3A19%3A52.953Z&endDate=2025-10-21T14%3A19%3A52.953Z", fullUrl: "/api/reports/data?startDate=2025-09-21T14%3A19%3A52.953Z&endDate=2025-10-21T14%3A19%3A52.953Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🚗 TodayFuelUsage query state: 
+Object { fuelData: undefined, isLoading: false, error: Error, isFetching: false, dataType: "undefined", isArray: false }
+injected.js:27:27
+🚗 TodayFuelUsage query state: 
+Object { fuelData: undefined, isLoading: false, error: Error, isFetching: false, dataType: "undefined", isArray: false }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-21T14%3A19%3A53.185Z&endDate=2025-10-21T14%3A19%3A53.185Z", fullUrl: "/api/reports/data?startDate=2025-09-21T14%3A19%3A53.185Z&endDate=2025-10-21T14%3A19%3A53.185Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🚗 TodayFuelUsage query state: 
+Object { fuelData: undefined, isLoading: false, error: Error, isFetching: false, dataType: "undefined", isArray: false }
+injected.js:27:27
+🚗 TodayFuelUsage query state: 
+Object { fuelData: undefined, isLoading: false, error: Error, isFetching: false, dataType: "undefined", isArray: false }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-21T14%3A19%3A53.364Z&endDate=2025-10-21T14%3A19%3A53.364Z", fullUrl: "/api/reports/data?startDate=2025-09-21T14%3A19%3A53.364Z&endDate=2025-10-21T14%3A19%3A53.364Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/notifications/unread-count", fullUrl: "/api/notifications/unread-count", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🚗 TodayFuelUsage query state: 
+Object { fuelData: undefined, isLoading: false, error: Error, isFetching: false, dataType: "undefined", isArray: false }
+injected.js:27:27
+🚗 TodayFuelUsage query state: 
+Object { fuelData: undefined, isLoading: false, error: Error, isFetching: false, dataType: "undefined", isArray: false }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-21T14%3A19%3A53.561Z&endDate=2025-10-21T14%3A19%3A53.561Z", fullUrl: "/api/reports/data?startDate=2025-09-21T14%3A19%3A53.561Z&endDate=2025-10-21T14%3A19%3A53.561Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🚗 TodayFuelUsage query state: 
+Object { fuelData: undefined, isLoading: false, error: Error, isFetching: false, dataType: "undefined", isArray: false }
+injected.js:27:27
+🚗 TodayFuelUsage query state: 
+Object { fuelData: undefined, isLoading: false, error: Error, isFetching: false, dataType: "undefined", isArray: false }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-21T14%3A19%3A53.768Z&endDate=2025-10-21T14%3A19%3A53.768Z", fullUrl: "/api/reports/data?startDate=2025-09-21T14%3A19%3A53.768Z&endDate=2025-10-21T14%3A19%3A53.768Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🚗 TodayFuelUsage query state: 
+Object { fuelData: undefined, isLoading: false, error: Error, isFetching: false, dataType: "undefined", isArray: false }
+injected.js:27:27
+🚗 TodayFuelUsage query state: 
+Object { fuelData: undefined, isLoading: false, error: Error, isFetching: false, dataType: "undefined", isArray: false }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-21T14%3A19%3A53.989Z&endDate=2025-10-21T14%3A19%3A53.989Z", fullUrl: "/api/reports/data?startDate=2025-09-21T14%3A19%3A53.989Z&endDate=2025-10-21T14%3A19%3A53.989Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+
+​
+
