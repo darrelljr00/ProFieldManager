@@ -270,6 +270,48 @@ app.use((req, res, next) => {
     log('⏰ Job time exceeded checker initialized - runs every 15 minutes');
   };
 
+  // Setup OneStep GPS background services
+  const setupGPSServices = async () => {
+    try {
+      log('🔧 Initializing OneStep GPS background services...');
+      
+      const { OneStepPoller } = await import("./services/OneStepPoller");
+      const { TripBuilder } = await import("./services/TripBuilder");
+      log('✅ GPS service modules imported');
+
+      const gpsPoller = new OneStepPoller();
+      const tripBuilder = new TripBuilder();
+      log('✅ GPS service instances created');
+
+      await gpsPoller.start();
+      log('✅ GPS Poller started successfully');
+
+      const tripBuilderInterval = setInterval(async () => {
+        await tripBuilder.runTripBuilder();
+      }, 60000);
+
+      log('🚗 OneStep GPS background services started');
+      log('   📍 GPS Poller: Active (30-60s intervals per org)');
+      log('   🛣️  Trip Builder: Active (60s intervals)');
+
+      // Cleanup handlers
+      process.on("SIGTERM", () => {
+        log("📡 Shutting down GPS services...");
+        gpsPoller.stop();
+        clearInterval(tripBuilderInterval);
+      });
+
+      process.on("SIGINT", () => {
+        log("📡 Shutting down GPS services...");
+        gpsPoller.stop();
+        clearInterval(tripBuilderInterval);
+      });
+    } catch (error) {
+      console.error("❌ Failed to start OneStep GPS services:", error);
+      console.error(error instanceof Error ? error.stack : String(error));
+    }
+  };
+
   server.listen({
     port,
     host: "0.0.0.0",
@@ -278,5 +320,6 @@ app.use((req, res, next) => {
     log(`serving on port ${port}`);
     setupMeetingCleanup();
     setupJobTimeChecker();
+    setupGPSServices();
   });
 })();

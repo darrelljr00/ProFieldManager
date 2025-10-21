@@ -27023,44 +27023,6 @@ ${fromName || ''}
   console.log("📅 Starting quote follow-up reminder scheduler...");
   checkQuoteFollowUps();
 
-  // Start OneStep GPS Background Services
-  console.log("🔧 Initializing OneStep GPS background services...");
-  try {
-    const { OneStepPoller } = await import("./services/OneStepPoller");
-    const { TripBuilder } = await import("./services/TripBuilder");
-    console.log("✅ GPS service imports successful");
-
-    const gpsPoller = new OneStepPoller();
-    const tripBuilder = new TripBuilder();
-    console.log("✅ GPS service instances created");
-
-    await gpsPoller.start();
-    console.log("✅ GPS Poller started");
-
-    const tripBuilderInterval = setInterval(async () => {
-      await tripBuilder.runTripBuilder();
-    }, 60000);
-
-    console.log("🚗 OneStep GPS background services started successfully");
-    console.log("   📍 GPS Poller: Active (30-60s intervals per org)");
-    console.log("   🛣️  Trip Builder: Active (60s intervals)");
-
-    process.on("SIGTERM", () => {
-      console.log("📡 Shutting down GPS services...");
-      gpsPoller.stop();
-      clearInterval(tripBuilderInterval);
-    });
-
-    process.on("SIGINT", () => {
-      console.log("📡 Shutting down GPS services...");
-      gpsPoller.stop();
-      clearInterval(tripBuilderInterval);
-    });
-  } catch (error) {
-    console.error("❌ Failed to start OneStep GPS services:", error);
-    console.error(error instanceof Error ? error.stack : String(error));
-  }
-
   return httpServer;
 }
 
