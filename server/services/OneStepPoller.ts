@@ -132,8 +132,8 @@ export class OneStepPoller {
             deviceId: device.device_id,
             latitude: point.lat.toString(),
             longitude: point.lng.toString(),
-            speed: point.device_speed || 0,
-            heading: point.direction || 0,
+            speed: point.device_speed?.toString() || "0",
+            heading: point.direction?.toString() || "0",
             timestamp: new Date(point.dt_tracker),
           }).onConflictDoNothing();
 
@@ -236,10 +236,10 @@ export class OneStepPoller {
     console.log("🛑 Stopping OneStep GPS Poller...");
     this.isShuttingDown = true;
     
-    for (const [orgId, interval] of this.pollingIntervals.entries()) {
+    Array.from(this.pollingIntervals.entries()).forEach(([orgId, interval]) => {
       clearInterval(interval);
       console.log(`   Stopped polling for org ${orgId}`);
-    }
+    });
     
     this.pollingIntervals.clear();
     console.log("✅ Poller stopped");
