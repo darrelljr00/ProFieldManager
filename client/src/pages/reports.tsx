@@ -3186,6 +3186,7 @@ export default function Reports() {
 
         {/* Gas & Maintenance Tab */}
         <TabsContent value="gas-maintenance" className="space-y-6">
+          {console.log('🔥🔥🔥 GAS & MAINTENANCE TAB IS RENDERING! 🔥🔥🔥')}
           {/* Today's Fuel Usage - Live Tracking */}
           <TodayFuelUsage />
           
@@ -3644,10 +3645,12 @@ export default function Reports() {
 
 // Today's Fuel Usage Component
 function TodayFuelUsage() {
+  console.log('🚗 TodayFuelUsage component mounted');
   const { data: fuelData, isLoading } = useQuery<any[]>({
     queryKey: ["/api/fuel/today"],
     refetchInterval: 30000, // Refresh every 30 seconds
   });
+  console.log('🚗 TodayFuelUsage query state:', { fuelData, isLoading });
 
   const totalMiles = fuelData?.reduce((sum, v) => sum + v.totalMiles, 0) || 0;
   const totalGallons = fuelData?.reduce((sum, v) => sum + v.estimatedGallons, 0) || 0;
