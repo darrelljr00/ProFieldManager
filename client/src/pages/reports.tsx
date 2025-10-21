@@ -247,7 +247,7 @@ export default function Reports() {
     startDateCheck: !!profitLossDates.startDate,
     endDateCheck: !!profitLossDates.endDate
   });
-  const { data: gasMaintResponse, isLoading: gasMaintLoading } = useQuery({
+  const { data: gasMaintResponse, isLoading: gasMaintLoading, error: gasMaintError, isFetching: gasMaintFetching } = useQuery({
     queryKey: ["/api/reports/gas-maintenance", gasMaintView, profitLossDates.startDate, profitLossDates.endDate],
     queryFn: async () => {
       const params = `startDate=${profitLossDates.startDate}&endDate=${profitLossDates.endDate}&view=${gasMaintView}`;
@@ -261,6 +261,13 @@ export default function Reports() {
     enabled: gasMaintEnabled,
     staleTime: 0,
     refetchOnMount: 'always',
+  });
+  console.log('⛽⛽⛽ GAS MAINT QUERY STATE:', { 
+    isLoading: gasMaintLoading, 
+    isFetching: gasMaintFetching,
+    hasData: !!gasMaintResponse,
+    hasError: !!gasMaintError,
+    error: gasMaintError 
   });
 
   const gasMaintData = gasMaintResponse?.data || [];
