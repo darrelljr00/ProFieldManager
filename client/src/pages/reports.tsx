@@ -21,6 +21,8 @@ import {
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useWebSocket } from "@/hooks/useWebSocket";
+import { useToast } from "@/hooks/use-toast";
+import * as XLSX from 'xlsx';
 import { 
   exportSalesReport, 
   exportLeadsReport, 
@@ -97,6 +99,7 @@ export default function Reports() {
   const [profitLossView, setProfitLossView] = useState<'daily' | 'weekly' | 'monthly' | 'job' | 'vehicle'>('monthly');
   const [gasMaintView, setGasMaintView] = useState<'job' | 'daily' | 'weekly' | 'monthly' | 'yearly'>('job');
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   // Helper function to get date range based on selection
   const getDateRangeFromSelection = (range: string) => {
@@ -3186,7 +3189,6 @@ export default function Reports() {
 
         {/* Gas & Maintenance Tab */}
         <TabsContent value="gas-maintenance" className="space-y-6">
-          {console.log('🔥🔥🔥 GAS & MAINTENANCE TAB IS RENDERING! 🔥🔥🔥')}
           {/* Today's Fuel Usage - Live Tracking */}
           <TodayFuelUsage />
           
