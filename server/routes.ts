@@ -15839,30 +15839,11 @@ ${fromName || ''}
           )
         );
 
-      // Get recent fuel expenses for pricing
-      const recentExpenses = await db
-        .select()
-        .from(expenses)
-        .where(
-          and(
-            eq(expenses.organizationId, user.organizationId),
-            isNotNull(expenses.pricePerGallon),
-            isNull(expenses.deletedAt),
-            gte(expenses.expenseDate, new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)) // Last 30 days
-          )
-        )
-        .orderBy(desc(expenses.expenseDate));
-
-      // Calculate average fuel price
-      let avgFuelPrice = 3.50; // Default
-      if (recentExpenses.length > 0) {
-        const prices = recentExpenses
-          .map(e => parseFloat(e.pricePerGallon?.toString() || '0'))
-          .filter(p => p > 0);
-        if (prices.length > 0) {
-          avgFuelPrice = prices.reduce((sum, p) => sum + p, 0) / prices.length;
-        }
-      }
+      // Use fixed fuel price of $2.50 for calculations
+      const avgFuelPrice = 2.50;
+      console.log(`⛽ Fuel Price: $${avgFuelPrice}`);
+      console.log(`🚗 Found ${allVehicles.length} GPS-enabled vehicles`);
+      console.log(`🛣️  Found ${trips.length} completed trips today`);
 
       // Aggregate by vehicle
       const vehicleData = allVehicles.map(vehicle => {
@@ -15873,6 +15854,8 @@ ${fromName || ''}
         const mpg = parseFloat(vehicle.fuelEconomyMpg?.toString() || '20');
         const estimatedGallons = mpg > 0 ? totalMiles / mpg : 0;
         const estimatedCost = estimatedGallons * avgFuelPrice;
+
+        console.log(`🚙 Vehicle ${vehicle.vehicleNumber}: ${totalMiles} miles, ${mpg} MPG, ${estimatedGallons} gal, $${estimatedCost}`);
 
         return {
           vehicleId: vehicle.id,
@@ -15885,6 +15868,7 @@ ${fromName || ''}
         };
       });
 
+      console.log(`📤 Returning data for ${vehicleData.length} vehicles`);
       res.json(vehicleData);
     } catch (error: any) {
       console.error('Error calculating today\'s fuel usage:', error);
