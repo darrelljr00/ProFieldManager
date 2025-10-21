@@ -3646,11 +3646,12 @@ export default function Reports() {
 // Today's Fuel Usage Component
 function TodayFuelUsage() {
   console.log('🚗 TodayFuelUsage component mounted');
-  const { data: fuelData, isLoading } = useQuery<any[]>({
+  const { data: fuelData, isLoading, error, isFetching } = useQuery<any[]>({
     queryKey: ["/api/fuel/today"],
     refetchInterval: 30000, // Refresh every 30 seconds
+    enabled: true, // Explicitly enable the query
   });
-  console.log('🚗 TodayFuelUsage query state:', { fuelData, isLoading });
+  console.log('🚗 TodayFuelUsage query state:', { fuelData, isLoading, error, isFetching, dataType: typeof fuelData, isArray: Array.isArray(fuelData) });
 
   const totalMiles = fuelData?.reduce((sum, v) => sum + v.totalMiles, 0) || 0;
   const totalGallons = fuelData?.reduce((sum, v) => sum + v.estimatedGallons, 0) || 0;
