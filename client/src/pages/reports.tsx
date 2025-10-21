@@ -238,6 +238,24 @@ export default function Reports() {
     refetchOnMount: 'always', // Always refetch on mount
   });
 
+  // TEST: Direct fetch to diagnose
+  useEffect(() => {
+    if (selectedTab === 'gas-maintenance') {
+      const testFetch = async () => {
+        try {
+          console.log('🧪 TEST FETCH GAS-MAINTENANCE ENDPOINT');
+          const testUrl = `/api/reports/gas-maintenance?startDate=2024-01-01&endDate=2025-12-31&view=job`;
+          const response = await fetch(testUrl);
+          const data = await response.json();
+          console.log('🧪 TEST RESPONSE:', { status: response.status, data });
+        } catch (error) {
+          console.error('🧪 TEST ERROR:', error);
+        }
+      };
+      testFetch();
+    }
+  }, [selectedTab]);
+
   // Fetch gas and maintenance cost data  
   const gasMaintEnabled = !!profitLossDates.startDate && !!profitLossDates.endDate;
   console.log('⛽⛽⛽ GAS MAINT QUERY SETUP:', { 
