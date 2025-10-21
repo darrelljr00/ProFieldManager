@@ -239,7 +239,14 @@ export default function Reports() {
   });
 
   // Fetch gas and maintenance cost data  
-  console.log('⛽⛽⛽ GAS MAINT QUERY SETUP:', { gasMaintView, dates: profitLossDates });
+  const gasMaintEnabled = !!profitLossDates.startDate && !!profitLossDates.endDate;
+  console.log('⛽⛽⛽ GAS MAINT QUERY SETUP:', { 
+    gasMaintView, 
+    dates: profitLossDates, 
+    enabled: gasMaintEnabled,
+    startDateCheck: !!profitLossDates.startDate,
+    endDateCheck: !!profitLossDates.endDate
+  });
   const { data: gasMaintResponse, isLoading: gasMaintLoading } = useQuery({
     queryKey: ["/api/reports/gas-maintenance", gasMaintView, profitLossDates.startDate, profitLossDates.endDate],
     queryFn: async () => {
@@ -251,7 +258,7 @@ export default function Reports() {
       console.log('⛽ GAS/MAINTENANCE RESPONSE:', data);
       return data;
     },
-    enabled: !!profitLossDates.startDate && !!profitLossDates.endDate,
+    enabled: gasMaintEnabled,
     staleTime: 0,
     refetchOnMount: 'always',
   });
