@@ -241,7 +241,17 @@ export default function Reports() {
   // Fetch gas and maintenance cost data
   const { data: gasMaintResponse, isLoading: gasMaintLoading } = useQuery({
     queryKey: ["/api/reports/gas-maintenance", gasMaintView, profitLossDates.startDate, profitLossDates.endDate],
-   enabled: !!profitLossDates.startDate && !!profitLossDates.endDate,
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        startDate: profitLossDates.startDate || '',
+        endDate: profitLossDates.endDate || '',
+        view: gasMaintView
+      });
+      const response = await fetch(`/api/reports/gas-maintenance?${params}`);
+      if (!response.ok) throw new Error('Failed to fetch gas/maintenance data');
+      return response.json();
+    },
+    enabled: !!profitLossDates.startDate && !!profitLossDates.endDate,
     staleTime: 0,
     refetchOnMount: 'always',
   });
