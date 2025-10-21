@@ -12081,10 +12081,14 @@ ${fromName || ''}
       const user = getAuthenticatedUser(req);
       const organizationId = user.organizationId;
       
+      console.log('⛽ GAS-MAINTENANCE API CALLED:', { user: user.email, organizationId, query: req.query });
+      
       // Parse date range (default to last 12 months)
       const { startDate: startParam, endDate: endParam, view = 'monthly' } = req.query;
       const startDate = startParam ? new Date(startParam as string) : new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
       const endDate = endParam ? new Date(endParam as string) : new Date();
+      
+      console.log('⛽ DATE RANGE:', { startDate, endDate, view });
       
       // Fetch gas/fuel expenses
       const gasExpenses = await db.select()
@@ -12104,6 +12108,8 @@ ${fromName || ''}
           )
         );
       
+      console.log('⛽ FOUND GAS EXPENSES:', gasExpenses.length);
+      
       // Fetch vehicle maintenance records
       const maintenanceRecords = await db.select()
         .from(vehicleMaintenanceRecords)
@@ -12114,6 +12120,8 @@ ${fromName || ''}
             lte(vehicleMaintenanceRecords.performedDate, endDate)
           )
         );
+      
+      console.log('⛽ FOUND MAINTENANCE RECORDS:', maintenanceRecords.length);
       
       // Group based on view type
       const groupedData: Record<string, any> = {};
