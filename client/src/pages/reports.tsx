@@ -238,7 +238,8 @@ export default function Reports() {
     refetchOnMount: 'always', // Always refetch on mount
   });
 
-  // Fetch gas and maintenance cost data
+  // Fetch gas and maintenance cost data  
+  console.log('⛽⛽⛽ GAS MAINT QUERY SETUP:', { gasMaintView, dates: profitLossDates });
   const { data: gasMaintResponse, isLoading: gasMaintLoading } = useQuery({
     queryKey: ["/api/reports/gas-maintenance", gasMaintView, profitLossDates.startDate, profitLossDates.endDate],
     queryFn: async () => {
