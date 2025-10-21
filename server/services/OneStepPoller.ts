@@ -132,10 +132,10 @@ export class OneStepPoller {
             deviceId: device.device_id,
             latitude: point.lat.toString(),
             longitude: point.lng.toString(),
-            speed: point.device_speed?.toString() || "0",
-            heading: point.direction?.toString() || "0",
+            speed: point.device_speed?.toString() ?? "0",
+            heading: point.direction?.toString() ?? "0",
             timestamp: new Date(point.dt_tracker),
-          }).onConflictDoNothing();
+          } as any).onConflictDoNothing();
 
           pingsStored++;
         } catch (error: any) {
@@ -176,19 +176,19 @@ export class OneStepPoller {
         await db
           .update(onestepSyncState)
           .set({
-            syncStatus: "syncing",
+            syncStatus: "syncing" as any,
             updatedAt: now,
             lastSyncTimestamp: now,
-          })
+          } as any)
           .where(eq(onestepSyncState.id, existing[0].id));
       } else {
         await db.insert(onestepSyncState).values({
           organizationId,
           vehicleId: null,
-          syncStatus: "syncing",
+          syncStatus: "syncing" as any,
           lastSyncTimestamp: now,
           tripsImported: 0,
-        });
+        } as any);
       }
 
       return true;
