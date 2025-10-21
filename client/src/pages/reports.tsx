@@ -240,11 +240,16 @@ export default function Reports() {
     queryKey: ["/api/reports/gas-maintenance", gasMaintView, profitLossDates.startDate, profitLossDates.endDate],
     queryFn: async () => {
       const params = `startDate=${profitLossDates.startDate}&endDate=${profitLossDates.endDate}&view=${gasMaintView}`;
+      console.log('⛽ FETCHING GAS/MAINTENANCE DATA:', `/api/reports/gas-maintenance?${params}`);
       const response = await fetch(`/api/reports/gas-maintenance?${params}`);
       if (!response.ok) throw new Error('Failed to fetch gas/maintenance data');
-      return response.json();
+      const data = await response.json();
+      console.log('⛽ GAS/MAINTENANCE RESPONSE:', data);
+      return data;
     },
-    enabled: true,
+    enabled: !!profitLossDates.startDate && !!profitLossDates.endDate,
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   const gasMaintData = gasMaintResponse?.data || [];
