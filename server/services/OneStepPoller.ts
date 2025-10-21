@@ -3,7 +3,8 @@ import { vehicles, settings, obdLocationData, onestepSyncState } from "@shared/s
 import { eq, and, sql } from "drizzle-orm";
 
 interface OneStepDevice {
-  display_name: string;
+  device_id: string; // Stable unique identifier
+  display_name: string; // Human-readable name (mutable)
   lat?: number;
   lng?: number;
   latest_device_point?: {
@@ -116,7 +117,7 @@ export class OneStepPoller {
 
       for (const vehicle of mappedVehicles) {
         const device = devices.find(
-          (d) => d.display_name === vehicle.oneStepGpsDeviceId
+          (d) => d.device_id === vehicle.oneStepGpsDeviceId
         );
 
         if (!device) continue;
@@ -128,7 +129,7 @@ export class OneStepPoller {
           await db.insert(obdLocationData).values({
             organizationId,
             vehicleId: vehicle.id,
-            deviceId: device.display_name,
+            deviceId: device.device_id,
             latitude: point.lat.toString(),
             longitude: point.lng.toString(),
             speed: point.device_speed || 0,

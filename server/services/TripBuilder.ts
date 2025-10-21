@@ -16,7 +16,7 @@ interface LocationPoint {
 
 export class TripBuilder {
   private readonly TRIP_START_SPEED_MPH = 3;
-  private readonly TRIP_START_MIN_DISTANCE_MILES = 0.03; // ~150 feet
+  private readonly TRIP_START_MIN_DISTANCE_MILES = 0.093; // 150 meters (~490 feet)
   private readonly TRIP_END_IDLE_MINUTES = 10;
   private readonly MIN_CONSECUTIVE_POINTS = 2;
 
@@ -41,42 +41,56 @@ export class TripBuilder {
   }
 
   private async processVehiclePings(organizationId: number, vehicleId: number) {
-    const activeTrip = await db
-      .select()
-      .from(obdTrips)
-      .where(
-        and(
-          eq(obdTrips.organizationId, organizationId),
-          eq(obdTrips.vehicleId, vehicleId),
-          eq(obdTrips.status, "active")
+    const BATCH_SIZE = 100;
+    let processedCount = 0;
+
+    while (true) {
+      const activeTrip = await db
+        .select()
+        .from(obdTrips)
+        .where(
+          and(
+            eq(obdTrips.organizationId, organizationId),
+            eq(obdTrips.vehicleId, vehicleId),
+            eq(obdTrips.status, "active")
+          )
         )
-      )
-      .orderBy(desc(obdTrips.startTime))
-      .limit(1);
+        .orderBy(desc(obdTrips.startTime))
+        .limit(1);
 
-    const lastProcessedTime = activeTrip.length
-      ? new Date(activeTrip[0].endTime || activeTrip[0].startTime)
-      : new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const lastProcessedTime = activeTrip.length
+        ? new Date(activeTrip[0].endTime || activeTrip[0].startTime)
+        : new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-    const newPings = await db
-      .select()
-      .from(obdLocationData)
-      .where(
-        and(
-          eq(obdLocationData.organizationId, organizationId),
-          eq(obdLocationData.vehicleId, vehicleId),
-          sql`${obdLocationData.timestamp} > ${lastProcessedTime}`
+      const newPings = await db
+        .select()
+        .from(obdLocationData)
+        .where(
+          and(
+            eq(obdLocationData.organizationId, organizationId),
+            eq(obdLocationData.vehicleId, vehicleId),
+            sql`${obdLocationData.timestamp} > ${lastProcessedTime}`
+          )
         )
-      )
-      .orderBy(obdLocationData.timestamp)
-      .limit(100);
+        .orderBy(obdLocationData.timestamp)
+        .limit(BATCH_SIZE);
 
-    if (newPings.length === 0) return;
+      if (newPings.length === 0) break;
 
-    if (activeTrip.length > 0) {
-      await this.updateActiveTrip(activeTrip[0], newPings as any[]);
-    } else {
-      await this.detectAndCreateTrip(organizationId, vehicleId, newPings as any[]);
+      if (activeTrip.length > 0) {
+        await this.updateActiveTrip(activeTrip[0], newPings as any[]);
+      } else {
+        await this.detectAndCreateTrip(organizationId, vehicleId, newPings as any[]);
+      }
+
+      processedCount += newPings.length;
+
+      // If we got fewer pings than the batch size, we're done
+      if (newPings.length < BATCH_SIZE) break;
+    }
+
+    if (processedCount > 0) {
+      console.log(`📊 Processed ${processedCount} pings for vehicle ${vehicleId}`);
     }
   }
 

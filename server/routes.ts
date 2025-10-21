@@ -21429,38 +21429,80 @@ ${fromName || ''}
         return res.status(400).json({ message: "Device ID is required" });
       }
 
-      // Update all existing location data for this device with the vehicle mapping
-      await db
-        .update(obdLocationData)
-        .set({ vehicleId: vehicleId || null })
-        .where(and(
-          eq(obdLocationData.deviceId, deviceId),
-          eq(obdLocationData.organizationId, user.organizationId)
-        ));
+      if (vehicleId) {
+        // Clear this device from any other vehicles first
+        await db
+          .update(vehicles)
+          .set({ 
+            oneStepGpsDeviceId: null,
+            oneStepGpsEnabled: false
+          })
+          .where(and(
+            eq(vehicles.organizationId, user.organizationId),
+            eq(vehicles.oneStepGpsDeviceId, deviceId)
+          ));
 
-      // Update all diagnostic data for this device
-      await db
-        .update(obdDiagnosticData)
-        .set({ vehicleId: vehicleId || null })
-        .where(and(
-          eq(obdDiagnosticData.deviceId, deviceId),
-          eq(obdDiagnosticData.organizationId, user.organizationId)
-        ));
+        // Map the device to the selected vehicle
+        await db
+          .update(vehicles)
+          .set({ 
+            oneStepGpsDeviceId: deviceId,
+            oneStepGpsEnabled: true
+          })
+          .where(and(
+            eq(vehicles.id, vehicleId),
+            eq(vehicles.organizationId, user.organizationId)
+          ));
+      } else {
+        // Unmap: disable GPS on any vehicle using this device
+        await db
+          .update(vehicles)
+          .set({ 
+            oneStepGpsDeviceId: null,
+            oneStepGpsEnabled: false
+          })
+          .where(and(
+            eq(vehicles.organizationId, user.organizationId),
+            eq(vehicles.oneStepGpsDeviceId, deviceId)
+          ));
+      }
 
-      // Update all trips for this device
-      await db
-        .update(obdTrips)
-        .set({ vehicleId: vehicleId || null })
-        .where(and(
-          eq(obdTrips.deviceId, deviceId),
-          eq(obdTrips.organizationId, user.organizationId)
-        ));
+      // Update only unmapped (vehicleId IS NULL) location data to prevent historical corruption
+      // This preserves historical associations when devices move between vehicles
+      if (vehicleId) {
+        await db
+          .update(obdLocationData)
+          .set({ vehicleId })
+          .where(and(
+            eq(obdLocationData.deviceId, deviceId),
+            eq(obdLocationData.organizationId, user.organizationId),
+            sql`${obdLocationData.vehicleId} IS NULL`
+          ));
+
+        await db
+          .update(obdDiagnosticData)
+          .set({ vehicleId })
+          .where(and(
+            eq(obdDiagnosticData.deviceId, deviceId),
+            eq(obdDiagnosticData.organizationId, user.organizationId),
+            sql`${obdDiagnosticData.vehicleId} IS NULL`
+          ));
+
+        await db
+          .update(obdTrips)
+          .set({ vehicleId })
+          .where(and(
+            eq(obdTrips.deviceId, deviceId),
+            eq(obdTrips.organizationId, user.organizationId),
+            sql`${obdTrips.vehicleId} IS NULL`
+          ));
+      }
 
       res.json({ 
         success: true, 
         message: vehicleId 
-          ? "Device mapped to vehicle successfully" 
-          : "Device unmapped from vehicle successfully"
+          ? "Device mapped to vehicle successfully and GPS tracking enabled" 
+          : "Device unmapped from vehicle successfully and GPS tracking disabled"
       });
     } catch (error: any) {
       console.error("Error mapping device to vehicle:", error);

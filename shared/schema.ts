@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, decimal, uuid, varchar, jsonb, date, time, pgEnum, unique } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, decimal, uuid, varchar, jsonb, date, time, pgEnum, unique, uniqueIndex } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -5125,7 +5125,14 @@ export const obdLocationData = pgTable("obd_location_data", {
   accuracy: decimal("accuracy", { precision: 6, scale: 2 }), // meters
   timestamp: timestamp("timestamp").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => ({
+  // Unique index to prevent duplicate location pings
+  uniqueLocationPing: uniqueIndex("unique_location_ping").on(
+    table.organizationId,
+    table.deviceId,
+    table.timestamp
+  ),
+}));
 
 export const obdDiagnosticData = pgTable("obd_diagnostic_data", {
   id: serial("id").primaryKey(),

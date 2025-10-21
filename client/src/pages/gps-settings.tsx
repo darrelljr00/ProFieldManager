@@ -17,7 +17,8 @@ function OneStepGPSDevices({ formData }: { formData: any }) {
 
   // Fetch vehicles for device mapping
   const { data: vehicles } = useQuery<any[]>({
-    queryKey: ['/api/vehicles']
+    queryKey: ['/api/vehicles'],
+    refetchInterval: 5000 // Refresh every 5 seconds to show latest mappings
   });
 
   // Fetch One Step GPS devices
@@ -56,6 +57,7 @@ function OneStepGPSDevices({ formData }: { formData: any }) {
       return apiRequest('POST', '/api/onestep/map-device', { deviceId, vehicleId });
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/vehicles'] });
       toast({
         title: "Device mapped",
         description: "Device mapped to vehicle successfully.",
@@ -144,6 +146,9 @@ function OneStepGPSDevices({ formData }: { formData: any }) {
                 <div className="flex items-center gap-2">
                   <LinkIcon className="w-4 h-4 text-gray-400" />
                   <Select
+                    value={
+                      vehicles?.find((v: any) => v.oneStepGpsDeviceId === device.device_id)?.id?.toString() || 'none'
+                    }
                     onValueChange={(value) => {
                       const vehicleId = value === 'none' ? null : parseInt(value);
                       mapDeviceMutation.mutate({ deviceId: device.device_id, vehicleId });
@@ -157,6 +162,7 @@ function OneStepGPSDevices({ formData }: { formData: any }) {
                       {vehicles?.map((vehicle: any) => (
                         <SelectItem key={vehicle.id} value={vehicle.id.toString()}>
                           {vehicle.vehicleNumber} - {vehicle.licensePlate}
+                          {vehicle.oneStepGpsEnabled && vehicle.oneStepGpsDeviceId === device.device_id ? ' ✓' : ''}
                         </SelectItem>
                       ))}
                     </SelectContent>

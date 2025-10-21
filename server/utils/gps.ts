@@ -45,7 +45,7 @@ export function isSignificantMovement(
   distanceMiles: number,
   speedMph: number
 ): boolean {
-  const MIN_DISTANCE_MILES = 0.03; // ~150 feet (~50m)
+  const MIN_DISTANCE_MILES = 0.093; // 150 meters (~490 feet)
   const MIN_SPEED_MPH = 0.5;
   
   return distanceMiles >= MIN_DISTANCE_MILES && speedMph >= MIN_SPEED_MPH;
