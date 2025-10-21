@@ -15812,7 +15812,7 @@ ${fromName || ''}
           and(
             eq(vehicles.organizationId, user.organizationId),
             eq(vehicles.onestepGpsEnabled, true),
-            isNull(vehicles.deletedAt)
+            eq(vehicles.isActive, true)
           )
         );
 
