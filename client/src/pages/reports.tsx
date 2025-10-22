@@ -259,7 +259,14 @@ export default function Reports() {
     const abortController = new AbortController();
     
     async function fetchGasMaintData() {
+      console.log('🔍 GAS/MAINT FETCH CHECK:', { 
+        startDate: profitLossDates.startDate, 
+        endDate: profitLossDates.endDate,
+        view: gasMaintView 
+      });
+      
       if (!profitLossDates.startDate || !profitLossDates.endDate) {
+        console.log('❌ GAS/MAINT BLOCKED - Missing dates');
         setGasMaintData([]);
         setGasMaintSummary({
           totalGasCost: 0,
