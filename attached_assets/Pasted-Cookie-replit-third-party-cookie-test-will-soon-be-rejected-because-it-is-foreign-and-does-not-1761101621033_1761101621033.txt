@@ -1,0 +1,86 @@
+Cookie “__replit_third_party_cookie_test__” will soon be rejected because it is foreign and does not have the “Partitioned“ attribute. workspace_iframe.html
+Cookie “__replit_third_party_cookie_test__” will soon be rejected because it is foreign and does not have the “Partitioned“ attribute. workspace_iframe.html
+Partitioned cookie or storage access was provided to “https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/” because it is loaded in the third-party context and dynamic state partitioning is enabled.
+api-config.ts:88:5
+Partitioned cookie or storage access was provided to “https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=%3Ar1q%3A” because it is loaded in the third-party context and dynamic state partitioning is enabled.
+workspace_iframe.html:92:32
+Firefox can’t establish a connection to the server at wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws. useWebSocket.ts:37:16
+Firefox can’t establish a connection to the server at wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws. useWebSocket.ts:37:16
+Firefox can’t establish a connection to the server at wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws. useWebSocket.ts:37:16
+Firefox can’t establish a connection to the server at wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws. useWebSocket.ts:37:16
+Firefox can’t establish a connection to the server at wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws. useWebSocket.ts:37:16
+Firefox can’t establish a connection to the server at wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws. useWebSocket.ts:37:16
+The connection to wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws was interrupted while the page was loading. useWebSocket.ts:37:16
+The connection to wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws was interrupted while the page was loading. useWebSocket.ts:37:16
+The connection to wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws was interrupted while the page was loading. useWebSocket.ts:37:16
+The connection to wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws was interrupted while the page was loading. useWebSocket.ts:37:16
+The connection to wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws was interrupted while the page was loading. useWebSocket.ts:37:16
+The connection to wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws was interrupted while the page was loading. useWebSocket.ts:37:16
+Partitioned cookie or storage access was provided to “https://m.stripe.network/inner.html#url=https%3A%2F%2Freplit.com%2F%40darrelljr00%2FAIDataStudio&title=AIDataStudio%20-%20Replit&referrer=https%3A%2F%2Freplit.com%2Flogin%3Fredirecting%3D1&muid=4d6d08b8-f506-4982-8aed-845ecba66858755886&sid=NA&version=6&preview=false&__shared_params__[version]=acacia” because it is loaded in the third-party context and dynamic state partitioning is enabled.
+out-4.5.45.js:1:39660
+Cookie “m” will soon be rejected because it is foreign and does not have the “Partitioned“ attribute. 6
+Cookie “m” will soon be rejected because it is foreign and does not have the “Partitioned“ attribute. 6
+Firefox can’t establish a connection to the server at wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws. useWebSocket.ts:37:16
+Firefox can’t establish a connection to the server at wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws. useWebSocket.ts:37:16
+Firefox can’t establish a connection to the server at wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws. useWebSocket.ts:37:16
+Firefox can’t establish a connection to the server at wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws. useWebSocket.ts:37:16
+Firefox can’t establish a connection to the server at wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws. useWebSocket.ts:37:16
+Firefox can’t establish a connection to the server at wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws. useWebSocket.ts:37:16
+The connection to wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws was interrupted while the page was loading. useWebSocket.ts:37:16
+The connection to wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws was interrupted while the page was loading. useWebSocket.ts:37:16
+The connection to wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws was interrupted while the page was loading. useWebSocket.ts:37:16
+The connection to wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws was interrupted while the page was loading. useWebSocket.ts:37:16
+The connection to wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws was interrupted while the page was loading. useWebSocket.ts:37:16
+The connection to wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws was interrupted while the page was loading. useWebSocket.ts:37:16
+stallwart: failed ping 1 stallwart.build.js:1:886
+Firefox can’t establish a connection to the server at wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws. useWebSocket.ts:37:16
+Firefox can’t establish a connection to the server at wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws. useWebSocket.ts:37:16
+The connection to wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws was interrupted while the page was loading. useWebSocket.ts:37:16
+The connection to wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws was interrupted while the page was loading. useWebSocket.ts:37:16
+🚀🚀🚀 REPORTS COMPONENT LOADED - BUILD TIME: 2025-10-22T02:53:05.057Z injected.js:27:27
+✨ ABOUT TO REGISTER GAS/MAINT useEffect - Dependencies: 
+Object { gasMaintView: "job", startDate: "2024-10-22T02:53:04.995Z", endDate: "2025-10-22T02:53:04.995Z" }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-22T02%3A53%3A05.057Z&endDate=2025-10-22T02%3A53%3A05.057Z", fullUrl: "/api/reports/data?startDate=2025-09-22T02%3A53%3A05.057Z&endDate=2025-10-22T02%3A53%3A05.057Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🚀🚀🚀 REPORTS COMPONENT LOADED - BUILD TIME: 2025-10-22T02:53:05.065Z injected.js:27:27
+✨ ABOUT TO REGISTER GAS/MAINT useEffect - Dependencies: 
+Object { gasMaintView: "job", startDate: "2024-10-22T02:53:04.995Z", endDate: "2025-10-22T02:53:04.995Z" }
+injected.js:27:27
+🚀🚀🚀 REPORTS COMPONENT LOADED - BUILD TIME: 2025-10-22T02:53:05.065Z injected.js:27:27
+✨ ABOUT TO REGISTER GAS/MAINT useEffect - Dependencies: 
+Object { gasMaintView: "job", startDate: "2024-10-22T02:53:04.995Z", endDate: "2025-10-22T02:53:04.995Z" }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-22T02%3A53%3A05.065Z&endDate=2025-10-22T02%3A53%3A05.065Z", fullUrl: "/api/reports/data?startDate=2025-09-22T02%3A53%3A05.065Z&endDate=2025-10-22T02%3A53%3A05.065Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🚀🚀🚀 REPORTS COMPONENT LOADED - BUILD TIME: 2025-10-22T02:53:05.072Z injected.js:27:27
+✨ ABOUT TO REGISTER GAS/MAINT useEffect - Dependencies: 
+Object { gasMaintView: "job", startDate: "2024-10-22T02:53:04.995Z", endDate: "2025-10-22T02:53:04.995Z" }
+injected.js:27:27
+🚀🚀🚀 REPORTS COMPONENT LOADED - BUILD TIME: 2025-10-22T02:53:05.072Z injected.js:27:27
+✨ ABOUT TO REGISTER GAS/MAINT useEffect - Dependencies: 
+Object { gasMaintView: "job", startDate: "2024-10-22T02:53:04.995Z", endDate: "2025-10-22T02:53:04.995Z" }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-22T02%3A53%3A05.072Z&endDate=2025-10-22T02%3A53%3A05.072Z", fullUrl: "/api/reports/data?startDate=2025-09-22T02%3A53%3A05.072Z&endDate=2025-10-22T02%3A53%3A05.072Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🚀🚀🚀 REPORTS COMPONENT LOADED - BUILD TIME: 2025-10-22T02:53:05.075Z injected.js:27:27
+✨ ABOUT TO REGISTER GAS/MAINT useEffect - Dependencies: 
+Object { gasMaintView: "job", startDate: "2024-10-22T02:53:04.995Z", endDate: "2025-10-22T02:53:04.995Z" }
+injected.js:27:27
+🚀🚀🚀 REPORTS COMPONENT LOADED - BUILD TIME: 2025-10-22T02:53:05.076Z injected.js:27:27
+✨ ABOUT TO REGISTER GAS/MAINT useEffect - Dependencies: 
+Object { gasMaintView: "job", startDate: "2024-10-22T02:53:04.995Z", endDate: "2025-10-22T02:53:04.995Z" }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-22T02%3A53%3A05.076Z&endDate=2025-10-22T02%3A53%3A05.076Z", fullUrl: "/api/reports/data?startDate=2025-09-22T02%3A53%3A05.076Z&endDate=2025-10-22T02%3A53%3A05.076Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+WebSocket disconnected injected.js:27:27
+🚀🚀🚀 REPORTS COMPONENT LOADED - BUILD TIME: 2025-10-22T02:53:05.119Z injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-22T02%3A53%3A36.369Z&endDate=2025-10-22T02%3A53%3A36.369Z", fullUrl: "/api/reports/data?startDate=2025-09-22T02%3A53%3A36.369Z&endDate=2025-10-22T02%3A53%3A36.369Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+
+​

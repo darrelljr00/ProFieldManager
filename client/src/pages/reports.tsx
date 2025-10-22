@@ -134,8 +134,8 @@ export default function Reports() {
     return { start, end };
   };
 
-  // Build query parameters for date filtering
-  const getQueryParams = () => {
+  // Build query parameters for date filtering (memoized to prevent infinite re-renders)
+  const queryParams = useMemo(() => {
     const params = new URLSearchParams();
     if (useCustomRange && startDate && endDate) {
       params.append('startDate', startDate.toISOString());
@@ -144,16 +144,16 @@ export default function Reports() {
       params.append('timeRange', timeRange);
     }
     return params.toString();
-  };
+  }, [useCustomRange, startDate, endDate, timeRange]);
 
-  // Build query parameters for employee metrics with different date range
-  const getEmployeeQueryParams = () => {
+  // Build query parameters for employee metrics with different date range (memoized)
+  const employeeQueryParams = useMemo(() => {
     const params = new URLSearchParams();
     const { start, end } = getDateRangeFromSelection(employeeDateRange);
     params.append('startDate', start.toISOString());
     params.append('endDate', end.toISOString());
     return params.toString();
-  };
+  }, [employeeDateRange]);
 
   // Helper function to filter employee data based on date range
   const filterEmployeeDataByDateRange = (employees: any[], dateRange: string) => {
@@ -166,7 +166,7 @@ export default function Reports() {
 
   // Fetch consolidated reports data
   const { data: reportsData, isLoading: reportsLoading, refetch } = useQuery<any>({
-    queryKey: [`/api/reports/data?${getQueryParams()}`],
+    queryKey: [`/api/reports/data?${queryParams}`],
     select: (data) => data || { metrics: {}, data: { invoices: [], leads: [], expenses: [], customers: [], employees: [] } }
   });
 
@@ -572,7 +572,7 @@ export default function Reports() {
 
   // Fetch employee metrics with separate date range
   const { data: employeeData, isLoading: employeeLoading, refetch: refetchEmployees } = useQuery<any>({
-    queryKey: [`/api/reports/data?${getEmployeeQueryParams()}`],
+    queryKey: [`/api/reports/data?${employeeQueryParams}`],
     select: (data: any) => {
       try {
         const employees = data?.data?.employees || getAllEmployeeData();
