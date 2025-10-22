@@ -86,7 +86,7 @@ export class OneStepPoller {
       const apiKey = apiKeySetting[0].value;
       
       const response = await fetch(
-        `https://track.onestepgps.com/v3/api/public/device-info?lat_lng=1&api-key=${apiKey}`,
+        `https://track.onestepgps.com/v3/api/public/device-info?lat_lng=1&device_speed=1&direction=1&api-key=${apiKey}`,
         { signal: AbortSignal.timeout(10000) }
       );
 

@@ -90,6 +90,7 @@ import archiver from 'archiver';
 // Removed fileUploadRouter import - using direct route instead
 // Object storage imports already imported at top - removed duplicates
 import { NotificationService, setBroadcastFunction } from "./notificationService";
+import { calculateSpeed } from "./utils/gps";
 
 // Extend Express Request type to include user
 declare global {
@@ -21022,6 +21023,49 @@ ${fromName || ''}
               }
             }
 
+
+            // Calculate speed from last 2 GPS pings for each device
+            for (const location of locations) {
+              try {
+                // Query last 2 pings for this device ordered by timestamp DESC
+                const recentPings = await db
+                  .select()
+                  .from(obdLocationData)
+                  .where(
+                    and(
+                      eq(obdLocationData.organizationId, user.organizationId),
+                      eq(obdLocationData.deviceId, location.deviceId)
+                    )
+                  )
+                  .orderBy(desc(obdLocationData.timestamp))
+                  .limit(2);
+
+                // If we have at least 2 pings, calculate speed from them
+                if (recentPings.length >= 2) {
+                  const ping1 = recentPings[1]; // Older ping
+                  const ping2 = recentPings[0]; // Newer ping
+                  
+                  const calculatedSpeed = calculateSpeed(
+                    parseFloat(ping1.latitude),
+                    parseFloat(ping1.longitude),
+                    new Date(ping1.timestamp),
+                    parseFloat(ping2.latitude),
+                    parseFloat(ping2.longitude),
+                    new Date(ping2.timestamp)
+                  );
+                  
+                  // Update the location speed with the calculated value
+                  location.speed = calculatedSpeed;
+                  
+                  console.log(`📊 Calculated speed for device ${location.deviceId}: ${calculatedSpeed.toFixed(1)} mph`);
+                } else {
+                  console.log(`⚠️  Not enough pings to calculate speed for device ${location.deviceId} (found ${recentPings.length})`);
+                }
+              } catch (speedCalcError) {
+                console.error(`Error calculating speed for device ${location.deviceId}:`, speedCalcError);
+                // Keep original speed (0) if calculation fails
+              }
+            }
             // If specific device or vehicle requested, filter results
             if (deviceId) {
               const location = locations.find((loc: any) => loc.deviceId === deviceId);
