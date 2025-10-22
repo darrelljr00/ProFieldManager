@@ -84,7 +84,7 @@ export const isCustomDomain = (): boolean => {
   
   // Clear only domain-specific flags when on Replit domain (preserve auth tokens)
   if (hostname.includes('replit.dev') || hostname.includes('repl.co')) {
-    console.log('🧹 CLEARING STALE CUSTOM DOMAIN FLAGS - We are on Replit domain');
+    // console.log('🧹 CLEARING STALE CUSTOM DOMAIN FLAGS - We are on Replit domain');
     localStorage.removeItem('accessed_from_custom_domain');
     localStorage.removeItem('custom_domain_session');
     // CRITICAL FIX: Do NOT clear auth_token - it's needed for API authentication
@@ -111,20 +111,21 @@ export const isCustomDomain = (): boolean => {
   
   const isCustom = directMatch || urlContainsCustomDomain || originContainsCustomDomain || hasCustomDomainFlag || referrerFromCustomDomain || hasCustomDomainSession;
   
-  console.log('🔍 ENHANCED CUSTOM DOMAIN CHECK:', {
-    hostname,
-    href,
-    origin,
-    expectedCustomDomain: API_CONFIG.customDomain.hostname,
-    directMatch,
-    urlContainsCustomDomain,
-    originContainsCustomDomain,
-    hasCustomDomainFlag,
-    referrerFromCustomDomain,
-    hasCustomDomainSession,
-    documentReferrer: document.referrer,
-    finalResult: isCustom
-  });
+  // Disabled to reduce console noise - uncomment for debugging
+  // console.log('🔍 ENHANCED CUSTOM DOMAIN CHECK:', {
+  //   hostname,
+  //   href,
+  //   origin,
+  //   expectedCustomDomain: API_CONFIG.customDomain.hostname,
+  //   directMatch,
+  //   urlContainsCustomDomain,
+  //   originContainsCustomDomain,
+  //   hasCustomDomainFlag,
+  //   referrerFromCustomDomain,
+  //   hasCustomDomainSession,
+  //   documentReferrer: document.referrer,
+  //   finalResult: isCustom
+  // });
   
   // If we detect custom domain access, store the flag for future requests
   if (isCustom && !hasCustomDomainFlag) {
@@ -147,15 +148,16 @@ export const getAuthHeaders = (): Record<string, string> => {
   
   if (token) {
     headers.Authorization = `Bearer ${token}`;
-    console.log('✅ AUTH HEADERS: Using Bearer token authentication', {
-      hasToken: true,
-      tokenLength: token.length,
-      isCustomDomain: isCustomDomain()
-    });
+    // Disabled to reduce console noise - uncomment for debugging
+    // console.log('✅ AUTH HEADERS: Using Bearer token authentication', {
+    //   hasToken: true,
+    //   tokenLength: token.length,
+    //   isCustomDomain: isCustomDomain()
+    // });
   } else {
-    console.log('🔐 AUTH HEADERS: No token found, falling back to cookie auth', {
-      isCustomDomain: isCustomDomain()
-    });
+    // console.log('🔐 AUTH HEADERS: No token found, falling back to cookie auth', {
+    //   isCustomDomain: isCustomDomain()
+    // });
   }
   
   return headers;
