@@ -211,14 +211,14 @@ export default function Reports() {
     return `startDate=${start.toISOString()}&endDate=${end.toISOString()}`;
   };
 
-  const { data: profitPerVehicleData, isLoading: profitPerVehicleLoading } = useQuery({
-    queryKey: ["/api/reports/profit-per-vehicle", timeRange],
-    queryFn: async () => {
-      const params = getProfitPerVehicleParams();
-      const response = await fetch(`/api/reports/profit-per-vehicle?${params}`);
-      if (!response.ok) throw new Error('Failed to fetch profit per vehicle data');
-      return response.json();
-    },
+  // Memoize profit per vehicle params
+  const profitPerVehicleParams = useMemo(() => {
+    const { start, end } = getDateRangeFromSelection(timeRange);
+    return `startDate=${start.toISOString()}&endDate=${end.toISOString()}`;
+  }, [timeRange]);
+
+  const { data: profitPerVehicleData, isLoading: profitPerVehicleLoading } = useQuery<any>({
+    queryKey: [`/api/reports/profit-per-vehicle?${profitPerVehicleParams}`],
   });
 
   // Fetch profit/loss detailed data with on-site labor costs
@@ -239,18 +239,9 @@ export default function Reports() {
     };
   }, [useCustomRange, startDate, endDate, timeRange]);
 
-  const { data: profitLossDetailedData, isLoading: profitLossDetailedLoading, refetch: refetchProfitLossDetailed } = useQuery({
-    queryKey: ["/api/reports/profit-loss-detailed", profitLossView, profitLossDates.startDate, profitLossDates.endDate],
-    queryFn: async () => {
-      const params = `startDate=${profitLossDates.startDate}&endDate=${profitLossDates.endDate}&view=${profitLossView}`;
-      console.log('🔍 FETCHING PROFIT/LOSS DATA:', `/api/reports/profit-loss-detailed?${params}`);
-      const response = await fetch(`/api/reports/profit-loss-detailed?${params}`);
-      if (!response.ok) throw new Error('Failed to fetch profit/loss detailed data');
-      const data = await response.json();
-      console.log('📊 PROFIT/LOSS RESPONSE:', data);
-      return data;
-    },
-    select: (data) => {
+  const { data: profitLossDetailedData, isLoading: profitLossDetailedLoading, refetch: refetchProfitLossDetailed } = useQuery<any>({
+    queryKey: [`/api/reports/profit-loss-detailed?startDate=${profitLossDates.startDate}&endDate=${profitLossDates.endDate}&view=${profitLossView}`],
+    select: (data: any) => {
       // Map backend field names to frontend expectations (immutably)
       console.log('🔄 SELECT TRANSFORM INPUT:', data);
       if (!data?.data) return data;
@@ -646,21 +637,15 @@ export default function Reports() {
     // Handle direct employee metrics updates
     if (lastMessage.type === 'employee_metrics_updated') {
       console.log('Direct employee metrics update received');
-      if (lastMessage.data?.employees) {
-        queryClient.setQueryData(["/api/reports/employee-data", getEmployeeQueryParams()], lastMessage.data.employees);
-      }
+      // Just refetch instead of trying to set query data
+      refetchEmployees();
     }
 
     // Handle employee list updates (additions/removals)
     if (lastMessage.type === 'employee_list_updated') {
       console.log('Employee list update received');
-      if (lastMessage.data?.employees) {
-        // Update the employee data directly
-        queryClient.setQueryData(["/api/reports/employee-data", getEmployeeQueryParams()], lastMessage.data.employees);
-      } else {
-        // Fallback to refetch
-        refetchEmployees();
-      }
+      // Just refetch to get latest data
+      refetchEmployees();
     }
   }, [lastMessage, isConnected, realTimeUpdates, queryClient, refetchEmployees]);
 
@@ -1168,8 +1153,7 @@ export default function Reports() {
                 <Button 
                   onClick={() => {
                     // Force refetch with new date range
-                    const queryKey = ["/api/reports/data", getQueryParams()];
-                    reportsLoading || refetch();
+                    refetch();
                   }}
                   variant="default"
                   size="sm"

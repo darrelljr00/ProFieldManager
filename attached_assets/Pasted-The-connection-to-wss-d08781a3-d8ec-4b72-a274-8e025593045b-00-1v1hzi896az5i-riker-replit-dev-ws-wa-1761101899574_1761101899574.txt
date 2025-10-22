@@ -1,0 +1,45 @@
+The connection to wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws was interrupted while the page was loading. useWebSocket.ts:37:16
+The connection to wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws was interrupted while the page was loading. useWebSocket.ts:37:16
+WebSocket error: 
+error { target: WebSocket, isTrusted: true, srcElement: WebSocket, eventPhase: 0, bubbles: false, cancelable: false, returnValue: true, defaultPrevented: false, composed: false, timeStamp: 3047, … }
+injected.js:27:27
+WebSocket error details: 
+Object { readyState: 3, url: "wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws", protocol: "", extensions: "" }
+injected.js:27:27
+WebSocket disconnected injected.js:27:27
+WebSocket error: 
+error { target: WebSocket, isTrusted: true, srcElement: WebSocket, eventPhase: 0, bubbles: false, cancelable: false, returnValue: true, defaultPrevented: false, composed: false, timeStamp: 3047, … }
+injected.js:27:27
+WebSocket error details: 
+Object { readyState: 3, url: "wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws", protocol: "", extensions: "" }
+injected.js:27:27
+WebSocket disconnected injected.js:27:27
+WebSocket error: 
+error { target: WebSocket, isTrusted: true, srcElement: WebSocket, eventPhase: 0, bubbles: false, cancelable: false, returnValue: true, defaultPrevented: false, composed: false, timeStamp: 3047, … }
+injected.js:27:27
+WebSocket error details: 
+Object { readyState: 3, url: "wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws", protocol: "", extensions: "" }
+injected.js:27:27
+WebSocket disconnected injected.js:27:27
+The connection to wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws was interrupted while the page was loading. useWebSocket.ts:37:16
+The connection to wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws was interrupted while the page was loading. useWebSocket.ts:37:16
+WebSocket error: 
+error { target: WebSocket, isTrusted: true, srcElement: WebSocket, eventPhase: 0, bubbles: false, cancelable: false, returnValue: true, defaultPrevented: false, composed: false, timeStamp: 3048, … }
+injected.js:27:27
+WebSocket error details: 
+Object { readyState: 3, url: "wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws", protocol: "", extensions: "" }
+injected.js:27:27
+WebSocket disconnected injected.js:27:27
+WebSocket error: 
+error { target: WebSocket, isTrusted: true, srcElement: WebSocket, eventPhase: 0, bubbles: false, cancelable: false, returnValue: true, defaultPrevented: false, composed: false, timeStamp: 3048, … }
+injected.js:27:27
+WebSocket error details: 
+Object { readyState: 3, url: "wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws", protocol: "", extensions: "" }
+injected.js:27:27
+WebSocket disconnected injected.js:27:27
+The connection to wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws was interrupted while the page was loading. useWebSocket.ts:37:16
+WebSocket error: 
+error { target: WebSocket, isTrusted: true, srcElement: WebSocket, eventPhase: 0, bubbles: false, cancelable: false, returnValue: true, defaultPrevented: false, composed: false, timeStamp: 3048, … }
+injected.js:27:27
+WebSocket error details: 
+Object { readyState: 3, url: "wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws", protocol: "", extensions: "" }
