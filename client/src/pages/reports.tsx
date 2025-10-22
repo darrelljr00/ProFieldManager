@@ -257,6 +257,12 @@ export default function Reports() {
   const [gasMaintLoading, setGasMaintLoading] = useState(false);
   const [gasMaintError, setGasMaintError] = useState<string | null>(null);
 
+  console.log('✨ ABOUT TO REGISTER GAS/MAINT useEffect - Dependencies:', {
+    gasMaintView,
+    startDate: profitLossDates.startDate,
+    endDate: profitLossDates.endDate
+  });
+
   useEffect(() => {
     const abortController = new AbortController();
     
