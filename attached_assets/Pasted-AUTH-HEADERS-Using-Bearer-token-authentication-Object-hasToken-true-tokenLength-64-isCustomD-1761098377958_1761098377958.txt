@@ -1,0 +1,72 @@
+AUTH HEADERS: Using Bearer token authentication 
+Object { hasToken: true, tokenLength: 64, isCustomDomain: false }
+injected.js:27:27
+🧹 CLEARING STALE CUSTOM DOMAIN FLAGS - We are on Replit domain injected.js:27:27
+🔍 ENHANCED CUSTOM DOMAIN CHECK: 
+Object { hostname: "d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev", href: "https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/dashboard", origin: "https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev", expectedCustomDomain: "profieldmanager.com", directMatch: false, urlContainsCustomDomain: false, originContainsCustomDomain: false, hasCustomDomainFlag: false, referrerFromCustomDomain: false, hasCustomDomainSession: false, … }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/internal-messages", fullUrl: "/api/internal-messages", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🧹 CLEARING STALE CUSTOM DOMAIN FLAGS - We are on Replit domain injected.js:27:27
+🔍 ENHANCED CUSTOM DOMAIN CHECK: 
+Object { hostname: "d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev", href: "https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/dashboard", origin: "https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev", expectedCustomDomain: "profieldmanager.com", directMatch: false, urlContainsCustomDomain: false, originContainsCustomDomain: false, hasCustomDomainFlag: false, referrerFromCustomDomain: false, hasCustomDomainSession: false, … }
+injected.js:27:27
+🧹 CLEARING STALE CUSTOM DOMAIN FLAGS - We are on Replit domain injected.js:27:27
+🔍 ENHANCED CUSTOM DOMAIN CHECK: 
+Object { hostname: "d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev", href: "https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/dashboard", origin: "https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev", expectedCustomDomain: "profieldmanager.com", directMatch: false, urlContainsCustomDomain: false, originContainsCustomDomain: false, hasCustomDomainFlag: false, referrerFromCustomDomain: false, hasCustomDomainSession: false, … }
+injected.js:27:27
+✅ AUTH HEADERS: Using Bearer token authentication 
+Object { hasToken: true, tokenLength: 64, isCustomDomain: false }
+injected.js:27:27
+🧹 CLEARING STALE CUSTOM DOMAIN FLAGS - We are on Replit domain injected.js:27:27
+🔍 ENHANCED CUSTOM DOMAIN CHECK: 
+Object { hostname: "d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev", href: "https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/dashboard", origin: "https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev", expectedCustomDomain: "profieldmanager.com", directMatch: false, urlContainsCustomDomain: false, originContainsCustomDomain: false, hasCustomDomainFlag: false, referrerFromCustomDomain: false, hasCustomDomainSession: false, … }
+injected.js:27:27
+🌐 API Request: 
+Object { method: "GET", originalUrl: "/api/navigation/check-updates?lastCheck=2025-10-22T01%3A46%3A31.748Z", fullUrl: "/api/navigation/check-updates?lastCheck=2025-10-22T01%3A46%3A31.748Z", isCustomDomain: false, hasAuthHeader: true, authHeaderValue: "Bearer 0e59eab1c7a20...", hasFormData: false, formDataEntries: undefined }
+injected.js:27:27
+📡 API Response: 
+Object { originalUrl: "/api/navigation/check-updates?lastCheck=2025-10-22T01%3A46%3A31.748Z", fullUrl: "/api/navigation/check-updates?lastCheck=2025-10-22T01%3A46%3A31.748Z", status: 200, statusText: "OK", ok: true, headers: {…} }
+injected.js:27:27
+🧹 CLEARING STALE CUSTOM DOMAIN FLAGS - We are on Replit domain injected.js:27:27
+🔍 ENHANCED CUSTOM DOMAIN CHECK: 
+Object { hostname: "d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev", href: "https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/dashboard", origin: "https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev", expectedCustomDomain: "profieldmanager.com", directMatch: false, urlContainsCustomDomain: false, originContainsCustomDomain: false, hasCustomDomainFlag: false, referrerFromCustomDomain: false, hasCustomDomainSession: false, … }
+injected.js:27:27
+🧹 CLEARING STALE CUSTOM DOMAIN FLAGS - We are on Replit domain injected.js:27:27
+🔍 ENHANCED CUSTOM DOMAIN CHECK: 
+Object { hostname: "d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev", href: "https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/dashboard", origin: "https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev", expectedCustomDomain: "profieldmanager.com", directMatch: false, urlContainsCustomDomain: false, originContainsCustomDomain: false, hasCustomDomainFlag: false, referrerFromCustomDomain: false, hasCustomDomainSession: false, … }
+injected.js:27:27
+✅ AUTH HEADERS: Using Bearer token authentication 
+Object { hasToken: true, tokenLength: 64, isCustomDomain: false }
+injected.js:27:27
+🧹 CLEARING STALE CUSTOM DOMAIN FLAGS - We are on Replit domain injected.js:27:27
+🔍 ENHANCED CUSTOM DOMAIN CHECK: 
+Object { hostname: "d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev", href: "https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/dashboard", origin: "https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev", expectedCustomDomain: "profieldmanager.com", directMatch: false, urlContainsCustomDomain: false, originContainsCustomDomain: false, hasCustomDomainFlag: false, referrerFromCustomDomain: false, hasCustomDomainSession: false, … }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/notifications/unread-count", fullUrl: "/api/notifications/unread-count", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🧹 CLEARING STALE CUSTOM DOMAIN FLAGS - We are on Replit domain injected.js:27:27
+🔍 ENHANCED CUSTOM DOMAIN CHECK: 
+Object { hostname: "d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev", href: "https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/dashboard", origin: "https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev", expectedCustomDomain: "profieldmanager.com", directMatch: false, urlContainsCustomDomain: false, originContainsCustomDomain: false, hasCustomDomainFlag: false, referrerFromCustomDomain: false, hasCustomDomainSession: false, … }
+injected.js:27:27
+🧹 CLEARING STALE CUSTOM DOMAIN FLAGS - We are on Replit domain injected.js:27:27
+🔍 ENHANCED CUSTOM DOMAIN CHECK: 
+Object { hostname: "d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev", href: "https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/dashboard", origin: "https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev", expectedCustomDomain: "profieldmanager.com", directMatch: false, urlContainsCustomDomain: false, originContainsCustomDomain: false, hasCustomDomainFlag: false, referrerFromCustomDomain: false, hasCustomDomainSession: false, … }
+injected.js:27:27
+✅ AUTH HEADERS: Using Bearer token authentication 
+Object { hasToken: true, tokenLength: 64, isCustomDomain: false }
+injected.js:27:27
+🧹 CLEARING STALE CUSTOM DOMAIN FLAGS - We are on Replit domain injected.js:27:27
+🔍 ENHANCED CUSTOM DOMAIN CHECK: 
+Object { hostname: "d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev", href: "https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/dashboard", origin: "https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev", expectedCustomDomain: "profieldmanager.com", directMatch: false, urlContainsCustomDomain: false, originContainsCustomDomain: false, hasCustomDomainFlag: false, referrerFromCustomDomain: false, hasCustomDomainSession: false, … }
+injected.js:27:27
+🌐 API Request: 
+Object { method: "GET", originalUrl: "/api/navigation/check-updates?lastCheck=2025-10-22T01%3A46%3A31.748Z", fullUrl: "/api/navigation/check-updates?lastCheck=2025-10-22T01%3A46%3A31.748Z", isCustomDomain: false, hasAuthHeader: true, authHeaderValue: "Bearer 0e59eab1c7a20...", hasFormData: false, formDataEntries: undefined }
+injected.js:27:27
+📡 API Response: 
+Object { originalUrl: "/api/navigation/check-updates?lastCheck=2025-10-22T01%3A46%3A31.748Z", fullUrl: "/api/navigation/check-updates?lastCheck=2025-10-22T01%3A46%3A31.748Z", status: 200, statusText: "OK", ok: true, headers: {…} }
+injected.js:27:27
+
+​
