@@ -1,0 +1,57 @@
+Firefox can’t establish a connection to the server at wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/?token=49AGygl4DvQ6. client:536:19
+Uncaught (in promise) DOMException: An invalid or illegal string was specified
+    setupWebSocket client:536
+    fallback client:509
+    setupWebSocket client:555
+client:536
+🚀 SAAS ADMIN MODULE LOADED - Component file is being executed injected.js:27:27
+Router state: 
+Object { isAuthenticated: false, isLoading: true, currentPath: "/" }
+injected.js:27:27
+Router state: 
+Object { isAuthenticated: false, isLoading: true, currentPath: "/" }
+injected.js:27:27
+🔍 USEAUTH: Calling /api/auth/me endpoint injected.js:27:27
+🔍 USEAUTH: Authentication check: 
+Object { isCustomDomain: false, hasStoredToken: true, hasStoredUser: true, tokenLength: 64, hasCookie: false }
+injected.js:27:27
+🔍 USEAUTH: Attempting token-based authentication injected.js:27:27
+🔍 USEAUTH: Calling /api/auth/me endpoint injected.js:27:27
+🔍 USEAUTH: Authentication check: 
+Object { isCustomDomain: false, hasStoredToken: true, hasStoredUser: true, tokenLength: 64, hasCookie: false }
+injected.js:27:27
+🔍 USEAUTH: Attempting token-based authentication injected.js:27:27
+Cookie “__replit_third_party_cookie_test__” will soon be rejected because it is foreign and does not have the “Partitioned“ attribute. workspace_iframe.html
+Cookie “__replit_third_party_cookie_test__” will soon be rejected because it is foreign and does not have the “Partitioned“ attribute. workspace_iframe.html
+Partitioned cookie or storage access was provided to “https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/” because it is loaded in the third-party context and dynamic state partitioning is enabled.
+api-config.ts:88:5
+Partitioned cookie or storage access was provided to “https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=%3Ar13%3A” because it is loaded in the third-party context and dynamic state partitioning is enabled.
+workspace_iframe.html:92:32
+🏷️ CUSTOM DOMAIN DETECTED - Setting flags from server response injected.js:27:27
+✅ USEAUTH: Token authentication successful: 
+Object { user: {…} }
+injected.js:27:27
+🔍 USEAUTH: Stored user data matches server response injected.js:27:27
+🏷️ CUSTOM DOMAIN DETECTED - Setting flags from server response injected.js:27:27
+✅ USEAUTH: Token authentication successful: 
+Object { user: {…} }
+injected.js:27:27
+🔍 USEAUTH: Stored user data matches server response injected.js:27:27
+Router state: 
+Object { isAuthenticated: true, isLoading: false, currentPath: "/" }
+injected.js:27:27
+Router state: 
+Object { isAuthenticated: true, isLoading: false, currentPath: "/" }
+injected.js:27:27
+🔍 COMPANY DEBUG: 
+Object { companySettings: undefined, isLoading: true, error: "none", isObject: false, keys: "no keys" }
+injected.js:27:27
+🔍 COMPANY DEBUG: 
+Object { companySettings: undefined, isLoading: true, error: "none", isObject: false, keys: "no keys" }
+injected.js:27:27
+🔍 USEAUTH: Calling /api/auth/me endpoint injected.js:27:27
+🔍 USEAUTH: Authentication check: 
+Object { isCustomDomain: false, hasStoredToken: true, hasStoredUser: true, tokenLength: 64, hasCookie: false }
+injected.js:27:27
+🔍 USEAUTH: Attempting token-based authentication injected.js:27:27
+🔍 USEAUTH: Calling /api/auth/me endpoint injected.js:27:27
