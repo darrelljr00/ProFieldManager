@@ -175,6 +175,33 @@ export default function Reports() {
     queryKey: ["/api/job-analytics", jobAnalyticsDateRange],
     enabled: true,
     refetchInterval: realTimeUpdates ? 30000 : false,
+    select: (data) => data || {
+      totalJobs: 0,
+      completedJobs: 0,
+      completionRate: 0,
+      avgJobDuration: 0,
+      jobDurationData: [],
+      taskEfficiencyData: [],
+      technicianPerformance: [],
+      jobStatusData: [],
+      gpsTrackingMetrics: {
+        totalArrivals: 0,
+        totalDepartures: 0,
+        totalOnsiteHours: 0,
+        avgOnsiteTimePerVisit: 0,
+        activeJobSites: 0,
+        trackingCoverage: 0,
+      },
+      taskCompletionAnalytics: {
+        totalTasks: 0,
+        completedTasks: 0,
+        estimationAccuracy: 0,
+        overUnderEstimation: 0,
+        totalEstimatedHours: 0,
+        totalActualHours: 0,
+        taskEfficiencyByProject: [],
+      },
+    },
   });
 
   // Fetch profit per vehicle data
