@@ -100,6 +100,7 @@ export default function Reports() {
   const [jobAnalyticsDateRange, setJobAnalyticsDateRange] = useState("30days");
   const [profitLossView, setProfitLossView] = useState<'daily' | 'weekly' | 'monthly' | 'job' | 'vehicle'>('monthly');
   const [gasMaintView, setGasMaintView] = useState<'job' | 'daily' | 'weekly' | 'monthly' | 'yearly'>('job');
+  const [selectedGasMaintVehicle, setSelectedGasMaintVehicle] = useState<string>('all');
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -263,6 +264,12 @@ export default function Reports() {
     refetchOnMount: 'always', // Always refetch on mount
   });
 
+  // Fetch vehicles for gas/maintenance filter
+  const { data: vehicles = [] } = useQuery<any[]>({
+    queryKey: ["/api/vehicles"],
+    enabled: true,
+  });
+
   // Fetch gas and maintenance cost data with useEffect + fetch
   const [gasMaintData, setGasMaintData] = useState<any[]>([]);
   const [gasMaintSummary, setGasMaintSummary] = useState({
@@ -326,6 +333,11 @@ export default function Reports() {
           view: gasMaintView
         });
         
+        // Add vehicleId filter if a specific vehicle is selected
+        if (selectedGasMaintVehicle && selectedGasMaintVehicle !== 'all') {
+          params.append('vehicleId', selectedGasMaintVehicle);
+        }
+        
         console.log('⛽ FETCHING GAS/MAINTENANCE:', `/api/reports/gas-maintenance?${params}`);
         
         const response = await fetch(`/api/reports/gas-maintenance?${params}`, {
@@ -373,7 +385,7 @@ export default function Reports() {
     return () => {
       abortController.abort();
     };
-  }, [gasMaintView, profitLossDates.startDate, profitLossDates.endDate]);
+  }, [gasMaintView, selectedGasMaintVehicle, profitLossDates.startDate, profitLossDates.endDate]);
 
 
   // Fuel tracking data source: 'jobs' (travel segments) or 'obd' (OBD trips)
@@ -3293,9 +3305,9 @@ export default function Reports() {
 
         {/* Gas & Maintenance Tab */}
         <TabsContent value="gas-maintenance" className="space-y-6">
-          {/* View Selector */}
+          {/* View Selector and Filters */}
           <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 items-center">
               <Button 
                 variant={gasMaintView === 'job' ? 'default' : 'outline'}
                 size="sm"
@@ -3336,6 +3348,33 @@ export default function Reports() {
               >
                 Per Year
               </Button>
+              
+              {/* Vehicle Filter */}
+              <div className="flex items-center gap-2 ml-4">
+                <Filter className="h-4 w-4 text-gray-500" />
+                <Select
+                  value={selectedGasMaintVehicle}
+                  onValueChange={setSelectedGasMaintVehicle}
+                >
+                  <SelectTrigger className="w-[200px]" data-testid="select-gasmaint-vehicle">
+                    <SelectValue placeholder="All Vehicles" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all" data-testid="select-gasmaint-vehicle-all">
+                      All Vehicles
+                    </SelectItem>
+                    {vehicles.map((vehicle: any) => (
+                      <SelectItem 
+                        key={vehicle.id} 
+                        value={String(vehicle.id)}
+                        data-testid={`select-gasmaint-vehicle-${vehicle.id}`}
+                      >
+                        {vehicle.vehicleNumber}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <Button 
               variant="outline" 

@@ -12085,9 +12085,10 @@ ${fromName || ''}
       console.log('⛽ GAS-MAINTENANCE API CALLED:', { user: user.email, organizationId, query: req.query });
       
       // Parse date range (default to last 12 months)
-      const { startDate: startParam, endDate: endParam, view = 'monthly' } = req.query;
+      const { startDate: startParam, endDate: endParam, view = 'monthly', vehicleId: vehicleIdParam } = req.query;
       const startDate = startParam ? new Date(startParam as string) : new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
       const endDate = endParam ? new Date(endParam as string) : new Date();
+      const vehicleId = vehicleIdParam ? parseInt(vehicleIdParam as string) : null;
       
       console.log('⛽ DATE RANGE:', { startDate, endDate, view });
       
@@ -12139,6 +12140,7 @@ ${fromName || ''}
         .where(
           and(
             eq(obdTrips.organizationId, organizationId),
+            ...(vehicleId ? [eq(obdTrips.vehicleId, vehicleId)] : []),
             eq(obdTrips.status, 'completed'),
             gte(obdTrips.startTime, startDate),
             lte(obdTrips.startTime, endDate),
