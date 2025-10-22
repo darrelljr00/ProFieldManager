@@ -199,6 +199,7 @@ export default function Reports() {
         overUnderEstimation: 0,
         totalEstimatedHours: 0,
         totalActualHours: 0,
+        tasksWithEstimates: 0,
         taskEfficiencyByProject: [],
       },
     },
@@ -250,17 +251,21 @@ export default function Reports() {
       return data;
     },
     select: (data) => {
-      // Map backend field names to frontend expectations
+      // Map backend field names to frontend expectations (immutably)
       console.log('🔄 SELECT TRANSFORM INPUT:', data);
-      if (data?.data) {
-        data.data = data.data.map((item: any) => ({
+      if (!data?.data) return data;
+      
+      // Return a new object instead of mutating the cache
+      const transformed = {
+        ...data,
+        data: data.data.map((item: any) => ({
           ...item,
           expenses: item.totalCosts || 0,
           profit: item.netProfit || 0
-        }));
-      }
-      console.log('🔄 SELECT TRANSFORM OUTPUT:', data);
-      return data;
+        }))
+      };
+      console.log('🔄 SELECT TRANSFORM OUTPUT:', transformed);
+      return transformed;
     },
     enabled: true,
     staleTime: 0, // Always consider data stale
