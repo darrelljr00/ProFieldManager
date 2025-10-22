@@ -20976,11 +20976,14 @@ ${fromName || ''}
             const locations = devices
               .filter((device: any) => device.lat && device.lng)
               .map((device: any) => {
-                // Speed not available with basic API, set to 0 (parked status)
-                const speed = 0;
+                // Get speed from OneStep GPS device_speed field (in mph)
+                const speed = device.device_speed || 0;
                 // OneStep GPS returns both device_id and display_name
                 // Use device_id as primary identifier, fallback to display_name
                 const deviceIdentifier = device.device_id || device.display_name;
+                
+                console.log(`🚗 Device ${deviceIdentifier}: speed=${speed} mph, moving=${speed >= 1}`);
+                
                 return {
                   deviceId: deviceIdentifier,
                   displayName: device.display_name || deviceIdentifier,
