@@ -165,7 +165,7 @@ export default function Reports() {
   };
 
   // Fetch consolidated reports data
-  const { data: reportsData, isLoading: reportsLoading, refetch } = useQuery({
+  const { data: reportsData, isLoading: reportsLoading, refetch } = useQuery<any>({
     queryKey: [`/api/reports/data?${getQueryParams()}`],
     select: (data) => data || { metrics: {}, data: { invoices: [], leads: [], expenses: [], customers: [], employees: [] } }
   });
@@ -571,9 +571,9 @@ export default function Reports() {
   ];
 
   // Fetch employee metrics with separate date range
-  const { data: employeeData, isLoading: employeeLoading, refetch: refetchEmployees } = useQuery({
+  const { data: employeeData, isLoading: employeeLoading, refetch: refetchEmployees } = useQuery<any>({
     queryKey: [`/api/reports/data?${getEmployeeQueryParams()}`],
-    select: (data) => {
+    select: (data: any) => {
       try {
         const employees = data?.data?.employees || getAllEmployeeData();
         return Array.isArray(employees) ? employees : getAllEmployeeData();
