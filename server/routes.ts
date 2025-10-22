@@ -73,7 +73,7 @@ import {
   partsSupplies, inventoryTransactions, stockAlerts,
   partsCategories, meetings, meetingParticipants, meetingMessages, meetingRecordings,
   jobSiteGeofences, jobSiteEvents, gpsTrackingData,
-  obdLocationData, obdDiagnosticData, obdTrips, services,
+  obdLocationData, obdDiagnosticData, obdTrips, savedRouteReplays, services,
   inspectionRecords, jobTravelSegments, projectUsers, employees
 } from "@shared/schema";
 import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull, isNull } from "drizzle-orm";
@@ -21167,6 +21167,273 @@ ${fromName || ''}
     } catch (error: any) {
       console.error("Error fetching historical location data:", error);
       res.status(500).json({ message: "Error fetching historical data: " + error.message });
+    }
+  });
+
+  // Save route replay
+  app.post("/api/obd/save-route-replay", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { name, deviceId, vehicleId, startTime, endTime, routeData, distanceMiles, durationMinutes } = req.body;
+
+      if (!name || !deviceId || !startTime || !endTime || !routeData || !Array.isArray(routeData)) {
+        return res.status(400).json({ message: "Missing required fields: name, deviceId, startTime, endTime, routeData" });
+      }
+
+      const pointCount = routeData.length;
+
+      if (pointCount === 0) {
+        return res.status(400).json({ message: "Route data cannot be empty" });
+      }
+
+      // Save the route replay to database
+      const [savedReplay] = await db
+        .insert(savedRouteReplays)
+        .values({
+          organizationId: user.organizationId,
+          vehicleId: vehicleId || null,
+          deviceId,
+          name,
+          startTime: new Date(startTime),
+          endTime: new Date(endTime),
+          routeData,
+          pointCount,
+          distanceMiles: distanceMiles || null,
+          durationMinutes: durationMinutes || null,
+        })
+        .returning();
+
+      console.log(`💾 Saved route replay "${name}" with ${pointCount} points`);
+      res.json({ success: true, replay: savedReplay });
+    } catch (error: any) {
+      console.error("Error saving route replay:", error);
+      res.status(500).json({ message: "Error saving route replay: " + error.message });
+    }
+  });
+
+  // Get all saved route replays
+  app.get("/api/obd/saved-replays", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { deviceId, vehicleId } = req.query;
+
+      let whereCondition = eq(savedRouteReplays.organizationId, user.organizationId);
+
+      if (deviceId) {
+        whereCondition = and(whereCondition, eq(savedRouteReplays.deviceId, deviceId as string));
+      }
+
+      if (vehicleId) {
+        whereCondition = and(whereCondition, eq(savedRouteReplays.vehicleId, parseInt(vehicleId as string)));
+      }
+
+      const replays = await db
+        .select({
+          id: savedRouteReplays.id,
+          organizationId: savedRouteReplays.organizationId,
+          vehicleId: savedRouteReplays.vehicleId,
+          deviceId: savedRouteReplays.deviceId,
+          name: savedRouteReplays.name,
+          startTime: savedRouteReplays.startTime,
+          endTime: savedRouteReplays.endTime,
+          pointCount: savedRouteReplays.pointCount,
+          distanceMiles: savedRouteReplays.distanceMiles,
+          durationMinutes: savedRouteReplays.durationMinutes,
+          createdAt: savedRouteReplays.createdAt,
+          // Vehicle details if available
+          vehicle: {
+            id: vehicles.id,
+            vehicleNumber: vehicles.vehicleNumber,
+            licensePlate: vehicles.licensePlate,
+            year: vehicles.year,
+            make: vehicles.make,
+            model: vehicles.model,
+          }
+        })
+        .from(savedRouteReplays)
+        .leftJoin(vehicles, eq(savedRouteReplays.vehicleId, vehicles.id))
+        .where(whereCondition)
+        .orderBy(desc(savedRouteReplays.createdAt));
+
+      res.json({ replays });
+    } catch (error: any) {
+      console.error("Error fetching saved replays:", error);
+      res.status(500).json({ message: "Error fetching saved replays: " + error.message });
+    }
+  });
+
+  // Get a specific saved route replay with full route data
+  app.get("/api/obd/saved-replays/:id", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { id } = req.params;
+
+      const [replay] = await db
+        .select()
+        .from(savedRouteReplays)
+        .where(
+          and(
+            eq(savedRouteReplays.id, parseInt(id)),
+            eq(savedRouteReplays.organizationId, user.organizationId)
+          )
+        )
+        .limit(1);
+
+      if (!replay) {
+        return res.status(404).json({ message: "Route replay not found" });
+      }
+
+      res.json({ replay });
+    } catch (error: any) {
+      console.error("Error fetching route replay:", error);
+      res.status(500).json({ message: "Error fetching route replay: " + error.message });
+    }
+  });
+
+  // Delete a saved route replay
+  app.delete("/api/obd/saved-replays/:id", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { id } = req.params;
+
+      const [deleted] = await db
+        .delete(savedRouteReplays)
+        .where(
+          and(
+            eq(savedRouteReplays.id, parseInt(id)),
+            eq(savedRouteReplays.organizationId, user.organizationId)
+          )
+        )
+        .returning();
+
+      if (!deleted) {
+        return res.status(404).json({ message: "Route replay not found" });
+      }
+
+      console.log(`🗑️ Deleted route replay: ${deleted.name}`);
+      res.json({ success: true, message: "Route replay deleted successfully" });
+    } catch (error: any) {
+      console.error("Error deleting route replay:", error);
+      res.status(500).json({ message: "Error deleting route replay: " + error.message });
+    }
+  });
+
+  // Download route replay in various formats
+  app.get("/api/obd/download-replay/:id", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { id } = req.params;
+      const { format = 'json' } = req.query; // json, gpx, kml
+
+      const [replay] = await db
+        .select()
+        .from(savedRouteReplays)
+        .where(
+          and(
+            eq(savedRouteReplays.id, parseInt(id)),
+            eq(savedRouteReplays.organizationId, user.organizationId)
+          )
+        )
+        .limit(1);
+
+      if (!replay) {
+        return res.status(404).json({ message: "Route replay not found" });
+      }
+
+      const routeData = replay.routeData as any[];
+      const fileName = `${replay.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${new Date().toISOString().split('T')[0]}`;
+
+      if (format === 'gpx') {
+        // Generate GPX format
+        const gpxHeader = `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="Pro Field Manager" xmlns="http://www.topografix.com/GPX/1/1">
+  <metadata>
+    <name>${replay.name}</name>
+    <time>${new Date(replay.startTime).toISOString()}</time>
+  </metadata>
+  <trk>
+    <name>${replay.name}</name>
+    <trkseg>`;
+        
+        const gpxPoints = routeData.map((point: any) => 
+          `      <trkpt lat="${point.latitude}" lon="${point.longitude}">
+        <ele>${point.altitude || 0}</ele>
+        <time>${new Date(point.timestamp).toISOString()}</time>
+        <speed>${point.speed || 0}</speed>
+      </trkpt>`
+        ).join('\n');
+
+        const gpxFooter = `
+    </trkseg>
+  </trk>
+</gpx>`;
+
+        const gpxContent = gpxHeader + '\n' + gpxPoints + gpxFooter;
+
+        res.setHeader('Content-Type', 'application/gpx+xml');
+        res.setHeader('Content-Disposition', `attachment; filename="${fileName}.gpx"`);
+        res.send(gpxContent);
+
+      } else if (format === 'kml') {
+        // Generate KML format
+        const kmlHeader = `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>${replay.name}</name>
+    <description>Route replay from ${new Date(replay.startTime).toLocaleString()} to ${new Date(replay.endTime).toLocaleString()}</description>
+    <Style id="routeLine">
+      <LineStyle>
+        <color>ff0000ff</color>
+        <width>4</width>
+      </LineStyle>
+    </Style>
+    <Placemark>
+      <name>${replay.name}</name>
+      <styleUrl>#routeLine</styleUrl>
+      <LineString>
+        <tessellate>1</tessellate>
+        <coordinates>`;
+
+        const kmlCoordinates = routeData.map((point: any) => 
+          `${point.longitude},${point.latitude},${point.altitude || 0}`
+        ).join('\n          ');
+
+        const kmlFooter = `
+        </coordinates>
+      </LineString>
+    </Placemark>
+  </Document>
+</kml>`;
+
+        const kmlContent = kmlHeader + '\n          ' + kmlCoordinates + kmlFooter;
+
+        res.setHeader('Content-Type', 'application/vnd.google-earth.kml+xml');
+        res.setHeader('Content-Disposition', `attachment; filename="${fileName}.kml"`);
+        res.send(kmlContent);
+
+      } else {
+        // Default: JSON format
+        const jsonData = {
+          name: replay.name,
+          deviceId: replay.deviceId,
+          vehicleId: replay.vehicleId,
+          startTime: replay.startTime,
+          endTime: replay.endTime,
+          distanceMiles: replay.distanceMiles,
+          durationMinutes: replay.durationMinutes,
+          pointCount: replay.pointCount,
+          routeData: routeData,
+        };
+
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Disposition', `attachment; filename="${fileName}.json"`);
+        res.json(jsonData);
+      }
+
+      console.log(`📥 Downloaded route replay "${replay.name}" as ${format}`);
+    } catch (error: any) {
+      console.error("Error downloading route replay:", error);
+      res.status(500).json({ message: "Error downloading route replay: " + error.message });
     }
   });
 

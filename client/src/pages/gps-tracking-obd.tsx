@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { SimpleVehicleMap } from "@/components/map/simple-vehicle-map";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -7,10 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Calendar, Bell, Gauge, Zap, Thermometer, Activity, Car, Play, Pause, RotateCcw } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Calendar, Bell, Gauge, Zap, Thermometer, Activity, Car, Play, Pause, RotateCcw, Save, Download, Trash2, FolderOpen } from "lucide-react";
 import { getAuthHeaders } from "@/lib/api-config";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 export default function GPSTrackingOBD() {
+  const { toast } = useToast();
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
   const [focusVehicleId, setFocusVehicleId] = useState<string | null>(null);
   
@@ -24,6 +28,10 @@ export default function GPSTrackingOBD() {
   const [historyPoints, setHistoryPoints] = useState<any[]>([]);
   const [currentPointIndex, setCurrentPointIndex] = useState<number>(0);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  
+  // Save/Download state
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [replayName, setReplayName] = useState<string>("");
 
   // Fetch vehicles
   const { data: vehicles = [], isLoading: vehiclesLoading } = useQuery<any[]>({
@@ -55,6 +63,14 @@ export default function GPSTrackingOBD() {
     enabled: !!selectedVehicleId,
     refetchInterval: 2000,
   });
+
+  // Fetch saved route replays
+  const { data: savedReplaysResponse } = useQuery<any>({
+    queryKey: ['/api/obd/saved-replays'],
+    refetchInterval: 10000,
+  });
+  
+  const savedReplays = savedReplaysResponse?.replays || [];
 
   const effectiveVehicleId = selectedVehicleId || (vehicles.length > 0 ? vehicles[0].id.toString() : null);
   const selectedVehicle = vehicles.find(v => v.id.toString() === effectiveVehicleId);
@@ -143,6 +159,189 @@ export default function GPSTrackingOBD() {
     setCurrentPointIndex(0);
     setIsPlaying(false);
   };
+
+  // Save replay mutation
+  const saveReplayMutation = useMutation({
+    mutationFn: async (data: { name: string; deviceId: string; vehicleId?: number; startTime: string; endTime: string; routeData: any[]; distanceMiles?: number; durationMinutes?: number }) => {
+      return await apiRequest('/api/obd/save-route-replay', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Route Replay Saved",
+        description: "Your route replay has been saved successfully!",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/obd/saved-replays'] });
+      setShowSaveDialog(false);
+      setReplayName("");
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error Saving Replay",
+        description: error.message || "Failed to save route replay",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Handle save replay
+  const handleSaveReplay = () => {
+    if (historyPoints.length === 0) {
+      toast({
+        title: "No Route Data",
+        description: "Please load historical data first before saving",
+        variant: "destructive",
+      });
+      return;
+    }
+    // Generate default name
+    const vehicle = vehicles.find(v => obdLocations.find(loc => loc.deviceId === historyDeviceId)?.vehicleId === v.id);
+    const defaultName = `${vehicle?.vehicleNumber || 'Route'} - ${historyDate}`;
+    setReplayName(defaultName);
+    setShowSaveDialog(true);
+  };
+
+  // Confirm save replay with name
+  const confirmSaveReplay = () => {
+    if (!replayName.trim()) {
+      toast({
+        title: "Name Required",
+        description: "Please enter a name for this route replay",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!historyDeviceId || historyPoints.length === 0) {
+      toast({
+        title: "Invalid Data",
+        description: "Missing device ID or route data",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const selectedLocation = obdLocations.find(loc => loc.deviceId === historyDeviceId);
+    const startTime = historyPoints[0]?.timestamp || new Date(`${historyDate} ${historyStartTime}`).toISOString();
+    const endTime = historyPoints[historyPoints.length - 1]?.timestamp || new Date(`${historyDate} ${historyEndTime}`).toISOString();
+    
+    // Calculate duration in minutes
+    const duration = Math.floor((new Date(endTime).getTime() - new Date(startTime).getTime()) / 1000 / 60);
+
+    saveReplayMutation.mutate({
+      name: replayName.trim(),
+      deviceId: historyDeviceId,
+      vehicleId: selectedLocation?.vehicleId,
+      startTime,
+      endTime,
+      routeData: historyPoints,
+      durationMinutes: duration,
+    });
+  };
+
+  // Download replay directly (without saving)
+  const downloadReplay = async (format: 'json' | 'gpx' | 'kml' = 'json') => {
+    if (historyPoints.length === 0) {
+      toast({
+        title: "No Route Data",
+        description: "Please load historical data first before downloading",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const vehicle = vehicles.find(v => obdLocations.find(loc => loc.deviceId === historyDeviceId)?.vehicleId === v.id);
+    const fileName = `${vehicle?.vehicleNumber || 'route'}_${historyDate}`.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    
+    if (format === 'json') {
+      const jsonData = {
+        name: `${vehicle?.vehicleNumber || 'Route'} - ${historyDate}`,
+        deviceId: historyDeviceId,
+        startTime: historyPoints[0]?.timestamp || new Date(`${historyDate} ${historyStartTime}`).toISOString(),
+        endTime: historyPoints[historyPoints.length - 1]?.timestamp || new Date(`${historyDate} ${historyEndTime}`).toISOString(),
+        pointCount: historyPoints.length,
+        routeData: historyPoints,
+      };
+      
+      const blob = new Blob([JSON.stringify(jsonData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${fileName}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Download Started",
+        description: `Route replay downloaded as ${fileName}.json`,
+      });
+    }
+  };
+
+  // Load saved replay
+  const loadSavedReplay = async (replayId: number) => {
+    try {
+      setIsLoadingHistory(true);
+      const headers = getAuthHeaders();
+      const response = await fetch(`/api/obd/saved-replays/${replayId}`, {
+        headers,
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to load saved replay');
+      }
+
+      const data = await response.json();
+      const replay = data.replay;
+
+      // Set up the playback with the saved data
+      setHistoryDeviceId(replay.deviceId);
+      setHistoryPoints(replay.routeData);
+      setCurrentPointIndex(0);
+      setIsPlaying(false);
+
+      toast({
+        title: "Replay Loaded",
+        description: `Loaded ${replay.pointCount} points from "${replay.name}"`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error Loading Replay",
+        description: error.message || "Failed to load saved replay",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
+
+  // Delete saved replay mutation
+  const deleteSavedReplayMutation = useMutation({
+    mutationFn: async (replayId: number) => {
+      return await apiRequest(`/api/obd/saved-replays/${replayId}`, {
+        method: 'DELETE',
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Replay Deleted",
+        description: "Saved replay has been deleted successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/obd/saved-replays'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error Deleting Replay",
+        description: error.message || "Failed to delete saved replay",
+        variant: "destructive",
+      });
+    },
+  });
 
   // Debug playback progress
   useEffect(() => {
@@ -338,9 +537,10 @@ export default function GPSTrackingOBD() {
             <div className="col-span-4">
               <Card className="p-4 h-full overflow-hidden flex flex-col">
                 <Tabs defaultValue="vehicles" className="flex-1 flex flex-col">
-                  <TabsList className="w-full grid grid-cols-2 mb-4">
+                  <TabsList className="w-full grid grid-cols-3 mb-4">
                     <TabsTrigger value="vehicles">Vehicles</TabsTrigger>
                     <TabsTrigger value="history">History</TabsTrigger>
+                    <TabsTrigger value="saved">Saved</TabsTrigger>
                   </TabsList>
                   
                   {/* Vehicles Tab */}
@@ -557,6 +757,36 @@ export default function GPSTrackingOBD() {
                         </div>
                       </div>
 
+                      {/* Save and Download Controls */}
+                      {historyPoints.length > 0 && (
+                        <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                          <Label className="text-sm font-medium mb-3 block">
+                            Save & Download
+                          </Label>
+                          <div className="flex gap-2">
+                            <Button 
+                              variant="outline" 
+                              className="flex-1"
+                              onClick={handleSaveReplay}
+                              disabled={saveReplayMutation.isPending}
+                              data-testid="save-replay-btn"
+                            >
+                              <Save className="w-4 h-4 mr-2" />
+                              {saveReplayMutation.isPending ? 'Saving...' : 'Save Replay'}
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              className="flex-1"
+                              onClick={() => downloadReplay('json')}
+                              data-testid="download-replay-btn"
+                            >
+                              <Download className="w-4 h-4 mr-2" />
+                              Download JSON
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+
                       {/* Playback Progress */}
                       {historyPoints.length > 0 && (
                         <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
@@ -615,12 +845,131 @@ export default function GPSTrackingOBD() {
                       )}
                     </div>
                   </TabsContent>
+
+                  {/* Saved Replays Tab */}
+                  <TabsContent value="saved" className="flex-1 overflow-auto mt-0">
+                    <div className="space-y-3">
+                      <div className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                        <FolderOpen className="w-4 h-4 inline mr-2" />
+                        {savedReplays.length} saved {savedReplays.length === 1 ? 'replay' : 'replays'}
+                      </div>
+                      
+                      {savedReplays.length === 0 ? (
+                        <div className="text-sm text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 p-4 rounded-lg text-center">
+                          No saved replays yet. Load historical data and click "Save Replay" to save routes for later viewing.
+                        </div>
+                      ) : (
+                        savedReplays.map((replay: any) => {
+                          const vehicle = replay.vehicle;
+                          return (
+                            <div 
+                              key={replay.id}
+                              className="border border-gray-200 dark:border-gray-700 rounded-lg p-3 bg-white dark:bg-gray-800 hover:border-primary dark:hover:border-primary transition-colors"
+                              data-testid={`saved-replay-${replay.id}`}
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="flex-1 min-w-0">
+                                  <h3 className="text-sm font-semibold dark:text-white truncate">
+                                    {replay.name}
+                                  </h3>
+                                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                                    {vehicle ? (
+                                      `${vehicle.vehicleNumber}${vehicle.year || vehicle.make ? 
+                                        ` (${[vehicle.year, vehicle.make, vehicle.model].filter(Boolean).join(' ')})` : 
+                                        ''}`
+                                    ) : (
+                                      replay.deviceId
+                                    )}
+                                  </p>
+                                  <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                                    {new Date(replay.startTime).toLocaleDateString()} • {replay.pointCount} points
+                                    {replay.durationMinutes && ` • ${Math.round(replay.durationMinutes)} min`}
+                                  </p>
+                                </div>
+                                <div className="flex gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => loadSavedReplay(replay.id)}
+                                    disabled={isLoadingHistory}
+                                    data-testid={`load-replay-${replay.id}`}
+                                    className="h-8 px-2"
+                                  >
+                                    <Play className="w-3 h-3" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => deleteSavedReplayMutation.mutate(replay.id)}
+                                    disabled={deleteSavedReplayMutation.isPending}
+                                    data-testid={`delete-replay-${replay.id}`}
+                                    className="h-8 px-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </TabsContent>
                 </Tabs>
               </Card>
             </div>
           </div>
         </div>
       </main>
+
+      {/* Save Replay Dialog */}
+      <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Save Route Replay</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label htmlFor="replay-name" className="text-sm font-medium mb-2 block">
+                Replay Name
+              </Label>
+              <Input
+                id="replay-name"
+                type="text"
+                value={replayName}
+                onChange={(e) => setReplayName(e.target.value)}
+                placeholder="Enter a name for this route replay"
+                data-testid="replay-name-input"
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Choose a descriptive name to help you identify this route later
+              </p>
+            </div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              <div>Device: {historyDeviceId}</div>
+              <div>Date: {historyDate}</div>
+              <div>Points: {historyPoints.length}</div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowSaveDialog(false)}
+              disabled={saveReplayMutation.isPending}
+              data-testid="cancel-save-btn"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={confirmSaveReplay}
+              disabled={saveReplayMutation.isPending || !replayName.trim()}
+              data-testid="confirm-save-btn"
+            >
+              {saveReplayMutation.isPending ? 'Saving...' : 'Save Replay'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

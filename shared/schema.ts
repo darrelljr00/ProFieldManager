@@ -5177,6 +5177,23 @@ export const obdTrips = pgTable("obd_trips", {
   uniqueProviderTrip: unique().on(table.provider, table.externalTripId),
 }));
 
+// Saved Route Replays - for saving and replaying historical GPS routes
+export const savedRouteReplays = pgTable("saved_route_replays", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").references(() => organizations.id).notNull(),
+  vehicleId: integer("vehicle_id").references(() => vehicles.id),
+  deviceId: text("device_id").notNull(),
+  name: text("name").notNull(), // User-provided name for the saved replay
+  startTime: timestamp("start_time").notNull(),
+  endTime: timestamp("end_time").notNull(),
+  routeData: jsonb("route_data").notNull(), // Array of GPS points with lat, lng, timestamp, speed, etc.
+  pointCount: integer("point_count").notNull(), // Total number of GPS points
+  distanceMiles: decimal("distance_miles", { precision: 10, scale: 2 }),
+  durationMinutes: integer("duration_minutes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Insert schemas for OBD tables
 export const insertObdLocationDataSchema = createInsertSchema(obdLocationData, {
   deviceId: z.string().min(1, "Device ID is required"),
@@ -5221,6 +5238,20 @@ export const insertObdTripSchema = createInsertSchema(obdTrips, {
   updatedAt: true,
 });
 
+export const insertSavedRouteReplaySchema = createInsertSchema(savedRouteReplays, {
+  name: z.string().min(1, "Name is required").max(100),
+  deviceId: z.string().min(1, "Device ID is required"),
+  startTime: z.string().datetime().or(z.date()),
+  endTime: z.string().datetime().or(z.date()),
+  routeData: z.array(z.any()), // Array of GPS points
+  pointCount: z.number().int().min(1),
+}).omit({
+  id: true,
+  organizationId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // OBD types
 export type ObdLocationData = typeof obdLocationData.$inferSelect;
 export type InsertObdLocationData = z.infer<typeof insertObdLocationDataSchema>;
@@ -5228,6 +5259,8 @@ export type ObdDiagnosticData = typeof obdDiagnosticData.$inferSelect;
 export type InsertObdDiagnosticData = z.infer<typeof insertObdDiagnosticDataSchema>;
 export type ObdTrip = typeof obdTrips.$inferSelect;
 export type InsertObdTrip = z.infer<typeof insertObdTripSchema>;
+export type SavedRouteReplay = typeof savedRouteReplays.$inferSelect;
+export type InsertSavedRouteReplay = z.infer<typeof insertSavedRouteReplaySchema>;
 
 // OneStep GPS Sync State Tracking
 export const onestepSyncState = pgTable("onestep_sync_state", {
