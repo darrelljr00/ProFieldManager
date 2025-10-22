@@ -1,0 +1,126 @@
+📡 API Response: 
+Object { originalUrl: "/api/navigation/check-updates?lastCheck=2025-10-22T01%3A46%3A31.748Z", fullUrl: "/api/navigation/check-updates?lastCheck=2025-10-22T01%3A46%3A31.748Z", status: 200, statusText: "OK", ok: true, headers: {…} }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A46.337Z&endDate=2025-10-22T02%3A01%3A46.337Z", fullUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A46.337Z&endDate=2025-10-22T02%3A01%3A46.337Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A46.370Z&endDate=2025-10-22T02%3A01%3A46.370Z", fullUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A46.370Z&endDate=2025-10-22T02%3A01%3A46.370Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A46.408Z&endDate=2025-10-22T02%3A01%3A46.408Z", fullUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A46.408Z&endDate=2025-10-22T02%3A01%3A46.408Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A46.452Z&endDate=2025-10-22T02%3A01%3A46.452Z", fullUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A46.452Z&endDate=2025-10-22T02%3A01%3A46.452Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A46.492Z&endDate=2025-10-22T02%3A01%3A46.492Z", fullUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A46.492Z&endDate=2025-10-22T02%3A01%3A46.492Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A46.524Z&endDate=2025-10-22T02%3A01%3A46.524Z", fullUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A46.524Z&endDate=2025-10-22T02%3A01%3A46.524Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A46.567Z&endDate=2025-10-22T02%3A01%3A46.567Z", fullUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A46.567Z&endDate=2025-10-22T02%3A01%3A46.567Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A46.626Z&endDate=2025-10-22T02%3A01%3A46.626Z", fullUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A46.626Z&endDate=2025-10-22T02%3A01%3A46.626Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A46.675Z&endDate=2025-10-22T02%3A01%3A46.675Z", fullUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A46.675Z&endDate=2025-10-22T02%3A01%3A46.675Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A46.721Z&endDate=2025-10-22T02%3A01%3A46.721Z", fullUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A46.721Z&endDate=2025-10-22T02%3A01%3A46.721Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A46.765Z&endDate=2025-10-22T02%3A01%3A46.765Z", fullUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A46.765Z&endDate=2025-10-22T02%3A01%3A46.765Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A46.807Z&endDate=2025-10-22T02%3A01%3A46.807Z", fullUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A46.807Z&endDate=2025-10-22T02%3A01%3A46.807Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A46.850Z&endDate=2025-10-22T02%3A01%3A46.850Z", fullUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A46.850Z&endDate=2025-10-22T02%3A01%3A46.850Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A46.897Z&endDate=2025-10-22T02%3A01%3A46.897Z", fullUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A46.897Z&endDate=2025-10-22T02%3A01%3A46.897Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A46.945Z&endDate=2025-10-22T02%3A01%3A46.945Z", fullUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A46.945Z&endDate=2025-10-22T02%3A01%3A46.945Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A47.085Z&endDate=2025-10-22T02%3A01%3A47.085Z", fullUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A47.085Z&endDate=2025-10-22T02%3A01%3A47.085Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A47.124Z&endDate=2025-10-22T02%3A01%3A47.124Z", fullUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A47.124Z&endDate=2025-10-22T02%3A01%3A47.124Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A47.156Z&endDate=2025-10-22T02%3A01%3A47.156Z", fullUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A47.156Z&endDate=2025-10-22T02%3A01%3A47.156Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A47.205Z&endDate=2025-10-22T02%3A01%3A47.205Z", fullUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A47.205Z&endDate=2025-10-22T02%3A01%3A47.205Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A47.392Z&endDate=2025-10-22T02%3A01%3A47.392Z", fullUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A47.392Z&endDate=2025-10-22T02%3A01%3A47.392Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A47.424Z&endDate=2025-10-22T02%3A01%3A47.424Z", fullUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A47.424Z&endDate=2025-10-22T02%3A01%3A47.424Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A47.511Z&endDate=2025-10-22T02%3A01%3A47.511Z", fullUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A47.511Z&endDate=2025-10-22T02%3A01%3A47.511Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A47.540Z&endDate=2025-10-22T02%3A01%3A47.540Z", fullUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A47.540Z&endDate=2025-10-22T02%3A01%3A47.540Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A47.685Z&endDate=2025-10-22T02%3A01%3A47.685Z", fullUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A47.685Z&endDate=2025-10-22T02%3A01%3A47.685Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A47.716Z&endDate=2025-10-22T02%3A01%3A47.716Z", fullUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A47.716Z&endDate=2025-10-22T02%3A01%3A47.716Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A48.716Z&endDate=2025-10-22T02%3A01%3A48.716Z", fullUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A48.716Z&endDate=2025-10-22T02%3A01%3A48.716Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A48.748Z&endDate=2025-10-22T02%3A01%3A48.748Z", fullUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A48.748Z&endDate=2025-10-22T02%3A01%3A48.748Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A48.789Z&endDate=2025-10-22T02%3A01%3A48.789Z", fullUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A48.789Z&endDate=2025-10-22T02%3A01%3A48.789Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A48.847Z&endDate=2025-10-22T02%3A01%3A48.847Z", fullUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A48.847Z&endDate=2025-10-22T02%3A01%3A48.847Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A48.949Z&endDate=2025-10-22T02%3A01%3A48.949Z", fullUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A48.949Z&endDate=2025-10-22T02%3A01%3A48.949Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A48.981Z&endDate=2025-10-22T02%3A01%3A48.981Z", fullUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A48.981Z&endDate=2025-10-22T02%3A01%3A48.981Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A49.113Z&endDate=2025-10-22T02%3A01%3A49.113Z", fullUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A49.113Z&endDate=2025-10-22T02%3A01%3A49.113Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A49.151Z&endDate=2025-10-22T02%3A01%3A49.151Z", fullUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A49.151Z&endDate=2025-10-22T02%3A01%3A49.151Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A49.210Z&endDate=2025-10-22T02%3A01%3A49.210Z", fullUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A49.210Z&endDate=2025-10-22T02%3A01%3A49.210Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A49.508Z&endDate=2025-10-22T02%3A01%3A49.508Z", fullUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A49.508Z&endDate=2025-10-22T02%3A01%3A49.508Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A49.547Z&endDate=2025-10-22T02%3A01%3A49.547Z", fullUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A49.547Z&endDate=2025-10-22T02%3A01%3A49.547Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A49.591Z&endDate=2025-10-22T02%3A01%3A49.591Z", fullUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A49.591Z&endDate=2025-10-22T02%3A01%3A49.591Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A49.687Z&endDate=2025-10-22T02%3A01%3A49.687Z", fullUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A49.687Z&endDate=2025-10-22T02%3A01%3A49.687Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A49.735Z&endDate=2025-10-22T02%3A01%3A49.735Z", fullUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A49.735Z&endDate=2025-10-22T02%3A01%3A49.735Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A49.779Z&endDate=2025-10-22T02%3A01%3A49.779Z", fullUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A49.779Z&endDate=2025-10-22T02%3A01%3A49.779Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A49.881Z&endDate=2025-10-22T02%3A01%3A49.881Z", fullUrl: "/api/reports/data?startDate=2025-09-22T02%3A01%3A49.881Z&endDate=2025-10-22T02%3A01%3A49.881Z", isCustomDomain: false, hasAuthHeader: true }
+injected.js:27:2

@@ -84,6 +84,8 @@ interface JobAnalyticsData {
 }
 
 export default function Reports() {
+  console.log('🚀🚀🚀 REPORTS COMPONENT LOADED - BUILD TIME:', new Date().toISOString());
+  
   const [timeRange, setTimeRange] = useState("12months");
   const [selectedMetric, setSelectedMetric] = useState("revenue");
   const [startDate, setStartDate] = useState<Date>();
