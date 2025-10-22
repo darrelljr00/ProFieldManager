@@ -264,6 +264,8 @@ export default function Reports() {
   });
 
   useEffect(() => {
+    console.log('🎯 GAS/MAINT useEffect EXECUTING NOW!');
+    
     const abortController = new AbortController();
     
     async function fetchGasMaintData() {
