@@ -67,6 +67,7 @@ import {
   gasCardAssignments, gasCardUsage, leads, leadSettings, messages, internalMessages,
   recurringJobSeries, recurringJobOccurrences,
   images, settings, organizations, userSessions, vendors, vehicles,
+  vehicleMaintenanceRecords, vehicleMaintenanceIntervals,
   soundSettings, userDashboardSettings, dashboardProfiles,
   schedules, scheduleAssignments, scheduleComments, timeClock,
   lateArrivals, notifications, notificationSettings,
