@@ -270,9 +270,34 @@ export default function Reports() {
     enabled: true,
   });
 
-  // Fetch gas and maintenance cost data with useEffect + fetch
-  const [gasMaintData, setGasMaintData] = useState<any[]>([]);
-  const [gasMaintSummary, setGasMaintSummary] = useState({
+  // Fetch gas and maintenance cost data using useQuery with proper authentication
+  const gasMaintParams = useMemo(() => {
+    const params = new URLSearchParams({
+      startDate: profitLossDates.startDate || '',
+      endDate: profitLossDates.endDate || '',
+      view: gasMaintView
+    });
+    
+    if (selectedGasMaintVehicle && selectedGasMaintVehicle !== 'all') {
+      params.append('vehicleId', selectedGasMaintVehicle);
+    }
+    
+    return params.toString();
+  }, [profitLossDates.startDate, profitLossDates.endDate, gasMaintView, selectedGasMaintVehicle]);
+
+  const { 
+    data: gasMaintResponse, 
+    isLoading: gasMaintLoading, 
+    error: gasMaintError 
+  } = useQuery<any>({
+    queryKey: [`/api/reports/gas-maintenance?${gasMaintParams}`],
+    enabled: !!profitLossDates.startDate && !!profitLossDates.endDate,
+    staleTime: 0,
+    refetchOnMount: 'always',
+  });
+
+  const gasMaintData = gasMaintResponse?.data || [];
+  const gasMaintSummary = gasMaintResponse?.summary || {
     totalGasCost: 0,
     totalGasGallons: 0,
     totalGasRecords: 0,
@@ -283,109 +308,7 @@ export default function Reports() {
     totalMaintenanceRecords: 0,
     totalCost: 0,
     totalRecords: 0
-  });
-  const [gasMaintLoading, setGasMaintLoading] = useState(false);
-  const [gasMaintError, setGasMaintError] = useState<string | null>(null);
-
-  console.log('✨ ABOUT TO REGISTER GAS/MAINT useEffect - Dependencies:', {
-    gasMaintView,
-    startDate: profitLossDates.startDate,
-    endDate: profitLossDates.endDate
-  });
-
-  useEffect(() => {
-    console.log('🎯 GAS/MAINT useEffect EXECUTING NOW!');
-    
-    const abortController = new AbortController();
-    
-    async function fetchGasMaintData() {
-      console.log('🔍 GAS/MAINT FETCH CHECK:', { 
-        startDate: profitLossDates.startDate, 
-        endDate: profitLossDates.endDate,
-        view: gasMaintView 
-      });
-      
-      if (!profitLossDates.startDate || !profitLossDates.endDate) {
-        console.log('❌ GAS/MAINT BLOCKED - Missing dates');
-        setGasMaintData([]);
-        setGasMaintSummary({
-          totalGasCost: 0,
-          totalGasGallons: 0,
-          totalGasRecords: 0,
-          totalGpsMiles: 0,
-          totalGpsFuelCost: 0,
-          totalGpsTrips: 0,
-          totalMaintenanceCost: 0,
-          totalMaintenanceRecords: 0,
-          totalCost: 0,
-          totalRecords: 0
-        });
-        return;
-      }
-
-      setGasMaintLoading(true);
-      setGasMaintError(null);
-      
-      try {
-        const params = new URLSearchParams({
-          startDate: profitLossDates.startDate,
-          endDate: profitLossDates.endDate,
-          view: gasMaintView
-        });
-        
-        // Add vehicleId filter if a specific vehicle is selected
-        if (selectedGasMaintVehicle && selectedGasMaintVehicle !== 'all') {
-          params.append('vehicleId', selectedGasMaintVehicle);
-        }
-        
-        console.log('⛽ FETCHING GAS/MAINTENANCE:', `/api/reports/gas-maintenance?${params}`);
-        
-        const response = await fetch(`/api/reports/gas-maintenance?${params}`, {
-          credentials: 'include',
-          signal: abortController.signal
-        });
-        
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        
-        const result = await response.json();
-        console.log('⛽ GAS/MAINTENANCE DATA:', result);
-        
-        setGasMaintData(result.data || []);
-        
-        // Normalize backend response to match frontend property names
-        const backendSummary = result.summary || {};
-        const normalizedSummary = {
-          totalGasCost: backendSummary.totalGasCost || 0,
-          totalGasGallons: backendSummary.totalGasGallons || 0,
-          totalGasRecords: backendSummary.totalGasRecords || 0,
-          totalGpsMiles: backendSummary.totalGpsMiles || 0,
-          totalGpsFuelCost: backendSummary.totalGpsFuelCost || 0,
-          totalGpsTrips: backendSummary.totalGpsTrips || 0,
-          totalMaintenanceCost: backendSummary.totalMaintenanceCost || 0,
-          totalMaintenanceRecords: backendSummary.totalMaintenanceRecords || 0,
-          totalCost: backendSummary.totalCost || 0,
-          totalRecords: backendSummary.totalRecords || 0
-        };
-        
-        setGasMaintSummary(normalizedSummary);
-      } catch (error: any) {
-        if (error.name !== 'AbortError') {
-          console.error('⛽ ERROR FETCHING GAS/MAINTENANCE:', error);
-          setGasMaintError(error.message);
-        }
-      } finally {
-        setGasMaintLoading(false);
-      }
-    }
-
-    fetchGasMaintData();
-
-    return () => {
-      abortController.abort();
-    };
-  }, [gasMaintView, selectedGasMaintVehicle, profitLossDates.startDate, profitLossDates.endDate]);
+  };
 
 
   // Fuel tracking data source: 'jobs' (travel segments) or 'obd' (OBD trips)
