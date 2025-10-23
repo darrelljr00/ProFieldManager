@@ -282,8 +282,15 @@ export default function Reports() {
       params.append('vehicleId', selectedGasMaintVehicle);
     }
     
+    console.log('⛽ GAS/MAINT PARAMS COMPUTED:', params.toString());
     return params.toString();
   }, [profitLossDates.startDate, profitLossDates.endDate, gasMaintView, selectedGasMaintVehicle]);
+
+  console.log('⛽ REGISTERING GAS/MAINT QUERY:', {
+    queryKey: `/api/reports/gas-maintenance?${gasMaintParams}`,
+    enabled: true,
+    dates: profitLossDates
+  });
 
   const { 
     data: gasMaintResponse, 
@@ -291,9 +298,16 @@ export default function Reports() {
     error: gasMaintError 
   } = useQuery<any>({
     queryKey: [`/api/reports/gas-maintenance?${gasMaintParams}`],
-    enabled: !!profitLossDates.startDate && !!profitLossDates.endDate,
+    enabled: true,
     staleTime: 0,
     refetchOnMount: 'always',
+  });
+
+  console.log('⛽ GAS/MAINT QUERY STATE:', {
+    hasData: !!gasMaintResponse,
+    isLoading: gasMaintLoading,
+    hasError: !!gasMaintError,
+    error: gasMaintError
   });
 
   const gasMaintData = gasMaintResponse?.data || [];
