@@ -12141,14 +12141,7 @@ ${fromName || ''}
       }
       
       // Fetch limited GPS trips
-      const gpsTripsFuel = await db.select({
-        tripId: obdTrips.id,
-        vehicleId: obdTrips.vehicleId,
-        vehicleNumber: vehicles.oneStepGpsDeviceId,
-        tripDate: obdTrips.startTime,
-        distanceMiles: obdTrips.distanceMiles,
-        fuelEconomyMpg: vehicles.fuelEconomyMpg
-      })
+      const gpsTripsFuel = await db.select()
         .from(obdTrips)
         .innerJoin(vehicles, eq(obdTrips.vehicleId, vehicles.id))
         .where(and(...tripConditions, isNotNull(vehicles.fuelEconomyMpg)))
@@ -12239,19 +12232,22 @@ ${fromName || ''}
       });
       
       // Process GPS trips - aggregate in JavaScript (limited dataset)
-      gpsTripsFuel.forEach((trip) => {
-        if (!trip.fuelEconomyMpg || !trip.distanceMiles) return;
+      gpsTripsFuel.forEach((row) => {
+        const trip = row.obd_trips;
+        const vehicle = row.vehicles;
         
-        const tripDate = new Date(trip.tripDate);
-        const key = view === 'job' ? `gps-trip-${trip.tripId}` : getGroupKey(tripDate, view as string);
+        if (!vehicle.fuelEconomyMpg || !trip.distanceMiles) return;
+        
+        const tripDate = new Date(trip.startTime);
+        const key = view === 'job' ? `gps-trip-${trip.id}` : getGroupKey(tripDate, view as string);
         const miles = parseFloat(trip.distanceMiles.toString());
-        const mpg = parseFloat(trip.fuelEconomyMpg.toString());
+        const mpg = parseFloat(vehicle.fuelEconomyMpg.toString());
         const gallons = miles / mpg;
         const cost = gallons * fuelPrice;
         
         if (!groupedData[key]) {
           groupedData[key] = {
-            name: view === 'job' ? `GPS Trip #${trip.tripId}` : key,
+            name: view === 'job' ? `GPS Trip #${trip.id}` : key,
             date: tripDate.toISOString(),
             gasCost: 0,
             maintenanceCost: 0,
@@ -12264,7 +12260,7 @@ ${fromName || ''}
             gpsTripCount: 0,
             type: view === 'job' ? 'GPS Trip' : undefined,
             vehicleId: trip.vehicleId,
-            vehicleNumber: trip.vehicleNumber
+            vehicleNumber: vehicle.oneStepGpsDeviceId
           };
         }
         
