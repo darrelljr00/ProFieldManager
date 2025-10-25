@@ -12144,7 +12144,7 @@ ${fromName || ''}
       const gpsTripsFuel = await db.select({
         tripId: obdTrips.id,
         vehicleId: obdTrips.vehicleId,
-        vehicleNumber: vehicles.onestepGpsDeviceId,
+        vehicleNumber: vehicles.oneStepGpsDeviceId,
         tripDate: obdTrips.startTime,
         distanceMiles: obdTrips.distanceMiles,
         fuelEconomyMpg: vehicles.fuelEconomyMpg
