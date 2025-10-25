@@ -12091,7 +12091,7 @@ ${fromName || ''}
       const endDate = endParam ? new Date(endParam as string) : new Date();
       const vehicleId = vehicleIdParam ? parseInt(vehicleIdParam as string) : null;
       
-      console.log('⛽ DATE RANGE:', { startDate, endDate, view });
+      console.log('⛽ DATE RANGE:', { startDate, endDate, view, vehicleId });
       
       // Fetch gas/fuel expenses
       const gasExpenses = await db.select()
@@ -12126,29 +12126,34 @@ ${fromName || ''}
       
       console.log('⛽ FOUND MAINTENANCE RECORDS:', maintenanceRecords.length);
       
-      // Fetch GPS trip fuel consumption data
-      const fuelPrice = 2.50; // Fixed fuel price per gallon
+      // GPS TRIPS: Fetch most recent trips within date range (limit to prevent timeout)
+      const fuelPrice = 2.50;
+      const tripConditions = [
+        eq(obdTrips.organizationId, organizationId),
+        eq(obdTrips.status, 'completed'),
+        gte(obdTrips.startTime, startDate),
+        lte(obdTrips.startTime, endDate),
+        isNotNull(obdTrips.distanceMiles)
+      ];
+      
+      if (vehicleId) {
+        tripConditions.push(eq(obdTrips.vehicleId, vehicleId));
+      }
+      
+      // Fetch limited GPS trips
       const gpsTripsFuel = await db.select({
         tripId: obdTrips.id,
         vehicleId: obdTrips.vehicleId,
-        vehicleNumber: vehicles.vehicleNumber,
+        vehicleNumber: vehicles.onestepGpsDeviceId,
         tripDate: obdTrips.startTime,
         distanceMiles: obdTrips.distanceMiles,
         fuelEconomyMpg: vehicles.fuelEconomyMpg
       })
         .from(obdTrips)
         .innerJoin(vehicles, eq(obdTrips.vehicleId, vehicles.id))
-        .where(
-          and(
-            eq(obdTrips.organizationId, organizationId),
-            ...(vehicleId ? [eq(obdTrips.vehicleId, vehicleId)] : []),
-            eq(obdTrips.status, 'completed'),
-            gte(obdTrips.startTime, startDate),
-            lte(obdTrips.startTime, endDate),
-            isNotNull(vehicles.fuelEconomyMpg),
-            isNotNull(obdTrips.distanceMiles)
-          )
-        );
+        .where(and(...tripConditions, isNotNull(vehicles.fuelEconomyMpg)))
+        .orderBy(desc(obdTrips.startTime))
+        .limit(view === 'job' ? 1000 : 20000); // Limit to prevent timeout
       
       console.log('⛽ FOUND GPS TRIPS FOR FUEL CALC:', gpsTripsFuel.length);
       
@@ -12158,23 +12163,23 @@ ${fromName || ''}
       // Helper function to get grouping key based on view
       const getGroupKey = (date: Date, viewType: string): string => {
         if (viewType === 'job') {
-          return date.toISOString(); // Unique key for each record
+          return date.toISOString();
         } else if (viewType === 'daily') {
-          return date.toISOString().split('T')[0]; // YYYY-MM-DD
+          return date.toISOString().split('T')[0];
         } else if (viewType === 'weekly') {
           const weekStart = new Date(date);
           weekStart.setDate(date.getDate() - date.getDay());
           return weekStart.toISOString().split('T')[0];
         } else if (viewType === 'monthly') {
-          return date.toISOString().substring(0, 7); // YYYY-MM
+          return date.toISOString().substring(0, 7);
         } else if (viewType === 'yearly') {
-          return date.getFullYear().toString(); // YYYY
+          return date.getFullYear().toString();
         }
-        return date.toISOString().substring(0, 7); // Default to monthly
+        return date.toISOString().substring(0, 7);
       };
       
       // Process gas expenses
-      gasExpenses.forEach((record: any, index: number) => {
+      gasExpenses.forEach((record: any) => {
         const expense = record.expenses;
         const expenseDate = new Date(expense.expenseDate);
         const key = view === 'job' ? `gas-${expense.id}` : getGroupKey(expenseDate, view as string);
@@ -12188,6 +12193,10 @@ ${fromName || ''}
             totalGallons: 0,
             gasCount: 0,
             maintenanceCount: 0,
+            gpsFuelCost: 0,
+            gpsMiles: 0,
+            gpsGallons: 0,
+            gpsTripCount: 0,
             type: view === 'job' ? 'Gas Expense' : undefined,
             projectId: expense.projectId || null,
             vehicleId: expense.vehicleId || null
@@ -12229,93 +12238,74 @@ ${fromName || ''}
         groupedData[key].maintenanceCount += 1;
       });
       
-      // Process GPS trips for fuel consumption
-      gpsTripsFuel.forEach((trip: any) => {
-        const tripDate = new Date(trip.tripDate);
-        const mpg = parseFloat(trip.fuelEconomyMpg || '0');
-        const miles = parseFloat(trip.distanceMiles || '0');
+      // Process GPS trips - aggregate in JavaScript (limited dataset)
+      gpsTripsFuel.forEach((trip) => {
+        if (!trip.fuelEconomyMpg || !trip.distanceMiles) return;
         
-        if (mpg > 0 && miles > 0) {
-          const gallons = miles / mpg;
-          const cost = gallons * fuelPrice;
-          
-          // Determine grouping key
-          let key: string;
-          if (view === 'job') {
-            // For job view, group individual trips by trip ID
-            key = `gps-trip-${trip.tripId}`;
-          } else {
-            key = getGroupKey(tripDate, view as string);
-          }
-          
-          if (!groupedData[key]) {
-            groupedData[key] = {
-              name: view === 'job' ? `GPS Trip (${trip.vehicleNumber})` : key,
-              date: tripDate.toISOString(),
-              gasCost: 0,
-              maintenanceCost: 0,
-              totalGallons: 0,
-              gasCount: 0,
-              maintenanceCount: 0,
-              gpsFuelCost: 0,
-              gpsMiles: 0,
-              gpsGallons: 0,
-              gpsTripCount: 0,
-              type: view === 'job' ? 'GPS Fuel' : undefined,
-              vehicleId: trip.vehicleId || null
-            };
-          }
-          
-          groupedData[key].gpsFuelCost += cost;
-          groupedData[key].gpsMiles += miles;
-          groupedData[key].gpsGallons += gallons;
-          groupedData[key].gpsTripCount += 1;
-          
-          console.log(`⛽ GPS FUEL CALC: ${trip.vehicleNumber} - ${miles.toFixed(2)} mi ÷ ${mpg} MPG × $${fuelPrice} = $${cost.toFixed(2)}`);
+        const tripDate = new Date(trip.tripDate);
+        const key = view === 'job' ? `gps-trip-${trip.tripId}` : getGroupKey(tripDate, view as string);
+        const miles = parseFloat(trip.distanceMiles.toString());
+        const mpg = parseFloat(trip.fuelEconomyMpg.toString());
+        const gallons = miles / mpg;
+        const cost = gallons * fuelPrice;
+        
+        if (!groupedData[key]) {
+          groupedData[key] = {
+            name: view === 'job' ? `GPS Trip #${trip.tripId}` : key,
+            date: tripDate.toISOString(),
+            gasCost: 0,
+            maintenanceCost: 0,
+            totalGallons: 0,
+            gasCount: 0,
+            maintenanceCount: 0,
+            gpsFuelCost: 0,
+            gpsMiles: 0,
+            gpsGallons: 0,
+            gpsTripCount: 0,
+            type: view === 'job' ? 'GPS Trip' : undefined,
+            vehicleId: trip.vehicleId,
+            vehicleNumber: trip.vehicleNumber
+          };
         }
+        
+        groupedData[key].gpsFuelCost += cost;
+        groupedData[key].gpsMiles += miles;
+        groupedData[key].gpsGallons += gallons;
+        groupedData[key].gpsTripCount += 1;
       });
       
-      // Calculate total cost for each group (include GPS fuel cost)
-      Object.values(groupedData).forEach((data: any) => {
-        data.totalCost = data.gasCost + data.maintenanceCost + (data.gpsFuelCost || 0);
-        // Combine manual and GPS gallons
-        data.totalGallons = (data.totalGallons || 0) + (data.gpsGallons || 0);
-      });
+      // Calculate totals
+      const data = Object.values(groupedData).map((item: any) => ({
+        ...item,
+        totalCost: item.gasCost + item.maintenanceCost + item.gpsFuelCost,
+        totalGallonsAll: item.totalGallons + item.gpsGallons
+      }));
       
-      // Convert to array and sort
-      const chartData = Object.values(groupedData).sort((a: any, b: any) => {
-        if (view === 'job') {
-          return new Date(a.date).getTime() - new Date(b.date).getTime();
-        }
-        return a.name.localeCompare(b.name);
-      });
+      // Sort by date
+      data.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
       
-      // Calculate summary (include GPS fuel data)
-      const summary = {
-        totalGasCost: chartData.reduce((sum: number, d: any) => sum + d.gasCost, 0),
-        totalMaintenanceCost: chartData.reduce((sum: number, d: any) => sum + d.maintenanceCost, 0),
-        totalGpsFuelCost: chartData.reduce((sum: number, d: any) => sum + (d.gpsFuelCost || 0), 0),
-        totalCost: chartData.reduce((sum: number, d: any) => sum + d.totalCost, 0),
-        totalGasGallons: chartData.reduce((sum: number, d: any) => sum + d.totalGallons, 0),
-        totalGasRecords: chartData.reduce((sum: number, d: any) => sum + d.gasCount, 0),
-        totalMaintenanceRecords: chartData.reduce((sum: number, d: any) => sum + d.maintenanceCount, 0),
-        totalGpsMiles: chartData.reduce((sum: number, d: any) => sum + (d.gpsMiles || 0), 0),
-        totalGpsTrips: chartData.reduce((sum: number, d: any) => sum + (d.gpsTripCount || 0), 0),
-        totalRecords: chartData.reduce((sum: number, d: any) => sum + d.gasCount + d.maintenanceCount + (d.gpsTripCount || 0), 0)
-      };
+      // Get all vehicles for reference
+      const allVehicles = await db.select()
+        .from(vehicles)
+        .where(eq(vehicles.organizationId, organizationId));
       
-      res.json({
+      console.log('⛽ RETURNING', data.length, 'GROUPED RECORDS');
+      
+      return res.json({
         view,
         dateRange: { startDate, endDate },
-        data: chartData,
-        summary
+        data,
+        vehicles: allVehicles
       });
+      
     } catch (error: any) {
-      console.error("Error fetching gas/maintenance costs:", error);
-      res.status(500).json({ message: "Failed to fetch gas/maintenance costs", error: error.message });
+      console.error('⛽ GAS-MAINTENANCE ERROR:', error);
+      return res.status(500).json({ 
+        message: 'Failed to fetch gas & maintenance data',
+        error: error.message 
+      });
     }
   });
-
   // Profit per Vehicle API endpoint
   app.get("/api/reports/profit-per-vehicle", requireAuth, async (req, res) => {
     try {
