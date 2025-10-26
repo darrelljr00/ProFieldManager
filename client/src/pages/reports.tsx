@@ -3272,6 +3272,71 @@ export default function Reports() {
                 Per Year
               </Button>
               
+              {/* Date Range Picker */}
+              <div className="flex items-center gap-2 ml-4 pl-4 border-l border-gray-300">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="w-36 justify-start text-left font-normal"
+                      data-testid="button-gasmaint-start-date"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {startDate ? format(startDate, "MMM d, yyyy") : "Start Date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={startDate}
+                      onSelect={setStartDate}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+                
+                <span className="text-sm text-gray-500">to</span>
+                
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="w-36 justify-start text-left font-normal"
+                      data-testid="button-gasmaint-end-date"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {endDate ? format(endDate, "MMM d, yyyy") : "End Date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={endDate}
+                      onSelect={setEndDate}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+                
+                {startDate && endDate && (
+                  <Button 
+                    onClick={() => {
+                      // Force refetch with selected date range
+                      queryClient.invalidateQueries({ 
+                        queryKey: ['/api/reports/gas-maintenance'] 
+                      });
+                    }}
+                    variant="default"
+                    size="sm"
+                    data-testid="button-gasmaint-apply-dates"
+                  >
+                    Apply
+                  </Button>
+                )}
+              </div>
+              
               {/* Vehicle Filter */}
               <div className="flex items-center gap-2 ml-4">
                 <Filter className="h-4 w-4 text-gray-500" />
