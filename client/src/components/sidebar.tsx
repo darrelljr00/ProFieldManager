@@ -663,7 +663,7 @@ export function Sidebar() {
     return false;
   };
 
-  const handleLogout = async (e: React.MouseEvent) => {
+  const handleLogout = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     console.log('🔴 SIDEBAR: Logout button clicked - triggering logout');
@@ -671,13 +671,8 @@ export function Sidebar() {
     // Show visual feedback immediately
     setIsLoggingOut(true);
     
-    try {
-      await logout();
-    } catch (error) {
-      console.error('🚨 SIDEBAR: Logout error:', error);
-      // Even if logout throws an error, the performClientLogout in useAuth will still execute
-      // and redirect to login, so we don't need to reset isLoggingOut
-    }
+    // Logout is synchronous and will redirect immediately
+    logout();
   };
 
   if (!isAuthenticated) {
