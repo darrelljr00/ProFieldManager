@@ -1,25 +1,16 @@
 import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { useLocation } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LogOut } from "lucide-react";
 
 export default function Logout() {
   const { logout } = useAuth();
-  const [, setLocation] = useLocation();
 
   useEffect(() => {
     console.log('🔴 Logout page - executing logout');
-    // Perform logout
+    // Perform logout (this will clear auth data and redirect to login)
     logout();
-    
-    // Redirect to login after a short delay
-    const timer = setTimeout(() => {
-      setLocation("/login");
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, [logout, setLocation]);
+  }, [logout]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">

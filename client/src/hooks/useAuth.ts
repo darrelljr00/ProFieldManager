@@ -166,7 +166,24 @@ export function useAuth() {
   const logout = () => {
     console.log('🚪 LOGOUT: Starting logout process');
     
-    // Clear ALL authentication data immediately
+    // Store token BEFORE clearing (needed for server logout)
+    const token = localStorage.getItem('auth_token');
+    
+    // Notify server to invalidate session BEFORE clearing local data
+    if (token) {
+      fetch(buildApiUrl('/api/auth/logout'), {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include'
+      }).catch(() => {
+        console.log('⚠️ LOGOUT: Server logout call failed (expected if already logged out)');
+      });
+    }
+    
+    // Clear ALL authentication data
     console.log('🧹 LOGOUT: Clearing all auth data');
     localStorage.removeItem('auth_token');
     localStorage.removeItem('user_data');
@@ -182,24 +199,9 @@ export function useAuth() {
     // Clear React Query cache
     queryClient.clear();
     
-    // Notify server in the background (fire and forget)
-    const token = localStorage.getItem('auth_token');
-    if (token) {
-      fetch(buildApiUrl('/api/auth/logout'), {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include'
-      }).catch(() => {
-        // Ignore errors
-      });
-    }
-    
-    console.log('🔄 LOGOUT: Redirecting to login page');
-    // Force immediate redirect
-    window.location.replace('/login');
+    console.log('✅ LOGOUT: Complete - redirecting to login');
+    // Force immediate redirect to login page
+    window.location.href = '/login';
   };
 
   return {
