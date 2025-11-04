@@ -81,6 +81,7 @@ import Tutorials from "@/pages/tutorials";
 import MySchedule from "@/pages/my-schedule";
 import Notifications from "@/pages/notifications";
 import ScreenSharing from "@/pages/screen-sharing";
+import Logout from "@/pages/logout";
 import { HelpButton } from "@/components/help-button";
 
 function AuthenticatedApp() {
@@ -228,6 +229,7 @@ function AuthenticatedApp() {
           {isAdmin && <Route path="/frontend-management" component={FrontendManagement} />}
           <Route path="/settings" component={Settings} />
           <Route path="/reports" component={Reports} />
+          <Route path="/logout" component={Logout} />
           <Route component={NotFound} />
         </Switch>
         </div>

@@ -388,7 +388,7 @@ export function Sidebar() {
   }, [isCollapsed]);
 
   // Fetch expense categories for dynamic tabs
-  const { data: expenseCategories = [] } = useQuery({
+  const { data: expenseCategories = [] } = useQuery<any[]>({
     queryKey: ["/api/expense-categories"],
     enabled: !!user,
   });
@@ -800,17 +800,14 @@ export function Sidebar() {
 
         {/* Footer - Outside scrolling area */}
         <div className="p-4 border-t border-border flex-shrink-0">
-          <div
-            onClick={() => {
-              console.log('🔴 DIRECT LOGOUT CLICK');
-              logout();
-            }}
+          <Link
+            to="/logout"
             className="w-full justify-start flex items-center cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 p-2 rounded"
             data-testid="button-logout"
           >
             <LogOut className="w-4 h-4 mr-2" />
             {!isCollapsed && "Logout"}
-          </div>
+          </Link>
         </div>
       </div>
     </>
