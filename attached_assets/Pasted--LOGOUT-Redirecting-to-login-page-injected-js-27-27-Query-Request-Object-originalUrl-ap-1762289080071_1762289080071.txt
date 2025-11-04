@@ -1,0 +1,46 @@
+🔄 LOGOUT: Redirecting to login page injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/notifications/unread-count", fullUrl: "/api/notifications/unread-count", isCustomDomain: false, hasAuthHeader: false }
+injected.js:27:27
+🔍 USEAUTH: Calling /api/auth/me endpoint injected.js:27:27
+🔍 USEAUTH: Authentication check: 
+Object { isCustomDomain: false, hasStoredToken: false, hasStoredUser: false, tokenLength: undefined, hasCookie: false }
+injected.js:27:27
+🔍 USEAUTH: Falling back to cookie-based auth injected.js:27:27
+🌐 API Request: 
+Object { method: "GET", originalUrl: "/api/auth/me", fullUrl: "/api/auth/me", isCustomDomain: false, hasAuthHeader: false, authHeaderValue: "none", hasFormData: false, formDataEntries: undefined }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/settings/sounds", fullUrl: "/api/settings/sounds", isCustomDomain: false, hasAuthHeader: false }
+injected.js:27:27
+🔴 Logout page - executing logout injected.js:27:27
+🚪 LOGOUT: Starting logout process injected.js:27:27
+🧹 LOGOUT: Clearing all auth data injected.js:27:27
+Cookie with an empty name and an empty value has been rejected. login
+Cookie with an empty name and an empty value has been rejected. login
+🔄 LOGOUT: Redirecting to login page injected.js:27:27
+🔍 USEAUTH: Calling /api/auth/me endpoint injected.js:27:27
+🔍 USEAUTH: Authentication check: 
+Object { isCustomDomain: false, hasStoredToken: false, hasStoredUser: false, tokenLength: undefined, hasCookie: false }
+injected.js:27:27
+🔍 USEAUTH: Falling back to cookie-based auth injected.js:27:27
+🌐 API Request: 
+Object { method: "GET", originalUrl: "/api/auth/me", fullUrl: "/api/auth/me", isCustomDomain: false, hasAuthHeader: false, authHeaderValue: "none", hasFormData: false, formDataEntries: undefined }
+injected.js:27:27
+🌐 Query Request: 
+Object { originalUrl: "/api/settings/sounds", fullUrl: "/api/settings/sounds", isCustomDomain: false, hasAuthHeader: false }
+injected.js:27:27
+🚨 USEAUTH: Token authentication error: TypeError: NetworkError when attempting to fetch resource. injected.js:27:27
+🔍 USEAUTH: Falling back to cookie-based auth injected.js:27:27
+🌐 API Request: 
+Object { method: "GET", originalUrl: "/api/auth/me", fullUrl: "/api/auth/me", isCustomDomain: false, hasAuthHeader: false, authHeaderValue: "none", hasFormData: false, formDataEntries: undefined }
+injected.js:27:27
+❌ USEAUTH: Authentication failed: TypeError: NetworkError when attempting to fetch resource. injected.js:27:27
+❌ USEAUTH: Authentication failed: TypeError: NetworkError when attempting to fetch resource. injected.js:27:27
+❌ USEAUTH: Authentication failed: TypeError: NetworkError when attempting to fetch resource. injected.js:27:27
+🔴 Logout page - executing logout injected.js:27:27
+🚪 LOGOUT: Starting logout process injected.js:27:27
+🧹 LOGOUT: Clearing all auth data injected.js:27:27
+Cookie with an empty name and an empty value has been rejected. login
+Cookie with an empty name and an empty value has been rejected. login
+🔄 LOGOUT: Redirecting to login page injected.js:27:27
