@@ -20345,7 +20345,7 @@ ${fromName || ''}
         const ARRIVAL_RADIUS = 200; // 200 meters radius
 
         for (const job of assignedJobs) {
-          if (!job.latitude || !job.longitude || !job.id) continue;
+          if (!job.latitude || !job.longitude) continue;
 
           const distance = calculateDistance(
             parseFloat(latitude),
@@ -20362,12 +20362,11 @@ ${fromName || ''}
               .from(notifications)
               .where(
                 and(
-                  eq(notifications.organizationId, user.organizationId),
                   eq(notifications.type, 'technician_arrived_onsite'),
                   eq(notifications.relatedEntityId, job.id)
                 )
               )
-              .orderBy(sql`${notifications.createdAt} DESC`)
+              .orderBy(desc(notifications.createdAt))
               .limit(1);
 
             const shouldNotifyArrival = !recentArrivalNotifications.length || 
