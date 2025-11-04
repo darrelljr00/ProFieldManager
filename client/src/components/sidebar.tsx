@@ -255,6 +255,7 @@ export function Sidebar() {
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
   const [navigationOrder, setNavigationOrder] = useState<string[]>(DEFAULT_NAVIGATION_ORDER);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   // Drag and drop sensors
   const sensors = useSensors(
@@ -668,16 +669,14 @@ export function Sidebar() {
     console.log('🔴 SIDEBAR: Logout button clicked - triggering logout');
     
     // Show visual feedback immediately
-    const button = e.currentTarget as HTMLButtonElement;
-    button.disabled = true;
-    button.textContent = 'Logging out...';
+    setIsLoggingOut(true);
     
     try {
       await logout();
     } catch (error) {
       console.error('🚨 SIDEBAR: Logout error:', error);
       // Even if logout throws an error, the performClientLogout in useAuth will still execute
-      // and redirect to login, so we don't need to re-enable the button
+      // and redirect to login, so we don't need to reset isLoggingOut
     }
   };
 
@@ -808,16 +807,14 @@ export function Sidebar() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={(e) => {
-                console.log('🔴 LOGOUT BUTTON CLICKED - Event:', e);
-                handleLogout(e);
-              }}
+              onClick={handleLogout}
               className="w-full justify-start"
               data-testid="button-logout"
               type="button"
+              disabled={isLoggingOut}
             >
               <LogOut className="w-4 h-4 mr-2" />
-              {!isCollapsed && "Logout"}
+              {!isCollapsed && (isLoggingOut ? "Logging out..." : "Logout")}
             </Button>
           </div>
         </div>
