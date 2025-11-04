@@ -164,48 +164,92 @@ export function useAuth() {
   });
 
   const logout = async () => {
+    console.log('🚪 LOGOUT: Starting logout process');
+    
+    // Set a timeout to ensure logout completes even if server is unresponsive
+    const logoutTimeout = setTimeout(() => {
+      console.log('⚠️ LOGOUT: Server timeout, proceeding with client-side cleanup');
+      performClientLogout();
+    }, 3000); // 3 second timeout
+    
     try {
-      console.log('🚪 LOGOUT: Starting logout process');
       const token = localStorage.getItem('auth_token');
       
-      if (token) {
-        // Call logout endpoint with token
-        await fetch(buildApiUrl('/api/auth/logout'), {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          credentials: 'include'
-        });
-      } else {
-        // Fallback to cookie-based logout
-        await apiRequest("POST", "/api/auth/logout");
+      // Try to notify server (with timeout)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2500);
+      
+      try {
+        if (token) {
+          // Call logout endpoint with token
+          await fetch(buildApiUrl('/api/auth/logout'), {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            credentials: 'include',
+            signal: controller.signal
+          });
+        } else {
+          // Fallback to cookie-based logout
+          await fetch(buildApiUrl('/api/auth/logout'), {
+            method: 'POST',
+            credentials: 'include',
+            signal: controller.signal
+          });
+        }
+        console.log('✅ LOGOUT: Server logout successful');
+      } catch (fetchError) {
+        if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+          console.warn('⚠️ LOGOUT: Server request timed out');
+        } else {
+          console.error("❌ LOGOUT: Server logout error:", fetchError);
+        }
+      } finally {
+        clearTimeout(timeoutId);
       }
-      console.log('✅ LOGOUT: Server logout successful');
     } catch (error) {
-      console.error("❌ LOGOUT: Server logout error:", error);
+      console.error("❌ LOGOUT: Unexpected error:", error);
     } finally {
-      // Clear ALL stored authentication data
-      console.log('🧹 LOGOUT: Clearing local storage and cache');
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('user_data');
-      localStorage.removeItem('auth_success_timestamp');
-      
-      // Clear all cookies
-      document.cookie.split(";").forEach((c) => {
-        document.cookie = c
-          .replace(/^ +/, "")
-          .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
-      });
-      
-      // Clear React Query cache
-      queryClient.clear();
-      
-      console.log('🔄 LOGOUT: Redirecting to login page');
-      // Force redirect to login
-      window.location.href = '/login';
+      // Clear the main timeout and perform logout
+      clearTimeout(logoutTimeout);
+      performClientLogout();
     }
+  };
+
+  const performClientLogout = () => {
+    // Clear ALL stored authentication data
+    console.log('🧹 LOGOUT: Clearing local storage and cache');
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user_data');
+    localStorage.removeItem('auth_success_timestamp');
+    
+    // Clear all cookies
+    try {
+      document.cookie.split(";").forEach((c) => {
+        const cookieName = c.split("=")[0].trim();
+        // Clear for all possible paths and domains
+        document.cookie = `${cookieName}=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/`;
+        document.cookie = `${cookieName}=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;domain=${window.location.hostname}`;
+      });
+    } catch (cookieError) {
+      console.error("❌ LOGOUT: Error clearing cookies:", cookieError);
+    }
+    
+    // Clear React Query cache
+    try {
+      queryClient.clear();
+      console.log('✅ LOGOUT: Query cache cleared');
+    } catch (cacheError) {
+      console.error("❌ LOGOUT: Error clearing cache:", cacheError);
+    }
+    
+    console.log('🔄 LOGOUT: Redirecting to login page');
+    // Force redirect to login
+    setTimeout(() => {
+      window.location.href = '/login';
+    }, 100); // Small delay to ensure cleanup completes
   };
 
   return {

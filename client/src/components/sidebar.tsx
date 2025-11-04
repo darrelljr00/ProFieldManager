@@ -666,10 +666,18 @@ export function Sidebar() {
     e.preventDefault();
     e.stopPropagation();
     console.log('🔴 SIDEBAR: Logout button clicked - triggering logout');
+    
+    // Show visual feedback immediately
+    const button = e.currentTarget as HTMLButtonElement;
+    button.disabled = true;
+    button.textContent = 'Logging out...';
+    
     try {
       await logout();
     } catch (error) {
       console.error('🚨 SIDEBAR: Logout error:', error);
+      // Even if logout throws an error, the performClientLogout in useAuth will still execute
+      // and redirect to login, so we don't need to re-enable the button
     }
   };
 
