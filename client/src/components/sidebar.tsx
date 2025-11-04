@@ -799,18 +799,17 @@ export function Sidebar() {
 
           {/* Footer */}
           <div className="p-4 border-t border-border flex-shrink-0">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleLogout}
-              className="w-full justify-start"
+            <div
+              onClick={() => {
+                console.log('🔴 DIRECT LOGOUT CLICK');
+                logout();
+              }}
+              className="w-full justify-start flex items-center cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 p-2 rounded"
               data-testid="button-logout"
-              type="button"
-              disabled={isLoggingOut}
             >
               <LogOut className="w-4 h-4 mr-2" />
-              {!isCollapsed && (isLoggingOut ? "Logging out..." : "Logout")}
-            </Button>
+              {!isCollapsed && "Logout"}
+            </div>
           </div>
         </div>
       </div>
