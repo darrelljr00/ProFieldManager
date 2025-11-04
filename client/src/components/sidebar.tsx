@@ -701,11 +701,11 @@ export function Sidebar() {
 
       {/* Sidebar */}
       <div className={cn(
-        "fixed left-0 top-0 z-50 h-screen bg-background border-r border-border transition-transform duration-300 ease-in-out md:relative md:translate-x-0",
+        "fixed left-0 top-0 z-50 h-screen bg-background border-r border-border transition-transform duration-300 ease-in-out md:relative md:translate-x-0 flex flex-col",
         isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
         isCollapsed ? "w-16" : "w-64"
       )}>
-        <div className="flex flex-col h-full overflow-y-auto">
+        <div className="flex flex-col flex-1 overflow-y-auto">
           {/* Header */}
           <div className="p-4 border-b border-border flex-shrink-0">
             <div className="flex items-center justify-between">
@@ -796,20 +796,20 @@ export function Sidebar() {
               </SortableContext>
             </DndContext>
           </nav>
+        </div>
 
-          {/* Footer */}
-          <div className="p-4 border-t border-border flex-shrink-0">
-            <div
-              onClick={() => {
-                console.log('🔴 DIRECT LOGOUT CLICK');
-                logout();
-              }}
-              className="w-full justify-start flex items-center cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 p-2 rounded"
-              data-testid="button-logout"
-            >
-              <LogOut className="w-4 h-4 mr-2" />
-              {!isCollapsed && "Logout"}
-            </div>
+        {/* Footer - Outside scrolling area */}
+        <div className="p-4 border-t border-border flex-shrink-0">
+          <div
+            onClick={() => {
+              console.log('🔴 DIRECT LOGOUT CLICK');
+              logout();
+            }}
+            className="w-full justify-start flex items-center cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 p-2 rounded"
+            data-testid="button-logout"
+          >
+            <LogOut className="w-4 h-4 mr-2" />
+            {!isCollapsed && "Logout"}
           </div>
         </div>
       </div>
