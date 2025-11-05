@@ -1040,8 +1040,24 @@ export function Sidebar() {
         <div className="p-4 border-t border-border flex-shrink-0">
           <button
             onClick={(e) => {
-              console.log("🟢 BUTTON CLICK DETECTED - Raw onClick firing");
-              handleLogout(e);
+              e.preventDefault();
+              e.stopPropagation();
+              console.log('🟢 DIRECT LOGOUT - Bypassing React state, clearing all auth data');
+              
+              // Clear ALL auth data immediately
+              localStorage.clear();
+              sessionStorage.clear();
+              
+              // Clear all cookies
+              document.cookie.split(";").forEach((c) => {
+                const cookieName = c.split("=")[0].trim();
+                document.cookie = `${cookieName}=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/`;
+              });
+              
+              console.log('✅ All data cleared - redirecting to login');
+              
+              // Force immediate redirect
+              window.location.href = '/login';
             }}
             className="w-full justify-start flex items-center cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 p-2 rounded text-left"
             data-testid="button-logout"
