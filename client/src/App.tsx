@@ -265,6 +265,12 @@ function Router() {
       const currentPath = window.location.pathname;
       console.log('🔄 Authentication detected, current path:', currentPath);
       
+      // Don't redirect if on logout page (let logout complete)
+      if (currentPath === '/logout') {
+        console.log('⏳ On logout page, skipping redirect to allow logout to complete');
+        return;
+      }
+      
       if (currentPath === '/login' || currentPath === '/login-full' || currentPath === '/signup' || currentPath === '/') {
         const intendedDestination = localStorage.getItem('intended_destination');
         localStorage.removeItem('intended_destination');
