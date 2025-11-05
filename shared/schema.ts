@@ -5342,6 +5342,144 @@ export const insertJobTravelSegmentSchema = createInsertSchema(jobTravelSegments
 export type JobTravelSegment = typeof jobTravelSegments.$inferSelect;
 export type InsertJobTravelSegment = z.infer<typeof insertJobTravelSegmentSchema>;
 
+// Server Sync Configuration
+export const syncConfigurations = pgTable("sync_configurations", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").references(() => organizations.id).notNull(),
+  
+  // Remote server details
+  serverName: text("server_name").notNull(),
+  serverUrl: text("server_url").notNull(),
+  apiKey: text("api_key"),
+  username: text("username"),
+  encryptedPassword: text("encrypted_password"), // Encrypted for security
+  
+  // Sync settings
+  syncDirection: text("sync_direction").default("one-way"), // one-way, bidirectional
+  syncDatabase: boolean("sync_database").default(false),
+  syncFiles: boolean("sync_files").default(false),
+  exportFormat: text("export_format").default("sql"), // sql, csv
+  
+  // Conflict resolution
+  conflictResolution: text("conflict_resolution").default("manual"), // manual, auto-local, auto-remote
+  useTimestampComparison: boolean("use_timestamp_comparison").default(true),
+  useChecksumComparison: boolean("use_checksum_comparison").default(true),
+  
+  // Status
+  isActive: boolean("is_active").default(true),
+  lastSyncAt: timestamp("last_sync_at"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertSyncConfigurationSchema = createInsertSchema(syncConfigurations, {
+  serverName: z.string().min(1),
+  serverUrl: z.string().url(),
+  apiKey: z.string().optional(),
+  username: z.string().optional(),
+  syncDirection: z.enum(["one-way", "bidirectional"]).optional(),
+  exportFormat: z.enum(["sql", "csv"]).optional(),
+  conflictResolution: z.enum(["manual", "auto-local", "auto-remote"]).optional(),
+}).omit({
+  id: true,
+  organizationId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type SyncConfiguration = typeof syncConfigurations.$inferSelect;
+export type InsertSyncConfiguration = z.infer<typeof insertSyncConfigurationSchema>;
+
+// Sync History
+export const syncHistory = pgTable("sync_history", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").references(() => organizations.id).notNull(),
+  configurationId: integer("configuration_id").references(() => syncConfigurations.id).notNull(),
+  
+  // Sync details
+  syncType: text("sync_type").notNull(), // database, files, both
+  syncDirection: text("sync_direction").notNull(), // one-way, bidirectional
+  exportFormat: text("export_format"), // sql, csv (for database sync)
+  
+  // Results
+  status: text("status").notNull(), // pending, in-progress, completed, failed, conflict
+  totalRecords: integer("total_records").default(0),
+  recordsSynced: integer("records_synced").default(0),
+  recordsFailed: integer("records_failed").default(0),
+  conflictsDetected: integer("conflicts_detected").default(0),
+  
+  // File sync details
+  totalFiles: integer("total_files").default(0),
+  filesSynced: integer("files_synced").default(0),
+  filesFailed: integer("files_failed").default(0),
+  totalSizeBytes: integer("total_size_bytes").default(0),
+  
+  // Timing
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  durationSeconds: integer("duration_seconds"),
+  
+  // Error details
+  errorMessage: text("error_message"),
+  errorDetails: jsonb("error_details"),
+  
+  // Metadata
+  initiatedBy: integer("initiated_by").references(() => users.id),
+  metadata: jsonb("metadata"), // Additional sync details
+  
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertSyncHistorySchema = createInsertSchema(syncHistory).omit({
+  id: true,
+  organizationId: true,
+  createdAt: true,
+});
+
+export type SyncHistory = typeof syncHistory.$inferSelect;
+export type InsertSyncHistory = z.infer<typeof insertSyncHistorySchema>;
+
+// Sync Conflicts
+export const syncConflicts = pgTable("sync_conflicts", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").references(() => organizations.id).notNull(),
+  syncHistoryId: integer("sync_history_id").references(() => syncHistory.id).notNull(),
+  
+  // Conflict details
+  tableName: text("table_name").notNull(),
+  recordId: text("record_id").notNull(),
+  conflictType: text("conflict_type").notNull(), // timestamp, checksum, both
+  
+  // Local vs Remote data
+  localData: jsonb("local_data").notNull(),
+  remoteData: jsonb("remote_data").notNull(),
+  localTimestamp: timestamp("local_timestamp"),
+  remoteTimestamp: timestamp("remote_timestamp"),
+  localChecksum: text("local_checksum"),
+  remoteChecksum: text("remote_checksum"),
+  
+  // Resolution
+  status: text("status").default("pending"), // pending, resolved-local, resolved-remote, resolved-merge
+  resolvedBy: integer("resolved_by").references(() => users.id),
+  resolvedAt: timestamp("resolved_at"),
+  resolution: text("resolution"), // Description of how conflict was resolved
+  mergedData: jsonb("merged_data"), // If manually merged
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertSyncConflictSchema = createInsertSchema(syncConflicts).omit({
+  id: true,
+  organizationId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type SyncConflict = typeof syncConflicts.$inferSelect;
+export type InsertSyncConflict = z.infer<typeof insertSyncConflictSchema>;
+
 // GPS Tracking types
 export type GpsTrackingData = typeof gpsTrackingData.$inferSelect;
 export type InsertGpsTrackingData = z.infer<typeof insertGpsTrackingDataSchema>;
