@@ -58,6 +58,8 @@ import {
   FileText,
   ArrowLeftRight,
   ArrowRight,
+  Code,
+  Copy,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -128,6 +130,7 @@ export function ServerSync() {
   const [showConflictDialog, setShowConflictDialog] = useState(false);
   const [selectedConflict, setSelectedConflict] = useState<SyncConflict | null>(null);
   const [deleteConfirmConfig, setDeleteConfirmConfig] = useState<number | null>(null);
+  const [remoteServerCode, setRemoteServerCode] = useState<string>("");
 
   const [configForm, setConfigForm] = useState({
     serverName: "",
@@ -291,6 +294,373 @@ export function ServerSync() {
       useChecksumComparison: true,
     });
   };
+
+  // Generate remote server template
+  const generateRemoteServerTemplate = () => {
+    const template = `// ======================================================================
+// REMOTE SYNC RECEIVER SERVER
+// ======================================================================
+// This Node.js/Express server receives sync data from Pro Field Manager
+// 
+// SETUP INSTRUCTIONS:
+// 1. Install Node.js (v16 or higher) on your remote server
+// 2. Create a new directory and save this file as "sync-receiver-server.js"
+// 3. Install dependencies: npm install express pg bcryptjs multer csv-parse
+// 4. Create .env file with your database credentials (see CONFIG section)
+// 5. Run the server: node sync-receiver-server.js
+// 6. Server will listen on port 3000 (or PORT env variable)
+// 7. Configure firewall to allow incoming connections on the port
+// ======================================================================
+
+const express = require('express');
+const { Pool } = require('pg');
+const bcrypt = require('bcryptjs');
+const multer = require('multer');
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
+
+// ======================================================================
+// CONFIGURATION - Update these values or use environment variables
+// ======================================================================
+
+const CONFIG = {
+  // Server Configuration
+  port: process.env.PORT || 3000,
+  
+  // Database Configuration
+  database: {
+    host: process.env.DB_HOST || 'localhost',
+    port: process.env.DB_PORT || 5432,
+    database: process.env.DB_NAME || 'sync_receiver',
+    user: process.env.DB_USER || 'postgres',
+    password: process.env.DB_PASSWORD || 'your_password_here',
+  },
+  
+  // Authentication - IMPORTANT: Change these before deploying!
+  auth: {
+    // API key to match your sync configuration
+    apiKey: process.env.API_KEY || 'your-api-key-here',
+    username: process.env.AUTH_USERNAME || 'admin',
+    // Password hash (generate with: node -e "console.log(require('bcryptjs').hashSync('your-password', 10))")
+    passwordHash: process.env.PASSWORD_HASH || '$2a$10$EXAMPLE',
+  },
+  
+  // File Storage
+  fileStoragePath: process.env.FILE_STORAGE_PATH || './sync_files',
+};
+
+// ======================================================================
+// INITIALIZE APP AND DATABASE
+// ======================================================================
+
+const app = express();
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ extended: true, limit: '100mb' }));
+
+const pool = new Pool(CONFIG.database);
+
+// Create file storage directory
+if (!fs.existsSync(CONFIG.fileStoragePath)) {
+  fs.mkdirSync(CONFIG.fileStoragePath, { recursive: true });
+}
+
+// Configure multer for file uploads
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      const orgPath = path.join(CONFIG.fileStoragePath, req.body.organizationId || 'default');
+      if (!fs.existsSync(orgPath)) {
+        fs.mkdirSync(orgPath, { recursive: true });
+      }
+      cb(null, orgPath);
+    },
+    filename: (req, file, cb) => {
+      cb(null, file.originalname);
+    },
+  }),
+  limits: { fileSize: 100 * 1024 * 1024 }, // 100MB limit
+});
+
+// ======================================================================
+// AUTHENTICATION MIDDLEWARE
+// ======================================================================
+
+function authenticateRequest(req, res, next) {
+  const authHeader = req.headers.authorization;
+  const username = req.headers['x-username'];
+  const password = req.headers['x-password'];
+  
+  // API Key authentication
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.substring(7);
+    if (token === CONFIG.auth.apiKey) {
+      return next();
+    }
+  }
+  
+  // Username/Password authentication
+  if (username && password) {
+    if (username === CONFIG.auth.username && bcrypt.compareSync(password, CONFIG.auth.passwordHash)) {
+      return next();
+    }
+  }
+  
+  return res.status(401).json({ error: 'Unauthorized' });
+}
+
+// ======================================================================
+// HEALTH CHECK ENDPOINT
+// ======================================================================
+
+app.get('/api/sync/status', authenticateRequest, async (req, res) => {
+  try {
+    // Test database connection
+    const result = await pool.query('SELECT NOW()');
+    
+    res.json({
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      database: 'connected',
+      serverTime: result.rows[0].now,
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'unhealthy',
+      error: error.message,
+    });
+  }
+});
+
+// ======================================================================
+// RECEIVE DATABASE SYNC (SQL FORMAT)
+// ======================================================================
+
+app.post('/api/sync/database', authenticateRequest, async (req, res) => {
+  const client = await pool.connect();
+  
+  try {
+    const { organizationId, sqlStatements, format } = req.body;
+    
+    console.log(\`Receiving database sync for org \${organizationId}, format: \${format}\`);
+    
+    await client.query('BEGIN');
+    
+    if (format === 'sql') {
+      // Execute SQL statements
+      if (Array.isArray(sqlStatements)) {
+        for (const sql of sqlStatements) {
+          await client.query(sql);
+        }
+      } else if (typeof sqlStatements === 'string') {
+        // Split by semicolon and execute each statement
+        const statements = sqlStatements.split(';').filter(s => s.trim());
+        for (const sql of statements) {
+          if (sql.trim()) {
+            await client.query(sql);
+          }
+        }
+      }
+    } else if (format === 'csv') {
+      // Handle CSV import
+      const { tableName, csvData } = req.body;
+      
+      // Parse CSV and insert data
+      console.log(\`CSV import for table \${tableName}\`);
+      
+      // TODO: Implement CSV parsing and insertion
+    }
+    
+    await client.query('COMMIT');
+    
+    res.json({
+      success: true,
+      recordsSynced: sqlStatements?.length || 0,
+      conflicts: [],
+    });
+    
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Database sync error:', error);
+    
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  } finally {
+    client.release();
+  }
+});
+
+// ======================================================================
+// RECEIVE FILE SYNC
+// ======================================================================
+
+app.post('/api/sync/files', authenticateRequest, upload.array('files', 100), async (req, res) => {
+  try {
+    const { organizationId } = req.body;
+    const uploadedFiles = req.files;
+    
+    console.log(\`Received \${uploadedFiles?.length || 0} files for org \${organizationId}\`);
+    
+    const fileResults = [];
+    
+    for (const file of uploadedFiles || []) {
+      // Calculate checksum
+      const fileBuffer = fs.readFileSync(file.path);
+      const checksum = crypto.createHash('sha256').update(fileBuffer).digest('hex');
+      
+      fileResults.push({
+        filename: file.originalname,
+        size: file.size,
+        checksum,
+        path: file.path,
+      });
+    }
+    
+    res.json({
+      success: true,
+      filesSynced: fileResults.length,
+      files: fileResults,
+    });
+    
+  } catch (error) {
+    console.error('File sync error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+// ======================================================================
+// RECEIVE COMBINED SYNC
+// ======================================================================
+
+app.post('/api/sync/receive', authenticateRequest, async (req, res) => {
+  try {
+    const { organizationId, syncType, timestamp, databaseSql, databaseCsv, files } = req.body;
+    
+    console.log(\`Received sync request: type=\${syncType}, org=\${organizationId}, time=\${timestamp}\`);
+    
+    const results = {
+      success: true,
+      recordsSynced: 0,
+      totalRecords: 0,
+      filesSynced: 0,
+      totalFiles: 0,
+      conflicts: [],
+    };
+    
+    // Handle database sync
+    if (syncType === 'database' || syncType === 'both') {
+      if (databaseSql) {
+        // Process SQL
+        const client = await pool.connect();
+        try {
+          await client.query('BEGIN');
+          const statements = databaseSql.split(';').filter(s => s.trim());
+          for (const sql of statements) {
+            if (sql.trim()) {
+              await client.query(sql);
+            }
+          }
+          await client.query('COMMIT');
+          results.recordsSynced = statements.length;
+          results.totalRecords = statements.length;
+        } catch (error) {
+          await client.query('ROLLBACK');
+          throw error;
+        } finally {
+          client.release();
+        }
+      }
+    }
+    
+    // Handle file sync
+    if (syncType === 'files' || syncType === 'both') {
+      if (files && Array.isArray(files)) {
+        results.totalFiles = files.length;
+        results.filesSynced = files.length;
+      }
+    }
+    
+    res.json(results);
+    
+  } catch (error) {
+    console.error('Sync receive error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+// ======================================================================
+// START SERVER
+// ======================================================================
+
+app.listen(CONFIG.port, () => {
+  console.log(\`\\n========================================\`);
+  console.log(\`Remote Sync Receiver Server Started\`);
+  console.log(\`========================================\`);
+  console.log(\`Port: \${CONFIG.port}\`);
+  console.log(\`Database: \${CONFIG.database.host}:\${CONFIG.database.port}/\${CONFIG.database.database}\`);
+  console.log(\`File Storage: \${CONFIG.fileStoragePath}\`);
+  console.log(\`\\nEndpoints:\`);
+  console.log(\`  GET  /api/sync/status       - Health check\`);
+  console.log(\`  POST /api/sync/database     - Receive database sync\`);
+  console.log(\`  POST /api/sync/files        - Receive file uploads\`);
+  console.log(\`  POST /api/sync/receive      - Combined sync endpoint\`);
+  console.log(\`========================================\\n\`);
+});
+
+// ======================================================================
+// ERROR HANDLING
+// ======================================================================
+
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+});
+
+process.on('unhandledRejection', (error) => {
+  console.error('Unhandled Rejection:', error);
+});
+`;
+    setRemoteServerCode(template);
+  };
+
+  // Download remote server file
+  const downloadRemoteServer = () => {
+    const blob = new Blob([remoteServerCode], { type: 'text/javascript' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'sync-receiver-server.js';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    toast({
+      title: "Downloaded",
+      description: "Remote server file has been downloaded",
+    });
+  };
+
+  // Copy code to clipboard
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(remoteServerCode);
+    toast({
+      title: "Copied",
+      description: "Code copied to clipboard",
+    });
+  };
+
+  // Generate template on component mount
+  if (remoteServerCode === "") {
+    generateRemoteServerTemplate();
+  }
 
   const openEditDialog = (config: SyncConfiguration) => {
     setEditingConfig(config);
@@ -933,6 +1303,89 @@ export function ServerSync() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Remote Server Generator */}
+      <Card data-testid="card-remote-server-generator" className="mt-6">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Code className="h-5 w-5" />
+                Remote Server Generator
+              </CardTitle>
+              <CardDescription>
+                Download and configure the sync receiver server for your remote server
+              </CardDescription>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={copyToClipboard}
+                disabled={!remoteServerCode}
+                data-testid="button-copy-code"
+              >
+                <Copy className="h-4 w-4 mr-2" />
+                Copy Code
+              </Button>
+              <Button
+                onClick={downloadRemoteServer}
+                disabled={!remoteServerCode}
+                data-testid="button-download-server"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download Server File
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="bg-gray-100 dark:bg-gray-900 p-4 rounded-lg border">
+              <h4 className="font-semibold mb-2">Deployment Instructions</h4>
+              <ol className="text-sm text-gray-700 dark:text-gray-300 space-y-2 list-decimal list-inside">
+                <li>Download the server file using the button above</li>
+                <li>Transfer the file to your remote server (via FTP, SCP, or similar)</li>
+                <li>Install Node.js (v16 or higher) on your remote server</li>
+                <li>Install dependencies: <code className="bg-gray-200 dark:bg-gray-800 px-2 py-1 rounded">npm install express pg bcryptjs multer csv-parse</code></li>
+                <li>Edit the CONFIG section in the file to match your database credentials and authentication</li>
+                <li>Configure your firewall to allow incoming connections on port 3000 (or your chosen port)</li>
+                <li>Run the server: <code className="bg-gray-200 dark:bg-gray-800 px-2 py-1 rounded">node sync-receiver-server.js</code></li>
+                <li>For production, use a process manager like PM2: <code className="bg-gray-200 dark:bg-gray-800 px-2 py-1 rounded">pm2 start sync-receiver-server.js</code></li>
+              </ol>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="server-code">Server Code (editable)</Label>
+              <textarea
+                id="server-code"
+                value={remoteServerCode}
+                onChange={(e) => setRemoteServerCode(e.target.value)}
+                className="w-full h-96 p-4 font-mono text-sm bg-white dark:bg-gray-950 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                data-testid="textarea-server-code"
+                spellCheck={false}
+              />
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                You can modify the code above before downloading. The template includes all necessary
+                endpoints to receive sync data from Pro Field Manager.
+              </p>
+            </div>
+
+            <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 p-4 rounded-lg">
+              <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2 flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4" />
+                Security Notes
+              </h4>
+              <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1 list-disc list-inside">
+                <li>Change the default API key and credentials before deploying</li>
+                <li>Use environment variables for sensitive configuration</li>
+                <li>Enable HTTPS/SSL for production deployments</li>
+                <li>Keep your remote server software updated</li>
+                <li>Configure firewall rules to restrict access to trusted IPs</li>
+              </ul>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
