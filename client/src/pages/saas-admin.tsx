@@ -67,6 +67,7 @@ import {
 import FileSecurityTab from "@/components/FileSecurityTab";
 import { ApiIntegrationManager } from "@/components/api-integration-manager";
 import { SubscriptionPlanSelector } from "@/components/subscription-plan-selector";
+import { ServerSync } from "@/components/ServerSync";
 
 console.log('🚀 SAAS ADMIN MODULE LOADED - Component file is being executed');
 
@@ -520,7 +521,7 @@ export default function SaasAdminPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-8">
+        <TabsList className="grid w-full grid-cols-9">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="organizations">Organizations</TabsTrigger>
           <TabsTrigger value="users">User Management</TabsTrigger>
@@ -529,6 +530,7 @@ export default function SaasAdminPage() {
           <TabsTrigger value="billing">Billing</TabsTrigger>
           <TabsTrigger value="security">File Security</TabsTrigger>
           <TabsTrigger value="call-manager">Call Manager</TabsTrigger>
+          <TabsTrigger value="sync">Server Sync</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -1932,6 +1934,10 @@ export default function SaasAdminPage() {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        <TabsContent value="sync">
+          <ServerSync />
         </TabsContent>
       </Tabs>
 

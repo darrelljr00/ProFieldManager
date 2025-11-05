@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { ImageCompressionSettings } from "@/components/ImageCompressionSettings";
-import { ServerSync } from "@/components/ServerSync";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -681,7 +680,6 @@ export default function AdminSettingsPage() {
           <TabsTrigger value="security">Security</TabsTrigger>
           <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
           <TabsTrigger value="logs">Activity Logs</TabsTrigger>
-          <TabsTrigger value="sync">Server Sync</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -1437,10 +1435,6 @@ export default function AdminSettingsPage() {
               </Table>
             </CardContent>
           </Card>
-        </TabsContent>
-
-        <TabsContent value="sync">
-          <ServerSync />
         </TabsContent>
       </Tabs>
     </div>
