@@ -5480,6 +5480,139 @@ export const insertSyncConflictSchema = createInsertSchema(syncConflicts).omit({
 export type SyncConflict = typeof syncConflicts.$inferSelect;
 export type InsertSyncConflict = z.infer<typeof insertSyncConflictSchema>;
 
+// Planned Routes - when technician clicks Directions
+export const plannedRoutes = pgTable("planned_routes", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  userId: integer("user_id").notNull().references(() => users.id), // technician
+  jobId: integer("job_id").references(() => projects.id), // associated job
+  vehicleId: integer("vehicle_id").references(() => vehicles.id),
+  oneStepDeviceId: text("one_step_device_id"), // OneStep GPS device ID
+  
+  // Origin and destination
+  originAddress: text("origin_address").notNull(),
+  originLat: decimal("origin_lat", { precision: 10, scale: 7 }).notNull(),
+  originLng: decimal("origin_lng", { precision: 10, scale: 7 }).notNull(),
+  destinationAddress: text("destination_address").notNull(),
+  destinationLat: decimal("destination_lat", { precision: 10, scale: 7 }).notNull(),
+  destinationLng: decimal("destination_lng", { precision: 10, scale: 7 }).notNull(),
+  
+  // Route details
+  totalDistance: decimal("total_distance", { precision: 10, scale: 2 }), // in meters
+  estimatedDuration: integer("estimated_duration"), // in seconds
+  estimatedFuelCost: decimal("estimated_fuel_cost", { precision: 10, scale: 2 }),
+  estimatedFuelUsage: decimal("estimated_fuel_usage", { precision: 10, scale: 2 }), // in gallons
+  
+  // Status
+  status: text("status").default("planned"), // planned, in_progress, completed, cancelled
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  
+  // Actual metrics (filled after completion)
+  actualDistance: decimal("actual_distance", { precision: 10, scale: 2 }),
+  actualDuration: integer("actual_duration"),
+  actualFuelCost: decimal("actual_fuel_cost", { precision: 10, scale: 2 }),
+  actualFuelUsage: decimal("actual_fuel_usage", { precision: 10, scale: 2 }),
+  deviationCount: integer("deviation_count").default(0),
+  stopCount: integer("stop_count").default(0),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertPlannedRouteSchema = createInsertSchema(plannedRoutes).omit({
+  id: true,
+  organizationId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Route Waypoints - the step-by-step directions of planned route
+export const routeWaypoints = pgTable("route_waypoints", {
+  id: serial("id").primaryKey(),
+  routeId: integer("route_id").notNull().references(() => plannedRoutes.id, { onDelete: "cascade" }),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  
+  stepNumber: integer("step_number").notNull(), // Order of waypoint in route
+  latitude: decimal("latitude", { precision: 10, scale: 7 }).notNull(),
+  longitude: decimal("longitude", { precision: 10, scale: 7 }).notNull(),
+  instruction: text("instruction"), // e.g., "Turn left onto Main St"
+  distance: decimal("distance", { precision: 10, scale: 2 }), // Distance to this waypoint in meters
+  duration: integer("duration"), // Time to reach this waypoint in seconds
+  
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertRouteWaypointSchema = createInsertSchema(routeWaypoints).omit({
+  id: true,
+  organizationId: true,
+  createdAt: true,
+});
+
+// Route Deviations - when vehicle goes off planned route
+export const routeDeviations = pgTable("route_deviations", {
+  id: serial("id").primaryKey(),
+  routeId: integer("route_id").notNull().references(() => plannedRoutes.id, { onDelete: "cascade" }),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  userId: integer("user_id").notNull().references(() => users.id),
+  
+  // Deviation details
+  deviationType: text("deviation_type").notNull(), // off_route, excessive_stop, detour
+  latitude: decimal("latitude", { precision: 10, scale: 7 }).notNull(),
+  longitude: decimal("longitude", { precision: 10, scale: 7 }).notNull(),
+  address: text("address"),
+  distanceFromRoute: decimal("distance_from_route", { precision: 10, scale: 2 }), // in meters
+  
+  // Timing
+  detectedAt: timestamp("detected_at").notNull(),
+  resolvedAt: timestamp("resolved_at"), // when back on route
+  durationMinutes: integer("duration_minutes"), // how long off route
+  
+  // Notification
+  notificationSent: boolean("notification_sent").default(false),
+  notifiedAt: timestamp("notified_at"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertRouteDeviationSchema = createInsertSchema(routeDeviations).omit({
+  id: true,
+  organizationId: true,
+  createdAt: true,
+});
+
+// Route Stops - when vehicle stops during route
+export const routeStops = pgTable("route_stops", {
+  id: serial("id").primaryKey(),
+  routeId: integer("route_id").notNull().references(() => plannedRoutes.id, { onDelete: "cascade" }),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  userId: integer("user_id").notNull().references(() => users.id),
+  
+  // Stop details
+  stopType: text("stop_type").notNull(), // planned, unplanned, traffic, fuel, break
+  latitude: decimal("latitude", { precision: 10, scale: 7 }).notNull(),
+  longitude: decimal("longitude", { precision: 10, scale: 7 }).notNull(),
+  address: text("address"),
+  
+  // Timing
+  startedAt: timestamp("started_at").notNull(),
+  endedAt: timestamp("ended_at"),
+  durationMinutes: integer("duration_minutes"),
+  
+  // Notification
+  notificationSent: boolean("notification_sent").default(false),
+  notifiedAt: timestamp("notified_at"),
+  notes: text("notes"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertRouteStopSchema = createInsertSchema(routeStops).omit({
+  id: true,
+  organizationId: true,
+  createdAt: true,
+});
+
 // GPS Tracking types
 export type GpsTrackingData = typeof gpsTrackingData.$inferSelect;
 export type InsertGpsTrackingData = z.infer<typeof insertGpsTrackingDataSchema>;
@@ -5487,6 +5620,16 @@ export type JobSiteGeofence = typeof jobSiteGeofences.$inferSelect;
 export type InsertJobSiteGeofence = z.infer<typeof insertJobSiteGeofenceSchema>;
 export type JobSiteEvent = typeof jobSiteEvents.$inferSelect;
 export type InsertJobSiteEvent = z.infer<typeof insertJobSiteEventSchema>;
+
+// Route Tracking types
+export type PlannedRoute = typeof plannedRoutes.$inferSelect;
+export type InsertPlannedRoute = z.infer<typeof insertPlannedRouteSchema>;
+export type RouteWaypoint = typeof routeWaypoints.$inferSelect;
+export type InsertRouteWaypoint = z.infer<typeof insertRouteWaypointSchema>;
+export type RouteDeviation = typeof routeDeviations.$inferSelect;
+export type InsertRouteDeviation = z.infer<typeof insertRouteDeviationSchema>;
+export type RouteStop = typeof routeStops.$inferSelect;
+export type InsertRouteStop = z.infer<typeof insertRouteStopSchema>;
 
 // Smart Capture types
 export type SmartCaptureList = typeof smartCaptureLists.$inferSelect;
