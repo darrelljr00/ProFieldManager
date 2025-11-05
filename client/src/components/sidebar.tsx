@@ -667,12 +667,16 @@ export function Sidebar() {
     e.preventDefault();
     e.stopPropagation();
     console.log('🔴 SIDEBAR: Logout button clicked - triggering logout');
+    console.log('🔴 SIDEBAR: Event object:', e);
+    console.log('🔴 SIDEBAR: Logout function:', typeof logout, logout);
     
     // Show visual feedback immediately
     setIsLoggingOut(true);
     
     // Logout is synchronous and will redirect immediately
     logout();
+    
+    console.log('🔴 SIDEBAR: Logout function called');
   };
 
   if (!isAuthenticated) {
@@ -801,7 +805,10 @@ export function Sidebar() {
         {/* Footer - Outside scrolling area */}
         <div className="p-4 border-t border-border flex-shrink-0">
           <button
-            onClick={handleLogout}
+            onClick={(e) => {
+              console.log('🟢 BUTTON CLICK DETECTED - Raw onClick firing');
+              handleLogout(e);
+            }}
             className="w-full justify-start flex items-center cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 p-2 rounded text-left"
             data-testid="button-logout"
           >
