@@ -800,14 +800,14 @@ export function Sidebar() {
 
         {/* Footer - Outside scrolling area */}
         <div className="p-4 border-t border-border flex-shrink-0">
-          <Link
-            to="/logout"
-            className="w-full justify-start flex items-center cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 p-2 rounded"
+          <button
+            onClick={handleLogout}
+            className="w-full justify-start flex items-center cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 p-2 rounded text-left"
             data-testid="button-logout"
           >
             <LogOut className="w-4 h-4 mr-2" />
             {!isCollapsed && "Logout"}
-          </Link>
+          </button>
         </div>
       </div>
     </>
