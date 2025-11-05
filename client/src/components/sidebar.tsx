@@ -1,10 +1,10 @@
 import { Link, useLocation } from "wouter";
-import { 
-  FileText, 
-  BarChart3, 
-  Users, 
-  CreditCard, 
-  FileBarChart, 
+import {
+  FileText,
+  BarChart3,
+  Users,
+  CreditCard,
+  FileBarChart,
   Settings,
   User,
   Quote,
@@ -44,7 +44,7 @@ import {
   Building,
   Phone,
   Video,
-  Scan
+  Scan,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -64,17 +64,15 @@ import {
   useSensor,
   useSensors,
   DragEndEvent,
-} from '@dnd-kit/core';
+} from "@dnd-kit/core";
 import {
   arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
   useSortable,
-} from '@dnd-kit/sortable';
-import {
-  CSS,
-} from '@dnd-kit/utilities';
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 interface NavigationItem {
   name: string;
@@ -88,19 +86,19 @@ interface NavigationItem {
 }
 
 // Sortable Navigation Item Component
-function SortableNavItem({ 
-  item, 
-  isCollapsed, 
-  isCurrentPath, 
-  expandedItems, 
-  toggleExpanded, 
-  setIsOpen, 
-  unreadCount 
+function SortableNavItem({
+  item,
+  isCollapsed,
+  isCurrentPath,
+  expandedItems,
+  toggleExpanded,
+  setIsOpen,
+  unreadCount,
 }: {
   item: NavigationItem;
   isCollapsed: boolean;
   isCurrentPath: (href: string) => boolean;
-  expandedItems: {[key: string]: boolean};
+  expandedItems: { [key: string]: boolean };
   toggleExpanded: (itemName: string) => void;
   setIsOpen: (open: boolean) => void;
   unreadCount: number;
@@ -145,7 +143,7 @@ function SortableNavItem({
                 "flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
                 isActive
                   ? "bg-primary text-primary-foreground"
-                  : "text-foreground hover:bg-muted hover:text-foreground"
+                  : "text-foreground hover:bg-muted hover:text-foreground",
               )}
               onClick={() => setIsOpen(false)}
             >
@@ -153,11 +151,16 @@ function SortableNavItem({
               {!isCollapsed && (
                 <>
                   {item.name}
-                  {(item.name === "Team Messages" || item.name === "Notifications") && item.unreadCount > 0 && (
-                    <Badge variant="destructive" className="ml-auto h-5 w-5 flex items-center justify-center p-0 text-xs notification-flash">
-                      {item.unreadCount > 99 ? "99+" : item.unreadCount}
-                    </Badge>
-                  )}
+                  {(item.name === "Team Messages" ||
+                    item.name === "Notifications") &&
+                    item.unreadCount > 0 && (
+                      <Badge
+                        variant="destructive"
+                        className="ml-auto h-5 w-5 flex items-center justify-center p-0 text-xs notification-flash"
+                      >
+                        {item.unreadCount > 99 ? "99+" : item.unreadCount}
+                      </Badge>
+                    )}
                 </>
               )}
             </Link>
@@ -167,7 +170,7 @@ function SortableNavItem({
                 onClick={() => toggleExpanded(item.name)}
                 className={cn(
                   "flex items-center w-full px-3 py-2 text-sm font-medium rounded-md transition-colors",
-                  "text-foreground hover:bg-muted hover:text-foreground"
+                  "text-foreground hover:bg-muted hover:text-foreground",
                 )}
               >
                 <item.icon className="w-4 h-4 md:w-5 md:h-5 mr-2 md:mr-3" />
@@ -192,7 +195,7 @@ function SortableNavItem({
                           "flex items-center px-3 py-2 text-sm rounded-md transition-colors",
                           isCurrentPath(subItem.href)
                             ? "bg-primary text-primary-foreground"
-                            : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                            : "text-muted-foreground hover:bg-muted hover:text-foreground",
                         )}
                         onClick={() => setIsOpen(false)}
                       >
@@ -241,7 +244,7 @@ const DEFAULT_NAVIGATION_ORDER = [
   "SaaS Admin",
   "Admin Settings",
   "Reports",
-  "Settings"
+  "Settings",
 ];
 
 export function Sidebar() {
@@ -249,11 +252,15 @@ export function Sidebar() {
   const { lastMessage } = useWebSocket();
   const [location] = useLocation();
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [expandedItems, setExpandedItems] = useState<{[key: string]: boolean}>({});
+  const [expandedItems, setExpandedItems] = useState<{
+    [key: string]: boolean;
+  }>({});
   const [isOpen, setIsOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
-  const [navigationOrder, setNavigationOrder] = useState<string[]>(DEFAULT_NAVIGATION_ORDER);
+  const [navigationOrder, setNavigationOrder] = useState<string[]>(
+    DEFAULT_NAVIGATION_ORDER,
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -262,16 +269,18 @@ export function Sidebar() {
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    })
+    }),
   );
 
   // Save navigation order mutation
   const saveOrderMutation = useMutation({
     mutationFn: async (newOrder: string[]) => {
-      return apiRequest('/api/navigation-order', 'POST', { navigationItems: newOrder });
+      return apiRequest("/api/navigation-order", "POST", {
+        navigationItems: newOrder,
+      });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/navigation-order'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/navigation-order"] });
     },
   });
 
@@ -299,17 +308,22 @@ export function Sidebar() {
   const { data: navigationUpdates } = useQuery({
     queryKey: ["/api/navigation/check-updates", "v2"], // Changed key to force recreation
     queryFn: async () => {
-      const lastCheck = localStorage.getItem('last_navigation_check') || '1970-01-01T00:00:00.000Z';
-      const response = await apiRequest('GET', `/api/navigation/check-updates?lastCheck=${encodeURIComponent(lastCheck)}`);
+      const lastCheck =
+        localStorage.getItem("last_navigation_check") ||
+        "1970-01-01T00:00:00.000Z";
+      const response = await apiRequest(
+        "GET",
+        `/api/navigation/check-updates?lastCheck=${encodeURIComponent(lastCheck)}`,
+      );
       const data = await response.json();
-      
+
       if (data.hasUpdates) {
-        console.log('📱 Navigation updates received via polling:', data);
-        localStorage.setItem('last_navigation_check', new Date().toISOString());
+        console.log("📱 Navigation updates received via polling:", data);
+        localStorage.setItem("last_navigation_check", new Date().toISOString());
         // Invalidate the navigation order query to refresh the sidebar
         queryClient.invalidateQueries({ queryKey: ["/api/navigation-order"] });
       }
-      
+
       return data;
     },
     enabled: isAuthenticated && !!user?.id,
@@ -325,13 +339,18 @@ export function Sidebar() {
 
   useEffect(() => {
     if (messages && Array.isArray(messages)) {
-      const unread = messages.filter((msg: any) => !msg.isRead && msg.senderId !== user?.id).length;
+      const unread = messages.filter(
+        (msg: any) => !msg.isRead && msg.senderId !== user?.id,
+      ).length;
       setUnreadCount(unread);
     }
   }, [messages, user?.id]);
 
   useEffect(() => {
-    if (notificationData && typeof (notificationData as any).count === 'number') {
+    if (
+      notificationData &&
+      typeof (notificationData as any).count === "number"
+    ) {
       setUnreadNotificationsCount((notificationData as any).count);
     }
   }, [notificationData]);
@@ -342,26 +361,28 @@ export function Sidebar() {
 
     const { type, eventType } = lastMessage;
 
-    if (type === 'update' && eventType) {
+    if (type === "update" && eventType) {
       // Handle notification-related events that should refresh notification counts
       const notificationEvents = [
-        'notification_created',
-        'notification_read',
-        'task_completed',
-        'project_completed',
-        'user_clock_in',
-        'user_clock_out',
-        'user_late'
+        "notification_created",
+        "notification_read",
+        "task_completed",
+        "project_completed",
+        "user_clock_in",
+        "user_clock_out",
+        "user_late",
       ];
 
       if (notificationEvents.includes(eventType)) {
         // Invalidate notification count queries for real-time updates
-        queryClient.invalidateQueries({ queryKey: ['/api/notifications/unread-count'] });
+        queryClient.invalidateQueries({
+          queryKey: ["/api/notifications/unread-count"],
+        });
       }
 
       // Handle message events for Team Messages count
-      if (eventType === 'new_message' || eventType === 'message_sent') {
-        queryClient.invalidateQueries({ queryKey: ['/api/internal-messages'] });
+      if (eventType === "new_message" || eventType === "message_sent") {
+        queryClient.invalidateQueries({ queryKey: ["/api/internal-messages"] });
       }
     }
   }, [lastMessage, queryClient]);
@@ -369,13 +390,13 @@ export function Sidebar() {
   // Debug: log user data and permissions
   useEffect(() => {
     if (user) {
-      console.log('Current user:', user);
-      console.log('User permissions:', {
+      console.log("Current user:", user);
+      console.log("User permissions:", {
         canAccessHR: (user as any).canAccessHR,
         canAccessUserManagement: (user as any).canAccessUserManagement,
         canAccessSaasAdmin: (user as any).canAccessSaasAdmin,
         canAccessAdminSettings: (user as any).canAccessAdminSettings,
-        canAccessReports: (user as any).canAccessReports
+        canAccessReports: (user as any).canAccessReports,
       });
     }
   }, [user]);
@@ -398,14 +419,22 @@ export function Sidebar() {
     { name: "All Expenses", href: "/expenses", icon: Receipt },
     { name: "Expense Reports", href: "/expense-reports", icon: FileBarChart },
     { name: "Categories", href: "/expense-categories", icon: Folder },
-    { name: "Gas Card Providers", href: "/gas-card-providers", icon: CreditCard },
-    { name: "Gas Cards", href: "/gas-cards", icon: CreditCard }
+    {
+      name: "Gas Card Providers",
+      href: "/gas-card-providers",
+      icon: CreditCard,
+    },
+    { name: "Gas Cards", href: "/gas-cards", icon: CreditCard },
   ];
 
   // For managers and admins, add Technician Expenses as a sub-item
-  if (user?.role === 'admin' || user?.role === 'manager') {
-    expenseSubItems.push({ name: "Technician Expenses", href: "/technician-expenses", icon: User });
-    
+  if (user?.role === "admin" || user?.role === "manager") {
+    expenseSubItems.push({
+      name: "Technician Expenses",
+      href: "/technician-expenses",
+      icon: User,
+    });
+
     // Add dynamic expense categories as sub-items for managers/admins
     expenseCategories
       .filter((cat: any) => cat.showAsTab && cat.isActive && cat.isSubItem)
@@ -420,30 +449,73 @@ export function Sidebar() {
   }
 
   const navigationItems: NavigationItem[] = [
-    { name: "Dashboard", href: "/", icon: BarChart3, requiresAuth: true, permission: "canAccessDashboard" },
-    { name: "Calendar", href: "/calendar", icon: Calendar, requiresAuth: true, permission: "canAccessCalendar" },
-    { name: "My Schedule", href: "/my-schedule", icon: Calendar, requiresAuth: true, permission: "canAccessMySchedule" },
-    { name: "Time Clock", href: "/time-clock", icon: Clock, requiresAuth: true, permission: "canAccessTimeClock" },
-    { 
-      name: "Jobs", 
-      href: "/jobs", 
-      icon: Briefcase, 
-      requiresAuth: true, 
+    {
+      name: "Dashboard",
+      href: "/",
+      icon: BarChart3,
+      requiresAuth: true,
+      permission: "canAccessDashboard",
+    },
+    {
+      name: "Calendar",
+      href: "/calendar",
+      icon: Calendar,
+      requiresAuth: true,
+      permission: "canAccessCalendar",
+    },
+    {
+      name: "My Schedule",
+      href: "/my-schedule",
+      icon: Calendar,
+      requiresAuth: true,
+      permission: "canAccessMySchedule",
+    },
+    {
+      name: "Time Clock",
+      href: "/time-clock",
+      icon: Clock,
+      requiresAuth: true,
+      permission: "canAccessTimeClock",
+    },
+    {
+      name: "Jobs",
+      href: "/jobs",
+      icon: Briefcase,
+      requiresAuth: true,
       permission: "canAccessJobs",
       subItems: [
         { name: "All Jobs", href: "/jobs", icon: Briefcase },
-        { name: "Task Groups", href: "/task-groups", icon: Folder }
-      ]
+        { name: "Task Groups", href: "/task-groups", icon: Folder },
+      ],
     },
-    { name: "My Tasks", href: "/my-tasks", icon: CheckSquare, requiresAuth: true, permission: "canAccessMyTasks" },
-    { name: "Leads", href: "/leads", icon: UserPlus, requiresAuth: true, permission: "canAccessLeads" },
+    {
+      name: "My Tasks",
+      href: "/my-tasks",
+      icon: CheckSquare,
+      requiresAuth: true,
+      permission: "canAccessMyTasks",
+    },
+    {
+      name: "Leads",
+      href: "/leads",
+      icon: UserPlus,
+      requiresAuth: true,
+      permission: "canAccessLeads",
+    },
     // For non-managers/admins, add Technician Expenses as a main tab
-    ...(user?.role !== 'admin' && user?.role !== 'manager' 
-      ? [{ name: "Technician Expenses", href: "/technician-expenses", icon: User, requiresAuth: true, permission: "canAccessTechnicianExpenses" }] 
-      : []
-    ),
+    ...(user?.role !== "admin" && user?.role !== "manager"
+      ? [
+          {
+            name: "Technician Expenses",
+            href: "/technician-expenses",
+            icon: User,
+            requiresAuth: true,
+            permission: "canAccessTechnicianExpenses",
+          },
+        ]
+      : []),
     // Add dynamic expense categories as main tabs for non-managers/admins
-    ...(user?.role !== 'admin' && user?.role !== 'manager'
+    ...(user?.role !== "admin" && user?.role !== "manager"
       ? expenseCategories
           .filter((cat: any) => cat.showAsTab && cat.isActive && !cat.isSubItem)
           .sort((a: any, b: any) => a.sortOrder - b.sortOrder)
@@ -454,68 +526,194 @@ export function Sidebar() {
             requiresAuth: true,
             permission: cat.permissionField || undefined,
           }))
-      : []
-    ),
-    { 
-      name: "Expenses", 
-      href: "/expenses", 
-      icon: Receipt, 
+      : []),
+    {
+      name: "Expenses",
+      href: "/expenses",
+      icon: Receipt,
       requiresAuth: true,
       permission: "canAccessExpenses",
-      subItems: expenseSubItems
+      subItems: expenseSubItems,
     },
-    { name: "Quotes", href: "/quotes", icon: Quote, requiresAuth: true, permission: "canAccessQuotes" },
-    { name: "Invoices", href: "/invoices", icon: FileText, requiresAuth: true, permission: "canAccessInvoices" },
-    { name: "Customers", href: "/customers", icon: Users, requiresAuth: true, permission: "canAccessCustomers" },
-    { name: "Payments", href: "/payments", icon: CreditCard, requiresAuth: true, permission: "canAccessPayments" },
-    { name: "File Manager", href: "/file-manager", icon: FolderOpen, requiresAuth: true, permission: "canAccessFileManager" },
-    { name: "Parts & Supplies", href: "/parts-supplies", icon: Box, requiresAuth: true, permission: "canAccessPartsSupplies" },
-    { name: "Smart Capture", href: "/smart-capture", icon: Scan, requiresAuth: true, permission: "canAccessPartsSupplies" },
-    { name: "Inspections", href: "/inspections", icon: CheckSquare, requiresAuth: true, permission: "canAccessInspections" },
-    { 
-      name: "Team Messages", 
-      href: "/internal-messages", 
-      icon: MessageSquare, 
+    {
+      name: "Quotes",
+      href: "/quotes",
+      icon: Quote,
+      requiresAuth: true,
+      permission: "canAccessQuotes",
+    },
+    {
+      name: "Invoices",
+      href: "/invoices",
+      icon: FileText,
+      requiresAuth: true,
+      permission: "canAccessInvoices",
+    },
+    {
+      name: "Customers",
+      href: "/customers",
+      icon: Users,
+      requiresAuth: true,
+      permission: "canAccessCustomers",
+    },
+    {
+      name: "Payments",
+      href: "/payments",
+      icon: CreditCard,
+      requiresAuth: true,
+      permission: "canAccessPayments",
+    },
+    {
+      name: "File Manager",
+      href: "/file-manager",
+      icon: FolderOpen,
+      requiresAuth: true,
+      permission: "canAccessFileManager",
+    },
+    {
+      name: "Parts & Supplies",
+      href: "/parts-supplies",
+      icon: Box,
+      requiresAuth: true,
+      permission: "canAccessPartsSupplies",
+    },
+    {
+      name: "Smart Capture",
+      href: "/smart-capture",
+      icon: Scan,
+      requiresAuth: true,
+      permission: "canAccessPartsSupplies",
+    },
+    {
+      name: "Inspections",
+      href: "/inspections",
+      icon: CheckSquare,
+      requiresAuth: true,
+      permission: "canAccessInspections",
+    },
+    {
+      name: "Team Messages",
+      href: "/internal-messages",
+      icon: MessageSquare,
       requiresAuth: true,
       permission: "canAccessInternalMessages",
-      unreadCount: unreadCount
+      unreadCount: unreadCount,
     },
-    { name: "Live Stream", href: "/live-stream", icon: Video, requiresAuth: true, permission: "canAccessLiveStream" },
-    { name: "Notifications", href: "/notifications", icon: Bell, requiresAuth: true, permission: "canAccessNotifications", unreadCount: unreadNotificationsCount },
-    { name: "Image Gallery", href: "/image-gallery", icon: ImageIcon, requiresAuth: true, permission: "canAccessImageGallery" },
-    { name: "Messages", href: "/messages", icon: Mail, requiresAuth: true, permission: "canAccessMessages" },
-    { name: "Mobile Tracking", href: "/gps-tracking", icon: MapPin, requiresAuth: true, permission: "canAccessGpsTracking" },
-    { 
-      name: "Live Tracking", 
-      href: "/gps-tracking-obd", 
-      icon: MapPin, 
-      requiresAuth: true, 
+    {
+      name: "Live Stream",
+      href: "/live-stream",
+      icon: Video,
+      requiresAuth: true,
+      permission: "canAccessLiveStream",
+    },
+    {
+      name: "Notifications",
+      href: "/notifications",
+      icon: Bell,
+      requiresAuth: true,
+      permission: "canAccessNotifications",
+      unreadCount: unreadNotificationsCount,
+    },
+    {
+      name: "Image Gallery",
+      href: "/image-gallery",
+      icon: ImageIcon,
+      requiresAuth: true,
+      permission: "canAccessImageGallery",
+    },
+    {
+      name: "Messages",
+      href: "/messages",
+      icon: Mail,
+      requiresAuth: true,
+      permission: "canAccessMessages",
+    },
+    {
+      name: "Mobile Tracking",
+      href: "/gps-tracking",
+      icon: MapPin,
+      requiresAuth: true,
+      permission: "canAccessGpsTracking",
+    },
+    {
+      name: "Live Tracking",
+      href: "/gps-tracking-obd",
+      icon: MapPin,
+      requiresAuth: true,
       permission: "canAccessGpsTracking",
       subItems: [
         { name: "Map View", href: "/gps-tracking-obd", icon: MapPin },
         { name: "Analytics", href: "/gps-analytics", icon: BarChart3 },
-        { name: "Settings", href: "/gps-settings", icon: Settings }
-      ]
+        { name: "Settings", href: "/gps-settings", icon: Settings },
+      ],
     },
-    { name: "Reviews", href: "/reviews", icon: Star, requiresAuth: true, permission: "canAccessReviews" },
-    { name: "Market Research", href: "/market-research", icon: BarChart3, requiresAuth: true, permission: "canAccessMarketResearch" },
-    { name: "Call Manager", href: "/call-manager", icon: Phone, requiresAuth: true, permission: "canAccessSaasAdmin" },
-    { name: "Tutorials", href: "/tutorials", icon: BookOpen, requiresAuth: true, permission: "canAccessTutorials" },
-    { name: "Screen Sharing", href: "/screen-sharing", icon: Monitor, requiresAuth: true, permission: "canAccessMessages" },
-    { name: "Human Resources", href: "/human-resources", icon: User, requiresAuth: true, permission: "canAccessHR" },
-    { name: "User Management", href: "/users", icon: UserCog, requiresAuth: true, permission: "canAccessUsers" },
-    { 
-      name: "SaaS Admin", 
-      href: "/saas-admin", 
-      icon: Server, 
-      requiresAuth: true, 
+    {
+      name: "Reviews",
+      href: "/reviews",
+      icon: Star,
+      requiresAuth: true,
+      permission: "canAccessReviews",
+    },
+    {
+      name: "Market Research",
+      href: "/market-research",
+      icon: BarChart3,
+      requiresAuth: true,
+      permission: "canAccessMarketResearch",
+    },
+    {
+      name: "Call Manager",
+      href: "/call-manager",
+      icon: Phone,
+      requiresAuth: true,
+      permission: "canAccessSaasAdmin",
+    },
+    {
+      name: "Tutorials",
+      href: "/tutorials",
+      icon: BookOpen,
+      requiresAuth: true,
+      permission: "canAccessTutorials",
+    },
+    {
+      name: "Screen Sharing",
+      href: "/screen-sharing",
+      icon: Monitor,
+      requiresAuth: true,
+      permission: "canAccessMessages",
+    },
+    {
+      name: "Human Resources",
+      href: "/human-resources",
+      icon: User,
+      requiresAuth: true,
+      permission: "canAccessHR",
+    },
+    {
+      name: "User Management",
+      href: "/users",
+      icon: UserCog,
+      requiresAuth: true,
+      permission: "canAccessUsers",
+    },
+    {
+      name: "SaaS Admin",
+      href: "/saas-admin",
+      icon: Server,
+      requiresAuth: true,
       permission: "canAccessSaasAdmin",
       subItems: [
         { name: "Organizations", href: "/saas-admin", icon: Building },
-        { name: "Call Manager", href: "/saas-admin/call-manager", icon: Phone }
-      ]
+        { name: "Call Manager", href: "/saas-admin/call-manager", icon: Phone },
+      ],
     },
-    { name: "Frontend", href: "/frontend-management", icon: Monitor, requiresAuth: true, permission: "canAccessSaasAdmin" },
+    {
+      name: "Frontend",
+      href: "/frontend-management",
+      icon: Monitor,
+      requiresAuth: true,
+      permission: "canAccessSaasAdmin",
+    },
     {
       name: "Admin Settings",
       href: "/admin-settings",
@@ -526,40 +724,64 @@ export function Sidebar() {
         { name: "General Settings", href: "/admin-settings", icon: Settings },
         { name: "File Security", href: "/file-security", icon: Shield },
         { name: "Mobile Test", href: "/mobile-test", icon: Smartphone },
-        { name: "Expense Categories", href: "/expense-category-management", icon: Folder }
-      ]
+        {
+          name: "Expense Categories",
+          href: "/expense-category-management",
+          icon: Folder,
+        },
+      ],
     },
-    { name: "Reports", href: "/reports", icon: BarChart3, requiresAuth: true, permission: "canAccessReports" },
-    { 
-      name: "Settings", 
-      href: "/settings", 
-      icon: Settings, 
+    {
+      name: "Reports",
+      href: "/reports",
+      icon: BarChart3,
+      requiresAuth: true,
+      permission: "canAccessReports",
+    },
+    {
+      name: "Settings",
+      href: "/settings",
+      icon: Settings,
       requiresAuth: true,
       subItems: [
         { name: "General", href: "/settings", icon: Settings },
         { name: "Dashboard", href: "/settings?tab=dashboard", icon: BarChart3 },
-        { name: "Notifications", href: "/settings?tab=notifications", icon: Bell },
-        { name: "Messages", href: "/settings?tab=messages", icon: MessageCircle },
+        {
+          name: "Notifications",
+          href: "/settings?tab=notifications",
+          icon: Bell,
+        },
+        {
+          name: "Messages",
+          href: "/settings?tab=messages",
+          icon: MessageCircle,
+        },
         { name: "Weather", href: "/settings?tab=weather", icon: Cloud },
         { name: "SMS", href: "/settings?tab=sms", icon: Smartphone },
-        { name: "Invoice Templates", href: "/invoice-templates", icon: FileType }
-      ]
-    }
+        {
+          name: "Invoice Templates",
+          href: "/invoice-templates",
+          icon: FileType,
+        },
+      ],
+    },
   ];
 
   // Define permission checking function first to avoid hoisting issues
   const hasPermission = (item: NavigationItem): boolean => {
     if (!item.permission) return true;
     if (!user) return false;
-    
+
     // Admin users have access to everything
-    if (user.role === 'admin') {
-      console.log(`✅ ADMIN ACCESS GRANTED for ${item.name} - user role: ${user.role}`);
+    if (user.role === "admin") {
+      console.log(
+        `✅ ADMIN ACCESS GRANTED for ${item.name} - user role: ${user.role}`,
+      );
       return true;
     }
-    
+
     // Debug: log permission checks and user object structure for debugging auth issue
-    if (item.name === 'SaaS Admin' || item.name === 'Call Manager') {
+    if (item.name === "SaaS Admin" || item.name === "Call Manager") {
       console.log(`🔍 SIDEBAR DEBUG - User object for ${item.name}:`, {
         username: user.username,
         role: user.role,
@@ -567,68 +789,78 @@ export function Sidebar() {
         permissionValue: (user as any)[item.permission],
         hasCanAccessSaasAdmin: (user as any).canAccessSaasAdmin,
         can_access_saas_admin: (user as any).can_access_saas_admin,
-        allUserKeys: Object.keys(user).filter(key => key.includes('Access') || key.includes('saas')).slice(0, 15),
-        fullUserObject: JSON.stringify(user, null, 2)
+        allUserKeys: Object.keys(user)
+          .filter((key) => key.includes("Access") || key.includes("saas"))
+          .slice(0, 15),
+        fullUserObject: JSON.stringify(user, null, 2),
       });
     }
-    
-    console.log(`Checking permission for ${item.name}: ${item.permission} = ${(user as any)[item.permission]}`);
-    
+
+    console.log(
+      `Checking permission for ${item.name}: ${item.permission} = ${(user as any)[item.permission]}`,
+    );
+
     // Check the specific permission - handle both camelCase and snake_case
     const hasAccess = (user as any)[item.permission];
-    
+
     // If camelCase doesn't work, try snake_case conversion as fallback
     if (hasAccess === undefined && item.permission) {
-      const snakeCasePermission = item.permission.replace(/([A-Z])/g, '_$1').toLowerCase();
+      const snakeCasePermission = item.permission
+        .replace(/([A-Z])/g, "_$1")
+        .toLowerCase();
       const snakeCaseAccess = (user as any)[snakeCasePermission];
-      console.log(`🔄 PERMISSION FALLBACK: ${item.permission} -> ${snakeCasePermission} = ${snakeCaseAccess}`);
+      console.log(
+        `🔄 PERMISSION FALLBACK: ${item.permission} -> ${snakeCasePermission} = ${snakeCaseAccess}`,
+      );
       return snakeCaseAccess === true;
     }
-    
+
     return hasAccess === true;
   };
 
   // Get ordered navigation items with permission and search filtering
   const getOrderedNavigationItems = () => {
     const orderedItems: NavigationItem[] = [];
-    
+
     // Add items in the order specified by navigationOrder
-    navigationOrder.forEach(orderName => {
-      const item = navigationItems.find(item => item.name === orderName);
+    navigationOrder.forEach((orderName) => {
+      const item = navigationItems.find((item) => item.name === orderName);
       if (item) {
         orderedItems.push(item);
       }
     });
-    
+
     // Add any remaining items that might not be in the order
-    navigationItems.forEach(item => {
-      if (!orderedItems.find(orderedItem => orderedItem.name === item.name)) {
+    navigationItems.forEach((item) => {
+      if (!orderedItems.find((orderedItem) => orderedItem.name === item.name)) {
         orderedItems.push(item);
       }
     });
-    
+
     // Filter by permissions first - this is the key change for hiding disabled tabs
-    const permissionFilteredItems = orderedItems.filter(item => {
+    const permissionFilteredItems = orderedItems.filter((item) => {
       // Always show items without permission requirements
       if (!item.permission) return true;
-      
+
       // Admin override - show all tabs for admin users
-      if (user?.role === 'admin') return true;
-      
+      if (user?.role === "admin") return true;
+
       // Check user permissions for non-admin users
       return hasPermission(item);
     });
-    
+
     // Filter by search query if present
     if (searchQuery.trim()) {
-      return permissionFilteredItems.filter(item => 
-        item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (item.subItems && item.subItems.some(subItem => 
-          subItem.name.toLowerCase().includes(searchQuery.toLowerCase())
-        ))
+      return permissionFilteredItems.filter(
+        (item) =>
+          item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (item.subItems &&
+            item.subItems.some((subItem) =>
+              subItem.name.toLowerCase().includes(searchQuery.toLowerCase()),
+            )),
       );
     }
-    
+
     return permissionFilteredItems;
   };
 
@@ -641,19 +873,19 @@ export function Sidebar() {
     if (active.id !== over?.id) {
       const oldIndex = navigationOrder.indexOf(active.id as string);
       const newIndex = navigationOrder.indexOf(over?.id as string);
-      
+
       const newOrder = arrayMove(navigationOrder, oldIndex, newIndex);
       setNavigationOrder(newOrder);
-      
+
       // Save to backend
       saveOrderMutation.mutate(newOrder);
     }
   };
 
   const toggleExpanded = (itemName: string) => {
-    setExpandedItems(prev => ({
+    setExpandedItems((prev) => ({
       ...prev,
-      [itemName]: !prev[itemName]
+      [itemName]: !prev[itemName],
     }));
   };
 
@@ -666,17 +898,17 @@ export function Sidebar() {
   const handleLogout = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    console.log('🔴 SIDEBAR: Logout button clicked - triggering logout');
-    console.log('🔴 SIDEBAR: Event object:', e);
-    console.log('🔴 SIDEBAR: Logout function:', typeof logout, logout);
-    
+    console.log("🔴 SIDEBAR: Logout button clicked - triggering logout");
+    console.log("🔴 SIDEBAR: Event object:", e);
+    console.log("🔴 SIDEBAR: Logout function:", typeof logout, logout);
+
     // Show visual feedback immediately
     setIsLoggingOut(true);
-    
+
     // Logout is synchronous and will redirect immediately
     logout();
-    
-    console.log('🔴 SIDEBAR: Logout function called');
+
+    console.log("🔴 SIDEBAR: Logout function called");
   };
 
   if (!isAuthenticated) {
@@ -687,7 +919,7 @@ export function Sidebar() {
     <>
       {/* Mobile overlay */}
       {isOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
           onClick={() => setIsOpen(false)}
         />
@@ -704,11 +936,13 @@ export function Sidebar() {
       </Button>
 
       {/* Sidebar */}
-      <div className={cn(
-        "fixed left-0 top-0 z-50 h-screen bg-background border-r border-border transition-transform duration-300 ease-in-out md:relative md:translate-x-0 flex flex-col",
-        isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
-        isCollapsed ? "w-16" : "w-64"
-      )}>
+      <div
+        className={cn(
+          "fixed left-0 top-0 z-50 h-screen bg-background border-r border-border transition-transform duration-300 ease-in-out md:relative md:translate-x-0 flex flex-col",
+          isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
+          isCollapsed ? "w-16" : "w-64",
+        )}
+      >
         <div className="flex flex-col flex-1 overflow-y-auto">
           {/* Header */}
           <div className="p-4 border-b border-border flex-shrink-0">
@@ -774,7 +1008,7 @@ export function Sidebar() {
               onDragEnd={handleDragEnd}
             >
               <SortableContext
-                items={orderedItems.map(item => item.name)}
+                items={orderedItems.map((item) => item.name)}
                 strategy={verticalListSortingStrategy}
               >
                 <ul className="space-y-1">
@@ -806,7 +1040,7 @@ export function Sidebar() {
         <div className="p-4 border-t border-border flex-shrink-0">
           <button
             onClick={(e) => {
-              console.log('🟢 BUTTON CLICK DETECTED - Raw onClick firing');
+              console.log("🟢 BUTTON CLICK DETECTED - Raw onClick firing");
               handleLogout(e);
             }}
             className="w-full justify-start flex items-center cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 p-2 rounded text-left"
