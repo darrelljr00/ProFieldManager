@@ -77,7 +77,10 @@ import {
   obdLocationData, obdDiagnosticData, obdTrips, savedRouteReplays, services,
   inspectionRecords, jobTravelSegments, projectUsers, employees,
   syncConfigurations, syncHistory, syncConflicts,
-  insertSyncConfigurationSchema
+  insertSyncConfigurationSchema,
+  plannedRoutes, routeWaypoints, routeDeviations, routeStops,
+  insertPlannedRouteSchema, insertRouteWaypointSchema, insertRouteDeviationSchema, insertRouteStopSchema,
+  InsertRouteWaypoint
 } from "@shared/schema";
 import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull, isNull } from "drizzle-orm";
 import { DocuSignService, getDocuSignConfig } from "./docusign";
@@ -27554,8 +27557,6 @@ ${fromName || ''}
       res.status(500).json({ error: "Failed to fetch sync configurations" });
     }
   });
-
-  // Create a new sync configuration
   app.post('/api/sync/configurations', requireAuth, async (req, res) => {
     try {
       const validated = insertSyncConfigurationSchema.parse(req.body);
@@ -28088,6 +28089,257 @@ ${fromName || ''}
       res.status(500).json({ error: "Failed to start sync" });
     }
   });
+
+
+  // Proxy endpoint for Google Directions API (security: only allows Google Maps API requests)
+  app.get("/api/proxy-directions", requireAuth, async (req, res) => {
+    try {
+      const { origin, destination } = req.query;
+      
+      if (!origin || !destination || typeof origin !== 'string' || typeof destination !== 'string') {
+        return res.status(400).json({ error: "Origin and destination parameters are required" });
+      }
+      
+      const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+      const directionsUrl = `https://maps.googleapis.com/maps/api/directions/json?origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}&key=${apiKey}`;
+      
+      const response = await fetch(directionsUrl);
+      const data = await response.json();
+      
+      res.json(data);
+    } catch (error: any) {
+      console.error("Error fetching directions:", error);
+      res.status(500).json({ error: "Failed to fetch directions" });
+    }
+  });
+  // Route Tracking endpoints
+  // Save planned route when technician clicks Directions
+  app.post("/api/routes/planned", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const data = insertPlannedRouteSchema.parse(req.body);
+      
+      const [route] = await db.insert(plannedRoutes).values({
+        ...data,
+        organizationId: user.organizationId,
+        userId: user.id,
+      }).returning();
+      
+      res.json(route);
+    } catch (error: any) {
+      console.error("Error saving planned route:", error);
+      res.status(500).json({ message: "Error saving route: " + error.message });
+    }
+  });
+
+  // Save route waypoints
+  app.post("/api/routes/:routeId/waypoints", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { routeId } = req.params;
+      const waypoints = req.body as InsertRouteWaypoint[];
+      
+      // Verify route belongs to user's organization
+      const route = await db.select().from(plannedRoutes)
+        .where(and(
+          eq(plannedRoutes.id, parseInt(routeId)),
+          eq(plannedRoutes.organizationId, user.organizationId)
+        ))
+        .limit(1);
+      
+      if (!route.length) {
+        return res.status(404).json({ message: "Route not found" });
+      }
+      
+      const saved = await db.insert(routeWaypoints).values(
+        waypoints.map(wp => ({
+          ...wp,
+          routeId: parseInt(routeId),
+          organizationId: user.organizationId,
+        }))
+      ).returning();
+      
+      res.json(saved);
+    } catch (error: any) {
+      console.error("Error saving waypoints:", error);
+      res.status(500).json({ message: "Error saving waypoints: " + error.message });
+    }
+  });
+
+  // Get planned routes for user or organization
+  app.get("/api/routes/planned", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const isAdmin = user.role === 'admin' || user.role === 'manager';
+      const { userId, status } = req.query;
+      
+      let conditions = [eq(plannedRoutes.organizationId, user.organizationId)];
+      
+      if (!isAdmin) {
+        conditions.push(eq(plannedRoutes.userId, user.id));
+      } else if (userId) {
+        conditions.push(eq(plannedRoutes.userId, parseInt(userId as string)));
+      }
+      
+      if (status) {
+        conditions.push(eq(plannedRoutes.status, status as string));
+      }
+      
+      const routes = await db.select().from(plannedRoutes)
+        .where(and(...conditions))
+        .orderBy(desc(plannedRoutes.createdAt))
+        .limit(100);
+      
+      res.json(routes);
+    } catch (error: any) {
+      console.error("Error fetching routes:", error);
+      res.status(500).json({ message: "Error fetching routes: " + error.message });
+    }
+  });
+
+  // Get route waypoints
+  app.get("/api/routes/:routeId/waypoints", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { routeId } = req.params;
+      
+      const waypoints = await db.select().from(routeWaypoints)
+        .where(and(
+          eq(routeWaypoints.routeId, parseInt(routeId)),
+          eq(routeWaypoints.organizationId, user.organizationId)
+        ))
+        .orderBy(routeWaypoints.stepNumber);
+      
+      res.json(waypoints);
+    } catch (error: any) {
+      console.error("Error fetching waypoints:", error);
+      res.status(500).json({ message: "Error fetching waypoints: " + error.message });
+    }
+  });
+
+  // Update route status
+  app.patch("/api/routes/:routeId/status", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { routeId } = req.params;
+      const { status, startedAt, completedAt } = req.body;
+      
+      const [updated] = await db.update(plannedRoutes)
+        .set({
+          status,
+          startedAt: startedAt ? new Date(startedAt) : undefined,
+          completedAt: completedAt ? new Date(completedAt) : undefined,
+          updatedAt: new Date(),
+        })
+        .where(and(
+          eq(plannedRoutes.id, parseInt(routeId)),
+          eq(plannedRoutes.organizationId, user.organizationId)
+        ))
+        .returning();
+      
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Error updating route status:", error);
+      res.status(500).json({ message: "Error updating status: " + error.message });
+    }
+  });
+
+  // Log route deviation
+  app.post("/api/routes/:routeId/deviations", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { routeId } = req.params;
+      const data = insertRouteDeviationSchema.parse(req.body);
+      
+      const [deviation] = await db.insert(routeDeviations).values({
+        ...data,
+        routeId: parseInt(routeId),
+        organizationId: user.organizationId,
+        userId: user.id,
+      }).returning();
+      
+      // Update deviation count on route
+      await db.update(plannedRoutes)
+        .set({
+          deviationCount: sql`${plannedRoutes.deviationCount} + 1`,
+        })
+        .where(eq(plannedRoutes.id, parseInt(routeId)));
+      
+      res.json(deviation);
+    } catch (error: any) {
+      console.error("Error logging deviation:", error);
+      res.status(500).json({ message: "Error logging deviation: " + error.message });
+    }
+  });
+
+  // Log route stop
+  app.post("/api/routes/:routeId/stops", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { routeId } = req.params;
+      const data = insertRouteStopSchema.parse(req.body);
+      
+      const [stop] = await db.insert(routeStops).values({
+        ...data,
+        routeId: parseInt(routeId),
+        organizationId: user.organizationId,
+        userId: user.id,
+      }).returning();
+      
+      // Update stop count on route
+      await db.update(plannedRoutes)
+        .set({
+          stopCount: sql`${plannedRoutes.stopCount} + 1`,
+        })
+        .where(eq(plannedRoutes.id, parseInt(routeId)));
+      
+      res.json(stop);
+    } catch (error: any) {
+      console.error("Error logging stop:", error);
+      res.status(500).json({ message: "Error logging stop: " + error.message });
+    }
+  });
+
+  // Get route deviations
+  app.get("/api/routes/:routeId/deviations", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { routeId } = req.params;
+      
+      const deviations = await db.select().from(routeDeviations)
+        .where(and(
+          eq(routeDeviations.routeId, parseInt(routeId)),
+          eq(routeDeviations.organizationId, user.organizationId)
+        ))
+        .orderBy(desc(routeDeviations.detectedAt));
+      
+      res.json(deviations);
+    } catch (error: any) {
+      console.error("Error fetching deviations:", error);
+      res.status(500).json({ message: "Error fetching deviations: " + error.message });
+    }
+  });
+
+  // Get route stops
+  app.get("/api/routes/:routeId/stops", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { routeId } = req.params;
+      
+      const stops = await db.select().from(routeStops)
+        .where(and(
+          eq(routeStops.routeId, parseInt(routeId)),
+          eq(routeStops.organizationId, user.organizationId)
+        ))
+        .orderBy(desc(routeStops.startedAt));
+      
+      res.json(stops);
+    } catch (error: any) {
+      console.error("Error fetching stops:", error);
+      res.status(500).json({ message: "Error fetching stops: " + error.message });
+    }
+  });
+
   return httpServer;
 }
 

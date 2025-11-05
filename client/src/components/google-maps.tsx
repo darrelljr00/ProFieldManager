@@ -2,6 +2,9 @@ import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { MapPin, Navigation, X } from "lucide-react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface GoogleMapsProps {
   address: string;
@@ -147,13 +150,115 @@ interface DirectionsButtonProps {
   city?: string | null;
   state?: string | null;
   zipCode?: string | null;
+  jobId?: number;
+  vehicleId?: number;
   className?: string;
   variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
   size?: "default" | "sm" | "lg" | "icon";
 }
 
-function DirectionsButton({ address, city, state, zipCode, className, variant = "outline", size = "sm" }: DirectionsButtonProps) {
+function DirectionsButton({ address, city, state, zipCode, jobId, vehicleId, className, variant = "outline", size = "sm" }: DirectionsButtonProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isSavingRoute, setIsSavingRoute] = useState(false);
+  const { toast } = useToast();
+
+  const saveRouteMutation = useMutation({
+    mutationFn: async (routeData: any) => {
+      const response = await apiRequest('/api/routes/planned', {
+        method: 'POST',
+        body: JSON.stringify(routeData),
+      });
+      return response;
+    },
+    onSuccess: (savedRoute: any) => {
+      console.log('Route saved successfully:', savedRoute);
+      toast({
+        title: "Route Saved",
+        description: "Your planned route has been recorded for tracking.",
+      });
+      setIsDialogOpen(true);
+    },
+    onError: (error: any) => {
+      console.error('Error saving route:', error);
+      toast({
+        title: "Route Save Failed",
+        description: "Could not save route, but you can still view directions.",
+        variant: "destructive",
+      });
+      setIsDialogOpen(true);
+    },
+  });
+
+  const handleDirectionsClick = async () => {
+    setIsSavingRoute(true);
+    
+    try {
+      // Get current location
+      const userLocation = await new Promise<{lat: number, lng: number}>((resolve, reject) => {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              resolve({
+                lat: position.coords.latitude,
+                lng: position.coords.longitude
+              });
+            },
+            (error) => {
+              reject(error);
+            }
+          );
+        } else {
+          reject(new Error('Geolocation not supported'));
+        }
+      });
+
+      const fullAddress = [address, city, state, zipCode].filter(Boolean).join(", ");
+      
+      // Use Google Directions API via secure backend proxy
+      const origin = `${userLocation.lat},${userLocation.lng}`;
+      const destination = fullAddress;
+      
+      const response = await fetch(`/api/proxy-directions?origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}`);
+      const directionsData = await response.json();
+      
+      if (directionsData.status === 'OK' && directionsData.routes && directionsData.routes.length > 0) {
+        const route = directionsData.routes[0];
+        const leg = route.legs[0];
+        
+        // Calculate fuel costs (assuming average 15 MPG and $2.50/gallon)
+        const distanceInMiles = leg.distance.value * 0.000621371; // meters to miles
+        const estimatedFuelUsage = distanceInMiles / 15; // gallons
+        const estimatedFuelCost = estimatedFuelUsage * 2.50; // $2.50 per gallon
+        
+        // Save route data
+        const routeData = {
+          jobId,
+          vehicleId,
+          originAddress: leg.start_address,
+          originLat: leg.start_location.lat,
+          originLng: leg.start_location.lng,
+          destinationAddress: leg.end_address,
+          destinationLat: leg.end_location.lat,
+          destinationLng: leg.end_location.lng,
+          totalDistance: leg.distance.value, // in meters (number)
+          estimatedDuration: leg.duration.value, // in seconds (number)
+          estimatedFuelCost: parseFloat(estimatedFuelCost.toFixed(2)),
+          estimatedFuelUsage: parseFloat(estimatedFuelUsage.toFixed(2)),
+        };
+        
+        await saveRouteMutation.mutateAsync(routeData);
+      } else {
+        // If we can't get directions, just open the dialog
+        setIsDialogOpen(true);
+      }
+    } catch (error) {
+      console.error('Error getting route:', error);
+      // Even if route saving fails, still open the directions dialog
+      setIsDialogOpen(true);
+    } finally {
+      setIsSavingRoute(false);
+    }
+  };
 
   // Don't show button if no address is provided
   if (!address && !city) {
@@ -165,11 +270,13 @@ function DirectionsButton({ address, city, state, zipCode, className, variant = 
       <Button
         variant={variant}
         size={size}
-        onClick={() => setIsDialogOpen(true)}
+        onClick={handleDirectionsClick}
         className={className}
+        disabled={isSavingRoute}
+        data-testid="button-directions"
       >
         <Navigation className="h-4 w-4 mr-2" />
-        Directions
+        {isSavingRoute ? "Saving Route..." : "Directions"}
       </Button>
       
       <GoogleMapsDialog
@@ -270,7 +377,7 @@ function loadGoogleMapsScript(): Promise<void> {
       return;
     }
 
-    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'AIzaSyCy9lgjvkKV3vS_U1IIcmxJUC8q8yJaASI';
+    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
     const script = document.createElement('script');
     script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
     script.async = true;
@@ -286,7 +393,7 @@ function GoogleMapsContainer({ markers, center, zoom, className }: GPSMapProps) 
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'AIzaSyCy9lgjvkKV3vS_U1IIcmxJUC8q8yJaASI';
+    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
     if (!apiKey) {
       setError('Google Maps API key not configured');
       return;
