@@ -96,6 +96,7 @@ import archiver from 'archiver';
 // Removed fileUploadRouter import - using direct route instead
 // Object storage imports already imported at top - removed duplicates
 import { NotificationService, setBroadcastFunction } from "./notificationService";
+import { routeMonitoringService } from "./routeMonitoring";
 import { calculateSpeed } from "./utils/gps";
 
 // Extend Express Request type to include user
@@ -28339,6 +28340,127 @@ ${fromName || ''}
       res.status(500).json({ message: "Error fetching stops: " + error.message });
     }
   });
+
+  // Start route monitoring (called when technician starts driving)
+  app.post("/api/routes/:routeId/start-monitoring", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { routeId } = req.params;
+      
+      // Verify route belongs to user's organization
+      const [route] = await db.select().from(plannedRoutes)
+        .where(and(
+          eq(plannedRoutes.id, parseInt(routeId)),
+          eq(plannedRoutes.organizationId, user.organizationId)
+        ));
+      
+      if (!route) {
+        return res.status(404).json({ message: "Route not found" });
+      }
+      
+      // Start monitoring
+      await routeMonitoringService.startMonitoring(parseInt(routeId), user.organizationId);
+      
+      res.json({ message: "Route monitoring started", routeId });
+    } catch (error: any) {
+      console.error("Error starting route monitoring:", error);
+      res.status(500).json({ message: "Error starting monitoring: " + error.message });
+    }
+  });
+
+  // Stop route monitoring (called when technician arrives)
+  app.post("/api/routes/:routeId/stop-monitoring", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { routeId } = req.params;
+      
+      // Stop monitoring and calculate final metrics
+      await routeMonitoringService.stopMonitoring(parseInt(routeId), user.organizationId);
+      
+      res.json({ message: "Route monitoring stopped", routeId });
+    } catch (error: any) {
+      console.error("Error stopping route monitoring:", error);
+      res.status(500).json({ message: "Error stopping monitoring: " + error.message });
+    }
+  });
+
+  // Get route performance comparison (estimated vs actual)
+  app.get("/api/routes/:routeId/performance", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { routeId } = req.params;
+      
+      const [routeData] = await db.select({
+        route: plannedRoutes,
+        vehicle: vehicles,
+        deviationCount: sql<number>`(SELECT COUNT(*) FROM ${routeDeviations} WHERE ${routeDeviations.routeId} = ${plannedRoutes.id})`,
+        stopCount: sql<number>`(SELECT COUNT(*) FROM ${routeStops} WHERE ${routeStops.routeId} = ${plannedRoutes.id})`,
+      })
+      .from(plannedRoutes)
+      .leftJoin(vehicles, eq(plannedRoutes.vehicleId, vehicles.id))
+      .where(and(
+        eq(plannedRoutes.id, parseInt(routeId)),
+        eq(plannedRoutes.organizationId, user.organizationId)
+      ));
+      
+      if (!routeData) {
+        return res.status(404).json({ message: "Route not found" });
+      }
+      
+      const { route, vehicle } = routeData;
+      
+      // Calculate performance metrics
+      const distanceVariance = route.actualDistance 
+        ? ((parseFloat(route.actualDistance) - parseFloat(route.totalDistance || '0')) / parseFloat(route.totalDistance || '1')) * 100
+        : null;
+      
+      const durationVariance = route.actualDuration
+        ? ((route.actualDuration - (route.estimatedDuration || 0)) / (route.estimatedDuration || 1)) * 100
+        : null;
+      
+      const fuelCostVariance = route.actualFuelCost
+        ? ((parseFloat(route.actualFuelCost) - parseFloat(route.estimatedFuelCost || '0')) / parseFloat(route.estimatedFuelCost || '1')) * 100
+        : null;
+      
+      res.json({
+        route: {
+          id: route.id,
+          status: route.status,
+          startedAt: route.startedAt,
+          completedAt: route.completedAt,
+        },
+        estimated: {
+          distance: parseFloat(route.totalDistance || '0'),
+          duration: route.estimatedDuration,
+          fuelCost: parseFloat(route.estimatedFuelCost || '0'),
+          fuelUsage: parseFloat(route.estimatedFuelUsage || '0'),
+        },
+        actual: {
+          distance: route.actualDistance ? parseFloat(route.actualDistance) : null,
+          duration: route.actualDuration,
+          fuelCost: route.actualFuelCost ? parseFloat(route.actualFuelCost) : null,
+          fuelUsage: route.actualFuelUsage ? parseFloat(route.actualFuelUsage) : null,
+        },
+        variance: {
+          distance: distanceVariance,
+          duration: durationVariance,
+          fuelCost: fuelCostVariance,
+        },
+        incidents: {
+          deviations: routeData.deviationCount,
+          stops: routeData.stopCount,
+        },
+        vehicle: vehicle ? {
+          vehicleNumber: vehicle.vehicleNumber,
+          mpg: vehicle.mpg,
+        } : null,
+      });
+    } catch (error: any) {
+      console.error("Error fetching route performance:", error);
+      res.status(500).json({ message: "Error fetching performance: " + error.message });
+    }
+  });
+
 
   return httpServer;
 }
