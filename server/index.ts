@@ -277,10 +277,12 @@ app.use((req, res, next) => {
       
       const { OneStepPoller } = await import("./services/OneStepPoller");
       const { TripBuilder } = await import("./services/TripBuilder");
+      const { getAutoJobService } = await import("./autoJobService");
       log('✅ GPS service modules imported');
 
       const gpsPoller = new OneStepPoller();
       const tripBuilder = new TripBuilder();
+      const autoJobService = getAutoJobService();
       log('✅ GPS service instances created');
 
       await gpsPoller.start();
@@ -290,21 +292,27 @@ app.use((req, res, next) => {
         await tripBuilder.runTripBuilder();
       }, 60000);
 
+      autoJobService.start();
+      log('✅ Auto Job Service started successfully');
+
       log('🚗 OneStep GPS background services started');
       log('   📍 GPS Poller: Active (30-60s intervals per org)');
       log('   🛣️  Trip Builder: Active (60s intervals)');
+      log('   ⚡ Auto Job Service: Active (60s intervals)');
 
       // Cleanup handlers
       process.on("SIGTERM", () => {
         log("📡 Shutting down GPS services...");
         gpsPoller.stop();
         clearInterval(tripBuilderInterval);
+        autoJobService.stop();
       });
 
       process.on("SIGINT", () => {
         log("📡 Shutting down GPS services...");
         gpsPoller.stop();
         clearInterval(tripBuilderInterval);
+        autoJobService.stop();
       });
     } catch (error) {
       console.error("❌ Failed to start OneStep GPS services:", error);

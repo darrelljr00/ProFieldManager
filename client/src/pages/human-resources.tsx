@@ -2620,10 +2620,20 @@ function JobActivityReport() {
                       <div className="text-center">
                         <p className="text-2xl font-bold text-green-600 dark:text-green-400">{tech.jobStartCount}</p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">Starts</p>
+                        {tech.autoStartCount > 0 && (
+                          <p className="text-xs text-orange-600 dark:text-orange-400">
+                            {tech.autoStartCount} auto
+                          </p>
+                        )}
                       </div>
                       <div className="text-center">
                         <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{tech.jobStopCount}</p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">Stops</p>
+                        {tech.autoStopCount > 0 && (
+                          <p className="text-xs text-orange-600 dark:text-orange-400">
+                            {tech.autoStopCount} auto
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>

@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Calendar, Users, CheckCircle, Clock, AlertCircle, Folder, Settings, MapPin, Route, Star, Smartphone, Eye, Image, FileText, CheckSquare, Upload, Camera, DollarSign, Download, Trash2, Archive, User as UserIcon, Search, Filter, X, XCircle, Play } from "lucide-react";
+import { Plus, Calendar, Users, CheckCircle, Clock, AlertCircle, Folder, Settings, MapPin, Route, Star, Smartphone, Eye, Image, FileText, CheckSquare, Upload, Camera, DollarSign, Download, Trash2, Archive, User as UserIcon, Search, Filter, X, XCircle, Play, Zap } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { format } from "date-fns";
 import type { Project, Customer, User } from "@shared/schema";
@@ -2563,10 +2563,22 @@ export default function Jobs() {
                 </div>
                 <div>
                   <Label className="text-sm font-medium text-gray-500">Status</Label>
-                  <div className="mt-1">
+                  <div className="mt-1 flex items-center gap-2 flex-wrap">
                     <Badge variant={getStatusColor(selectedProject.status)}>
                       {selectedProject.status}
                     </Badge>
+                    {(selectedProject as any).autoStartedAt && (
+                      <Badge variant="outline" className="bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-blue-300">
+                        <Zap className="h-3 w-3 mr-1" />
+                        Auto-Started
+                      </Badge>
+                    )}
+                    {(selectedProject as any).autoCompletedAt && (
+                      <Badge variant="outline" className="bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border-green-300">
+                        <Zap className="h-3 w-3 mr-1" />
+                        Auto-Completed
+                      </Badge>
+                    )}
                   </div>
                 </div>
               </div>

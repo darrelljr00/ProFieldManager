@@ -28573,6 +28573,8 @@ ${fromName || ''}
           lastName: users.lastName,
           position: users.position,
           jobStartCount: sql<number>`COUNT(CASE WHEN ${projects.status} IN ('in_progress', 'completed') THEN 1 END)`,
+          autoStartCount: sql<number>`COUNT(CASE WHEN ${projects.autoStartedAt} IS NOT NULL THEN 1 END)`,
+          autoStopCount: sql<number>`COUNT(CASE WHEN ${projects.autoCompletedAt} IS NOT NULL THEN 1 END)`,
           jobStopCount: sql<number>`COUNT(CASE WHEN ${projects.status} = 'completed' THEN 1 END)`,
         })
         .from(projects)
@@ -28591,6 +28593,8 @@ ${fromName || ''}
         technicianName: `${a.firstName} ${a.lastName}`,
         position: a.position,
         jobStartCount: Number(a.jobStartCount),
+        autoStartCount: Number(a.autoStartCount),
+        autoStopCount: Number(a.autoStopCount),
         jobStopCount: Number(a.jobStopCount),
       }));
       

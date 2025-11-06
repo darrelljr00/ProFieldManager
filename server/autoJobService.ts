@@ -2,7 +2,7 @@ import { db } from "./db";
 import { projects, users, obdLocationData } from "@shared/schema";
 import { eq, and, isNull, isNotNull, lt, gte, sql } from "drizzle-orm";
 import { NotificationService } from "./notificationService";
-import { calculateDistance } from "./utils/gps";
+import { haversineDistance } from "./utils/gps";
 
 const AUTO_START_DELAY_MINUTES = 10;
 const AUTO_COMPLETE_DELAY_MINUTES = 10;
@@ -109,7 +109,7 @@ export class AutoJobService {
 
       await db.update(projects)
         .set({
-          status: 'in_progress',
+          status: 'in-progress',
           autoStartedAt: now,
           startDate: now,
           updatedAt: now,
@@ -139,12 +139,12 @@ export class AutoJobService {
           technicianName,
           autoStartedAt: now.toISOString(),
         },
-        priority: 'medium',
+        priority: 'high',
       });
 
-      console.log(`Auto-started job ${job.id} (${job.name}) for technician ${technicianName}`);
+      console.log(`✅ Auto-started job ${job.id} (${job.name}) for technician ${technicianName}`);
     } catch (error) {
-      console.error(`Error auto-starting job ${job.id}:`, error);
+      console.error(`❌ Error auto-starting job ${job.id}:`, error);
     }
   }
 
@@ -185,12 +185,12 @@ export class AutoJobService {
           technicianName,
           autoCompletedAt: now.toISOString(),
         },
-        priority: 'medium',
+        priority: 'high',
       });
 
-      console.log(`Auto-completed job ${job.id} (${job.name}) for technician ${technicianName}`);
+      console.log(`✅ Auto-completed job ${job.id} (${job.name}) for technician ${technicianName}`);
     } catch (error) {
-      console.error(`Error auto-completing job ${job.id}:`, error);
+      console.error(`❌ Error auto-completing job ${job.id}:`, error);
     }
   }
 
@@ -230,7 +230,7 @@ export class AutoJobService {
         const jobCoords = await this.getJobCoordinates(job);
         if (!jobCoords) continue;
 
-        const distance = calculateDistance(
+        const distance = haversineDistance(
           vehicleLat,
           vehicleLng,
           jobCoords.lat,
