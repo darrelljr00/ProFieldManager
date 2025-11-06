@@ -28554,6 +28554,157 @@ ${fromName || ''}
     }
   });
 
+
+  // Job Activity Report API - Start/Stop button tracking
+  app.get("/api/reports/job-activity", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const organizationId = user.organizationId;
+      
+      const { startDate: startParam, endDate: endParam } = req.query;
+      const startDate = startParam ? new Date(startParam as string) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const endDate = endParam ? new Date(endParam as string) : new Date();
+      
+      // Count jobs started (status changed to in_progress) and completed per technician
+      const jobActivity = await db
+        .select({
+          userId: projects.assignedUserId,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          position: users.position,
+          jobStartCount: sql<number>`COUNT(CASE WHEN ${projects.status} IN ('in_progress', 'completed') THEN 1 END)`,
+          jobStopCount: sql<number>`COUNT(CASE WHEN ${projects.status} = 'completed' THEN 1 END)`,
+        })
+        .from(projects)
+        .leftJoin(users, eq(projects.assignedUserId, users.id))
+        .where(and(
+          eq(projects.organizationId, organizationId),
+          gte(projects.updatedAt, startDate),
+          lte(projects.updatedAt, endDate),
+          isNotNull(projects.assignedUserId)
+        ))
+        .groupBy(projects.assignedUserId, users.firstName, users.lastName, users.position)
+        .orderBy(desc(sql`COUNT(CASE WHEN ${projects.status} IN ('in_progress', 'completed') THEN 1 END)`));
+      
+      const formattedActivity = jobActivity.map(a => ({
+        userId: a.userId,
+        technicianName: `${a.firstName} ${a.lastName}`,
+        position: a.position,
+        jobStartCount: Number(a.jobStartCount),
+        jobStopCount: Number(a.jobStopCount),
+      }));
+      
+      res.json(formattedActivity);
+    } catch (error: any) {
+      console.error("Error fetching job activity:", error);
+      res.status(500).json({ message: "Error fetching job activity: " + error.message });
+    }
+  });
+
+  // Documentation Compliance Report API - Photos and Signatures
+  app.get("/api/reports/documentation-compliance", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const organizationId = user.organizationId;
+      
+      const { startDate: startParam, endDate: endParam } = req.query;
+      const startDate = startParam ? new Date(startParam as string) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const endDate = endParam ? new Date(endParam as string) : new Date();
+      
+      // Get all completed projects in the date range
+      const completedProjects = await db
+        .select({
+          id: projects.id,
+          assignedUserId: projects.assignedUserId,
+        })
+        .from(projects)
+        .where(and(
+          eq(projects.organizationId, organizationId),
+          eq(projects.status, 'completed'),
+          gte(projects.updatedAt, startDate),
+          lte(projects.updatedAt, endDate),
+          isNotNull(projects.assignedUserId)
+        ));
+      
+      // Get photos and signatures per technician
+      const technicianStats = new Map<number, {
+        firstName: string;
+        lastName: string;
+        totalJobs: number;
+        jobsWithPhotos: Set<number>;
+        jobsWithSignatures: Set<number>;
+      }>();
+      
+      for (const project of completedProjects) {
+        if (!project.assignedUserId) continue;
+        
+        // Get technician info
+        const [techUser] = await db
+          .select()
+          .from(users)
+          .where(eq(users.id, project.assignedUserId));
+        
+        if (!techUser) continue;
+        
+        if (!technicianStats.has(project.assignedUserId)) {
+          technicianStats.set(project.assignedUserId, {
+            firstName: techUser.firstName,
+            lastName: techUser.lastName,
+            totalJobs: 0,
+            jobsWithPhotos: new Set(),
+            jobsWithSignatures: new Set(),
+          });
+        }
+        
+        const stats = technicianStats.get(project.assignedUserId)!;
+        stats.totalJobs++;
+        
+        // Check if project has photos
+        const photos = await db
+          .select()
+          .from(projectFiles)
+          .where(and(
+            eq(projectFiles.projectId, project.id),
+            eq(projectFiles.fileType, 'image')
+          ))
+          .limit(1);
+        
+        if (photos.length > 0) {
+          stats.jobsWithPhotos.add(project.id);
+        }
+        
+        // Check if project has signatures
+        const signatures = await db
+          .select()
+          .from(projectFiles)
+          .where(and(
+            eq(projectFiles.projectId, project.id),
+            eq(projectFiles.signatureStatus, 'completed')
+          ))
+          .limit(1);
+        
+        if (signatures.length > 0) {
+          stats.jobsWithSignatures.add(project.id);
+        }
+      }
+      
+      // Format response
+      const formattedCompliance = Array.from(technicianStats.entries()).map(([userId, stats]) => ({
+        userId,
+        technicianName: `${stats.firstName} ${stats.lastName}`,
+        totalJobs: stats.totalJobs,
+        jobsWithPhotos: stats.jobsWithPhotos.size,
+        jobsWithSignatures: stats.jobsWithSignatures.size,
+      }))
+      .sort((a, b) => b.totalJobs - a.totalJobs);
+      
+      res.json(formattedCompliance);
+    } catch (error: any) {
+      console.error("Error fetching documentation compliance:", error);
+      res.status(500).json({ message: "Error fetching documentation compliance: " + error.message });
+    }
+  });
+
   return httpServer;
 }
 

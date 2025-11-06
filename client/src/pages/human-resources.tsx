@@ -1443,6 +1443,12 @@ export default function HumanResources() {
                 <LateArrivalsReport />
               </div>
 
+              {/* Technician Activity Reports */}
+              <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <JobActivityReport />
+                <DocumentationComplianceReport />
+              </div>
+
               {/* Route Deviation Report */}
               <RouteDeviationReport />
 
@@ -2545,6 +2551,196 @@ function LateArrivalsReport() {
                 <div className="text-sm text-gray-500">
                   No late arrivals in the selected period
                 </div>
+              )}
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function JobActivityReport() {
+  const [selectedPeriod, setSelectedPeriod] = useState("30");
+  
+  // Calculate date range
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setDate(endDate.getDate() - parseInt(selectedPeriod));
+  
+  // Fetch job activity data
+  const { data: jobActivity = [], isLoading } = useQuery({
+    queryKey: ['/api/reports/job-activity', { 
+      startDate: startDate.toISOString(), 
+      endDate: endDate.toISOString()
+    }],
+    retry: false,
+  });
+  
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Clock className="h-5 w-5 text-blue-500" />
+            <CardTitle className="text-lg">Job Start/Stop Activity</CardTitle>
+          </div>
+          <Badge variant="outline" className="text-blue-600">
+            Last {selectedPeriod} days
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {/* Filter Controls */}
+          <div className="flex space-x-2">
+            <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="7">7 days</SelectItem>
+                <SelectItem value="30">30 days</SelectItem>
+                <SelectItem value="90">90 days</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {/* Activity Stats */}
+          {!isLoading && jobActivity.length > 0 ? (
+            <div>
+              <div className="space-y-3">
+                {jobActivity.slice(0, 5).map((tech: any) => (
+                  <div key={tech.userId} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <div className="flex-1">
+                      <p className="font-medium text-sm dark:text-white">{tech.technicianName}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{tech.position || 'Technician'}</p>
+                    </div>
+                    <div className="flex gap-4">
+                      <div className="text-center">
+                        <p className="text-2xl font-bold text-green-600 dark:text-green-400">{tech.jobStartCount}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Starts</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{tech.jobStopCount}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Stops</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              {jobActivity.length > 5 && (
+                <p className="text-xs text-center text-gray-500 mt-3">
+                  Showing top 5 of {jobActivity.length} technicians
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              {isLoading ? (
+                <div className="text-sm text-gray-500">Loading activity data...</div>
+              ) : (
+                <div className="text-sm text-gray-500">No activity in the selected period</div>
+              )}
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function DocumentationComplianceReport() {
+  const [selectedPeriod, setSelectedPeriod] = useState("30");
+  
+  // Calculate date range
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setDate(endDate.getDate() - parseInt(selectedPeriod));
+  
+  // Fetch documentation compliance data
+  const { data: docCompliance = [], isLoading } = useQuery({
+    queryKey: ['/api/reports/documentation-compliance', { 
+      startDate: startDate.toISOString(), 
+      endDate: endDate.toISOString()
+    }],
+    retry: false,
+  });
+  
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <FileText className="h-5 w-5 text-purple-500" />
+            <CardTitle className="text-lg">Documentation Compliance</CardTitle>
+          </div>
+          <Badge variant="outline" className="text-purple-600">
+            Last {selectedPeriod} days
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {/* Filter Controls */}
+          <div className="flex space-x-2">
+            <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="7">7 days</SelectItem>
+                <SelectItem value="30">30 days</SelectItem>
+                <SelectItem value="90">90 days</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {/* Compliance Stats */}
+          {!isLoading && docCompliance.length > 0 ? (
+            <div>
+              <div className="space-y-3">
+                {docCompliance.slice(0, 5).map((tech: any) => (
+                  <div key={tech.userId} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <div className="flex-1">
+                      <p className="font-medium text-sm dark:text-white">{tech.technicianName}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {tech.totalJobs} jobs completed
+                      </p>
+                    </div>
+                    <div className="flex gap-4">
+                      <div className="text-center">
+                        <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{tech.jobsWithPhotos}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Photos</p>
+                        <p className="text-xs text-green-600 dark:text-green-400">
+                          {tech.totalJobs > 0 ? ((tech.jobsWithPhotos / tech.totalJobs) * 100).toFixed(0) : 0}%
+                        </p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{tech.jobsWithSignatures}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Signatures</p>
+                        <p className="text-xs text-green-600 dark:text-green-400">
+                          {tech.totalJobs > 0 ? ((tech.jobsWithSignatures / tech.totalJobs) * 100).toFixed(0) : 0}%
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              {docCompliance.length > 5 && (
+                <p className="text-xs text-center text-gray-500 mt-3">
+                  Showing top 5 of {docCompliance.length} technicians
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              {isLoading ? (
+                <div className="text-sm text-gray-500">Loading compliance data...</div>
+              ) : (
+                <div className="text-sm text-gray-500">No data in the selected period</div>
               )}
             </div>
           )}
