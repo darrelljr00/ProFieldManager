@@ -9,6 +9,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { format, subDays, subMonths, subYears } from "date-fns";
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -17,7 +19,7 @@ import {
 import { 
   TrendingUp, TrendingDown, DollarSign, Users, Target, Calculator,
   BarChart3, Download, CalendarIcon, Filter, Clock, Briefcase, CheckSquare,
-  Check, Activity
+  Check, Activity, FileText, AlertTriangle
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useWebSocket } from "@/hooks/useWebSocket";
@@ -1912,6 +1914,15 @@ export default function Reports() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* GPS & Activity Reports */}
+            <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <JobActivityReport />
+              <DocumentationComplianceReport />
+            </div>
+
+            {/* Route Deviation Report */}
+            <RouteDeviationReport />
           </div>
         </TabsContent>
 
@@ -3794,5 +3805,412 @@ export default function Reports() {
 
       </Tabs>
     </div>
+  );
+}
+
+function JobActivityReport() {
+  const [selectedPeriod, setSelectedPeriod] = useState("30");
+  
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setDate(endDate.getDate() - parseInt(selectedPeriod));
+  
+  const { data: jobActivity = [], isLoading } = useQuery({
+    queryKey: ['/api/reports/job-activity', { 
+      startDate: startDate.toISOString(), 
+      endDate: endDate.toISOString()
+    }],
+    retry: false,
+  });
+  
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Clock className="h-5 w-5 text-blue-500" />
+            <CardTitle className="text-lg">Job Start/Stop Activity</CardTitle>
+          </div>
+          <Badge variant="outline" className="text-blue-600">
+            Last {selectedPeriod} days
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          <div className="flex space-x-2">
+            <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="7">7 days</SelectItem>
+                <SelectItem value="30">30 days</SelectItem>
+                <SelectItem value="90">90 days</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {!isLoading && jobActivity.length > 0 ? (
+            <div>
+              <div className="space-y-3">
+                {jobActivity.slice(0, 5).map((tech: any) => (
+                  <div key={tech.userId} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <div className="flex-1">
+                      <p className="font-medium text-sm dark:text-white">{tech.technicianName}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{tech.position || 'Technician'}</p>
+                    </div>
+                    <div className="flex gap-4">
+                      <div className="text-center">
+                        <p className="text-2xl font-bold text-green-600 dark:text-green-400">{tech.jobStartCount}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Starts</p>
+                        {tech.autoStartCount > 0 && (
+                          <p className="text-xs text-orange-600 dark:text-orange-400">
+                            {tech.autoStartCount} auto
+                          </p>
+                        )}
+                      </div>
+                      <div className="text-center">
+                        <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{tech.jobStopCount}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Stops</p>
+                        {tech.autoStopCount > 0 && (
+                          <p className="text-xs text-orange-600 dark:text-orange-400">
+                            {tech.autoStopCount} auto
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              {jobActivity.length > 5 && (
+                <p className="text-xs text-center text-gray-500 mt-3">
+                  Showing top 5 of {jobActivity.length} technicians
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              {isLoading ? (
+                <div className="text-sm text-gray-500">Loading activity data...</div>
+              ) : (
+                <div className="text-sm text-gray-500">No activity in the selected period</div>
+              )}
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function DocumentationComplianceReport() {
+  const [selectedPeriod, setSelectedPeriod] = useState("30");
+  
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setDate(endDate.getDate() - parseInt(selectedPeriod));
+  
+  const { data: docCompliance = [], isLoading } = useQuery({
+    queryKey: ['/api/reports/documentation-compliance', { 
+      startDate: startDate.toISOString(), 
+      endDate: endDate.toISOString()
+    }],
+    retry: false,
+  });
+  
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <FileText className="h-5 w-5 text-purple-500" />
+            <CardTitle className="text-lg">Documentation Compliance</CardTitle>
+          </div>
+          <Badge variant="outline" className="text-purple-600">
+            Last {selectedPeriod} days
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          <div className="flex space-x-2">
+            <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="7">7 days</SelectItem>
+                <SelectItem value="30">30 days</SelectItem>
+                <SelectItem value="90">90 days</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {!isLoading && docCompliance.length > 0 ? (
+            <div>
+              <div className="space-y-3">
+                {docCompliance.slice(0, 5).map((tech: any) => (
+                  <div key={tech.userId} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <div className="flex-1">
+                      <p className="font-medium text-sm dark:text-white">{tech.technicianName}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {tech.totalJobs} jobs completed
+                      </p>
+                    </div>
+                    <div className="flex gap-4">
+                      <div className="text-center">
+                        <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{tech.jobsWithPhotos}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Photos</p>
+                        <p className="text-xs text-green-600 dark:text-green-400">
+                          {tech.totalJobs > 0 ? ((tech.jobsWithPhotos / tech.totalJobs) * 100).toFixed(0) : 0}%
+                        </p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{tech.jobsWithSignatures}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Signatures</p>
+                        <p className="text-xs text-green-600 dark:text-green-400">
+                          {tech.totalJobs > 0 ? ((tech.jobsWithSignatures / tech.totalJobs) * 100).toFixed(0) : 0}%
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              {docCompliance.length > 5 && (
+                <p className="text-xs text-center text-gray-500 mt-3">
+                  Showing top 5 of {docCompliance.length} technicians
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              {isLoading ? (
+                <div className="text-sm text-gray-500">Loading compliance data...</div>
+              ) : (
+                <div className="text-sm text-gray-500">No data in the selected period</div>
+              )}
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function RouteDeviationReport() {
+  const [selectedPeriod, setSelectedPeriod] = useState("30");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setDate(endDate.getDate() - parseInt(selectedPeriod));
+  
+  const { data: routeDeviations = [], isLoading } = useQuery({
+    queryKey: ['/api/route-deviations', { 
+      startDate: startDate.toISOString(), 
+      endDate: endDate.toISOString()
+    }],
+    retry: false,
+  });
+  
+  return (
+    <Card className="mt-6">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <AlertTriangle className="h-5 w-5 text-red-500" />
+            <CardTitle className="text-lg">Route Deviations Report</CardTitle>
+          </div>
+          <Badge variant="destructive" className="text-white">
+            Last {selectedPeriod} days
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          <div className="flex space-x-2">
+            <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="7">7 days</SelectItem>
+                <SelectItem value="30">30 days</SelectItem>
+                <SelectItem value="90">90 days</SelectItem>
+                <SelectItem value="180">6 months</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {!isLoading && routeDeviations.length > 0 ? (
+            <div className="grid grid-cols-3 gap-4 mb-4">
+              <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                <p className="text-sm font-medium text-red-900 dark:text-red-100">Total Deviations</p>
+                <p className="text-2xl font-bold text-red-700 dark:text-red-400">{routeDeviations.length}</p>
+              </div>
+              
+              <div className="p-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg">
+                <p className="text-sm font-medium text-orange-900 dark:text-orange-100">Avg Distance</p>
+                <p className="text-2xl font-bold text-orange-700 dark:text-orange-400">
+                  {(routeDeviations.reduce((sum: number, d: any) => 
+                    sum + parseFloat(d.distanceFromRoute || 0), 0) / routeDeviations.length / 1609.34
+                  ).toFixed(2)} mi
+                </p>
+              </div>
+              
+              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                <p className="text-sm font-medium text-blue-900 dark:text-blue-100">Vehicles Involved</p>
+                <p className="text-2xl font-bold text-blue-700 dark:text-blue-400">
+                  {new Set(routeDeviations.map((d: any) => d.vehicleNumber)).size}
+                </p>
+              </div>
+            </div>
+          ) : null}
+
+          {!isLoading && routeDeviations.length > 0 ? (
+            <div>
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date/Time</TableHead>
+                      <TableHead>Vehicle</TableHead>
+                      <TableHead>Technicians</TableHead>
+                      <TableHead>Job</TableHead>
+                      <TableHead>Distance Off</TableHead>
+                      <TableHead>Location</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {routeDeviations.slice(0, 5).map((deviation: any) => (
+                      <TableRow key={deviation.id}>
+                        <TableCell className="font-medium">
+                          {new Date(deviation.detectedAt).toLocaleDateString()}<br />
+                          <span className="text-xs text-gray-500">
+                            {new Date(deviation.detectedAt).toLocaleTimeString()}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="font-medium">{deviation.vehicleNumber || 'N/A'}</div>
+                          <div className="text-xs text-gray-500">{deviation.licensePlate || ''}</div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm">
+                            {deviation.technicians && deviation.technicians.length > 0 ? (
+                              deviation.technicians.map((tech: string, idx: number) => (
+                                <div key={idx} className="text-gray-700 dark:text-gray-300">
+                                  {tech}
+                                </div>
+                              ))
+                            ) : (
+                              <span className="text-gray-400">No technicians</span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {deviation.jobName || 'N/A'}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="destructive">
+                            {(parseFloat(deviation.distanceFromRoute) / 1609.34).toFixed(2)} mi
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm max-w-xs truncate">
+                          {deviation.address || `${deviation.latitude}, ${deviation.longitude}`}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              
+              {routeDeviations.length > 5 && (
+                <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" className="w-full mt-4" data-testid="view-all-deviations-btn">
+                      View All {routeDeviations.length} Deviations
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>All Route Deviations</DialogTitle>
+                      <DialogDescription>
+                        Complete list of all route deviations for the selected period
+                      </DialogDescription>
+                    </DialogHeader>
+                    
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Date/Time</TableHead>
+                          <TableHead>Vehicle</TableHead>
+                          <TableHead>Technicians</TableHead>
+                          <TableHead>Job</TableHead>
+                          <TableHead>Distance Off</TableHead>
+                          <TableHead>Location</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {routeDeviations.map((deviation: any) => (
+                          <TableRow key={deviation.id}>
+                            <TableCell className="font-medium">
+                              {new Date(deviation.detectedAt).toLocaleDateString()}<br />
+                              <span className="text-xs text-gray-500">
+                                {new Date(deviation.detectedAt).toLocaleTimeString()}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <div className="font-medium">{deviation.vehicleNumber || 'N/A'}</div>
+                              <div className="text-xs text-gray-500">{deviation.licensePlate || ''}</div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="text-sm">
+                                {deviation.technicians && deviation.technicians.length > 0 ? (
+                                  deviation.technicians.map((tech: string, idx: number) => (
+                                    <div key={idx} className="text-gray-700 dark:text-gray-300">
+                                      {tech}
+                                    </div>
+                                  ))
+                                ) : (
+                                  <span className="text-gray-400">No technicians</span>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {deviation.jobName || 'N/A'}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="destructive">
+                                {(parseFloat(deviation.distanceFromRoute) / 1609.34).toFixed(2)} mi
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              {deviation.address || `${deviation.latitude}, ${deviation.longitude}`}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </DialogContent>
+                </Dialog>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-4">
+              {isLoading ? (
+                <div className="text-sm text-gray-500">Loading route deviations...</div>
+              ) : (
+                <div className="text-sm text-gray-500">
+                  No route deviations in the selected period ✅
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
