@@ -23,12 +23,15 @@ export class AutoJobService {
       return;
     }
 
-    console.log("Starting AutoJobService...");
-    this.checkInterval = setInterval(() => {
-      this.checkJobsForAutoActions();
-    }, CHECK_INTERVAL_SECONDS * 1000);
-
-    this.checkJobsForAutoActions();
+    console.log("⚠️ AutoJobService: TEMPORARILY DISABLED until database schema is fully migrated");
+    console.log("⚠️ Required columns: departed_at, auto_started_at, auto_completed_at, assigned_user_id");
+    
+    // TEMPORARILY DISABLED - uncomment after running db:push --force
+    // console.log("Starting AutoJobService...");
+    // this.checkInterval = setInterval(() => {
+    //   this.checkJobsForAutoActions();
+    // }, CHECK_INTERVAL_SECONDS * 1000);
+    // this.checkJobsForAutoActions();
   }
 
   stop(): void {
@@ -61,14 +64,17 @@ export class AutoJobService {
         assignedUserId: projects.assignedUserId,
         vehicleId: projects.vehicleId,
         address: projects.address,
+        startDate: projects.startDate,
       })
       .from(projects)
       .where(and(
         isNotNull(projects.arrivedAt),
         isNull(projects.autoStartedAt),
+        isNull(projects.startDate),
         sql`${projects.status} != 'in_progress'`,
         sql`${projects.status} != 'completed'`,
-        lt(projects.arrivedAt, tenMinutesAgo)
+        lt(projects.arrivedAt, tenMinutesAgo),
+        isNotNull(projects.vehicleId)
       ));
 
     for (const job of jobsToAutoStart) {
