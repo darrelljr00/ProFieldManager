@@ -1443,6 +1443,9 @@ export default function HumanResources() {
                 <LateArrivalsReport />
               </div>
 
+              {/* Route Deviation Report */}
+              <RouteDeviationReport />
+
               <div className="mt-6 flex space-x-4">
                 <Button variant="outline">
                   <Download className="mr-2 h-4 w-4" />
@@ -2541,6 +2544,226 @@ function LateArrivalsReport() {
               ) : (
                 <div className="text-sm text-gray-500">
                   No late arrivals in the selected period
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function RouteDeviationReport() {
+  const [selectedPeriod, setSelectedPeriod] = useState("30");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  
+  // Calculate date range based on selected period
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setDate(endDate.getDate() - parseInt(selectedPeriod));
+  
+  // Fetch route deviation data
+  const { data: routeDeviations = [], isLoading } = useQuery({
+    queryKey: ['/api/route-deviations', { 
+      startDate: startDate.toISOString(), 
+      endDate: endDate.toISOString()
+    }],
+    retry: false,
+  });
+  
+  return (
+    <Card className="mt-6">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <AlertTriangle className="h-5 w-5 text-red-500" />
+            <CardTitle className="text-lg">Route Deviations Report</CardTitle>
+          </div>
+          <Badge variant="destructive" className="text-white">
+            Last {selectedPeriod} days
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {/* Filter Controls */}
+          <div className="flex space-x-2">
+            <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="7">7 days</SelectItem>
+                <SelectItem value="30">30 days</SelectItem>
+                <SelectItem value="90">90 days</SelectItem>
+                <SelectItem value="180">6 months</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {/* Summary Stats */}
+          {!isLoading && routeDeviations.length > 0 ? (
+            <div className="grid grid-cols-3 gap-4 mb-4">
+              <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                <p className="text-sm font-medium text-red-900 dark:text-red-100">Total Deviations</p>
+                <p className="text-2xl font-bold text-red-700 dark:text-red-400">{routeDeviations.length}</p>
+              </div>
+              
+              <div className="p-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg">
+                <p className="text-sm font-medium text-orange-900 dark:text-orange-100">Avg Distance</p>
+                <p className="text-2xl font-bold text-orange-700 dark:text-orange-400">
+                  {(routeDeviations.reduce((sum: number, d: any) => 
+                    sum + parseFloat(d.distanceFromRoute || 0), 0) / routeDeviations.length / 1609.34
+                  ).toFixed(2)} mi
+                </p>
+              </div>
+              
+              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                <p className="text-sm font-medium text-blue-900 dark:text-blue-100">Vehicles Involved</p>
+                <p className="text-2xl font-bold text-blue-700 dark:text-blue-400">
+                  {new Set(routeDeviations.map((d: any) => d.vehicleNumber)).size}
+                </p>
+              </div>
+            </div>
+          ) : null}
+
+          {/* Recent Deviations Table */}
+          {!isLoading && routeDeviations.length > 0 ? (
+            <div>
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date/Time</TableHead>
+                      <TableHead>Vehicle</TableHead>
+                      <TableHead>Technicians</TableHead>
+                      <TableHead>Job</TableHead>
+                      <TableHead>Distance Off</TableHead>
+                      <TableHead>Location</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {routeDeviations.slice(0, 5).map((deviation: any) => (
+                      <TableRow key={deviation.id}>
+                        <TableCell className="font-medium">
+                          {new Date(deviation.detectedAt).toLocaleDateString()}<br />
+                          <span className="text-xs text-gray-500">
+                            {new Date(deviation.detectedAt).toLocaleTimeString()}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="font-medium">{deviation.vehicleNumber || 'N/A'}</div>
+                          <div className="text-xs text-gray-500">{deviation.licensePlate || ''}</div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm">
+                            {deviation.technicians && deviation.technicians.length > 0 ? (
+                              deviation.technicians.map((tech: string, idx: number) => (
+                                <div key={idx} className="text-gray-700 dark:text-gray-300">
+                                  {tech}
+                                </div>
+                              ))
+                            ) : (
+                              <span className="text-gray-400">No technicians</span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {deviation.jobName || 'N/A'}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="destructive">
+                            {(parseFloat(deviation.distanceFromRoute) / 1609.34).toFixed(2)} mi
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm max-w-xs truncate">
+                          {deviation.address || `${deviation.latitude}, ${deviation.longitude}`}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              
+              {routeDeviations.length > 5 && (
+                <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" className="w-full mt-4" data-testid="view-all-deviations-btn">
+                      View All {routeDeviations.length} Deviations
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>All Route Deviations</DialogTitle>
+                      <DialogDescription>
+                        Complete list of all route deviations for the selected period
+                      </DialogDescription>
+                    </DialogHeader>
+                    
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Date/Time</TableHead>
+                          <TableHead>Vehicle</TableHead>
+                          <TableHead>Technicians</TableHead>
+                          <TableHead>Job</TableHead>
+                          <TableHead>Distance Off</TableHead>
+                          <TableHead>Location</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {routeDeviations.map((deviation: any) => (
+                          <TableRow key={deviation.id}>
+                            <TableCell className="font-medium">
+                              {new Date(deviation.detectedAt).toLocaleDateString()}<br />
+                              <span className="text-xs text-gray-500">
+                                {new Date(deviation.detectedAt).toLocaleTimeString()}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <div className="font-medium">{deviation.vehicleNumber || 'N/A'}</div>
+                              <div className="text-xs text-gray-500">{deviation.licensePlate || ''}</div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="text-sm">
+                                {deviation.technicians && deviation.technicians.length > 0 ? (
+                                  deviation.technicians.map((tech: string, idx: number) => (
+                                    <div key={idx} className="text-gray-700 dark:text-gray-300">
+                                      {tech}
+                                    </div>
+                                  ))
+                                ) : (
+                                  <span className="text-gray-400">No technicians</span>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {deviation.jobName || 'N/A'}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="destructive">
+                                {(parseFloat(deviation.distanceFromRoute) / 1609.34).toFixed(2)} mi
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              {deviation.address || `${deviation.latitude}, ${deviation.longitude}`}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </DialogContent>
+                </Dialog>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-4">
+              {isLoading ? (
+                <div className="text-sm text-gray-500">Loading route deviations...</div>
+              ) : (
+                <div className="text-sm text-gray-500">
+                  No route deviations in the selected period ✅
                 </div>
               )}
             </div>

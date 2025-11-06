@@ -28462,6 +28462,98 @@ ${fromName || ''}
   });
 
 
+
+  // Route Deviations Report API
+  app.get("/api/route-deviations", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const organizationId = user.organizationId;
+      
+      // Parse date range
+      const { startDate: startParam, endDate: endParam } = req.query;
+      const startDate = startParam ? new Date(startParam as string) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const endDate = endParam ? new Date(endParam as string) : new Date();
+      
+      // Fetch route deviations with associated route, project, vehicle, and user info
+      const deviations = await db
+        .select({
+          deviation: routeDeviations,
+          route: plannedRoutes,
+          project: projects,
+          vehicle: vehicles,
+          user: users,
+        })
+        .from(routeDeviations)
+        .leftJoin(plannedRoutes, eq(routeDeviations.routeId, plannedRoutes.id))
+        .leftJoin(projects, eq(plannedRoutes.jobId, projects.id))
+        .leftJoin(vehicles, eq(plannedRoutes.vehicleId, vehicles.id))
+        .leftJoin(users, eq(routeDeviations.userId, users.id))
+        .where(and(
+          eq(routeDeviations.organizationId, organizationId),
+          gte(routeDeviations.detectedAt, startDate),
+          lte(routeDeviations.detectedAt, endDate)
+        ))
+        .orderBy(desc(routeDeviations.detectedAt));
+      
+      // For each deviation, get all technicians assigned to active jobs on that vehicle
+      const deviationsWithTechnicians = await Promise.all(
+        deviations.map(async (d) => {
+          let technicianNames: string[] = [];
+          
+          if (d.vehicle) {
+            // Find all active projects assigned to this vehicle at the time of deviation
+            const activeProjectsWithUsers = await db
+              .select({
+                assignedUser: users,
+              })
+              .from(projects)
+              .leftJoin(users, eq(projects.assignedUserId, users.id))
+              .where(and(
+                eq(projects.vehicleId, d.vehicle.id),
+                eq(projects.status, 'in_progress'),
+                eq(projects.organizationId, organizationId)
+              ));
+
+            // Get unique technicians
+            const uniqueTechs = activeProjectsWithUsers
+              .filter(p => p.assignedUser)
+              .map(p => `${p.assignedUser!.firstName} ${p.assignedUser!.lastName}`)
+              .filter((tech, index, self) => self.indexOf(tech) === index);
+            
+            technicianNames = uniqueTechs;
+          }
+          
+          // Fallback to route's assigned user if no active projects found
+          if (technicianNames.length === 0 && d.user) {
+            technicianNames = [`${d.user.firstName} ${d.user.lastName}`];
+          }
+          
+          return {
+            id: d.deviation.id,
+            routeId: d.deviation.routeId,
+            deviationType: d.deviation.deviationType,
+            latitude: d.deviation.latitude,
+            longitude: d.deviation.longitude,
+            address: d.deviation.address,
+            distanceFromRoute: d.deviation.distanceFromRoute,
+            detectedAt: d.deviation.detectedAt,
+            resolvedAt: d.deviation.resolvedAt,
+            durationMinutes: d.deviation.durationMinutes,
+            vehicleNumber: d.vehicle?.vehicleNumber || null,
+            licensePlate: d.vehicle?.licensePlate || null,
+            jobName: d.project?.jobName || null,
+            technicians: technicianNames,
+          };
+        })
+      );
+      
+      res.json(deviationsWithTechnicians);
+    } catch (error: any) {
+      console.error("Error fetching route deviations:", error);
+      res.status(500).json({ message: "Error fetching route deviations: " + error.message });
+    }
+  });
+
   return httpServer;
 }
 

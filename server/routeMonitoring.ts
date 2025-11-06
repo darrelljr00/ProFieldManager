@@ -426,7 +426,7 @@ export class RouteMonitoringService {
   }
 
   /**
-   * Send deviation notification to managers/admins
+   * Send deviation notification to managers/admins with all technicians in vehicle
    */
   private async sendDeviationNotification(
     routeId: number,
@@ -438,26 +438,77 @@ export class RouteMonitoringService {
         route: plannedRoutes,
         user: users,
         project: projects,
+        vehicle: vehicles,
       })
       .from(plannedRoutes)
       .leftJoin(users, eq(plannedRoutes.userId, users.id))
       .leftJoin(projects, eq(plannedRoutes.jobId, projects.id))
+      .leftJoin(vehicles, eq(plannedRoutes.vehicleId, vehicles.id))
       .where(eq(plannedRoutes.id, routeId));
 
     if (!routeData) return;
 
-    const distanceMiles = (distanceMeters / 1609.34).toFixed(2);
-    const message = `${routeData.user?.firstName} ${routeData.user?.lastName} has deviated ${distanceMiles} miles from planned route${routeData.project ? ` for job: ${routeData.project.jobName}` : ''}`;
+    // Find all active projects assigned to this vehicle to get all technicians
+    const activeProjectsWithUsers = await db
+      .select({
+        project: projects,
+        assignedUser: users,
+      })
+      .from(projects)
+      .leftJoin(users, eq(projects.assignedUserId, users.id))
+      .where(and(
+        eq(projects.vehicleId, routeData.route.vehicleId || 0),
+        eq(projects.status, 'in_progress'),
+        eq(projects.organizationId, organizationId)
+      ));
 
-    await NotificationService.createNotification({
-      organizationId,
-      type: 'route_deviation',
-      title: 'Route Deviation Alert',
-      message,
-      relatedEntityType: 'route',
-      relatedEntityId: routeId,
-      userId: routeData.route.userId,
-    });
+    // Get unique technicians
+    const technicians = activeProjectsWithUsers
+      .filter(p => p.assignedUser)
+      .map(p => ({
+        id: p.assignedUser!.id,
+        firstName: p.assignedUser!.firstName,
+        lastName: p.assignedUser!.lastName,
+      }))
+      .filter((tech, index, self) => 
+        index === self.findIndex(t => t.id === tech.id)
+      );
+
+    const distanceMiles = (distanceMeters / 1609.34).toFixed(2);
+    const vehicleName = routeData.vehicle?.vehicleNumber || 'Unknown Vehicle';
+    
+    // Build technician list for message
+    let technicianList = '';
+    if (technicians.length > 0) {
+      technicianList = technicians.map(t => `${t.firstName} ${t.lastName}`).join(', ');
+    } else {
+      technicianList = `${routeData.user?.firstName} ${routeData.user?.lastName}`;
+    }
+
+    const message = `🚨 Vehicle ${vehicleName} has deviated ${distanceMiles} miles from planned route. Technicians: ${technicianList}${routeData.project ? `. Job: ${routeData.project.jobName}` : ''}`;
+
+    // Send notification to all managers/admins
+    const managers = await db
+      .select()
+      .from(users)
+      .where(and(
+        eq(users.organizationId, organizationId),
+        eq(users.role, 'manager')
+      ));
+
+    for (const manager of managers) {
+      await NotificationService.createNotification({
+        organizationId,
+        type: 'route_deviation',
+        title: 'Route Deviation Alert',
+        message,
+        relatedEntityType: 'route',
+        relatedEntityId: routeId,
+        userId: manager.id,
+        priority: 'high',
+        category: 'team_based',
+      });
+    }
   }
 
   /**
