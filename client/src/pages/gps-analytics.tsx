@@ -34,8 +34,10 @@ export default function GPSAnalytics() {
     queryKey: ['/api/obd/latest-location'],
     refetchInterval: 30000, // Refresh every 30 seconds
     select: (data: any) => {
-      if (!data || !Array.isArray(data)) return [];
-      return data.filter((loc: any) => loc.latitude && loc.longitude);
+      // Handle both direct array and {locations: []} format
+      const locations = data?.locations || data || [];
+      if (!Array.isArray(locations)) return [];
+      return locations.filter((loc: any) => loc.latitude && loc.longitude);
     }
   });
 
