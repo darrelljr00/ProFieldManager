@@ -474,26 +474,45 @@ function VehicleListItem({ location, vehicles, routes, projects }: any) {
         <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">No crew assigned</p>
       )}
 
-      {/* Current Job - Vehicle is at location */}
-      {currentJob && (
-        <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-          <div className="flex items-center gap-2 mb-1">
-            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-            <p className="text-xs font-semibold text-green-700 dark:text-green-400">CURRENT JOB</p>
-          </div>
-          <p className="text-xs font-medium text-gray-700 dark:text-gray-300 pl-4">
-            {currentJob.jobName}
-          </p>
-          {currentJob.customer && (
-            <p className="text-xs text-gray-500 dark:text-gray-400 pl-4">
-              {currentJob.customer.companyName || `${currentJob.customer.firstName} ${currentJob.customer.lastName}`}
+      {/* Current Job OR Previous Job */}
+      <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+        {currentJob ? (
+          <>
+            <div className="flex items-center gap-2 mb-1">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <p className="text-xs font-semibold text-green-700 dark:text-green-400">CURRENT JOB</p>
+            </div>
+            <p className="text-xs font-medium text-gray-700 dark:text-gray-300 pl-4">
+              {currentJob.jobName}
             </p>
-          )}
-        </div>
-      )}
+            {currentJob.customer && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 pl-4">
+                {currentJob.customer.companyName || `${currentJob.customer.firstName} ${currentJob.customer.lastName}`}
+              </p>
+            )}
+          </>
+        ) : activeProjects.length > 0 ? (
+          <>
+            <div className="flex items-center gap-2 mb-1">
+              <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+              <p className="text-xs font-semibold text-gray-600 dark:text-gray-400">PREVIOUS JOB</p>
+            </div>
+            <p className="text-xs font-medium text-gray-700 dark:text-gray-300 pl-4">
+              {activeProjects[0].jobName}
+            </p>
+            {activeProjects[0].customer && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 pl-4">
+                {activeProjects[0].customer.companyName || `${activeProjects[0].customer.firstName} ${activeProjects[0].customer.lastName}`}
+              </p>
+            )}
+          </>
+        ) : (
+          <p className="text-xs text-gray-400 dark:text-gray-500">No current or previous job</p>
+        )}
+      </div>
 
-      {/* In Transit - Vehicle is en route */}
-      {activeRoute && transitJob && !currentJob && (
+      {/* In Transit - Show when moving with active route */}
+      {isMoving && activeRoute && transitJob && (
         <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-2 mb-1">
             <Navigation className="w-3 h-3 text-blue-600 dark:text-blue-400" />
@@ -520,28 +539,32 @@ function VehicleListItem({ location, vehicles, routes, projects }: any) {
         </div>
       )}
 
-      {/* Next Job(s) */}
-      {nextJob && (
-        <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-          <div className="flex items-center gap-2 mb-1">
-            <Clock className="w-3 h-3 text-gray-600 dark:text-gray-400" />
-            <p className="text-xs font-semibold text-gray-600 dark:text-gray-400">NEXT JOB</p>
-          </div>
-          <p className="text-xs font-medium text-gray-700 dark:text-gray-300 pl-4">
-            {nextJob.jobName}
-          </p>
-          {nextJob.customer && (
-            <p className="text-xs text-gray-500 dark:text-gray-400 pl-4">
-              {nextJob.customer.companyName || `${nextJob.customer.firstName} ${nextJob.customer.lastName}`}
+      {/* Scheduled Job - Always show next scheduled job if exists */}
+      <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+        {nextJob ? (
+          <>
+            <div className="flex items-center gap-2 mb-1">
+              <Clock className="w-3 h-3 text-gray-600 dark:text-gray-400" />
+              <p className="text-xs font-semibold text-gray-600 dark:text-gray-400">SCHEDULED JOB</p>
+            </div>
+            <p className="text-xs font-medium text-gray-700 dark:text-gray-300 pl-4">
+              {nextJob.jobName}
             </p>
-          )}
-          {nextJob.scheduledDate && (
-            <p className="text-xs text-gray-500 dark:text-gray-400 pl-4">
-              {new Date(nextJob.scheduledDate).toLocaleDateString()} {nextJob.scheduledTime || ''}
-            </p>
-          )}
-        </div>
-      )}
+            {nextJob.customer && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 pl-4">
+                {nextJob.customer.companyName || `${nextJob.customer.firstName} ${nextJob.customer.lastName}`}
+              </p>
+            )}
+            {nextJob.scheduledDate && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 pl-4">
+                {new Date(nextJob.scheduledDate).toLocaleDateString()} {nextJob.scheduledTime || ''}
+              </p>
+            )}
+          </>
+        ) : (
+          <p className="text-xs text-gray-400 dark:text-gray-500">No scheduled jobs</p>
+        )}
+      </div>
     </div>
   );
 }
