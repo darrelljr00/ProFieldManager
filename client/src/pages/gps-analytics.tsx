@@ -775,29 +775,76 @@ function RouteMap({ routes, selectedRouteId, liveLocations, vehicles, projects }
   const routeLinesRef = useRef<Map<number, L.Polyline>>(new Map());
   const markersRef = useRef<Map<number, { start: L.Marker, end: L.Marker }>>(new Map());
   const vehicleMarkersRef = useRef<Map<string, L.Marker>>(new Map());
+  const tileLayerRef = useRef<L.TileLayer | null>(null);
+
+  // Fetch GPS settings
+  const { data: gpsSettings } = useQuery({
+    queryKey: ['/api/gps-settings'],
+  });
+
+  // Map layer URLs
+  const getMapTileUrl = (layer: string) => {
+    switch (layer) {
+      case 'light':
+        return 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+      case 'medium':
+        return 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+      case 'satellite':
+        return 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+      case 'hybrid':
+        return 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+      case 'dark':
+      default:
+        return 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+    }
+  };
+
+  const getMapAttribution = (layer: string) => {
+    if (layer === 'satellite' || layer === 'hybrid') {
+      return 'Tiles © Esri';
+    }
+    return '© OpenStreetMap contributors © CARTO';
+  };
 
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
 
+    const defaultZoom = gpsSettings?.mapDefaultZoom || 13;
+    const defaultLayer = gpsSettings?.mapDefaultLayer || 'dark';
+
     const map = L.map(mapContainerRef.current, {
       center: [40.7485, -73.9883],
-      zoom: 13,
+      zoom: defaultZoom,
       zoomControl: true,
     });
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      attribution: '© OpenStreetMap contributors © CARTO',
+    // Add base tile layer
+    const tileUrl = getMapTileUrl(defaultLayer);
+    const attribution = getMapAttribution(defaultLayer);
+    const tileLayer = L.tileLayer(tileUrl, {
+      attribution,
       subdomains: 'abcd',
       maxZoom: 19,
     }).addTo(map);
 
+    // Add labels layer for hybrid mode
+    if (defaultLayer === 'hybrid') {
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png', {
+        attribution: '© OpenStreetMap contributors © CARTO',
+        subdomains: 'abcd',
+        maxZoom: 19,
+      }).addTo(map);
+    }
+
+    tileLayerRef.current = tileLayer;
     mapRef.current = map;
 
     return () => {
       map.remove();
       mapRef.current = null;
+      tileLayerRef.current = null;
     };
-  }, []);
+  }, [gpsSettings?.mapDefaultZoom, gpsSettings?.mapDefaultLayer]);
 
   // Update routes
   useEffect(() => {
@@ -939,6 +986,12 @@ function RouteMap({ routes, selectedRouteId, liveLocations, vehicles, projects }
       
       // Enhanced popup with more details
       const lastUpdate = location.timestamp ? new Date(location.timestamp).toLocaleTimeString() : 'Unknown';
+      
+      // Get metric visibility settings (default to true if not set)
+      const showSpeed = gpsSettings?.showSpeed !== false;
+      const showFuelLevel = gpsSettings?.showFuelLevel !== false;
+      const showEngineTemp = gpsSettings?.showEngineTemp !== false;
+      
       let popupContent = `
         <div style="min-width: 220px;">
           <strong style="font-size: 14px;">${vehicle?.vehicleNumber || location.displayName || 'Unknown Vehicle'}</strong><br>
@@ -946,8 +999,9 @@ function RouteMap({ routes, selectedRouteId, liveLocations, vehicles, projects }
           <hr style="margin: 6px 0; border: none; border-top: 1px solid #ddd;">
           <div style="font-size: 12px;">
             <strong>Status:</strong> ${isMoving ? '🟢 Moving' : '🔴 Stopped'}<br>
-            <strong>Speed:</strong> ${speed.toFixed(0)} mph<br>
-            ${vehicle?.fuelEconomyMpg ? `<strong>MPG:</strong> ${vehicle.fuelEconomyMpg}<br>` : ''}
+            ${showSpeed ? `<strong>Speed:</strong> ${speed.toFixed(0)} mph<br>` : ''}
+            ${showFuelLevel && vehicle?.fuelEconomyMpg ? `<strong>MPG:</strong> ${vehicle.fuelEconomyMpg}<br>` : ''}
+            ${showEngineTemp && location.engineTemp ? `<strong>Engine Temp:</strong> ${location.engineTemp}°F<br>` : ''}
             <strong>Last Update:</strong> ${lastUpdate}
           </div>
       `;
@@ -987,7 +1041,7 @@ function RouteMap({ routes, selectedRouteId, liveLocations, vehicles, projects }
     if (bounds.isValid()) {
       map.fitBounds(bounds, { padding: [50, 50] });
     }
-  }, [routes, selectedRouteId, liveLocations, vehicles]);
+  }, [routes, selectedRouteId, liveLocations, vehicles, projects, gpsSettings]);
 
   return (
     <div 

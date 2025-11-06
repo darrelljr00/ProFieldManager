@@ -59,6 +59,7 @@ Preferred communication style: Simple, everyday language.
 - **Customer Availability Requests**: Management of quote availability submissions with automated job creation and confirmation emails.
 - **Email Deliverability**: Enhanced quote email system with plain text, Reply-To headers, and anti-spam measures.
 - **Job Start/Complete Tracking**: "Start Job" button with automatic time tracking and analytics integration.
+- **GPS Display Settings**: Configurable map layer (dark, light, satellite, hybrid), zoom level, and metric visibility (speed, fuel, engine temp) that apply to both GPS Tracking and GPS Analytics/Route Monitoring maps.
 
 ## External Dependencies
 
