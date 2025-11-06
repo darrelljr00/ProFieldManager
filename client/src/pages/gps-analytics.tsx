@@ -526,7 +526,7 @@ function RouteMap({ routes, selectedRouteId, liveLocations, vehicles }: any) {
       bounds.extend([destLat, destLng]);
     });
 
-    // Add live vehicle markers
+    // Add live vehicle markers with detailed info
     liveLocations.forEach((location: any) => {
       const lat = parseFloat(location.latitude);
       const lng = parseFloat(location.longitude);
@@ -537,26 +537,31 @@ function RouteMap({ routes, selectedRouteId, liveLocations, vehicles }: any) {
       const speed = location.speed || 0;
       const isMoving = speed >= 1;
 
-      // Create vehicle icon (car marker)
+      // Find if this vehicle is assigned to any route
+      const assignedRoute = routes.find((r: any) => r.vehicleId === vehicle?.id);
+      
+      // Create vehicle icon (car marker) with route indicator
+      const hasRoute = assignedRoute && assignedRoute.status === 'in_progress';
       const vehicleIcon = L.divIcon({
         html: `<div style="
           background-color: ${isMoving ? '#22c55e' : '#ef4444'};
-          width: 24px;
-          height: 24px;
+          width: ${hasRoute ? '32px' : '28px'};
+          height: ${hasRoute ? '32px' : '28px'};
           border-radius: 50%;
-          border: 3px solid white;
+          border: ${hasRoute ? '4px solid #3b82f6' : '3px solid white'};
           display: flex;
           align-items: center;
           justify-content: center;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+          box-shadow: 0 3px 6px rgba(0,0,0,0.4);
+          position: relative;
         ">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
+          <svg width="${hasRoute ? '18' : '16'}" height="${hasRoute ? '18' : '16'}" viewBox="0 0 24 24" fill="white">
             <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>
           </svg>
         </div>`,
         className: '',
-        iconSize: [24, 24],
-        iconAnchor: [12, 12],
+        iconSize: [hasRoute ? 32 : 28, hasRoute ? 32 : 28],
+        iconAnchor: [hasRoute ? 16 : 14, hasRoute ? 16 : 14],
       });
 
       // Remove old marker if exists
@@ -567,11 +572,41 @@ function RouteMap({ routes, selectedRouteId, liveLocations, vehicles }: any) {
 
       const marker = L.marker([lat, lng], { icon: vehicleIcon }).addTo(map);
       
-      marker.bindPopup(`
-        <strong>${vehicle?.vehicleNumber || location.displayName || 'Vehicle'}</strong><br>
-        Speed: ${speed.toFixed(0)} mph<br>
-        Status: ${isMoving ? '🟢 Moving' : '🔴 Stopped'}
-      `);
+      // Enhanced popup with more details
+      const lastUpdate = location.timestamp ? new Date(location.timestamp).toLocaleTimeString() : 'Unknown';
+      let popupContent = `
+        <div style="min-width: 200px;">
+          <strong style="font-size: 14px;">${vehicle?.vehicleNumber || location.displayName || 'Unknown Vehicle'}</strong><br>
+          ${vehicle ? `<div style="color: #666; font-size: 12px; margin: 4px 0;">${vehicle.licensePlate || 'No plate'}</div>` : ''}
+          <hr style="margin: 6px 0; border: none; border-top: 1px solid #ddd;">
+          <div style="font-size: 12px;">
+            <strong>Status:</strong> ${isMoving ? '🟢 Moving' : '🔴 Stopped'}<br>
+            <strong>Speed:</strong> ${speed.toFixed(0)} mph<br>
+            ${vehicle?.fuelEconomyMpg ? `<strong>MPG:</strong> ${vehicle.fuelEconomyMpg}<br>` : ''}
+            <strong>Last Update:</strong> ${lastUpdate}
+          </div>
+      `;
+      
+      if (assignedRoute) {
+        popupContent += `
+          <hr style="margin: 6px 0; border: none; border-top: 1px solid #ddd;">
+          <div style="font-size: 12px; background: #eff6ff; padding: 6px; border-radius: 4px; margin-top: 6px;">
+            <strong style="color: #3b82f6;">📍 Active Route:</strong><br>
+            ${assignedRoute.project?.jobName || 'Route #' + assignedRoute.id}<br>
+            <span style="color: #666;">${assignedRoute.estimatedDistance} mi</span>
+          </div>
+        `;
+      } else {
+        popupContent += `
+          <div style="font-size: 11px; color: #999; margin-top: 6px;">
+            Not assigned to any route
+          </div>
+        `;
+      }
+      
+      popupContent += `</div>`;
+      
+      marker.bindPopup(popupContent);
 
       vehicleMarkersRef.current.set(location.deviceId, marker);
       bounds.extend([lat, lng]);
