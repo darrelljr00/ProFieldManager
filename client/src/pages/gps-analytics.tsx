@@ -315,6 +315,9 @@ export default function GPSAnalytics() {
                   vehicles={vehicles}
                   projects={projects}
                 />
+                <div className="mt-4">
+                  <VehicleLegend vehicles={vehicles} routes={routes} />
+                </div>
               </Card>
             </div>
           </TabsContent>
@@ -678,6 +681,94 @@ function RouteListItem({ route, selectedRouteId, onSelect, vehicles, liveLocatio
   );
 }
 
+// Color palette for different vehicles - vibrant, distinct colors
+const VEHICLE_COLORS = [
+  '#FF6B6B', // Red
+  '#4ECDC4', // Turquoise
+  '#45B7D1', // Sky Blue
+  '#FFA07A', // Light Salmon
+  '#98D8C8', // Mint
+  '#F7DC6F', // Yellow
+  '#BB8FCE', // Purple
+  '#85C1E2', // Light Blue
+  '#F8B739', // Orange
+  '#52B788', // Green
+  '#E76F51', // Terracotta
+  '#2A9D8F', // Teal
+  '#E9C46A', // Gold
+  '#F4A261', // Sandy Brown
+  '#8E44AD', // Deep Purple
+  '#3498DB', // Dodger Blue
+  '#E74C3C', // Crimson
+  '#1ABC9C', // Medium Turquoise
+  '#F39C12', // Bright Orange
+  '#9B59B6', // Amethyst
+];
+
+// Get consistent color for a vehicle
+function getVehicleColor(vehicleId: number | null): string {
+  if (!vehicleId) return '#6b7280'; // Gray for no vehicle
+  const colorIndex = vehicleId % VEHICLE_COLORS.length;
+  return VEHICLE_COLORS[colorIndex];
+}
+
+function VehicleLegend({ vehicles, routes }: any) {
+  // Get only vehicles that have active or recent routes
+  const activeVehicles = vehicles.filter((v: any) => 
+    routes.some((r: any) => r.vehicleId === v.id)
+  );
+
+  if (activeVehicles.length === 0) return null;
+
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+      <h3 className="text-sm font-semibold mb-3 dark:text-white flex items-center gap-2">
+        <Car className="w-4 h-4" />
+        Vehicle Route Colors
+      </h3>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+        {activeVehicles.map((vehicle: any) => {
+          const vehicleColor = getVehicleColor(vehicle.id);
+          const vehicleRoute = routes.find((r: any) => r.vehicleId === vehicle.id);
+          const isActive = vehicleRoute?.status === 'in_progress';
+          
+          return (
+            <div 
+              key={vehicle.id}
+              className="flex items-center gap-2 text-xs"
+              data-testid={`legend-vehicle-${vehicle.id}`}
+            >
+              <div 
+                className="w-4 h-4 rounded-full border-2 border-white dark:border-gray-800 shadow-sm flex-shrink-0"
+                style={{ 
+                  backgroundColor: vehicleColor,
+                  opacity: isActive ? 1 : 0.5
+                }}
+              />
+              <span className={`truncate ${isActive ? 'font-medium dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}>
+                {vehicle.vehicleNumber}
+                {isActive && <span className="ml-1 text-green-600 dark:text-green-400">●</span>}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+        <div className="flex items-center gap-4 text-xs text-gray-600 dark:text-gray-400">
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-0.5 bg-gray-400" />
+            <span>Solid = Active</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-0.5 border-t-2 border-dashed border-gray-400" />
+            <span>Dashed = Completed</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function RouteMap({ routes, selectedRouteId, liveLocations, vehicles, projects }: any) {
   const mapRef = useRef<L.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -736,18 +827,16 @@ function RouteMap({ routes, selectedRouteId, liveLocations, vehicles, projects }
 
       if (!originLat || !originLng || !destLat || !destLng) return;
 
-      const routeColor = route.status === 'in_progress' 
-        ? '#3b82f6' 
-        : route.status === 'completed' 
-        ? '#10b981' 
-        : '#6b7280';
+      // Get unique color based on vehicle
+      const routeColor = getVehicleColor(route.vehicleId);
 
       const line = L.polyline(
         [[originLat, originLng], [destLat, destLng]], 
         { 
           color: routeColor,
-          weight: isSelected ? 5 : 3,
-          opacity: isSelected ? 1 : 0.6,
+          weight: isSelected ? 6 : 4,
+          opacity: isSelected ? 1 : 0.7,
+          dashArray: route.status === 'completed' ? '10, 5' : undefined,
         }
       ).addTo(map);
 
@@ -792,19 +881,22 @@ function RouteMap({ routes, selectedRouteId, liveLocations, vehicles, projects }
       // Find if this vehicle is assigned to any route
       const assignedRoute = routes.find((r: any) => r.vehicleId === vehicle?.id);
       
+      // Get the vehicle's unique color
+      const vehicleColor = getVehicleColor(vehicle?.id);
+      
       // Create vehicle icon (car marker) with route indicator
       const hasRoute = assignedRoute && assignedRoute.status === 'in_progress';
       const vehicleIcon = L.divIcon({
         html: `<div style="
           background-color: ${isMoving ? '#22c55e' : '#ef4444'};
-          width: ${hasRoute ? '32px' : '28px'};
-          height: ${hasRoute ? '32px' : '28px'};
+          width: ${hasRoute ? '36px' : '28px'};
+          height: ${hasRoute ? '36px' : '28px'};
           border-radius: 50%;
-          border: ${hasRoute ? '4px solid #3b82f6' : '3px solid white'};
+          border: ${hasRoute ? `5px solid ${vehicleColor}` : '3px solid white'};
           display: flex;
           align-items: center;
           justify-content: center;
-          box-shadow: 0 3px 6px rgba(0,0,0,0.4);
+          box-shadow: 0 4px 8px rgba(0,0,0,0.5);
           position: relative;
         ">
           <svg width="${hasRoute ? '18' : '16'}" height="${hasRoute ? '18' : '16'}" viewBox="0 0 24 24" fill="white">
@@ -812,8 +904,8 @@ function RouteMap({ routes, selectedRouteId, liveLocations, vehicles, projects }
           </svg>
         </div>`,
         className: '',
-        iconSize: [hasRoute ? 32 : 28, hasRoute ? 32 : 28],
-        iconAnchor: [hasRoute ? 16 : 14, hasRoute ? 16 : 14],
+        iconSize: [hasRoute ? 36 : 28, hasRoute ? 36 : 28],
+        iconAnchor: [hasRoute ? 18 : 14, hasRoute ? 18 : 14],
       });
 
       // Remove old marker if exists
@@ -876,8 +968,8 @@ function RouteMap({ routes, selectedRouteId, liveLocations, vehicles, projects }
       if (assignedRoute) {
         popupContent += `
           <hr style="margin: 6px 0; border: none; border-top: 1px solid #ddd;">
-          <div style="font-size: 12px; background: #eff6ff; padding: 6px; border-radius: 4px; margin-top: 6px;">
-            <strong style="color: #3b82f6;">📍 Active Route:</strong><br>
+          <div style="font-size: 12px; background: ${vehicleColor}15; padding: 6px; border-radius: 4px; margin-top: 6px; border-left: 4px solid ${vehicleColor};">
+            <strong style="color: ${vehicleColor};">📍 Active Route:</strong><br>
             ${assignedRoute.project?.jobName || 'Route #' + assignedRoute.id}<br>
             <span style="color: #666;">${assignedRoute.estimatedDistance} mi</span>
           </div>
