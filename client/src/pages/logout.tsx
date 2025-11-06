@@ -4,7 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { LogOut } from "lucide-react";
 
 export default function Logout() {
-  const { logout } = useAuth();
+  // CRITICAL FIX: Disable auto-fetch on logout page
+  const { logout } = useAuth({ disableAutoFetch: true });
 
   useEffect(() => {
     console.log('🔴 Logout page - executing logout');

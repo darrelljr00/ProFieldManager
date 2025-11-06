@@ -18,8 +18,13 @@ interface AuthData {
   user: User;
 }
 
-export function useAuth() {
+export function useAuth(options?: { disableAutoFetch?: boolean }) {
   const queryClient = useQueryClient();
+
+  // Check if authentication should be suppressed (during logout or on login page)
+  const isAuthSuppressed = () => {
+    return sessionStorage.getItem('auth_suppressed') === 'true';
+  };
 
   // Clear any cached auth errors on mount
   React.useEffect(() => {
@@ -34,6 +39,8 @@ export function useAuth() {
     refetchOnWindowFocus: isCustomDomain() ? 'always' : true, // Always refetch for custom domain
     retry: 3,
     retryDelay: 1000,
+    // CRITICAL FIX: Disable auto-fetch if requested or if auth is suppressed
+    enabled: !options?.disableAutoFetch && !isAuthSuppressed(),
     queryFn: async () => {
       console.log('🔍 USEAUTH: Calling /api/auth/me endpoint');
       
@@ -163,28 +170,41 @@ export function useAuth() {
     }
   });
 
-  const logout = () => {
+  const logout = async () => {
     console.log('🚪 LOGOUT: Starting logout process');
+    
+    // CRITICAL FIX: Set auth suppression flag FIRST to prevent auto-login
+    sessionStorage.setItem('auth_suppressed', 'true');
     
     // Store token BEFORE clearing (needed for server logout)
     const token = localStorage.getItem('auth_token');
     
-    // Notify server to invalidate session BEFORE clearing local data
-    if (token) {
-      fetch(buildApiUrl('/api/auth/logout'), {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include'
-      }).catch(() => {
-        console.log('⚠️ LOGOUT: Server logout call failed (expected if already logged out)');
-      });
+    // Clear ALL authentication data from cache immediately
+    console.log('🧹 LOGOUT: Clearing all auth data from cache');
+    queryClient.setQueryData(["/api/auth/me"], null);
+    queryClient.setQueryData(["/api/auth/me", 'custom'], null);
+    queryClient.setQueryData(["/api/auth/me", 'replit'], null);
+    
+    try {
+      // CRITICAL FIX: AWAIT server logout to ensure session is invalidated
+      if (token) {
+        console.log('📡 LOGOUT: Calling server to invalidate session');
+        await fetch(buildApiUrl('/api/auth/logout'), {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include'
+        });
+        console.log('✅ LOGOUT: Server session invalidated');
+      }
+    } catch (err) {
+      console.log('⚠️ LOGOUT: Server logout call failed (expected if already logged out)', err);
     }
     
     // Clear ALL authentication data
-    console.log('🧹 LOGOUT: Clearing all auth data');
+    console.log('🧹 LOGOUT: Clearing all local auth data');
     localStorage.removeItem('auth_token');
     localStorage.removeItem('user_data');
     localStorage.removeItem('auth_success_timestamp');
@@ -200,6 +220,10 @@ export function useAuth() {
     queryClient.clear();
     
     console.log('✅ LOGOUT: Complete - redirecting to login');
+    
+    // Small delay to ensure all state is cleared
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
     // Force immediate redirect to login page
     window.location.href = '/login';
   };

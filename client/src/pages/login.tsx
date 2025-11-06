@@ -47,6 +47,20 @@ export default function LoginPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // CRITICAL FIX: Clear auth suppression flag when login page loads
+  // This allows users to log in again after logout
+  useState(() => {
+    console.log('🔓 LOGIN PAGE: Clearing auth suppression to allow fresh login');
+    sessionStorage.removeItem('auth_suppressed');
+    
+    // Also clear any stale auth state to ensure clean slate
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user_data');
+    queryClient.setQueryData(["/api/auth/me"], null);
+    queryClient.setQueryData(["/api/auth/me", 'custom'], null);
+    queryClient.setQueryData(["/api/auth/me", 'replit'], null);
+  });
+
   // Check if device is mobile and request GPS on component mount
   useState(() => {
     const isMobile = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
