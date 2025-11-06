@@ -502,6 +502,10 @@ export const projects = pgTable("projects", {
   // GPS tracking and time tracking fields
   arrivedAt: timestamp("arrived_at"), // When technician arrived on-site (GPS geofencing detection)
   timeExceededAt: timestamp("time_exceeded_at"), // When job exceeded estimated duration
+  departedAt: timestamp("departed_at"), // When vehicle left the job location
+  autoStartedAt: timestamp("auto_started_at"), // When job was automatically started (10 min after arrival)
+  autoCompletedAt: timestamp("auto_completed_at"), // When job was automatically completed (10 min after departure)
+  assignedUserId: integer("assigned_user_id").references(() => users.id), // Primary technician assigned
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
