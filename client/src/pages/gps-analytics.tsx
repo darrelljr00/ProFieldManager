@@ -41,6 +41,11 @@ export default function GPSAnalytics() {
     }
   });
 
+  // Fetch all projects to determine technician assignments
+  const { data: projects = [] } = useQuery<any[]>({
+    queryKey: ['/api/projects'],
+  });
+
   const trips = tripsData || [];
   const filteredTrips = selectedVehicleId 
     ? trips.filter((t: any) => t.vehicleId?.toString() === selectedVehicleId)
@@ -278,23 +283,22 @@ export default function GPSAnalytics() {
 
             {/* Route Map and List */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Route List */}
+              {/* Vehicle List */}
               <Card className="p-6 lg:col-span-1">
-                <h2 className="text-lg font-semibold mb-4 dark:text-white">Routes</h2>
+                <h2 className="text-lg font-semibold mb-4 dark:text-white">Live Vehicles</h2>
                 <div className="space-y-2 max-h-[600px] overflow-y-auto">
-                  {routes.length === 0 ? (
+                  {liveLocations.length === 0 ? (
                     <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">
-                      No routes yet. Click "Directions" on a job to create a route.
+                      No vehicles detected. Vehicles will appear when GPS data is available.
                     </p>
                   ) : (
-                    routes.map((route: any) => (
-                      <RouteListItem
-                        key={route.id}
-                        route={route}
-                        selectedRouteId={selectedRouteId}
-                        onSelect={setSelectedRouteId}
+                    liveLocations.map((location: any) => (
+                      <VehicleListItem
+                        key={location.deviceId}
+                        location={location}
                         vehicles={vehicles}
-                        liveLocations={liveLocations}
+                        routes={routes}
+                        projects={projects}
                       />
                     ))
                   )}
@@ -309,12 +313,154 @@ export default function GPSAnalytics() {
                   selectedRouteId={selectedRouteId} 
                   liveLocations={liveLocations}
                   vehicles={vehicles}
+                  projects={projects}
                 />
               </Card>
             </div>
           </TabsContent>
         </Tabs>
       </div>
+    </div>
+  );
+}
+
+function VehicleListItem({ location, vehicles, routes, projects }: any) {
+  const [eta, setEta] = useState<string | null>(null);
+  const [destination, setDestination] = useState<string | null>(null);
+
+  // Find the vehicle record from database
+  const vehicle = vehicles.find((v: any) => v.oneStepGpsDeviceId === location.deviceId);
+  const speed = location.speed || 0;
+  const isMoving = speed >= 1;
+
+  // Find active route for this vehicle
+  const activeRoute = routes.find((r: any) => r.vehicleId === vehicle?.id && r.status === 'in_progress');
+
+  // Find all active projects assigned to this vehicle
+  const activeProjects = projects.filter((p: any) => 
+    p.vehicleId === vehicle?.id && 
+    p.status === 'in_progress'
+  );
+
+  // Get all technicians assigned to active projects for this vehicle
+  const assignedTechnicians = activeProjects.reduce((techs: any[], project: any) => {
+    if (project.assignedUser) {
+      const tech = {
+        firstName: project.assignedUser.firstName,
+        lastName: project.assignedUser.lastName,
+        jobName: project.jobName
+      };
+      // Avoid duplicates
+      if (!techs.find(t => t.firstName === tech.firstName && t.lastName === tech.lastName)) {
+        techs.push(tech);
+      }
+    }
+    return techs;
+  }, []);
+
+  // Calculate ETA using Google Directions API for active route
+  useEffect(() => {
+    if (!activeRoute || !location.latitude || !location.longitude) return;
+    if (!activeRoute.destinationLat || !activeRoute.destinationLng) return;
+
+    const calculateETA = async () => {
+      try {
+        const response = await fetch('/api/google-maps/proxy', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            path: '/maps/api/directions/json',
+            params: {
+              origin: `${location.latitude},${location.longitude}`,
+              destination: `${activeRoute.destinationLat},${activeRoute.destinationLng}`,
+              mode: 'driving',
+            },
+          }),
+        });
+
+        const data = await response.json();
+        
+        if (data.routes && data.routes.length > 0) {
+          const leg = data.routes[0].legs[0];
+          setEta(leg.duration.text);
+          setDestination(leg.end_address);
+        }
+      } catch (error) {
+        console.error('Error calculating ETA:', error);
+      }
+    };
+
+    calculateETA();
+    // Refresh ETA every 2 minutes
+    const interval = setInterval(calculateETA, 120000);
+    return () => clearInterval(interval);
+  }, [location, activeRoute]);
+
+  return (
+    <div
+      className="w-full p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
+      data-testid={`vehicle-item-${location.deviceId}`}
+    >
+      {/* Vehicle Header */}
+      <div className="flex items-start justify-between mb-2">
+        <div className="flex-1">
+          <p className="font-medium text-sm dark:text-white">
+            {vehicle?.vehicleNumber || location.displayName || 'Unknown Vehicle'}
+          </p>
+          {vehicle?.licensePlate && (
+            <p className="text-xs text-gray-500 dark:text-gray-400">{vehicle.licensePlate}</p>
+          )}
+        </div>
+        <span className={`px-2 py-1 rounded-full text-xs whitespace-nowrap ml-2 ${
+          isMoving
+            ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
+            : 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'
+        }`}>
+          {speed.toFixed(0)} mph
+        </span>
+      </div>
+
+      {/* Technicians Assigned */}
+      {assignedTechnicians.length > 0 ? (
+        <div className="mt-2 space-y-1">
+          <p className="text-xs font-medium text-gray-600 dark:text-gray-400">👥 Crew:</p>
+          {assignedTechnicians.map((tech: any, idx: number) => (
+            <div key={idx} className="text-xs text-gray-700 dark:text-gray-300 pl-4">
+              • {tech.firstName} {tech.lastName}
+              {tech.jobName && <span className="text-gray-500 dark:text-gray-400"> - {tech.jobName}</span>}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">No crew assigned</p>
+      )}
+
+      {/* Active Route & ETA */}
+      {activeRoute && (
+        <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-2">
+            <Navigation className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+            <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
+              {activeRoute.project?.jobName || `Route #${activeRoute.id}`}
+            </p>
+          </div>
+          {destination && (
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-1 pl-5">
+              📍 {destination}
+            </p>
+          )}
+          <div className="flex items-center gap-3 mt-2 pl-5">
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              {activeRoute.estimatedDistance} mi
+            </p>
+            {eta && (
+              <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                🕐 ETA: {eta}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -428,7 +574,7 @@ function RouteListItem({ route, selectedRouteId, onSelect, vehicles, liveLocatio
   );
 }
 
-function RouteMap({ routes, selectedRouteId, liveLocations, vehicles }: any) {
+function RouteMap({ routes, selectedRouteId, liveLocations, vehicles, projects }: any) {
   const mapRef = useRef<L.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const routeLinesRef = useRef<Map<number, L.Polyline>>(new Map());
@@ -574,10 +720,31 @@ function RouteMap({ routes, selectedRouteId, liveLocations, vehicles }: any) {
 
       const marker = L.marker([lat, lng], { icon: vehicleIcon }).addTo(map);
       
+      // Find all active projects assigned to this vehicle
+      const activeProjects = projects.filter((p: any) => 
+        p.vehicleId === vehicle?.id && 
+        p.status === 'in_progress'
+      );
+
+      // Get all technicians assigned to active projects for this vehicle
+      const assignedTechnicians = activeProjects.reduce((techs: any[], project: any) => {
+        if (project.assignedUser) {
+          const tech = {
+            firstName: project.assignedUser.firstName,
+            lastName: project.assignedUser.lastName
+          };
+          // Avoid duplicates
+          if (!techs.find(t => t.firstName === tech.firstName && t.lastName === tech.lastName)) {
+            techs.push(tech);
+          }
+        }
+        return techs;
+      }, []);
+      
       // Enhanced popup with more details
       const lastUpdate = location.timestamp ? new Date(location.timestamp).toLocaleTimeString() : 'Unknown';
       let popupContent = `
-        <div style="min-width: 200px;">
+        <div style="min-width: 220px;">
           <strong style="font-size: 14px;">${vehicle?.vehicleNumber || location.displayName || 'Unknown Vehicle'}</strong><br>
           ${vehicle ? `<div style="color: #666; font-size: 12px; margin: 4px 0;">${vehicle.licensePlate || 'No plate'}</div>` : ''}
           <hr style="margin: 6px 0; border: none; border-top: 1px solid #ddd;">
@@ -589,6 +756,19 @@ function RouteMap({ routes, selectedRouteId, liveLocations, vehicles }: any) {
           </div>
       `;
       
+      // Show assigned crew
+      if (assignedTechnicians.length > 0) {
+        popupContent += `
+          <hr style="margin: 6px 0; border: none; border-top: 1px solid #ddd;">
+          <div style="font-size: 12px; margin-top: 6px;">
+            <strong>👥 Crew:</strong><br>
+            ${assignedTechnicians.map((tech: any) => 
+              `<div style="margin-left: 12px;">• ${tech.firstName} ${tech.lastName}</div>`
+            ).join('')}
+          </div>
+        `;
+      }
+      
       if (assignedRoute) {
         popupContent += `
           <hr style="margin: 6px 0; border: none; border-top: 1px solid #ddd;">
@@ -596,12 +776,6 @@ function RouteMap({ routes, selectedRouteId, liveLocations, vehicles }: any) {
             <strong style="color: #3b82f6;">📍 Active Route:</strong><br>
             ${assignedRoute.project?.jobName || 'Route #' + assignedRoute.id}<br>
             <span style="color: #666;">${assignedRoute.estimatedDistance} mi</span>
-          </div>
-        `;
-      } else {
-        popupContent += `
-          <div style="font-size: 11px; color: #999; margin-top: 6px;">
-            Not assigned to any route
           </div>
         `;
       }
