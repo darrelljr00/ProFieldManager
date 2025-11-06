@@ -60,6 +60,7 @@ Preferred communication style: Simple, everyday language.
 - **Email Deliverability**: Enhanced quote email system with plain text, Reply-To headers, and anti-spam measures.
 - **Job Start/Complete Tracking**: "Start Job" button with automatic time tracking and analytics integration.
 - **GPS Display Settings**: Configurable map layer (dark, light, satellite, hybrid), zoom level, and metric visibility (speed, fuel, engine temp) that apply to both GPS Tracking and GPS Analytics/Route Monitoring maps.
+- **Pro Field Sense - Phone Sensor Productivity Tracking**: Monitors technician productivity using mobile device sensors including GPS location, accelerometer for activity detection (walking, sitting, driving, stationary), screen time tracking, step counting, distance measurement, and battery status. Calculates productivity scores based on activity patterns and idle time, with visual analytics showing activity breakdowns and daily performance metrics in the Employee Performance Analytics section of Reports.
 
 ## External Dependencies
 

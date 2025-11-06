@@ -21764,7 +21764,7 @@ ${fromName || ''}
   });
 
   // Phone Sensor Productivity Tracking
-  const { registerPhoneSensorRoutes } = require("./routes/phoneSensors");
+  const { registerPhoneSensorRoutes } = await import("./routes/phoneSensors");
   registerPhoneSensorRoutes(app);
 
   // One Step GPS Integration - Fetch devices from One Step GPS API
