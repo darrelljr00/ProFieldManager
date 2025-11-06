@@ -1923,6 +1923,9 @@ export default function Reports() {
 
             {/* Route Deviation Report */}
             <RouteDeviationReport />
+
+            {/* Pro Field Sense - Phone Sensor Productivity Tracking */}
+            <ProFieldSenseChart />
           </div>
         </TabsContent>
 
@@ -4205,6 +4208,163 @@ function RouteDeviationReport() {
               ) : (
                 <div className="text-sm text-gray-500">
                   No route deviations in the selected period ✅
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+function ProFieldSenseChart() {
+  const [selectedPeriod, setSelectedPeriod] = useState("30");
+  
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setDate(endDate.getDate() - parseInt(selectedPeriod));
+  
+  const { data: productivityData, isLoading } = useQuery({
+    queryKey: ['/api/phone-sensors/productivity', { 
+      startDate: startDate.toISOString(), 
+      endDate: endDate.toISOString()
+    }],
+    retry: false,
+  });
+  
+  const analytics = productivityData?.analytics || [];
+  
+  return (
+    <Card className="mt-6">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Activity className="h-5 w-5 text-blue-500" />
+            <CardTitle className="text-lg">Pro Field Sense - Activity Tracking</CardTitle>
+          </div>
+          <Badge variant="outline" className="text-blue-600">
+            Last {selectedPeriod} days
+          </Badge>
+        </div>
+        <CardDescription>
+          Real-time productivity tracking using phone sensors (GPS, accelerometer, screen time)
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          <div className="flex space-x-2">
+            <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="7">7 days</SelectItem>
+                <SelectItem value="30">30 days</SelectItem>
+                <SelectItem value="90">90 days</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {!isLoading && analytics.length > 0 ? (
+            <div className="grid grid-cols-3 gap-4 mb-4">
+              <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                <p className="text-sm font-medium text-green-900 dark:text-green-100">Avg Productivity</p>
+                <p className="text-2xl font-bold text-green-700 dark:text-green-400">
+                  {Math.round(analytics.reduce((sum: number, a: any) => sum + a.productivityScore, 0) / analytics.length)}%
+                </p>
+              </div>
+              
+              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                <p className="text-sm font-medium text-blue-900 dark:text-blue-100">Total Technicians</p>
+                <p className="text-2xl font-bold text-blue-700 dark:text-blue-400">{analytics.length}</p>
+              </div>
+              
+              <div className="p-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg">
+                <p className="text-sm font-medium text-orange-900 dark:text-orange-100">Avg Steps/Day</p>
+                <p className="text-2xl font-bold text-orange-700 dark:text-orange-400">
+                  {Math.round(analytics.reduce((sum: number, a: any) => sum + a.avgStepsPerDay, 0) / analytics.length).toLocaleString()}
+                </p>
+              </div>
+            </div>
+          ) : null}
+
+          {!isLoading && analytics.length > 0 ? (
+            <div>
+              <div className="space-y-3">
+                {analytics.slice(0, 10).map((tech: any) => (
+                  <div key={tech.userId} className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <p className="font-medium text-sm dark:text-white">{tech.userName}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{tech.userEmail}</p>
+                      </div>
+                      <div className="text-right">
+                        <div className={`text-2xl font-bold ${
+                          tech.productivityScore >= 70 ? 'text-green-600 dark:text-green-400' : 
+                          tech.productivityScore >= 40 ? 'text-yellow-600 dark:text-yellow-400' : 
+                          'text-red-600 dark:text-red-400'
+                        }`}>
+                          {tech.productivityScore}%
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Productivity</p>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                      <div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Activity Breakdown</p>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {tech.activityBreakdown.walking > 0 && (
+                            <Badge variant="outline" className="text-xs bg-green-50 dark:bg-green-900/20">
+                              Walking: {tech.activityBreakdown.walking}
+                            </Badge>
+                          )}
+                          {tech.activityBreakdown.in_vehicle > 0 && (
+                            <Badge variant="outline" className="text-xs bg-blue-50 dark:bg-blue-900/20">
+                              Driving: {tech.activityBreakdown.in_vehicle}
+                            </Badge>
+                          )}
+                          {tech.activityBreakdown.sitting > 0 && (
+                            <Badge variant="outline" className="text-xs bg-orange-50 dark:bg-orange-900/20">
+                              Sitting: {tech.activityBreakdown.sitting}
+                            </Badge>
+                          )}
+                          {tech.activityBreakdown.idle > 0 && (
+                            <Badge variant="outline" className="text-xs bg-red-50 dark:bg-red-900/20">
+                              Idle: {tech.activityBreakdown.idle}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Daily Metrics</p>
+                        <div className="text-xs mt-1">
+                          <div>🚶 {tech.avgStepsPerDay.toLocaleString()} steps/day</div>
+                          <div>📏 {(tech.avgDistancePerDay / 1000).toFixed(2)} km/day</div>
+                          <div>⏱️ {Math.round(tech.idleTime / 60)} min idle</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              {analytics.length > 10 && (
+                <p className="text-xs text-center text-gray-500 mt-3">
+                  Showing top 10 of {analytics.length} technicians
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              {isLoading ? (
+                <div className="text-sm text-gray-500">Loading sensor data...</div>
+              ) : (
+                <div className="text-sm text-gray-500">
+                  No sensor data available for this period. 
+                  <br />
+                  <span className="text-xs mt-2 block">Technicians need to enable phone sensor tracking in the mobile app.</span>
                 </div>
               )}
             </div>
