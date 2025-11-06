@@ -5617,6 +5617,55 @@ export const insertRouteStopSchema = createInsertSchema(routeStops).omit({
   createdAt: true,
 });
 
+// Phone Sensor Activity Data - tracks technician productivity via phone sensors
+export const phoneSensorData = pgTable("phone_sensor_data", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  userId: integer("user_id").notNull().references(() => users.id), // technician
+  
+  // Activity detection (from accelerometer/motion sensors)
+  activityType: text("activity_type").notNull(), // walking, running, sitting, standing, in_vehicle, idle
+  activityConfidence: integer("activity_confidence"), // 0-100 confidence level
+  
+  // Location data (from GPS)
+  latitude: decimal("latitude", { precision: 10, scale: 7 }),
+  longitude: decimal("longitude", { precision: 10, scale: 7 }),
+  accuracy: decimal("accuracy", { precision: 10, scale: 2 }), // in meters
+  
+  // Screen activity
+  screenOn: boolean("screen_on").default(false),
+  screenTimeSeconds: integer("screen_time_seconds"), // cumulative screen time in session
+  
+  // Motion metrics (from accelerometer)
+  stepCount: integer("step_count"), // steps taken in this interval
+  distanceMeters: decimal("distance_meters", { precision: 10, scale: 2 }), // distance traveled
+  
+  // Additional sensors
+  batteryLevel: integer("battery_level"), // 0-100
+  isCharging: boolean("is_charging").default(false),
+  
+  // Productivity classification (auto-calculated)
+  productivityLevel: text("productivity_level"), // high, medium, low, idle
+  idleTimeSeconds: integer("idle_time_seconds").default(0),
+  
+  // Session tracking
+  sessionId: text("session_id"), // group related sensor readings
+  jobId: integer("job_id").references(() => projects.id), // associated job if any
+  
+  // Timestamps
+  timestamp: timestamp("timestamp").notNull(), // when sensor data was collected
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertPhoneSensorDataSchema = createInsertSchema(phoneSensorData).omit({
+  id: true,
+  organizationId: true,
+  createdAt: true,
+});
+
+export type PhoneSensorData = typeof phoneSensorData.$inferSelect;
+export type InsertPhoneSensorData = z.infer<typeof insertPhoneSensorDataSchema>;
+
 // GPS Tracking types
 export type GpsTrackingData = typeof gpsTrackingData.$inferSelect;
 export type InsertGpsTrackingData = z.infer<typeof insertGpsTrackingDataSchema>;

@@ -21763,6 +21763,10 @@ ${fromName || ''}
     }
   });
 
+  // Phone Sensor Productivity Tracking
+  const { registerPhoneSensorRoutes } = require("./routes/phoneSensors");
+  registerPhoneSensorRoutes(app);
+
   // One Step GPS Integration - Fetch devices from One Step GPS API
   app.get("/api/onestep/devices", requireAuth, async (req, res) => {
     try {
