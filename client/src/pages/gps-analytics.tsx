@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { BarChart3, TrendingUp, MapPin, Clock, AlertTriangle, Navigation, Route as RouteIcon } from "lucide-react";
+import { BarChart3, TrendingUp, MapPin, Clock, AlertTriangle, Navigation, Route as RouteIcon, Car } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -29,6 +29,16 @@ export default function GPSAnalytics() {
     queryKey: ['/api/routes'],
   });
 
+  // Fetch live vehicle locations from OneStep GPS (poll every 30s)
+  const { data: liveLocations = [] } = useQuery<any[]>({
+    queryKey: ['/api/obd/latest-location'],
+    refetchInterval: 30000, // Refresh every 30 seconds
+    select: (data: any) => {
+      if (!data || !Array.isArray(data)) return [];
+      return data.filter((loc: any) => loc.latitude && loc.longitude);
+    }
+  });
+
   const trips = tripsData || [];
   const filteredTrips = selectedVehicleId 
     ? trips.filter((t: any) => t.vehicleId?.toString() === selectedVehicleId)
@@ -48,6 +58,7 @@ export default function GPSAnalytics() {
   const activeRoutes = routes.filter(r => r.status === 'in_progress');
   const completedRoutes = routes.filter(r => r.status === 'completed');
   const totalDeviations = routes.reduce((sum, r) => sum + (r.deviationCount || 0), 0);
+  const liveVehicleCount = liveLocations.length;
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
@@ -213,7 +224,7 @@ export default function GPSAnalytics() {
           {/* Route Monitoring Tab */}
           <TabsContent value="routes">
             {/* Route Statistics */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
               <Card className="p-6">
                 <div className="flex items-center space-x-3">
                   <div className="p-3 bg-blue-100 dark:bg-blue-900 rounded-lg">
@@ -234,6 +245,18 @@ export default function GPSAnalytics() {
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Completed Routes</p>
                     <p className="text-2xl font-bold dark:text-white" data-testid="stat-completed-routes">{completedRoutes.length}</p>
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="p-6">
+                <div className="flex items-center space-x-3">
+                  <div className="p-3 bg-purple-100 dark:bg-purple-900 rounded-lg">
+                    <Car className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Live Vehicles</p>
+                    <p className="text-2xl font-bold dark:text-white" data-testid="stat-live-vehicles">{liveVehicleCount}</p>
                   </div>
                 </div>
               </Card>
@@ -263,45 +286,14 @@ export default function GPSAnalytics() {
                     </p>
                   ) : (
                     routes.map((route: any) => (
-                      <button
+                      <RouteListItem
                         key={route.id}
-                        onClick={() => setSelectedRouteId(route.id.toString())}
-                        className={`w-full text-left p-3 rounded-lg border transition-colors ${
-                          selectedRouteId === route.id.toString()
-                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                            : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
-                        }`}
-                        data-testid={`route-item-${route.id}`}
-                      >
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <p className="font-medium text-sm dark:text-white">
-                              {route.project?.jobName || `Route #${route.id}`}
-                            </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                              {route.user?.firstName} {route.user?.lastName}
-                            </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                              {route.estimatedDistance} mi • {Math.round(parseFloat(route.estimatedDuration) / 60)} min
-                            </p>
-                          </div>
-                          <span className={`px-2 py-1 rounded-full text-xs whitespace-nowrap ${
-                            route.status === 'in_progress'
-                              ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
-                              : route.status === 'completed'
-                              ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
-                              : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
-                          }`}>
-                            {route.status}
-                          </span>
-                        </div>
-                        {route.deviationCount > 0 && (
-                          <div className="mt-2 flex items-center text-xs text-red-600 dark:text-red-400">
-                            <AlertTriangle className="w-3 h-3 mr-1" />
-                            {route.deviationCount} deviation{route.deviationCount > 1 ? 's' : ''}
-                          </div>
-                        )}
-                      </button>
+                        route={route}
+                        selectedRouteId={selectedRouteId}
+                        onSelect={setSelectedRouteId}
+                        vehicles={vehicles}
+                        liveLocations={liveLocations}
+                      />
                     ))
                   )}
                 </div>
@@ -309,8 +301,13 @@ export default function GPSAnalytics() {
 
               {/* Map */}
               <Card className="p-6 lg:col-span-2">
-                <h2 className="text-lg font-semibold mb-4 dark:text-white">Route Map</h2>
-                <RouteMap routes={routes} selectedRouteId={selectedRouteId} />
+                <h2 className="text-lg font-semibold mb-4 dark:text-white">Live Route Map</h2>
+                <RouteMap 
+                  routes={routes} 
+                  selectedRouteId={selectedRouteId} 
+                  liveLocations={liveLocations}
+                  vehicles={vehicles}
+                />
               </Card>
             </div>
           </TabsContent>
@@ -320,11 +317,121 @@ export default function GPSAnalytics() {
   );
 }
 
-function RouteMap({ routes, selectedRouteId }: { routes: any[], selectedRouteId: string | null }) {
+function RouteListItem({ route, selectedRouteId, onSelect, vehicles, liveLocations }: any) {
+  const [eta, setEta] = useState<string | null>(null);
+  const [destination, setDestination] = useState<string | null>(null);
+
+  // Find vehicle location if route has a vehicle assigned
+  const vehicleLocation = route.vehicleId 
+    ? liveLocations.find((loc: any) => {
+        const vehicle = vehicles.find((v: any) => v.id === route.vehicleId);
+        return vehicle && vehicle.oneStepGpsDeviceId === loc.deviceId;
+      })
+    : null;
+
+  // Calculate ETA using Google Directions API
+  useEffect(() => {
+    if (!vehicleLocation || route.status !== 'in_progress') return;
+    if (!route.destinationLat || !route.destinationLng) return;
+
+    const calculateETA = async () => {
+      try {
+        const response = await fetch('/api/google-maps/proxy', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            path: '/maps/api/directions/json',
+            params: {
+              origin: `${vehicleLocation.latitude},${vehicleLocation.longitude}`,
+              destination: `${route.destinationLat},${route.destinationLng}`,
+              mode: 'driving',
+            },
+          }),
+        });
+
+        const data = await response.json();
+        
+        if (data.routes && data.routes.length > 0) {
+          const leg = data.routes[0].legs[0];
+          setEta(leg.duration.text);
+          setDestination(leg.end_address);
+        }
+      } catch (error) {
+        console.error('Error calculating ETA:', error);
+      }
+    };
+
+    calculateETA();
+    // Refresh ETA every 2 minutes
+    const interval = setInterval(calculateETA, 120000);
+    return () => clearInterval(interval);
+  }, [vehicleLocation, route]);
+
+  return (
+    <button
+      onClick={() => onSelect(route.id.toString())}
+      className={`w-full text-left p-3 rounded-lg border transition-colors ${
+        selectedRouteId === route.id.toString()
+          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+          : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
+      }`}
+      data-testid={`route-item-${route.id}`}
+    >
+      <div className="flex items-start justify-between">
+        <div className="flex-1">
+          <p className="font-medium text-sm dark:text-white">
+            {route.project?.jobName || `Route #${route.id}`}
+          </p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            {route.user?.firstName} {route.user?.lastName}
+          </p>
+          {destination && (
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-1">
+              📍 {destination}
+            </p>
+          )}
+          <div className="flex items-center gap-3 mt-2">
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              {route.estimatedDistance} mi
+            </p>
+            {eta && vehicleLocation && route.status === 'in_progress' && (
+              <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                🕐 ETA: {eta}
+              </p>
+            )}
+            {!vehicleLocation && route.status === 'in_progress' && (
+              <p className="text-xs text-gray-400 dark:text-gray-500">
+                {Math.round(parseFloat(route.estimatedDuration) / 60)} min
+              </p>
+            )}
+          </div>
+        </div>
+        <span className={`px-2 py-1 rounded-full text-xs whitespace-nowrap ml-2 ${
+          route.status === 'in_progress'
+            ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
+            : route.status === 'completed'
+            ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
+            : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
+        }`}>
+          {route.status}
+        </span>
+      </div>
+      {route.deviationCount > 0 && (
+        <div className="mt-2 flex items-center text-xs text-red-600 dark:text-red-400">
+          <AlertTriangle className="w-3 h-3 mr-1" />
+          {route.deviationCount} deviation{route.deviationCount > 1 ? 's' : ''}
+        </div>
+      )}
+    </button>
+  );
+}
+
+function RouteMap({ routes, selectedRouteId, liveLocations, vehicles }: any) {
   const mapRef = useRef<L.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const routeLinesRef = useRef<Map<number, L.Polyline>>(new Map());
   const markersRef = useRef<Map<number, { start: L.Marker, end: L.Marker }>>(new Map());
+  const vehicleMarkersRef = useRef<Map<string, L.Marker>>(new Map());
 
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
@@ -349,8 +456,9 @@ function RouteMap({ routes, selectedRouteId }: { routes: any[], selectedRouteId:
     };
   }, []);
 
+  // Update routes
   useEffect(() => {
-    if (!mapRef.current || routes.length === 0) return;
+    if (!mapRef.current) return;
 
     const map = mapRef.current;
     
@@ -362,6 +470,8 @@ function RouteMap({ routes, selectedRouteId }: { routes: any[], selectedRouteId:
     });
     routeLinesRef.current.clear();
     markersRef.current.clear();
+
+    if (routes.length === 0 && liveLocations.length === 0) return;
 
     const bounds = L.latLngBounds([]);
 
@@ -416,10 +526,61 @@ function RouteMap({ routes, selectedRouteId }: { routes: any[], selectedRouteId:
       bounds.extend([destLat, destLng]);
     });
 
+    // Add live vehicle markers
+    liveLocations.forEach((location: any) => {
+      const lat = parseFloat(location.latitude);
+      const lng = parseFloat(location.longitude);
+      
+      if (!lat || !lng) return;
+
+      const vehicle = vehicles.find((v: any) => v.oneStepGpsDeviceId === location.deviceId);
+      const speed = location.speed || 0;
+      const isMoving = speed >= 1;
+
+      // Create vehicle icon (car marker)
+      const vehicleIcon = L.divIcon({
+        html: `<div style="
+          background-color: ${isMoving ? '#22c55e' : '#ef4444'};
+          width: 24px;
+          height: 24px;
+          border-radius: 50%;
+          border: 3px solid white;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        ">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
+            <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>
+          </svg>
+        </div>`,
+        className: '',
+        iconSize: [24, 24],
+        iconAnchor: [12, 12],
+      });
+
+      // Remove old marker if exists
+      const oldMarker = vehicleMarkersRef.current.get(location.deviceId);
+      if (oldMarker) {
+        map.removeLayer(oldMarker);
+      }
+
+      const marker = L.marker([lat, lng], { icon: vehicleIcon }).addTo(map);
+      
+      marker.bindPopup(`
+        <strong>${vehicle?.vehicleNumber || location.displayName || 'Vehicle'}</strong><br>
+        Speed: ${speed.toFixed(0)} mph<br>
+        Status: ${isMoving ? '🟢 Moving' : '🔴 Stopped'}
+      `);
+
+      vehicleMarkersRef.current.set(location.deviceId, marker);
+      bounds.extend([lat, lng]);
+    });
+
     if (bounds.isValid()) {
       map.fitBounds(bounds, { padding: [50, 50] });
     }
-  }, [routes, selectedRouteId]);
+  }, [routes, selectedRouteId, liveLocations, vehicles]);
 
   return (
     <div 
