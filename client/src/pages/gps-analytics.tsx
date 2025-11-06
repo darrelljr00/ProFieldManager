@@ -325,30 +325,66 @@ export default function GPSAnalytics() {
 }
 
 function VehicleListItem({ location, vehicles, routes, projects }: any) {
-  const [eta, setEta] = useState<string | null>(null);
-  const [destination, setDestination] = useState<string | null>(null);
+  const [transitEta, setTransitEta] = useState<string | null>(null);
+  const [transitDestination, setTransitDestination] = useState<string | null>(null);
 
   // Find the vehicle record from database
   const vehicle = vehicles.find((v: any) => v.oneStepGpsDeviceId === location.deviceId);
   const speed = location.speed || 0;
   const isMoving = speed >= 1;
 
-  // Find active route for this vehicle
+  // Find active route for this vehicle (in transit)
   const activeRoute = routes.find((r: any) => r.vehicleId === vehicle?.id && r.status === 'in_progress');
 
-  // Find all active projects assigned to this vehicle
-  const activeProjects = projects.filter((p: any) => 
-    p.vehicleId === vehicle?.id && 
-    p.status === 'in_progress'
-  );
+  // Find all in-progress projects assigned to this vehicle, sorted by scheduledDate
+  const activeProjects = projects
+    .filter((p: any) => 
+      p.vehicleId === vehicle?.id && 
+      p.status === 'in_progress'
+    )
+    .sort((a: any, b: any) => {
+      const dateA = a.scheduledDate ? new Date(a.scheduledDate).getTime() : 0;
+      const dateB = b.scheduledDate ? new Date(b.scheduledDate).getTime() : 0;
+      return dateA - dateB;
+    });
 
-  // Get all technicians assigned to active projects for this vehicle
+  // Helper function to check if vehicle is at a job location (within 100m)
+  const isAtLocation = (projectLat: number, projectLng: number) => {
+    const vehicleLat = parseFloat(location.latitude);
+    const vehicleLng = parseFloat(location.longitude);
+    
+    // Haversine formula for distance
+    const R = 6371000; // Earth's radius in meters
+    const dLat = (projectLat - vehicleLat) * Math.PI / 180;
+    const dLon = (projectLng - vehicleLng) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(vehicleLat * Math.PI / 180) * Math.cos(projectLat * Math.PI / 180) *
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const distance = R * c;
+    
+    return distance < 100; // Within 100 meters
+  };
+
+  // Determine current job (vehicle is at location)
+  const currentJob = activeProjects.find((p: any) => {
+    if (p.latitude && p.longitude) {
+      return isAtLocation(parseFloat(p.latitude), parseFloat(p.longitude));
+    }
+    return false;
+  });
+
+  // Determine next job(s) - all jobs that aren't the current one
+  const upcomingJobs = activeProjects.filter((p: any) => p.id !== currentJob?.id);
+  const nextJob = upcomingJobs[0]; // First upcoming job
+  const transitJob = activeRoute?.project; // Job they're driving to
+
+  // Get all unique technicians from active projects
   const assignedTechnicians = activeProjects.reduce((techs: any[], project: any) => {
     if (project.assignedUser) {
       const tech = {
         firstName: project.assignedUser.firstName,
         lastName: project.assignedUser.lastName,
-        jobName: project.jobName
       };
       // Avoid duplicates
       if (!techs.find(t => t.firstName === tech.firstName && t.lastName === tech.lastName)) {
@@ -358,9 +394,13 @@ function VehicleListItem({ location, vehicles, routes, projects }: any) {
     return techs;
   }, []);
 
-  // Calculate ETA using Google Directions API for active route
+  // Calculate ETA for in-transit job using Google Directions API
   useEffect(() => {
-    if (!activeRoute || !location.latitude || !location.longitude) return;
+    if (!activeRoute || !location.latitude || !location.longitude) {
+      setTransitEta(null);
+      setTransitDestination(null);
+      return;
+    }
     if (!activeRoute.destinationLat || !activeRoute.destinationLng) return;
 
     const calculateETA = async () => {
@@ -382,8 +422,8 @@ function VehicleListItem({ location, vehicles, routes, projects }: any) {
         
         if (data.routes && data.routes.length > 0) {
           const leg = data.routes[0].legs[0];
-          setEta(leg.duration.text);
-          setDestination(leg.end_address);
+          setTransitEta(leg.duration.text);
+          setTransitDestination(leg.end_address);
         }
       } catch (error) {
         console.error('Error calculating ETA:', error);
@@ -427,7 +467,6 @@ function VehicleListItem({ location, vehicles, routes, projects }: any) {
           {assignedTechnicians.map((tech: any, idx: number) => (
             <div key={idx} className="text-xs text-gray-700 dark:text-gray-300 pl-4">
               • {tech.firstName} {tech.lastName}
-              {tech.jobName && <span className="text-gray-500 dark:text-gray-400"> - {tech.jobName}</span>}
             </div>
           ))}
         </div>
@@ -435,30 +474,72 @@ function VehicleListItem({ location, vehicles, routes, projects }: any) {
         <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">No crew assigned</p>
       )}
 
-      {/* Active Route & ETA */}
-      {activeRoute && (
+      {/* Current Job - Vehicle is at location */}
+      {currentJob && (
         <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-          <div className="flex items-center gap-2">
-            <Navigation className="w-3 h-3 text-blue-600 dark:text-blue-400" />
-            <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
-              {activeRoute.project?.jobName || `Route #${activeRoute.id}`}
-            </p>
+          <div className="flex items-center gap-2 mb-1">
+            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+            <p className="text-xs font-semibold text-green-700 dark:text-green-400">CURRENT JOB</p>
           </div>
-          {destination && (
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-1 pl-5">
-              📍 {destination}
+          <p className="text-xs font-medium text-gray-700 dark:text-gray-300 pl-4">
+            {currentJob.jobName}
+          </p>
+          {currentJob.customer && (
+            <p className="text-xs text-gray-500 dark:text-gray-400 pl-4">
+              {currentJob.customer.companyName || `${currentJob.customer.firstName} ${currentJob.customer.lastName}`}
             </p>
           )}
-          <div className="flex items-center gap-3 mt-2 pl-5">
+        </div>
+      )}
+
+      {/* In Transit - Vehicle is en route */}
+      {activeRoute && transitJob && !currentJob && (
+        <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-2 mb-1">
+            <Navigation className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+            <p className="text-xs font-semibold text-blue-700 dark:text-blue-400">IN TRANSIT</p>
+          </div>
+          <p className="text-xs font-medium text-gray-700 dark:text-gray-300 pl-4">
+            {transitJob.jobName}
+          </p>
+          {transitDestination && (
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-1 pl-4">
+              📍 {transitDestination}
+            </p>
+          )}
+          <div className="flex items-center gap-3 mt-2 pl-4">
             <p className="text-xs text-gray-500 dark:text-gray-400">
               {activeRoute.estimatedDistance} mi
             </p>
-            {eta && (
+            {transitEta && (
               <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">
-                🕐 ETA: {eta}
+                🕐 ETA: {transitEta}
               </p>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Next Job(s) */}
+      {nextJob && (
+        <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-2 mb-1">
+            <Clock className="w-3 h-3 text-gray-600 dark:text-gray-400" />
+            <p className="text-xs font-semibold text-gray-600 dark:text-gray-400">NEXT JOB</p>
+          </div>
+          <p className="text-xs font-medium text-gray-700 dark:text-gray-300 pl-4">
+            {nextJob.jobName}
+          </p>
+          {nextJob.customer && (
+            <p className="text-xs text-gray-500 dark:text-gray-400 pl-4">
+              {nextJob.customer.companyName || `${nextJob.customer.firstName} ${nextJob.customer.lastName}`}
+            </p>
+          )}
+          {nextJob.scheduledDate && (
+            <p className="text-xs text-gray-500 dark:text-gray-400 pl-4">
+              {new Date(nextJob.scheduledDate).toLocaleDateString()} {nextJob.scheduledTime || ''}
+            </p>
+          )}
         </div>
       )}
     </div>
