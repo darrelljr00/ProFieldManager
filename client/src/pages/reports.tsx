@@ -4220,14 +4220,23 @@ function RouteDeviationReport() {
 function ProFieldSenseChart() {
   const [selectedPeriod, setSelectedPeriod] = useState("30");
   
-  const endDate = new Date();
-  const startDate = new Date();
-  startDate.setDate(endDate.getDate() - parseInt(selectedPeriod));
-  
-  const queryUrl = `/api/phone-sensors/productivity?startDate=${encodeURIComponent(startDate.toISOString())}&endDate=${encodeURIComponent(endDate.toISOString())}`;
+  const dates = useMemo(() => {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(end.getDate() - parseInt(selectedPeriod));
+    return { start, end };
+  }, [selectedPeriod]);
   
   const { data: productivityData, isLoading } = useQuery({
-    queryKey: [queryUrl],
+    queryKey: ['/api/phone-sensors/productivity', dates.start.toISOString(), dates.end.toISOString()],
+    queryFn: async () => {
+      const res = await fetch(
+        `/api/phone-sensors/productivity?startDate=${encodeURIComponent(dates.start.toISOString())}&endDate=${encodeURIComponent(dates.end.toISOString())}`,
+        { credentials: 'include' }
+      );
+      if (!res.ok) throw new Error('Failed to fetch');
+      return res.json();
+    },
     retry: false,
   });
   
