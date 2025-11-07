@@ -4298,16 +4298,29 @@ function ProFieldSenseChart() {
             analytics.length > 0 ? (
             <div>
               <div className="space-y-3">
-                {analytics.slice(0, 10).map((tech: any) => (
+                {analytics.map((tech: any) => (
                   <div key={tech.userId} className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
-                        <p className="font-medium text-sm dark:text-white">{tech.userName}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-sm dark:text-white">{tech.userName}</p>
+                          {tech.totalRecords > 0 ? (
+                            <Badge variant="outline" className="text-xs bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400">
+                              Tracking
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
+                              No Data
+                            </Badge>
+                          )}
+                        </div>
                         <p className="text-xs text-gray-500 dark:text-gray-400">{tech.userEmail}</p>
                         <div className="mt-1 space-y-1">
-                          <p className="text-xs text-blue-600 dark:text-blue-400">
-                            📱 IP: {tech.ipAddress}
-                          </p>
+                          {tech.ipAddress !== 'N/A' && (
+                            <p className="text-xs text-blue-600 dark:text-blue-400">
+                              📱 IP: {tech.ipAddress}
+                            </p>
+                          )}
                           {(tech.latestLatitude || tech.loginLatitude) && (
                             <p className="text-xs text-green-600 dark:text-green-400">
                               📍 GPS: {tech.latestLatitude || tech.loginLatitude}, {tech.latestLongitude || tech.loginLongitude}
@@ -4316,70 +4329,84 @@ function ProFieldSenseChart() {
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className={`text-2xl font-bold ${
-                          tech.productivityScore >= 70 ? 'text-green-600 dark:text-green-400' : 
-                          tech.productivityScore >= 40 ? 'text-yellow-600 dark:text-yellow-400' : 
-                          'text-red-600 dark:text-red-400'
-                        }`}>
-                          {tech.productivityScore}%
-                        </div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Productivity</p>
+                        {tech.totalRecords > 0 ? (
+                          <>
+                            <div className={`text-2xl font-bold ${
+                              tech.productivityScore >= 70 ? 'text-green-600 dark:text-green-400' : 
+                              tech.productivityScore >= 40 ? 'text-yellow-600 dark:text-yellow-400' : 
+                              'text-red-600 dark:text-red-400'
+                            }`}>
+                              {tech.productivityScore}%
+                            </div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Productivity</p>
+                          </>
+                        ) : (
+                          <div className="text-sm text-gray-400 dark:text-gray-500">
+                            No tracking data
+                          </div>
+                        )}
                       </div>
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                      <div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Activity Breakdown</p>
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {tech.activityBreakdown.walking > 0 && (
-                            <Badge variant="outline" className="text-xs bg-green-50 dark:bg-green-900/20">
-                              Walking: {tech.activityBreakdown.walking}
-                            </Badge>
-                          )}
-                          {tech.activityBreakdown.in_vehicle > 0 && (
-                            <Badge variant="outline" className="text-xs bg-blue-50 dark:bg-blue-900/20">
-                              Driving: {tech.activityBreakdown.in_vehicle}
-                            </Badge>
-                          )}
-                          {tech.activityBreakdown.sitting > 0 && (
-                            <Badge variant="outline" className="text-xs bg-orange-50 dark:bg-orange-900/20">
-                              Sitting: {tech.activityBreakdown.sitting}
-                            </Badge>
-                          )}
-                          {tech.activityBreakdown.idle > 0 && (
-                            <Badge variant="outline" className="text-xs bg-red-50 dark:bg-red-900/20">
-                              Idle: {tech.activityBreakdown.idle}
-                            </Badge>
-                          )}
+                    {tech.totalRecords > 0 && (
+                      <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                        <div>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Activity Breakdown</p>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {tech.activityBreakdown.walking > 0 && (
+                              <Badge variant="outline" className="text-xs bg-green-50 dark:bg-green-900/20">
+                                Walking: {tech.activityBreakdown.walking}
+                              </Badge>
+                            )}
+                            {tech.activityBreakdown.in_vehicle > 0 && (
+                              <Badge variant="outline" className="text-xs bg-blue-50 dark:bg-blue-900/20">
+                                Driving: {tech.activityBreakdown.in_vehicle}
+                              </Badge>
+                            )}
+                            {tech.activityBreakdown.sitting > 0 && (
+                              <Badge variant="outline" className="text-xs bg-orange-50 dark:bg-orange-900/20">
+                                Sitting: {tech.activityBreakdown.sitting}
+                              </Badge>
+                            )}
+                            {tech.activityBreakdown.idle > 0 && (
+                              <Badge variant="outline" className="text-xs bg-red-50 dark:bg-red-900/20">
+                                Idle: {tech.activityBreakdown.idle}
+                              </Badge>
+                            )}
+                            {Object.values(tech.activityBreakdown).every((v: any) => v === 0) && (
+                              <span className="text-xs text-gray-400">No activity data</span>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Daily Metrics</p>
+                          <div className="text-xs mt-1 space-y-1">
+                            <div>🚶 {tech.avgStepsPerDay.toLocaleString()} steps/day</div>
+                            <div>📏 {(tech.avgDistancePerDay / 1000).toFixed(2)} km/day</div>
+                            <div>📺 {Math.round(tech.screenTime / 3600)} hrs screen time</div>
+                            <div>⏱️ {Math.round(tech.idleTime / 60)} min idle</div>
+                          </div>
                         </div>
                       </div>
-                      
-                      <div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Daily Metrics</p>
-                        <div className="text-xs mt-1 space-y-1">
-                          <div>🚶 {tech.avgStepsPerDay.toLocaleString()} steps/day</div>
-                          <div>📏 {(tech.avgDistancePerDay / 1000).toFixed(2)} km/day</div>
-                          <div>📺 {Math.round(tech.screenTime / 3600)} hrs screen time</div>
-                          <div>⏱️ {Math.round(tech.idleTime / 60)} min idle</div>
-                        </div>
-                      </div>
-                    </div>
+                    )}
                   </div>
                 ))}
               </div>
               
-              {analytics.length > 10 && (
+              {analytics.length > 0 && (
                 <p className="text-xs text-center text-gray-500 mt-3">
-                  Showing top 10 of {analytics.length} technicians
+                  Showing all {analytics.length} team member{analytics.length !== 1 ? 's' : ''} 
+                  {analytics.filter((a: any) => a.totalRecords > 0).length > 0 && 
+                    ` (${analytics.filter((a: any) => a.totalRecords > 0).length} with tracking data)`
+                  }
                 </p>
               )}
             </div>
             ) : (
               <div className="text-center py-8">
                 <div className="text-sm text-gray-500">
-                  No logged-in users with sensor data available for this period. 
-                  <br />
-                  <span className="text-xs mt-2 block">Technicians need to enable phone sensor tracking in the mobile app.</span>
+                  No team members found in your organization.
                 </div>
               </div>
             )

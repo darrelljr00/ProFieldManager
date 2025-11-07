@@ -85,7 +85,20 @@ export function registerPhoneSensorRoutes(app: Express) {
       const start = startDate ? new Date(startDate as string) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
       const end = endDate ? new Date(endDate as string) : new Date();
 
-      // First, get all currently logged-in users (active sessions)
+      // First, get ALL users in the organization
+      const allOrgUsers = await db
+        .select({
+          userId: users.id,
+          userName: sql<string>`${users.firstName} || ' ' || ${users.lastName}`.as('userName'),
+          userEmail: users.email,
+          userFirstName: users.firstName,
+          userLastName: users.lastName,
+          isActive: users.isActive,
+        })
+        .from(users)
+        .where(eq(users.organizationId, user.organizationId));
+
+      // Get all currently logged-in users (active sessions)
       const activeSessionsQuery = await db
         .select({
           userId: userSessions.userId,
@@ -157,20 +170,23 @@ export function registerPhoneSensorRoutes(app: Express) {
         .orderBy(desc(phoneSensorData.timestamp))
         .limit(1000);
 
-      // Start with all active users from sessions
+      // Start with ALL organization users
       const userMetrics = new Map<number, any>();
       
-      // Initialize all active users with their session data
-      activeUsersMap.forEach((session, userId) => {
-        userMetrics.set(userId, {
-          userId: userId,
-          userName: session.userName || 'Unknown',
-          userEmail: session.userEmail || 'N/A',
-          ipAddress: session.ipAddress || 'N/A',
-          deviceType: session.deviceType || 'Unknown',
-          userAgent: session.userAgent || 'Unknown',
-          loginLatitude: session.loginLatitude || null,
-          loginLongitude: session.loginLongitude || null,
+      // Initialize ALL users in the organization
+      allOrgUsers.forEach((orgUser) => {
+        const session = activeUsersMap.get(orgUser.userId);
+        
+        userMetrics.set(orgUser.userId, {
+          userId: orgUser.userId,
+          userName: orgUser.userName || 'Unknown',
+          userEmail: orgUser.userEmail || 'N/A',
+          isActive: orgUser.isActive,
+          ipAddress: session?.ipAddress || 'N/A',
+          deviceType: session?.deviceType || 'Unknown',
+          userAgent: session?.userAgent || 'Unknown',
+          loginLatitude: session?.loginLatitude || null,
+          loginLongitude: session?.loginLongitude || null,
           latestLatitude: null,
           latestLongitude: null,
           totalRecords: 0,
@@ -198,43 +214,13 @@ export function registerPhoneSensorRoutes(app: Express) {
 
       // Enhance with sensor data if available
       sensorRecords.forEach(record => {
-        if (!userMetrics.has(record.userId)) {
-          // User has sensor data but no active session - still show them
-          userMetrics.set(record.userId, {
-            userId: record.userId,
-            userName: record.userName || 'Unknown',
-            userEmail: record.userEmail || 'N/A',
-            ipAddress: 'N/A',
-            deviceType: 'Unknown',
-            userAgent: 'Unknown',
-            loginLatitude: null,
-            loginLongitude: null,
-            latestLatitude: null,
-            latestLongitude: null,
-            totalRecords: 0,
-            activeTime: 0,
-            idleTime: 0,
-            screenTime: 0,
-            totalSteps: 0,
-            totalDistance: 0,
-            activityBreakdown: {
-              walking: 0,
-              running: 0,
-              sitting: 0,
-              standing: 0,
-              in_vehicle: 0,
-              idle: 0,
-            },
-            productivityBreakdown: {
-              high: 0,
-              medium: 0,
-              low: 0,
-              idle: 0,
-            },
-          });
+        // All users are already in the map, just enhance with sensor data
+        const metrics = userMetrics.get(record.userId);
+        
+        if (!metrics) {
+          // Skip sensor data for users not in this organization
+          return;
         }
-
-        const metrics = userMetrics.get(record.userId)!;
         metrics.totalRecords++;
         
         // Update latest GPS coordinates from sensor data
@@ -275,14 +261,15 @@ export function registerPhoneSensorRoutes(app: Express) {
       });
 
       console.log('📊 Pro Field Sense Analytics:', {
+        totalOrgUsers: allOrgUsers.length,
         totalActiveUsers: activeUsersMap.size,
         totalWithSensorData: sensorRecords.length,
         analyticsReturned: analytics.length,
-        activeUsers: Array.from(activeUsersMap.values()).map(u => ({ 
-          userId: u.userId, 
-          userName: u.userName,
-          email: u.userEmail,
-          ip: u.ipAddress
+        sampleUsers: analytics.slice(0, 3).map(a => ({ 
+          userId: a.userId, 
+          userName: a.userName,
+          email: a.userEmail,
+          hasSensorData: a.totalRecords > 0
         }))
       });
 
