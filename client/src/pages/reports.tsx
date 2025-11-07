@@ -3919,7 +3919,7 @@ function DocumentationComplianceReport() {
   }, [selectedPeriod]);
   
   const { data: docCompliance = [], isLoading } = useQuery({
-    queryKey: ['/api/reports/documentation-compliance', dates],
+    queryKey: [`/api/reports/documentation-compliance?startDate=${dates.start}&endDate=${dates.end}`],
     retry: false,
   });
   
