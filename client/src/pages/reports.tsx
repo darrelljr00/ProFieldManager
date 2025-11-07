@@ -3929,7 +3929,7 @@ function DocumentationComplianceReport() {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <FileText className="h-5 w-5 text-purple-500" />
-            <CardTitle className="text-lg">Documentation Compliance</CardTitle>
+            <CardTitle className="text-lg">Job Documentation Compliance</CardTitle>
           </div>
           <Badge variant="outline" className="text-purple-600">
             Last {selectedPeriod} days
