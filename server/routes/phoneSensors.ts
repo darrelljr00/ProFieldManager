@@ -85,7 +85,41 @@ export function registerPhoneSensorRoutes(app: Express) {
       const start = startDate ? new Date(startDate as string) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
       const end = endDate ? new Date(endDate as string) : new Date();
 
-      // Build query conditions
+      // First, get all currently logged-in users (active sessions)
+      const activeSessionsQuery = await db
+        .select({
+          userId: userSessions.userId,
+          ipAddress: userSessions.ipAddress,
+          deviceType: userSessions.deviceType,
+          userAgent: userSessions.userAgent,
+          loginLatitude: userSessions.latitude,
+          loginLongitude: userSessions.longitude,
+          createdAt: userSessions.createdAt,
+          expiresAt: userSessions.expiresAt,
+          userName: sql<string>`${users.firstName} || ' ' || ${users.lastName}`.as('userName'),
+          userEmail: users.email,
+          userFirstName: users.firstName,
+          userLastName: users.lastName,
+        })
+        .from(userSessions)
+        .leftJoin(users, eq(userSessions.userId, users.id))
+        .where(
+          and(
+            eq(users.organizationId, user.organizationId),
+            gte(userSessions.expiresAt, new Date()) // Only active sessions
+          )
+        )
+        .orderBy(desc(userSessions.createdAt));
+
+      // Create a map of unique users (most recent session for each)
+      const activeUsersMap = new Map<number, any>();
+      activeSessionsQuery.forEach(session => {
+        if (!activeUsersMap.has(session.userId)) {
+          activeUsersMap.set(session.userId, session);
+        }
+      });
+
+      // Build query conditions for sensor data
       const conditions = [
         eq(phoneSensorData.organizationId, user.organizationId),
         gte(phoneSensorData.timestamp, start),
@@ -123,44 +157,58 @@ export function registerPhoneSensorRoutes(app: Express) {
         .orderBy(desc(phoneSensorData.timestamp))
         .limit(1000);
 
-      // Fetch latest login session data for each user to get IP address
-      const sessionData = await db
-        .select({
-          userId: userSessions.userId,
-          ipAddress: userSessions.ipAddress,
-          deviceType: userSessions.deviceType,
-          userAgent: userSessions.userAgent,
-          loginLatitude: userSessions.latitude,
-          loginLongitude: userSessions.longitude,
-          createdAt: userSessions.createdAt,
-        })
-        .from(userSessions)
-        .where(eq(userSessions.userId, sql`ANY(SELECT DISTINCT user_id FROM phone_sensor_data WHERE organization_id = ${user.organizationId})`))
-        .orderBy(desc(userSessions.createdAt));
-
-      // Create a map of user sessions (most recent for each user)
-      const userSessionMap = new Map<number, any>();
-      sessionData.forEach(session => {
-        if (!userSessionMap.has(session.userId)) {
-          userSessionMap.set(session.userId, session);
-        }
+      // Start with all active users from sessions
+      const userMetrics = new Map<number, any>();
+      
+      // Initialize all active users with their session data
+      activeUsersMap.forEach((session, userId) => {
+        userMetrics.set(userId, {
+          userId: userId,
+          userName: session.userName || 'Unknown',
+          userEmail: session.userEmail || 'N/A',
+          ipAddress: session.ipAddress || 'N/A',
+          deviceType: session.deviceType || 'Unknown',
+          userAgent: session.userAgent || 'Unknown',
+          loginLatitude: session.loginLatitude || null,
+          loginLongitude: session.loginLongitude || null,
+          latestLatitude: null,
+          latestLongitude: null,
+          totalRecords: 0,
+          activeTime: 0,
+          idleTime: 0,
+          screenTime: 0,
+          totalSteps: 0,
+          totalDistance: 0,
+          activityBreakdown: {
+            walking: 0,
+            running: 0,
+            sitting: 0,
+            standing: 0,
+            in_vehicle: 0,
+            idle: 0,
+          },
+          productivityBreakdown: {
+            high: 0,
+            medium: 0,
+            low: 0,
+            idle: 0,
+          },
+        });
       });
 
-      // Calculate aggregated metrics by user
-      const userMetrics = new Map<number, any>();
-
+      // Enhance with sensor data if available
       sensorRecords.forEach(record => {
         if (!userMetrics.has(record.userId)) {
-          const session = userSessionMap.get(record.userId);
+          // User has sensor data but no active session - still show them
           userMetrics.set(record.userId, {
             userId: record.userId,
-            userName: record.userName,
-            userEmail: record.userEmail,
-            ipAddress: session?.ipAddress || 'N/A',
-            deviceType: session?.deviceType || 'Unknown',
-            userAgent: session?.userAgent || 'Unknown',
-            loginLatitude: session?.loginLatitude || null,
-            loginLongitude: session?.loginLongitude || null,
+            userName: record.userName || 'Unknown',
+            userEmail: record.userEmail || 'N/A',
+            ipAddress: 'N/A',
+            deviceType: 'Unknown',
+            userAgent: 'Unknown',
+            loginLatitude: null,
+            loginLongitude: null,
             latestLatitude: null,
             latestLongitude: null,
             totalRecords: 0,
