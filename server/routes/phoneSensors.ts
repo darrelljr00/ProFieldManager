@@ -1,6 +1,6 @@
 import { Express, Request, Response } from "express";
 import { db } from "../db";
-import { phoneSensorData, users } from "@shared/schema";
+import { phoneSensorData, users, userSessions } from "@shared/schema";
 import { eq, and, gte, desc, sql } from "drizzle-orm";
 
 type AuthenticatedRequest = Request & { user?: any };
@@ -95,7 +95,7 @@ export function registerPhoneSensorRoutes(app: Express) {
         conditions.push(eq(phoneSensorData.userId, parseInt(userId as string)));
       }
 
-      // Fetch sensor data
+      // Fetch sensor data with GPS coordinates
       const sensorRecords = await db
         .select({
           id: phoneSensorData.id,
@@ -111,6 +111,9 @@ export function registerPhoneSensorRoutes(app: Express) {
           sessionId: phoneSensorData.sessionId,
           jobId: phoneSensorData.jobId,
           timestamp: phoneSensorData.timestamp,
+          latitude: phoneSensorData.latitude,
+          longitude: phoneSensorData.longitude,
+          accuracy: phoneSensorData.accuracy,
           userName: sql<string>`${users.firstName} || ' ' || ${users.lastName}`.as('userName'),
           userEmail: users.email,
         })
@@ -120,15 +123,46 @@ export function registerPhoneSensorRoutes(app: Express) {
         .orderBy(desc(phoneSensorData.timestamp))
         .limit(1000);
 
+      // Fetch latest login session data for each user to get IP address
+      const sessionData = await db
+        .select({
+          userId: userSessions.userId,
+          ipAddress: userSessions.ipAddress,
+          deviceType: userSessions.deviceType,
+          userAgent: userSessions.userAgent,
+          loginLatitude: userSessions.latitude,
+          loginLongitude: userSessions.longitude,
+          createdAt: userSessions.createdAt,
+        })
+        .from(userSessions)
+        .where(eq(userSessions.userId, sql`ANY(SELECT DISTINCT user_id FROM phone_sensor_data WHERE organization_id = ${user.organizationId})`))
+        .orderBy(desc(userSessions.createdAt));
+
+      // Create a map of user sessions (most recent for each user)
+      const userSessionMap = new Map<number, any>();
+      sessionData.forEach(session => {
+        if (!userSessionMap.has(session.userId)) {
+          userSessionMap.set(session.userId, session);
+        }
+      });
+
       // Calculate aggregated metrics by user
       const userMetrics = new Map<number, any>();
 
       sensorRecords.forEach(record => {
         if (!userMetrics.has(record.userId)) {
+          const session = userSessionMap.get(record.userId);
           userMetrics.set(record.userId, {
             userId: record.userId,
             userName: record.userName,
             userEmail: record.userEmail,
+            ipAddress: session?.ipAddress || 'N/A',
+            deviceType: session?.deviceType || 'Unknown',
+            userAgent: session?.userAgent || 'Unknown',
+            loginLatitude: session?.loginLatitude || null,
+            loginLongitude: session?.loginLongitude || null,
+            latestLatitude: null,
+            latestLongitude: null,
             totalRecords: 0,
             activeTime: 0,
             idleTime: 0,
@@ -154,6 +188,12 @@ export function registerPhoneSensorRoutes(app: Express) {
 
         const metrics = userMetrics.get(record.userId)!;
         metrics.totalRecords++;
+        
+        // Update latest GPS coordinates from sensor data
+        if (record.latitude && record.longitude && !metrics.latestLatitude) {
+          metrics.latestLatitude = record.latitude;
+          metrics.latestLongitude = record.longitude;
+        }
         
         // Accumulate metrics
         if (record.productivityLevel !== 'idle' && record.productivityLevel !== 'low') {

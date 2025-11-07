@@ -4297,6 +4297,16 @@ function ProFieldSenseChart() {
                       <div className="flex-1">
                         <p className="font-medium text-sm dark:text-white">{tech.userName}</p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">{tech.userEmail}</p>
+                        <div className="mt-1 space-y-1">
+                          <p className="text-xs text-blue-600 dark:text-blue-400">
+                            📱 IP: {tech.ipAddress}
+                          </p>
+                          {(tech.latestLatitude || tech.loginLatitude) && (
+                            <p className="text-xs text-green-600 dark:text-green-400">
+                              📍 GPS: {tech.latestLatitude || tech.loginLatitude}, {tech.latestLongitude || tech.loginLongitude}
+                            </p>
+                          )}
+                        </div>
                       </div>
                       <div className="text-right">
                         <div className={`text-2xl font-bold ${
@@ -4339,9 +4349,10 @@ function ProFieldSenseChart() {
                       
                       <div>
                         <p className="text-xs text-gray-500 dark:text-gray-400">Daily Metrics</p>
-                        <div className="text-xs mt-1">
+                        <div className="text-xs mt-1 space-y-1">
                           <div>🚶 {tech.avgStepsPerDay.toLocaleString()} steps/day</div>
                           <div>📏 {(tech.avgDistancePerDay / 1000).toFixed(2)} km/day</div>
+                          <div>📺 {Math.round(tech.screenTime / 3600)} hrs screen time</div>
                           <div>⏱️ {Math.round(tech.idleTime / 60)} min idle</div>
                         </div>
                       </div>
