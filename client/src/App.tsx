@@ -83,6 +83,7 @@ import Notifications from "@/pages/notifications";
 import ScreenSharing from "@/pages/screen-sharing";
 import Logout from "@/pages/logout";
 import { HelpButton } from "@/components/help-button";
+import { MobileSensorTracker } from "@/components/MobileSensorTracker";
 
 function AuthenticatedApp() {
   const { isAdmin } = useAuth();
@@ -237,6 +238,9 @@ function AuthenticatedApp() {
       
       {/* Global Help Button */}
       <HelpButton />
+      
+      {/* Mobile Sensor Tracker for Pro Field Sense */}
+      <MobileSensorTracker />
     </div>
   );
 }
