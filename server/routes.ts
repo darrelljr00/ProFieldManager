@@ -28619,6 +28619,38 @@ ${fromName || ''}
       const startDate = startParam ? new Date(startParam as string) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
       const endDate = endParam ? new Date(endParam as string) : new Date();
       
+      // Get ALL active users in the organization
+      const allUsers = await db
+        .select({
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+        })
+        .from(users)
+        .where(and(
+          eq(users.organizationId, organizationId),
+          eq(users.isActive, true)
+        ));
+      
+      // Initialize stats for ALL users
+      const technicianStats = new Map<number, {
+        firstName: string;
+        lastName: string;
+        totalJobs: number;
+        jobsWithPhotos: Set<number>;
+        jobsWithSignatures: Set<number>;
+      }>();
+      
+      for (const techUser of allUsers) {
+        technicianStats.set(techUser.id, {
+          firstName: techUser.firstName,
+          lastName: techUser.lastName,
+          totalJobs: 0,
+          jobsWithPhotos: new Set(),
+          jobsWithSignatures: new Set(),
+        });
+      }
+      
       // Get all completed projects in the date range
       const completedProjects = await db
         .select({
@@ -28634,35 +28666,9 @@ ${fromName || ''}
           isNotNull(projects.assignedUserId)
         ));
       
-      // Get photos and signatures per technician
-      const technicianStats = new Map<number, {
-        firstName: string;
-        lastName: string;
-        totalJobs: number;
-        jobsWithPhotos: Set<number>;
-        jobsWithSignatures: Set<number>;
-      }>();
-      
+      // Update stats for users who have completed jobs
       for (const project of completedProjects) {
-        if (!project.assignedUserId) continue;
-        
-        // Get technician info
-        const [techUser] = await db
-          .select()
-          .from(users)
-          .where(eq(users.id, project.assignedUserId));
-        
-        if (!techUser) continue;
-        
-        if (!technicianStats.has(project.assignedUserId)) {
-          technicianStats.set(project.assignedUserId, {
-            firstName: techUser.firstName,
-            lastName: techUser.lastName,
-            totalJobs: 0,
-            jobsWithPhotos: new Set(),
-            jobsWithSignatures: new Set(),
-          });
-        }
+        if (!project.assignedUserId || !technicianStats.has(project.assignedUserId)) continue;
         
         const stats = technicianStats.get(project.assignedUserId)!;
         stats.totalJobs++;
@@ -28696,7 +28702,7 @@ ${fromName || ''}
         }
       }
       
-      // Format response
+      // Format response - now includes ALL users even with 0 jobs
       const formattedCompliance = Array.from(technicianStats.entries()).map(([userId, stats]) => ({
         userId,
         technicianName: `${stats.firstName} ${stats.lastName}`,
