@@ -274,6 +274,18 @@ export function registerPhoneSensorRoutes(app: Express) {
         };
       });
 
+      console.log('📊 Pro Field Sense Analytics:', {
+        totalActiveUsers: activeUsersMap.size,
+        totalWithSensorData: sensorRecords.length,
+        analyticsReturned: analytics.length,
+        activeUsers: Array.from(activeUsersMap.values()).map(u => ({ 
+          userId: u.userId, 
+          userName: u.userName,
+          email: u.userEmail,
+          ip: u.ipAddress
+        }))
+      });
+
       res.json({ 
         success: true,
         analytics,

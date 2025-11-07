@@ -4234,6 +4234,13 @@ function ProFieldSenseChart() {
   
   const analytics = productivityData?.analytics || [];
   
+  console.log('📊 Pro Field Sense Data:', { 
+    isLoading, 
+    hasData: !!productivityData, 
+    analyticsCount: analytics.length,
+    analytics: analytics.slice(0, 3)
+  });
+  
   return (
     <Card className="mt-6">
       <CardHeader>
@@ -4288,7 +4295,8 @@ function ProFieldSenseChart() {
             </div>
           ) : null}
 
-          {!isLoading && analytics.length > 0 ? (
+          {!isLoading ? (
+            analytics.length > 0 ? (
             <div>
               <div className="space-y-3">
                 {analytics.slice(0, 10).map((tech: any) => (
@@ -4367,17 +4375,18 @@ function ProFieldSenseChart() {
                 </p>
               )}
             </div>
-          ) : (
-            <div className="text-center py-8">
-              {isLoading ? (
-                <div className="text-sm text-gray-500">Loading sensor data...</div>
-              ) : (
+            ) : (
+              <div className="text-center py-8">
                 <div className="text-sm text-gray-500">
-                  No sensor data available for this period. 
+                  No logged-in users with sensor data available for this period. 
                   <br />
                   <span className="text-xs mt-2 block">Technicians need to enable phone sensor tracking in the mobile app.</span>
                 </div>
-              )}
+              </div>
+            )
+          ) : (
+            <div className="text-center py-8">
+              <div className="text-sm text-gray-500">Loading sensor data...</div>
             </div>
           )}
         </div>
