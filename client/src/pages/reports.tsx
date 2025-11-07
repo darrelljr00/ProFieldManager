@@ -3814,15 +3814,15 @@ export default function Reports() {
 function JobActivityReport() {
   const [selectedPeriod, setSelectedPeriod] = useState("30");
   
-  const endDate = new Date();
-  const startDate = new Date();
-  startDate.setDate(endDate.getDate() - parseInt(selectedPeriod));
+  const dates = useMemo(() => {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(end.getDate() - parseInt(selectedPeriod));
+    return { start: start.toISOString(), end: end.toISOString() };
+  }, [selectedPeriod]);
   
   const { data: jobActivity = [], isLoading } = useQuery({
-    queryKey: ['/api/reports/job-activity', { 
-      startDate: startDate.toISOString(), 
-      endDate: endDate.toISOString()
-    }],
+    queryKey: ['/api/reports/job-activity', dates],
     retry: false,
   });
   
@@ -3911,15 +3911,15 @@ function JobActivityReport() {
 function DocumentationComplianceReport() {
   const [selectedPeriod, setSelectedPeriod] = useState("30");
   
-  const endDate = new Date();
-  const startDate = new Date();
-  startDate.setDate(endDate.getDate() - parseInt(selectedPeriod));
+  const dates = useMemo(() => {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(end.getDate() - parseInt(selectedPeriod));
+    return { start: start.toISOString(), end: end.toISOString() };
+  }, [selectedPeriod]);
   
   const { data: docCompliance = [], isLoading } = useQuery({
-    queryKey: ['/api/reports/documentation-compliance', { 
-      startDate: startDate.toISOString(), 
-      endDate: endDate.toISOString()
-    }],
+    queryKey: ['/api/reports/documentation-compliance', dates],
     retry: false,
   });
   
@@ -4007,15 +4007,15 @@ function RouteDeviationReport() {
   const [selectedPeriod, setSelectedPeriod] = useState("30");
   const [dialogOpen, setDialogOpen] = useState(false);
   
-  const endDate = new Date();
-  const startDate = new Date();
-  startDate.setDate(endDate.getDate() - parseInt(selectedPeriod));
+  const dates = useMemo(() => {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(end.getDate() - parseInt(selectedPeriod));
+    return { start: start.toISOString(), end: end.toISOString() };
+  }, [selectedPeriod]);
   
   const { data: routeDeviations = [], isLoading } = useQuery({
-    queryKey: ['/api/route-deviations', { 
-      startDate: startDate.toISOString(), 
-      endDate: endDate.toISOString()
-    }],
+    queryKey: ['/api/route-deviations', dates],
     retry: false,
   });
   
