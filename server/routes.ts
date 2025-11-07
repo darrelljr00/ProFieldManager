@@ -28655,7 +28655,7 @@ ${fromName || ''}
       const completedProjects = await db
         .select({
           id: projects.id,
-          assignedUserId: projects.assignedUserId,
+          userId: projects.userId,
         })
         .from(projects)
         .where(and(
@@ -28663,14 +28663,14 @@ ${fromName || ''}
           eq(projects.status, 'completed'),
           gte(projects.updatedAt, startDate),
           lte(projects.updatedAt, endDate),
-          isNotNull(projects.assignedUserId)
+          isNotNull(projects.userId)
         ));
       
       // Update stats for users who have completed jobs
       for (const project of completedProjects) {
-        if (!project.assignedUserId || !technicianStats.has(project.assignedUserId)) continue;
+        if (!project.userId || !technicianStats.has(project.userId)) continue;
         
-        const stats = technicianStats.get(project.assignedUserId)!;
+        const stats = technicianStats.get(project.userId)!;
         stats.totalJobs++;
         
         // Check if project has photos
@@ -28717,8 +28717,8 @@ ${fromName || ''}
       console.error("Error fetching documentation compliance:", error);
       res.status(500).json({ message: "Error fetching documentation compliance: " + error.message });
     }
-  });
 
+  });
   return httpServer;
 }
 
