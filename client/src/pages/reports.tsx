@@ -4224,11 +4224,10 @@ function ProFieldSenseChart() {
   const startDate = new Date();
   startDate.setDate(endDate.getDate() - parseInt(selectedPeriod));
   
+  const queryUrl = `/api/phone-sensors/productivity?startDate=${encodeURIComponent(startDate.toISOString())}&endDate=${encodeURIComponent(endDate.toISOString())}`;
+  
   const { data: productivityData, isLoading } = useQuery({
-    queryKey: ['/api/phone-sensors/productivity', { 
-      startDate: startDate.toISOString(), 
-      endDate: endDate.toISOString()
-    }],
+    queryKey: [queryUrl],
     retry: false,
   });
   
