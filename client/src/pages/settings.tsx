@@ -1013,6 +1013,7 @@ export default function Settings() {
           <TabsTrigger value="integrations" className="flex-shrink-0">Integrations</TabsTrigger>
           <TabsTrigger value="navigation" className="flex-shrink-0">Navigation</TabsTrigger>
           <TabsTrigger value="rollouts" className="flex-shrink-0">Rollouts</TabsTrigger>
+          <TabsTrigger value="reminders" className="flex-shrink-0">Reminders</TabsTrigger>
         </TabsList>
 
         <TabsContent value="payment">
@@ -4462,6 +4463,261 @@ export default function Settings() {
                   >
                     <Save className="h-4 w-4 mr-2" />
                     Save Rollouts Configuration
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="reminders">
+          <Card>
+            <CardHeader>
+              <CardTitle>Reminder Settings</CardTitle>
+              <CardDescription>
+                Configure automated reminders for jobs, quotes, invoices, and appointments
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                {/* Job Reminders */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-medium">Job Reminders</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Send automated reminders for upcoming jobs
+                      </p>
+                    </div>
+                    <Switch defaultChecked={true} />
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4 pl-6">
+                    <div>
+                      <Label htmlFor="jobReminderTime">Remind Before Job</Label>
+                      <Select name="jobReminderTime" defaultValue="24">
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select time" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1">1 hour</SelectItem>
+                          <SelectItem value="2">2 hours</SelectItem>
+                          <SelectItem value="4">4 hours</SelectItem>
+                          <SelectItem value="24">24 hours</SelectItem>
+                          <SelectItem value="48">48 hours</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="jobReminderMethod">Reminder Method</Label>
+                      <Select name="jobReminderMethod" defaultValue="both">
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select method" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="email">Email</SelectItem>
+                          <SelectItem value="sms">SMS</SelectItem>
+                          <SelectItem value="both">Email & SMS</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Quote Follow-up Reminders */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-medium">Quote Follow-up Reminders</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Automatically follow up on pending quotes
+                      </p>
+                    </div>
+                    <Switch defaultChecked={true} />
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4 pl-6">
+                    <div>
+                      <Label htmlFor="quoteFollowUpDays">Follow Up After</Label>
+                      <Select name="quoteFollowUpDays" defaultValue="3">
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select days" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1">1 day</SelectItem>
+                          <SelectItem value="2">2 days</SelectItem>
+                          <SelectItem value="3">3 days</SelectItem>
+                          <SelectItem value="5">5 days</SelectItem>
+                          <SelectItem value="7">7 days</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="quoteReminderMethod">Reminder Method</Label>
+                      <Select name="quoteReminderMethod" defaultValue="email">
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select method" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="email">Email</SelectItem>
+                          <SelectItem value="sms">SMS</SelectItem>
+                          <SelectItem value="both">Email & SMS</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Invoice Payment Reminders */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-medium">Invoice Payment Reminders</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Send reminders for unpaid invoices
+                      </p>
+                    </div>
+                    <Switch defaultChecked={true} />
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4 pl-6">
+                    <div>
+                      <Label htmlFor="invoiceReminderBefore">Before Due Date</Label>
+                      <Select name="invoiceReminderBefore" defaultValue="3">
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select days" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1">1 day</SelectItem>
+                          <SelectItem value="3">3 days</SelectItem>
+                          <SelectItem value="7">7 days</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="invoiceReminderAfter">After Due Date</Label>
+                      <Select name="invoiceReminderAfter" defaultValue="1">
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select days" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1">1 day</SelectItem>
+                          <SelectItem value="3">3 days</SelectItem>
+                          <SelectItem value="7">7 days</SelectItem>
+                          <SelectItem value="14">14 days</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Customer Appointment Reminders */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-medium">Customer Appointment Reminders</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Send appointment reminders to customers
+                      </p>
+                    </div>
+                    <Switch defaultChecked={true} />
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4 pl-6">
+                    <div>
+                      <Label htmlFor="appointmentReminderTime">Send Reminder</Label>
+                      <Select name="appointmentReminderTime" defaultValue="24">
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select time" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1">1 hour before</SelectItem>
+                          <SelectItem value="2">2 hours before</SelectItem>
+                          <SelectItem value="24">1 day before</SelectItem>
+                          <SelectItem value="48">2 days before</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="appointmentReminderMethod">Reminder Method</Label>
+                      <Select name="appointmentReminderMethod" defaultValue="sms">
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select method" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="email">Email</SelectItem>
+                          <SelectItem value="sms">SMS</SelectItem>
+                          <SelectItem value="both">Email & SMS</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Task Deadline Reminders */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-medium">Task Deadline Reminders</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Remind team members about upcoming task deadlines
+                      </p>
+                    </div>
+                    <Switch defaultChecked={true} />
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4 pl-6">
+                    <div>
+                      <Label htmlFor="taskReminderTime">Remind Before Deadline</Label>
+                      <Select name="taskReminderTime" defaultValue="24">
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select time" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1">1 hour</SelectItem>
+                          <SelectItem value="4">4 hours</SelectItem>
+                          <SelectItem value="24">24 hours</SelectItem>
+                          <SelectItem value="48">48 hours</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="taskReminderMethod">Reminder Method</Label>
+                      <Select name="taskReminderMethod" defaultValue="email">
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select method" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="email">Email</SelectItem>
+                          <SelectItem value="sms">SMS</SelectItem>
+                          <SelectItem value="internal">Internal Message</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Save Button */}
+                <div className="flex justify-end pt-4">
+                  <Button
+                    data-testid="button-save-reminders"
+                    onClick={() => {
+                      toast({
+                        title: "Reminders Saved",
+                        description: "Your reminder settings have been saved successfully.",
+                      });
+                    }}
+                  >
+                    <Save className="h-4 w-4 mr-2" />
+                    Save Reminder Settings
                   </Button>
                 </div>
               </div>
