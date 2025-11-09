@@ -4805,6 +4805,45 @@ export default function Settings() {
                       </Select>
                     </div>
                   </div>
+
+                  <div className="grid grid-cols-2 gap-4 pl-6">
+                    <div>
+                      <Label htmlFor="technicianArrivalReminder">Jobsite Arrival Reminder</Label>
+                      <Select name="technicianArrivalReminder" defaultValue="2">
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select time" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="immediate">Immediately on GPS arrival</SelectItem>
+                          <SelectItem value="2">2 minutes after arrival</SelectItem>
+                          <SelectItem value="5">5 minutes after arrival</SelectItem>
+                          <SelectItem value="10">10 minutes after arrival</SelectItem>
+                          <SelectItem value="disabled">Disabled</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Remind technician to click "Start Job" when GPS detects arrival
+                      </p>
+                    </div>
+                    <div>
+                      <Label htmlFor="technicianAutoMarkOnsite">Auto Mark Onsite (GPS)</Label>
+                      <Select name="technicianAutoMarkOnsite" defaultValue="15">
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select time" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="5">5 minutes after arrival</SelectItem>
+                          <SelectItem value="10">10 minutes after arrival</SelectItem>
+                          <SelectItem value="15">15 minutes after arrival</SelectItem>
+                          <SelectItem value="30">30 minutes after arrival</SelectItem>
+                          <SelectItem value="disabled">Disabled</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Automatically mark job as started if not manually clicked
+                      </p>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Save Button */}
