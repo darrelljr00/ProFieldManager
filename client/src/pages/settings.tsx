@@ -4705,6 +4705,108 @@ export default function Settings() {
                   </div>
                 </div>
 
+                <Separator />
+
+                {/* Technician Reminders */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-medium">Technician Reminders</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Send automated reminders to technicians about assignments and schedules
+                      </p>
+                    </div>
+                    <Switch defaultChecked={true} />
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4 pl-6">
+                    <div>
+                      <Label htmlFor="technicianReminderTime">Daily Schedule Reminder</Label>
+                      <Select name="technicianReminderTime" defaultValue="morning">
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select time" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="morning">Morning (8:00 AM)</SelectItem>
+                          <SelectItem value="evening">Evening before (6:00 PM)</SelectItem>
+                          <SelectItem value="both">Both morning & evening</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="technicianReminderMethod">Reminder Method</Label>
+                      <Select name="technicianReminderMethod" defaultValue="sms">
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select method" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="email">Email</SelectItem>
+                          <SelectItem value="sms">SMS</SelectItem>
+                          <SelectItem value="both">Email & SMS</SelectItem>
+                          <SelectItem value="internal">Internal Message</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 pl-6">
+                    <div>
+                      <Label htmlFor="technicianJobStartReminder">Job Start Reminder</Label>
+                      <Select name="technicianJobStartReminder" defaultValue="30">
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select time" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="15">15 minutes before</SelectItem>
+                          <SelectItem value="30">30 minutes before</SelectItem>
+                          <SelectItem value="60">1 hour before</SelectItem>
+                          <SelectItem value="disabled">Disabled</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="technicianLateArrivalAlert">Late Arrival Alert</Label>
+                      <Select name="technicianLateArrivalAlert" defaultValue="enabled">
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select option" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="enabled">Enabled</SelectItem>
+                          <SelectItem value="disabled">Disabled</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 pl-6">
+                    <div>
+                      <Label htmlFor="technicianTimesheetReminder">Timesheet Submission Reminder</Label>
+                      <Select name="technicianTimesheetReminder" defaultValue="daily">
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select frequency" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="daily">Daily (End of day)</SelectItem>
+                          <SelectItem value="weekly">Weekly (Friday)</SelectItem>
+                          <SelectItem value="disabled">Disabled</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="technicianDocumentationReminder">Documentation Reminder</Label>
+                      <Select name="technicianDocumentationReminder" defaultValue="enabled">
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select option" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="enabled">Remind for missing photos/signatures</SelectItem>
+                          <SelectItem value="disabled">Disabled</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Save Button */}
                 <div className="flex justify-end pt-4">
                   <Button
