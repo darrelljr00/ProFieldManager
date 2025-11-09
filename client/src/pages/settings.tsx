@@ -4844,6 +4844,41 @@ export default function Settings() {
                       </p>
                     </div>
                   </div>
+
+                  <div className="grid grid-cols-2 gap-4 pl-6">
+                    <div>
+                      <Label htmlFor="technicianPreTripReminder">Pre-Trip Inspection Reminder</Label>
+                      <Select name="technicianPreTripReminder" defaultValue="enabled">
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select option" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="enabled">Enabled (Start of shift)</SelectItem>
+                          <SelectItem value="first-job">Before first job</SelectItem>
+                          <SelectItem value="disabled">Disabled</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Remind technician to complete vehicle inspection before starting
+                      </p>
+                    </div>
+                    <div>
+                      <Label htmlFor="technicianPostTripReminder">Post-Trip Inspection Reminder</Label>
+                      <Select name="technicianPostTripReminder" defaultValue="enabled">
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select option" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="enabled">Enabled (End of shift)</SelectItem>
+                          <SelectItem value="last-job">After last job</SelectItem>
+                          <SelectItem value="disabled">Disabled</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Remind technician to complete vehicle inspection after finishing
+                      </p>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Save Button */}
