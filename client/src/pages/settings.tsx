@@ -999,6 +999,7 @@ export default function Settings() {
           <TabsTrigger value="email" className="flex-shrink-0">Email</TabsTrigger>
           <TabsTrigger value="sms" className="flex-shrink-0">SMS</TabsTrigger>
           <TabsTrigger value="leads" className="flex-shrink-0">Leads</TabsTrigger>
+          <TabsTrigger value="jobs" className="flex-shrink-0">Job Settings</TabsTrigger>
           <TabsTrigger value="calendar" className="flex-shrink-0">Calendar</TabsTrigger>
           <TabsTrigger value="ocr" className="flex-shrink-0">OCR</TabsTrigger>
           <TabsTrigger value="reviews" className="flex-shrink-0">Reviews</TabsTrigger>
@@ -1710,6 +1711,93 @@ export default function Settings() {
                   </Button>
                 </div>
               </form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="jobs">
+          <Card>
+            <CardHeader>
+              <CardTitle>Job Management Settings</CardTitle>
+              <CardDescription>
+                Configure job time tracking, notifications, and completion alerts
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Job Time Notifications</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Automated alerts to help technicians and managers stay on track with job completion times
+                  </p>
+                  
+                  <Separator />
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Approaching Completion Alerts</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Alert assigned technicians before job estimated completion time
+                      </p>
+                    </div>
+                    <Switch defaultChecked={true} />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="completionAlertMinutes">Alert Before Completion (minutes)</Label>
+                    <Input
+                      id="completionAlertMinutes"
+                      type="number"
+                      min="5"
+                      max="60"
+                      placeholder="15"
+                      defaultValue={15}
+                    />
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Technicians will receive a notification this many minutes before the job estimated completion time
+                    </p>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Time Exceeded Alerts</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Alert admins and managers when jobs exceed their estimated time
+                      </p>
+                    </div>
+                    <Switch defaultChecked={true} />
+                  </div>
+                  
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 className="font-medium text-blue-900 mb-2 flex items-center gap-2">
+                      <Clock className="h-4 w-4" />
+                      How It Works
+                    </h4>
+                    <ul className="text-sm text-blue-800 space-y-1">
+                      <li>• System checks job times every 15 minutes automatically</li>
+                      <li>• Technicians get notified 15 minutes before estimated completion</li>
+                      <li>• Admins/managers get alerted when jobs exceed estimated time</li>
+                      <li>• Notifications appear in the notification bell and dashboard</li>
+                    </ul>
+                  </div>
+                </div>
+                
+                <Separator />
+                
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Job Display Settings</h3>
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Hide Completed Jobs from Calendar</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Completed and cancelled jobs won't appear on the calendar view
+                      </p>
+                    </div>
+                    <Switch defaultChecked={true} />
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
