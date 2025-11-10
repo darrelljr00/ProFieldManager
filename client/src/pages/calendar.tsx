@@ -594,9 +594,9 @@ export default function CalendarPage() {
                                 )}
                                 {weather && (
                                   <div className="flex items-center gap-1 text-xs">
-                                    {weather.condition.text.toLowerCase().includes('rain') ? (
+                                    {weather.condition?.text?.toLowerCase().includes('rain') ? (
                                       <CloudRain className="h-3 w-3" />
-                                    ) : weather.condition.text.toLowerCase().includes('cloud') ? (
+                                    ) : weather.condition?.text?.toLowerCase().includes('cloud') ? (
                                       <Cloud className="h-3 w-3" />
                                     ) : (
                                       <Sun className="h-3 w-3" />
@@ -868,9 +868,9 @@ export default function CalendarPage() {
                 return weather && (
                   <div className="border rounded-lg p-4 bg-muted/30">
                     <h4 className="font-medium mb-3 flex items-center gap-2">
-                      {weather.condition.text.toLowerCase().includes('rain') ? (
+                      {weather.condition?.text?.toLowerCase().includes('rain') ? (
                         <CloudRain className="h-4 w-4" />
-                      ) : weather.condition.text.toLowerCase().includes('cloud') ? (
+                      ) : weather.condition?.text?.toLowerCase().includes('cloud') ? (
                         <Cloud className="h-4 w-4" />
                       ) : (
                         <Sun className="h-4 w-4" />
@@ -884,7 +884,7 @@ export default function CalendarPage() {
                       </div>
                       <div>
                         <p className="text-muted-foreground">Conditions</p>
-                        <p className="font-medium">{weather.condition.text}</p>
+                        <p className="font-medium">{weather.condition?.text || 'N/A'}</p>
                       </div>
                       {weather.chance_of_rain !== undefined && (
                         <div>
