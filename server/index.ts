@@ -187,6 +187,41 @@ app.use((req, res, next) => {
           const startTime = new Date(job.startDate).getTime();
           const currentTime = Date.now();
           const elapsedMinutes = (currentTime - startTime) / (1000 * 60);
+          const remainingMinutes = job.estimatedDuration - elapsedMinutes;
+
+          // Check if job is approaching completion time (15 minutes before)
+          // Alert range: between 15 minutes before and at estimated completion time
+          if (remainingMinutes <= 15 && remainingMinutes > 0 && job.assignedUserId) {
+            // Check if we've already sent the approaching notification
+            const existingNotification = await db
+              .select()
+              .from(notifications)
+              .where(
+                and(
+                  eq(notifications.type, 'job_approaching_completion'),
+                  eq(notifications.relatedEntityId, job.id)
+                )
+              )
+              .limit(1);
+
+            // Only send if we haven't sent this notification before
+            if (!existingNotification.length) {
+              await NotificationService.createNotification({
+                type: 'job_approaching_completion',
+                title: 'Job Nearing Completion Time',
+                message: `Job "${job.name}" is approaching its estimated completion time. You have approximately ${Math.round(remainingMinutes)} minutes remaining.`,
+                userId: job.assignedUserId,
+                organizationId: job.organizationId,
+                relatedEntityType: 'project',
+                relatedEntityId: job.id,
+                priority: 'normal',
+                category: 'user_based',
+                createdBy: job.assignedUserId
+              });
+
+              log(`⏰ Approaching completion notification sent for job ${job.name} to technician (${Math.round(remainingMinutes)} min remaining)`);
+            }
+          }
 
           // Check if job has exceeded estimated time
           if (elapsedMinutes > job.estimatedDuration) {
