@@ -8098,7 +8098,16 @@ ${fromName || ''}
         return res.status(404).json({ message: "Project not found or access denied" });
       }
 
-      const updatedProject = await storage.updateProject(projectId, req.body);
+      // Convert timestamp strings to Date objects for Drizzle
+      const updateData = { ...req.body };
+      const timestampFields = ['departed_at', 'auto_started_at', 'auto_completed_at', 'startDate', 'endDate', 'invoiceDate'];
+      for (const field of timestampFields) {
+        if (updateData[field] && typeof updateData[field] === 'string') {
+          updateData[field] = new Date(updateData[field]);
+        }
+      }
+
+      const updatedProject = await storage.updateProject(projectId, updateData);
       
       if (!updatedProject) {
         return res.status(404).json({ message: "Project not found or access denied" });
