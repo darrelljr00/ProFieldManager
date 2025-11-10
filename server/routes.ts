@@ -11894,7 +11894,7 @@ ${fromName || ''}
               onsiteLaborCost += onsiteHours * hourlyRate;
             }
           });
-        } else if (project.startDate && !project.endDate) {
+        } else if (project.startDate && !project.endDate && project.status !== 'completed' && project.status !== 'cancelled') {
           // In-progress job - calculate current elapsed time from active time clock entries
           isActiveJob = true;
           const now = new Date().getTime();
