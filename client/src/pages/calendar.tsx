@@ -323,6 +323,11 @@ export default function CalendarPage() {
     const dateStr = date.toISOString().split('T')[0];
     
     return jobs.filter(job => {
+      // Filter out completed and cancelled jobs
+      if (job.status === 'completed' || job.status === 'cancelled') {
+        return false;
+      }
+      
       const jobStart = job.startDate;
       const jobEnd = job.endDate || job.startDate; // Use startDate as endDate if null
       
