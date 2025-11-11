@@ -1171,6 +1171,7 @@ function PageDialog({
   const [formData, setFormData] = useState({
     title: '',
     slug: '',
+    path: '',
     description: '',
     content: '',
     metaTitle: '',
@@ -1188,6 +1189,7 @@ function PageDialog({
       setFormData({
         title: page.title || '',
         slug: page.slug || '',
+        path: page.path || '',
         description: page.description || '',
         content: page.content || '',
         metaTitle: page.metaTitle || '',
@@ -1203,6 +1205,7 @@ function PageDialog({
       setFormData({
         title: '',
         slug: '',
+        path: '',
         description: '',
         content: '',
         metaTitle: '',
@@ -1248,10 +1251,28 @@ function PageDialog({
               <Input
                 id="slug"
                 value={formData.slug}
-                onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                onChange={(e) => {
+                  const slug = e.target.value;
+                  const path = slug ? `/${slug}` : '';
+                  setFormData({ ...formData, slug, path });
+                }}
                 required
               />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="path">Page Path</Label>
+            <Input
+              id="path"
+              value={formData.path}
+              onChange={(e) => setFormData({ ...formData, path: e.target.value })}
+              required
+              placeholder="/your-page-url"
+            />
+            <p className="text-xs text-muted-foreground">
+              Auto-generated from slug. You can customize it if needed.
+            </p>
           </div>
 
           <div className="space-y-2">
