@@ -1682,6 +1682,22 @@ export const soundSettings = pgTable("sound_settings", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Vibration settings table
+export const vibrationSettings = pgTable("vibration_settings", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  enabled: boolean("enabled").default(true),
+  notificationPattern: text("notification_pattern").default("notification"),
+  successPattern: text("success_pattern").default("success"),
+  warningPattern: text("warning_pattern").default("warning"),
+  errorPattern: text("error_pattern").default("error"),
+  arrivalPattern: text("arrival_pattern").default("arrival"),
+  alertPattern: text("alert_pattern").default("alert"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Late Arrivals Tracking
 export const lateArrivals = pgTable("late_arrivals", {
   id: serial("id").primaryKey(),
@@ -1756,6 +1772,18 @@ export const insertSoundSettingsSchema = z.object({
   enabled: z.boolean().default(true),
 });
 
+export const insertVibrationSettingsSchema = z.object({
+  userId: z.number(),
+  organizationId: z.number(),
+  enabled: z.boolean().default(true),
+  notificationPattern: z.string().default("notification"),
+  successPattern: z.string().default("success"),
+  warningPattern: z.string().default("warning"),
+  errorPattern: z.string().default("error"),
+  arrivalPattern: z.string().default("arrival"),
+  alertPattern: z.string().default("alert"),
+});
+
 export const insertLateArrivalSchema = createInsertSchema(lateArrivals).omit({
   id: true,
   createdAt: true,
@@ -1770,6 +1798,8 @@ export type InsertBackupSettings = z.infer<typeof insertBackupSettingsSchema>;
 export type BackupJob = typeof backupJobs.$inferSelect;
 export type SoundSettings = typeof soundSettings.$inferSelect;
 export type InsertSoundSettings = z.infer<typeof insertSoundSettingsSchema>;
+export type VibrationSettings = typeof vibrationSettings.$inferSelect;
+export type InsertVibrationSettings = z.infer<typeof insertVibrationSettingsSchema>;
 export type LateArrival = typeof lateArrivals.$inferSelect;
 export type InsertLateArrival = z.infer<typeof insertLateArrivalSchema>;
 

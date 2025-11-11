@@ -11375,6 +11375,107 @@ ${fromName || ''}
     }
   });
 
+  // Vibration Settings API
+  app.get("/api/settings/vibration", requireAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const organizationId = req.user!.organizationId;
+      
+      const vibrationSettingsResult = await db.select()
+        .from(vibrationSettings)
+        .where(
+          and(
+            eq(vibrationSettings.userId, userId),
+            eq(vibrationSettings.organizationId, organizationId)
+          )
+        )
+        .limit(1);
+        
+      if (vibrationSettingsResult.length === 0) {
+        // Return default settings if none exist
+        const defaultSettings = {
+          enabled: true,
+          notificationPattern: "notification",
+          successPattern: "success",
+          warningPattern: "warning",
+          errorPattern: "error",
+          arrivalPattern: "arrival",
+          alertPattern: "alert"
+        };
+        res.json(defaultSettings);
+      } else {
+        const settings = vibrationSettingsResult[0];
+        res.json({
+          enabled: settings.enabled,
+          notificationPattern: settings.notificationPattern,
+          successPattern: settings.successPattern,
+          warningPattern: settings.warningPattern,
+          errorPattern: settings.errorPattern,
+          arrivalPattern: settings.arrivalPattern,
+          alertPattern: settings.alertPattern
+        });
+      }
+    } catch (error: any) {
+      console.error("Error fetching vibration settings:", error);
+      res.status(500).json({ message: "Failed to fetch vibration settings" });
+    }
+  });
+
+  app.put("/api/settings/vibration", requireAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const organizationId = req.user!.organizationId;
+      const { enabled, notificationPattern, successPattern, warningPattern, errorPattern, arrivalPattern, alertPattern } = req.body;
+      
+      // Check if settings exist
+      const existingSettings = await db.select()
+        .from(vibrationSettings)
+        .where(
+          and(
+            eq(vibrationSettings.userId, userId),
+            eq(vibrationSettings.organizationId, organizationId)
+          )
+        )
+        .limit(1);
+        
+      const settingsData = {
+        enabled: enabled !== undefined ? enabled : true,
+        notificationPattern: notificationPattern || "notification",
+        successPattern: successPattern || "success",
+        warningPattern: warningPattern || "warning",
+        errorPattern: errorPattern || "error",
+        arrivalPattern: arrivalPattern || "arrival",
+        alertPattern: alertPattern || "alert",
+        updatedAt: new Date()
+      };
+      
+      if (existingSettings.length === 0) {
+        // Insert new settings
+        await db.insert(vibrationSettings).values({
+          userId,
+          organizationId,
+          ...settingsData
+        });
+      } else {
+        // Update existing settings
+        await db.update(vibrationSettings)
+          .set(settingsData)
+          .where(
+            and(
+              eq(vibrationSettings.userId, userId),
+              eq(vibrationSettings.organizationId, organizationId)
+            )
+          );
+      }
+      
+      res.json({ message: "Vibration settings updated successfully" });
+    } catch (error: any) {
+      console.error("Error updating vibration settings:", error);
+      res.status(500).json({ message: "Failed to update vibration settings" });
+    }
+  });
+
+
   // Backup API endpoints
   app.get("/api/backup/settings", requireAuth, async (req, res) => {
     try {
