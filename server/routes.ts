@@ -1804,6 +1804,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+
+  // Job settings routes
+  app.get('/api/settings/jobs/timestamp-visibility', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const settingKey = `org_${user.organizationId}_showTimestampOptions`;
+      
+      const setting = await db.query.settings.findFirst({
+        where: and(
+          eq(settings.category, 'jobs'),
+          eq(settings.key, settingKey)
+        )
+      });
+      
+      const showTimestampOptions = setting?.value === 'false' ? false : true;
+      
+      res.json({ showTimestampOptions });
+    } catch (error: any) {
+      console.error('Error fetching job timestamp visibility settings:', error);
+      res.status(500).json({ message: 'Failed to fetch job settings' });
+    }
+  });
+
+  app.post('/api/settings/jobs/timestamp-visibility', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { showTimestampOptions } = req.body;
+      
+      if (typeof showTimestampOptions !== 'boolean') {
+        return res.status(400).json({ message: 'showTimestampOptions must be a boolean' });
+      }
+      
+      const settingKey = `org_${user.organizationId}_showTimestampOptions`;
+      await storage.updateSetting('jobs', settingKey, String(showTimestampOptions));
+      
+      res.json({ message: 'Job timestamp visibility setting updated successfully' });
+    } catch (error: any) {
+      console.error('Error updating job timestamp visibility settings:', error);
+      res.status(500).json({ message: 'Failed to update job settings' });
+    }
+  });
   // Authentication routes (public)
   
   // COMPLETELY STEALTH AUTH ENDPOINT - Looks like regular data validation
