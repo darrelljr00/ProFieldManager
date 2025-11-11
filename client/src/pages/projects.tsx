@@ -1780,12 +1780,14 @@ export default function Jobs() {
                               />
                               <div className="flex-1">
                                 <div className="font-medium">{service.name}</div>
-                                <div className="text-sm text-muted-foreground">
-                                  ${parseFloat(service.price).toFixed(2)}
-                                  {service.materialsCost && parseFloat(service.materialsCost) > 0 && (
-                                    <span className="ml-1">+ ${parseFloat(service.materialsCost).toFixed(2)} materials</span>
-                                  )}
-                                </div>
+                                {(user.role === 'admin' || user.role === 'manager') && (
+                                  <div className="text-sm text-muted-foreground">
+                                    ${parseFloat(service.price).toFixed(2)}
+                                    {service.materialsCost && parseFloat(service.materialsCost) > 0 && (
+                                      <span className="ml-1">+ ${parseFloat(service.materialsCost).toFixed(2)} materials</span>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             </CommandItem>
                           ))}
@@ -1806,27 +1808,31 @@ export default function Jobs() {
                           .map((service: any) => (
                             <div key={service.id} className="flex justify-between text-sm">
                               <span>{service.name}</span>
-                              <span className="font-medium">
-                                ${(
-                                  parseFloat(service.price) +
-                                  parseFloat(service.materialsCost || 0)
-                                ).toFixed(2)}
-                              </span>
+                              {(user.role === 'admin' || user.role === 'manager') && (
+                                <span className="font-medium">
+                                  ${(
+                                    parseFloat(service.price) +
+                                    parseFloat(service.materialsCost || 0)
+                                  ).toFixed(2)}
+                                </span>
+                              )}
                             </div>
                           ))}
-                        <div className="border-t pt-2 flex justify-between font-medium">
-                          <span>Total:</span>
-                          <span>
-                            ${services
-                              .filter((s: any) => selectedServiceIds.includes(s.id))
-                              .reduce(
-                                (sum: number, s: any) =>
-                                  sum + parseFloat(s.price) + parseFloat(s.materialsCost || 0),
-                                0
-                              )
-                              .toFixed(2)}
-                          </span>
-                        </div>
+                        {(user.role === 'admin' || user.role === 'manager') && (
+                          <div className="border-t pt-2 flex justify-between font-medium">
+                            <span>Total:</span>
+                            <span>
+                              ${services
+                                .filter((s: any) => selectedServiceIds.includes(s.id))
+                                .reduce(
+                                  (sum: number, s: any) =>
+                                    sum + parseFloat(s.price) + parseFloat(s.materialsCost || 0),
+                                  0
+                                )
+                                .toFixed(2)}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
