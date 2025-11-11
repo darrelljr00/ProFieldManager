@@ -684,6 +684,11 @@ export default function Jobs() {
     },
   });
 
+  // Fetch job timestamp visibility settings
+  const { data: jobTimestampSettings } = useQuery<{ showTimestampOptions: boolean }>({
+    queryKey: ["/api/settings/jobs/timestamp-visibility"],
+  });
+
 
   const createJobMutation = useMutation({
     mutationFn: (data: any) => apiRequest("POST", "/api/projects", data),
@@ -2020,6 +2025,7 @@ export default function Jobs() {
               </div>
 
               {/* Image Timestamp Settings */}
+              {jobTimestampSettings?.showTimestampOptions !== false && (
               <div className="space-y-4 p-4 border rounded-lg bg-gray-50 dark:bg-gray-800">
                 <h4 className="font-semibold text-sm">Image Timestamp Settings</h4>
                 <div className="space-y-2">
@@ -2115,6 +2121,7 @@ export default function Jobs() {
                   </div>
                 </div>
               </div>
+              )}
 
               {/* Waiver Documents Section */}
               <div className="space-y-4 p-4 border rounded-lg bg-gray-50 dark:bg-gray-800">
