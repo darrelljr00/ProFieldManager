@@ -1809,7 +1809,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/settings/jobs/timestamp-visibility', requireAuth, async (req, res) => {
     try {
       const user = getAuthenticatedUser(req);
-      const settingKey = `org_${user.organizationId}_showTimestampOptions`;
+      const settingKey = `jobs_org_${user.organizationId}_showTimestampOptions`;
       
       const setting = await db.query.settings.findFirst({
         where: and(
@@ -1836,7 +1836,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'showTimestampOptions must be a boolean' });
       }
       
-      const settingKey = `org_${user.organizationId}_showTimestampOptions`;
+      const settingKey = `jobs_org_${user.organizationId}_showTimestampOptions`;
       await storage.updateSetting('jobs', settingKey, String(showTimestampOptions));
       
       res.json({ message: 'Job timestamp visibility setting updated successfully' });

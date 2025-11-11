@@ -688,6 +688,7 @@ export default function Jobs() {
   const { data: jobTimestampSettings } = useQuery<{ showTimestampOptions: boolean }>({
     queryKey: ["/api/settings/jobs/timestamp-visibility"],
     staleTime: 0,  // Always fetch fresh data for this setting
+    refetchOnMount: true,  // Fetch on component mount
   });
 
 
