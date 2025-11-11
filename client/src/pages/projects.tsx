@@ -2002,7 +2002,17 @@ export default function Jobs() {
                   <div className="mt-2 flex items-center space-x-2 text-sm text-blue-600 dark:text-blue-400" data-testid="text-estimated-time">
                     <Clock className="h-4 w-4" />
                     <span className="font-medium">
-                      Estimated Time to Complete: {estimatedTotalTime.toFixed(1)} {estimatedTotalTime === 1 ? 'hour' : 'hours'}
+                      Estimated Time to Complete: {(() => {
+                        const hours = Math.floor(estimatedTotalTime);
+                        const minutes = Math.round((estimatedTotalTime - hours) * 60);
+                        if (hours === 0) {
+                          return `${minutes}min`;
+                        } else if (minutes === 0) {
+                          return `${hours}hr`;
+                        } else {
+                          return `${hours}hr ${minutes}min`;
+                        }
+                      })()}
                     </span>
                   </div>
                 )}
