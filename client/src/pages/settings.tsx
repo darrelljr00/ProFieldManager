@@ -245,6 +245,10 @@ type DialogBoxConfig = {
   }[];
 };
 
+type JobTimestampSettings = {
+  showTimestampOptions: boolean;
+};
+
 export default function Settings() {
   const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -324,6 +328,11 @@ export default function Settings() {
   // Dispatch routing settings query
   const { data: dispatchSettings, isLoading: dispatchLoading } = useQuery<DispatchRoutingSettings>({
     queryKey: ["/api/settings/dispatch-routing"],
+  });
+
+  // Job timestamp visibility settings query
+  const { data: jobTimestampSettings } = useQuery<JobTimestampSettings>({
+    queryKey: ["/api/settings/jobs/timestamp-visibility"],
   });
 
   // Get organization users for admin dashboard management
@@ -752,6 +761,25 @@ export default function Settings() {
       toast({
         title: "Error",
         description: error.message || "Failed to save integration settings",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const jobTimestampMutation = useMutation({
+    mutationFn: (data: { showTimestampOptions: boolean }) =>
+      apiRequest("POST", "/api/settings/jobs/timestamp-visibility", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/jobs/timestamp-visibility"] });
+      toast({
+        title: "Success",
+        description: "Job timestamp settings saved successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save job timestamp settings",
         variant: "destructive",
       });
     },
@@ -1795,6 +1823,21 @@ export default function Settings() {
                       </p>
                     </div>
                     <Switch defaultChecked={true} />
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Show Image Timestamp Options</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Display image timestamp settings when creating new jobs
+                      </p>
+                    </div>
+                    <Switch 
+                      defaultChecked={jobTimestampSettings?.showTimestampOptions ?? true}
+                      onCheckedChange={(checked) => {
+                        jobTimestampMutation.mutate({ showTimestampOptions: checked });
+                      }}
+                    />
                   </div>
                 </div>
               </div>
