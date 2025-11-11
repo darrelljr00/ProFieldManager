@@ -596,22 +596,6 @@ export default function Jobs() {
   // Check if user is admin or manager (must be after useAuth)
   const isAdminOrManager = user?.role === 'admin' || user?.role === 'manager';
 
-  // Auto-calculate budget when services are selected
-  useEffect(() => {
-    if (selectedServiceIds.length > 0 && services.length > 0) {
-      const total = services
-        .filter((s: any) => selectedServiceIds.includes(s.id))
-        .reduce(
-          (sum: number, s: any) =>
-            sum + parseFloat(s.price) + parseFloat(s.materialsCost || 0),
-          0
-        );
-      setCalculatedBudget(total.toFixed(2));
-    } else {
-      setCalculatedBudget("");
-    }
-  }, [selectedServiceIds, services]);
-
   // Check if device is mobile
   useEffect(() => {
     const checkIsMobile = () => {
@@ -1045,6 +1029,22 @@ export default function Jobs() {
     },
   });
 
+  
+  // Auto-calculate budget when services are selected
+  useEffect(() => {
+    if (selectedServiceIds.length > 0 && services.length > 0) {
+      const total = services
+        .filter((s: any) => selectedServiceIds.includes(s.id))
+        .reduce(
+          (sum: number, s: any) =>
+            sum + parseFloat(s.price) + parseFloat(s.materialsCost || 0),
+          0
+        );
+      setCalculatedBudget(total.toFixed(2));
+    } else {
+      setCalculatedBudget("");
+    }
+  }, [selectedServiceIds, services]);
   const handleCreateJob = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
