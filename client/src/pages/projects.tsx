@@ -687,6 +687,7 @@ export default function Jobs() {
   // Fetch job timestamp visibility settings
   const { data: jobTimestampSettings } = useQuery<{ showTimestampOptions: boolean }>({
     queryKey: ["/api/settings/jobs/timestamp-visibility"],
+    staleTime: 0,  // Always fetch fresh data for this setting
   });
 
 
