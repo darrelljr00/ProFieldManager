@@ -572,6 +572,7 @@ export default function Jobs() {
   });
   const [masterSearchResults, setMasterSearchResults] = useState<any[]>([]);
   const [isSearchingMaster, setIsSearchingMaster] = useState(false);
+  const [calculatedBudget, setCalculatedBudget] = useState<string>("");
   
   // OCR-related state
   const [isProcessingOCR, setIsProcessingOCR] = useState(false);
@@ -594,6 +595,22 @@ export default function Jobs() {
   
   // Check if user is admin or manager (must be after useAuth)
   const isAdminOrManager = user?.role === 'admin' || user?.role === 'manager';
+
+  // Auto-calculate budget when services are selected
+  useEffect(() => {
+    if (selectedServiceIds.length > 0 && services.length > 0) {
+      const total = services
+        .filter((s: any) => selectedServiceIds.includes(s.id))
+        .reduce(
+          (sum: number, s: any) =>
+            sum + parseFloat(s.price) + parseFloat(s.materialsCost || 0),
+          0
+        );
+      setCalculatedBudget(total.toFixed(2));
+    } else {
+      setCalculatedBudget("");
+    }
+  }, [selectedServiceIds, services]);
 
   // Check if device is mobile
   useEffect(() => {
@@ -1954,8 +1971,15 @@ export default function Jobs() {
                   min="0"
                   max="99999999.99"
                   placeholder="0.00"
+                  value={calculatedBudget || undefined}
+                  onChange={(e) => setCalculatedBudget(e.target.value)}
                   defaultValue={quoteConversionData?.budget || undefined}
                 />
+                {selectedServiceIds.length > 0 && calculatedBudget && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Auto-calculated from selected services (you can adjust manually)
+                  </p>
+                )}
               </div>
 
               {/* Image Timestamp Settings */}
