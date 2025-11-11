@@ -510,6 +510,18 @@ export const projects = pgTable("projects", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+export const jobsServices = pgTable("jobs_services", {
+  id: serial("id").primaryKey(),
+  jobId: integer("job_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  serviceId: integer("service_id").notNull().references(() => services.id),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  priceSnapshot: decimal("price_snapshot", { precision: 10, scale: 2 }).notNull(),
+  materialsCostSnapshot: decimal("materials_cost_snapshot", { precision: 10, scale: 2 }).notNull(),
+  estimatedTimeSnapshot: integer("estimated_time_snapshot").notNull(),
+  quantity: integer("quantity").default(1).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const projectUsers = pgTable("project_users", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
@@ -1853,6 +1865,22 @@ export const insertServiceSchema = createInsertSchema(services, {
 
 export type InsertService = z.infer<typeof insertServiceSchema>;
 export type Service = typeof services.$inferSelect;
+
+export const insertJobServiceSchema = createInsertSchema(jobsServices, {
+  jobId: z.number(),
+  serviceId: z.number(),
+  organizationId: z.number(),
+  priceSnapshot: z.string().regex(/^\d+(\.\d{1,2})?$/, "Price must be a valid decimal"),
+  materialsCostSnapshot: z.string().regex(/^\d+(\.\d{1,2})?$/, "Materials cost must be a valid decimal"),
+  estimatedTimeSnapshot: z.number().positive("Estimated time must be positive"),
+  quantity: z.number().positive("Quantity must be positive").default(1),
+}).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertJobService = z.infer<typeof insertJobServiceSchema>;
+export type JobService = typeof jobsServices.$inferSelect;
 
 export const insertInvoiceLineItemSchema = z.object({
   invoiceId: z.number(),
