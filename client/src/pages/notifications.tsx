@@ -8,6 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { vibrate } from "@/lib/vibration";
 import { 
   Bell, 
   BellOff, 
@@ -198,6 +199,12 @@ export default function NotificationsPage() {
 
         // Show toast for new notifications
         if (eventType === 'notification_created' && data) {
+          const priority = data.priority || 'normal';
+          const vibrationType = priority === 'urgent' ? 'alert' : 
+                               priority === 'high' ? 'warning' : 
+                               'notification';
+          vibrate(vibrationType);
+          
           toast({
             title: "New Notification",
             description: data.title || data.message || "You have a new notification",

@@ -4,6 +4,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { buildApiUrl, getAuthHeaders } from "@/lib/api-config";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { vibrate } from "@/lib/vibration";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -735,12 +736,14 @@ export default function Jobs() {
     mutationFn: (projectId: number) => apiRequest("POST", `/api/projects/${projectId}/start-job`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      vibrate('success');
       toast({
         title: "Job Started",
         description: "Job has been started and time tracking is active",
       });
     },
     onError: (error) => {
+      vibrate('error');
       toast({
         title: "Error",
         description: "Failed to start job",
@@ -757,12 +760,14 @@ export default function Jobs() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
       setViewDialogOpen(false);
+      vibrate('success');
       toast({
         title: "Job Completed",
         description: "Job has been marked as completed successfully",
       });
     },
     onError: (error) => {
+      vibrate('error');
       toast({
         title: "Error",
         description: "Failed to mark job as complete",
