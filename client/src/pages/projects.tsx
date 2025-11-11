@@ -2003,8 +2003,9 @@ export default function Jobs() {
                     <Clock className="h-4 w-4" />
                     <span className="font-medium">
                       Estimated Time to Complete: {(() => {
-                        const hours = Math.floor(estimatedTotalTime);
-                        const minutes = Math.round((estimatedTotalTime - hours) * 60);
+                        // estimatedTotalTime is in minutes, convert to hours and minutes
+                        const hours = Math.floor(estimatedTotalTime / 60);
+                        const minutes = estimatedTotalTime % 60;
                         if (hours === 0) {
                           return `${minutes}min`;
                         } else if (minutes === 0) {
