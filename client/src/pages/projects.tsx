@@ -15,7 +15,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Calendar, Users, CheckCircle, Clock, AlertCircle, Folder, Settings, MapPin, Route, Star, Smartphone, Eye, Image, FileText, CheckSquare, Upload, Camera, DollarSign, Download, Trash2, Archive, User as UserIcon, Search, Filter, X, XCircle, Play, Zap } from "lucide-react";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Plus, Calendar, Users, CheckCircle, Clock, AlertCircle, Folder, Settings, MapPin, Route, Star, Smartphone, Eye, Image, FileText, CheckSquare, Upload, Camera, DollarSign, Download, Trash2, Archive, User as UserIcon, Search, Filter, X, XCircle, Play, Zap, Wrench } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { format } from "date-fns";
 import type { Project, Customer, User } from "@shared/schema";
@@ -519,6 +522,7 @@ export default function Jobs() {
   const [bulkAssignmentRole, setBulkAssignmentRole] = useState<string>("member");
   const [includeWaivers, setIncludeWaivers] = useState(false);
   const [selectedWaivers, setSelectedWaivers] = useState<number[]>([]);
+  const [selectedServiceIds, setSelectedServiceIds] = useState<number[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // State for Smart Capture feature
@@ -634,6 +638,10 @@ export default function Jobs() {
 
   const { data: allUsers = [] } = useQuery<User[]>({
     queryKey: ["/api/users/assignment"],
+  });
+
+  const { data: services = [] } = useQuery<any[]>({
+    queryKey: ["/api/services"],
   });
 
   // Fetch project files when viewing details
@@ -1062,6 +1070,17 @@ export default function Jobs() {
       seriesEndType: isRecurring ? seriesEndType : null,
       seriesEndDate: isRecurring && seriesEndType === 'date' ? seriesEndDate : null,
       maxOccurrences: isRecurring && seriesEndType === 'count' ? maxOccurrences : null,
+      // Services
+      services: selectedServiceIds.map(id => {
+        const service = services.find((s: any) => s.id === id);
+        return {
+          serviceId: id,
+          priceSnapshot: service?.price,
+          materialsCostSnapshot: service?.materialsCost || "0",
+          estimatedTimeSnapshot: service?.estimatedCompletionTime || 0,
+          quantity: 1,
+        };
+      }),
     };
   createJobMutation.mutate(data);
   };
@@ -1719,6 +1738,99 @@ export default function Jobs() {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              {/* Service Selection */}
+              <div className="space-y-2">
+                <Label>Services (Optional)</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      className="w-full justify-between"
+                      type="button"
+                    >
+                      <Wrench className="mr-2 h-4 w-4" />
+                      {selectedServiceIds.length > 0
+                        ? `${selectedServiceIds.length} service(s) selected`
+                        : "Select services"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[400px] p-0">
+                    <Command>
+                      <CommandInput placeholder="Search services..." />
+                      <CommandEmpty>No services found.</CommandEmpty>
+                      <CommandList>
+                        <CommandGroup>
+                          {services.map((service: any) => (
+                            <CommandItem
+                              key={service.id}
+                              onSelect={() => {
+                                setSelectedServiceIds((prev) =>
+                                  prev.includes(service.id)
+                                    ? prev.filter((id) => id !== service.id)
+                                    : [...prev, service.id]
+                                );
+                              }}
+                            >
+                              <Checkbox
+                                checked={selectedServiceIds.includes(service.id)}
+                                className="mr-2"
+                              />
+                              <div className="flex-1">
+                                <div className="font-medium">{service.name}</div>
+                                <div className="text-sm text-muted-foreground">
+                                  ${parseFloat(service.price).toFixed(2)}
+                                  {service.materialsCost && parseFloat(service.materialsCost) > 0 && (
+                                    <span className="ml-1">+ ${parseFloat(service.materialsCost).toFixed(2)} materials</span>
+                                  )}
+                                </div>
+                              </div>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+
+                {/* Service Summary */}
+                {selectedServiceIds.length > 0 && (
+                  <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200">
+                    <CardContent className="pt-4">
+                      <div className="space-y-2">
+                        <h4 className="font-medium text-sm">Selected Services:</h4>
+                        {services
+                          .filter((s: any) => selectedServiceIds.includes(s.id))
+                          .map((service: any) => (
+                            <div key={service.id} className="flex justify-between text-sm">
+                              <span>{service.name}</span>
+                              <span className="font-medium">
+                                ${(
+                                  parseFloat(service.price) +
+                                  parseFloat(service.materialsCost || 0)
+                                ).toFixed(2)}
+                              </span>
+                            </div>
+                          ))}
+                        <div className="border-t pt-2 flex justify-between font-medium">
+                          <span>Total:</span>
+                          <span>
+                            ${services
+                              .filter((s: any) => selectedServiceIds.includes(s.id))
+                              .reduce(
+                                (sum: number, s: any) =>
+                                  sum + parseFloat(s.price) + parseFloat(s.materialsCost || 0),
+                                0
+                              )
+                              .toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
 
               <div>
