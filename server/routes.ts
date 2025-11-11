@@ -7859,6 +7859,29 @@ ${fromName || ''}
       
       const project = await storage.createProject(projectData);
       
+      // Handle service associations
+      const { services } = req.body;
+      if (services && Array.isArray(services) && services.length > 0) {
+        try {
+          const user = getAuthenticatedUser(req);
+          for (const service of services) {
+            await db.insert(jobsServices).values({
+              jobId: project.id,
+              serviceId: service.serviceId,
+              priceSnapshot: service.priceSnapshot,
+              materialsCostSnapshot: service.materialsCostSnapshot || "0",
+              estimatedTimeSnapshot: service.estimatedTimeSnapshot || 0,
+              quantity: service.quantity || 1,
+              organizationId: user.organizationId,
+            });
+          }
+          console.log(`✅ Associated ${services.length} service(s) with project ${project.id}`);
+        } catch (servicesError) {
+          console.error("❌ Error associating services with project:", servicesError);
+          // Continue with project creation even if service association fails
+        }
+      }
+      
       // Automatically create draft invoice for Smart Capture enabled projects
       if (enableSmartCapture) {
         try {
