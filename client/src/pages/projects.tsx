@@ -1780,7 +1780,7 @@ export default function Jobs() {
                               />
                               <div className="flex-1">
                                 <div className="font-medium">{service.name}</div>
-                                {(user.role === 'admin' || user.role === 'manager') && (
+                                {user && (user.role === 'admin' || user.role === 'manager') && (
                                   <div className="text-sm text-muted-foreground">
                                     ${parseFloat(service.price).toFixed(2)}
                                     {service.materialsCost && parseFloat(service.materialsCost) > 0 && (
@@ -1808,7 +1808,7 @@ export default function Jobs() {
                           .map((service: any) => (
                             <div key={service.id} className="flex justify-between text-sm">
                               <span>{service.name}</span>
-                              {(user.role === 'admin' || user.role === 'manager') && (
+                              {user && (user.role === 'admin' || user.role === 'manager') && (
                                 <span className="font-medium">
                                   ${(
                                     parseFloat(service.price) +
@@ -1818,7 +1818,7 @@ export default function Jobs() {
                               )}
                             </div>
                           ))}
-                        {(user.role === 'admin' || user.role === 'manager') && (
+                        {user && (user.role === 'admin' || user.role === 'manager') && (
                           <div className="border-t pt-2 flex justify-between font-medium">
                             <span>Total:</span>
                             <span>
