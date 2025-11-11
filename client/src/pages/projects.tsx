@@ -523,6 +523,7 @@ export default function Jobs() {
   const [includeWaivers, setIncludeWaivers] = useState(false);
   const [selectedWaivers, setSelectedWaivers] = useState<number[]>([]);
   const [selectedServiceIds, setSelectedServiceIds] = useState<number[]>([]);
+  const [estimatedTotalTime, setEstimatedTotalTime] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // State for Smart Capture feature
@@ -1045,6 +1046,23 @@ export default function Jobs() {
       setCalculatedBudget("");
     }
   }, [selectedServiceIds, services]);
+
+  // Calculate total estimated time from selected services
+  useEffect(() => {
+    if (selectedServiceIds.length > 0 && services.length > 0) {
+      const totalTime = services
+        .filter((s: any) => selectedServiceIds.includes(s.id))
+        .reduce(
+          (sum: number, s: any) =>
+            sum + Number(s.estimatedCompletionTime || 0),
+          0
+        );
+      setEstimatedTotalTime(totalTime);
+    } else {
+      setEstimatedTotalTime(0);
+    }
+  }, [selectedServiceIds, services]);
+
   const handleCreateJob = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -1979,6 +1997,14 @@ export default function Jobs() {
                   <p className="text-xs text-muted-foreground mt-1">
                     Auto-calculated from selected services (you can adjust manually)
                   </p>
+                )}
+                {estimatedTotalTime > 0 && (
+                  <div className="mt-2 flex items-center space-x-2 text-sm text-blue-600 dark:text-blue-400" data-testid="text-estimated-time">
+                    <Clock className="h-4 w-4" />
+                    <span className="font-medium">
+                      Estimated Time to Complete: {estimatedTotalTime.toFixed(1)} {estimatedTotalTime === 1 ? 'hour' : 'hours'}
+                    </span>
+                  </div>
                 )}
               </div>
 
