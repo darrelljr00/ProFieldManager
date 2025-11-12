@@ -7800,7 +7800,7 @@ ${fromName || ''}
 
       await storage.deleteUser(userId, adminUser.id);
       
-      broadcastMessage(userToDelete.organizationId, {
+      broadcastToWebUsers(userToDelete.organizationId, {
         type: 'user_deleted',
         userId: userId,
         organizationId: userToDelete.organizationId
