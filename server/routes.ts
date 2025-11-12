@@ -7831,8 +7831,11 @@ ${fromName || ''}
       res.status(500).json({ message: `Error deleting user: ${error}` });
     }
   });
+
+  // Password reset request endpoint
+  app.post("/api/auth/reset-password-request", async (req, res) => {
+    try {
       const { email } = req.body;
-      
       if (!email) {
         return res.status(400).json({ error: "Email is required" });
       }

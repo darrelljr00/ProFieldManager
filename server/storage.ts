@@ -887,6 +887,7 @@ export class DatabaseStorage implements IStorage {
 
       await tx.delete(userSessions).where(eq(userSessions.userId, id));
     });
+  }
 
   async hardDeleteUser(id: number, deletedBy: number): Promise<{ success: boolean; message: string; dependencies?: any }> {
     // Check if user exists and is inactive
@@ -899,38 +900,95 @@ export class DatabaseStorage implements IStorage {
       return { success: false, message: "Can only hard delete inactive users. Please deactivate the user first." };
     }
 
-    // TEMPORARILY DISABLED: Hard delete requires dependency analysis and data retention safeguards
-    // The system has 100+ foreign key relationships that need to be handled properly:
-    // - Business records (invoices, jobs, payments) must be retained and anonymized
-    // - Join tables (project_users, meetings) need cleanup
-    // - Compliance requires audit trail and cooling-off period
-    
-    return {
-      success: false,
-      message: "Hard delete is currently disabled. Users can be deactivated (soft deleted) but not permanently removed. Contact support if permanent deletion is required for compliance reasons."
+    // Check for critical business data dependencies
+    const dependencies: any = {
+      jobs: 0,
+      invoices: 0,
+      quotes: 0,
+      expenses: 0,
+      customers: 0,
+      payments: 0,
+      internalMessages: 0
     };
-    
-    /* Full implementation would include:
-    // 1. Dependency analysis (check for invoices, jobs, payments)
-    // 2. Anonymize retained business records
-    // 3. Delete ephemeral data (sessions, notifications)
-    // 4. Delete join table entries
-    // 5. Log to immutable audit table
-    // 6. Delete user record
-    
-    await db.transaction(async (tx) => {
-      await tx.delete(userSessions).where(eq(userSessions.userId, id));
-      await tx.delete(users).where(eq(users.id, id));
-    });
-    
-    console.log(`Hard deleted user ${id} by admin ${deletedBy}`);
-    return { success: true, message: "User permanently deleted" };
-    */
-  }
-      })
-      .where(eq(organizations.id, id))
-      .returning();
-    return org;
+
+    try {
+      // Count critical business records
+      const [jobCount] = await db.select({ count: sql<number>`count(*)` })
+        .from(jobs)
+        .where(or(eq(jobs.assignedTo, id), eq(jobs.createdBy, id)));
+      dependencies.jobs = Number(jobCount.count);
+
+      const [invoiceCount] = await db.select({ count: sql<number>`count(*)` })
+        .from(invoices)
+        .where(eq(invoices.createdBy, id));
+      dependencies.invoices = Number(invoiceCount.count);
+
+      const [quoteCount] = await db.select({ count: sql<number>`count(*)` })
+        .from(quotes)
+        .where(eq(quotes.createdBy, id));
+      dependencies.quotes = Number(quoteCount.count);
+
+      const [expenseCount] = await db.select({ count: sql<number>`count(*)` })
+        .from(expenses)
+        .where(eq(expenses.userId, id));
+      dependencies.expenses = Number(expenseCount.count);
+
+      const [customerCount] = await db.select({ count: sql<number>`count(*)` })
+        .from(customers)
+        .where(eq(customers.createdBy, id));
+      dependencies.customers = Number(customerCount.count);
+
+      const [paymentCount] = await db.select({ count: sql<number>`count(*)` })
+        .from(payments)
+        .where(eq(payments.createdBy, id));
+      dependencies.payments = Number(paymentCount.count);
+
+      const [messageCount] = await db.select({ count: sql<number>`count(*)` })
+        .from(internalMessages)
+        .where(eq(internalMessages.senderId, id));
+      dependencies.internalMessages = Number(messageCount.count);
+
+      // Check if user has any critical data
+      const hasData = Object.values(dependencies).some((count: any) => count > 0);
+
+      if (hasData) {
+        return {
+          success: false,
+          message: `Cannot permanently delete user with existing business records. User has: ${
+            Object.entries(dependencies)
+              .filter(([_, count]) => count > 0)
+              .map(([key, count]) => `${count} ${key}`)
+              .join(', ')
+          }. User will remain deactivated.`,
+          dependencies
+        };
+      }
+
+      // Safe to hard delete - user has no critical business data
+      await db.transaction(async (tx) => {
+        // Delete ephemeral data
+        await tx.delete(userSessions).where(eq(userSessions.userId, id));
+        await tx.delete(notifications).where(eq(notifications.userId, id));
+        
+        // Delete the user record
+        await tx.delete(users).where(eq(users.id, id));
+      });
+
+      console.log(`✅ Hard deleted user ${id} (${user.username}) by admin ${deletedBy} - no business data dependencies`);
+      return { 
+        success: true, 
+        message: "User permanently deleted successfully. User had no business records.",
+        dependencies 
+      };
+
+    } catch (error) {
+      console.error("Error during hard delete dependency check:", error);
+      return {
+        success: false,
+        message: `Failed to delete user: ${error}`,
+        dependencies
+      };
+    }
   }
 
   // Customer methods
