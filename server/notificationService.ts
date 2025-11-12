@@ -118,6 +118,8 @@ export class NotificationService {
       'invoice_paid': 'invoicePaid',
       'stock_alert': 'stockAlert',
       'schedule_reminder': 'scheduleReminder',
+      'user_created': 'userCreated',
+      'password_reset': 'passwordReset',
     };
 
     const settingPrefix = typeMap[type];
@@ -564,4 +566,286 @@ export const createInvoicePaidNotification = async (
     priority: 'normal',
     category: 'team_based',
   });
+};
+
+// User Creation Notification
+export const createUserCreatedNotification = async (
+  userId: number,
+  organizationId: number,
+  newUserName: string,
+  newUserId: number,
+  createdBy: number
+) => {
+  await NotificationService.createNotification({
+    type: 'user_created',
+    title: 'New User Created',
+    message: `A new user account has been created for ${newUserName}`,
+    userId,
+    organizationId,
+    relatedEntityType: 'user',
+    relatedEntityId: newUserId,
+    priority: 'normal',
+    category: 'team_based',
+    createdBy,
+  });
+};
+
+// Password Reset Notification
+export const createPasswordResetNotification = async (
+  userId: number,
+  organizationId: number,
+  userName: string,
+  targetUserId: number,
+  resetBy: number
+) => {
+  await NotificationService.createNotification({
+    type: 'password_reset',
+    title: 'Password Reset',
+    message: `Password has been reset for ${userName}`,
+    userId,
+    organizationId,
+    relatedEntityType: 'user',
+    relatedEntityId: targetUserId,
+    priority: 'high',
+    category: 'team_based',
+    createdBy: resetBy,
+  });
+};
+
+// Helper to send notifications to multiple recipients (admins + user)
+export const notifyUserCreation = async (
+  newUser: { id: number; firstName: string; lastName: string | null; email: string },
+  organizationId: number,
+  createdBy: number,
+  setupToken: string,
+  adminUsers: Array<{ id: number; email: string; firstName: string; lastName: string | null }>
+) => {
+  const sendgridApiKey = process.env.SENDGRID_API_KEY;
+  
+  // Get base URL for password setup link (production-ready)
+  const baseUrl = process.env.BASE_URL || 
+    (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : '');
+  const setupUrl = baseUrl ? `${baseUrl}/setup-password?token=${setupToken}` : '';
+  const userName = `${newUser.firstName} ${newUser.lastName || ''}`.trim();
+
+  // Send emails only if SendGrid is configured
+  let emailsSent = false;
+  if (sendgridApiKey && baseUrl) {
+    const sgMail = require('@sendgrid/mail');
+    sgMail.setApiKey(sendgridApiKey);
+
+    // Email to new user with setup link
+    try {
+      await sgMail.send({
+        to: newUser.email,
+        from: {
+          email: 'notifications@profieldmanager.com',
+          name: 'Pro Field Manager'
+        },
+        subject: 'Welcome to Pro Field Manager - Set Your Password',
+        html: `
+          <!DOCTYPE html>
+          <html>
+          <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h2 style="color: #10b981;">Welcome to Pro Field Manager!</h2>
+              <p>Hello ${newUser.firstName},</p>
+              <p>An account has been created for you. To get started, please set your password by clicking the link below:</p>
+              <div style="margin: 30px 0;">
+                <a href="${setupUrl}" style="background-color: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Set Your Password</a>
+              </div>
+              <p style="color: #6b7280; font-size: 14px;">This link will expire in 24 hours.</p>
+              <p style="color: #6b7280; font-size: 14px;">If you did not expect this email, please contact your administrator.</p>
+            </div>
+          </body>
+          </html>
+        `
+      });
+      console.log(`📧 Setup email sent to new user: ${newUser.email}`);
+      emailsSent = true;
+    } catch (error) {
+      console.error('Error sending setup email to new user:', error);
+    }
+  } else {
+    console.log('📧 SendGrid or BASE_URL not configured, skipping user creation email');
+  }
+
+  // Create in-app notification for new user
+  await NotificationService.createNotification({
+    type: 'user_created',
+    title: 'Welcome to Pro Field Manager',
+    message: 'Your account has been created. Please check your email to set your password.',
+    userId: newUser.id,
+    organizationId,
+    priority: 'high',
+    category: 'user_based',
+    createdBy,
+  });
+
+  // Notify all admins/managers
+  for (const admin of adminUsers) {
+    // Send email notification to admin (only if SendGrid is configured)
+    if (emailsSent && sendgridApiKey) {
+      const sgMail = require('@sendgrid/mail');
+      sgMail.setApiKey(sendgridApiKey);
+      
+      try {
+        await sgMail.send({
+          to: admin.email,
+          from: {
+            email: 'notifications@profieldmanager.com',
+            name: 'Pro Field Manager'
+          },
+          subject: 'New User Created',
+          html: `
+            <!DOCTYPE html>
+            <html>
+            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+              <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                <h2 style="color: #10b981;">New User Created</h2>
+                <p>Hello ${admin.firstName},</p>
+                <p>A new user account has been created in your organization:</p>
+                <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                  <p style="margin: 5px 0;"><strong>Name:</strong> ${userName}</p>
+                  <p style="margin: 5px 0;"><strong>Email:</strong> ${newUser.email}</p>
+                </div>
+                <p>The user has been sent an email to set their password.</p>
+              </div>
+            </body>
+            </html>
+          `
+        });
+      } catch (error) {
+        console.error(`Error sending admin notification email to ${admin.email}:`, error);
+      }
+    }
+
+    // Create in-app notification for admin
+    await createUserCreatedNotification(
+      admin.id,
+      organizationId,
+      userName,
+      newUser.id,
+      createdBy
+    );
+  }
+};
+
+// Helper to send password reset notifications
+export const notifyPasswordReset = async (
+  targetUser: { id: number; firstName: string; lastName: string | null; email: string },
+  organizationId: number,
+  resetBy: number,
+  resetToken: string,
+  adminUsers: Array<{ id: number; email: string; firstName: string; lastName: string | null }>
+) => {
+  const sendgridApiKey = process.env.SENDGRID_API_KEY;
+  
+  // Get base URL for password reset link (production-ready)
+  const baseUrl = process.env.BASE_URL || 
+    (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : '');
+  const resetUrl = baseUrl ? `${baseUrl}/reset-password?token=${resetToken}` : '';
+  const userName = `${targetUser.firstName} ${targetUser.lastName || ''}`.trim();
+
+  // Send emails only if SendGrid is configured
+  let emailsSent = false;
+  if (sendgridApiKey && baseUrl) {
+    const sgMail = require('@sendgrid/mail');
+    sgMail.setApiKey(sendgridApiKey);
+
+    // Email to user whose password was reset
+    try {
+      await sgMail.send({
+        to: targetUser.email,
+        from: {
+          email: 'notifications@profieldmanager.com',
+          name: 'Pro Field Manager'
+        },
+        subject: 'Password Reset - Pro Field Manager',
+        html: `
+          <!DOCTYPE html>
+          <html>
+          <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h2 style="color: #10b981;">Password Reset Request</h2>
+              <p>Hello ${targetUser.firstName},</p>
+              <p>A password reset has been requested for your account. Click the link below to set a new password:</p>
+              <div style="margin: 30px 0;">
+                <a href="${resetUrl}" style="background-color: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Reset Your Password</a>
+              </div>
+              <p style="color: #6b7280; font-size: 14px;">This link will expire in 24 hours.</p>
+              <p style="color: #6b7280; font-size: 14px;">If you did not request this reset, please contact your administrator immediately.</p>
+            </div>
+          </body>
+          </html>
+        `
+      });
+      console.log(`📧 Password reset email sent to: ${targetUser.email}`);
+      emailsSent = true;
+    } catch (error) {
+      console.error('Error sending password reset email:', error);
+    }
+  } else {
+    console.log('📧 SendGrid or BASE_URL not configured, skipping password reset email');
+  }
+
+  // Create in-app notification for user
+  await NotificationService.createNotification({
+    type: 'password_reset',
+    title: 'Password Reset',
+    message: 'A password reset has been requested for your account. Please check your email.',
+    userId: targetUser.id,
+    organizationId,
+    priority: 'high',
+    category: 'user_based',
+    createdBy: resetBy,
+  });
+
+  // Notify all admins/managers
+  for (const admin of adminUsers) {
+    // Send email notification to admin (only if SendGrid is configured)
+    if (emailsSent && sendgridApiKey) {
+      const sgMail = require('@sendgrid/mail');
+      sgMail.setApiKey(sendgridApiKey);
+      
+      try {
+        await sgMail.send({
+          to: admin.email,
+          from: {
+            email: 'notifications@profieldmanager.com',
+            name: 'Pro Field Manager'
+          },
+          subject: 'Password Reset Notification',
+          html: `
+            <!DOCTYPE html>
+            <html>
+            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+              <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                <h2 style="color: #10b981;">Password Reset Notification</h2>
+                <p>Hello ${admin.firstName},</p>
+                <p>A password reset has been initiated for a user in your organization:</p>
+                <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                  <p style="margin: 5px 0;"><strong>User:</strong> ${userName}</p>
+                  <p style="margin: 5px 0;"><strong>Email:</strong> ${targetUser.email}</p>
+                </div>
+                <p>The user has been sent a secure link to reset their password.</p>
+              </div>
+            </body>
+            </html>
+          `
+        });
+      } catch (error) {
+        console.error(`Error sending admin notification email to ${admin.email}:`, error);
+      }
+    }
+
+    // Create in-app notification for admin
+    await createPasswordResetNotification(
+      admin.id,
+      organizationId,
+      userName,
+      targetUser.id,
+      resetBy
+    );
+  }
 };
