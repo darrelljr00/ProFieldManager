@@ -29,6 +29,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { HelpDocumentation } from "@/components/help-documentation";
 import { WalkthroughPlayer, BUILTIN_WALKTHROUGHS, InteractiveWalkthrough } from "@/components/interactive-walkthrough";
+import { walkthroughsByCategory } from "@/data/walkthroughs";
 
 interface Tutorial {
   id: number;
@@ -480,7 +481,8 @@ export default function TutorialsPage() {
         </TabsContent>
 
         <TabsContent value="walkthroughs" className="space-y-6">
-          <div className="mb-6">
+          {/* Core Walkthroughs Section */}
+          <div className="mb-8">
             <h3 className="text-lg font-semibold mb-4">Quick Start Walkthroughs</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
               <Button
@@ -516,57 +518,125 @@ export default function TutorialsPage() {
                 <span className="text-sm">Create Task</span>
               </Button>
             </div>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {BUILTIN_WALKTHROUGHS.map((walkthrough) => (
-              <Card key={walkthrough.id} className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <CardTitle className="text-lg mb-2">{walkthrough.title}</CardTitle>
-                      <div className="flex items-center gap-2 mb-2">
-                        <Badge className={getDifficultyColor(walkthrough.difficulty)}>
-                          {walkthrough.difficulty}
-                        </Badge>
-                        <Badge variant="outline" className="flex items-center gap-1">
-                          <Play className="w-3 h-3" />
-                          Interactive
-                        </Badge>
-                        <Badge variant="secondary" className="text-xs">
-                          {walkthrough.category}
-                        </Badge>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {walkthroughsByCategory.core.map((walkthrough) => (
+                <Card key={walkthrough.id} className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <CardTitle className="text-lg mb-2">{walkthrough.title}</CardTitle>
+                        <div className="flex items-center gap-2 mb-2">
+                          <Badge className={getDifficultyColor(walkthrough.difficulty)}>
+                            {walkthrough.difficulty}
+                          </Badge>
+                          <Badge variant="outline" className="flex items-center gap-1">
+                            <Play className="w-3 h-3" />
+                            Interactive
+                          </Badge>
+                          <Badge variant="secondary" className="text-xs">
+                            {walkthrough.category}
+                          </Badge>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </CardHeader>
-                
-                <CardContent>
-                  <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
-                    {walkthrough.description}
-                  </p>
+                  </CardHeader>
                   
-                  <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
-                    <div className="flex items-center gap-1">
-                      <Clock className="w-4 h-4" />
-                      {walkthrough.estimatedTime}min
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
+                      {walkthrough.description}
+                    </p>
+                    
+                    <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
+                      <div className="flex items-center gap-1">
+                        <Clock className="w-4 h-4" />
+                        {walkthrough.estimatedTime}min
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Target className="w-4 h-4" />
+                        {walkthrough.steps.length} steps
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <Target className="w-4 h-4" />
-                      {walkthrough.steps.length} steps
+                    
+                    <Button
+                      onClick={() => handleStartWalkthrough(walkthrough.id)}
+                      className="w-full"
+                    >
+                      <Play className="w-4 h-4 mr-2" />
+                      Start Walkthrough
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+
+          {/* Advanced Technical Walkthroughs Section */}
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <Trophy className="w-5 h-5 text-orange-600" />
+              <h3 className="text-lg font-semibold">Advanced Technical Tutorials</h3>
+              <Badge variant="destructive" className="text-xs">Admin Only</Badge>
+            </div>
+            <p className="text-sm text-muted-foreground mb-4">
+              In-depth walkthroughs for advanced system features and technical configurations.
+            </p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {walkthroughsByCategory.advanced.map((walkthrough) => (
+                <Card key={walkthrough.id} className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <CardTitle className="text-lg mb-2">{walkthrough.title}</CardTitle>
+                        <div className="flex items-center gap-2 mb-2">
+                          <Badge className={getDifficultyColor(walkthrough.difficulty)}>
+                            {walkthrough.difficulty}
+                          </Badge>
+                          <Badge variant="outline" className="flex items-center gap-1">
+                            <Play className="w-3 h-3" />
+                            Interactive
+                          </Badge>
+                          <Badge variant="secondary" className="text-xs">
+                            {walkthrough.category}
+                          </Badge>
+                        </div>
+                        {walkthrough.prerequisites && walkthrough.prerequisites.length > 0 && (
+                          <p className="text-xs text-muted-foreground mt-2">
+                            Prerequisites: {walkthrough.prerequisites.join(', ')}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  </CardHeader>
                   
-                  <Button
-                    onClick={() => handleStartWalkthrough(walkthrough.id)}
-                    className="w-full"
-                  >
-                    <Play className="w-4 h-4 mr-2" />
-                    Start Walkthrough
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
+                      {walkthrough.description}
+                    </p>
+                    
+                    <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
+                      <div className="flex items-center gap-1">
+                        <Clock className="w-4 h-4" />
+                        {walkthrough.estimatedTime}min
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Target className="w-4 h-4" />
+                        {walkthrough.steps.length} steps
+                      </div>
+                    </div>
+                    
+                    <Button
+                      onClick={() => handleStartWalkthrough(walkthrough.id)}
+                      className="w-full"
+                    >
+                      <Play className="w-4 h-4 mr-2" />
+                      Start Walkthrough
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
         </TabsContent>
 
