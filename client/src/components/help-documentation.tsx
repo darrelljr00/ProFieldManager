@@ -1090,9 +1090,9 @@ if (user.isActive) {
 }
 \`\`\`
 
-**Step 2: Check Dependencies Across All Business Tables**
+**Step 2: Synchronous Dependency Check**
 
-The system checks **7 critical business entities** for records created by or assigned to the user:
+The system performs **immediate, synchronous queries** (not background queue) to check 7 critical business entities for records created by or assigned to the user:
 
 \`\`\`typescript
 const dependencies = {
@@ -1377,6 +1377,1367 @@ setBroadcastFunction((event, data, orgId, excludeUserId) => {
 4. **Regular Audits**: Periodically review inactive users
 5. **Data Cleanup**: Create process for handling users with orphaned records`,
         tags: ['technical', 'architecture', 'database', 'security', 'deletion', 'soft-delete', 'hard-delete']
+      },
+      {
+        id: 'gps-tracking-system',
+        title: 'GPS Tracking System Architecture',
+        description: 'OBD GPS integration, real-time tracking, geofencing, and trip building',
+        type: 'documentation',
+        difficulty: 'advanced',
+        estimatedTime: 25,
+        content: `# GPS Tracking System Architecture
+
+## Overview
+
+Pro Field Manager's **GPS tracking system** integrates with OneStep GPS OBD devices to provide **real-time vehicle location tracking**. 
+
+**What's Currently Implemented**:
+- OneStep GPS API polling (every 30-60 seconds)
+- Vehicle location data storage in \`obd_location_data\` table
+- Manual trip import from OneStep API
+- Database tables and utility functions for geofencing and trip analysis
+
+**Roadmap Features** (Database schema exists but automation not implemented):
+- Automatic trip building from GPS pings
+- Automatic geofence-based arrival/departure detection
+- Fuel level monitoring via OBD data
+- Real-time WebSocket location broadcasting
+
+### Key Features (Current Implementation)
+- ✅ **Real-Time Location Tracking**: Live vehicle positions updated every 30-60 seconds via OneStep API poller
+- ✅ **OBD Device Integration**: OneStep GPS cellular SIM card devices for vehicle tracking
+- ✅ **Manual Trip Import**: Fetch trip history from OneStep GPS API and store in database
+- ✅ **Geofence Infrastructure**: Database schema and utilities for geofence calculations
+- ✅ **GPS Data Storage**: All location pings stored in \`obd_location_data\` table
+- ✅ **Multi-Organization Support**: Isolated tracking per organization with separate API keys
+- ⏳ **Automated Trip Building**: Planned - automatic grouping of GPS pings into trips
+- ⏳ **Automatic Geofence Detection**: Planned - auto arrival/departure detection
+- ⏳ **Fuel Tracking Integration**: Planned - OBD fuel level monitoring
+- ⏳ **Historical Route Replay**: Planned - save and replay historical GPS routes
+
+## System Architecture
+
+### Components
+
+**1. OneStep GPS API Integration** (\`server/integrations/onestep.ts\`)
+- Fetches trips and device data from OneStep GPS cloud platform
+- Handles rate limiting (429 responses) with automatic retry
+- Maps external trip data to internal database schema
+
+**2. GPS Poller Service** (\`server/services/OneStepPoller.ts\`)
+- Background service polling OneStep API every 30-60 seconds
+- Stores GPS pings in \`obd_location_data\` table
+- Per-organization polling with jittered intervals
+- Locking mechanism prevents duplicate polling
+
+**3. Trip Builder** (Planned Feature)
+- **Status**: Not currently implemented as automatic background service
+- **Planned Functionality**:
+  - Group GPS pings into trips based on movement patterns
+  - Detect significant movement (150m minimum, 0.5 MPH minimum speed)
+  - Calculate trip distance, duration, average/max speed
+  - Automatically store trips in \`obd_trips\` table
+- **Current Alternative**: Manual trip import via \`OneStepGPSService.syncVehicleTrips()\` fetches completed trips from OneStep API
+- **Utility Available**: \`isSignificantMovement()\` function exists in \`server/utils/gps.ts\` for future implementation
+
+**4. Geofencing Engine**
+- Database schema supports circular geofences around job sites (default 100m radius)
+- Haversine distance calculation available in \`server/utils/gps.ts\`
+- Manual geofence checking can be implemented using \`haversineDistance()\`
+- **Note**: Automatic arrival detection is not currently implemented in routes
+
+**5. Auto Job Service** (Planned Feature)
+- **Status**: Currently disabled, pending implementation of automatic geofence detection
+- **Planned Functionality**:
+  - Monitor arrival events and auto-start jobs
+  - Monitor departure events and auto-complete jobs
+  - Track on-site labor time and costs
+- **Blocker**: Requires automatic geofence detection to generate arrival/departure events
+- **Note**: Service skeleton exists in codebase but is not active
+
+## Database Schema
+
+### Core GPS Tables
+
+**\`obd_location_data\`** - Real-time GPS pings
+\`\`\`typescript
+{
+  id: serial,
+  organizationId: integer,
+  vehicleId: integer,
+  deviceId: text,              // OneStep device identifier
+  latitude: decimal(10, 8),
+  longitude: decimal(11, 8),
+  speed: decimal(5, 2),         // mph
+  heading: decimal(5, 2),       // degrees (0-360)
+  altitude: decimal(7, 2),      // meters
+  accuracy: decimal(6, 2),      // meters
+  timestamp: timestamp,
+  
+  // Unique constraint to prevent duplicate pings
+  UNIQUE (organizationId, deviceId, timestamp)
+}
+\`\`\`
+
+**\`obd_trips\`** - Grouped travel segments
+\`\`\`typescript
+{
+  id: serial,
+  organizationId: integer,
+  vehicleId: integer,
+  deviceId: text,
+  externalTripId: text,        // OneStep trip ID
+  provider: text,              // "onestep", "custom"
+  startTime: timestamp,
+  endTime: timestamp,
+  startLatitude/startLongitude: decimal,
+  endLatitude/endLongitude: decimal,
+  startLocation: text,         // Reverse geocoded address
+  endLocation: text,
+  distanceMiles: decimal(10, 2),
+  durationMinutes: integer,
+  averageSpeed: decimal(5, 2),
+  maxSpeed: decimal(5, 2),
+  status: text,                // "active", "completed"
+  
+  // Prevent duplicate imports from OneStep
+  UNIQUE (provider, externalTripId)
+}
+\`\`\`
+
+**\`job_site_geofences\`** - Geofence definitions
+\`\`\`typescript
+{
+  id: serial,
+  projectId: integer,          // Links to job/project
+  organizationId: integer,
+  centerLatitude: decimal(10, 7),
+  centerLongitude: decimal(10, 7),
+  radius: integer,             // meters (default 100)
+  address: text,
+  isActive: boolean
+}
+\`\`\`
+
+**\`job_site_events\`** - Arrival/departure events
+\`\`\`typescript
+{
+  id: serial,
+  userId: integer,             // Technician
+  projectId: integer,
+  geofenceId: integer,
+  eventType: text,             // "arrival", "departure"
+  eventTime: timestamp,
+  latitude/longitude: decimal,
+  durationMinutes: integer,    // For departure events
+  notificationSent: boolean
+}
+\`\`\`
+
+**\`onestep_sync_state\`** - Polling status tracking
+\`\`\`typescript
+{
+  id: serial,
+  organizationId: integer,
+  vehicleId: integer (nullable),
+  lastSyncTimestamp: timestamp,
+  lastSuccessfulSync: timestamp,
+  syncStatus: text,            // "idle", "syncing", "error"
+  errorMessage: text,
+  tripsImported: integer       // Cumulative count
+}
+\`\`\`
+
+## Implementation Details
+
+### Location: \`server/services/OneStepPoller.ts\`
+
+### GPS Poller Lifecycle
+
+**1. Initialization (Server Startup)**
+\`\`\`typescript
+const poller = new OneStepPoller();
+await poller.start();
+
+// Queries all orgs with GPS API keys configured
+const orgsWithGPS = await db
+  .select({ organizationId: settings.organizationId })
+  .from(settings)
+  .where(eq(settings.key, "oneStepGpsApiKey"));
+
+// Start polling for each organization
+for (const org of orgsWithGPS) {
+  await poller.startPollingForOrganization(org.organizationId);
+}
+\`\`\`
+
+**2. Per-Organization Polling**
+\`\`\`typescript
+async startPollingForOrganization(organizationId: number) {
+  // Add jitter to prevent thundering herd
+  const jitter = Math.random() * 10000; // 0-10 seconds
+  const interval = 30000 + jitter;      // 30-40 seconds
+
+  const pollInterval = setInterval(async () => {
+    await this.pollOrganization(organizationId);
+  }, interval);
+
+  this.pollingIntervals.set(organizationId, pollInterval);
+  
+  // Poll immediately on startup
+  await this.pollOrganization(organizationId);
+}
+\`\`\`
+
+**3. Poll Execution with Locking**
+\`\`\`typescript
+private async pollOrganization(organizationId: number) {
+  // Acquire lock (prevents duplicate polling if process restarted)
+  const canPoll = await this.acquireLock(organizationId);
+  if (!canPoll) return; // Another process is polling
+
+  try {
+    // Fetch API key from settings
+    const apiKey = await getOneStepApiKey(organizationId);
+    
+    // Call OneStep GPS API
+    const response = await fetch(
+      \`https://track.onestepgps.com/v3/api/public/device-info?lat_lng=1&device_speed=1&direction=1&api-key=\${apiKey}\`,
+      { signal: AbortSignal.timeout(10000) }
+    );
+    
+    const devices: OneStepDevice[] = await response.json();
+    console.log(\`📡 OneStep API returned \${devices.length} devices\`);
+    
+    // Find vehicles with GPS enabled
+    const mappedVehicles = await db
+      .select()
+      .from(vehicles)
+      .where(
+        and(
+          eq(vehicles.organizationId, organizationId),
+          eq(vehicles.oneStepGpsEnabled, true)
+        )
+      );
+    
+    // Store location pings
+    for (const vehicle of mappedVehicles) {
+      const device = devices.find(
+        d => d.display_name === vehicle.oneStepGpsDeviceId
+      );
+      
+      if (device && device.lat && device.lng) {
+        await db.insert(obdLocationData).values({
+          organizationId,
+          vehicleId: vehicle.id,
+          deviceId: device.display_name,
+          latitude: device.lat.toString(),
+          longitude: device.lng.toString(),
+          speed: device.device_speed?.toString() ?? "0",
+          heading: device.direction?.toString() ?? "0",
+          timestamp: new Date(device.latest_accurate_dt_tracker || Date.now())
+        }).onConflictDoNothing(); // Skip duplicates
+      }
+    }
+    
+    await this.releaseLock(organizationId, "idle");
+    
+  } catch (error) {
+    await this.releaseLock(organizationId, "error", error.message);
+  }
+}
+\`\`\`
+
+### Location: \`server/integrations/onestep.ts\`
+
+### Trip Sync from OneStep GPS
+
+**Manual Trip Import**
+\`\`\`typescript
+class OneStepGPSService {
+  async syncVehicleTrips(vehicleId: number, daysBack: number = 30): Promise<number> {
+    // Verify vehicle is configured
+    const vehicle = await db.select()
+      .from(vehicles)
+      .where(eq(vehicles.id, vehicleId))
+      .limit(1);
+    
+    if (!vehicle[0].oneStepGpsDeviceId || !vehicle[0].oneStepGpsEnabled) {
+      throw new Error("Vehicle not configured for OneStep GPS");
+    }
+    
+    // Set date range
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - daysBack);
+    
+    // Update sync state
+    await this.updateSyncState(vehicleId, "syncing");
+    
+    try {
+      // Fetch trips from OneStep API
+      const trips = await this.fetchTrips(
+        vehicle[0].oneStepGpsDeviceId,
+        startDate,
+        endDate
+      );
+      
+      let imported = 0;
+      
+      // Import each trip if not already exists
+      for (const trip of trips) {
+        const existing = await db.select()
+          .from(obdTrips)
+          .where(
+            and(
+              eq(obdTrips.provider, "onestep"),
+              eq(obdTrips.externalTripId, trip.id)
+            )
+          )
+          .limit(1);
+        
+        if (!existing.length) {
+          await db.insert(obdTrips).values(this.mapTrip(trip, vehicleId));
+          imported++;
+        }
+      }
+      
+      await this.updateSyncState(vehicleId, "idle", imported);
+      return imported;
+      
+    } catch (error) {
+      await this.updateSyncState(vehicleId, "error", 0, error.message);
+      throw error;
+    }
+  }
+  
+  async fetchTrips(deviceId: string, startDate: Date, endDate: Date) {
+    try {
+      const response = await this.client.get("/trips", {
+        params: {
+          device_id: deviceId,
+          start: startDate.toISOString(),
+          end: endDate.toISOString(),
+          per_page: 200
+        }
+      });
+      
+      return response.data.data || [];
+      
+    } catch (error: any) {
+      // Handle rate limiting
+      if (error.response?.status === 429) {
+        await this.sleep(5000); // Wait 5 seconds
+        return this.fetchTrips(deviceId, startDate, endDate); // Retry
+      }
+      throw error;
+    }
+  }
+}
+\`\`\`
+
+### Location: \`server/utils/gps.ts\`
+
+### Geofencing Calculations
+
+**Haversine Distance Formula**
+\`\`\`typescript
+export function haversineDistance(
+  lat1: number, lon1: number,
+  lat2: number, lon2: number
+): number {
+  const R = 3959; // Earth's radius in miles
+  const dLat = toRadians(lat2 - lat1);
+  const dLon = toRadians(lon2 - lon1);
+  
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c; // Distance in miles
+}
+\`\`\`
+
+**Geofence Distance Calculation Example**
+
+**Note**: This is example code showing HOW geofence arrival detection COULD be implemented using the available utilities. Automatic geofence detection is NOT currently implemented in server/routes.ts.
+
+\`\`\`typescript
+// Example: Manual geofence checking using haversineDistance()
+const distance = haversineDistance(
+  ping.latitude,
+  ping.longitude,
+  geofence.centerLatitude,
+  geofence.centerLongitude
+);
+
+const radiusMiles = geofence.radius / 1609.34; // Convert meters to miles
+
+if (distance <= radiusMiles) {
+  // User is inside geofence radius
+  console.log(\`Vehicle within \${distance} miles of job site\`);
+  
+  // Database schema supports storing arrival events:
+  // - job_site_events table (eventType: "arrival" | "departure")
+  // - jobSiteEvents can be manually inserted via API
+  // - projects.arrivedAt field can be manually updated
+}
+\`\`\`
+
+**Implementation Status**:
+- ✅ Database tables exist (\`job_site_geofences\`, \`job_site_events\`)
+- ✅ \`haversineDistance()\` utility function available
+- ✅ Manual geofence CRUD via API
+- ❌ Automatic background geofence checking NOT implemented
+- ❌ Automatic arrival notifications NOT implemented
+- ❌ Automatic \`arrivedAt\` updates NOT implemented
+
+**Significant Movement Detection**
+\`\`\`typescript
+export function isSignificantMovement(
+  distanceMiles: number,
+  speedMph: number
+): boolean {
+  const MIN_DISTANCE_MILES = 0.093; // 150 meters
+  const MIN_SPEED_MPH = 0.5;
+  
+  return distanceMiles >= MIN_DISTANCE_MILES && speedMph >= MIN_SPEED_MPH;
+}
+\`\`\`
+
+## Data Flow
+
+### Real-Time Tracking Flow (Current Implementation)
+
+1. **OneStep Device** → GPS satellites → **OneStep Cloud**
+2. **GPS Poller** (every 30-60s) → OneStep API (\`server/services/OneStepPoller.ts\`)
+3. API returns device array with latest positions
+4. **Poller** matches devices to vehicles in database
+5. **Store** GPS ping in \`obd_location_data\` table
+6. **Frontend** queries \`/api/gps/vehicles\` for vehicle locations
+7. **Frontend** displays vehicle markers on Google Maps
+
+**Not Currently Implemented**:
+- Automatic trip building from GPS pings
+- Automatic geofence checking on new pings
+- Auto job start/complete based on geofence events
+- Real-time WebSocket location broadcasting
+
+### Trip Import Flow
+
+1. Admin clicks "Sync Trips" for a vehicle
+2. **Route**: \`POST /api/gps/vehicles/:id/sync-trips\`
+3. **Service**: \`OneStepGPSService.syncVehicleTrips(vehicleId, daysBack)\`
+4. Update \`onestep_sync_state\` to "syncing"
+5. **API Call**: OneStep \`/v3/trips\` endpoint with date range
+6. **Filter**: Check each trip against \`obd_trips\` table
+7. **Import**: Insert new trips only (skip duplicates via UNIQUE constraint)
+8. **Map Data**: Convert OneStep format to internal schema
+9. Update \`onestep_sync_state\` to "idle" with import count
+10. **Response**: Return number of trips imported
+
+### Geofence Arrival Flow (Potential Implementation)
+
+**Status**: Infrastructure exists but automatic checking is NOT implemented
+
+**What EXISTS**:
+- \`job_site_geofences\` table with radius and coordinates
+- \`job_site_events\` table for storing arrival/departure records
+- \`haversineDistance()\` utility for distance calculation
+- \`projects.arrivedAt\` field for tracking technician arrival
+- Manual API endpoints for geofence/event CRUD
+
+**What Would Be NEEDED for Automatic Detection**:
+1. Background service or route handler to check new GPS pings against geofences
+2. Logic to detect first arrival (not re-trigger on every ping)
+3. Notification creation on arrival detection
+4. WebSocket broadcast for real-time updates
+5. Optional: Auto job start/complete integration
+
+**Manual Alternative**:
+- Frontend can calculate distance client-side
+- User manually marks arrival via "Start Job" button
+- \`arrivedAt\` field updated on manual job start
+
+## Design Decisions
+
+### Why OneStep GPS Instead of Custom Hardware?
+**Decision**: Integrate with OneStep GPS cellular OBD devices
+
+**Pros**:
+- No app draining phone battery
+- More reliable than phone GPS (cellular + satellite)
+- Works even if phone is off or dead
+- Vehicle-based not user-based (any driver)
+- OBD diagnostics (fuel level, engine temp, RPM)
+
+**Cons**:
+- Monthly cost per device ($15-25/month)
+- Requires OBD port (2008+ vehicles)
+- Dependency on third-party API
+
+### Why Polling Instead of Webhooks?
+**Decision**: Poll OneStep API every 30-60 seconds
+
+**Pros**:
+- OneStep doesn't offer webhooks
+- Full control over update frequency
+- Can batch process multiple devices
+- Easier error handling and retry logic
+
+**Cons**:
+- Slight delay (max 60 seconds)
+- More API calls than webhooks
+- Must manage polling intervals
+
+### Why Unique Constraint on (org, device, timestamp)?
+**Decision**: Prevent duplicate GPS pings in database
+
+**Prevents**:
+- Duplicate inserts if polling overlaps
+- Data bloat from identical pings
+- Incorrect trip distance calculations
+
+**Implementation**:
+\`\`\`typescript
+uniqueIndex("unique_location_ping").on(
+  table.organizationId,
+  table.deviceId,
+  table.timestamp
+)
+\`\`\`
+
+### Why Store Trips AND Individual Pings?
+**Decision**: Keep both granular pings and aggregated trips
+
+**Use Cases**:
+- **Pings**: Real-time tracking, route replay, debugging
+- **Trips**: Daily summary, mileage reports, fuel analysis
+
+**Storage**: Pings can be archived after 30 days, trips kept forever
+
+### Why Jittered Polling Intervals?
+**Decision**: Add 0-10 second random jitter to 30-second interval
+
+**Prevents**:
+- Thundering herd on OneStep API
+- All orgs polling at exact same time
+- Rate limiting (429) responses
+
+**Implementation**:
+\`\`\`typescript
+const jitter = Math.random() * 10000;
+const interval = 30000 + jitter; // 30-40 seconds
+\`\`\`
+
+## Performance Considerations
+
+### Database Indexes
+
+**Critical Indexes**:
+\`\`\`sql
+-- Fast vehicle lookup for polling
+CREATE INDEX idx_vehicles_org_gps ON vehicles(organization_id, onestep_gps_enabled)
+  WHERE onestep_gps_enabled = true;
+
+-- Fast ping queries by vehicle
+CREATE INDEX idx_obd_location_vehicle_time ON obd_location_data(vehicle_id, timestamp DESC);
+
+-- Fast trip queries
+CREATE INDEX idx_obd_trips_vehicle_time ON obd_trips(vehicle_id, start_time DESC);
+
+-- Fast geofence lookups
+CREATE INDEX idx_geofences_project ON job_site_geofences(project_id) WHERE is_active = true;
+
+-- Prevent duplicate arrival events
+CREATE INDEX idx_job_site_events_lookup ON job_site_events(project_id, user_id, event_type, event_time);
+\`\`\`
+
+### API Rate Limiting
+
+**OneStep GPS Limits**:
+- 1000 requests per hour per API key
+- 429 response if exceeded
+
+**Mitigation**:
+\`\`\`typescript
+if (error.response?.status === 429) {
+  await sleep(5000); // Wait 5 seconds
+  return this.fetchTrips(deviceId, startDate, endDate); // Retry
+}
+\`\`\`
+
+### Memory Efficiency
+
+**Poller Service**:
+- Streams data instead of loading all at once
+- Releases lock after each poll
+- Cleans up intervals on shutdown
+- No caching (database is source of truth)
+
+### Connection Pooling
+
+**Issue**: Polling can exhaust connection pool
+
+**Solution**: Use existing connection pool settings
+\`\`\`typescript
+// server/db.ts
+pool: {
+  max: 10,                  // Max connections
+  idleTimeoutMillis: 15000, // Release idle connections
+  connectionTimeoutMillis: 10000
+}
+\`\`\`
+
+## Security Measures
+
+### API Key Storage
+
+**Secure Storage**:
+\`\`\`typescript
+// Stored in settings table, not environment variables
+await db.insert(settings).values({
+  organizationId,
+  key: "oneStepGpsApiKey",
+  value: encryptedApiKey, // Could be encrypted at rest
+  category: "gps"
+});
+\`\`\`
+
+### Multi-Tenant Isolation
+
+**Organization Scoping**:
+- API keys scoped per organization
+- GPS pings scoped per organization
+- Polling isolated per organization
+- Prevents cross-tenant data leakage
+
+**Enforcement**:
+\`\`\`typescript
+// Every query includes organization filter
+await db.select()
+  .from(obdLocationData)
+  .where(eq(obdLocationData.organizationId, user.organizationId));
+\`\`\`
+
+### Geofence Privacy
+
+**Access Control**:
+- Only managers/admins can view GPS tracking
+- Technicians can only see their own trips
+- Geofences only visible to project stakeholders
+
+### Locking Mechanism
+
+**Prevents Race Conditions**:
+\`\`\`typescript
+private async acquireLock(organizationId: number): Promise<boolean> {
+  const existing = await db.select()
+    .from(onestepSyncState)
+    .where(eq(onestepSyncState.organizationId, organizationId))
+    .limit(1);
+  
+  // If currently syncing and lock hasn't expired, don't poll
+  if (existing[0].syncStatus === "syncing" && !isLockExpired(existing[0])) {
+    return false;
+  }
+  
+  // Acquire lock
+  await db.update(onestepSyncState)
+    .set({ syncStatus: "syncing", updatedAt: new Date() })
+    .where(eq(onestepSyncState.id, existing[0].id));
+  
+  return true;
+}
+\`\`\`
+
+**Lock Timeout**: Hard-coded 2-minute timeout in OneStepPoller.ts (line 171)
+\`\`\`typescript
+const lockTimeout = 2 * 60 * 1000; // 120,000ms = 2 minutes
+\`\`\`
+
+## Common Issues & Troubleshooting
+
+### No GPS Data Showing
+
+**Cause 1**: OneStep API key not configured
+**Solution**:
+\`\`\`sql
+SELECT * FROM settings 
+WHERE key = 'oneStepGpsApiKey' 
+AND organization_id = YOUR_ORG_ID;
+\`\`\`
+Add key via Settings > GPS Tracking > Configure API
+
+**Cause 2**: Vehicle not mapped to device
+**Solution**: Verify vehicle has \`oneStepGpsDeviceId\` and \`oneStepGpsEnabled = true\`
+
+**Cause 3**: Device ID mismatch
+**Solution**: Device ID must exactly match OneStep \`display_name\` field
+
+### Duplicate GPS Pings
+
+**Cause**: Unique constraint violation
+**Solution**: \`.onConflictDoNothing()\` handles this automatically
+\`\`\`typescript
+await db.insert(obdLocationData)
+  .values(ping)
+  .onConflictDoNothing(); // Silently skip duplicates
+\`\`\`
+
+### Trips Not Importing
+
+**Cause 1**: Duplicate external trip ID
+**Check**:
+\`\`\`sql
+SELECT COUNT(*), external_trip_id 
+FROM obd_trips 
+WHERE provider = 'onestep'
+GROUP BY external_trip_id
+HAVING COUNT(*) > 1;
+\`\`\`
+
+**Cause 2**: Rate limiting (429 response)
+**Solution**: Automatic retry with 5-second delay
+
+**Cause 3**: Invalid date range
+**Solution**: Ensure \`startDate < endDate\` and not too far in past (OneStep limits)
+
+### Geofence Not Triggering
+
+**Cause 1**: Radius too small
+**Solution**: Increase geofence radius (default 100m, try 200-300m)
+
+**Cause 2**: GPS accuracy low
+**Check**: \`accuracy\` field in \`obd_location_data\` (should be < 50 meters)
+
+**Cause 3**: Geofence inactive
+**Solution**: Check \`is_active = true\` in \`job_site_geofences\`
+
+**Debugging**:
+\`\`\`typescript
+const distance = haversineDistance(
+  ping.latitude, ping.longitude,
+  geofence.centerLatitude, geofence.centerLongitude
+);
+console.log(\`Distance: \${distance} miles, Radius: \${geofence.radius / 1609.34} miles\`);
+\`\`\`
+
+### Polling Stopped
+
+**Cause**: Server restart or crash
+**Solution**: Poller auto-starts on server boot
+**Check**:
+\`\`\`sql
+SELECT * FROM onestep_sync_state 
+WHERE sync_status = 'error'
+OR (updated_at < NOW() - INTERVAL '5 minutes' AND sync_status = 'syncing');
+\`\`\`
+
+**Manual Restart**: Restart Node server (poller initializes automatically)
+
+### High API Usage
+
+**Cause**: Too many organizations or short polling intervals
+**Solution**:
+- Review polling intervals (30-60s is optimal)
+- Disable GPS for inactive vehicles
+- Archive old GPS pings (reduce query time)
+
+**Monitor**:
+\`\`\`sql
+SELECT 
+  organization_id,
+  COUNT(*) as ping_count,
+  MAX(timestamp) as last_ping
+FROM obd_location_data
+WHERE created_at > NOW() - INTERVAL '1 hour'
+GROUP BY organization_id;
+\`\`\`
+
+## Best Practices
+
+1. **Geofence Sizing**: Start with 100m radius, increase if missed arrivals
+2. **Data Retention**: Archive GPS pings older than 30 days, keep trips forever
+3. **Error Monitoring**: Check \`onestep_sync_state.errorMessage\` regularly
+4. **API Key Rotation**: Rotate OneStep API keys quarterly
+5. **Vehicle Mapping**: Ensure every vehicle has correct device ID
+6. **Polling Efficiency**: Don't poll more than once per 30 seconds
+7. **Index Maintenance**: Rebuild GPS indexes monthly for large datasets
+8. **Trip Validation**: Validate trip distances/durations for anomalies`,
+        tags: ['technical', 'gps', 'tracking', 'onestep', 'geofencing', 'trips', 'obd', 'real-time']
+      },
+      {
+        id: 'configurable-caching-system',
+        title: 'Configurable Caching System',
+        description: 'Database-driven cache configuration with dynamic TTL and multi-tenant support',
+        type: 'documentation',
+        difficulty: 'advanced',
+        estimatedTime: 15,
+        content: `# Configurable Caching System
+
+## Overview
+
+Pro Field Manager implements a **database-driven configurable caching system** that allows per-organization cache settings with dynamic TTL (Time-To-Live), enable/disable flags, and automatic cache invalidation. This system replaced the static \`memoizee\` library to provide administrators with runtime control over caching behavior without code changes or server restarts.
+
+### Key Features
+- **Database-Driven Configuration**: Cache settings stored in \`cache_settings\` table
+- **Global & Per-Organization Settings**: Global defaults with per-org overrides
+- **Dynamic TTL**: Configurable cache expiration (5s - 5min)
+- **Enable/Disable Flags**: Turn caching on/off per query type
+- **Multi-Tenant Isolation**: Cache keys scoped by organizationId
+- **Automatic Invalidation**: Cache cleared on create/read operations
+- **Lazy Loading**: Cache config loaded on-demand and memoized
+- **Periodic Cleanup**: Expired entries removed every 60 seconds
+
+### Why This Approach?
+**Before**: Static \`memoizee\` with hardcoded 30s TTL
+**After**: Dynamic database-driven configuration with admin control
+
+**Benefits**:
+- Admins can tune cache performance without developer help
+- Different organizations can have different cache strategies
+- Can disable caching for debugging or testing
+- No code deployment required to change cache behavior
+
+## System Architecture
+
+### Components
+
+**1. Cache Configuration Service** (\`server/cache/CacheConfigService.ts\`)
+- Loads global defaults from \`cache_settings\` where \`organization_id IS NULL\`
+- Loads per-org overrides from \`cache_settings\` where \`organization_id = X\`
+- Caches loaded configs in-memory Map for fast access
+- Provides \`getConfig(orgId)\`, \`reloadConfig(orgId)\`, \`clearConfig()\`
+
+**2. Query Cache** (\`server/cache/queryCache.ts\`)
+- Simple Map-based cache with TTL expiration
+- \`get(key, ttl)\` - retrieve with TTL check
+- \`set(key, value, ttl)\` - store with expiration time
+- \`delete(key)\` - manual invalidation
+- \`deleteByPrefix(prefix)\` - batch invalidation
+- \`cleanup()\` - remove expired entries
+
+**3. Cached Query Functions**
+- \`getCachedNotificationUnreadCount(userId, orgId)\`
+- \`getCachedInternalMessages(userId, storage, orgId)\`
+- Check if caching enabled for org
+- Return cached value if fresh
+- Query database if cache miss
+- Store result with configured TTL
+
+**4. Cache Invalidation Helpers**
+- \`invalidateNotificationCache(userId, orgId)\` - after notification mutations
+- \`invalidateMessageCache(userId, orgId)\` - after message mutations
+- \`clearOrganizationCaches(orgId)\` - when settings change
+- \`clearAllQueryCaches()\` - for debugging/testing
+
+## Database Schema
+
+### \`cache_settings\` Table
+
+\`\`\`typescript
+{
+  id: serial,
+  organizationId: integer (nullable), // NULL = global default
+  
+  // Cache TTL (milliseconds)
+  // Constraints: min 5000ms (5s), max 300000ms (5min)
+  notificationCacheTtl: integer, default 30000,  // 30s
+  messageCacheTtl: integer, default 30000,       // 30s
+  
+  // Polling frequency (milliseconds)
+  // Constraints: min 5000ms (5s), max 120000ms (2min)
+  sidebarPollingInterval: integer, default 30000, // 30s
+  
+  // Enable/disable flags
+  notificationCacheEnabled: boolean, default true,
+  messageCacheEnabled: boolean, default true,
+  
+  createdAt: timestamp,
+  updatedAt: timestamp,
+  
+  // Unique constraint: one row per organization + one global row
+  UNIQUE (organizationId)
+}
+\`\`\`
+
+### Configuration Priority
+
+**Hierarchy**: Organization Settings → Global Defaults → Hardcoded Fallback
+
+\`\`\`sql
+-- This query implements the cascading config logic
+SELECT 
+  COALESCE(org.notification_cache_ttl, global.notification_cache_ttl, 30000) as notification_cache_ttl,
+  COALESCE(org.message_cache_ttl, global.message_cache_ttl, 30000) as message_cache_ttl
+FROM (SELECT * FROM cache_settings WHERE organization_id IS NULL) as global
+FULL OUTER JOIN (SELECT * FROM cache_settings WHERE organization_id = ?) as org
+ON true
+\`\`\`
+
+## Implementation Details
+
+### Location: \`server/cache/CacheConfigService.ts\`
+
+### Configuration Loading
+
+**Lazy Initialization**
+\`\`\`typescript
+class CacheConfigService {
+  private config: Map<number, CacheConfig> = new Map();
+  private globalDefaults: CacheConfig = {
+    notificationCacheTtl: 30000,
+    messageCacheTtl: 30000,
+    sidebarPollingInterval: 30000,
+    notificationCacheEnabled: true,
+    messageCacheEnabled: true,
+  };
+  
+  async getConfig(organizationId: number): Promise<CacheConfig> {
+    // Lazy load if not cached
+    if (!this.config.has(organizationId)) {
+      return await this.loadConfig(organizationId);
+    }
+    return this.config.get(organizationId)!;
+  }
+}
+\`\`\`
+
+**Load Global Defaults Once**
+\`\`\`typescript
+async loadGlobalDefaults(): Promise<void> {
+  const result = await db.execute(sql\`
+    SELECT notification_cache_ttl, message_cache_ttl, ...
+    FROM cache_settings
+    WHERE organization_id IS NULL
+    LIMIT 1
+  \`);
+  
+  if (result[0]) {
+    this.globalDefaults = { ...result[0] };
+    console.log('📝 Loaded global cache defaults:', this.globalDefaults);
+  }
+}
+\`\`\`
+
+**Load Per-Organization Config**
+\`\`\`typescript
+async loadConfig(organizationId: number): Promise<CacheConfig> {
+  const result = await db.execute(sql\`
+    SELECT 
+      COALESCE(org_settings.notification_cache_ttl, global_settings.notification_cache_ttl, 30000) as notification_cache_ttl,
+      COALESCE(org_settings.message_cache_ttl, global_settings.message_cache_ttl, 30000) as message_cache_ttl,
+      COALESCE(org_settings.notification_cache_enabled, global_settings.notification_cache_enabled, true) as notification_cache_enabled
+    FROM (
+      SELECT * FROM cache_settings WHERE organization_id IS NULL LIMIT 1
+    ) as global_settings
+    FULL OUTER JOIN (
+      SELECT * FROM cache_settings WHERE organization_id = \${organizationId}
+    ) as org_settings
+    ON true
+    LIMIT 1
+  \`);
+  
+  const config = {
+    notificationCacheTtl: result[0]?.notification_cache_ttl || this.globalDefaults.notificationCacheTtl,
+    messageCacheTtl: result[0]?.message_cache_ttl || this.globalDefaults.messageCacheTtl,
+    notificationCacheEnabled: result[0]?.notification_cache_enabled ?? this.globalDefaults.notificationCacheEnabled,
+    // ... other fields
+  };
+  
+  this.config.set(organizationId, config);
+  return config;
+}
+\`\`\`
+
+**Manual Reload on Settings Change**
+
+**Important**: Cache config does NOT automatically reload when database settings change. You must manually call \`reloadConfig()\` after updating \`cache_settings\` table.
+
+\`\`\`typescript
+// After updating cache settings in database
+await db.update(cacheSettings)
+  .set({ notificationCacheTtl: 60000 })
+  .where(eq(cacheSettings.organizationId, orgId));
+
+// REQUIRED: Manually reload config to pick up changes
+await cacheConfigService.reloadConfig(orgId);
+\`\`\`
+
+**No automatic propagation**: There is no database trigger or listener that automatically refreshes the in-memory config cache. Admins must explicitly call the reload endpoint after changing settings.
+
+### Location: \`server/cache/queryCache.ts\`
+
+### Query Cache Implementation
+
+**Simple Map with TTL**
+\`\`\`typescript
+interface CacheEntry<T> {
+  value: T;
+  expiresAt: number; // Unix timestamp (ms)
+}
+
+class QueryCache<T> {
+  private cache: Map<string, CacheEntry<T>> = new Map();
+
+  get(key: string, ttl: number): T | null {
+    const entry = this.cache.get(key);
+    if (!entry) return null;
+
+    // Check if expired
+    if (Date.now() > entry.expiresAt) {
+      this.cache.delete(key);
+      return null;
+    }
+
+    return entry.value;
+  }
+
+  set(key: string, value: T, ttl: number): void {
+    this.cache.set(key, {
+      value,
+      expiresAt: Date.now() + ttl // Current time + TTL
+    });
+  }
+}
+\`\`\`
+
+**Cached Notification Query**
+\`\`\`typescript
+const notificationCache = new QueryCache<number>();
+
+export const getCachedNotificationUnreadCount = async (
+  userId: number,
+  organizationId: number
+): Promise<number> => {
+  // Load cache config for this org
+  const config = await cacheConfigService.getConfig(organizationId);
+  
+  // If caching disabled, bypass cache entirely
+  if (!config.notificationCacheEnabled) {
+    return await NotificationService.getUnreadCount(userId, organizationId);
+  }
+
+  // Try cache first
+  const cacheKey = \`notification:\${userId}:\${organizationId}\`;
+  const cached = notificationCache.get(cacheKey, config.notificationCacheTtl);
+
+  if (cached !== null) {
+    return cached; // Cache hit!
+  }
+
+  // Cache miss - query database
+  const result = await NotificationService.getUnreadCount(userId, organizationId);
+  
+  // Store in cache with org-specific TTL
+  notificationCache.set(cacheKey, result, config.notificationCacheTtl);
+  
+  return result;
+};
+\`\`\`
+
+**Cache Invalidation**
+\`\`\`typescript
+export const invalidateNotificationUnreadCount = (
+  userId: number,
+  organizationId: number
+) => {
+  const cacheKey = \`notification:\${userId}:\${organizationId}\`;
+  notificationCache.delete(cacheKey);
+  console.log(\`🗑️  Invalidated notification cache for user \${userId}:\${organizationId}\`);
+};
+
+// Called after any notification mutation
+await NotificationService.markAsRead(notificationId);
+invalidateNotificationCache(userId, organizationId); // Clear cache
+\`\`\`
+
+**Periodic Cleanup**
+\`\`\`typescript
+// Remove expired entries every 60 seconds
+setInterval(() => {
+  notificationCache.cleanup();
+  messagesCache.cleanup();
+}, 60000);
+
+cleanup(): void {
+  const now = Date.now();
+  const entriesToDelete = Array.from(this.cache.entries())
+    .filter(([_, entry]) => now > entry.expiresAt);
+  
+  for (const [key] of entriesToDelete) {
+    this.cache.delete(key);
+  }
+}
+\`\`\`
+
+## Data Flow
+
+### Cache Configuration Flow
+
+1. **Server Startup**: \`CacheConfigService\` initialized (config Map empty)
+2. **First API Request**: User from Org 2 requests notification count
+3. **Config Load**: \`getConfig(2)\` called → cache miss
+4. **Database Query**: Query \`cache_settings\` with \`COALESCE\` logic
+5. **Merge Config**: Combine org-specific + global + hardcoded defaults
+6. **Cache Config**: Store in Map: \`config.set(2, {...})\`
+7. **Return Config**: Config object with TTLs and flags
+8. **Subsequent Requests**: \`getConfig(2)\` returns cached Map entry
+
+### Cached Query Flow
+
+1. **API Request**: \`GET /api/notifications/unread-count\`
+2. **Route Handler**: Calls \`getCachedNotificationUnreadCount(userId, orgId)\`
+3. **Load Config**: \`cacheConfigService.getConfig(orgId)\`
+4. **Check Enabled**: If \`notificationCacheEnabled === false\`, bypass cache
+5. **Build Cache Key**: \`notification:\${userId}:\${orgId}\`
+6. **Check Cache**: \`notificationCache.get(key, ttl)\`
+7. **Cache Hit**: Return cached value immediately
+8. **Cache Miss**: Query \`NotificationService.getUnreadCount()\`
+9. **Store Result**: \`notificationCache.set(key, result, ttl)\`
+10. **Return**: Respond with count
+
+### Cache Invalidation Flow
+
+1. **Mutation**: User marks notification as read
+2. **Route Handler**: \`POST /api/notifications/:id/read\`
+3. **Database Update**: Update \`notifications\` set \`is_read = true\`
+4. **Invalidate Cache**: \`invalidateNotificationCache(userId, orgId)\`
+5. **Delete Cache Entry**: \`notificationCache.delete(\`notification:\${userId}:\${orgId}\`)\`
+6. **Next Request**: Cache miss → fresh count from database
+
+## Design Decisions
+
+### Why Database-Driven Instead of Environment Variables?
+**Decision**: Store cache config in database, not \`.env\` files
+
+**Pros**:
+- Admins can change settings via UI without code deployment
+- Different orgs can have different cache strategies
+- Changes take effect immediately (no server restart)
+- Can be changed per-organization dynamically
+
+**Cons**:
+- Extra database query to load config (mitigated by in-memory caching)
+- More complex than static config
+
+### Why Not Redis?
+**Decision**: Use in-memory Map instead of Redis
+
+**Pros**:
+- No external dependency (one less service to manage)
+- Simpler deployment (works on Replit out-of-box)
+- Lower latency (no network hop)
+- Sufficient for this scale (10-100 orgs)
+
+**Cons**:
+- Lost on server restart (acceptable - rebuilds quickly)
+- Not shared across multiple server instances (acceptable - single instance)
+
+### Why Lazy Config Loading?
+**Decision**: Load config on-demand, not at startup
+
+**Pros**:
+- Faster server startup (don't load all orgs)
+- Only loads configs for active organizations
+- Automatic cache population as users log in
+
+**Cons**:
+- First request per org slightly slower
+- Need to handle null/missing configs
+
+### Why Two-Level Caching (Config + Query)?
+**Decision**: Cache both config settings AND query results
+
+**Config Cache**: In-memory Map of organization cache settings
+**Query Cache**: In-memory Map of actual query results (notification counts, messages)
+
+**Why Both**:
+- Config changes rarely (minutes/hours)
+- Query results change frequently (seconds)
+- Don't want to re-query database for config on every request
+- Don't want to re-query database for data on every request within TTL
+
+## Performance Considerations
+
+### Cache Hit Rate
+
+**Goal**: >80% cache hit rate for notification/message queries
+
+**Monitoring**:
+\`\`\`typescript
+let hits = 0;
+let misses = 0;
+
+get(key: string, ttl: number): T | null {
+  const entry = this.cache.get(key);
+  if (!entry || Date.now() > entry.expiresAt) {
+    misses++;
+    return null;
+  }
+  hits++;
+  return entry.value;
+}
+
+// Log hit rate every 1000 requests
+if ((hits + misses) % 1000 === 0) {
+  console.log(\`Cache hit rate: \${(hits / (hits + misses) * 100).toFixed(2)}%\`);
+}
+\`\`\`
+
+### Memory Usage
+
+**Estimate Per Cache Entry**:
+- Key: ~50 bytes (\`notification:123:456\`)
+- Value: ~8 bytes (integer count) or ~1KB (message array)
+- Metadata: ~16 bytes (expiresAt timestamp)
+- **Total**: ~80 bytes per notification cache entry, ~1KB per message cache entry
+
+**For 100 organizations × 10 users × 2 cache types**:
+- Notification cache: 2,000 entries × 80 bytes = 160 KB
+- Message cache: 2,000 entries × 1 KB = 2 MB
+- **Total**: ~2.2 MB (negligible)
+
+### Database Load Reduction
+
+**Before Caching**:
+- 10 users polling every 30s = 10 req/30s = 0.33 req/s
+- Per-org query load: 0.33 req/s × 2 queries = 0.66 req/s
+- 100 orgs: 66 req/s
+
+**After Caching (30s TTL)**:
+- Cache hit rate 95% (only 5% hit database)
+- Effective load: 66 req/s × 0.05 = **3.3 req/s**
+- **95% reduction in database queries**
+
+### Cleanup Performance
+
+**Issue**: Cleanup iterates entire Map
+**Solution**: Only run every 60 seconds
+**Impact**: Minimal (Map iteration is O(n), n = ~2000 entries = <1ms)
+
+## Security Measures
+
+### Multi-Tenant Isolation
+
+**Cache Key Scoping**:
+\`\`\`typescript
+const cacheKey = \`notification:\${userId}:\${organizationId}\`;
+//                                      ^^^^^^^^^^^^^^^^^
+//                                      REQUIRED for isolation
+\`\`\`
+
+**Prevents**:
+- User from Org A seeing cached data from Org B
+- Cross-tenant information disclosure
+
+**Enforcement**: All cache keys MUST include \`organizationId\`
+
+### Configuration Access Control
+
+**Who Can Change Settings**:
+- Global defaults: Super admins only
+- Org-specific: Organization admins only
+
+**Route Protection**:
+\`\`\`typescript
+router.put('/api/cache-settings', requireAdmin, async (req, res) => {
+  // Only admins can modify cache settings
+});
+\`\`\`
+
+### TTL Limits
+
+**Enforce Min/Max TTL**:
+\`\`\`sql
+-- Database CHECK constraints
+ALTER TABLE cache_settings
+ADD CONSTRAINT notification_cache_ttl_range 
+CHECK (notification_cache_ttl >= 5000 AND notification_cache_ttl <= 300000);
+
+-- 5 seconds min (too low → database overload)
+-- 5 minutes max (too high → stale data)
+\`\`\`
+
+## Common Issues & Troubleshooting
+
+### Stale Cache Data
+
+**Cause**: Cache not invalidated after mutation
+**Solution**: Always call invalidation function after database writes
+
+\`\`\`typescript
+// BAD - no invalidation
+await NotificationService.markAsRead(notificationId);
+
+// GOOD - invalidate cache
+await NotificationService.markAsRead(notificationId);
+invalidateNotificationCache(userId, organizationId);
+\`\`\`
+
+### Config Not Updating
+
+**Cause**: Config cached in-memory, DB changes not reflected
+**Solution**: Call \`reloadConfig()\` after changing settings
+
+\`\`\`typescript
+await db.update(cacheSettings)
+  .set({ notificationCacheTtl: 60000 })
+  .where(eq(cacheSettings.organizationId, orgId));
+
+// MUST reload config to pick up changes
+await cacheConfigService.reloadConfig(orgId);
+\`\`\`
+
+### Cache Not Working
+
+**Debugging Steps**:
+1. Check if caching enabled: \`SELECT * FROM cache_settings WHERE organization_id = X\`
+2. Verify cache key format: Must include \`userId:organizationId\`
+3. Check TTL: Ensure not expired immediately
+4. Log cache hits/misses: Add console.log in get()
+
+\`\`\`typescript
+const cached = notificationCache.get(cacheKey, config.notificationCacheTtl);
+console.log(\`Cache lookup: key=\${cacheKey}, hit=\${cached !== null}\`);
+\`\`\`
+
+### Memory Leak
+
+**Cause**: Cache never cleared, grows indefinitely
+**Solution**: Periodic cleanup + TTL expiration
+
+\`\`\`typescript
+// Automatic cleanup every 60s
+setInterval(() => {
+  notificationCache.cleanup();
+  messagesCache.cleanup();
+}, 60000);
+\`\`\`
+
+**Manual Cleanup**:
+\`\`\`typescript
+// Clear all caches
+clearAllQueryCaches();
+
+// Clear specific org
+clearOrganizationCaches(orgId);
+\`\`\`
+
+## Best Practices
+
+1. **Always Invalidate After Mutations**: Don't forget to clear cache after database writes
+2. **Use Organization-Scoped Keys**: Include \`organizationId\` in every cache key
+3. **Set Reasonable TTLs**: 30s is good default, 5s min, 5min max
+4. **Monitor Hit Rates**: Track cache effectiveness over time
+5. **Test with Caching Disabled**: Use disable flags to verify data correctness
+6. **Reload Config After Changes**: Call \`reloadConfig()\` when updating settings
+7. **Clean Up Regularly**: Run periodic cleanup to prevent memory bloat
+8. **Log Cache Activity**: Log hits/misses/invalidations for debugging`,
+        tags: ['technical', 'caching', 'performance', 'configuration', 'multi-tenant', 'ttl']
       }
     ]
   }
