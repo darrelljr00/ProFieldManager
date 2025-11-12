@@ -4,6 +4,7 @@ import { registerRoutes } from "./routes";
 import { registerTwilioAdminRoutes } from "./twilio-admin";
 import { setupVite, serveStatic, log } from "./vite";
 import { storage } from "./storage";
+import { cacheConfigService } from "./cache/CacheConfigService";
 
 const app = express();
 
@@ -107,6 +108,10 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Initialize cache configuration service
+  await cacheConfigService.initialize();
+  console.log('✅ Cache configuration service initialized');
+  
   // Register clean Twilio admin routes FIRST to override broken ones
   registerTwilioAdminRoutes(app);
   

@@ -32,10 +32,16 @@ Preferred communication style: Simple, everyday language.
 
 ### Performance Optimizations (November 2025)
 - **Sidebar Query Optimization**: Reduced polling frequency from 10s to 30s across all sidebar queries (3x reduction in database load)
-- **Query Caching**: Implemented memoizee-based caching with 30-second TTL for notification unread counts and internal messages
+- **Configurable Cache System**: Custom Map-based caching with database-driven configuration (replaces memoizee)
+  - Multi-tenant cache settings with global defaults and per-organization overrides
+  - Dynamic TTL configuration (5s-300s) via `cache_settings` table
+  - Enable/disable caching per organization through admin UI
+  - Automatic cache invalidation on settings changes
+  - `CacheConfigService` for lazy-loading and refreshing cache configurations
+- **Query Caching**: Implemented for notification unread counts and internal messages with configurable TTL
 - **Cache Invalidation**: Comprehensive cache invalidation on create/read operations for immediate data freshness despite caching
 - **Database Indexing**: Added indexes on `notifications(user_id, is_read)` and `internal_message_recipients(recipient_id, is_read)` for faster query performance
-- **Centralized Caching Module**: `server/cache/queryCache.ts` provides cached versions of expensive queries with automatic invalidation
+- **Centralized Caching Module**: `server/cache/queryCache.ts` provides cached versions of expensive queries with automatic invalidation and multi-tenant isolation
 - **Connection Pool Optimization**: Reduced idle connection timeout to prevent connection pool exhaustion under high load
 
 ### Core Features & Design Patterns

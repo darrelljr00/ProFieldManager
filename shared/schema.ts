@@ -417,6 +417,48 @@ export const settings = pgTable("settings", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+
+// Cache Configuration Settings
+// Stores global defaults (organizationId = NULL) and per-tenant overrides
+export const cacheSettings = pgTable("cache_settings", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").references(() => organizations.id), // NULL = global default
+  
+  // Cache TTL settings (in milliseconds)
+  // CHECK constraints: min 5000ms (5s), max 300000ms (5min)
+  notificationCacheTtl: integer("notification_cache_ttl").default(30000).notNull(), // 30 seconds
+  messageCacheTtl: integer("message_cache_ttl").default(30000).notNull(), // 30 seconds
+  
+  // Polling frequency settings (in milliseconds)  
+  // CHECK constraints: min 5000ms (5s), max 120000ms (2min)
+  sidebarPollingInterval: integer("sidebar_polling_interval").default(30000).notNull(), // 30 seconds
+  
+  // Cache enabled/disabled flags
+  notificationCacheEnabled: boolean("notification_cache_enabled").default(true).notNull(),
+  messageCacheEnabled: boolean("message_cache_enabled").default(true).notNull(),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  uniqueOrg: unique().on(table.organizationId),
+  checkNotificationTtl: sql`CHECK (notification_cache_ttl >= 5000 AND notification_cache_ttl <= 300000)`,
+  checkMessageTtl: sql`CHECK (message_cache_ttl >= 5000 AND message_cache_ttl <= 300000)`,
+  checkPollingInterval: sql`CHECK (sidebar_polling_interval >= 5000 AND sidebar_polling_interval <= 120000)`,
+}));
+
+export type CacheSettings = typeof cacheSettings.$inferSelect;
+export type InsertCacheSettings = typeof cacheSettings.$inferInsert;
+
+export const insertCacheSettingsSchema = createInsertSchema(cacheSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  notificationCacheTtl: z.number().min(5000).max(300000),
+  messageCacheTtl: z.number().min(5000).max(300000),
+  sidebarPollingInterval: z.number().min(5000).max(120000),
+});
+
 export const messages = pgTable("messages", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),

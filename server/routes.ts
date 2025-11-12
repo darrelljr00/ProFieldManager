@@ -80,7 +80,8 @@ import {
   insertSyncConfigurationSchema,
   plannedRoutes, routeWaypoints, routeDeviations, routeStops,
   insertPlannedRouteSchema, insertRouteWaypointSchema, insertRouteDeviationSchema, insertRouteStopSchema,
-  InsertRouteWaypoint
+  InsertRouteWaypoint,
+  cacheSettings, insertCacheSettingsSchema
 } from "@shared/schema";
 import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull, isNull } from "drizzle-orm";
 import { DocuSignService, getDocuSignConfig } from "./docusign";
@@ -96,8 +97,9 @@ import archiver from 'archiver';
 // Removed fileUploadRouter import - using direct route instead
 // Object storage imports already imported at top - removed duplicates
 import { NotificationService, setBroadcastFunction } from "./notificationService";
-import { getCachedNotificationUnreadCount, getCachedInternalMessages, invalidateNotificationCache, invalidateMessageCache, clearAllQueryCaches } from './cache/queryCache';
+import { getCachedNotificationUnreadCount, getCachedInternalMessages, invalidateNotificationCache, invalidateMessageCache, clearAllQueryCaches, clearOrganizationCaches } from './cache/queryCache';
 import { routeMonitoringService } from "./routeMonitoring";
+import { cacheConfigService } from "./cache/CacheConfigService";
 import { calculateSpeed } from "./utils/gps";
 
 // Extend Express Request type to include user
@@ -7309,6 +7311,99 @@ ${fromName || ''}
     }
   });
 
+  // Cache settings management endpoints
+  app.get("/api/admin/cache/settings", requireAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      // Get effective settings using COALESCE to fall back to global defaults
+      const [effectiveSettings] = await db.execute(sql`
+        SELECT 
+          COALESCE(org_settings.notification_cache_ttl, global_settings.notification_cache_ttl) as notification_cache_ttl,
+          COALESCE(org_settings.message_cache_ttl, global_settings.message_cache_ttl) as message_cache_ttl,
+          COALESCE(org_settings.sidebar_polling_interval, global_settings.sidebar_polling_interval) as sidebar_polling_interval,
+          COALESCE(org_settings.notification_cache_enabled, global_settings.notification_cache_enabled) as notification_cache_enabled,
+          COALESCE(org_settings.message_cache_enabled, global_settings.message_cache_enabled) as message_cache_enabled,
+          org_settings.organization_id as has_override
+        FROM (SELECT * FROM cache_settings WHERE organization_id IS NULL) as global_settings
+        LEFT JOIN (SELECT * FROM cache_settings WHERE organization_id = ${user.organizationId}) as org_settings
+        ON true
+      `);
+      
+      res.json(effectiveSettings || {
+        notification_cache_ttl: 30000,
+        message_cache_ttl: 30000,
+        sidebar_polling_interval: 30000,
+        notification_cache_enabled: true,
+        message_cache_enabled: true,
+        has_override: null
+      });
+    } catch (error: any) {
+      console.error('Error fetching cache settings:', error);
+      res.status(500).json({ message: 'Failed to fetch cache settings' });
+    }
+  });
+
+  app.put("/api/admin/cache/settings", requireAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const validated = insertCacheSettingsSchema.parse(req.body);
+      
+      // Upsert organization-specific settings
+      const [updated] = await db
+        .insert(cacheSettings)
+        .values({
+          organizationId: user.organizationId,
+          ...validated
+        })
+        .onConflictDoUpdate({
+          target: cacheSettings.organizationId,
+          set: {
+            notificationCacheTtl: validated.notificationCacheTtl,
+            messageCacheTtl: validated.messageCacheTtl,
+            sidebarPollingInterval: validated.sidebarPollingInterval,
+            notificationCacheEnabled: validated.notificationCacheEnabled,
+            messageCacheEnabled: validated.messageCacheEnabled,
+            updatedAt: sql`NOW()`,
+          }
+        })
+        .returning();
+      
+      console.log('🔧 Cache settings updated for org', user.organizationId);
+      
+      // Reload config and clear caches
+      await cacheConfigService.reloadConfig(user.organizationId);
+      clearOrganizationCaches(user.organizationId);
+      console.log('🔄 Reloaded config and cleared caches for org', user.organizationId);
+      res.json(updated);
+    } catch (error: any) {
+      console.error('Error updating cache settings:', error);
+      res.status(500).json({ message: 'Failed to update cache settings: ' + error.message });
+    }
+  });
+
+  app.delete("/api/admin/cache/settings", requireAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      // Delete organization override to fall back to global defaults
+      await db
+        .delete(cacheSettings)
+        .where(eq(cacheSettings.organizationId, user.organizationId));
+      
+      console.log('🗑️  Deleted cache settings override for org', user.organizationId);
+      
+      // Reload config and clear caches
+      await cacheConfigService.reloadConfig(user.organizationId);
+      clearOrganizationCaches(user.organizationId);
+      console.log('🔄 Reloaded config and cleared caches for org', user.organizationId);
+      res.json({ success: true, message: 'Reset to global defaults' });
+    } catch (error: any) {
+      console.error('Error deleting cache settings:', error);
+      res.status(500).json({ message: 'Failed to reset cache settings' });
+    }
+  });
+
   app.get("/api/admin/users", requireAdmin, async (req, res) => {
     try {
       const users = await storage.getAllUsers();
@@ -13438,7 +13533,7 @@ ${fromName || ''}
   // Internal Messages routes
   app.get("/api/internal-messages", requireAuth, async (req, res) => {
     try {
-      const messages = await getCachedInternalMessages(req.user!.id, storage);
+      const messages = await getCachedInternalMessages(req.user!.id, storage, req.user!.organizationId);
       res.json(messages);
     } catch (error: any) {
       console.error("Error fetching internal messages:", error);
@@ -13527,7 +13622,7 @@ ${fromName || ''}
 
       // Invalidate cache for all recipients
       finalRecipientIds.forEach(recipientId => {
-        invalidateMessageCache(recipientId, storage);
+        invalidateMessageCache(recipientId, req.user!.organizationId);
       });
 
       // Broadcast message to recipients via WebSocket for instant delivery
@@ -13561,7 +13656,7 @@ ${fromName || ''}
         return res.status(404).json({ message: "Message not found or already read" });
       }
       res.json({ success: true });
-      invalidateMessageCache(req.user!.id, storage);
+      invalidateMessageCache(req.user!.id, req.user!.organizationId);
     } catch (error: any) {
       console.error("Error marking message as read:", error);
       res.status(500).json({ message: "Failed to mark message as read" });
