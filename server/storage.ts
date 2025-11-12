@@ -713,6 +713,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user || undefined;
+  }
 
   async getUserByResetToken(token: string): Promise<any> {
     const [user] = await db
@@ -723,9 +726,6 @@ export class DatabaseStorage implements IStorage {
         gt(users.passwordResetExpires, new Date())
       ))
       .limit(1);
-    return user || null;
-  }
-    const [user] = await db.select().from(users).where(eq(users.email, email));
     return user || undefined;
   }
 

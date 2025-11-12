@@ -208,8 +208,15 @@ export default function UniversalLogin() {
 
           <div className="mt-6 space-y-2">
             <button
-              onClick={() => window.location.href = '?auto=true'}
+              onClick={() => setLocation("/password-reset-request")}
               className="w-full text-sm text-blue-600 hover:text-blue-500 dark:text-blue-400 hover:dark:text-blue-300"
+              data-testid="link-forgot-password"
+            >
+              Forgot Password?
+            </button>
+            <button
+              onClick={() => window.location.href = '?auto=true'}
+              className="w-full text-sm text-gray-600 hover:text-gray-500 dark:text-gray-400 hover:dark:text-gray-300"
             >
               Quick Login (Demo)
             </button>

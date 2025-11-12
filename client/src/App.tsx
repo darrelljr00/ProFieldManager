@@ -67,6 +67,8 @@ import SimpleLogin from "@/pages/simple-login";
 import DirectLogin from "@/pages/direct-login";
 import CustomDomainLogin from "@/pages/custom-domain-login";
 import UniversalLogin from "@/pages/universal-login";
+import PasswordResetRequest from "@/pages/password-reset-request";
+import PasswordResetComplete from "@/pages/password-reset-complete";
 import HomePage from "@/pages/home";
 import FeaturesPage from "@/pages/features";
 import AuthDebug from "@/pages/auth-debug";
@@ -315,6 +317,8 @@ function Router() {
           <Route path="/features" component={FeaturesPage} />
           <Route path="/signup" component={FeaturesPage} />
           <Route path="/login" component={UniversalLogin} />
+          <Route path="/password-reset-request" component={PasswordResetRequest} />
+          <Route path="/password-reset-complete" component={PasswordResetComplete} />
           <Route path="/login-simple" component={SimpleLogin} />
           <Route path="/login-full" component={Login} />
           <Route path="/auth-debug" component={AuthDebug} />
