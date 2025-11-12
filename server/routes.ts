@@ -1,4 +1,5 @@
 import express, { type Express, Request } from "express";
+import * as crypto from "crypto";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import Stripe from "stripe";
@@ -96,7 +97,7 @@ import archiver from 'archiver';
 // Using global fetch API available in Node.js 18+
 // Removed fileUploadRouter import - using direct route instead
 // Object storage imports already imported at top - removed duplicates
-import { NotificationService, setBroadcastFunction } from "./notificationService";
+import { NotificationService, setBroadcastFunction, notifyUserCreation, notifyPasswordReset } from "./notificationService";
 import { getCachedNotificationUnreadCount, getCachedInternalMessages, invalidateNotificationCache, invalidateMessageCache, clearAllQueryCaches, clearOrganizationCaches } from './cache/queryCache';
 import { routeMonitoringService } from "./routeMonitoring";
 import { cacheConfigService } from "./cache/CacheConfigService";
@@ -7583,6 +7584,32 @@ ${fromName || ''}
 
       const user = await storage.createUser(userData);
       
+
+      // Generate setup token for password setup
+      const setupToken = crypto.randomBytes(32).toString('hex');
+      const tokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+      
+      await storage.updateUser(user.id, {
+        passwordResetToken: setupToken,
+        passwordResetExpires: tokenExpires
+      });
+      
+      // Get admins and managers for notifications
+      const adminUsers = await storage.getOrganizationAdminsAndManagers(adminUser.organizationId);
+      
+      // Send welcome email and notifications to user and admins
+      await notifyUserCreation(
+        {
+          id: user.id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email
+        },
+        adminUser.organizationId,
+        adminUser.id,
+        setupToken,
+        adminUsers
+      );
       // Ensure organization folders exist for multi-tenant isolation
       // ensureOrganizationFolders already imported
       if (user.organizationId) {
@@ -7763,6 +7790,118 @@ ${fromName || ''}
       }
 
       // Get user data before deletion for broadcasting
+
+  // Password reset request endpoint
+  app.post("/api/auth/reset-password-request", async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+
+      const user = await storage.getUserByEmail(email);
+      
+      if (!user) {
+        // For security, always return success even if user doesn't exist
+        return res.json({ success: true, message: "If a user with that email exists, a password reset link has been sent." });
+      }
+
+      // Generate reset token
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      const tokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+      
+      await storage.updateUser(user.id, {
+        passwordResetToken: resetToken,
+        passwordResetExpires: tokenExpires
+      });
+
+      // Get admins and managers for notifications
+      const adminUsers = await storage.getOrganizationAdminsAndManagers(user.organizationId);
+      
+      // Send password reset email and notifications
+      await notifyPasswordReset(
+        {
+          id: user.id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email
+        },
+        user.organizationId,
+        user.id, // Requester is the user themselves
+        resetToken,
+        adminUsers
+      );
+
+      res.json({ success: true, message: "If a user with that email exists, a password reset link has been sent." });
+    } catch (error) {
+      console.error("Password reset request error:", error);
+      res.status(500).json({ error: "Failed to process password reset request" });
+    }
+  });
+
+  // Verify reset token endpoint
+  app.get("/api/auth/verify-token/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+      
+      const user = await storage.getUserByResetToken(token);
+      
+      if (!user) {
+        return res.status(400).json({ error: "Invalid or expired token" });
+      }
+
+      res.json({ 
+        valid: true, 
+        user: { 
+          id: user.id, 
+          firstName: user.firstName, 
+          lastName: user.lastName, 
+          email: user.email 
+        } 
+      });
+    } catch (error) {
+      console.error("Token verification error:", error);
+      res.status(500).json({ error: "Failed to verify token" });
+    }
+  });
+
+  // Complete password reset/setup endpoint
+  app.post("/api/auth/complete-password-reset", async (req, res) => {
+    try {
+      const { token, password } = req.body;
+      
+      if (!token || !password) {
+        return res.status(400).json({ error: "Token and password are required" });
+      }
+
+      if (password.length < 8) {
+        return res.status(400).json({ error: "Password must be at least 8 characters" });
+      }
+
+      const user = await storage.getUserByResetToken(token);
+      
+      if (!user) {
+        return res.status(400).json({ error: "Invalid or expired token" });
+      }
+
+      // Hash the new password
+      const hashedPassword = await bcrypt.hash(password, 10);
+      
+      // Update user with new password and clear reset token
+      await storage.updateUser(user.id, {
+        password: hashedPassword,
+        passwordResetToken: null,
+        passwordResetExpires: null
+      });
+
+      res.json({ success: true, message: "Password has been set successfully. You can now log in." });
+    } catch (error) {
+      console.error("Password reset completion error:", error);
+      res.status(500).json({ error: "Failed to complete password reset" });
+    }
+  });
+
       const userToDelete = await storage.getUser(userId);
       if (!userToDelete) {
         return res.status(404).json({ message: "User not found" });

@@ -713,6 +713,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
+
+  async getUserByResetToken(token: string): Promise<any> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(and(
+        eq(users.passwordResetToken, token),
+        gt(users.passwordResetExpires, new Date())
+      ))
+      .limit(1);
+    return user || null;
+  }
     const [user] = await db.select().from(users).where(eq(users.email, email));
     return user || undefined;
   }
@@ -1071,6 +1083,7 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(users.organizationId, organizationId), eq(users.isActive, true)))
       .orderBy(users.firstName, users.lastName, users.username);
 
+  }
   async getOrganizationAdminsAndManagers(organizationId: number): Promise<Array<{ id: number; email: string; firstName: string; lastName: string | null }>> {
     return await db
       .select({ 
