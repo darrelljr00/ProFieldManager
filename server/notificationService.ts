@@ -163,11 +163,53 @@ export class NotificationService {
     }
   }
 
-  // Send email notification (placeholder for email service integration)
+  // Send email notification using SendGrid
   private static async sendEmailNotification(notification: any): Promise<void> {
     try {
-      // TODO: Integrate with SendGrid or other email service
-      console.log(`📧 Email notification would be sent: ${notification.title}`);
+      const sendgridApiKey = process.env.SENDGRID_API_KEY;
+      if (!sendgridApiKey) {
+        console.log(`📧 SendGrid not configured, skipping email for: ${notification.title}`);
+        return;
+      }
+
+      // Get user details for email
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, notification.userId));
+
+      if (!user || !user.email) {
+        console.log(`📧 No email address for user ${notification.userId}`);
+        return;
+      }
+
+      const sgMail = require('@sendgrid/mail');
+      sgMail.setApiKey(sendgridApiKey);
+
+      await sgMail.send({
+        to: user.email,
+        from: {
+          email: 'notifications@profieldmanager.com',
+          name: 'Pro Field Manager'
+        },
+        subject: notification.title,
+        html: `
+          <!DOCTYPE html>
+          <html>
+          <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h2 style="color: #10b981;">${notification.title}</h2>
+              <p>${notification.message}</p>
+              <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 14px;">
+                <p>This is an automated notification from Pro Field Manager.</p>
+              </div>
+            </div>
+          </body>
+          </html>
+        `
+      });
+
+      console.log(`📧 Email sent to ${user.email}: ${notification.title}`);
     } catch (error) {
       console.error('Error sending email notification:', error);
     }
