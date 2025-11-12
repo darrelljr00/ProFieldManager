@@ -23,7 +23,8 @@ import {
   Smartphone,
   BarChart3,
   Shield,
-  Zap
+  Zap,
+  Code
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { WalkthroughPlayer, BUILTIN_WALKTHROUGHS } from "./interactive-walkthrough";
@@ -975,6 +976,407 @@ View profitability per job:
 - Regular security audits and reviews
 - Monitor user activity and access logs`,
         tags: ['users', 'permissions', 'security', 'admin', 'management']
+      }
+    ]
+  },
+  {
+    id: 'technical-documentation',
+    title: 'Technical Documentation',
+    icon: Code,
+    color: 'bg-slate-500',
+    items: [
+      {
+        id: 'two-stage-user-deletion',
+        title: 'Two-Stage User Deletion System',
+        description: 'How soft delete and hard delete work with dependency checking',
+        type: 'documentation',
+        difficulty: 'advanced',
+        estimatedTime: 20,
+        content: `# Two-Stage User Deletion System
+
+## Architecture Overview
+
+The Pro Field Manager implements a **two-stage user deletion system** to protect business data integrity while allowing proper user management. This prevents accidental data loss and ensures business records are never orphaned.
+
+### Why Two-Stage Deletion?
+
+**Stage 1 - Soft Delete:** Marks users as inactive but preserves all data
+**Stage 2 - Hard Delete:** Permanently removes user only if no business records exist
+
+This approach provides:
+- **Data Integrity**: Never orphan business records (jobs, invoices, customers, etc.)
+- **Reversibility**: Soft deleted users can be reactivated
+- **Audit Trail**: Tracks who deleted whom and when
+- **Safety Net**: Prevents accidental permanent deletion
+
+### Database Design
+
+**User Table Fields:**
+\`\`\`typescript
+users table:
+  - isActive: boolean (false when soft deleted)
+  - deletedAt: timestamp (when user was soft deleted)
+  - deletedBy: integer (admin who performed soft delete)
+  - passwordResetToken: string (cleared on soft delete)
+  - passwordResetExpires: timestamp (cleared on soft delete)
+\`\`\`
+
+## Implementation Details
+
+### Location
+\`server/storage.ts\` - Lines 875-992
+
+### Required Table Imports
+\`\`\`typescript
+import { 
+  users, userSessions, notifications,
+  calendarJobs, invoices, quotes, 
+  expenses, customers, payments, 
+  internalMessages 
+} from "@shared/schema";
+\`\`\`
+
+### Stage 1: Soft Delete (\`deleteUser\` method)
+
+**Code Location:** Lines 875-890
+
+\`\`\`typescript
+async deleteUser(id: number, deletedBy?: number): Promise<void> {
+  await db.transaction(async (tx) => {
+    // Mark user as inactive and record deletion metadata
+    await tx.update(users)
+      .set({
+        isActive: false,
+        deletedAt: new Date(),
+        deletedBy: deletedBy || null,
+        passwordResetToken: null,
+        passwordResetExpires: null
+      })
+      .where(eq(users.id, id));
+
+    // Delete all active sessions
+    await tx.delete(userSessions)
+      .where(eq(userSessions.userId, id));
+  });
+}
+\`\`\`
+
+**What Happens:**
+1. Transaction begins (atomic operation)
+2. User record updated with soft delete flags
+3. isActive set to false (prevents login)
+4. deletedAt timestamp recorded
+5. deletedBy tracks admin who deleted
+6. Password reset tokens cleared for security
+7. All sessions deleted (forces logout)
+8. Transaction commits
+
+### Stage 2: Hard Delete (\`hardDeleteUser\` method)
+
+**Code Location:** Lines 892-992
+
+**Step 1: Validate User Can Be Hard Deleted**
+\`\`\`typescript
+const user = await this.getUser(id);
+if (!user) {
+  return { success: false, message: "User not found" };
+}
+
+if (user.isActive) {
+  return { 
+    success: false, 
+    message: "Can only hard delete inactive users. Please deactivate first." 
+  };
+}
+\`\`\`
+
+**Step 2: Check Dependencies Across All Business Tables**
+
+The system checks **7 critical business entities** for records created by or assigned to the user:
+
+\`\`\`typescript
+const dependencies = {
+  jobs: 0,          // calendarJobs.userId
+  invoices: 0,      // invoices.createdBy
+  quotes: 0,        // quotes.createdBy
+  expenses: 0,      // expenses.userId
+  customers: 0,     // customers.createdBy
+  payments: 0,      // payments.createdBy
+  internalMessages: 0  // internalMessages.senderId
+};
+
+// Example dependency check:
+const [jobCount] = await db.select({ count: sql\`count(*)\` })
+  .from(calendarJobs)
+  .where(eq(calendarJobs.userId, id));
+dependencies.jobs = Number(jobCount.count);
+
+// Repeat for all 7 entity types...
+\`\`\`
+
+**Step 3: Block Deletion if Dependencies Exist**
+\`\`\`typescript
+const hasData = Object.values(dependencies).some(count => count > 0);
+
+if (hasData) {
+  return {
+    success: false,
+    message: \`Cannot permanently delete user with existing business records. 
+              User has: \${Object.entries(dependencies)
+                .filter(([_, count]) => count > 0)
+                .map(([key, count]) => \`\${count} \${key}\`)
+                .join(', ')
+              }. User will remain deactivated.\`,
+    dependencies
+  };
+}
+\`\`\`
+
+**Example Response:**
+\`\`\`json
+{
+  "success": false,
+  "message": "Cannot permanently delete user with existing business records. User has: 12 jobs, 8 invoices, 3 customers. User will remain deactivated.",
+  "dependencies": {
+    "jobs": 12,
+    "invoices": 8,
+    "quotes": 0,
+    "expenses": 0,
+    "customers": 3,
+    "payments": 0,
+    "internalMessages": 0
+  }
+}
+\`\`\`
+
+**Step 4: Perform Hard Delete (If Safe)**
+\`\`\`typescript
+await db.transaction(async (tx) => {
+  // Delete ephemeral data
+  await tx.delete(userSessions)
+    .where(eq(userSessions.userId, id));
+  await tx.delete(notifications)
+    .where(eq(notifications.userId, id));
+  
+  // Delete the user record permanently
+  await tx.delete(users)
+    .where(eq(users.id, id));
+});
+
+console.log(\`✅ Hard deleted user \${id} (\${user.username}) by admin \${deletedBy} - no business data dependencies\`);
+\`\`\`
+
+## Data Flow
+
+### Soft Delete Flow
+1. Admin clicks "Delete User" on active user
+2. **Route**: \`DELETE /api/admin/users/:id\`
+3. **Check**: Prevent self-deletion
+4. **Check**: User exists and belongs to admin's organization
+5. **Check**: \`user.isActive === true\`
+6. **Execute**: \`storage.deleteUser(id, adminId)\`
+7. **Transaction**:
+   - Update users table (isActive=false, timestamps)
+   - Delete from userSessions table
+8. **Broadcast**: WebSocket \`user_deleted\` event to organization
+9. **Response**: \`{ message: "User deactivated successfully", hardDelete: false }\`
+
+### Hard Delete Flow  
+1. Admin clicks "Delete User" on inactive user
+2. **Route**: \`DELETE /api/admin/users/:id\`
+3. **Check**: Prevent self-deletion
+4. **Check**: User exists and belongs to admin's organization
+5. **Check**: \`user.isActive === false\`
+6. **Execute**: \`storage.hardDeleteUser(id, adminId)\`
+7. **Dependency Scan**:
+   - Query calendarJobs for userId matches
+   - Query invoices for createdBy matches
+   - Query quotes for createdBy matches
+   - Query expenses for userId matches
+   - Query customers for createdBy matches
+   - Query payments for createdBy matches
+   - Query internalMessages for senderId matches
+8. **Decision**:
+   - If ANY dependencies found → Return error with details
+   - If NO dependencies → Proceed to step 9
+9. **Transaction** (only if no dependencies):
+   - Delete from userSessions
+   - Delete from notifications  
+   - Delete from users
+10. **Log**: Console log with admin ID and username
+11. **Broadcast**: WebSocket \`user_hard_deleted\` event
+12. **Response**: \`{ message: "User permanently deleted", hardDelete: true, dependencies: {...} }\`
+
+## Design Decisions
+
+### Why Not Immediate Permanent Deletion?
+- **Prevents Accidents**: Easy to accidentally click delete
+- **Data Integrity**: Ensures all business records remain valid
+- **Reversible**: Inactive users can be reactivated if mistake
+- **Compliance**: Some regulations require data retention
+
+### Why Dependency Checks?
+- **Referential Integrity**: Prevents orphaned business records
+- **Business Continuity**: Jobs, invoices still reference valid users
+- **Audit Trail**: Maintains who created what
+- **Reporting Accuracy**: Historical reports remain valid
+
+### Why Soft Delete First?
+- **Cooling-Off Period**: Admin can reconsider before permanent action
+- **Data Review**: Time to reassign records to other users
+- **Safety**: Cannot accidentally hard delete an active account
+- **Reversibility**: Mistakes can be undone
+
+### Why Console Logging Instead of Database Audit Table?
+**Decision**: Middle-ground approach for this project scale
+
+**Pros of Console Logging:**
+- Simpler implementation
+- No additional database table needed
+- Timestamped logs in production
+- Can be monitored with log aggregation tools
+
+**Cons**:
+- Logs may rotate/expire
+- Not queryable like database
+- No built-in UI for viewing audit history
+
+**Note**: For enterprise scale, consider migrating to database audit table with:
+- Detailed action logging
+- IP address tracking
+- Full before/after state
+- Queryable audit history
+
+## Performance Considerations
+
+### Dependency Counting Queries
+**Optimization**: Use COUNT queries instead of SELECT *
+\`\`\`typescript
+// Efficient - only counts rows
+const [count] = await db.select({ count: sql\`count(*)\` })
+  .from(calendarJobs)
+  .where(eq(calendarJobs.userId, id));
+
+// Inefficient - fetches all data
+const jobs = await db.select().from(calendarJobs)
+  .where(eq(calendarJobs.userId, id));
+const count = jobs.length;
+\`\`\`
+
+### Database Indexes
+Required indexes for fast dependency checks:
+\`\`\`sql
+-- Improves calendarJobs lookup
+CREATE INDEX idx_calendar_jobs_user_id ON calendar_jobs(user_id);
+
+-- Improves invoices lookup  
+CREATE INDEX idx_invoices_created_by ON invoices(created_by);
+
+-- Improves quotes lookup
+CREATE INDEX idx_quotes_created_by ON quotes(created_by);
+
+-- Similar indexes for expenses, customers, payments, messages
+\`\`\`
+
+### Transaction Isolation
+- **ACID Compliance**: Ensures all-or-nothing deletion
+- **Prevents Race Conditions**: No partial deletes if error occurs
+- **Rollback Safety**: Auto-rollback on any error
+
+## Security Measures
+
+### Cannot Delete Yourself
+\`\`\`typescript
+if (parseInt(id) === req.user!.id) {
+  return res.status(400).json({ 
+    message: "Cannot delete your own account" 
+  });
+}
+\`\`\`
+
+### Organization Scoping
+\`\`\`typescript
+const user = await storage.getUser(parseInt(id));
+if (user.organizationId !== req.user!.organizationId) {
+  return res.status(403).json({ 
+    message: "Cannot delete users from other organizations" 
+  });
+}
+\`\`\`
+
+### Admin/Manager Only
+Route protected by \`requireManagerOrAdmin\` middleware - only users with admin or manager roles can delete users.
+
+### Cannot Hard Delete Active Users
+\`\`\`typescript
+if (user.isActive) {
+  return { 
+    success: false, 
+    message: "Can only hard delete inactive users. Please deactivate first." 
+  };
+}
+\`\`\`
+
+### Audit Trail
+- Console logs include: timestamp, user ID, username, admin ID
+- deletedBy field tracks who performed soft delete
+- deletedAt timestamp records when
+
+## Common Issues & Troubleshooting
+
+### Error: "jobs is not defined"
+**Cause**: Missing table import in storage.ts
+**Solution**:
+\`\`\`typescript
+// Add to imports at top of server/storage.ts
+import { 
+  // ... other imports
+  calendarJobs, 
+  notifications 
+} from "@shared/schema";
+\`\`\`
+
+### Error: "Can only hard delete inactive users"
+**Cause**: Trying to hard delete an active user
+**Solution**: Must perform soft delete first, then hard delete
+1. Click Delete on active user (soft deletes)
+2. Click Delete again on now-inactive user (hard deletes if no dependencies)
+
+### Deletion Blocked with Dependency Report
+**Cause**: User has business records in the system
+**Example**: User created 12 jobs, 8 invoices, 3 customers
+
+**Solutions**:
+1. **Reassign Records**: Change createdBy/userId to different user
+2. **Delete Business Records**: If truly no longer needed
+3. **Leave Inactive**: User remains soft-deleted but accessible for reports
+
+**Best Practice**: Keep user soft-deleted to maintain historical data integrity
+
+### Session Cleanup Not Working
+**Cause**: Transaction rollback due to error
+**Solution**: Check logs for transaction errors
+- Verify database connectivity
+- Check for foreign key constraint violations
+- Ensure user ID exists
+
+### WebSocket Broadcast Fails
+**Cause**: broadcastFunction not initialized
+**Solution**: Verify WebSocket setup in server/routes.ts
+\`\`\`typescript
+setBroadcastFunction((event, data, orgId, excludeUserId) => {
+  // Broadcast logic
+});
+\`\`\`
+
+## Best Practices
+
+1. **Always Soft Delete First**: Never skip to hard delete
+2. **Review Dependencies**: Check the dependency report before asking user to reassign
+3. **Communicate to User**: Explain why deletion is blocked and what they need to do
+4. **Regular Audits**: Periodically review inactive users
+5. **Data Cleanup**: Create process for handling users with orphaned records`,
+        tags: ['technical', 'architecture', 'database', 'security', 'deletion', 'soft-delete', 'hard-delete']
       }
     ]
   }
