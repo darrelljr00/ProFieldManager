@@ -49,6 +49,7 @@ export interface IStorage {
   deleteUser(id: number): Promise<void>;
   getAllUsers(organizationId?: number): Promise<User[]>;
   getUsersByOrganization(organizationId: number): Promise<User[]>;
+  getOrganizationAdminsAndManagers(organizationId: number): Promise<Array<{ id: number; email: string; firstName: string; lastName: string | null }>>; 
   getUserStats(organizationId?: number): Promise<any>;
   
   // Organization methods
@@ -1069,6 +1070,21 @@ export class DatabaseStorage implements IStorage {
       .from(users)
       .where(and(eq(users.organizationId, organizationId), eq(users.isActive, true)))
       .orderBy(users.firstName, users.lastName, users.username);
+
+  async getOrganizationAdminsAndManagers(organizationId: number): Promise<Array<{ id: number; email: string; firstName: string; lastName: string | null }>> {
+    return await db
+      .select({ 
+        id: users.id, 
+        email: users.email, 
+        firstName: users.firstName, 
+        lastName: users.lastName 
+      })
+      .from(users)
+      .where(and(
+        eq(users.organizationId, organizationId),
+        eq(users.isActive, true),
+        or(eq(users.role, 'admin'), eq(users.role, 'manager'))
+      ));
   }
 
   async getUserStats(organizationId?: number): Promise<any> {
