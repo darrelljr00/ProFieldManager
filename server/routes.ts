@@ -7783,13 +7783,35 @@ ${fromName || ''}
   app.delete("/api/admin/users/:id", requireAdmin, async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
+      const adminUser = getAuthenticatedUser(req);
       
-      // Don't allow deleting self
-      if (userId === req.user?.id) {
+      if (userId === adminUser?.id) {
         return res.status(400).json({ message: "Cannot delete your own account" });
       }
 
-      // Get user data before deletion for broadcasting
+      const userToDelete = await storage.getUser(userId);
+      if (!userToDelete) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      if (userToDelete.organizationId !== adminUser.organizationId) {
+        return res.status(403).json({ message: "Cannot delete users from other organizations" });
+      }
+
+      await storage.deleteUser(userId, adminUser.id);
+      
+      broadcastMessage(userToDelete.organizationId, {
+        type: 'user_deleted',
+        userId: userId,
+        organizationId: userToDelete.organizationId
+      });
+
+      res.json({ message: "User deactivated successfully" });
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      res.status(500).json({ message: `Error deleting user: ${error}` });
+    }
+  });
 
   // Password reset request endpoint
   app.post("/api/auth/reset-password-request", async (req, res) => {
@@ -7902,33 +7924,6 @@ ${fromName || ''}
     }
   });
 
-      const userToDelete = await storage.getUser(userId);
-      if (!userToDelete) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      // Get current admin user for organization filtering
-      const adminUser = getAuthenticatedUser(req);
-
-      await AuthService.invalidateAllUserSessions(userId);
-      const deleted = await storage.deleteUser(userId);
-      
-      if (!deleted) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      // Broadcast employee deletion for real-time analytics
-      broadcastToWebUsers(adminUser.organizationId, 'employee_deleted', {
-        user: { ...userToDelete, password: undefined },
-        deletedBy: req.user!.username,
-        action: 'deleted'
-      });
-
-      res.json({ message: "User deleted successfully" });
-    } catch (error: any) {
-      res.status(500).json({ message: "Error deleting user: " + error.message });
-    }
-  });
 
   // Change password (authenticated users)
   app.post("/api/auth/change-password", requireAuth, async (req, res) => {

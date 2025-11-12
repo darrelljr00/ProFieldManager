@@ -46,7 +46,7 @@ export interface IStorage {
   updateUser(id: number, updates: any): Promise<User>;
   updateUserPassword(userId: number, hashedPassword: string): Promise<User>;
   updateUserStripeInfo(userId: number, customerId: string, subscriptionId?: string): Promise<User>;
-  deleteUser(id: number): Promise<void>;
+  deleteUser(id: number, deletedBy?: number): Promise<void>;
   getAllUsers(organizationId?: number): Promise<User[]>;
   getUsersByOrganization(organizationId: number): Promise<User[]>;
   getOrganizationAdminsAndManagers(organizationId: number): Promise<Array<{ id: number; email: string; firstName: string; lastName: string | null }>>; 
@@ -871,8 +871,21 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async deleteUser(id: number): Promise<void> {
-    await db.delete(users).where(eq(users.id, id));
+  async deleteUser(id: number, deletedBy?: number): Promise<void> {
+    await db.transaction(async (tx) => {
+      await tx
+        .update(users)
+        .set({
+          isActive: false,
+          deletedAt: new Date(),
+          deletedBy: deletedBy || null,
+          passwordResetToken: null,
+          passwordResetExpires: null
+        })
+        .where(eq(users.id, id));
+
+      await tx.delete(userSessions).where(eq(userSessions.userId, id));
+    });
   }
 
   // Organization methods

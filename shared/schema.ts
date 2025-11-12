@@ -259,6 +259,8 @@ export const users = pgTable("users", {
   stripeSubscriptionId: text("stripe_subscription_id"),
   squareApplicationId: text("square_application_id"),
   squareAccessToken: text("square_access_token"),
+  deletedAt: timestamp("deleted_at"),
+  deletedBy: integer("deleted_by"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
