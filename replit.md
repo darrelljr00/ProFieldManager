@@ -28,6 +28,15 @@ Preferred communication style: Simple, everyday language.
 - **ORM**: Drizzle ORM
 - **Migration**: Drizzle Kit
 - **Connection**: Neon serverless PostgreSQL with connection pooling
+- **Connection Pool Configuration**: max=10 connections, idleTimeout=15s, connectionTimeout=10s
+
+### Performance Optimizations (November 2025)
+- **Sidebar Query Optimization**: Reduced polling frequency from 10s to 30s across all sidebar queries (3x reduction in database load)
+- **Query Caching**: Implemented memoizee-based caching with 30-second TTL for notification unread counts and internal messages
+- **Cache Invalidation**: Comprehensive cache invalidation on create/read operations for immediate data freshness despite caching
+- **Database Indexing**: Added indexes on `notifications(user_id, is_read)` and `internal_message_recipients(recipient_id, is_read)` for faster query performance
+- **Centralized Caching Module**: `server/cache/queryCache.ts` provides cached versions of expensive queries with automatic invalidation
+- **Connection Pool Optimization**: Reduced idle connection timeout to prevent connection pool exhaustion under high load
 
 ### Core Features & Design Patterns
 - **Multi-Tenant SaaS Infrastructure**: Organization-based tenant separation, subscription management, role-based access control, usage limits.

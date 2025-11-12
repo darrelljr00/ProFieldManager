@@ -2,6 +2,7 @@ import { db } from "./db";
 import { notifications, notificationSettings, users } from "@shared/schema";
 import { eq, and, desc } from "drizzle-orm";
 import type { InsertNotification } from "@shared/schema";
+import { invalidateNotificationCache } from './cache/queryCache';
 
 // We'll set the WebSocket broadcast function later from routes.ts
 let broadcastToUserFunction: ((userId: number, organizationId: number, eventType: string, data: any) => void) | null = null;
@@ -71,6 +72,9 @@ export class NotificationService {
         .insert(notifications)
         .values(notificationData)
         .returning();
+
+      // Invalidate cache for the recipient
+      invalidateNotificationCache(data.userId, data.organizationId);
 
       // Send real-time notification via WebSocket if enabled
       if (shouldSend.inApp) {

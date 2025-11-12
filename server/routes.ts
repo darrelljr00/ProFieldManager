@@ -96,6 +96,7 @@ import archiver from 'archiver';
 // Removed fileUploadRouter import - using direct route instead
 // Object storage imports already imported at top - removed duplicates
 import { NotificationService, setBroadcastFunction } from "./notificationService";
+import { getCachedNotificationUnreadCount, getCachedInternalMessages, invalidateNotificationCache, invalidateMessageCache } from './cache/queryCache';
 import { routeMonitoringService } from "./routeMonitoring";
 import { calculateSpeed } from "./utils/gps";
 
@@ -1438,7 +1439,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const user = getAuthenticatedUser(req);
       
-      const count = await NotificationService.getUnreadCount(
+      const count = await getCachedNotificationUnreadCount(
         user.id, 
         user.organizationId
       );
@@ -1458,6 +1459,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       await NotificationService.markAsRead(notificationId, user.id);
       
+      invalidateNotificationCache(user.id, user.organizationId);
       res.json({ message: 'Notification marked as read' });
     } catch (error: any) {
       console.error('Error marking notification as read:', error);
@@ -1473,6 +1475,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await NotificationService.markAllAsRead(user.id, user.organizationId);
       
       res.json({ message: 'All notifications marked as read' });
+      invalidateNotificationCache(user.id, user.organizationId);
     } catch (error: any) {
       console.error('Error marking all notifications as read:', error);
       res.status(500).json({ message: 'Failed to mark all notifications as read' });
@@ -13416,7 +13419,7 @@ ${fromName || ''}
   // Internal Messages routes
   app.get("/api/internal-messages", requireAuth, async (req, res) => {
     try {
-      const messages = await storage.getInternalMessages(req.user!.id);
+      const messages = await getCachedInternalMessages(req.user!.id, storage);
       res.json(messages);
     } catch (error: any) {
       console.error("Error fetching internal messages:", error);
@@ -13503,6 +13506,11 @@ ${fromName || ''}
 
       console.log('Message created successfully:', message.id);
 
+      // Invalidate cache for all recipients
+      finalRecipientIds.forEach(recipientId => {
+        invalidateMessageCache(recipientId, storage);
+      });
+
       // Broadcast message to recipients via WebSocket for instant delivery
       if (finalRecipientIds && finalRecipientIds.length > 0) {
         finalRecipientIds.forEach(recipientId => {
@@ -13534,6 +13542,7 @@ ${fromName || ''}
         return res.status(404).json({ message: "Message not found or already read" });
       }
       res.json({ success: true });
+      invalidateMessageCache(req.user!.id, storage);
     } catch (error: any) {
       console.error("Error marking message as read:", error);
       res.status(500).json({ message: "Failed to mark message as read" });

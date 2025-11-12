@@ -17,8 +17,8 @@ if (!process.env.DATABASE_URL) {
 // Create pool with better error handling and timeouts
 export const pool = new Pool({ 
   connectionString: process.env.DATABASE_URL,
-  max: 10,
-  idleTimeoutMillis: 30000,
+  max: 10, // Keep at 10 for Neon serverless
+  idleTimeoutMillis: 15000, // Reduced from 30s to 15s to release connections faster
   connectionTimeoutMillis: 10000,
 });
 

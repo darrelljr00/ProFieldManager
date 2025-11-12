@@ -295,7 +295,7 @@ export function Sidebar() {
   const { data: notificationData } = useQuery({
     queryKey: ["/api/notifications/unread-count"],
     enabled: isAuthenticated,
-    refetchInterval: 10000, // Poll every 10 seconds
+    refetchInterval: 30000, // Poll every 30 seconds
   });
 
   // Load custom navigation order
@@ -327,7 +327,7 @@ export function Sidebar() {
       return data;
     },
     enabled: isAuthenticated && !!user?.id,
-    refetchInterval: 10000, // Poll every 10 seconds
+    refetchInterval: 30000, // Poll every 30 seconds
     refetchIntervalInBackground: true,
   });
 
