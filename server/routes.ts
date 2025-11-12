@@ -96,7 +96,7 @@ import archiver from 'archiver';
 // Removed fileUploadRouter import - using direct route instead
 // Object storage imports already imported at top - removed duplicates
 import { NotificationService, setBroadcastFunction } from "./notificationService";
-import { getCachedNotificationUnreadCount, getCachedInternalMessages, invalidateNotificationCache, invalidateMessageCache } from './cache/queryCache';
+import { getCachedNotificationUnreadCount, getCachedInternalMessages, invalidateNotificationCache, invalidateMessageCache, clearAllQueryCaches } from './cache/queryCache';
 import { routeMonitoringService } from "./routeMonitoring";
 import { calculateSpeed } from "./utils/gps";
 
@@ -7290,6 +7290,25 @@ ${fromName || ''}
   // User Management endpoints (Admin only)
   
   // Get all users
+
+  // Admin cache management endpoint
+  app.post("/api/admin/cache/clear", requireAdmin, async (req, res) => {
+    try {
+      clearAllQueryCaches();
+      console.log('🗑️  Admin cleared all query caches');
+      res.json({ 
+        success: true, 
+        message: 'All query caches cleared successfully' 
+      });
+    } catch (error: any) {
+      console.error('Error clearing caches:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Failed to clear caches: ' + error.message 
+      });
+    }
+  });
+
   app.get("/api/admin/users", requireAdmin, async (req, res) => {
     try {
       const users = await storage.getAllUsers();

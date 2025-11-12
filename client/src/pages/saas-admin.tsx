@@ -521,7 +521,7 @@ export default function SaasAdminPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-9">
+        <TabsList className="grid w-full grid-cols-10">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="organizations">Organizations</TabsTrigger>
           <TabsTrigger value="users">User Management</TabsTrigger>
@@ -531,6 +531,7 @@ export default function SaasAdminPage() {
           <TabsTrigger value="security">File Security</TabsTrigger>
           <TabsTrigger value="call-manager">Call Manager</TabsTrigger>
           <TabsTrigger value="sync">Server Sync</TabsTrigger>
+          <TabsTrigger value="cache">Cache</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -1938,6 +1939,182 @@ export default function SaasAdminPage() {
 
         <TabsContent value="sync">
           <ServerSync />
+        </TabsContent>
+
+        <TabsContent value="cache" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Database className="h-5 w-5" />
+                Query Cache Management
+              </CardTitle>
+              <CardDescription>
+                Manage server-side query caching for notifications and messages
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Cache Statistics */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-medium">Cache Status</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="default" className="bg-green-500">
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        Active
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Memoizee-based caching enabled
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-medium">Cache TTL</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">30s</div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Time-to-live for cached queries
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-medium">Polling Frequency</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">30s</div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Sidebar query refresh interval
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Cached Queries */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Cached Queries</h3>
+                <div className="border rounded-lg">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Query Type</TableHead>
+                        <TableHead>Cache Key Pattern</TableHead>
+                        <TableHead>TTL</TableHead>
+                        <TableHead>Invalidation</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      <TableRow>
+                        <TableCell className="font-medium">Notification Unread Count</TableCell>
+                        <TableCell className="font-mono text-xs">notification:{'{userId}'}:{'{orgId}'}</TableCell>
+                        <TableCell>30s</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">On Create</Badge>{' '}
+                          <Badge variant="outline">On Read</Badge>
+                        </TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell className="font-medium">Internal Messages</TableCell>
+                        <TableCell className="font-mono text-xs">messages:{'{userId}'}</TableCell>
+                        <TableCell>30s</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">On Create</Badge>{' '}
+                          <Badge variant="outline">On Read</Badge>
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+
+              {/* Cache Controls */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Cache Controls</h3>
+                <div className="grid gap-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">Clear All Caches</CardTitle>
+                      <CardDescription>
+                        Force clear all cached queries. Cache will rebuild automatically on next request.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Button 
+                        variant="destructive"
+                        onClick={async () => {
+                          try {
+                            await apiRequest('POST', '/api/admin/cache/clear');
+                            toast({
+                              title: "Cache Cleared",
+                              description: "All query caches have been cleared successfully.",
+                            });
+                          } catch (error: any) {
+                            toast({
+                              title: "Error",
+                              description: error.message || "Failed to clear cache",
+                              variant: "destructive",
+                            });
+                          }
+                        }}
+                        data-testid="button-clear-cache"
+                      >
+                        <Trash className="h-4 w-4 mr-2" />
+                        Clear All Caches
+                      </Button>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">Performance Optimizations</CardTitle>
+                      <CardDescription>
+                        Current optimizations applied to reduce database load
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between p-3 border rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="h-4 w-4 text-green-500" />
+                            <span className="font-medium">Reduced Polling</span>
+                          </div>
+                          <Badge>10s → 30s (3x reduction)</Badge>
+                        </div>
+                        <div className="flex items-center justify-between p-3 border rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="h-4 w-4 text-green-500" />
+                            <span className="font-medium">Database Indexes</span>
+                          </div>
+                          <Badge>notifications, messages</Badge>
+                        </div>
+                        <div className="flex items-center justify-between p-3 border rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="h-4 w-4 text-green-500" />
+                            <span className="font-medium">Cache Invalidation</span>
+                          </div>
+                          <Badge>Normalized keys</Badge>
+                        </div>
+                        <div className="flex items-center justify-between p-3 border rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="h-4 w-4 text-green-500" />
+                            <span className="font-medium">Connection Pool</span>
+                          </div>
+                          <Badge>max=10, idle=15s</Badge>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 
