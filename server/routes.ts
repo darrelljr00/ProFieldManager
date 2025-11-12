@@ -7798,6 +7798,25 @@ ${fromName || ''}
         return res.status(403).json({ message: "Cannot delete users from other organizations" });
       }
 
+      // Check if user is already inactive (soft deleted)
+      if (!userToDelete.isActive) {
+        // Perform hard delete for inactive users
+        const result = await storage.hardDeleteUser(userId, adminUser.id);
+        
+        if (!result.success) {
+          return res.status(400).json({ message: result.message });
+        }
+        
+        broadcastToWebUsers(userToDelete.organizationId, {
+          type: 'user_hard_deleted',
+          userId: userId,
+          organizationId: userToDelete.organizationId
+        });
+
+        return res.json({ message: "User permanently deleted", hardDelete: true });
+      }
+
+      // Perform soft delete for active users
       await storage.deleteUser(userId, adminUser.id);
       
       broadcastToWebUsers(userToDelete.organizationId, {
@@ -7806,16 +7825,12 @@ ${fromName || ''}
         organizationId: userToDelete.organizationId
       });
 
-      res.json({ message: "User deactivated successfully" });
+      res.json({ message: "User deactivated successfully", hardDelete: false });
     } catch (error) {
       console.error("Error deleting user:", error);
       res.status(500).json({ message: `Error deleting user: ${error}` });
     }
   });
-
-  // Password reset request endpoint
-  app.post("/api/auth/reset-password-request", async (req, res) => {
-    try {
       const { email } = req.body;
       
       if (!email) {

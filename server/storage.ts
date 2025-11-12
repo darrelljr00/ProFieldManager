@@ -47,6 +47,7 @@ export interface IStorage {
   updateUserPassword(userId: number, hashedPassword: string): Promise<User>;
   updateUserStripeInfo(userId: number, customerId: string, subscriptionId?: string): Promise<User>;
   deleteUser(id: number, deletedBy?: number): Promise<void>;
+  hardDeleteUser(id: number, deletedBy: number): Promise<{ success: boolean; message: string; dependencies?: any }>;
   getAllUsers(organizationId?: number): Promise<User[]>;
   getUsersByOrganization(organizationId: number): Promise<User[]>;
   getOrganizationAdminsAndManagers(organizationId: number): Promise<Array<{ id: number; email: string; firstName: string; lastName: string | null }>>; 
@@ -886,31 +887,46 @@ export class DatabaseStorage implements IStorage {
 
       await tx.delete(userSessions).where(eq(userSessions.userId, id));
     });
-  }
 
-  // Organization methods
-  async getOrganization(id: number): Promise<Organization | undefined> {
-    const [org] = await db.select().from(organizations).where(eq(organizations.id, id));
-    return org || undefined;
-  }
+  async hardDeleteUser(id: number, deletedBy: number): Promise<{ success: boolean; message: string; dependencies?: any }> {
+    // Check if user exists and is inactive
+    const user = await this.getUser(id);
+    if (!user) {
+      return { success: false, message: "User not found" };
+    }
 
-  async createOrganization(orgData: any): Promise<Organization> {
-    const [org] = await db
-      .insert(organizations)
-      .values({
-        name: orgData.name,
-        slug: orgData.slug
-      })
-      .returning();
-    return org;
-  }
+    if (user.isActive) {
+      return { success: false, message: "Can only hard delete inactive users. Please deactivate the user first." };
+    }
 
-  async updateOrganization(id: number, updates: any): Promise<Organization> {
-    const [org] = await db
-      .update(organizations)
-      .set({
-        name: updates.name,
-        slug: updates.slug
+    // TEMPORARILY DISABLED: Hard delete requires dependency analysis and data retention safeguards
+    // The system has 100+ foreign key relationships that need to be handled properly:
+    // - Business records (invoices, jobs, payments) must be retained and anonymized
+    // - Join tables (project_users, meetings) need cleanup
+    // - Compliance requires audit trail and cooling-off period
+    
+    return {
+      success: false,
+      message: "Hard delete is currently disabled. Users can be deactivated (soft deleted) but not permanently removed. Contact support if permanent deletion is required for compliance reasons."
+    };
+    
+    /* Full implementation would include:
+    // 1. Dependency analysis (check for invoices, jobs, payments)
+    // 2. Anonymize retained business records
+    // 3. Delete ephemeral data (sessions, notifications)
+    // 4. Delete join table entries
+    // 5. Log to immutable audit table
+    // 6. Delete user record
+    
+    await db.transaction(async (tx) => {
+      await tx.delete(userSessions).where(eq(userSessions.userId, id));
+      await tx.delete(users).where(eq(users.id, id));
+    });
+    
+    console.log(`Hard deleted user ${id} by admin ${deletedBy}`);
+    return { success: true, message: "User permanently deleted" };
+    */
+  }
       })
       .where(eq(organizations.id, id))
       .returning();
