@@ -121,6 +121,55 @@ export default function FrontendManagement() {
   const [draggedComponent, setDraggedComponent] = useState<any>(null);
   const [canvasElements, setCanvasElements] = useState<any[]>([]);
   const [deviceView, setDeviceView] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
+  const [selectedElementId, setSelectedElementId] = useState<number | null>(null);
+  const [draftStyles, setDraftStyles] = useState({
+    backgroundColor: '#ffffff',
+    textColor: '#000000',
+    borderRadius: 0,
+    padding: 10,
+    margin: 0
+  });
+
+  // Get the selected element object
+  const selectedElement = canvasElements.find(el => el.id === selectedElementId);
+
+  // Initialize draftStyles when selection changes
+  React.useEffect(() => {
+    if (selectedElement && selectedElement.style) {
+      setDraftStyles({
+        backgroundColor: selectedElement.style.backgroundColor || '#ffffff',
+        textColor: selectedElement.style.textColor || '#000000',
+        borderRadius: selectedElement.style.borderRadius || 0,
+        padding: selectedElement.style.padding || 10,
+        margin: selectedElement.style.margin || 0
+      });
+    }
+  }, [selectedElement]);
+
+  // Handler to save property changes to the selected element
+  const handleSaveElementProperties = () => {
+    if (!selectedElementId) {
+      toast({
+        title: "No element selected",
+        description: "Please select an element to edit its properties",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const updatedElements = canvasElements.map(el =>
+      el.id === selectedElementId
+        ? { ...el, style: { ...el.style, ...draftStyles } }
+        : el
+    );
+    
+    setCanvasElements(updatedElements);
+    
+    toast({
+      title: "Properties saved",
+      description: "Element properties updated successfully"
+    });
+  };
 
   // Fetch data
   const { data: pages = [] } = useQuery<FrontendPage[]>({
@@ -648,6 +697,8 @@ export default function FrontendManagement() {
                 selectedPage={selectedPage}
                 elements={canvasElements}
                 onElementsChange={setCanvasElements}
+                selectedElementId={selectedElementId}
+                onSelectElement={setSelectedElementId}
                 onDrop={(component, position) => {
                   const newElement = {
                     id: Date.now(),
@@ -668,7 +719,9 @@ export default function FrontendManagement() {
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">Element Type</Label>
-                  <p className="text-sm text-muted-foreground">Select an element to edit its properties</p>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedElement ? `Editing ${selectedElement.type} element` : 'Select an element to edit its properties'}
+                  </p>
                 </div>
 
                 {/* Style Controls */}
@@ -677,8 +730,10 @@ export default function FrontendManagement() {
                     <Label className="text-sm">Background Color</Label>
                     <Input
                       type="color"
-                      defaultValue="#ffffff"
+                      value={draftStyles.backgroundColor}
+                      onChange={(e) => setDraftStyles({ ...draftStyles, backgroundColor: e.target.value })}
                       className="h-8 w-full"
+                      disabled={!selectedElement}
                     />
                   </div>
                   
@@ -686,8 +741,10 @@ export default function FrontendManagement() {
                     <Label className="text-sm">Text Color</Label>
                     <Input
                       type="color"
-                      defaultValue="#000000"
+                      value={draftStyles.textColor}
+                      onChange={(e) => setDraftStyles({ ...draftStyles, textColor: e.target.value })}
                       className="h-8 w-full"
+                      disabled={!selectedElement}
                     />
                   </div>
 
@@ -695,8 +752,11 @@ export default function FrontendManagement() {
                     <Label className="text-sm">Border Radius</Label>
                     <Input
                       type="number"
+                      value={draftStyles.borderRadius}
+                      onChange={(e) => setDraftStyles({ ...draftStyles, borderRadius: Number(e.target.value) })}
                       placeholder="0"
                       className="h-8"
+                      disabled={!selectedElement}
                     />
                   </div>
 
@@ -704,8 +764,11 @@ export default function FrontendManagement() {
                     <Label className="text-sm">Padding</Label>
                     <Input
                       type="number"
+                      value={draftStyles.padding}
+                      onChange={(e) => setDraftStyles({ ...draftStyles, padding: Number(e.target.value) })}
                       placeholder="10"
                       className="h-8"
+                      disabled={!selectedElement}
                     />
                   </div>
 
@@ -713,14 +776,22 @@ export default function FrontendManagement() {
                     <Label className="text-sm">Margin</Label>
                     <Input
                       type="number"
+                      value={draftStyles.margin}
+                      onChange={(e) => setDraftStyles({ ...draftStyles, margin: Number(e.target.value) })}
                       placeholder="0"
                       className="h-8"
+                      disabled={!selectedElement}
                     />
                   </div>
                 </div>
 
                 <div className="pt-4 border-t">
-                  <Button className="w-full" size="sm">
+                  <Button 
+                    className="w-full" 
+                    size="sm"
+                    onClick={handleSaveElementProperties}
+                    disabled={!selectedElement}
+                  >
                     <Save className="h-4 w-4 mr-2" />
                     Save Changes
                   </Button>
@@ -2217,17 +2288,19 @@ function DesignCanvas({
   deviceView, 
   selectedPage, 
   elements, 
-  onElementsChange, 
+  onElementsChange,
+  selectedElementId,
+  onSelectElement,
   onDrop 
 }: {
   deviceView: 'desktop' | 'tablet' | 'mobile';
   selectedPage: FrontendPage | null;
   elements: any[];
   onElementsChange: (elements: any[]) => void;
+  selectedElementId: number | null;
+  onSelectElement: (id: number | null) => void;
   onDrop: (component: any, position: { x: number; y: number }) => void;
 }) {
-  const [selectedElement, setSelectedElement] = useState<any>(null);
-
   const getCanvasStyle = () => {
     switch (deviceView) {
       case 'mobile':
@@ -2255,7 +2328,7 @@ function DesignCanvas({
   };
 
   const handleElementClick = (element: any) => {
-    setSelectedElement(element);
+    onSelectElement(element.id);
   };
 
   const handleElementMove = (elementId: number, newPosition: { x: number; y: number }) => {
@@ -2426,7 +2499,7 @@ function DesignCanvas({
               <CanvasElement
                 key={element.id}
                 element={element}
-                isSelected={selectedElement?.id === element.id}
+                isSelected={selectedElementId === element.id}
                 onClick={() => handleElementClick(element)}
                 onMove={(newPosition) => handleElementMove(element.id, newPosition)}
               />
