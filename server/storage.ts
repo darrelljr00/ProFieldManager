@@ -19,7 +19,7 @@ import {
   callRecords, callRecordings, callTranscripts, voicemails, callQueues, 
   organizationTwilioSettings, organizationCallAnalytics,
   streamSessions, streamViewers, streamInvitations, streamNotifications,
-  smartCaptureLists, smartCaptureItems, timeEntries, recurringJobSeries
+  smartCaptureLists, smartCaptureItems, timeEntries, recurringJobSeries, calendarJobs, notifications
 } from "@shared/schema";
 import { marketResearchCompetitors } from "@shared/schema";
 import type { GasCard, InsertGasCard, GasCardAssignment, InsertGasCardAssignment, GasCardUsage, InsertGasCardUsage, GasCardProvider, InsertGasCardProvider } from "@shared/schema";
@@ -914,8 +914,8 @@ export class DatabaseStorage implements IStorage {
     try {
       // Count critical business records
       const [jobCount] = await db.select({ count: sql<number>`count(*)` })
-        .from(jobs)
-        .where(or(eq(jobs.assignedTo, id), eq(jobs.createdBy, id)));
+        .from(calendarJobs)
+        .where(eq(calendarJobs.userId, id));
       dependencies.jobs = Number(jobCount.count);
 
       const [invoiceCount] = await db.select({ count: sql<number>`count(*)` })
