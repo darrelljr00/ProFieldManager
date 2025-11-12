@@ -73,16 +73,40 @@ const HELP_SECTIONS: HelpSection[] = [
 4. **User Preferences**: Set your timezone, notifications, and display options
 
 ## Essential First Steps
-- Add your company logo and contact information
+- Add your company logo and contact information in Settings
 - Set up your primary business address
 - Configure notification preferences
 - Invite team members to your organization
+- Set up your subscription plan and billing information
+
+## Company Profile
+Navigate to **Settings > Company Profile** to configure:
+- **Company Name**: Your business name as it appears on invoices
+- **Contact Information**: Email, phone, website
+- **Business Address**: Physical address for your company
+- **Logo**: Upload your company logo (appears on invoices, quotes, and emails)
+- **Tax Settings**: Configure tax rates for your region
+
+## User Account Settings
+Customize your personal account settings:
+- **Profile Information**: Name, email, phone number
+- **Password Management**: Change password regularly for security
+- **Notification Preferences**: Choose which notifications you want to receive
+- **Time Zone**: Set your local time zone for accurate scheduling
+- **Display Preferences**: Theme, language, and interface options
 
 ## Security Setup
-- Enable two-factor authentication (recommended)
-- Set up strong password requirements
-- Review and customize user permissions
-- Configure session timeout settings`,
+- Set up strong password requirements for all users
+- Review and customize user role permissions
+- Configure session timeout settings (auto-logout for security)
+- Enable email notifications for security events
+- Regularly review user access and permissions
+
+## Organization Structure
+- **Departments**: Create departments for better organization (optional)
+- **User Roles**: Set up admin, manager, and technician roles
+- **Permission Levels**: Define what each role can access and modify
+- **Teams**: Group users by function or location`,
         tags: ['setup', 'onboarding', 'account', 'security']
       },
       {
@@ -107,25 +131,118 @@ const HELP_SECTIONS: HelpSection[] = [
 ## Main Navigation
 The sidebar contains all major sections of the application:
 - **Dashboard**: Overview and key metrics
-- **Jobs**: Project and job management
+- **Calendar**: View and schedule jobs by date
+- **Jobs**: Project and job management (active, cancelled, deleted views)
+- **My Tasks**: Personal task list and assignments
+- **Leads**: Sales leads and prospect management
 - **Customers**: Customer relationship management
 - **Invoices & Quotes**: Financial management
-- **Team**: User and team management
+- **Expenses**: Expense tracking and reporting
+- **Payments**: Payment processing and history
+- **File Manager**: Document and photo storage
+- **Parts & Supplies**: Inventory management
+- **GPS Tracking**: Real-time location and route monitoring
+- **Reports**: Business analytics and performance metrics
+- **Messages**: Internal team communication
+- **SMS**: Customer text messaging
+- **Reviews**: Customer review management
+- **Settings**: Application and company configuration
+- **Users**: Team member management (admin only)
+
+## Customizable Navigation
+Your navigation menu is customizable based on:
+- **User Role**: Different roles see different menu items
+- **Permissions**: Admins can control which features each user can access
+- **Navigation Order**: Customize the order of menu items in Settings
 
 ## Search Functionality
-Use the search bar to quickly find:
-- Customer records
-- Job details
+Use the global search (magnifying glass icon) to quickly find:
+- Customer records by name, email, or phone
+- Job details by title or ID
 - Invoice numbers
 - Team members
+- File names and documents
 
 ## Quick Actions
-Look for the "+" button or "Add New" buttons throughout the interface for quick creation of:
-- New customers
-- New jobs
-- New invoices
-- New team members`,
+Look for action buttons throughout the interface:
+- **"+" or "Add New" buttons**: Create new records quickly
+- **Action menus (three dots)**: Access additional options for each record
+- **Bulk actions**: Select multiple items for batch operations
+
+## Notifications
+The bell icon in the header shows:
+- **Job updates**: Status changes, completions
+- **Payment notifications**: New payments received
+- **Team messages**: Internal communications
+- **System alerts**: Important system notifications
+- **GPS events**: Arrival/departure notifications
+
+## Keyboard Shortcuts
+Speed up your workflow with keyboard shortcuts:
+- **Ctrl/Cmd + K**: Open search
+- **Ctrl/Cmd + N**: Create new (context-aware)
+- **Esc**: Close dialogs and modals`,
         tags: ['navigation', 'interface', 'search', 'basics']
+      },
+      {
+        id: 'dashboard-customization',
+        title: 'Dashboard Customization',
+        description: 'Customize your dashboard widgets and layout',
+        type: 'tutorial',
+        difficulty: 'intermediate',
+        estimatedTime: 12,
+        content: `# Dashboard Customization
+
+## Overview
+Your dashboard is fully customizable with widgets that show the most important information for your role and workflow.
+
+## Widget Types Available
+- **Revenue & Financial Metrics**: Track income, expenses, profit/loss
+- **Job Statistics**: Active jobs, completion rates, pending tasks
+- **Team Performance**: Technician productivity, GPS tracking status
+- **Customer Metrics**: New customers, customer satisfaction
+- **Calendar View**: Upcoming jobs and appointments
+- **Payment Status**: Outstanding invoices, recent payments
+- **GPS Status**: Team locations and field status
+- **Quick Actions**: Common tasks and shortcuts
+
+## Customizing Your Dashboard
+
+### Adding Widgets
+1. Click the **"Customize Dashboard"** button
+2. Select **"Add Widget"**
+3. Choose from available widget types
+4. Configure widget settings (date range, filters, display options)
+5. Click **"Save"** to add the widget
+
+### Arranging Widgets
+1. Enter customization mode
+2. Drag and drop widgets to reorder
+3. Resize widgets by dragging corners
+4. Organize related widgets together for better workflow
+5. Save your layout
+
+### Widget Settings
+Each widget can be configured with:
+- **Date Range**: Today, this week, this month, custom
+- **Filters**: Organization, department, team member
+- **Display Options**: Chart type, metrics shown
+- **Refresh Rate**: How often data updates
+
+## Dashboard Profiles
+Create multiple dashboard configurations:
+- **Executive View**: High-level financial and performance metrics
+- **Operations View**: Job status, team location, daily tasks
+- **Financial View**: Revenue, expenses, invoicing status
+- **Field View**: Today's jobs, customer locations, route planning
+
+Switch between profiles with one click based on your current focus.
+
+## Role-Based Defaults
+- **Admin**: Full business overview with all metrics
+- **Manager**: Team performance and job management
+- **Technician**: Personal tasks, assigned jobs, time tracking`,
+        tags: ['dashboard', 'customization', 'widgets', 'personalization']
       }
     ]
   },
@@ -137,7 +254,7 @@ Look for the "+" button or "Add New" buttons throughout the interface for quick 
     items: [
       {
         id: 'customer-management',
-        title: 'Customer Management',
+        title: 'Customer Management Basics',
         description: 'Add, edit, and manage customer information',
         type: 'walkthrough',
         difficulty: 'beginner',
@@ -146,13 +263,156 @@ Look for the "+" button or "Add New" buttons throughout the interface for quick 
         tags: ['customers', 'management', 'data-entry']
       },
       {
-        id: 'job-creation',
-        title: 'Creating and Managing Jobs',
-        description: 'Learn how to create, assign, and track jobs',
+        id: 'customer-management-detailed',
+        title: 'Complete Customer Management Guide',
+        description: 'Comprehensive guide to managing customer relationships',
         type: 'tutorial',
         difficulty: 'intermediate',
-        estimatedTime: 20,
-        content: `# Creating and Managing Jobs
+        estimatedTime: 25,
+        content: `# Complete Customer Management Guide
+
+## Adding New Customers
+
+### Basic Information
+1. Navigate to **Customers** in the sidebar
+2. Click **"Add Customer"** button
+3. Fill in required fields:
+   - **Name**: Customer's full name or business name
+   - **Email**: Primary email address
+   - **Phone**: Contact phone number
+   - **Address**: Service address or billing address
+
+### Additional Customer Details
+- **Secondary Contact**: Backup contact information
+- **Billing Address**: If different from service address
+- **Customer Type**: Residential or commercial
+- **Preferred Contact Method**: Email, phone, or SMS
+- **Tags**: Add custom tags for organization (VIP, seasonal, etc.)
+
+## Customer Locations
+
+### Managing Multiple Service Locations
+Many customers have multiple service locations:
+
+1. **Add Location**
+   - From customer detail page, click **"Add Location"**
+   - Enter address details
+   - Add location-specific notes
+   - Mark as primary location if applicable
+
+2. **Location Features**
+   - **GPS Coordinates**: Automatically geocoded for routing
+   - **Access Instructions**: Gate codes, parking notes, etc.
+   - **Service History**: View all jobs at this location
+   - **Photos**: Attach location photos for reference
+
+3. **Location Management**
+   - Edit location details anytime
+   - Deactivate unused locations
+   - Set default service location
+   - Add emergency contact for each location
+
+## Customer Communication
+
+### Email Integration
+- Send quotes directly from the system
+- Email invoices with payment links
+- Automated appointment reminders
+- Follow-up emails after service completion
+
+### SMS Messaging
+- Quick text updates on job status
+- Appointment confirmations
+- Payment reminders
+- Review requests after service
+
+### Communication History
+View all communications with a customer:
+- Emails sent/received
+- SMS messages
+- Internal notes
+- Phone call logs
+
+## Customer Portal Features
+
+### Quote Acceptance
+Customers can:
+- View quotes online via secure link
+- Accept or decline quotes
+- Provide availability for scheduling
+- Upload photos or documents
+- Add comments or special requests
+
+### Payment Portal
+- View invoice details
+- Pay online via Stripe
+- Download payment receipts
+- View payment history
+
+## Customer Data Management
+
+### Importing Customers
+Bulk import customers from spreadsheet:
+1. Download CSV template
+2. Fill in customer data
+3. Upload CSV file
+4. Review and confirm import
+5. System validates and imports records
+
+### Exporting Customer Data
+- Export customer list to CSV or Excel
+- Filter before export (active only, by tags, etc.)
+- Include job history and financial data
+- Scheduled exports for backup
+
+## Customer Insights
+
+### Activity Tracking
+Monitor customer engagement:
+- Last service date
+- Total jobs completed
+- Total revenue generated
+- Average job value
+- Service frequency
+
+### Customer Segmentation
+Group customers by:
+- **Lifetime Value**: High-value vs. standard customers
+- **Service Type**: Recurring vs. one-time service
+- **Location**: Geographic regions
+- **Customer Status**: Active, inactive, at-risk
+
+## Best Practices
+
+### Data Quality
+- Enter complete contact information
+- Verify addresses for accurate GPS routing
+- Keep notes updated with preferences
+- Tag customers for easy filtering
+- Regular data cleanup and updates
+
+### Privacy & Security
+- Respect customer privacy preferences
+- Secure storage of sensitive information
+- GDPR/privacy compliance
+- Permission-based data sharing
+
+### Customer Retention
+- Track customer satisfaction
+- Follow up after each service
+- Proactive maintenance reminders
+- Loyalty programs and discounts
+- Request and manage customer reviews`,
+        tags: ['customers', 'management', 'crm', 'communication', 'detailed']
+      },
+      {
+        id: 'job-creation',
+        title: 'Creating and Managing Jobs - Quick Start',
+        description: 'Learn how to create, assign, and track jobs',
+        type: 'tutorial',
+        difficulty: 'beginner',
+        estimatedTime: 12,
+        content: `# Creating and Managing Jobs - Quick Start
 
 ## Job Creation Process
 1. **Navigate to Jobs**: Click on "Jobs" in the sidebar
@@ -175,6 +435,283 @@ Look for the "+" button or "Add New" buttons throughout the interface for quick 
 - Regular status updates to keep everyone informed
 - Document important decisions and changes`,
         tags: ['jobs', 'projects', 'management', 'workflow']
+      },
+      {
+        id: 'job-management-comprehensive',
+        title: 'Complete Job & Project Management Guide',
+        description: 'Comprehensive guide to job lifecycle management',
+        type: 'tutorial',
+        difficulty: 'intermediate',
+        estimatedTime: 35,
+        content: `# Complete Job & Project Management Guide
+
+## Creating Jobs from Different Sources
+
+### 1. Creating from Calendar
+- Click any date on the calendar
+- Fill in job details in the popup form
+- Drag and drop to reschedule
+- Color-coded by status and priority
+
+### 2. Creating from Customer Record
+- Open customer detail page
+- Click **"Create Job"** button
+- Customer information auto-populated
+- Previous service history visible for reference
+
+### 3. Creating from Lead Conversion
+- Convert qualified leads directly to jobs
+- Lead information transfers automatically
+- Maintain conversation history
+- Track lead-to-job conversion metrics
+
+### 4. Creating from Quotes
+- When customer accepts quote
+- Convert to scheduled job with one click
+- Quote pricing transfers to job
+- Original quote remains linked for reference
+
+## Job Information & Settings
+
+### Basic Details
+- **Title**: Clear, descriptive job name
+- **Description**: Detailed scope of work
+- **Customer**: Link to customer record
+- **Location**: Service address (with GPS coordinates)
+- **Estimated Value**: Expected job revenue
+- **Priority**: Low, Medium, High, Urgent
+
+### Scheduling
+- **Start Date/Time**: When work begins
+- **End Date/Time**: Expected completion
+- **Duration**: Calculated or manually set
+- **All-Day Event**: For jobs without specific times
+- **Recurring**: Set up recurring service schedules
+
+### Team Assignment
+- **Assigned To**: Primary technician/team
+- **Additional Team Members**: Support staff
+- **Skills Required**: Match jobs to technician skills
+- **Availability Check**: View technician schedules
+
+## Job Status Workflow
+
+### Status Progression
+1. **Scheduled**: Job created and scheduled
+2. **In Progress**: Technician starts work
+3. **Completed**: Work finished, pending review
+4. **Converted**: Converted to invoice
+5. **Cancelled**: Job cancelled (with reason)
+
+### Automated Status Updates
+- **GPS-Based**: Auto-mark "In Progress" when technician arrives
+- **Time-Based**: Notifications for overdue jobs
+- **Manual**: Technician can update via mobile app
+
+## Recurring Jobs System
+
+### Setting Up Recurring Jobs
+1. **Create Template Job**
+   - Define service details
+   - Set pricing and tasks
+   - Specify customer and location
+
+2. **Configure Recurrence Pattern**
+   - **Frequency**: Daily, Weekly, Bi-weekly, Monthly, Quarterly, Annually
+   - **Days of Week**: For weekly schedules
+   - **Day of Month**: For monthly schedules
+   - **End Date**: When recurring series ends
+   - **Occurrences**: Or number of repetitions
+
+3. **Automatic Job Generation**
+   - System creates future job occurrences
+   - Assigned to same technician
+   - Same pricing and tasks
+   - Notifications sent to customer
+
+### Managing Recurring Jobs
+- **Edit Series**: Change all future occurrences
+- **Edit Single Occurrence**: Modify one instance only
+- **Skip Occurrence**: Cancel specific date
+- **End Series**: Stop future job generation
+- **View Series**: See all related jobs
+
+## Job Tasks
+
+### Creating Task Lists
+Break down jobs into manageable tasks:
+- **Task Name**: Specific activity
+- **Description**: Details and requirements
+- **Assigned To**: Team member responsible
+- **Estimated Time**: How long it should take
+- **Dependencies**: Tasks that must finish first
+- **Status**: Not Started, In Progress, Completed
+
+### Task Templates
+Create reusable task lists for common jobs:
+- **Service Type Templates**: HVAC maintenance, plumbing repair, etc.
+- **Checklist Items**: Standard steps for quality control
+- **Required Photos**: Document before/after conditions
+- **Safety Requirements**: PPE and safety procedures
+
+## Job Time Tracking
+
+### Automatic Time Tracking
+- **GPS Arrival**: Start time when technician arrives at job site
+- **GPS Departure**: End time when leaving location
+- **Geofencing**: Automatic detection within job site radius
+- **Time Exceeded Alerts**: Notifications when job runs over estimate
+
+### Manual Time Entry
+- Technicians can manually start/stop time
+- Edit time entries for accuracy
+- Add break times
+- Time clock integration
+
+### On-Site Labor Cost Tracking
+System automatically calculates:
+- **Actual Labor Hours**: Based on arrival/departure times
+- **Technician Hourly Rate**: From employee settings
+- **Total Labor Cost**: Hours × Rate
+- **Comparison to Estimate**: Over/under budget tracking
+- **Profit Margin Impact**: Real-time profitability analysis
+
+## Job Files & Photos
+
+### File Management
+- **Before Photos**: Document initial conditions
+- **During Progress**: Update photos as work progresses
+- **After Photos**: Show completed work
+- **Documents**: Upload permits, receipts, contracts
+- **Image Timestamps**: Auto-add date/time/GPS to photos
+
+### Photo Organization
+- **Folders**: Organize by job phase or type
+- **Tagging**: Add descriptive tags
+- **Sharing**: Share with customers via secure link
+- **Download**: Bulk download all job files
+
+## Mobile Job Management
+
+### Mobile App Features
+- **View Assigned Jobs**: Today's schedule
+- **Start/Complete Jobs**: One-tap status updates
+- **GPS Navigation**: Route to job site
+- **Photo Capture**: Take and upload photos
+- **Customer Signature**: Digital sign-off
+- **Time Tracking**: Automatic or manual
+
+### Offline Mode
+- View job details offline
+- Capture photos and notes
+- Sync when connection restored
+
+## Job Views & Filters
+
+### Available Views
+- **Active Jobs**: All current jobs
+- **My Jobs**: Assigned to current user
+- **Calendar View**: Jobs by date
+- **Map View**: Jobs by location
+- **Cancelled Jobs**: Historical cancelled jobs
+- **Deleted Jobs**: Soft-deleted jobs (recoverable)
+
+### Filtering & Search
+- **By Status**: Scheduled, in progress, completed
+- **By Date Range**: Custom date filters
+- **By Customer**: All jobs for specific customer
+- **By Technician**: Team member's jobs
+- **By Location**: Geographic area
+- **By Value**: High-value jobs
+
+## Converting Jobs to Invoices
+
+### Automatic Conversion
+When job is marked complete:
+1. System offers to create invoice
+2. Job details auto-populate invoice
+3. Time tracked becomes labor line items
+4. Expenses can be added
+5. Review and send to customer
+
+### Invoice Line Items
+- **Labor**: Calculated from time tracking
+- **Materials**: Parts and supplies used
+- **Equipment**: Tool rental or usage fees
+- **Travel**: Mileage or trip charges
+- **Taxes**: Automatically calculated
+
+## Cancelled & Deleted Jobs
+
+### Cancelling Jobs
+- Select cancellation reason
+- Optionally notify customer
+- Job moves to "Cancelled" view
+- Can be reactivated if needed
+- Cancellation history tracked
+
+### Deleted Jobs
+- Soft delete (recoverable)
+- Moved to "Deleted Jobs" view
+- Can be permanently deleted by admin
+- Or restored to active status
+- Deletion tracked with user and timestamp
+
+## Job Analytics & Reporting
+
+### Key Metrics
+- **Completion Rate**: % jobs finished on time
+- **Average Duration**: Actual vs. estimated time
+- **Revenue Per Job**: Average job value
+- **Customer Satisfaction**: Post-job ratings
+- **Technician Performance**: Jobs per day, completion rate
+
+### Profit/Loss Analysis
+View profitability per job:
+- **Revenue**: Invoice total
+- **Labor Cost**: Actual hours worked
+- **Materials Cost**: Parts and supplies
+- **Overhead**: Allocated business expenses
+- **Net Profit**: Bottom line per job
+
+### Multi-View Reporting
+- **Per Day**: Daily profitability
+- **Per Week**: Weekly trends
+- **Per Month**: Monthly performance
+- **Per Job**: Individual job analysis
+- **Per Customer**: Customer profitability
+- **Per Technician**: Team member performance
+
+## Best Practices
+
+### Job Planning
+- Create detailed job descriptions
+- Realistic time estimates based on historical data
+- Assign jobs based on technician skills and location
+- Schedule buffer time between jobs
+- Communicate schedule to team daily
+
+### Quality Control
+- Use task checklists for consistency
+- Require photos at key stages
+- Customer sign-off before completion
+- Follow-up quality checks
+- Address issues immediately
+
+### Customer Communication
+- Automated appointment reminders (SMS/Email)
+- Real-time status updates
+- ETA notifications when en route
+- Completion notifications
+- Review requests after service
+
+### Efficiency Tips
+- **Batch Similar Jobs**: Group by location or service type
+- **Route Optimization**: Plan most efficient daily routes
+- **Mobile First**: Minimize office time for field staff
+- **Template Usage**: Standardize common jobs
+- **GPS Tracking**: Monitor field team in real-time`,
+        tags: ['jobs', 'projects', 'management', 'workflow', 'comprehensive', 'recurring', 'tracking']
       },
       {
         id: 'invoicing',
