@@ -7636,6 +7636,56 @@ ${fromName || ''}
     }
   });
 
+  // Batch update user permissions (must be before /:id route to avoid route collision)
+  app.put("/api/admin/users/batch-permissions", requireAdmin, async (req, res) => {
+    try {
+      const { changes } = req.body;
+      
+      if (!changes || typeof changes !== 'object') {
+        return res.status(400).json({ message: "Invalid changes data provided" });
+      }
+
+      const updates = [];
+      for (const [userIdStr, permissions] of Object.entries(changes)) {
+        const userId = parseInt(userIdStr);
+        if (isNaN(userId)) {
+          return res.status(400).json({ message: `Invalid user ID: ${userIdStr}` });
+        }
+        
+        try {
+          const updatedUser = await storage.updateUser(userId, permissions);
+          updates.push({
+            userId,
+            success: true,
+            user: {
+              ...updatedUser,
+              password: undefined, // Don't return password
+            }
+          });
+        } catch (error) {
+          console.error(`Failed to update user ${userId}:`, error);
+          updates.push({
+            userId,
+            success: false,
+            error: error.message || 'Update failed'
+          });
+        }
+      }
+
+      const successCount = updates.filter(u => u.success).length;
+      const totalCount = updates.length;
+
+      res.json({
+        message: `Updated ${successCount} of ${totalCount} users successfully`,
+        updates,
+        success: successCount === totalCount
+      });
+    } catch (error) {
+      console.error("Batch permissions update error:", error);
+      res.status(500).json({ message: "Failed to update user permissions" });
+    }
+  });
+
   // Update user (Admin only)
   app.put("/api/admin/users/:id", requireAdmin, async (req, res) => {
     try {
@@ -13922,75 +13972,8 @@ ${fromName || ''}
   });
 
   // Update user permissions
-  app.put('/api/admin/users/:id/permissions', requireAdmin, async (req, res) => {
-    try {
-      const userId = parseInt(req.params.id);
-      const permissions = req.body;
-      
-      const user = await storage.updateUser(userId, permissions);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-      
-      res.json({
-        ...user,
-        password: undefined, // Don't return password
-      });
-    } catch (error: any) {
-      console.error('Error updating user permissions:', error);
-      res.status(500).json({ message: 'Failed to update user permissions' });
-    }
-  });
 
   // Batch update user permissions
-  app.put("/api/admin/users/batch-permissions", requireAdmin, async (req, res) => {
-    try {
-      const { changes } = req.body;
-      
-      if (!changes || typeof changes !== 'object') {
-        return res.status(400).json({ message: "Invalid changes data provided" });
-      }
-
-      const updates = [];
-      for (const [userIdStr, permissions] of Object.entries(changes)) {
-        const userId = parseInt(userIdStr);
-        if (isNaN(userId)) {
-          return res.status(400).json({ message: `Invalid user ID: ${userIdStr}` });
-        }
-        
-        try {
-          const updatedUser = await storage.updateUser(userId, permissions);
-          updates.push({
-            userId,
-            success: true,
-            user: {
-              ...updatedUser,
-              password: undefined, // Don't return password
-            }
-          });
-        } catch (error) {
-          console.error(`Failed to update user ${userId}:`, error);
-          updates.push({
-            userId,
-            success: false,
-            error: error.message || 'Update failed'
-          });
-        }
-      }
-
-      const successCount = updates.filter(u => u.success).length;
-      const totalCount = updates.length;
-
-      res.json({
-        message: `Updated ${successCount} of ${totalCount} users successfully`,
-        updates,
-        success: successCount === totalCount
-      });
-    } catch (error) {
-      console.error("Batch permissions update error:", error);
-      res.status(500).json({ message: "Failed to update user permissions" });
-    }
-  });
 
   // Profile picture upload for users (Manager/Admin only)
   app.post('/api/admin/users/:id/profile-picture', requireManagerOrAdmin, profilePictureUpload.single('profilePicture'), async (req, res) => {
