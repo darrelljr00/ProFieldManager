@@ -2891,6 +2891,7 @@ export const frontendSliders = pgTable("frontend_sliders", {
   subtitle: text("subtitle"),
   description: text("description"),
   imageUrl: text("image_url"),
+  imagePublicId: text("image_public_id"), // Cloudinary public ID for image lifecycle management
   buttonText: text("button_text"),
   buttonLink: text("button_link"),
   backgroundColor: text("background_color").default("#1e40af"),
