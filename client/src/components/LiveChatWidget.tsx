@@ -8,6 +8,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { MessageCircle, Send, X, Minimize2, User } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { formatDistanceToNow } from "date-fns";
+import { useAuth } from "@/hooks/useAuth";
+import { useWebSocket } from "@/hooks/useWebSocket";
 
 interface LiveChatMessage {
   id: number;
@@ -20,6 +22,8 @@ interface LiveChatMessage {
 }
 
 export function LiveChatWidget() {
+  const { user } = useAuth();
+  const { lastMessage } = useWebSocket();
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [sessionId, setSessionId] = useState<number | null>(null);
@@ -32,13 +36,12 @@ export function LiveChatWidget() {
   const { data: messages, isLoading: messagesLoading } = useQuery<LiveChatMessage[]>({
     queryKey: ['/api/live-chat/messages', sessionId],
     enabled: !!sessionId && hasStartedChat,
-    refetchInterval: 3000,
   });
 
   const createSessionMutation = useMutation({
     mutationFn: async ({ name, email }: { name: string, email: string }) => {
       const response = await apiRequest('POST', '/api/live-chat/sessions', {
-        organizationId: 2,
+        organizationId: user?.organizationId || 2,
         visitorName: name,
         visitorEmail: email,
       });
@@ -86,6 +89,13 @@ export function LiveChatWidget() {
       handleSendMessage();
     }
   };
+
+  // Listen for WebSocket updates for real-time messages
+  useEffect(() => {
+    if (lastMessage?.eventType === 'live_chat_message' && lastMessage?.data?.sessionId === sessionId) {
+      queryClient.invalidateQueries({ queryKey: ['/api/live-chat/messages', sessionId] });
+    }
+  }, [lastMessage, sessionId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

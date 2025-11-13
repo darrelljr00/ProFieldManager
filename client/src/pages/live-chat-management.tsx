@@ -9,6 +9,7 @@ import { MessageSquare, Send, User, Clock, CheckCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { formatDistanceToNow } from "date-fns";
+import { useWebSocket } from "@/hooks/useWebSocket";
 
 interface LiveChatSession {
   id: number;
@@ -35,17 +36,29 @@ export default function LiveChatManagement() {
   const [selectedSession, setSelectedSession] = useState<number | null>(null);
   const [messageText, setMessageText] = useState("");
   const { toast } = useToast();
+  const { lastMessage } = useWebSocket();
 
   const { data: sessions, isLoading: sessionsLoading } = useQuery<LiveChatSession[]>({
     queryKey: ['/api/live-chat/sessions'],
-    refetchInterval: 5000,
   });
 
   const { data: messages, isLoading: messagesLoading } = useQuery<LiveChatMessage[]>({
     queryKey: ['/api/live-chat/messages', selectedSession],
     enabled: !!selectedSession,
-    refetchInterval: 2000,
   });
+
+  // Listen for WebSocket updates for real-time messages
+  useEffect(() => {
+    if (lastMessage?.eventType === 'live_chat_message') {
+      // Invalidate sessions list to update unread counts
+      queryClient.invalidateQueries({ queryKey: ['/api/live-chat/sessions'] });
+      
+      // If the message is for the selected session, invalidate messages
+      if (lastMessage?.data?.sessionId === selectedSession) {
+        queryClient.invalidateQueries({ queryKey: ['/api/live-chat/messages', selectedSession] });
+      }
+    }
+  }, [lastMessage, selectedSession]);
 
   const sendMessageMutation = useMutation({
     mutationFn: async ({ sessionId, message }: { sessionId: number, message: string }) => {
