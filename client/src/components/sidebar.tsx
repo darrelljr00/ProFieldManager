@@ -708,6 +708,8 @@ export function Sidebar() {
       subItems: [
         { name: "Page Builder", href: "/frontend-management", icon: Layout },
         { name: "Slider Management", href: "/slider-management", icon: Image },
+        { name: "Pop-ups", href: "/popup-management", icon: MessageSquare },
+        { name: "Live Chat", href: "/live-chat-management", icon: MessageCircle },
       ],
     },
     {

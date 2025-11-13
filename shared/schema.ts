@@ -5794,3 +5794,125 @@ export type SmartCaptureItem = typeof smartCaptureItems.$inferSelect;
 export type InsertSmartCaptureItem = z.infer<typeof insertSmartCaptureItemSchema>;
 export type LinkSmartCapture = z.infer<typeof linkSmartCaptureSchema>;
 export type SearchSmartCapture = z.infer<typeof searchSmartCaptureSchema>;
+
+// Website Pop-up Promotions
+export const websitePopups = pgTable("website_popups", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  
+  // Content
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  ctaText: text("cta_text"), // Call to action button text
+  ctaLink: text("cta_link"), // Where CTA button links
+  imageUrl: text("image_url"), // Optional promotional image
+  
+  // Display Rules
+  displayPages: text("display_pages").array().default(sql`ARRAY['all']::text[]`), // ['all', '/features', '/pricing', etc.]
+  displayTrigger: text("display_trigger").notNull().default("immediate"), // immediate, exit_intent, scroll_50, time_delay
+  delaySeconds: integer("delay_seconds").default(0), // For time_delay trigger
+  showFrequency: text("show_frequency").notNull().default("once_per_session"), // once_per_session, once_per_day, always
+  
+  // Styling
+  backgroundColor: text("background_color").default("#ffffff"),
+  textColor: text("text_color").default("#000000"),
+  buttonColor: text("button_color").default("#3b82f6"),
+  buttonTextColor: text("button_text_color").default("#ffffff"),
+  position: text("position").default("center"), // center, top, bottom
+  size: text("size").default("medium"), // small, medium, large
+  
+  // Status
+  isActive: boolean("is_active").default(true),
+  priority: integer("priority").default(0), // Higher priority shows first if multiple match
+  
+  // Analytics
+  views: integer("views").default(0),
+  clicks: integer("clicks").default(0),
+  dismissals: integer("dismissals").default(0),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertWebsitePopupSchema = createInsertSchema(websitePopups).omit({
+  id: true,
+  organizationId: true,
+  views: true,
+  clicks: true,
+  dismissals: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type WebsitePopup = typeof websitePopups.$inferSelect;
+export type InsertWebsitePopup = z.infer<typeof insertWebsitePopupSchema>;
+
+// Live Chat Sessions
+export const liveChatSessions = pgTable("live_chat_sessions", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  
+  // Visitor Info
+  visitorName: text("visitor_name"),
+  visitorEmail: text("visitor_email"),
+  visitorId: text("visitor_id").notNull(), // Anonymous or identified
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  
+  // Session Details
+  currentPage: text("current_page"),
+  referrer: text("referrer"),
+  
+  // Agent Assignment
+  assignedAgentId: integer("assigned_agent_id").references(() => users.id),
+  assignedAgentName: text("assigned_agent_name"),
+  
+  // Status
+  status: text("status").notNull().default("waiting"), // waiting, active, closed
+  startedAt: timestamp("started_at").notNull().defaultNow(),
+  endedAt: timestamp("ended_at"),
+  
+  // Metadata
+  tags: text("tags").array().default(sql`ARRAY[]::text[]`),
+  rating: integer("rating"), // 1-5 customer satisfaction rating
+  notes: text("notes"), // Internal notes
+  
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertLiveChatSessionSchema = createInsertSchema(liveChatSessions).omit({
+  id: true,
+  organizationId: true,
+  createdAt: true,
+});
+
+export type LiveChatSession = typeof liveChatSessions.$inferSelect;
+export type InsertLiveChatSession = z.infer<typeof insertLiveChatSessionSchema>;
+
+// Live Chat Messages
+export const liveChatMessages = pgTable("live_chat_messages", {
+  id: serial("id").primaryKey(),
+  sessionId: integer("session_id").notNull().references(() => liveChatSessions.id, { onDelete: "cascade" }),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  
+  // Message Content
+  message: text("message").notNull(),
+  senderType: text("sender_type").notNull(), // visitor, agent, system
+  senderId: integer("sender_id").references(() => users.id), // For agents
+  senderName: text("sender_name").notNull(),
+  
+  // Metadata
+  isRead: boolean("is_read").default(false),
+  attachmentUrl: text("attachment_url"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertLiveChatMessageSchema = createInsertSchema(liveChatMessages).omit({
+  id: true,
+  organizationId: true,
+  createdAt: true,
+});
+
+export type LiveChatMessage = typeof liveChatMessages.$inferSelect;
+export type InsertLiveChatMessage = z.infer<typeof insertLiveChatMessageSchema>;
