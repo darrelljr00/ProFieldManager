@@ -548,6 +548,10 @@ export function Sidebar() {
       icon: FileText,
       requiresAuth: true,
       permission: "canAccessInvoices",
+      subItems: [
+        { name: "All Invoices", href: "/invoices", icon: FileText },
+        { name: "Smart Capture", href: "/smart-capture", icon: Scan },
+      ],
     },
     {
       name: "Customers",
@@ -574,13 +578,6 @@ export function Sidebar() {
       name: "Parts & Supplies",
       href: "/parts-supplies",
       icon: Box,
-      requiresAuth: true,
-      permission: "canAccessPartsSupplies",
-    },
-    {
-      name: "Smart Capture",
-      href: "/smart-capture",
-      icon: Scan,
       requiresAuth: true,
       permission: "canAccessPartsSupplies",
     },
