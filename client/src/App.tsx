@@ -21,6 +21,7 @@ import TechnicianExpenses from "@/pages/technician-expenses";
 import ExpenseReports from "@/pages/expense-reports";
 import ExpenseCategories from "@/pages/expense-categories";
 import ExpenseCategoryManagement from "@/pages/expense-category-management";
+import FrontendPageRenderer from "@/pages/frontend-page-renderer";
 import DynamicExpenseCategory from "@/pages/dynamic-expense-category";
 import Reports from "@/pages/reports";
 import GasCardProviders from "@/pages/gas-card-providers";
@@ -324,6 +325,7 @@ function Router() {
           <Route path="/auth-debug" component={AuthDebug} />
           <Route path="/shared/:token" component={SharedPhotosViewer} />
           <Route path="/quote/:action/:token" component={QuoteResponsePage} />
+          <Route path="/site/:orgSlug/:pageSlug" component={FrontendPageRenderer} />
           <Route path="/quote-availability/:token" component={QuoteAvailabilityPage} />
           <Route component={DirectLogin} />
         </Switch>

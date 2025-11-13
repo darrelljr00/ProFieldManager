@@ -24950,6 +24950,44 @@ ${fromName || ''}
 
   // Frontend Management API routes
   
+
+  // Public Frontend Pages (no auth required)
+  app.get('/api/public/pages/:orgSlug/:pageSlug', async (req, res) => {
+    try {
+      const { orgSlug, pageSlug } = req.params;
+      const page = await storage.getPublishedFrontendPageBySlug(orgSlug, pageSlug);
+      
+      if (!page) {
+        return res.status(404).json({ message: 'Page not found' });
+      }
+      
+      res.json(page);
+    } catch (error: any) {
+      console.error('Error fetching public frontend page:', error);
+      res.status(500).json({ message: 'Failed to fetch page' });
+    }
+  });
+
+  // Save Frontend Page Components
+  app.post('/api/frontend/pages/:id/components', requireManagerOrAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const pageId = Number(req.params.id);
+      const { components } = req.body;
+      
+      const success = await storage.saveFrontendPageComponents(pageId, user.organizationId, components);
+      
+      if (!success) {
+        return res.status(500).json({ message: 'Failed to save components' });
+      }
+      
+      res.json({ message: 'Components saved successfully' });
+    } catch (error: any) {
+      console.error('Error saving frontend page components:', error);
+      res.status(500).json({ message: 'Failed to save components' });
+    }
+  });
+
   // Frontend Categories
   app.get('/api/frontend/categories', requireAuth, async (req, res) => {
     try {

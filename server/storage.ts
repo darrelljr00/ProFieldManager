@@ -571,9 +571,11 @@ export interface IStorage {
   
   getFrontendPages(organizationId: number): Promise<any[]>;
   getFrontendPage(id: number, organizationId: number): Promise<any>;
+  getPublishedFrontendPageBySlug(orgSlug: string, pageSlug: string): Promise<any>;
   createFrontendPage(pageData: any): Promise<any>;
   updateFrontendPage(id: number, organizationId: number, updates: any): Promise<any>;
   deleteFrontendPage(id: number, organizationId: number): Promise<boolean>;
+  saveFrontendPageComponents(pageId: number, organizationId: number, components: any[]): Promise<boolean>;
   
   getFrontendSliders(organizationId: number): Promise<any[]>;
   getFrontendSlider(id: number, organizationId: number): Promise<any>;
@@ -11577,6 +11579,79 @@ export class DatabaseStorage implements IStorage {
       return true;
     } catch (error) {
       console.error('Error deleting frontend page:', error);
+      return false;
+    }
+  }
+
+  async getPublishedFrontendPageBySlug(orgSlug: string, pageSlug: string): Promise<any> {
+    try {
+      const result = await db
+        .select({
+          page: frontendPages,
+          organization: organizations,
+        })
+        .from(frontendPages)
+        .innerJoin(organizations, eq(frontendPages.organizationId, organizations.id))
+        .where(and(
+          eq(organizations.slug, orgSlug),
+          eq(frontendPages.slug, pageSlug),
+          eq(frontendPages.isPublished, true)
+        ))
+        .limit(1);
+
+      if (result.length === 0) {
+        return null;
+      }
+
+      const { page, organization } = result[0];
+
+      // Fetch components for this page
+      const components = await db
+        .select()
+        .from(frontendComponents)
+        .where(eq(frontendComponents.pageId, page.id))
+        .orderBy(asc(frontendComponents.sortOrder));
+
+      return {
+        ...page,
+        organization: { id: organization.id, name: organization.name, slug: organization.slug },
+        components,
+      };
+    } catch (error) {
+      console.error('Error fetching published frontend page by slug:', error);
+      return null;
+    }
+  }
+
+  async saveFrontendPageComponents(pageId: number, organizationId: number, components: any[]): Promise<boolean> {
+    try {
+      // Delete existing components for this page
+      await db
+        .delete(frontendComponents)
+        .where(and(
+          eq(frontendComponents.pageId, pageId),
+          eq(frontendComponents.organizationId, organizationId)
+        ));
+
+      // Insert new components
+      if (components && components.length > 0) {
+        const componentsToInsert = components.map((comp, index) => ({
+          organizationId,
+          pageId,
+          type: comp.type || 'text',
+          props: comp.props || {},
+          style: comp.style || {},
+          sortOrder: comp.sortOrder !== undefined ? comp.sortOrder : index,
+          content: comp.content || null,
+          categoryId: comp.categoryId || null,
+        }));
+
+        await db.insert(frontendComponents).values(componentsToInsert);
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error saving frontend page components:', error);
       return false;
     }
   }

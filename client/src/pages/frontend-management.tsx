@@ -248,6 +248,78 @@ export default function FrontendManagement() {
     }
   });
 
+
+  // Save Frontend Page Components Mutation
+  const saveComponentsMutation = useMutation({
+    mutationFn: async ({ pageId, components }: { pageId: number; components: any[] }) => {
+      return apiRequest('POST', `/api/frontend/pages/${pageId}/components`, { components });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/frontend/components'] });
+      toast({ title: "Success", description: "Page design saved successfully" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to save page design", variant: "destructive" });
+    }
+  });
+
+  // Load components for selected page
+  const { data: loadedComponents = [] } = useQuery<any[]>({
+    queryKey: ['/api/frontend/components', selectedPage?.id],
+    queryFn: async () => {
+      if (!selectedPage) return [];
+      const response = await fetch(`/api/frontend/components?pageId=${selectedPage.id}`);
+      return response.json();
+    },
+    enabled: !!selectedPage && activeTab === 'design'
+  });
+
+  // Clear canvas immediately when page changes (prevent showing stale data)
+  React.useEffect(() => {
+    setCanvasElements([]);
+  }, [selectedPage?.id]);
+
+  // Populate canvas when components are loaded
+  React.useEffect(() => {
+    if (selectedPage && Array.isArray(loadedComponents)) {
+      const formattedElements = loadedComponents.map(comp => ({
+        id: comp.id,
+        type: comp.type,
+        props: comp.props || {},
+        style: comp.style || {},
+        content: comp.content,
+        sortOrder: comp.sortOrder
+      }));
+      setCanvasElements(formattedElements);
+    }
+  }, [loadedComponents, selectedPage?.id]);
+
+  // Handler to save page design
+  const handleSavePageDesign = () => {
+    if (!selectedPage) {
+      toast({
+        title: "No page selected",
+        description: "Please select a page to save the design",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (canvasElements.length === 0) {
+      toast({
+        title: "No components",
+        description: "Add some components to the page before saving",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    saveComponentsMutation.mutate({
+      pageId: selectedPage.id,
+      components: canvasElements
+    });
+  };
+
   // Slider mutations
   const createSliderMutation = useMutation({
     mutationFn: (data: Partial<FrontendSlider>) => apiRequest('POST', '/api/frontend/sliders', data),
@@ -583,6 +655,18 @@ export default function FrontendManagement() {
                   <Smartphone className="h-4 w-4" />
                 </Button>
               </div>
+              
+              {/* Save Page Design Button */}
+              {selectedPage && (
+                <Button
+                  onClick={handleSavePageDesign}
+                  disabled={saveComponentsMutation.isPending || !canvasElements.length}
+                  className="flex items-center space-x-2"
+                >
+                  <Save className="h-4 w-4" />
+                  <span>{saveComponentsMutation.isPending ? 'Saving...' : 'Save Page Design'}</span>
+                </Button>
+              )}
               
               {/* Page Selector */}
               <Select value={selectedPage?.id.toString() || ''} onValueChange={(value) => {
