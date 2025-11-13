@@ -80,6 +80,7 @@ import QuoteAvailabilityPage from "@/pages/quote-availability";
 import { DeletedJobs } from "@/pages/deleted-jobs";
 import { CancelledJobs } from "@/pages/cancelled-jobs";
 import FrontendManagement from "@/pages/frontend-management";
+import SliderManagement from "@/pages/slider-management";
 import Tutorials from "@/pages/tutorials";
 import MySchedule from "@/pages/my-schedule";
 import Notifications from "@/pages/notifications";
@@ -231,6 +232,7 @@ function AuthenticatedApp() {
           {isAdmin && <Route path="/call-manager" component={CallManager} />}
           {isAdmin && <Route path="/file-security" component={FileSecurity} />}
           {isAdmin && <Route path="/frontend-management" component={FrontendManagement} />}
+          {isAdmin && <Route path="/slider-management" component={SliderManagement} />}
           <Route path="/settings" component={Settings} />
           <Route path="/reports" component={Reports} />
           <Route path="/logout" component={Logout} />
