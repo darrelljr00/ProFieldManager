@@ -25272,6 +25272,212 @@ ${fromName || ''}
     }
   });
 
+  // ========== Website Pop-ups Management ==========
+  
+  // Admin: Get all pop-ups for organization
+  app.get('/api/frontend/popups', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const popups = await storage.getWebsitePopups(user.organizationId);
+      res.json(popups);
+    } catch (error: any) {
+      console.error('Error fetching popups:', error);
+      res.status(500).json({ message: 'Failed to fetch popups' });
+    }
+  });
+
+  // Admin: Create new pop-up
+  app.post('/api/frontend/popups', requireManagerOrAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const popup = await storage.createWebsitePopup(user.organizationId, req.body);
+      res.status(201).json(popup);
+    } catch (error: any) {
+      console.error('Error creating popup:', error);
+      res.status(500).json({ message: 'Failed to create popup' });
+    }
+  });
+
+  // Admin: Update pop-up
+  app.put('/api/frontend/popups/:id', requireManagerOrAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const popup = await storage.updateWebsitePopup(Number(req.params.id), user.organizationId, req.body);
+      if (!popup) {
+        return res.status(404).json({ message: 'Popup not found' });
+      }
+      res.json(popup);
+    } catch (error: any) {
+      console.error('Error updating popup:', error);
+      res.status(500).json({ message: 'Failed to update popup' });
+    }
+  });
+
+  // Admin: Delete pop-up
+  app.delete('/api/frontend/popups/:id', requireManagerOrAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      await storage.deleteWebsitePopup(Number(req.params.id), user.organizationId);
+      res.status(204).send();
+    } catch (error: any) {
+      console.error('Error deleting popup:', error);
+      res.status(500).json({ message: 'Failed to delete popup' });
+    }
+  });
+
+  // Admin: Toggle pop-up active status
+  app.patch('/api/frontend/popups/:id/toggle', requireManagerOrAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { isActive } = req.body;
+      const popup = await storage.updateWebsitePopup(Number(req.params.id), user.organizationId, { isActive });
+      if (!popup) {
+        return res.status(404).json({ message: 'Popup not found' });
+      }
+      res.json(popup);
+    } catch (error: any) {
+      console.error('Error toggling popup:', error);
+      res.status(500).json({ message: 'Failed to toggle popup' });
+    }
+  });
+
+  // Public: Get active pop-ups for a page
+  app.get('/api/web/popups', async (req, res) => {
+    try {
+      const orgId = Number(req.query.orgId) || 2;
+      const page = req.query.page as string || '/';
+      const popups = await storage.getActivePopupsForPage(orgId, page);
+      res.json(popups);
+    } catch (error: any) {
+      console.error('Error fetching active popups:', error);
+      res.status(500).json({ message: 'Failed to fetch popups' });
+    }
+  });
+
+  // Public: Record pop-up impression
+  app.post('/api/web/popups/:id/impression', async (req, res) => {
+    try {
+      await storage.recordPopupImpression(Number(req.params.id), req.body.clicked || false);
+      res.status(204).send();
+    } catch (error: any) {
+      console.error('Error recording impression:', error);
+      res.status(500).json({ message: 'Failed to record impression' });
+    }
+  });
+
+  // ========== Live Chat Management ==========
+  
+  // Admin: Get all chat sessions for organization
+  app.get('/api/live-chat/sessions', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const sessions = await storage.getLiveChatSessions(user.organizationId);
+      res.json(sessions);
+    } catch (error: any) {
+      console.error('Error fetching chat sessions:', error);
+      res.status(500).json({ message: 'Failed to fetch chat sessions' });
+    }
+  });
+
+  // Public: Create new chat session
+  app.post('/api/live-chat/sessions', async (req, res) => {
+    try {
+      const { organizationId, visitorName, visitorEmail } = req.body;
+      const session = await storage.createLiveChatSession(organizationId || 2, visitorName, visitorEmail);
+      res.status(201).json(session);
+    } catch (error: any) {
+      console.error('Error creating chat session:', error);
+      res.status(500).json({ message: 'Failed to create chat session' });
+    }
+  });
+
+  // Admin: Get single chat session
+  app.get('/api/live-chat/sessions/:id', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const session = await storage.getLiveChatSession(Number(req.params.id), user.organizationId);
+      if (!session) {
+        return res.status(404).json({ message: 'Session not found' });
+      }
+      res.json(session);
+    } catch (error: any) {
+      console.error('Error fetching chat session:', error);
+      res.status(500).json({ message: 'Failed to fetch session' });
+    }
+  });
+
+  // Admin: Assign chat to current user
+  app.post('/api/live-chat/sessions/:id/assign', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const session = await storage.assignLiveChatAgent(Number(req.params.id), user.organizationId, user.id);
+      if (!session) {
+        return res.status(404).json({ message: 'Session not found' });
+      }
+      res.json(session);
+    } catch (error: any) {
+      console.error('Error assigning chat:', error);
+      res.status(500).json({ message: 'Failed to assign chat' });
+    }
+  });
+
+  // Admin: Close chat session
+  app.post('/api/live-chat/sessions/:id/close', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const session = await storage.closeLiveChatSession(Number(req.params.id), user.organizationId);
+      if (!session) {
+        return res.status(404).json({ message: 'Session not found' });
+      }
+      res.json(session);
+    } catch (error: any) {
+      console.error('Error closing chat:', error);
+      res.status(500).json({ message: 'Failed to close chat' });
+    }
+  });
+
+  // Admin/Public: Get messages for a session
+  app.get('/api/live-chat/messages/:sessionId', async (req, res) => {
+    try {
+      const messages = await storage.getLiveChatMessages(Number(req.params.sessionId));
+      res.json(messages);
+    } catch (error: any) {
+      console.error('Error fetching messages:', error);
+      res.status(500).json({ message: 'Failed to fetch messages' });
+    }
+  });
+
+  // Admin/Public: Send a message in a session
+  app.post('/api/live-chat/sessions/:sessionId/messages', async (req, res) => {
+    try {
+      const { message, senderRole, senderName } = req.body;
+      const chatMessage = await storage.createLiveChatMessage(
+        Number(req.params.sessionId),
+        senderRole,
+        message,
+        senderName
+      );
+      
+      // Broadcast new message via WebSocket
+      if (broadcastToOrganization) {
+        // Get session to find organization
+        const session = await storage.getLiveChatSession(Number(req.params.sessionId), 2);
+        if (session) {
+          broadcastToOrganization(session.organizationId, {
+            eventType: 'live_chat_message',
+            sessionId: session.id,
+            message: chatMessage
+          });
+        }
+      }
+      
+      res.status(201).json(chatMessage);
+    } catch (error: any) {
+      console.error('Error sending message:', error);
+      res.status(500).json({ message: 'Failed to send message' });
+    }
+  });
+
   // Frontend Components
   app.get('/api/frontend/components', requireAuth, async (req, res) => {
     try {
