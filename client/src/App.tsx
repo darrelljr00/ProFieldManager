@@ -90,6 +90,7 @@ import ScreenSharing from "@/pages/screen-sharing";
 import Logout from "@/pages/logout";
 import { HelpButton } from "@/components/help-button";
 import { MobileSensorTracker } from "@/components/MobileSensorTracker";
+import { LiveChatWidget } from "@/components/LiveChatWidget";
 
 function AuthenticatedApp() {
   const { isAdmin } = useAuth();
@@ -250,6 +251,9 @@ function AuthenticatedApp() {
       
       {/* Mobile Sensor Tracker for Pro Field Sense */}
       <MobileSensorTracker />
+      
+      {/* Live Chat Widget for all pages */}
+      <LiveChatWidget />
     </div>
   );
 }
