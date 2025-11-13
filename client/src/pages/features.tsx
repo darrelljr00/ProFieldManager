@@ -24,63 +24,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SubscriptionPlanSelector } from "@/components/subscription-plan-selector";
 import { Link } from "wouter";
-
-const heroSlides = [
-  {
-    id: 1,
-    title: "Professional Field Service Management",
-    subtitle: "Streamline Your Construction & Service Operations",
-    description: "Complete business management solution for contractors, electricians, plumbers, and service professionals. Manage jobs, teams, invoicing, and customer relationships all in one place.",
-    image: "https://images.unsplash.com/photo-1581244277943-fe4a9c777189?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80",
-    cta: "Start Your Free Trial",
-    badge: "30-Day Free Trial"
-  },
-  {
-    id: 2,
-    title: "Real-Time Job Tracking & GPS",
-    subtitle: "Know Where Your Team Is, Always",
-    description: "Track your field crews in real-time, monitor job progress, and optimize routes. GPS tracking, time clock, and location-based job management keep your business running efficiently.",
-    image: "https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80",
-    cta: "See GPS Features",
-    badge: "Live Tracking"
-  },
-  {
-    id: 3,
-    title: "Smart Invoicing & Payments",
-    subtitle: "Get Paid Faster With Automated Billing",
-    description: "Create professional invoices instantly from completed jobs. Automated billing, payment tracking, and customer portal ensure faster payments and better cash flow.",
-    image: "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2126&q=80",
-    cta: "Try Invoicing",
-    badge: "Fast Payments"
-  },
-  {
-    id: 4,
-    title: "Construction Project Management",
-    subtitle: "Coordinate Your Crews & Equipment",
-    description: "Manage construction projects from start to finish. Coordinate multiple work crews, track equipment, monitor safety compliance, and keep projects on schedule and budget.",
-    image: "https://images.unsplash.com/photo-1541888946425-d81bb19240f5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80",
-    cta: "Manage Projects",
-    badge: "Project Control"
-  },
-  {
-    id: 5,
-    title: "HVAC Service Excellence",
-    subtitle: "Optimize Your HVAC Operations",
-    description: "Streamline HVAC service calls, maintenance schedules, and emergency repairs. Track technician locations, manage equipment inventory, and deliver exceptional customer service.",
-    image: "https://images.unsplash.com/photo-1621905251918-48416bd8575a?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2069&q=80",
-    cta: "Optimize HVAC",
-    badge: "Service Ready"
-  },
-  {
-    id: 6,
-    title: "Centralized Call Management",
-    subtitle: "Professional Customer Communication",
-    description: "Manage all customer communications from one central hub. Route calls efficiently, track customer interactions, and ensure no service request goes unanswered with our integrated call management system.",
-    image: "https://images.unsplash.com/photo-1556761175-b413da4baf72?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2074&q=80",
-    cta: "Manage Calls",
-    badge: "Always Connected"
-  }
-];
+import { useHeroSlides } from "@/hooks/useHeroSlides";
 
 const subscriptionPlans = [
   {
@@ -139,17 +83,18 @@ export default function FeaturesPage() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
   const { toast } = useToast();
+  const { data: heroSlides = [], isLoading } = useHeroSlides();
 
   // Auto-advance slides
   useEffect(() => {
-    if (!isAutoPlaying) return;
+    if (!isAutoPlaying || !heroSlides.length) return;
     
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
     }, 5000);
 
     return () => clearInterval(timer);
-  }, [isAutoPlaying]);
+  }, [isAutoPlaying, heroSlides.length]);
 
   const nextSlide = () => {
     setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
@@ -260,7 +205,7 @@ export default function FeaturesPage() {
             >
               <div 
                 className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-                style={{ backgroundImage: `url(${slide.image})` }}
+                style={{ backgroundImage: `url(${slide.imageUrl})` }}
               />
               <div className="absolute inset-0 bg-gradient-to-r from-slate-900/90 via-slate-800/70 to-transparent" />
             </div>
@@ -280,9 +225,11 @@ export default function FeaturesPage() {
                   }`}
                   style={{ display: index === currentSlide ? 'block' : 'none' }}
                 >
-                  <Badge variant="secondary" className="mb-4 bg-blue-600 hover:bg-blue-700 text-white">
-                    {slide.badge}
-                  </Badge>
+                  {slide.subtitle && (
+                    <Badge variant="secondary" className="mb-4 bg-blue-600 hover:bg-blue-700 text-white">
+                      {slide.subtitle.split(' ').slice(0, 3).join(' ')}
+                    </Badge>
+                  )}
                   <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight">
                     {slide.title}
                   </h1>
@@ -294,8 +241,8 @@ export default function FeaturesPage() {
                   </p>
                   <div className="flex flex-col sm:flex-row gap-4">
                     <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-lg">
-                      <Link href="/features#signup" className="flex items-center">
-                        {slide.cta}
+                      <Link href={slide.buttonLink || "/features#signup"} className="flex items-center">
+                        {slide.buttonText || "Get Started"}
                         <ArrowRight className="ml-2 h-5 w-5" />
                       </Link>
                     </Button>

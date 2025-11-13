@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { 
   Plus, Edit, Trash2, Save, X, Image as ImageIcon,
@@ -14,10 +15,31 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import type { FrontendSlider } from "@shared/schema";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Switch } from "@/components/ui/switch";
+import type { FrontendSlider, InsertFrontendSlider } from "@shared/schema";
+import { insertFrontendSliderSchema } from "@shared/schema";
+
+// Form schema - includes only user-editable fields with proper coercion
+const sliderFormSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  subtitle: z.string().optional(),
+  description: z.string().optional(),
+  imageUrl: z.string().url("Please enter a valid image URL").min(1, "Image URL is required"),
+  buttonText: z.string().optional(),
+  buttonLink: z.string().optional(),
+  backgroundColor: z.string().optional(),
+  textColor: z.string().optional(),
+  isActive: z.boolean().default(true),
+  sortOrder: z.coerce.number().min(0).default(0),
+  displayDuration: z.coerce.number().min(1000).max(30000).default(5000),
+  animationType: z.string().optional(),
+});
+
+type SliderFormData = z.infer<typeof sliderFormSchema>;
 
 export default function SliderManagement() {
-  const [editingSlider, setEditingSlider] = useState<Partial<FrontendSlider> | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
 
@@ -25,37 +47,56 @@ export default function SliderManagement() {
     queryKey: ['/api/frontend/sliders'],
   });
 
+  const form = useForm<SliderFormData>({
+    resolver: zodResolver(sliderFormSchema),
+    defaultValues: {
+      title: "",
+      subtitle: "",
+      description: "",
+      imageUrl: "",
+      buttonText: "Get Started",
+      buttonLink: "/features#signup",
+      isActive: true,
+      sortOrder: 0,
+      displayDuration: 5000,
+    },
+  });
+
   const createMutation = useMutation({
-    mutationFn: async (data: Partial<FrontendSlider>) => {
+    mutationFn: async (data: SliderFormData) => {
       const response = await apiRequest('POST', '/api/frontend/sliders', data);
-      if (!response.ok) throw new Error('Failed to create slider');
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to create slider');
+      }
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/frontend/sliders'] });
       toast({ title: "Slider created successfully" });
-      setIsDialogOpen(false);
-      setEditingSlider(null);
+      handleCloseDialog();
     },
-    onError: () => {
-      toast({ title: "Failed to create slider", variant: "destructive" });
+    onError: (error: Error) => {
+      toast({ title: "Failed to create slider", description: error.message, variant: "destructive" });
     }
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: number, data: Partial<FrontendSlider> }) => {
+    mutationFn: async ({ id, data }: { id: number, data: SliderFormData }) => {
       const response = await apiRequest('PUT', `/api/frontend/sliders/${id}`, data);
-      if (!response.ok) throw new Error('Failed to update slider');
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to update slider');
+      }
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/frontend/sliders'] });
       toast({ title: "Slider updated successfully" });
-      setIsDialogOpen(false);
-      setEditingSlider(null);
+      handleCloseDialog();
     },
-    onError: () => {
-      toast({ title: "Failed to update slider", variant: "destructive" });
+    onError: (error: Error) => {
+      toast({ title: "Failed to update slider", description: error.message, variant: "destructive" });
     }
   });
 
@@ -69,42 +110,55 @@ export default function SliderManagement() {
       queryClient.invalidateQueries({ queryKey: ['/api/frontend/sliders'] });
       toast({ title: "Slider deleted successfully" });
     },
-    onError: () => {
-      toast({ title: "Failed to delete slider", variant: "destructive" });
+    onError: (error: Error) => {
+      toast({ title: "Failed to delete slider", description: error.message, variant: "destructive" });
     }
   });
 
-  const handleSave = () => {
-    if (!editingSlider) return;
-
-    if (editingSlider.id) {
-      updateMutation.mutate({ id: editingSlider.id, data: editingSlider });
+  const onSubmit = (data: SliderFormData) => {
+    if (editingId) {
+      updateMutation.mutate({ id: editingId, data });
     } else {
-      createMutation.mutate(editingSlider);
+      createMutation.mutate(data);
     }
   };
 
   const handleEdit = (slider: FrontendSlider) => {
-    setEditingSlider(slider);
+    setEditingId(slider.id);
+    form.reset({
+      title: slider.title,
+      subtitle: slider.subtitle || "",
+      description: slider.description || "",
+      imageUrl: slider.imageUrl || "",
+      buttonText: slider.buttonText || "Get Started",
+      buttonLink: slider.buttonLink || "/features#signup",
+      isActive: slider.isActive ?? true,
+      sortOrder: slider.sortOrder || 0,
+      displayDuration: slider.displayDuration || 5000,
+    });
     setIsDialogOpen(true);
   };
 
   const handleNew = () => {
-    setEditingSlider({
+    setEditingId(null);
+    form.reset({
       title: "",
       subtitle: "",
       description: "",
       imageUrl: "",
       buttonText: "Get Started",
       buttonLink: "/features#signup",
-      backgroundColor: "#1e40af",
-      textColor: "#ffffff",
       isActive: true,
       sortOrder: (sliders?.length || 0) + 1,
       displayDuration: 5000,
-      animationType: "fade"
     });
     setIsDialogOpen(true);
+  };
+
+  const handleCloseDialog = () => {
+    setIsDialogOpen(false);
+    setEditingId(null);
+    form.reset();
   };
 
   const handleReorder = async (id: number, direction: 'up' | 'down') => {
@@ -119,14 +173,20 @@ export default function SliderManagement() {
     const current = sliders[currentIndex];
     const swap = sliders[newIndex];
 
-    await updateMutation.mutateAsync({ 
-      id: current.id, 
-      data: { sortOrder: swap.sortOrder } 
-    });
-    await updateMutation.mutateAsync({ 
-      id: swap.id, 
-      data: { sortOrder: current.sortOrder } 
-    });
+    // Optimistic update - swap in local array
+    const updates = [
+      { id: current.id, sortOrder: swap.sortOrder },
+      { id: swap.id, sortOrder: current.sortOrder }
+    ];
+
+    try {
+      await Promise.all(updates.map(({ id, sortOrder }) =>
+        apiRequest('PUT', `/api/frontend/sliders/${id}`, { sortOrder })
+      ));
+      queryClient.invalidateQueries({ queryKey: ['/api/frontend/sliders'] });
+    } catch (error) {
+      toast({ title: "Failed to reorder slides", variant: "destructive" });
+    }
   };
 
   if (isLoading) {
@@ -253,148 +313,204 @@ export default function SliderManagement() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editingSlider?.id ? 'Edit Slide' : 'Create New Slide'}</DialogTitle>
+            <DialogTitle>{editingId ? 'Edit Slide' : 'Create New Slide'}</DialogTitle>
             <DialogDescription>
               Configure the slide content, appearance, and behavior
             </DialogDescription>
           </DialogHeader>
 
-          {editingSlider && (
-            <div className="space-y-4">
-              <div className="grid gap-4">
-                <div>
-                  <Label htmlFor="title">Title *</Label>
-                  <Input
-                    id="title"
-                    value={editingSlider.title || ''}
-                    onChange={(e) => setEditingSlider({ ...editingSlider, title: e.target.value })}
-                    placeholder="Professional Field Service Management"
-                    data-testid="input-slider-title"
-                  />
-                </div>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Title *</FormLabel>
+                    <FormControl>
+                      <Input 
+                        {...field} 
+                        placeholder="Professional Field Service Management"
+                        data-testid="input-slider-title"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-                <div>
-                  <Label htmlFor="subtitle">Subtitle</Label>
-                  <Input
-                    id="subtitle"
-                    value={editingSlider.subtitle || ''}
-                    onChange={(e) => setEditingSlider({ ...editingSlider, subtitle: e.target.value })}
-                    placeholder="Streamline Your Operations"
-                    data-testid="input-slider-subtitle"
-                  />
-                </div>
+              <FormField
+                control={form.control}
+                name="subtitle"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Subtitle</FormLabel>
+                    <FormControl>
+                      <Input 
+                        {...field} 
+                        placeholder="Streamline Your Operations"
+                        data-testid="input-slider-subtitle"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-                <div>
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    value={editingSlider.description || ''}
-                    onChange={(e) => setEditingSlider({ ...editingSlider, description: e.target.value })}
-                    placeholder="Complete business management solution..."
-                    rows={3}
-                    data-testid="input-slider-description"
-                  />
-                </div>
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        {...field}
+                        placeholder="Complete business management solution..."
+                        rows={3}
+                        data-testid="input-slider-description"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-                <div>
-                  <Label htmlFor="imageUrl">Image URL *</Label>
-                  <Input
-                    id="imageUrl"
-                    value={editingSlider.imageUrl || ''}
-                    onChange={(e) => setEditingSlider({ ...editingSlider, imageUrl: e.target.value })}
-                    placeholder="https://images.unsplash.com/..."
-                    data-testid="input-slider-image"
-                  />
-                  <p className="text-xs text-slate-500 mt-1">
-                    Use Unsplash or upload to File Manager
-                  </p>
-                </div>
+              <FormField
+                control={form.control}
+                name="imageUrl"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Image URL *</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        placeholder="https://images.unsplash.com/..."
+                        data-testid="input-slider-image"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="buttonText">Button Text</Label>
-                    <Input
-                      id="buttonText"
-                      value={editingSlider.buttonText || ''}
-                      onChange={(e) => setEditingSlider({ ...editingSlider, buttonText: e.target.value })}
-                      placeholder="Get Started"
-                      data-testid="input-slider-button-text"
-                    />
-                  </div>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="buttonText"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Button Text</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          placeholder="Get Started"
+                          data-testid="input-slider-button-text"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-                  <div>
-                    <Label htmlFor="buttonLink">Button Link</Label>
-                    <Input
-                      id="buttonLink"
-                      value={editingSlider.buttonLink || ''}
-                      onChange={(e) => setEditingSlider({ ...editingSlider, buttonLink: e.target.value })}
-                      placeholder="/features#signup"
-                      data-testid="input-slider-button-link"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="displayDuration">Display Duration (ms)</Label>
-                    <Input
-                      id="displayDuration"
-                      type="number"
-                      value={editingSlider.displayDuration || 5000}
-                      onChange={(e) => setEditingSlider({ ...editingSlider, displayDuration: parseInt(e.target.value) })}
-                      min={1000}
-                      max={30000}
-                      data-testid="input-slider-duration"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="sortOrder">Sort Order</Label>
-                    <Input
-                      id="sortOrder"
-                      type="number"
-                      value={editingSlider.sortOrder || 0}
-                      onChange={(e) => setEditingSlider({ ...editingSlider, sortOrder: parseInt(e.target.value) })}
-                      min={0}
-                      data-testid="input-slider-sort"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="isActive"
-                    checked={editingSlider.isActive ?? true}
-                    onCheckedChange={(checked) => setEditingSlider({ ...editingSlider, isActive: checked })}
-                    data-testid="switch-slider-active"
-                  />
-                  <Label htmlFor="isActive">Active (show on website)</Label>
-                </div>
+                <FormField
+                  control={form.control}
+                  name="buttonLink"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Button Link</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          placeholder="/features#signup"
+                          data-testid="input-slider-button-link"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="displayDuration"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Display Duration (ms)</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          type="number"
+                          onChange={(e) => field.onChange(parseInt(e.target.value))}
+                          data-testid="input-slider-duration"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="sortOrder"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Sort Order</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          type="number"
+                          onChange={(e) => field.onChange(parseInt(e.target.value))}
+                          data-testid="input-slider-sort"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={form.control}
+                name="isActive"
+                render={({ field }) => (
+                  <FormItem className="flex items-center space-x-2">
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        data-testid="switch-slider-active"
+                      />
+                    </FormControl>
+                    <FormLabel className="!mt-0">Active (show on website)</FormLabel>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <div className="flex justify-end gap-2 pt-4 border-t">
                 <Button
+                  type="button"
                   variant="ghost"
-                  onClick={() => {
-                    setIsDialogOpen(false);
-                    setEditingSlider(null);
-                  }}
+                  onClick={handleCloseDialog}
                   data-testid="button-cancel"
                 >
                   <X className="h-4 w-4 mr-2" />
                   Cancel
                 </Button>
                 <Button
-                  onClick={handleSave}
-                  disabled={!editingSlider.title || !editingSlider.imageUrl || createMutation.isPending || updateMutation.isPending}
+                  type="submit"
+                  disabled={createMutation.isPending || updateMutation.isPending}
                   data-testid="button-save-slider"
                 >
                   <Save className="h-4 w-4 mr-2" />
                   {createMutation.isPending || updateMutation.isPending ? 'Saving...' : 'Save Slide'}
                 </Button>
               </div>
-            </div>
-          )}
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
     </div>

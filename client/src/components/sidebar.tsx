@@ -45,6 +45,8 @@ import {
   Phone,
   Video,
   Scan,
+  Layout,
+  Image,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -698,11 +700,15 @@ export function Sidebar() {
       ],
     },
     {
-      name: "Frontend",
+      name: "Website Management",
       href: "/frontend-management",
       icon: Monitor,
       requiresAuth: true,
       permission: "canAccessSaasAdmin",
+      subItems: [
+        { name: "Page Builder", href: "/frontend-management", icon: Layout },
+        { name: "Slider Management", href: "/slider-management", icon: Image },
+      ],
     },
     {
       name: "Admin Settings",
