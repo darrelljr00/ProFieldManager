@@ -33,6 +33,14 @@ export function LiveChatWidget() {
   const [hasStartedChat, setHasStartedChat] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Determine organization ID: authenticated user > URL query param > default
+  const getOrganizationId = () => {
+    if (user?.organizationId) return user.organizationId;
+    const params = new URLSearchParams(window.location.search);
+    const urlOrgId = params.get('orgId');
+    return urlOrgId ? Number(urlOrgId) : 2;
+  };
+
   const { data: messages, isLoading: messagesLoading } = useQuery<LiveChatMessage[]>({
     queryKey: ['/api/live-chat/messages', sessionId],
     enabled: !!sessionId && hasStartedChat,
@@ -41,7 +49,7 @@ export function LiveChatWidget() {
   const createSessionMutation = useMutation({
     mutationFn: async ({ name, email }: { name: string, email: string }) => {
       const response = await apiRequest('POST', '/api/live-chat/sessions', {
-        organizationId: user?.organizationId || 2,
+        organizationId: getOrganizationId(),
         visitorName: name,
         visitorEmail: email,
       });
