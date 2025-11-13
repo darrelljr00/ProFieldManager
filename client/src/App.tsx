@@ -81,6 +81,8 @@ import { DeletedJobs } from "@/pages/deleted-jobs";
 import { CancelledJobs } from "@/pages/cancelled-jobs";
 import FrontendManagement from "@/pages/frontend-management";
 import SliderManagement from "@/pages/slider-management";
+import PopupManagement from "@/pages/popup-management";
+import LiveChatManagement from "@/pages/live-chat-management";
 import Tutorials from "@/pages/tutorials";
 import MySchedule from "@/pages/my-schedule";
 import Notifications from "@/pages/notifications";
@@ -233,6 +235,8 @@ function AuthenticatedApp() {
           {isAdmin && <Route path="/file-security" component={FileSecurity} />}
           {isAdmin && <Route path="/frontend-management" component={FrontendManagement} />}
           {isAdmin && <Route path="/slider-management" component={SliderManagement} />}
+          {isAdmin && <Route path="/popup-management" component={PopupManagement} />}
+          {isAdmin && <Route path="/live-chat-management" component={LiveChatManagement} />}
           <Route path="/settings" component={Settings} />
           <Route path="/reports" component={Reports} />
           <Route path="/logout" component={Logout} />
