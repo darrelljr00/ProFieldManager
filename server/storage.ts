@@ -19,7 +19,8 @@ import {
   callRecords, callRecordings, callTranscripts, voicemails, callQueues, 
   organizationTwilioSettings, organizationCallAnalytics,
   streamSessions, streamViewers, streamInvitations, streamNotifications,
-  smartCaptureLists, smartCaptureItems, timeEntries, recurringJobSeries, calendarJobs, notifications
+  smartCaptureLists, smartCaptureItems, timeEntries, recurringJobSeries, calendarJobs, notifications,
+  websitePopups, liveChatSessions, liveChatMessages
 } from "@shared/schema";
 import { marketResearchCompetitors } from "@shared/schema";
 import type { GasCard, InsertGasCard, GasCardAssignment, InsertGasCardAssignment, GasCardUsage, InsertGasCardUsage, GasCardProvider, InsertGasCardProvider } from "@shared/schema";
@@ -582,6 +583,26 @@ export interface IStorage {
   createFrontendSlider(sliderData: any): Promise<any>;
   updateFrontendSlider(id: number, organizationId: number, updates: any): Promise<any>;
   deleteFrontendSlider(id: number, organizationId: number): Promise<boolean>;
+  
+  // Website Popups
+  getWebsitePopups(organizationId: number): Promise<any[]>;
+  getWebsitePopup(id: number, organizationId: number): Promise<any>;
+  createWebsitePopup(popupData: any): Promise<any>;
+  updateWebsitePopup(id: number, organizationId: number, updates: any): Promise<any>;
+  deleteWebsitePopup(id: number, organizationId: number): Promise<boolean>;
+  recordPopupImpression(id: number, action: 'view' | 'click' | 'dismiss'): Promise<void>;
+  getActivePopupsForPage(organizationId: number, pagePath: string): Promise<any[]>;
+  
+  // Live Chat
+  createLiveChatSession(sessionData: any): Promise<any>;
+  getLiveChatSessions(organizationId: number, status?: string): Promise<any[]>;
+  getLiveChatSession(id: number): Promise<any>;
+  updateLiveChatSessionStatus(id: number, status: string, endedAt?: Date): Promise<any>;
+  assignLiveChatAgent(sessionId: number, agentId: number, agentName: string): Promise<any>;
+  closeLiveChatSession(id: number): Promise<any>;
+  createLiveChatMessage(messageData: any): Promise<any>;
+  getLiveChatMessages(sessionId: number): Promise<any[]>;
+  markChatMessageRead(messageId: number): Promise<void>;
   
   getFrontendComponents(organizationId: number, pageId?: number): Promise<any[]>;
   getFrontendComponent(id: number, organizationId: number): Promise<any>;
@@ -11726,6 +11747,269 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error deleting frontend slider:', error);
       return false;
+    }
+  }
+
+  // Website Popups Implementation
+  async getWebsitePopups(organizationId: number): Promise<any[]> {
+    try {
+      const popups = await db
+        .select()
+        .from(websitePopups)
+        .where(eq(websitePopups.organizationId, organizationId))
+        .orderBy(desc(websitePopups.priority), desc(websitePopups.createdAt));
+      return popups;
+    } catch (error) {
+      console.error('Error fetching website popups:', error);
+      return [];
+    }
+  }
+
+  async getWebsitePopup(id: number, organizationId: number): Promise<any> {
+    try {
+      const [popup] = await db
+        .select()
+        .from(websitePopups)
+        .where(and(eq(websitePopups.id, id), eq(websitePopups.organizationId, organizationId)));
+      return popup || null;
+    } catch (error) {
+      console.error('Error fetching website popup:', error);
+      return null;
+    }
+  }
+
+  async createWebsitePopup(popupData: any): Promise<any> {
+    try {
+      const [popup] = await db
+        .insert(websitePopups)
+        .values({
+          ...popupData,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
+      return popup;
+    } catch (error) {
+      console.error('Error creating website popup:', error);
+      throw error;
+    }
+  }
+
+  async updateWebsitePopup(id: number, organizationId: number, updates: any): Promise<any> {
+    try {
+      const [popup] = await db
+        .update(websitePopups)
+        .set({
+          ...updates,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(websitePopups.id, id), eq(websitePopups.organizationId, organizationId)))
+        .returning();
+      return popup;
+    } catch (error) {
+      console.error('Error updating website popup:', error);
+      throw error;
+    }
+  }
+
+  async deleteWebsitePopup(id: number, organizationId: number): Promise<boolean> {
+    try {
+      await db
+        .delete(websitePopups)
+        .where(and(eq(websitePopups.id, id), eq(websitePopups.organizationId, organizationId)));
+      return true;
+    } catch (error) {
+      console.error('Error deleting website popup:', error);
+      return false;
+    }
+  }
+
+  async recordPopupImpression(id: number, action: 'view' | 'click' | 'dismiss'): Promise<void> {
+    try {
+      const field = action === 'view' ? 'views' : action === 'click' ? 'clicks' : 'dismissals';
+      await db
+        .update(websitePopups)
+        .set({
+          [field]: sql`${websitePopups[field]} + 1`,
+          updatedAt: new Date(),
+        })
+        .where(eq(websitePopups.id, id));
+    } catch (error) {
+      console.error('Error recording popup impression:', error);
+    }
+  }
+
+  async getActivePopupsForPage(organizationId: number, pagePath: string): Promise<any[]> {
+    try {
+      const allPopups = await db
+        .select()
+        .from(websitePopups)
+        .where(and(
+          eq(websitePopups.organizationId, organizationId),
+          eq(websitePopups.isActive, true)
+        ))
+        .orderBy(desc(websitePopups.priority));
+      
+      // Filter popups that match the page path
+      const matchingPopups = allPopups.filter(popup => {
+        if (!popup.displayPages || popup.displayPages.includes('all')) {
+          return true;
+        }
+        return popup.displayPages.some((page: string) => {
+          if (page === pagePath) return true;
+          if (page.endsWith('*') && pagePath.startsWith(page.slice(0, -1))) return true;
+          return false;
+        });
+      });
+      
+      return matchingPopups;
+    } catch (error) {
+      console.error('Error fetching active popups for page:', error);
+      return [];
+    }
+  }
+
+  // Live Chat Implementation
+  async createLiveChatSession(sessionData: any): Promise<any> {
+    try {
+      const [session] = await db
+        .insert(liveChatSessions)
+        .values({
+          ...sessionData,
+          createdAt: new Date(),
+        })
+        .returning();
+      return session;
+    } catch (error) {
+      console.error('Error creating live chat session:', error);
+      throw error;
+    }
+  }
+
+  async getLiveChatSessions(organizationId: number, status?: string): Promise<any[]> {
+    try {
+      let query = db
+        .select()
+        .from(liveChatSessions)
+        .where(eq(liveChatSessions.organizationId, organizationId));
+      
+      if (status) {
+        query = query.where(eq(liveChatSessions.status, status));
+      }
+      
+      const sessions = await query.orderBy(desc(liveChatSessions.startedAt));
+      return sessions;
+    } catch (error) {
+      console.error('Error fetching live chat sessions:', error);
+      return [];
+    }
+  }
+
+  async getLiveChatSession(id: number): Promise<any> {
+    try {
+      const [session] = await db
+        .select()
+        .from(liveChatSessions)
+        .where(eq(liveChatSessions.id, id));
+      return session || null;
+    } catch (error) {
+      console.error('Error fetching live chat session:', error);
+      return null;
+    }
+  }
+
+  async updateLiveChatSessionStatus(id: number, status: string, endedAt?: Date): Promise<any> {
+    try {
+      const updates: any = { status };
+      if (endedAt) {
+        updates.endedAt = endedAt;
+      }
+      
+      const [session] = await db
+        .update(liveChatSessions)
+        .set(updates)
+        .where(eq(liveChatSessions.id, id))
+        .returning();
+      return session;
+    } catch (error) {
+      console.error('Error updating live chat session status:', error);
+      throw error;
+    }
+  }
+
+  async assignLiveChatAgent(sessionId: number, agentId: number, agentName: string): Promise<any> {
+    try {
+      const [session] = await db
+        .update(liveChatSessions)
+        .set({
+          assignedAgentId: agentId,
+          assignedAgentName: agentName,
+          status: 'active',
+        })
+        .where(eq(liveChatSessions.id, sessionId))
+        .returning();
+      return session;
+    } catch (error) {
+      console.error('Error assigning live chat agent:', error);
+      throw error;
+    }
+  }
+
+  async closeLiveChatSession(id: number): Promise<any> {
+    try {
+      const [session] = await db
+        .update(liveChatSessions)
+        .set({
+          status: 'closed',
+          endedAt: new Date(),
+        })
+        .where(eq(liveChatSessions.id, id))
+        .returning();
+      return session;
+    } catch (error) {
+      console.error('Error closing live chat session:', error);
+      throw error;
+    }
+  }
+
+  async createLiveChatMessage(messageData: any): Promise<any> {
+    try {
+      const [message] = await db
+        .insert(liveChatMessages)
+        .values({
+          ...messageData,
+          createdAt: new Date(),
+        })
+        .returning();
+      return message;
+    } catch (error) {
+      console.error('Error creating live chat message:', error);
+      throw error;
+    }
+  }
+
+  async getLiveChatMessages(sessionId: number): Promise<any[]> {
+    try {
+      const messages = await db
+        .select()
+        .from(liveChatMessages)
+        .where(eq(liveChatMessages.sessionId, sessionId))
+        .orderBy(asc(liveChatMessages.createdAt));
+      return messages;
+    } catch (error) {
+      console.error('Error fetching live chat messages:', error);
+      return [];
+    }
+  }
+
+  async markChatMessageRead(messageId: number): Promise<void> {
+    try {
+      await db
+        .update(liveChatMessages)
+        .set({ isRead: true })
+        .where(eq(liveChatMessages.id, messageId));
+    } catch (error) {
+      console.error('Error marking chat message as read:', error);
     }
   }
 
