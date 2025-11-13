@@ -2451,14 +2451,41 @@ function DesignCanvas({
           </div>
         ) : (
           <>
-            {/* Empty state when no components */}
+            {/* Template preview when no custom components - shows example designs */}
             {elements.length === 0 && (
-              <div className="flex items-center justify-center h-full text-muted-foreground">
-                <div className="text-center">
-                  <Box className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p className="text-lg font-medium">Empty Canvas</p>
-                  <p className="text-sm">Drag components from the left panel to start designing</p>
-                </div>
+              <div className="p-6 space-y-6 opacity-50 pointer-events-none">
+                {selectedPage.slug === 'home' ? (
+                  <div className="space-y-8">
+                    <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white p-8 rounded-lg">
+                      <h1 className="text-4xl font-bold mb-4">Pro Field Manager</h1>
+                      <p className="text-xl mb-6">Comprehensive SaaS Platform for Field Service Management</p>
+                      <div className="flex space-x-4">
+                        <div className="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold">Get Started</div>
+                        <div className="border border-white px-6 py-3 rounded-lg">Learn More</div>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="p-6 border rounded-lg">
+                        <h3 className="text-lg font-semibold mb-2">Mobile & Field Operations</h3>
+                        <p className="text-gray-600">Native mobile apps, GPS tracking, photo management</p>
+                      </div>
+                      <div className="p-6 border rounded-lg">
+                        <h3 className="text-lg font-semibold mb-2">Business Intelligence</h3>
+                        <p className="text-gray-600">Advanced reports, analytics, custom dashboards</p>
+                      </div>
+                      <div className="p-6 border rounded-lg">
+                        <h3 className="text-lg font-semibold mb-2">Communication & Automation</h3>
+                        <p className="text-gray-600">Team messaging, SMS integration, smart notifications</p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <Box className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p className="text-lg font-medium text-muted-foreground">Empty Canvas</p>
+                    <p className="text-sm text-muted-foreground">Drag components from the left panel to start designing</p>
+                  </div>
+                )}
               </div>
             )}
 
@@ -2476,8 +2503,12 @@ function DesignCanvas({
               />
             ))}
 
-            {/* Helpful hint when elements exist */}
-            {elements.length > 0 && (
+            {/* Helpful hint */}
+            {elements.length === 0 ? (
+              <div className="absolute bottom-4 right-4 bg-black/70 text-white px-3 py-2 rounded-lg text-sm">
+                Template Preview • Drag components to customize
+              </div>
+            ) : (
               <div className="absolute bottom-4 right-4 bg-black/70 text-white px-3 py-2 rounded-lg text-sm">
                 Click elements to edit • Drag to reposition
               </div>
