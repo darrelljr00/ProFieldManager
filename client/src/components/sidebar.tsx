@@ -234,7 +234,6 @@ const DEFAULT_NAVIGATION_ORDER = [
   "Team Messages",
   "Image Gallery",
   "Messages",
-  "Mobile Tracking",
   "Live Tracking",
   "Reviews",
   "Market Research",
@@ -626,19 +625,13 @@ export function Sidebar() {
       permission: "canAccessMessages",
     },
     {
-      name: "Mobile Tracking",
-      href: "/gps-tracking",
-      icon: MapPin,
-      requiresAuth: true,
-      permission: "canAccessGpsTracking",
-    },
-    {
       name: "Live Tracking",
       href: "/gps-tracking-obd",
       icon: MapPin,
       requiresAuth: true,
       permission: "canAccessGpsTracking",
       subItems: [
+        { name: "Mobile Tracking", href: "/gps-tracking", icon: Smartphone },
         { name: "Map View", href: "/gps-tracking-obd", icon: MapPin },
         { name: "Analytics", href: "/gps-analytics", icon: BarChart3 },
         { name: "Settings", href: "/gps-settings", icon: Settings },
