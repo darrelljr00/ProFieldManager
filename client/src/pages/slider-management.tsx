@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { 
   Plus, Edit, Trash2, Save, X, Image as ImageIcon,
-  ArrowUp, ArrowDown, Eye, EyeOff
+  ArrowUp, ArrowDown, Eye, EyeOff, Upload, Loader2
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -41,6 +41,9 @@ type SliderFormData = z.infer<typeof sliderFormSchema>;
 export default function SliderManagement() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadMode, setUploadMode] = useState<'url' | 'upload'>('url');
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const { data: sliders, isLoading } = useQuery<FrontendSlider[]>({
@@ -153,6 +156,71 @@ export default function SliderManagement() {
       displayDuration: 5000,
     });
     setIsDialogOpen(true);
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid file type",
+        description: "Please select an image file (JPEG, PNG, or WebP)",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Maximum file size is 5MB",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const response = await fetch('/api/frontend/sliders/upload', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Upload failed');
+      }
+
+      const data = await response.json();
+      
+      // Update the form with the uploaded image URL
+      form.setValue('imageUrl', data.imageUrl);
+
+      toast({
+        title: "Image uploaded successfully",
+        description: `Image uploaded to Cloudinary (${(file.size / 1024).toFixed(0)}KB)`
+      });
+    } catch (error: any) {
+      console.error('Upload error:', error);
+      toast({
+        title: "Upload failed",
+        description: error.message || "Failed to upload image",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
   };
 
   const handleCloseDialog = () => {
@@ -381,14 +449,87 @@ export default function SliderManagement() {
                 name="imageUrl"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Image URL *</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        placeholder="https://images.unsplash.com/..."
-                        data-testid="input-slider-image"
-                      />
-                    </FormControl>
+                    <FormLabel>Slider Image *</FormLabel>
+                    <div className="space-y-3">
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant={uploadMode === 'url' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setUploadMode('url')}
+                        >
+                          Enter URL
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={uploadMode === 'upload' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setUploadMode('upload')}
+                        >
+                          <Upload className="h-4 w-4 mr-2" />
+                          Upload Image
+                        </Button>
+                      </div>
+
+                      {uploadMode === 'url' ? (
+                        <FormControl>
+                          <Input
+                            {...field}
+                            placeholder="https://images.unsplash.com/..."
+                            data-testid="input-slider-image"
+                          />
+                        </FormControl>
+                      ) : (
+                        <div className="space-y-2">
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            onChange={handleFileUpload}
+                            className="hidden"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="w-full"
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={isUploading}
+                          >
+                            {isUploading ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Uploading...
+                              </>
+                            ) : (
+                              <>
+                                <Upload className="h-4 w-4 mr-2" />
+                                Choose Image File
+                              </>
+                            )}
+                          </Button>
+                          {field.value && (
+                            <FormControl>
+                              <Input
+                                {...field}
+                                placeholder="Uploaded image URL will appear here"
+                                readOnly
+                                className="text-xs"
+                              />
+                            </FormControl>
+                          )}
+                        </div>
+                      )}
+
+                      {field.value && (
+                        <div className="relative h-40 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800">
+                          <img
+                            src={field.value}
+                            alt="Preview"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
