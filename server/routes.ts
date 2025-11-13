@@ -25181,6 +25181,15 @@ ${fromName || ''}
   app.delete('/api/frontend/sliders/:id', requireManagerOrAdmin, async (req, res) => {
     try {
       const user = getAuthenticatedUser(req);
+      const sliders = await storage.getFrontendSliders(user.organizationId);
+      const sliderToDelete = sliders.find((s: any) => s.id === Number(req.params.id));
+      
+      // Delete Cloudinary image if it exists
+      if (sliderToDelete?.imagePublicId) {
+        console.log('🗑️ Deleting Cloudinary image:', sliderToDelete.imagePublicId);
+        await CloudinaryService.deleteImage(sliderToDelete.imagePublicId);
+      }
+      
       const success = await storage.deleteFrontendSlider(Number(req.params.id), user.organizationId);
       if (!success) {
         return res.status(404).json({ message: 'Frontend slider not found' });
@@ -25190,6 +25199,76 @@ ${fromName || ''}
     } catch (error: any) {
       console.error('Error deleting frontend slider:', error);
       res.status(500).json({ message: 'Failed to delete frontend slider' });
+    }
+  });
+
+  // Slider Image Upload
+  app.post('/api/frontend/sliders/upload', requireManagerOrAdmin, upload.single('image'), async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      if (!req.file) {
+        return res.status(400).json({ message: 'No image file provided' });
+      }
+
+      // Validate file type
+      const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+      if (!allowedMimeTypes.includes(req.file.mimetype)) {
+        return res.status(400).json({ 
+          message: 'Invalid file type. Only JPEG, PNG, and WebP images are allowed' 
+        });
+      }
+
+      // Validate file size (5MB max)
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      if (req.file.size > maxSize) {
+        return res.status(400).json({ 
+          message: 'File too large. Maximum size is 5MB' 
+        });
+      }
+
+      console.log('📤 Uploading slider image to Cloudinary...', {
+        filename: req.file.originalname,
+        size: req.file.size,
+        organizationId: user.organizationId
+      });
+
+      // Read file buffer
+      const fs = await import('fs/promises');
+      const buffer = await fs.readFile(req.file.path);
+
+      // Upload to Cloudinary
+      const uploadResult = await CloudinaryService.uploadImage(buffer, {
+        folder: 'hero_slides',
+        filename: req.file.originalname,
+        organizationId: user.organizationId,
+        quality: 90,
+        maxWidth: 2000,
+        maxHeight: 1200
+      });
+
+      // Clean up temp file
+      await fs.unlink(req.file.path);
+
+      if (!uploadResult.success) {
+        return res.status(500).json({ 
+          message: 'Failed to upload image to Cloudinary',
+          error: uploadResult.error
+        });
+      }
+
+      console.log('✅ Slider image uploaded successfully:', uploadResult.secureUrl);
+
+      res.json({
+        success: true,
+        imageUrl: uploadResult.secureUrl,
+        publicId: uploadResult.publicId,
+        width: uploadResult.width,
+        height: uploadResult.height
+      });
+    } catch (error: any) {
+      console.error('Error uploading slider image:', error);
+      res.status(500).json({ message: 'Failed to upload slider image' });
     }
   });
 
