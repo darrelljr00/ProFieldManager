@@ -5847,10 +5847,42 @@ export const insertWebsitePopupSchema = createInsertSchema(websitePopups).omit({
 export type WebsitePopup = typeof websitePopups.$inferSelect;
 export type InsertWebsitePopup = z.infer<typeof insertWebsitePopupSchema>;
 
+// Live Chat Departments
+export const liveChatDepartments = pgTable("live_chat_departments", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  
+  name: text("name").notNull(), // e.g., Sales, Support, Technical, Billing
+  description: text("description"),
+  color: text("color").default("#3b82f6"), // For UI differentiation
+  
+  // Status
+  isActive: boolean("is_active").default(true),
+  displayOrder: integer("display_order").default(0),
+  
+  // Auto-assignment settings (future use)
+  autoAssignEnabled: boolean("auto_assign_enabled").default(false),
+  assignedUserIds: text("assigned_user_ids").array().default(sql`ARRAY[]::text[]`),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertLiveChatDepartmentSchema = createInsertSchema(liveChatDepartments).omit({
+  id: true,
+  organizationId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type LiveChatDepartment = typeof liveChatDepartments.$inferSelect;
+export type InsertLiveChatDepartment = z.infer<typeof insertLiveChatDepartmentSchema>;
+
 // Live Chat Sessions
 export const liveChatSessions = pgTable("live_chat_sessions", {
   id: serial("id").primaryKey(),
   organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  departmentId: integer("department_id").references(() => liveChatDepartments.id),
   
   // Visitor Info
   visitorName: text("visitor_name"),
