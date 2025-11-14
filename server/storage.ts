@@ -57,6 +57,7 @@ export interface IStorage {
   // Organization methods
   getOrganization(id: number): Promise<Organization | undefined>;
   getOrganizationById(id: number): Promise<Organization | undefined>;
+  getOrganizationBySlug(slug: string): Promise<Organization | undefined>;
   createOrganization(orgData: any): Promise<Organization>;
   updateOrganization(id: number, updates: any): Promise<Organization>;
   getAllOrganizations(): Promise<Organization[]>;
@@ -1245,6 +1246,20 @@ export class DatabaseStorage implements IStorage {
       return organization || undefined;
     } catch (error) {
       console.error('Error getting organization by ID:', error);
+      throw error;
+    }
+  }
+
+  async getOrganizationBySlug(slug: string): Promise<Organization | undefined> {
+    try {
+      const [organization] = await db
+        .select()
+        .from(organizations)
+        .where(eq(organizations.slug, slug));
+      
+      return organization || undefined;
+    } catch (error) {
+      console.error('Error getting organization by slug:', error);
       throw error;
     }
   }

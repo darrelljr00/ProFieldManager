@@ -25367,6 +25367,35 @@ ${fromName || ''}
 
   // ========== Live Chat Management ==========
   
+  // Public: Get organization ID by slug (for frontend tenant detection)
+  app.get('/api/web/organizations/by-slug', async (req, res) => {
+    try {
+      const slug = req.query.slug as string;
+      
+      if (!slug) {
+        return res.status(400).json({ message: 'Slug parameter is required' });
+      }
+      
+      const organization = await storage.getOrganizationBySlug(slug);
+      
+      if (!organization) {
+        return res.status(404).json({ message: 'Organization not found' });
+      }
+      
+      // Return only essential public info
+      res.json({
+        id: organization.id,
+        name: organization.name,
+        slug: organization.slug
+      });
+    } catch (error: any) {
+      console.error('Error fetching organization by slug:', error);
+      res.status(500).json({ message: 'Failed to fetch organization' });
+    }
+  });
+
+  // Admin: Get all chat sessions for organization
+  
   // Admin: Get all chat sessions for organization
   app.get('/api/live-chat/sessions', requireAuth, async (req, res) => {
     try {

@@ -31,15 +31,47 @@ export function LiveChatWidget() {
   const [visitorEmail, setVisitorEmail] = useState("");
   const [messageText, setMessageText] = useState("");
   const [hasStartedChat, setHasStartedChat] = useState(false);
+  const [organizationId, setOrganizationId] = useState<number | null>(null);
+  const [isResolvingOrg, setIsResolvingOrg] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Determine organization ID: authenticated user > URL query param > default
-  const getOrganizationId = () => {
-    if (user?.organizationId) return user.organizationId;
-    const params = new URLSearchParams(window.location.search);
-    const urlOrgId = params.get('orgId');
-    return urlOrgId ? Number(urlOrgId) : 2;
-  };
+  // Resolve organization ID from URL path on mount
+  useEffect(() => {
+    async function resolveOrganization() {
+      // If user is authenticated, use their organization
+      if (user?.organizationId) {
+        setOrganizationId(user.organizationId);
+        setIsResolvingOrg(false);
+        return;
+      }
+
+      // Extract slug from path (e.g., /company-a -> company-a)
+      const pathSegments = window.location.pathname.split('/').filter(s => s);
+      const slug = pathSegments[0]; // First segment is the organization slug
+
+      // If no slug (homepage or empty path), hide widget
+      if (!slug) {
+        setIsResolvingOrg(false);
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/web/organizations/by-slug?slug=${encodeURIComponent(slug)}`);
+        if (response.ok) {
+          const org = await response.json();
+          setOrganizationId(org.id);
+        } else {
+          console.warn('Organization not found for slug:', slug);
+        }
+      } catch (error) {
+        console.error('Failed to resolve organization:', error);
+      } finally {
+        setIsResolvingOrg(false);
+      }
+    }
+
+    resolveOrganization();
+  }, [user?.organizationId]);
 
   const { data: messages, isLoading: messagesLoading } = useQuery<LiveChatMessage[]>({
     queryKey: ['/api/live-chat/messages', sessionId],
@@ -48,8 +80,11 @@ export function LiveChatWidget() {
 
   const createSessionMutation = useMutation({
     mutationFn: async ({ name, email }: { name: string, email: string }) => {
+      if (!organizationId) {
+        throw new Error('Organization not resolved');
+      }
       const response = await apiRequest('POST', '/api/live-chat/sessions', {
-        organizationId: getOrganizationId(),
+        organizationId,
         visitorName: name,
         visitorEmail: email,
       });
@@ -108,6 +143,11 @@ export function LiveChatWidget() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Hide widget if organization cannot be resolved or still resolving
+  if (isResolvingOrg || !organizationId) {
+    return null;
+  }
 
   if (!isOpen) {
     return (
@@ -218,7 +258,7 @@ export function LiveChatWidget() {
         ) : (
           <>
             <ScrollArea className="flex-1 pr-4 mb-4">
-              {messagesLoading && (!messages || messages.length === 0) ? (
+              {messagesLoading ? (
                 <div className="text-center py-8 text-muted-foreground text-sm">
                   Loading messages...
                 </div>
