@@ -93,9 +93,11 @@ import { MobileSensorTracker } from "@/components/MobileSensorTracker";
 import { LiveChatWidget } from "@/components/LiveChatWidget";
 
 function AuthenticatedApp() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
   const { isConnected, lastMessage } = useWebSocket();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  
+  console.log('AuthenticatedApp - isAdmin:', isAdmin, 'user role:', user?.role);
   
   // Start GPS tracking for mobile users
   useGPSTracking();
@@ -237,7 +239,7 @@ function AuthenticatedApp() {
           {isAdmin && <Route path="/frontend-management" component={FrontendManagement} />}
           {isAdmin && <Route path="/slider-management" component={SliderManagement} />}
           {isAdmin && <Route path="/popup-management" component={PopupManagement} />}
-          {isAdmin && <Route path="/live-chat-management" component={LiveChatManagement} />}
+          <Route path="/live-chat-management" component={LiveChatManagement} />
           <Route path="/settings" component={Settings} />
           <Route path="/reports" component={Reports} />
           <Route path="/logout" component={Logout} />
