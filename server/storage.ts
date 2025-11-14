@@ -11910,16 +11910,36 @@ export class DatabaseStorage implements IStorage {
 
   async getLiveChatSessions(organizationId: number, status?: string): Promise<any[]> {
     try {
-      let query = db
-        .select()
+      let baseQuery = db
+        .select({
+          id: liveChatSessions.id,
+          organizationId: liveChatSessions.organizationId,
+          visitorName: liveChatSessions.visitorName,
+          visitorEmail: liveChatSessions.visitorEmail,
+          status: liveChatSessions.status,
+          startedAt: liveChatSessions.startedAt,
+          endedAt: liveChatSessions.endedAt,
+          assignedAgentId: liveChatSessions.assignedAgentId,
+          assignedAgentName: liveChatSessions.assignedAgentName,
+          createdAt: liveChatSessions.createdAt,
+          lastMessageAt: liveChatSessions.lastMessageAt,
+          unreadCount: liveChatSessions.unreadCount,
+          departmentId: liveChatSessions.departmentId,
+          departmentName: liveChatDepartments.name,
+          departmentColor: liveChatDepartments.color,
+        })
         .from(liveChatSessions)
+        .leftJoin(
+          liveChatDepartments,
+          eq(liveChatSessions.departmentId, liveChatDepartments.id)
+        )
         .where(eq(liveChatSessions.organizationId, organizationId));
       
       if (status) {
-        query = query.where(eq(liveChatSessions.status, status));
+        baseQuery = baseQuery.where(eq(liveChatSessions.status, status));
       }
       
-      const sessions = await query.orderBy(desc(liveChatSessions.startedAt));
+      const sessions = await baseQuery.orderBy(desc(liveChatSessions.startedAt));
       return sessions;
     } catch (error) {
       console.error('Error fetching live chat sessions:', error);

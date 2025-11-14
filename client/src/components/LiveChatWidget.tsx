@@ -304,7 +304,7 @@ export function LiveChatWidget() {
                           <div className="flex items-center gap-2">
                             <div 
                               className="w-3 h-3 rounded-full" 
-                              style={{ backgroundColor: dept.color }}
+                              style={{ backgroundColor: dept.color || '#3b82f6' }}
                             />
                             <span>{dept.name}</span>
                           </div>

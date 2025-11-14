@@ -19,10 +19,14 @@ interface LiveChatSession {
   visitorName?: string;
   visitorEmail?: string;
   status: string;
-  assignedAgent?: number;
+  assignedAgentId?: number;
+  assignedAgentName?: string;
   createdAt: Date;
   lastMessageAt?: Date;
   unreadCount?: number;
+  departmentId?: number;
+  departmentName?: string;
+  departmentColor?: string;
 }
 
 interface LiveChatMessage {
@@ -291,6 +295,17 @@ export default function LiveChatManagement() {
                             {session.visitorEmail}
                           </div>
                         )}
+                        {session.departmentName && (
+                          <div className="flex items-center gap-1.5 mb-2">
+                            <div 
+                              className="w-3 h-3 rounded-full" 
+                              style={{ backgroundColor: session.departmentColor || '#3b82f6' }}
+                            />
+                            <span className="text-xs text-muted-foreground">
+                              {session.departmentName}
+                            </span>
+                          </div>
+                        )}
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <Clock className="h-3 w-3" />
                           {session.lastMessageAt 
@@ -331,7 +346,7 @@ export default function LiveChatManagement() {
                     </CardDescription>
                   </div>
                   <div className="flex gap-2">
-                    {!selectedSessionData.assignedAgent && (
+                    {!selectedSessionData.assignedAgentId && (
                       <Button 
                         size="sm" 
                         variant="outline"
@@ -460,7 +475,7 @@ export default function LiveChatManagement() {
                           <div className="flex items-center gap-2">
                             <div 
                               className="w-4 h-4 rounded-full" 
-                              style={{ backgroundColor: dept.color }}
+                              style={{ backgroundColor: dept.color || '#3b82f6' }}
                             />
                             <h3 className="font-medium">{dept.name}</h3>
                           </div>
