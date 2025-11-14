@@ -85,7 +85,16 @@ export default function LiveChatManagement() {
     queryKey: ['/api/live-chat/settings'],
   });
 
-  const [settingsForm, setSettingsForm] = useState<any>({});
+  const updateSettingsMutation = useMutation({
+    mutationFn: async (updates: any) => {
+      const response = await apiRequest('PATCH', '/api/live-chat/settings', updates);
+      if (!response.ok) throw new Error('Failed to update settings');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/live-chat/settings'] });
+    },
+  });
 
   // Listen for WebSocket updates for real-time messages
   useEffect(() => {
@@ -547,17 +556,166 @@ export default function LiveChatManagement() {
               {settingsLoading ? (
                 <div className="text-center py-8">Loading settings...</div>
               ) : (
-                <div className="space-y-6">
-                  <p className="text-sm text-muted-foreground">
-                    Settings tab is under construction. You'll be able to customize:
-                  </p>
-                  <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground">
-                    <li>Which pages display the chat widget</li>
-                    <li>Chat icon color and position</li>
-                    <li>Chat box styling and colors</li>
-                    <li>Welcome and offline messages</li>
-                  </ul>
-                </div>
+                <Accordion type="multiple" className="w-full">
+                  <AccordionItem value="visibility">
+                    <AccordionTrigger className="text-lg font-semibold">
+                      Page Visibility
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="space-y-4 pt-2">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <Label htmlFor="showOnAllPages">Show on all pages</Label>
+                            <p className="text-sm text-muted-foreground">Display chat widget across your entire website</p>
+                          </div>
+                          <Switch 
+                            id="showOnAllPages"
+                            checked={settings?.showOnAllPages ?? true}
+                            onCheckedChange={(checked) => {
+                              updateSettingsMutation.mutate({ showOnAllPages: checked });
+                              toast({ title: "Setting updated" });
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="icon">
+                    <AccordionTrigger className="text-lg font-semibold">
+                      Chat Icon
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="space-y-4 pt-2">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="iconColor">Icon Color</Label>
+                            <div className="flex gap-2 mt-2">
+                              <Input
+                                id="iconColor"
+                                type="color"
+                                value={settings?.iconColor || '#3b82f6'}
+                                onChange={(e) => {
+                                  updateSettingsMutation.mutate({ iconColor: e.target.value });
+                                }}
+                                className="w-20 h-10"
+                              />
+                              <Input
+                                value={settings?.iconColor || '#3b82f6'}
+                                readOnly
+                                className="flex-1"
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <Label htmlFor="iconPosition">Position</Label>
+                            <Select 
+                              value={settings?.iconPosition || 'bottom-right'}
+                              onValueChange={(value) => {
+                                updateSettingsMutation.mutate({ iconPosition: value });
+                                toast({ title: "Position updated" });
+                              }}
+                            >
+                              <SelectTrigger id="iconPosition" className="mt-2">
+                                <SelectValue placeholder="Select position" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="bottom-right">Bottom Right</SelectItem>
+                                <SelectItem value="bottom-left">Bottom Left</SelectItem>
+                                <SelectItem value="top-right">Top Right</SelectItem>
+                                <SelectItem value="top-left">Top Left</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="colors">
+                    <AccordionTrigger className="text-lg font-semibold">
+                      Chat Colors
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="space-y-4 pt-2">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="primaryColor">Primary Color</Label>
+                            <div className="flex gap-2 mt-2">
+                              <Input
+                                id="primaryColor"
+                                type="color"
+                                value={settings?.primaryColor || '#3b82f6'}
+                                onChange={(e) => {
+                                  updateSettingsMutation.mutate({ primaryColor: e.target.value });
+                                }}
+                                className="w-20 h-10"
+                              />
+                              <Input
+                                value={settings?.primaryColor || '#3b82f6'}
+                                readOnly
+                                className="flex-1"
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <Label htmlFor="chatBubbleUserColor">User Bubble Color</Label>
+                            <div className="flex gap-2 mt-2">
+                              <Input
+                                id="chatBubbleUserColor"
+                                type="color"
+                                value={settings?.chatBubbleUserColor || '#3b82f6'}
+                                onChange={(e) => {
+                                  updateSettingsMutation.mutate({ chatBubbleUserColor: e.target.value });
+                                }}
+                                className="w-20 h-10"
+                              />
+                              <Input
+                                value={settings?.chatBubbleUserColor || '#3b82f6'}
+                                readOnly
+                                className="flex-1"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="messages">
+                    <AccordionTrigger className="text-lg font-semibold">
+                      Messages
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="space-y-4 pt-2">
+                        <div>
+                          <Label htmlFor="welcomeMessage">Welcome Message</Label>
+                          <Input
+                            id="welcomeMessage"
+                            value={settings?.welcomeMessage || 'Hi! How can we help you today?'}
+                            onChange={(e) => {
+                              updateSettingsMutation.mutate({ welcomeMessage: e.target.value });
+                            }}
+                            placeholder="Hi! How can we help you today?"
+                            className="mt-2"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="offlineMessage">Offline Message</Label>
+                          <Input
+                            id="offlineMessage"
+                            value={settings?.offlineMessage || "We're currently offline."}
+                            onChange={(e) => {
+                              updateSettingsMutation.mutate({ offlineMessage: e.target.value });
+                            }}
+                            placeholder="We're currently offline"
+                            className="mt-2"
+                          />
+                        </div>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
               )}
             </CardContent>
           </Card>
