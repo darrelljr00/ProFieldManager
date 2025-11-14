@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MessageCircle, Send, X, Minimize2, User } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { formatDistanceToNow } from "date-fns";
@@ -21,6 +22,15 @@ interface LiveChatMessage {
   readAt?: Date;
 }
 
+interface LiveChatDepartment {
+  id: number;
+  name: string;
+  description?: string;
+  color?: string;
+  isActive: boolean;
+  displayOrder: number;
+}
+
 export function LiveChatWidget() {
   const { user } = useAuth();
   const { lastMessage } = useWebSocket();
@@ -29,6 +39,7 @@ export function LiveChatWidget() {
   const [sessionId, setSessionId] = useState<number | null>(null);
   const [visitorName, setVisitorName] = useState("");
   const [visitorEmail, setVisitorEmail] = useState("");
+  const [selectedDepartment, setSelectedDepartment] = useState<string>("");
   const [messageText, setMessageText] = useState("");
   const [hasStartedChat, setHasStartedChat] = useState(false);
   const [organizationId, setOrganizationId] = useState<number | null>(null);
@@ -102,8 +113,17 @@ export function LiveChatWidget() {
     enabled: !!sessionId && hasStartedChat,
   });
 
+  const { data: departmentsData } = useQuery<{ departments: LiveChatDepartment[] }>({
+    queryKey: ['/api/live-chat/departments'],
+    enabled: !!organizationId,
+  });
+
+  const activeDepartments = (departmentsData?.departments || [])
+    .filter(dept => dept.isActive)
+    .sort((a, b) => a.displayOrder - b.displayOrder);
+
   const createSessionMutation = useMutation({
-    mutationFn: async ({ name, email }: { name: string, email: string }) => {
+    mutationFn: async ({ name, email, departmentId }: { name: string, email: string, departmentId?: number }) => {
       if (!organizationId) {
         throw new Error('Organization not resolved');
       }
@@ -111,6 +131,7 @@ export function LiveChatWidget() {
         organizationId,
         visitorName: name,
         visitorEmail: email,
+        departmentId,
       });
       if (!response.ok) throw new Error('Failed to create chat session');
       return response.json();
@@ -142,7 +163,8 @@ export function LiveChatWidget() {
       alert("Please enter your name");
       return;
     }
-    createSessionMutation.mutate({ name: visitorName, email: visitorEmail });
+    const departmentId = selectedDepartment ? parseInt(selectedDepartment) : undefined;
+    createSessionMutation.mutate({ name: visitorName, email: visitorEmail, departmentId });
   };
 
   const handleSendMessage = () => {
@@ -268,6 +290,30 @@ export function LiveChatWidget() {
                   data-testid="input-visitor-email"
                 />
               </div>
+
+              {activeDepartments.length > 0 && (
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Department (Optional)</label>
+                  <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+                    <SelectTrigger data-testid="select-department">
+                      <SelectValue placeholder="Select a department" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {activeDepartments.map((dept) => (
+                        <SelectItem key={dept.id} value={dept.id.toString()}>
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="w-3 h-3 rounded-full" 
+                              style={{ backgroundColor: dept.color }}
+                            />
+                            <span>{dept.name}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               <Button
                 onClick={handleStartChat}
