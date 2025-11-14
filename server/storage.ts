@@ -20,7 +20,7 @@ import {
   organizationTwilioSettings, organizationCallAnalytics,
   streamSessions, streamViewers, streamInvitations, streamNotifications,
   smartCaptureLists, smartCaptureItems, timeEntries, recurringJobSeries, calendarJobs, notifications,
-  websitePopups, liveChatSessions, liveChatMessages
+  websitePopups, liveChatSessions, liveChatMessages, liveChatDepartments
 } from "@shared/schema";
 import { marketResearchCompetitors } from "@shared/schema";
 import type { GasCard, InsertGasCard, GasCardAssignment, InsertGasCardAssignment, GasCardUsage, InsertGasCardUsage, GasCardProvider, InsertGasCardProvider } from "@shared/schema";
@@ -604,6 +604,13 @@ export interface IStorage {
   createLiveChatMessage(messageData: any): Promise<any>;
   getLiveChatMessages(sessionId: number): Promise<any[]>;
   markChatMessageRead(messageId: number): Promise<void>;
+  
+  // Live Chat Departments
+  getLiveChatDepartments(organizationId: number): Promise<any[]>;
+  getLiveChatDepartment(id: number, organizationId: number): Promise<any>;
+  createLiveChatDepartment(departmentData: any): Promise<any>;
+  updateLiveChatDepartment(id: number, organizationId: number, updates: any): Promise<any>;
+  deleteLiveChatDepartment(id: number, organizationId: number): Promise<boolean>;
   
   getFrontendComponents(organizationId: number, pageId?: number): Promise<any[]>;
   getFrontendComponent(id: number, organizationId: number): Promise<any>;
@@ -12025,6 +12032,88 @@ export class DatabaseStorage implements IStorage {
         .where(eq(liveChatMessages.id, messageId));
     } catch (error) {
       console.error('Error marking chat message as read:', error);
+    }
+  }
+
+  async getLiveChatDepartments(organizationId: number): Promise<any[]> {
+    try {
+      const departments = await db
+        .select()
+        .from(liveChatDepartments)
+        .where(eq(liveChatDepartments.organizationId, organizationId))
+        .orderBy(asc(liveChatDepartments.displayOrder), asc(liveChatDepartments.name));
+      return departments;
+    } catch (error) {
+      console.error('Error fetching live chat departments:', error);
+      return [];
+    }
+  }
+
+  async getLiveChatDepartment(id: number, organizationId: number): Promise<any> {
+    try {
+      const [department] = await db
+        .select()
+        .from(liveChatDepartments)
+        .where(and(
+          eq(liveChatDepartments.id, id),
+          eq(liveChatDepartments.organizationId, organizationId)
+        ));
+      return department;
+    } catch (error) {
+      console.error('Error fetching live chat department:', error);
+      return null;
+    }
+  }
+
+  async createLiveChatDepartment(departmentData: any): Promise<any> {
+    try {
+      const [department] = await db
+        .insert(liveChatDepartments)
+        .values({
+          ...departmentData,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
+      return department;
+    } catch (error) {
+      console.error('Error creating live chat department:', error);
+      throw error;
+    }
+  }
+
+  async updateLiveChatDepartment(id: number, organizationId: number, updates: any): Promise<any> {
+    try {
+      const [department] = await db
+        .update(liveChatDepartments)
+        .set({
+          ...updates,
+          updatedAt: new Date(),
+        })
+        .where(and(
+          eq(liveChatDepartments.id, id),
+          eq(liveChatDepartments.organizationId, organizationId)
+        ))
+        .returning();
+      return department;
+    } catch (error) {
+      console.error('Error updating live chat department:', error);
+      throw error;
+    }
+  }
+
+  async deleteLiveChatDepartment(id: number, organizationId: number): Promise<boolean> {
+    try {
+      await db
+        .delete(liveChatDepartments)
+        .where(and(
+          eq(liveChatDepartments.id, id),
+          eq(liveChatDepartments.organizationId, organizationId)
+        ));
+      return true;
+    } catch (error) {
+      console.error('Error deleting live chat department:', error);
+      return false;
     }
   }
 

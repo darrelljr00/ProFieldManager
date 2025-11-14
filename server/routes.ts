@@ -25505,6 +25505,61 @@ ${fromName || ''}
       console.error('Error sending message:', error);
       res.status(500).json({ message: 'Failed to send message' });
     }
+  
+  // Live Chat Departments
+  app.get('/api/live-chat/departments', requireAuth, async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const departments = await storage.getLiveChatDepartments(user.organizationId);
+      res.json({ departments });
+    } catch (error: any) {
+      console.error('Error fetching departments:', error);
+      res.status(500).json({ message: 'Failed to fetch departments' });
+    }
+  });
+
+  app.post('/api/live-chat/departments', requireAuth, async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const department = await storage.createLiveChatDepartment({
+        ...req.body,
+        organizationId: user.organizationId,
+      });
+      res.status(201).json(department);
+    } catch (error: any) {
+      console.error('Error creating department:', error);
+      res.status(500).json({ message: 'Failed to create department' });
+    }
+  });
+
+  app.patch('/api/live-chat/departments/:id', requireAuth, async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const department = await storage.updateLiveChatDepartment(
+        Number(req.params.id),
+        user.organizationId,
+        req.body
+      );
+      res.json(department);
+    } catch (error: any) {
+      console.error('Error updating department:', error);
+      res.status(500).json({ message: 'Failed to update department' });
+    }
+  });
+
+  app.delete('/api/live-chat/departments/:id', requireAuth, async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const success = await storage.deleteLiveChatDepartment(
+        Number(req.params.id),
+        user.organizationId
+      );
+      res.json({ success });
+    } catch (error: any) {
+      console.error('Error deleting department:', error);
+      res.status(500).json({ message: 'Failed to delete department' });
+    }
+  });
   });
 
   // Frontend Components
