@@ -25577,9 +25577,13 @@ ${fromName || ''}
   app.patch("/api/live-chat/settings", requireAuth, async (req, res) => {
     try {
       const user = (req as any).user;
+      
+      // Validate and sanitize input - strip out protected fields
+      const { id, organizationId, createdAt, updatedAt, ...updates } = req.body;
+      
       const updatedSettings = await storage.updateLiveChatSettings(
         user.organizationId,
-        req.body
+        updates
       );
       res.json(updatedSettings);
     } catch (error: any) {
@@ -25587,7 +25591,6 @@ ${fromName || ''}
       res.status(500).json({ message: "Failed to update settings" });
     }
   });
-
   // Frontend Components
   app.get('/api/frontend/components', requireAuth, async (req, res) => {
     try {

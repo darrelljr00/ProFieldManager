@@ -8,7 +8,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { MessageSquare, Send, User, Clock, CheckCheck, Plus, Edit, Trash2, Tag } from "lucide-react";
+import { MessageSquare, Send, User, Clock, CheckCheck, Plus, Edit, Trash2, Tag, Settings as SettingsIcon, Save } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { formatDistanceToNow } from "date-fns";
@@ -77,6 +80,12 @@ export default function LiveChatManagement() {
   });
 
   const departments = departmentsData?.departments || [];
+
+  const { data: settings, isLoading: settingsLoading } = useQuery<any>({
+    queryKey: ['/api/live-chat/settings'],
+  });
+
+  const [settingsForm, setSettingsForm] = useState<any>({});
 
   // Listen for WebSocket updates for real-time messages
   useEffect(() => {
@@ -254,6 +263,10 @@ export default function LiveChatManagement() {
         <TabsList>
           <TabsTrigger value="sessions">Chat Sessions</TabsTrigger>
           <TabsTrigger value="departments">Departments</TabsTrigger>
+          <TabsTrigger value="settings">
+            <SettingsIcon className="w-4 h-4 mr-2" />
+            Settings
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="sessions" className="mt-6">
@@ -611,6 +624,169 @@ export default function LiveChatManagement() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+        </TabsContent>
+
+        <TabsContent value="settings" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Chat Widget Settings</CardTitle>
+              <CardDescription>
+                Customize how the live chat widget appears on your website
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {settingsLoading ? (
+                <div className="text-center py-8">Loading settings...</div>
+              ) : (
+                <div className="space-y-6">
+                  <div className="grid gap-6">
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4">Page Visibility</h3>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <Label htmlFor="showOnAllPages">Show on all pages</Label>
+                            <p className="text-sm text-muted-foreground">Display chat widget across your entire website</p>
+                          </div>
+                          <Switch 
+                            id="showOnAllPages"
+                            checked={settings?.showOnAllPages ?? true}
+                            onCheckedChange={(checked) => {
+                              const updateMutation = useMutation({
+                                mutationFn: async (updates: any) => {
+                                  const response = await apiRequest('PATCH', '/api/live-chat/settings', updates);
+                                  if (!response.ok) throw new Error('Failed to update settings');
+                                  return response.json();
+                                },
+                                onSuccess: () => {
+                                  queryClient.invalidateQueries({ queryKey: ['/api/live-chat/settings'] });
+                                  toast({ title: "Settings updated successfully" });
+                                },
+                              });
+                              updateMutation.mutate({ showOnAllPages: checked });
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4">Icon Style</h3>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="iconColor">Icon Color</Label>
+                          <div className="flex gap-2 mt-1">
+                            <Input
+                              id="iconColor"
+                              type="color"
+                              value={settings?.iconColor || '#3b82f6'}
+                              className="w-20 h-10"
+                            />
+                            <Input
+                              value={settings?.iconColor || '#3b82f6'}
+                              placeholder="#3b82f6"
+                              className="flex-1"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <Label htmlFor="iconPosition">Position</Label>
+                          <Select 
+                            value={settings?.iconPosition || 'bottom-right'}
+                          >
+                            <SelectTrigger id="iconPosition">
+                              <SelectValue placeholder="Select position" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="bottom-right">Bottom Right</SelectItem>
+                              <SelectItem value="bottom-left">Bottom Left</SelectItem>
+                              <SelectItem value="top-right">Top Right</SelectItem>
+                              <SelectItem value="top-left">Top Left</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4">Chat Colors</h3>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="primaryColor">Primary Color</Label>
+                          <div className="flex gap-2 mt-1">
+                            <Input
+                              id="primaryColor"
+                              type="color"
+                              value={settings?.primaryColor || '#3b82f6'}
+                              className="w-20 h-10"
+                            />
+                            <Input
+                              value={settings?.primaryColor || '#3b82f6'}
+                              placeholder="#3b82f6"
+                              className="flex-1"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <Label htmlFor="chatBubbleUserColor">User Bubble Color</Label>
+                          <div className="flex gap-2 mt-1">
+                            <Input
+                              id="chatBubbleUserColor"
+                              type="color"
+                              value={settings?.chatBubbleUserColor || '#3b82f6'}
+                              className="w-20 h-10"
+                            />
+                            <Input
+                              value={settings?.chatBubbleUserColor || '#3b82f6'}
+                              placeholder="#3b82f6"
+                              className="flex-1"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4">Messages</h3>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="welcomeMessage">Welcome Message</Label>
+                          <Input
+                            id="welcomeMessage"
+                            value={settings?.welcomeMessage || 'Hi! How can we help you today?'}
+                            placeholder="Hi! How can we help you today?"
+                            className="mt-1"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="offlineMessage">Offline Message</Label>
+                          <Input
+                            id="offlineMessage"
+                            value={settings?.offlineMessage || "We're currently offline. Please leave a message."}
+                            placeholder="We're currently offline"
+                            className="mt-1"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-4 border-t">
+                      <div className="text-sm text-muted-foreground">
+                        Changes are saved automatically
+                      </div>
+                      <Button variant="outline" size="sm">
+                        <Save className="w-4 h-4 mr-2" />
+                        Preview Widget
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
