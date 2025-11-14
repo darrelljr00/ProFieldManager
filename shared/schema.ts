@@ -5948,3 +5948,56 @@ export const insertLiveChatMessageSchema = createInsertSchema(liveChatMessages).
 
 export type LiveChatMessage = typeof liveChatMessages.$inferSelect;
 export type InsertLiveChatMessage = z.infer<typeof insertLiveChatMessageSchema>;
+
+// Live Chat Settings (per organization)
+export const liveChatSettings = pgTable("live_chat_settings", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id).unique(),
+  
+  // Page Visibility Settings
+  showOnAllPages: boolean("show_on_all_pages").default(true),
+  pageRules: jsonb("page_rules").default(sql`'[]'::jsonb`), // Array of {type: 'exact'|'prefix', value: string}
+  
+  // Icon Styling
+  iconColor: text("icon_color").default("#3b82f6"),
+  iconBackgroundColor: text("icon_background_color").default("#ffffff"),
+  iconSize: text("icon_size").default("medium"), // small, medium, large, custom
+  iconSizePx: integer("icon_size_px").default(60), // Used when iconSize is 'custom'
+  iconBorderRadius: text("icon_border_radius").default("50%"), // e.g., 50%, 8px
+  iconPosition: text("icon_position").default("bottom-right"), // bottom-right, bottom-left, top-right, top-left
+  widgetOffsetX: integer("widget_offset_x").default(20), // Pixels from edge
+  widgetOffsetY: integer("widget_offset_y").default(20), // Pixels from edge
+  
+  // Chat Box Styling
+  primaryColor: text("primary_color").default("#3b82f6"),
+  headerTextColor: text("header_text_color").default("#ffffff"),
+  chatBackgroundColor: text("chat_background_color").default("#ffffff"),
+  chatTextColor: text("chat_text_color").default("#1f2937"),
+  chatBubbleUserColor: text("chat_bubble_user_color").default("#3b82f6"),
+  chatBubbleAgentColor: text("chat_bubble_agent_color").default("#f3f4f6"),
+  chatFontFamily: text("chat_font_family").default("system-ui, -apple-system, sans-serif"),
+  chatFontSize: text("chat_font_size").default("14px"),
+  boxBorderRadius: text("box_border_radius").default("12px"),
+  boxShadowEnabled: boolean("box_shadow_enabled").default(true),
+  
+  // UX/Behavior Settings
+  welcomeMessage: text("welcome_message").default("Hi! How can we help you today?"),
+  offlineMessage: text("offline_message").default("We're currently offline. Please leave a message and we'll get back to you soon."),
+  enableOfflineForm: boolean("enable_offline_form").default(true),
+  offlineRedirectEmail: text("offline_redirect_email"),
+  autoOpenDelaySeconds: integer("auto_open_delay_seconds").default(0), // 0 = don't auto-open
+  showBranding: boolean("show_branding").default(true), // "Powered by Pro Field Manager"
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertLiveChatSettingsSchema = createInsertSchema(liveChatSettings).omit({
+  id: true,
+  organizationId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type LiveChatSettings = typeof liveChatSettings.$inferSelect;
+export type InsertLiveChatSettings = z.infer<typeof insertLiveChatSettingsSchema>;

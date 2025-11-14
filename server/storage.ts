@@ -20,7 +20,7 @@ import {
   organizationTwilioSettings, organizationCallAnalytics,
   streamSessions, streamViewers, streamInvitations, streamNotifications,
   smartCaptureLists, smartCaptureItems, timeEntries, recurringJobSeries, calendarJobs, notifications,
-  websitePopups, liveChatSessions, liveChatMessages, liveChatDepartments
+  websitePopups, liveChatSessions, liveChatMessages, liveChatDepartments, liveChatSettings
 } from "@shared/schema";
 import { marketResearchCompetitors } from "@shared/schema";
 import type { GasCard, InsertGasCard, GasCardAssignment, InsertGasCardAssignment, GasCardUsage, InsertGasCardUsage, GasCardProvider, InsertGasCardProvider } from "@shared/schema";
@@ -611,6 +611,10 @@ export interface IStorage {
   createLiveChatDepartment(departmentData: any): Promise<any>;
   updateLiveChatDepartment(id: number, organizationId: number, updates: any): Promise<any>;
   deleteLiveChatDepartment(id: number, organizationId: number): Promise<boolean>;
+  
+  // Live Chat Settings
+  getLiveChatSettings(organizationId: number): Promise<any>;
+  updateLiveChatSettings(organizationId: number, updates: any): Promise<any>;
   
   getFrontendComponents(organizationId: number, pageId?: number): Promise<any[]>;
   getFrontendComponent(id: number, organizationId: number): Promise<any>;
@@ -12134,6 +12138,57 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error deleting live chat department:', error);
       return false;
+    }
+  }
+
+  async getLiveChatSettings(organizationId: number): Promise<any> {
+    try {
+      // Try to get existing settings
+      const [existingSettings] = await db
+        .select()
+        .from(liveChatSettings)
+        .where(eq(liveChatSettings.organizationId, organizationId));
+      
+      // If settings exist, return them
+      if (existingSettings) {
+        return existingSettings;
+      }
+      
+      // Auto-initialize with defaults if not exists
+      const [newSettings] = await db
+        .insert(liveChatSettings)
+        .values({
+          organizationId,
+          // All defaults are set in the schema
+        })
+        .returning();
+      
+      return newSettings;
+    } catch (error) {
+      console.error('Error getting live chat settings:', error);
+      throw error;
+    }
+  }
+
+  async updateLiveChatSettings(organizationId: number, updates: any): Promise<any> {
+    try {
+      // Ensure settings exist first
+      await this.getLiveChatSettings(organizationId);
+      
+      // Update the settings
+      const [updatedSettings] = await db
+        .update(liveChatSettings)
+        .set({
+          ...updates,
+          updatedAt: new Date(),
+        })
+        .where(eq(liveChatSettings.organizationId, organizationId))
+        .returning();
+      
+      return updatedSettings;
+    } catch (error) {
+      console.error('Error updating live chat settings:', error);
+      throw error;
     }
   }
 

@@ -25562,6 +25562,32 @@ ${fromName || ''}
   });
   });
 
+  // Live Chat Settings
+  app.get("/api/live-chat/settings", requireAuth, async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const settings = await storage.getLiveChatSettings(user.organizationId);
+      res.json(settings);
+    } catch (error: any) {
+      console.error("Error fetching live chat settings:", error);
+      res.status(500).json({ message: "Failed to fetch settings" });
+    }
+  });
+
+  app.patch("/api/live-chat/settings", requireAuth, async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const updatedSettings = await storage.updateLiveChatSettings(
+        user.organizationId,
+        req.body
+      );
+      res.json(updatedSettings);
+    } catch (error: any) {
+      console.error("Error updating live chat settings:", error);
+      res.status(500).json({ message: "Failed to update settings" });
+    }
+  });
+
   // Frontend Components
   app.get('/api/frontend/components', requireAuth, async (req, res) => {
     try {
