@@ -5,7 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageSquare, Send, User, Clock, CheckCheck } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { MessageSquare, Send, User, Clock, CheckCheck, Plus, Edit, Trash2, Tag } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { formatDistanceToNow } from "date-fns";
@@ -32,9 +35,27 @@ interface LiveChatMessage {
   readAt?: Date;
 }
 
+interface LiveChatDepartment {
+  id: number;
+  name: string;
+  description?: string;
+  color?: string;
+  isActive: boolean;
+  displayOrder: number;
+}
+
 export default function LiveChatManagement() {
   const [selectedSession, setSelectedSession] = useState<number | null>(null);
   const [messageText, setMessageText] = useState("");
+  const [isDepartmentDialogOpen, setIsDepartmentDialogOpen] = useState(false);
+  const [editingDepartment, setEditingDepartment] = useState<LiveChatDepartment | null>(null);
+  const [departmentFormData, setDepartmentFormData] = useState({
+    name: '',
+    description: '',
+    color: '#3b82f6',
+    isActive: true,
+    displayOrder: 0,
+  });
   const { toast } = useToast();
   const { lastMessage } = useWebSocket();
 
@@ -46,6 +67,12 @@ export default function LiveChatManagement() {
     queryKey: ['/api/live-chat/messages', selectedSession],
     enabled: !!selectedSession,
   });
+
+  const { data: departmentsData } = useQuery<{ departments: LiveChatDepartment[] }>({
+    queryKey: ['/api/live-chat/departments'],
+  });
+
+  const departments = departmentsData?.departments || [];
 
   // Listen for WebSocket updates for real-time messages
   useEffect(() => {
@@ -104,6 +131,55 @@ export default function LiveChatManagement() {
     },
   });
 
+  const createDepartmentMutation = useMutation({
+    mutationFn: async (data: typeof departmentFormData) => {
+      const response = await apiRequest('POST', '/api/live-chat/departments', data);
+      if (!response.ok) throw new Error('Failed to create department');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/live-chat/departments'] });
+      toast({ title: "Department created successfully" });
+      setIsDepartmentDialogOpen(false);
+      resetDepartmentForm();
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to create department", description: error.message, variant: "destructive" });
+    }
+  });
+
+  const updateDepartmentMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number, data: typeof departmentFormData }) => {
+      const response = await apiRequest('PATCH', `/api/live-chat/departments/${id}`, data);
+      if (!response.ok) throw new Error('Failed to update department');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/live-chat/departments'] });
+      toast({ title: "Department updated successfully" });
+      setIsDepartmentDialogOpen(false);
+      resetDepartmentForm();
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to update department", description: error.message, variant: "destructive" });
+    }
+  });
+
+  const deleteDepartmentMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await apiRequest('DELETE', `/api/live-chat/departments/${id}`);
+      if (!response.ok) throw new Error('Failed to delete department');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/live-chat/departments'] });
+      toast({ title: "Department deleted successfully" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to delete department", description: error.message, variant: "destructive" });
+    }
+  });
+
   const handleSendMessage = () => {
     if (!selectedSession || !messageText.trim()) return;
     sendMessageMutation.mutate({ sessionId: selectedSession, message: messageText });
@@ -113,6 +189,42 @@ export default function LiveChatManagement() {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
+    }
+  };
+
+  const resetDepartmentForm = () => {
+    setDepartmentFormData({
+      name: '',
+      description: '',
+      color: '#3b82f6',
+      isActive: true,
+      displayOrder: 0,
+    });
+    setEditingDepartment(null);
+  };
+
+  const handleAddDepartment = () => {
+    resetDepartmentForm();
+    setIsDepartmentDialogOpen(true);
+  };
+
+  const handleEditDepartment = (department: LiveChatDepartment) => {
+    setEditingDepartment(department);
+    setDepartmentFormData({
+      name: department.name,
+      description: department.description || '',
+      color: department.color || '#3b82f6',
+      isActive: department.isActive,
+      displayOrder: department.displayOrder,
+    });
+    setIsDepartmentDialogOpen(true);
+  };
+
+  const handleSaveDepartment = () => {
+    if (editingDepartment) {
+      updateDepartmentMutation.mutate({ id: editingDepartment.id, data: departmentFormData });
+    } else {
+      createDepartmentMutation.mutate(departmentFormData);
     }
   };
 
@@ -131,10 +243,17 @@ export default function LiveChatManagement() {
     <div className="p-6">
       <div className="mb-6">
         <h1 className="text-3xl font-bold">Live Chat Management</h1>
-        <p className="text-muted-foreground">Manage customer conversations in real-time</p>
+        <p className="text-muted-foreground">Manage customer conversations and departments</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-200px)]">
+      <Tabs defaultValue="sessions" className="w-full">
+        <TabsList>
+          <TabsTrigger value="sessions">Chat Sessions</TabsTrigger>
+          <TabsTrigger value="departments">Departments</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="sessions" className="mt-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-280px)]">
         <Card className="lg:col-span-1">
           <CardHeader>
             <CardTitle>Chat Sessions</CardTitle>
@@ -308,6 +427,175 @@ export default function LiveChatManagement() {
           )}
         </Card>
       </div>
+        </TabsContent>
+
+        <TabsContent value="departments" className="mt-6">
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle>Chat Departments</CardTitle>
+                  <CardDescription>
+                    Organize chats by department for better routing and management
+                  </CardDescription>
+                </div>
+                <Button onClick={handleAddDepartment} data-testid="button-add-department">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Department
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {departments.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Tag className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No departments created yet. Add your first department to get started.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {departments.map((dept) => (
+                    <Card key={dept.id} data-testid={`card-department-${dept.id}`}>
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="w-4 h-4 rounded-full" 
+                              style={{ backgroundColor: dept.color }}
+                            />
+                            <h3 className="font-medium">{dept.name}</h3>
+                          </div>
+                          <div className="flex gap-1">
+                            <Button 
+                              size="sm" 
+                              variant="ghost"
+                              onClick={() => handleEditDepartment(dept)}
+                              data-testid={`button-edit-department-${dept.id}`}
+                            >
+                              <Edit className="h-3 w-3" />
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="ghost"
+                              onClick={() => {
+                                if (confirm('Are you sure you want to delete this department?')) {
+                                  deleteDepartmentMutation.mutate(dept.id);
+                                }
+                              }}
+                              data-testid={`button-delete-department-${dept.id}`}
+                            >
+                              <Trash2 className="h-3 w-3 text-destructive" />
+                            </Button>
+                          </div>
+                        </div>
+                        {dept.description && (
+                          <p className="text-sm text-muted-foreground mb-2">{dept.description}</p>
+                        )}
+                        <div className="flex items-center justify-between">
+                          <Badge variant={dept.isActive ? "default" : "secondary"}>
+                            {dept.isActive ? "Active" : "Inactive"}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">
+                            Order: {dept.displayOrder}
+                          </span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      <Dialog open={isDepartmentDialogOpen} onOpenChange={setIsDepartmentDialogOpen}>
+        <DialogContent data-testid="dialog-department-form">
+          <DialogHeader>
+            <DialogTitle>
+              {editingDepartment ? 'Edit Department' : 'Add Department'}
+            </DialogTitle>
+            <DialogDescription>
+              {editingDepartment 
+                ? 'Update department details' 
+                : 'Create a new department to organize your live chat conversations'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label htmlFor="name">Department Name *</Label>
+              <Input
+                id="name"
+                value={departmentFormData.name}
+                onChange={(e) => setDepartmentFormData({ ...departmentFormData, name: e.target.value })}
+                placeholder="e.g., Sales, Support, Technical"
+                data-testid="input-department-name"
+              />
+            </div>
+            <div>
+              <Label htmlFor="description">Description</Label>
+              <Input
+                id="description"
+                value={departmentFormData.description}
+                onChange={(e) => setDepartmentFormData({ ...departmentFormData, description: e.target.value })}
+                placeholder="Optional description"
+                data-testid="input-department-description"
+              />
+            </div>
+            <div>
+              <Label htmlFor="color">Color</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="color"
+                  type="color"
+                  value={departmentFormData.color}
+                  onChange={(e) => setDepartmentFormData({ ...departmentFormData, color: e.target.value })}
+                  className="w-20 h-10"
+                  data-testid="input-department-color"
+                />
+                <Input
+                  value={departmentFormData.color}
+                  onChange={(e) => setDepartmentFormData({ ...departmentFormData, color: e.target.value })}
+                  placeholder="#3b82f6"
+                  className="flex-1"
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="displayOrder">Display Order</Label>
+              <Input
+                id="displayOrder"
+                type="number"
+                value={departmentFormData.displayOrder}
+                onChange={(e) => setDepartmentFormData({ ...departmentFormData, displayOrder: Number(e.target.value) })}
+                data-testid="input-department-order"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="isActive"
+                checked={departmentFormData.isActive}
+                onChange={(e) => setDepartmentFormData({ ...departmentFormData, isActive: e.target.checked })}
+                className="rounded"
+                data-testid="input-department-active"
+              />
+              <Label htmlFor="isActive">Active</Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDepartmentDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSaveDepartment}
+              disabled={!departmentFormData.name || createDepartmentMutation.isPending || updateDepartmentMutation.isPending}
+              data-testid="button-save-department"
+            >
+              {editingDepartment ? 'Update' : 'Create'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
