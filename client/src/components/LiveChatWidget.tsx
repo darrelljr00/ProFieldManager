@@ -35,19 +35,43 @@ export function LiveChatWidget() {
   const [isResolvingOrg, setIsResolvingOrg] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Admin and API routes that should NOT show the visitor chat widget
+  const adminRoutes = [
+    '/dashboard', '/invoices', '/quotes', '/projects', '/customers', '/jobs',
+    '/expenses', '/leads', '/payments', '/calendar', '/time-clock', '/tasks',
+    '/file-manager', '/employees', '/hr', '/users', '/admin-settings', '/saas-admin',
+    '/reports', '/settings', '/notifications', '/internal-messages', '/team-messages',
+    '/gps-tracking', '/inspections', '/form-builder', '/tutorials', '/my-schedule',
+    '/api', '/login', '/signup', '/logout', '/screen-sharing', '/mobile-test',
+    '/parts-supplies', '/call-manager', '/file-security', '/frontend-management',
+    '/slider-management', '/popup-management', '/live-chat-management', '/weather',
+    '/reviews', '/market-research', '/image-gallery', '/sms', '/messages', '/geofences'
+  ];
+
   // Resolve organization ID from URL path on mount
   useEffect(() => {
     async function resolveOrganization() {
-      // If user is authenticated, use their organization
-      if (user?.organizationId) {
-        setOrganizationId(user.organizationId);
+      const currentPath = window.location.pathname;
+
+      // Don't show widget on admin/backend pages
+      const isAdminPage = adminRoutes.some(route => currentPath.startsWith(route));
+      if (isAdminPage) {
         setIsResolvingOrg(false);
         return;
       }
 
-      // Extract slug from path (e.g., /company-a -> company-a)
-      const pathSegments = window.location.pathname.split('/').filter(s => s);
-      const slug = pathSegments[0]; // First segment is the organization slug
+      // If user is authenticated (on admin side), don't show visitor widget
+      // TODO: Replace with AdminSupportWidget for admin users to contact platform support
+      if (user?.organizationId) {
+        setIsResolvingOrg(false);
+        return;
+      }
+
+      // Extract slug from path (e.g., /site/company-a or /company-a -> company-a)
+      const pathSegments = currentPath.split('/').filter(s => s);
+      
+      // Handle /site/:slug pattern from page builder
+      const slug = pathSegments[0] === 'site' ? pathSegments[1] : pathSegments[0];
 
       // If no slug (homepage or empty path), hide widget
       if (!slug) {
