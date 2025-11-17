@@ -1916,9 +1916,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/auth/register", async (req, res) => {
+app.post("/api/auth/register", async (req, res) => {
     try {
       const validatedData = registerSchema.parse(req.body);
+      const isDemo = req.body.isDemo === true || req.query.demo === 'true';
       
       // Check if user already exists
       const existingUser = await storage.getUserByUsername(validatedData.username);
@@ -1933,15 +1934,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Hash password and create user
       const hashedPassword = await AuthService.hashPassword(validatedData.password);
+      
+      // For demo accounts, set expiration to 30 days from now
+      const demoExpiresAt = isDemo ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) : null;
+      
       const userData = {
         ...validatedData,
         password: hashedPassword,
-        role: "user",
+        role: isDemo ? "admin" : "user", // Demo users get admin role to see all features
         isActive: true,
         emailVerified: false,
+        isDemoAccount: isDemo,
+        demoExpiresAt: demoExpiresAt,
       };
 
       const user = await storage.createUser(userData);
+      
+      // For demo accounts, seed sample data
+      if (isDemo) {
+        try {
+          const { seedDemoAccountData } = await import("./seed-demo-data");
+          await seedDemoAccountData(user.id, user.organizationId);
+          console.log(`✅ Demo account created for user ${user.id} with sample data`);
+        } catch (seedError) {
+          console.error("❌ Failed to seed demo data:", seedError);
+          // Continue anyway - user is created even if seed fails
+        }
+      }
       
       // Create session
       const session = await AuthService.createSession(
@@ -1957,6 +1976,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sameSite: 'none', // Allow cross-origin for all domains
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
       });
+
+      res.status(201).json({
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+          isDemoAccount: user.isDemoAccount || false,
+          demoExpiresAt: user.demoExpiresAt,
+        },
+        token: session.token,
+        isDemo: isDemo,
+      });
+    } catch (error) {
+      if (error instanceof ZodError) {
+        return res.status(400).json({ message: error.errors[0].message });
+      }
+      console.error("Registration error:", error);
+      res.status(500).json({ message: "Registration failed" });
+    }
+  });
 
       res.status(201).json({
         user: {
