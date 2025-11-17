@@ -67,6 +67,8 @@ export class AuthService {
           firstName: users.firstName,
           lastName: users.lastName,
           isActive: users.isActive,
+          isDemoAccount: users.isDemoAccount,
+          demoExpiresAt: users.demoExpiresAt,
           // Include all permission fields
           canAccessDashboard: users.canAccessDashboard,
           canAccessCalendar: users.canAccessCalendar,
@@ -203,6 +205,8 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
         firstName: sessionData.user.firstName || undefined,
         lastName: sessionData.user.lastName || undefined,
         organizationId: sessionData.user.organizationId,
+        isDemoAccount: sessionData.user.isDemoAccount || false,
+        demoExpiresAt: sessionData.user.demoExpiresAt || undefined,
         // Include all permission fields (Drizzle returns them in camelCase format)
         can_access_dashboard: sessionData.user.canAccessDashboard,
         can_access_calendar: sessionData.user.canAccessCalendar,
@@ -286,6 +290,28 @@ export function requireTaskDelegationPermission(req: Request, res: Response, nex
   return res.status(403).json({ 
     message: "Only managers and administrators can delegate tasks to other users" 
   });
+}
+
+// Block write operations for demo accounts
+export function blockDemoAccountWrites(req: Request, res: Response, next: NextFunction) {
+  const user = req.user;
+  
+  // If user is not authenticated or not a demo account, allow the request
+  if (!user || !user.isDemoAccount) {
+    return next();
+  }
+  
+  // Block mutating operations for demo accounts
+  const writeMethods = ['POST', 'PUT', 'PATCH', 'DELETE'];
+  if (writeMethods.includes(req.method)) {
+    return res.status(403).json({ 
+      message: "Demo accounts cannot save changes. Please sign up for a full account to save your data.",
+      isDemoAccount: true
+    });
+  }
+  
+  // Allow read operations
+  next();
 }
 
 // Type declarations are handled in routes.ts to avoid conflicts

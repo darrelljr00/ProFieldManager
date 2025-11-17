@@ -57,7 +57,7 @@ import {
   type InsertSmartCaptureList,
   type InsertSmartCaptureItem
 } from "@shared/schema";
-import { AuthService, requireAuth, requireAdmin, requireManagerOrAdmin, requireTaskDelegationPermission } from "./auth";
+import { AuthService, requireAuth, requireAdmin, requireManagerOrAdmin, requireTaskDelegationPermission, blockDemoAccountWrites } from "./auth";
 import { ZodError } from "zod";
 import { seedDatabase } from "./seed-data";
 import { nanoid } from "nanoid";
@@ -114,6 +114,8 @@ declare global {
         role?: string;
         firstName?: string;
         lastName?: string;
+        isDemoAccount?: boolean;
+        demoExpiresAt?: Date;
         organizationId: number;
       };
     }
@@ -708,6 +710,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       version: "1.0.0"
     });
   });
+  // Block write operations for demo accounts - applies globally to all routes
+  app.use(blockDemoAccountWrites);
 
   // Live Streaming API Routes
   // Get active streams for the organization
@@ -1906,6 +1910,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           lastName: user.lastName,
           organizationId: user.organizationId,
           role: user.role,
+          isDemoAccount: user.isDemoAccount || false,
+          demoExpiresAt: user.demoExpiresAt,
         },
         token,
       });
@@ -1916,7 +1922,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-app.post("/api/auth/register", async (req, res) => {
+  app.post("/api/auth/register", async (req, res) => {
     try {
       const validatedData = registerSchema.parse(req.body);
       const isDemo = req.body.isDemo === true || req.query.demo === 'true';
@@ -1937,11 +1943,10 @@ app.post("/api/auth/register", async (req, res) => {
       
       // For demo accounts, set expiration to 30 days from now
       const demoExpiresAt = isDemo ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) : null;
-      
       const userData = {
         ...validatedData,
         password: hashedPassword,
-        role: isDemo ? "admin" : "user", // Demo users get admin role to see all features
+        role: isDemo ? "admin" : "user",
         isActive: true,
         emailVerified: false,
         isDemoAccount: isDemo,
@@ -1958,7 +1963,6 @@ app.post("/api/auth/register", async (req, res) => {
           console.log(`✅ Demo account created for user ${user.id} with sample data`);
         } catch (seedError) {
           console.error("❌ Failed to seed demo data:", seedError);
-          // Continue anyway - user is created even if seed fails
         }
       }
       
@@ -1990,26 +1994,6 @@ app.post("/api/auth/register", async (req, res) => {
         },
         token: session.token,
         isDemo: isDemo,
-      });
-    } catch (error) {
-      if (error instanceof ZodError) {
-        return res.status(400).json({ message: error.errors[0].message });
-      }
-      console.error("Registration error:", error);
-      res.status(500).json({ message: "Registration failed" });
-    }
-  });
-
-      res.status(201).json({
-        user: {
-          id: user.id,
-          username: user.username,
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          role: user.role,
-        },
-        token: session.token,
       });
     } catch (error) {
       if (error instanceof ZodError) {
@@ -2271,6 +2255,8 @@ app.post("/api/auth/register", async (req, res) => {
           firstName: user.firstName,
           lastName: user.lastName,
           role: user.role,
+          isDemoAccount: user.isDemoAccount || false,
+          demoExpiresAt: user.demoExpiresAt,
         },
         token: session.token, // Always include token for custom domain localStorage
       };
@@ -2520,6 +2506,8 @@ app.post("/api/auth/register", async (req, res) => {
         firstName: user.firstName,
         lastName: user.lastName,
         role: user.role,
+          isDemoAccount: user.isDemoAccount || false,
+          demoExpiresAt: user.demoExpiresAt,
         organizationId: user.organizationId,
         userType: user.userType
       };
@@ -2555,6 +2543,7 @@ app.post("/api/auth/register", async (req, res) => {
       res.json({
         user: userData,
         token: session.token,
+        isDemo: isDemo,
         isCustomDomain: isFromCustomDomain // Tell frontend it came from custom domain
       });
 
@@ -2668,6 +2657,7 @@ app.post("/api/auth/register", async (req, res) => {
           role: user.role
         },
         token: session.token,
+        isDemo: isDemo,
         debug: {
           isCustomDomain,
           cookieDomain: isCustomDomain ? '.profieldmanager.com' : 'default',
@@ -3335,6 +3325,8 @@ app.post("/api/auth/register", async (req, res) => {
       canAccessMySchedule: user.canAccessMySchedule,
       canAccessSaasAdmin: user.canAccessSaasAdmin,
       role: user.role,
+          isDemoAccount: user.isDemoAccount || false,
+          demoExpiresAt: user.demoExpiresAt,
       organizationId: user.organizationId
     });
     
@@ -3442,9 +3434,11 @@ app.post("/api/auth/register", async (req, res) => {
           password: userPassword,
           firstName: "Jane",
           lastName: "User",
-          role: "user",
+          role: isDemo ? "admin" : "user",
           isActive: true,
           emailVerified: false,
+        isDemoAccount: isDemo,
+        demoExpiresAt: demoExpiresAt,
         });
 
         console.log("✅ Created sample user accounts");
@@ -7214,6 +7208,8 @@ ${fromName || ''}
           firstName: user.firstName,
           lastName: user.lastName,
           role: user.role,
+          isDemoAccount: user.isDemoAccount || false,
+          demoExpiresAt: user.demoExpiresAt,
         }));
       res.json(safeUsers);
     } catch (error: any) {
@@ -7235,6 +7231,8 @@ ${fromName || ''}
           firstName: user.firstName,
           lastName: user.lastName,
           role: user.role,
+          isDemoAccount: user.isDemoAccount || false,
+          demoExpiresAt: user.demoExpiresAt,
         }));
       res.json(safeUsers);
     } catch (error: any) {
@@ -7611,6 +7609,9 @@ ${fromName || ''}
       // Hash password and create user
       const hashedPassword = await AuthService.hashPassword(validatedData.password);
       
+      // For demo accounts, set expiration to 30 days from now
+      const demoExpiresAt = isDemo ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) : null;
+      
       // Get the admin's organization ID for automatic assignment
       const adminUser = getAuthenticatedUser(req);
       
@@ -7622,9 +7623,22 @@ ${fromName || ''}
         userType: req.body.userType || "both",
         isActive: req.body.isActive !== false,
         emailVerified: false,
+        isDemoAccount: isDemo,
+        demoExpiresAt: demoExpiresAt,
       };
 
       const user = await storage.createUser(userData);
+      
+      // For demo accounts, seed sample data
+      if (isDemo) {
+        try {
+          const { seedDemoAccountData } = await import("./seed-demo-data");
+          await seedDemoAccountData(user.id, user.organizationId);
+          console.log(`✅ Demo account created for user ${user.id} with sample data`);
+        } catch (seedError) {
+          console.error("❌ Failed to seed demo data:", seedError);
+        }
+      }
       
 
       // Generate setup token for password setup
@@ -10094,7 +10108,7 @@ ${fromName || ''}
             content: "You are an expert at reading receipts and extracting structured data. Analyze the receipt image and extract the vendor/merchant name, total amount, date, and suggest an expense category. For gas/fuel receipts, also extract gallons (fuel quantity) and price per gallon. Return the data in JSON format with keys: vendor, amount (as number), date (in ISO format YYYY-MM-DD), category (one of: fuel, materials, equipment, labor, vehicle_maintenance, tools, supplies, travel, meals, permits, insurance, utilities, rent, professional_services, office_supplies, marketing, technology, general), gallons (as number, for fuel receipts only), pricePerGallon (as number, for fuel receipts only). If you cannot find a field, use null for that field."
           },
           {
-            role: "user",
+            role: isDemo ? "admin" : "user",
             content: [
               {
                 type: "text",
@@ -12198,7 +12212,7 @@ ${fromName || ''}
           id: 2,
           name: "Julissa Martinez",
           email: "julissa@texaspowerwash.net",
-          role: "user",
+          role: isDemo ? "admin" : "user",
           jobsAssigned: 3,
           tasksTotal: 8,
           tasksCompleted: 6,
