@@ -1635,8 +1635,25 @@ export default function Settings() {
                 Configure Twilio for SMS messaging functionality
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <form onSubmit={handleTwilioSubmit} className="space-y-6">
+            <CardContent className="relative">
+              {organization?.slug !== "profieldmanager" && (
+                <div className="absolute inset-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm z-10 flex items-center justify-center rounded-lg">
+                  <div className="bg-blue-50 dark:bg-blue-900/50 border-2 border-blue-200 dark:border-blue-800 rounded-lg p-6 max-w-md text-center shadow-lg">
+                    <div className="mb-4">
+                      <svg className="h-12 w-12 mx-auto text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                      SMS Settings Restricted
+                    </h3>
+                    <p className="text-sm text-gray-700 dark:text-gray-300">
+                      SMS configuration is only available for the profieldmanager organization.
+                    </p>
+                  </div>
+                </div>
+              )}
+              <form onSubmit={handleTwilioSubmit} className={`space-y-6 ${organization?.slug !== "profieldmanager" ? "blur-sm pointer-events-none" : ""}`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <Switch
