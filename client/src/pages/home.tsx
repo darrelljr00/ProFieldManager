@@ -476,13 +476,13 @@ export default function HomePage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white px-12 py-4 text-lg" asChild>
-              <Link href="/login?demo=true">
+              <Link href="/demo-signup">
                 Start Free 30-Day Trial
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
             <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-slate-900 px-12 py-4 text-lg" asChild>
-              <Link href="/login?demo=true">
+              <Link href="/demo-signup">
                 <Phone className="mr-2 h-5 w-5" />
                 Schedule Demo
               </Link>
