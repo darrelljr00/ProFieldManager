@@ -776,6 +776,8 @@ export class DatabaseStorage implements IStorage {
     };
     
     if (userData.firstName) insertData.firstName = userData.firstName;
+    if (userData.isDemoAccount !== undefined) insertData.isDemoAccount = userData.isDemoAccount;
+    if (userData.demoExpiresAt) insertData.demoExpiresAt = userData.demoExpiresAt;
     if (userData.lastName) insertData.lastName = userData.lastName;
     if (userData.lastLoginAt) insertData.lastLoginAt = userData.lastLoginAt;
 

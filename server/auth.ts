@@ -114,7 +114,22 @@ export class AuthService {
       )
       .limit(1);
 
-    return sessionWithUser || null;
+    if (!sessionWithUser) {
+      return null;
+    }
+
+    // Check if demo account has expired
+    if (sessionWithUser.user.isDemoAccount && sessionWithUser.user.demoExpiresAt) {
+      const now = new Date();
+      const expiresAt = new Date(sessionWithUser.user.demoExpiresAt);
+      if (now > expiresAt) {
+        // Demo has expired - invalidate the session
+        await AuthService.invalidateSession(token);
+        return null;
+      }
+    }
+
+    return sessionWithUser;
   }
 
   static async invalidateSession(token: string) {
