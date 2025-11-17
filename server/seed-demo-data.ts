@@ -204,11 +204,25 @@ export async function seedDemoAccountData(userId: number, organizationId: number
       })
     ]);
 
+    // Create expense categories first
+    const expenseCategories = await Promise.all([
+      storage.createExpenseCategory({
+        organizationId,
+        name: "Equipment & Supplies",
+        description: "Tools, equipment, and maintenance supplies"
+      }),
+      storage.createExpenseCategory({
+        organizationId,
+        name: "Fuel & Transportation",
+        description: "Vehicle fuel and transportation costs"
+      })
+    ]);
+
     await Promise.all([
       storage.createExpense({
         userId,
         organizationId,
-        categoryId: 1,
+        categoryId: expenseCategories[0].id,
         amount: "125.50",
         currency: "USD",
         date: new Date("2024-11-01"),
@@ -221,7 +235,7 @@ export async function seedDemoAccountData(userId: number, organizationId: number
       storage.createExpense({
         userId,
         organizationId,
-        categoryId: 2,
+        categoryId: expenseCategories[1].id,
         amount: "85.00",
         currency: "USD",
         date: new Date("2024-11-05"),
@@ -234,7 +248,7 @@ export async function seedDemoAccountData(userId: number, organizationId: number
       storage.createExpense({
         userId,
         organizationId,
-        categoryId: 1,
+        categoryId: expenseCategories[0].id,
         amount: "450.00",
         currency: "USD",
         date: new Date("2024-11-10"),

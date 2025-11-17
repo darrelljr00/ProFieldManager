@@ -189,6 +189,20 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
         return res.status(401).json({ message: "Invalid or expired session" });
       }
 
+      // Check if demo account has expired
+      if (sessionData.user.isDemoAccount && sessionData.user.demoExpiresAt) {
+        const now = new Date();
+        const expiresAt = new Date(sessionData.user.demoExpiresAt);
+        if (now > expiresAt) {
+          console.log('⏰ DEMO ACCOUNT EXPIRED for:', sessionData.user.username, 'Expired at:', expiresAt);
+          return res.status(403).json({ 
+            message: "Your demo account has expired. Please sign up for a full account to continue using Pro Field Manager.",
+            isDemoExpired: true,
+            expiredAt: expiresAt
+          });
+        }
+      }
+
       console.log('✅ SESSION VALIDATION SUCCESS for:', sessionData.user.username);
       
       // DEBUG: Log the actual sessionData.user object to see what fields are available
