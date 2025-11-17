@@ -19,7 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Calendar, Users, CheckCircle, Clock, AlertCircle, Folder, Settings, MapPin, Route, Star, Smartphone, Eye, Image, FileText, CheckSquare, Upload, Camera, DollarSign, Download, Trash2, Archive, User as UserIcon, Search, Filter, X, XCircle, Play, Zap, Wrench } from "lucide-react";
+import { Plus, Calendar, Users, CheckCircle, Clock, AlertCircle, Folder, Settings, MapPin, Route, Star, Smartphone, Eye, Image, FileText, CheckSquare, Upload, Camera, DollarSign, Download, Trash2, Archive, User as UserIcon, Search, Filter, X, XCircle, Play, Zap, Wrench, Loader2 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { format } from "date-fns";
 import type { Project, Customer, User } from "@shared/schema";
@@ -526,6 +526,7 @@ export default function Jobs() {
   const [selectedServiceIds, setSelectedServiceIds] = useState<number[]>([]);
   const [estimatedTotalTime, setEstimatedTotalTime] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingFiles, setIsUploadingFiles] = useState(false);
   
   // State for Smart Capture feature
   const [enableSmartCapture, setEnableSmartCapture] = useState(false);
@@ -1153,6 +1154,8 @@ export default function Jobs() {
     const files = event.target.files;
     if (!files || !selectedProject) return;
 
+    setIsUploadingFiles(true);
+
     console.log('📁 Projects page file upload starting:', {
       fileCount: files.length,
       projectId: selectedProject.id,
@@ -1225,6 +1228,8 @@ export default function Jobs() {
         });
       }
     }
+
+    setIsUploadingFiles(false);
 
     // Reset the input
     event.target.value = '';
@@ -3109,6 +3114,12 @@ export default function Jobs() {
                       }))} 
                       projectId={selectedProject.id}
                     />
+                  ) : isUploadingFiles ? (
+                    <div className="text-center py-12">
+                      <Loader2 className="h-12 w-12 text-blue-500 mx-auto mb-4 animate-spin" />
+                      <p className="text-sm font-medium text-gray-700 mb-2">Uploading...</p>
+                      <p className="text-xs text-gray-500">Please wait while your files are being uploaded</p>
+                    </div>
                   ) : (
                     <div className="text-center py-12">
                       <Image className="h-12 w-12 text-gray-400 mx-auto mb-4" />
