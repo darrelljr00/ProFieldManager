@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
@@ -35,6 +35,7 @@ interface RegisterData {
   password: string;
   firstName?: string;
   lastName?: string;
+  isDemo?: boolean;
 }
 
 export default function LoginPage() {
@@ -44,8 +45,18 @@ export default function LoginPage() {
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
   const [gpsData, setGpsData] = useState<{latitude?: number; longitude?: number; accuracy?: number} | null>(null);
   const [gpsLoading, setGpsLoading] = useState(false);
+  const [isDemoSignup, setIsDemoSignup] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Check for demo parameter in URL and auto-open registration dialog
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const isDemo = urlParams.get('demo') === 'true';
+    
+    setIsDemoSignup(isDemo);
+    setShowRegisterDialog(isDemo);
+  }, [location]);
 
   // CRITICAL FIX: Clear auth suppression flag when login page loads
   // This allows users to log in again after logout
@@ -186,9 +197,13 @@ export default function LoginPage() {
       
       // Invalidate auth queries to refresh user state
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      
+      const isDemo = response.isDemo || response.user.isDemoAccount;
       toast({
-        title: "Registration Successful",
-        description: `Welcome, ${response.user.firstName || response.user.username}!`,
+        title: isDemo ? "Demo Account Created!" : "Registration Successful",
+        description: isDemo 
+          ? `Welcome! Your 30-day demo account is ready with sample data. Explore all features risk-free!` 
+          : `Welcome, ${response.user.firstName || response.user.username}!`,
       });
       setShowRegisterDialog(false);
       setLocation("/dashboard");
@@ -287,6 +302,7 @@ export default function LoginPage() {
       password: formData.get("password") as string,
       firstName: formData.get("firstName") as string,
       lastName: formData.get("lastName") as string,
+      isDemo: isDemoSignup,
     };
     registerMutation.mutate(registerData);
   };
@@ -513,9 +529,18 @@ export default function LoginPage() {
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>Create Account</DialogTitle>
+                    <DialogTitle className="flex items-center gap-2">
+                      Create Account
+                      {isDemoSignup && (
+                        <span className="text-xs font-normal bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-1 rounded">
+                          30-Day Demo
+                        </span>
+                      )}
+                    </DialogTitle>
                     <DialogDescription>
-                      Fill in your information to create a new account
+                      {isDemoSignup 
+                        ? "Create your free 30-day demo account with pre-loaded sample data. No credit card required!"
+                        : "Fill in your information to create a new account"}
                     </DialogDescription>
                   </DialogHeader>
                   <form onSubmit={handleRegister} className="space-y-4">

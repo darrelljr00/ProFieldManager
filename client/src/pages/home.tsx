@@ -475,13 +475,17 @@ export default function HomePage() {
             Start your free trial today - no credit card required.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white px-12 py-4 text-lg">
-              Start Free 30-Day Trial
-              <ArrowRight className="ml-2 h-5 w-5" />
+            <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white px-12 py-4 text-lg" asChild>
+              <Link href="/login?demo=true">
+                Start Free 30-Day Trial
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Link>
             </Button>
-            <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-slate-900 px-12 py-4 text-lg">
-              <Phone className="mr-2 h-5 w-5" />
-              Schedule Demo
+            <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-slate-900 px-12 py-4 text-lg" asChild>
+              <Link href="/login?demo=true">
+                <Phone className="mr-2 h-5 w-5" />
+                Schedule Demo
+              </Link>
             </Button>
           </div>
           <div className="flex items-center justify-center gap-6 mt-8 text-slate-400">
