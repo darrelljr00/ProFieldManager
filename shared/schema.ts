@@ -2382,6 +2382,12 @@ export const registerSchema = z.object({
   firstName: z.string().optional(),
   lastName: z.string().optional(),
   companyName: z.string().optional(),
+  organizationName: z.string().optional(),
+  phone: z.string().optional(),
+  address: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  zipCode: z.string().optional(),
 });
 
 export const changePasswordSchema = z.object({

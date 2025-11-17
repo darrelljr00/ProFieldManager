@@ -35,6 +35,12 @@ interface RegisterData {
   password: string;
   firstName?: string;
   lastName?: string;
+  phone?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  organizationName?: string;
   isDemo?: boolean;
 }
 
@@ -304,6 +310,17 @@ export default function LoginPage() {
       lastName: formData.get("lastName") as string,
       isDemo: isDemoSignup,
     };
+
+    // Add business fields for demo signups
+    if (isDemoSignup) {
+      registerData.organizationName = formData.get("organizationName") as string;
+      registerData.phone = formData.get("phone") as string;
+      registerData.address = formData.get("address") as string;
+      registerData.city = formData.get("city") as string;
+      registerData.state = formData.get("state") as string;
+      registerData.zipCode = formData.get("zipCode") as string;
+    }
+
     registerMutation.mutate(registerData);
   };
 
@@ -583,6 +600,73 @@ export default function LoginPage() {
                         required
                       />
                     </div>
+
+                    {isDemoSignup && (
+                      <>
+                        <div>
+                          <Label htmlFor="register-organizationName">Business Name *</Label>
+                          <Input
+                            id="register-organizationName"
+                            name="organizationName"
+                            placeholder="Your Company LLC"
+                            required={isDemoSignup}
+                          />
+                        </div>
+
+                        <div>
+                          <Label htmlFor="register-phone">Phone Number *</Label>
+                          <Input
+                            id="register-phone"
+                            name="phone"
+                            type="tel"
+                            placeholder="(555) 123-4567"
+                            required={isDemoSignup}
+                          />
+                        </div>
+
+                        <div>
+                          <Label htmlFor="register-address">Street Address *</Label>
+                          <Input
+                            id="register-address"
+                            name="address"
+                            placeholder="123 Main Street"
+                            required={isDemoSignup}
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-4">
+                          <div className="col-span-1">
+                            <Label htmlFor="register-city">City *</Label>
+                            <Input
+                              id="register-city"
+                              name="city"
+                              placeholder="Austin"
+                              required={isDemoSignup}
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="register-state">State *</Label>
+                            <Input
+                              id="register-state"
+                              name="state"
+                              placeholder="TX"
+                              maxLength={2}
+                              required={isDemoSignup}
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="register-zipCode">ZIP *</Label>
+                            <Input
+                              id="register-zipCode"
+                              name="zipCode"
+                              placeholder="78701"
+                              maxLength={10}
+                              required={isDemoSignup}
+                            />
+                          </div>
+                        </div>
+                      </>
+                    )}
 
                     <div>
                       <Label htmlFor="register-password">Password *</Label>

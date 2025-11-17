@@ -1938,13 +1938,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Email already exists" });
       }
 
-      // Hash password and create user
+      // Hash password
       const hashedPassword = await AuthService.hashPassword(validatedData.password);
+      
+      // Create organization with business details (if provided)
+      let organizationId;
+      const orgName = validatedData.organizationName || validatedData.companyName || `${validatedData.username}'s Organization`;
+      const slug = orgName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      
+      // Build full address from components if provided
+      let fullAddress = validatedData.address || '';
+      if (validatedData.city || validatedData.state || validatedData.zipCode) {
+        const addressParts = [fullAddress, validatedData.city, validatedData.state, validatedData.zipCode].filter(Boolean);
+        fullAddress = addressParts.join(', ');
+      }
+      
+      const organization = await storage.createOrganization({
+        name: orgName,
+        slug,
+        phone: validatedData.phone || null,
+        address: fullAddress || null,
+        email: validatedData.email,
+        subscriptionStatus: isDemo ? "trial" : "trial",
+        subscriptionPlan: "starter",
+      });
+      
+      organizationId = organization.id;
       
       // For demo accounts, set expiration to 30 days from now
       const demoExpiresAt = isDemo ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) : null;
       const userData = {
         ...validatedData,
+        organizationId,
         password: hashedPassword,
         role: isDemo ? "admin" : "user",
         isActive: true,
