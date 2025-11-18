@@ -2,10 +2,18 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle, ArrowRight, Phone, Truck, Calendar, DollarSign, Users, MapPin } from "lucide-react";
 import { Link } from "wouter";
+import { SEOHead } from "@/components/seo-head";
 
 export default function HVACPage() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+      <SEOHead 
+        title="HVAC Business Software - Pro Field Manager"
+        description="Manage your HVAC business with Pro Field Manager. Maintenance contracts, smart dispatch, equipment history, parts inventory, and customer portal for heating and cooling contractors."
+        ogTitle="HVAC Business Management Software"
+        ogDescription="Professional software for HVAC contractors. Manage service calls, installations, and maintenance contracts efficiently with powerful field service tools."
+      />
+      
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-green-600 to-green-700 dark:from-green-800 dark:to-green-900 text-white py-20">
         <div className="container mx-auto px-4">
@@ -14,17 +22,17 @@ export default function HVACPage() {
             <h1 className="text-5xl font-bold mb-6">
               HVAC Business Management Software
             </h1>
-            <p className="text-xl text-green-100 mb-8">
+            <p className="text-xl text-green-100 dark:text-green-200 mb-8">
               Manage service calls, installations, and maintenance contracts efficiently. Keep customers comfortable while growing your HVAC business with powerful field service tools.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" className="bg-white text-green-600 hover:bg-green-50 px-8 py-6 text-lg" asChild>
+              <Button size="lg" className="bg-white text-green-600 hover:bg-green-50 dark:bg-slate-100 dark:text-green-700 dark:hover:bg-slate-200 px-8 py-6 text-lg" asChild data-testid="button-hero-start-trial">
                 <Link href="/demo-signup">
                   Start Free Trial
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
               </Button>
-              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10 px-8 py-6 text-lg" asChild>
+              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10 dark:border-slate-300 dark:hover:bg-slate-700 px-8 py-6 text-lg" asChild data-testid="button-hero-schedule-demo">
                 <Link href="/demo-signup">
                   <Phone className="mr-2 h-5 w-5" />
                   Schedule Demo

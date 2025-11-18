@@ -2,10 +2,18 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle, ArrowRight, Phone, HardHat, Calendar, DollarSign, Users, MapPin } from "lucide-react";
 import { Link } from "wouter";
+import { SEOHead } from "@/components/seo-head";
 
 export default function ConstructionPage() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+      <SEOHead 
+        title="Construction Management Software - Pro Field Manager"
+        description="Comprehensive construction project management with Pro Field Manager. Track projects, manage subcontractors, control costs, ensure safety compliance, and complete projects on time."
+        ogTitle="Construction Project Management Software"
+        ogDescription="Build better with tools for managing construction projects, coordinating crews, tracking costs, and keeping projects on schedule and within budget."
+      />
+      
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-orange-600 to-orange-700 dark:from-orange-800 dark:to-orange-900 text-white py-20">
         <div className="container mx-auto px-4">
@@ -14,17 +22,17 @@ export default function ConstructionPage() {
             <h1 className="text-5xl font-bold mb-6">
               Construction Project Management Software
             </h1>
-            <p className="text-xl text-orange-100 mb-8">
+            <p className="text-xl text-orange-100 dark:text-orange-200 mb-8">
               Build better with comprehensive tools for managing construction projects, coordinating crews, tracking costs, and ensuring projects stay on schedule and within budget.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" className="bg-white text-orange-600 hover:bg-orange-50 px-8 py-6 text-lg" asChild>
+              <Button size="lg" className="bg-white text-orange-600 hover:bg-orange-50 dark:bg-slate-100 dark:text-orange-700 dark:hover:bg-slate-200 px-8 py-6 text-lg" asChild data-testid="button-hero-start-trial">
                 <Link href="/demo-signup">
                   Start Free Trial
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
               </Button>
-              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10 px-8 py-6 text-lg" asChild>
+              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10 dark:border-slate-300 dark:hover:bg-slate-700 px-8 py-6 text-lg" asChild data-testid="button-hero-schedule-demo">
                 <Link href="/demo-signup">
                   <Phone className="mr-2 h-5 w-5" />
                   Schedule Demo

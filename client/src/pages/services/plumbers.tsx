@@ -2,10 +2,18 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle, ArrowRight, Phone, Droplets, Calendar, DollarSign, Users, MapPin } from "lucide-react";
 import { Link } from "wouter";
+import { SEOHead } from "@/components/seo-head";
 
 export default function PlumbersPage() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+      <SEOHead 
+        title="Plumbing Business Software - Pro Field Manager"
+        description="Manage your plumbing business efficiently with Pro Field Manager. Emergency dispatch, customer history, mobile invoicing, maintenance scheduling, and route optimization."
+        ogTitle="Field Service Management for Plumbers"
+        ogDescription="Professional software for plumbing businesses. Handle emergency calls, scheduled maintenance, and installations with powerful field service tools."
+      />
+      
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-blue-500 to-blue-600 dark:from-blue-700 dark:to-blue-800 text-white py-20">
         <div className="container mx-auto px-4">
@@ -14,17 +22,17 @@ export default function PlumbersPage() {
             <h1 className="text-5xl font-bold mb-6">
               Field Service Management for Plumbers
             </h1>
-            <p className="text-xl text-blue-100 mb-8">
+            <p className="text-xl text-blue-100 dark:text-blue-200 mb-8">
               Handle emergency calls, scheduled maintenance, and installations seamlessly. Manage your plumbing business with tools built for field service professionals.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" className="bg-white text-blue-600 hover:bg-blue-50 px-8 py-6 text-lg" asChild>
+              <Button size="lg" className="bg-white text-blue-600 hover:bg-blue-50 dark:bg-slate-100 dark:text-blue-700 dark:hover:bg-slate-200 px-8 py-6 text-lg" asChild data-testid="button-hero-start-trial">
                 <Link href="/demo-signup">
                   Start Free Trial
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
               </Button>
-              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10 px-8 py-6 text-lg" asChild>
+              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10 dark:border-slate-300 dark:hover:bg-slate-700 px-8 py-6 text-lg" asChild data-testid="button-hero-schedule-demo">
                 <Link href="/demo-signup">
                   <Phone className="mr-2 h-5 w-5" />
                   Schedule Demo

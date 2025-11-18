@@ -2,10 +2,18 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle, ArrowRight, Phone, Wrench, Calendar, DollarSign, Users, MapPin } from "lucide-react";
 import { Link } from "wouter";
+import { SEOHead } from "@/components/seo-head";
 
 export default function GeneralContractorsPage() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+      <SEOHead 
+        title="General Contractors Software - Pro Field Manager"
+        description="Streamline construction projects with Pro Field Manager. Manage crews, track costs, schedule jobs, and deliver exceptional results with our comprehensive platform for general contractors."
+        ogTitle="Field Service Management for General Contractors"
+        ogDescription="Professional software for general contractors to manage projects, crews, invoicing, and customer communication all in one powerful platform."
+      />
+      
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-blue-600 to-blue-700 dark:from-blue-800 dark:to-blue-900 text-white py-20">
         <div className="container mx-auto px-4">
@@ -14,17 +22,17 @@ export default function GeneralContractorsPage() {
             <h1 className="text-5xl font-bold mb-6">
               Field Service Management for General Contractors
             </h1>
-            <p className="text-xl text-blue-100 mb-8">
+            <p className="text-xl text-blue-100 dark:text-blue-200 mb-8">
               Streamline your construction projects, manage crews efficiently, and deliver exceptional results with our comprehensive platform built specifically for general contractors.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" className="bg-white text-blue-600 hover:bg-blue-50 px-8 py-6 text-lg" asChild>
+              <Button size="lg" className="bg-white text-blue-600 hover:bg-blue-50 dark:bg-slate-100 dark:text-blue-700 dark:hover:bg-slate-200 px-8 py-6 text-lg" asChild data-testid="button-hero-start-trial">
                 <Link href="/demo-signup">
                   Start Free Trial
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
               </Button>
-              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10 px-8 py-6 text-lg" asChild>
+              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10 dark:border-slate-300 dark:hover:bg-slate-700 px-8 py-6 text-lg" asChild data-testid="button-hero-schedule-demo">
                 <Link href="/demo-signup">
                   <Phone className="mr-2 h-5 w-5" />
                   Schedule Demo

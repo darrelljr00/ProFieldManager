@@ -2,10 +2,18 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle, ArrowRight, Phone, Zap, Calendar, DollarSign, Users, MapPin } from "lucide-react";
 import { Link } from "wouter";
+import { SEOHead } from "@/components/seo-head";
 
 export default function ElectriciansPage() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+      <SEOHead 
+        title="Electrical Contractor Software - Pro Field Manager"
+        description="Manage your electrical business with Pro Field Manager. Smart dispatch, GPS tracking, digital forms, parts inventory, and mobile invoicing for electricians."
+        ogTitle="Field Service Management for Electricians"
+        ogDescription="Professional software designed for electrical contractors. Handle service calls, installations, and maintenance work efficiently."
+      />
+      
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-yellow-600 to-yellow-700 dark:from-yellow-800 dark:to-yellow-900 text-white py-20">
         <div className="container mx-auto px-4">
@@ -14,17 +22,17 @@ export default function ElectriciansPage() {
             <h1 className="text-5xl font-bold mb-6">
               Field Service Management for Electricians
             </h1>
-            <p className="text-xl text-yellow-100 mb-8">
+            <p className="text-xl text-yellow-100 dark:text-yellow-200 mb-8">
               Power up your electrical business with tools designed for service calls, installations, and maintenance work. Manage jobs, track crews, and get paid faster.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" className="bg-white text-yellow-600 hover:bg-yellow-50 px-8 py-6 text-lg" asChild>
+              <Button size="lg" className="bg-white text-yellow-600 hover:bg-yellow-50 dark:bg-slate-100 dark:text-yellow-700 dark:hover:bg-slate-200 px-8 py-6 text-lg" asChild data-testid="button-hero-start-trial">
                 <Link href="/demo-signup">
                   Start Free Trial
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
               </Button>
-              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10 px-8 py-6 text-lg" asChild>
+              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10 dark:border-slate-300 dark:hover:bg-slate-700 px-8 py-6 text-lg" asChild data-testid="button-hero-schedule-demo">
                 <Link href="/demo-signup">
                   <Phone className="mr-2 h-5 w-5" />
                   Schedule Demo
