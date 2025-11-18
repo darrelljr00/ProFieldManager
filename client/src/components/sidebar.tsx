@@ -509,17 +509,6 @@ export function Sidebar() {
       ],
     },
     {
-      name: "Gas Cards",
-      href: "/gas-cards",
-      icon: CreditCard,
-      requiresAuth: true,
-      permission: "canAccessGasCards",
-      subItems: [
-        { name: "All Gas Cards", href: "/gas-cards", icon: CreditCard },
-        { name: "Gas Card Providers", href: "/gas-card-providers", icon: CreditCard },
-      ],
-    },
-    {
       name: "Expenses",
       href: "/expenses",
       icon: Receipt,
@@ -529,6 +518,8 @@ export function Sidebar() {
         { name: "All Expenses", href: "/expenses", icon: Receipt },
         { name: "  └─ Categories", href: "/expense-categories", icon: Folder },
         { name: "Expense Reports", href: "/expense-reports", icon: FileBarChart },
+        { name: "Gas Cards", href: "/gas-cards", icon: CreditCard },
+        { name: "  └─ Gas Card Providers", href: "/gas-card-providers", icon: CreditCard },
         ...(user?.role === "admin" || user?.role === "manager"
           ? [{ name: "Technician Expenses", href: "/technician-expenses", icon: User }]
           : []),
