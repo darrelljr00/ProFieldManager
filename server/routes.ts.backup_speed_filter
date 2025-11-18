@@ -21567,10 +21567,7 @@ ${fromName || ''}
                       new Date(newerPing.timestamp)
                     );
                     
-                    // Filter out unrealistic speeds (likely GPS drift)
-                    if (speed < 120) {
-                      individualSpeeds.push(speed);
-                    }
+                    individualSpeeds.push(speed);
                   }
                   
                   // Calculate weighted average (more recent speeds get higher weight using exponential weighting: 2^i where i=0 is most recent)
@@ -21578,25 +21575,18 @@ ${fromName || ''}
                   let totalWeight = 0;
                   const numSpeeds = individualSpeeds.length;
                   
-                  // Handle case where all speeds were filtered out as unrealistic
-                  if (numSpeeds === 0) {
-                    location.speed = 0;
-                    console.log(`⚠️  All speed readings filtered out for device ${location.deviceId} (likely GPS errors), defaulting to 0 mph`);
-                  } else {
-                    for (let i = 0; i < numSpeeds; i++) {
-                      const weight = Math.pow(2, numSpeeds - 1 - i); // i=0 (most recent) gets highest weight
-                      weightedSum += individualSpeeds[i] * weight;
-                      totalWeight += weight;
-                    }
-                    
-                    const averageSpeed = weightedSum / totalWeight;
-                    
-                    // Cap at reasonable maximum speed
-                    const cappedSpeed = Math.min(averageSpeed, 100);
-                    location.speed = cappedSpeed;
-                    
-                    console.log(`📊 Calculated speed for device ${location.deviceId}: ${cappedSpeed.toFixed(1)} mph (average of ${individualSpeeds.map(s => s.toFixed(1)).join(", ")} mph)${cappedSpeed < averageSpeed ? ' [capped at 100 mph]' : ''}`);
+                  for (let i = 0; i < numSpeeds; i++) {
+                    const weight = Math.pow(2, numSpeeds - 1 - i); // i=0 (most recent) gets highest weight
+                    weightedSum += individualSpeeds[i] * weight;
+                    totalWeight += weight;
                   }
+                  
+                  const averageSpeed = weightedSum / totalWeight;
+                  
+                  // Update the location speed with the calculated average
+                  location.speed = averageSpeed;
+                  
+                  console.log(`📊 Calculated speed for device ${location.deviceId}: ${averageSpeed.toFixed(1)} mph (average of ${individualSpeeds.map(s => s.toFixed(1)).join(", ")} mph)`);
                 } else {
                   console.log(`⚠️  Not enough pings to calculate speed for device ${location.deviceId} (found ${recentPings.length})`);
                 }

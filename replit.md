@@ -43,6 +43,11 @@ Preferred communication style: Simple, everyday language.
 - **Database Indexing**: Added indexes on `notifications(user_id, is_read)` and `internal_message_recipients(recipient_id, is_read)` for faster query performance
 - **Centralized Caching Module**: `server/cache/queryCache.ts` provides cached versions of expensive queries with automatic invalidation and multi-tenant isolation
 - **Connection Pool Optimization**: Reduced idle connection timeout to prevent connection pool exhaustion under high load
+- **GPS Speed Calculation Enhancement**: Implemented 5-sample rolling average with exponential weighting (favoring recent readings) to prevent icon flickering
+  - Filters unrealistic speeds >120 mph to remove GPS drift/errors
+  - Caps final averaged speed at 100 mph maximum
+  - Handles edge cases where all speeds are filtered (defaults to 0 mph)
+  - Resolves Isuzu NPR Box Truck anomaly (178.8 mph spikes and red/green status flickering)
 
 ### Core Features & Design Patterns
 - **Multi-Tenant SaaS Infrastructure**: Organization-based tenant separation, subscription management, role-based access control, usage limits.

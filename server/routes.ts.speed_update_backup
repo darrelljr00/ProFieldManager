@@ -21533,10 +21533,10 @@ ${fromName || ''}
             }
 
 
-            // Calculate speed from last 5 GPS pings for each device (rolling average)
+            // Calculate speed from last 2 GPS pings for each device
             for (const location of locations) {
               try {
-                // Query last 5 pings for this device ordered by timestamp DESC
+                // Query last 2 pings for this device ordered by timestamp DESC
                 const recentPings = await db
                   .select()
                   .from(obdLocationData)
@@ -21547,56 +21547,26 @@ ${fromName || ''}
                     )
                   )
                   .orderBy(desc(obdLocationData.timestamp))
-                  .limit(5);
+                  .limit(2);
 
                 // If we have at least 2 pings, calculate speed from them
                 if (recentPings.length >= 2) {
-                  const individualSpeeds: number[] = [];
+                  const ping1 = recentPings[1]; // Older ping
+                  const ping2 = recentPings[0]; // Newer ping
                   
-                  // Calculate speed between each consecutive pair of pings
-                  for (let i = 0; i < recentPings.length - 1; i++) {
-                    const olderPing = recentPings[i + 1];
-                    const newerPing = recentPings[i];
-                    
-                    const speed = calculateSpeed(
-                      parseFloat(olderPing.latitude),
-                      parseFloat(olderPing.longitude),
-                      new Date(olderPing.timestamp),
-                      parseFloat(newerPing.latitude),
-                      parseFloat(newerPing.longitude),
-                      new Date(newerPing.timestamp)
-                    );
-                    
-                    // Filter out unrealistic speeds (likely GPS drift)
-                    if (speed < 120) {
-                      individualSpeeds.push(speed);
-                    }
-                  }
+                  const calculatedSpeed = calculateSpeed(
+                    parseFloat(ping1.latitude),
+                    parseFloat(ping1.longitude),
+                    new Date(ping1.timestamp),
+                    parseFloat(ping2.latitude),
+                    parseFloat(ping2.longitude),
+                    new Date(ping2.timestamp)
+                  );
                   
-                  // Calculate weighted average (more recent speeds get higher weight using exponential weighting: 2^i where i=0 is most recent)
-                  let weightedSum = 0;
-                  let totalWeight = 0;
-                  const numSpeeds = individualSpeeds.length;
+                  // Update the location speed with the calculated value
+                  location.speed = calculatedSpeed;
                   
-                  // Handle case where all speeds were filtered out as unrealistic
-                  if (numSpeeds === 0) {
-                    location.speed = 0;
-                    console.log(`⚠️  All speed readings filtered out for device ${location.deviceId} (likely GPS errors), defaulting to 0 mph`);
-                  } else {
-                    for (let i = 0; i < numSpeeds; i++) {
-                      const weight = Math.pow(2, numSpeeds - 1 - i); // i=0 (most recent) gets highest weight
-                      weightedSum += individualSpeeds[i] * weight;
-                      totalWeight += weight;
-                    }
-                    
-                    const averageSpeed = weightedSum / totalWeight;
-                    
-                    // Cap at reasonable maximum speed
-                    const cappedSpeed = Math.min(averageSpeed, 100);
-                    location.speed = cappedSpeed;
-                    
-                    console.log(`📊 Calculated speed for device ${location.deviceId}: ${cappedSpeed.toFixed(1)} mph (average of ${individualSpeeds.map(s => s.toFixed(1)).join(", ")} mph)${cappedSpeed < averageSpeed ? ' [capped at 100 mph]' : ''}`);
-                  }
+                  console.log(`📊 Calculated speed for device ${location.deviceId}: ${calculatedSpeed.toFixed(1)} mph`);
                 } else {
                   console.log(`⚠️  Not enough pings to calculate speed for device ${location.deviceId} (found ${recentPings.length})`);
                 }
