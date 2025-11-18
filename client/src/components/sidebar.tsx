@@ -225,9 +225,7 @@ const DEFAULT_NAVIGATION_ORDER = [
   "Time Clock",
   "Jobs",
   "My Tasks",
-  "Leads",
   "Money",
-  "Quotes",
   "Customers",
   "File Manager",
   "Parts & Supplies",
@@ -496,13 +494,6 @@ export function Sidebar() {
       permission: "canAccessMyTasks",
     },
     {
-      name: "Leads",
-      href: "/leads",
-      icon: UserPlus,
-      requiresAuth: true,
-      permission: "canAccessLeads",
-    },
-    {
       name: "Money",
       href: "/money",
       icon: DollarSign,
@@ -549,18 +540,16 @@ export function Sidebar() {
           }))
       : []),
     {
-      name: "Quotes",
-      href: "/quotes",
-      icon: Quote,
-      requiresAuth: true,
-      permission: "canAccessQuotes",
-    },
-    {
       name: "Customers",
       href: "/customers",
       icon: Users,
       requiresAuth: true,
       permission: "canAccessCustomers",
+      subItems: [
+        { name: "All Customers", href: "/customers", icon: Users },
+        { name: "Leads", href: "/leads", icon: UserPlus },
+        { name: "Quotes", href: "/quotes", icon: Quote },
+      ],
     },
     {
       name: "File Manager",
