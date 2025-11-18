@@ -3,10 +3,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle, ArrowRight, Phone, Hammer, Calendar, DollarSign, Users, MapPin } from "lucide-react";
 import { Link } from "wouter";
 import { SEOHead } from "@/components/seo-head";
+import { PublicPageHeader } from "@/components/PublicPageHeader";
 
 export default function HandymanPage() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+      <PublicPageHeader />
       <SEOHead 
         title="Handyman Business Software - Pro Field Manager"
         description="Run your handyman business efficiently with Pro Field Manager. Flexible scheduling, quick quotes, before/after photos, route planning, and mobile payments."
@@ -15,7 +17,7 @@ export default function HandymanPage() {
       />
       
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-red-600 to-red-700 dark:from-red-800 dark:to-red-900 text-white py-20">
+      <section className="bg-gradient-to-br from-red-600 to-red-700 dark:from-red-800 dark:to-red-900 text-white py-20 pt-32">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
             <Hammer className="h-16 w-16 mx-auto mb-6" />

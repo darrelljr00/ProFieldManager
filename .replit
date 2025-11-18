@@ -45,12 +45,12 @@ localPort = 36191
 externalPort = 3002
 
 [[ports]]
-localPort = 37837
-externalPort = 4200
-
-[[ports]]
 localPort = 39417
 externalPort = 3000
+
+[[ports]]
+localPort = 46651
+externalPort = 3001
 
 [agent]
 integrations = ["javascript_websocket:1.0.0", "javascript_sendgrid:1.0.0", "javascript_openai:1.0.0"]

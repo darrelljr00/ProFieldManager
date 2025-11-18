@@ -3,10 +3,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle, ArrowRight, Phone, Glasses, Calendar, DollarSign, Users, MapPin } from "lucide-react";
 import { Link } from "wouter";
 import { SEOHead } from "@/components/seo-head";
+import { PublicPageHeader } from "@/components/PublicPageHeader";
 
 export default function WindowWashersPage() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+      <PublicPageHeader />
       <SEOHead 
         title="Window Cleaning Business Software - Pro Field Manager"
         description="Streamline your window washing business with Pro Field Manager. Route optimization, recurring service scheduling, crew tracking, and mobile payments for window cleaning professionals."
@@ -15,7 +17,7 @@ export default function WindowWashersPage() {
       />
       
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-sky-600 to-sky-700 dark:from-sky-800 dark:to-sky-900 text-white py-20">
+      <section className="bg-gradient-to-br from-sky-600 to-sky-700 dark:from-sky-800 dark:to-sky-900 text-white py-20 pt-32">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
             <Glasses className="h-16 w-16 mx-auto mb-6" />

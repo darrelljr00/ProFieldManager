@@ -3,10 +3,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle, ArrowRight, Phone, Truck, Calendar, DollarSign, Users, MapPin } from "lucide-react";
 import { Link } from "wouter";
 import { SEOHead } from "@/components/seo-head";
+import { PublicPageHeader } from "@/components/PublicPageHeader";
 
 export default function HVACPage() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+      <PublicPageHeader />
       <SEOHead 
         title="HVAC Business Software - Pro Field Manager"
         description="Manage your HVAC business with Pro Field Manager. Maintenance contracts, smart dispatch, equipment history, parts inventory, and customer portal for heating and cooling contractors."
@@ -15,7 +17,7 @@ export default function HVACPage() {
       />
       
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-green-600 to-green-700 dark:from-green-800 dark:to-green-900 text-white py-20">
+      <section className="bg-gradient-to-br from-green-600 to-green-700 dark:from-green-800 dark:to-green-900 text-white py-20 pt-32">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
             <Truck className="h-16 w-16 mx-auto mb-6" />

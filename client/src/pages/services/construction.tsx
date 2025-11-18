@@ -3,10 +3,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle, ArrowRight, Phone, HardHat, Calendar, DollarSign, Users, MapPin } from "lucide-react";
 import { Link } from "wouter";
 import { SEOHead } from "@/components/seo-head";
+import { PublicPageHeader } from "@/components/PublicPageHeader";
 
 export default function ConstructionPage() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+      <PublicPageHeader />
       <SEOHead 
         title="Construction Management Software - Pro Field Manager"
         description="Comprehensive construction project management with Pro Field Manager. Track projects, manage subcontractors, control costs, ensure safety compliance, and complete projects on time."
@@ -15,7 +17,7 @@ export default function ConstructionPage() {
       />
       
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-orange-600 to-orange-700 dark:from-orange-800 dark:to-orange-900 text-white py-20">
+      <section className="bg-gradient-to-br from-orange-600 to-orange-700 dark:from-orange-800 dark:to-orange-900 text-white py-20 pt-32">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
             <HardHat className="h-16 w-16 mx-auto mb-6" />

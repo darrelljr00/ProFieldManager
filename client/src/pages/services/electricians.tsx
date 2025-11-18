@@ -3,10 +3,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle, ArrowRight, Phone, Zap, Calendar, DollarSign, Users, MapPin } from "lucide-react";
 import { Link } from "wouter";
 import { SEOHead } from "@/components/seo-head";
+import { PublicPageHeader } from "@/components/PublicPageHeader";
 
 export default function ElectriciansPage() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+      <PublicPageHeader />
       <SEOHead 
         title="Electrical Contractor Software - Pro Field Manager"
         description="Manage your electrical business with Pro Field Manager. Smart dispatch, GPS tracking, digital forms, parts inventory, and mobile invoicing for electricians."
@@ -15,7 +17,7 @@ export default function ElectriciansPage() {
       />
       
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-yellow-600 to-yellow-700 dark:from-yellow-800 dark:to-yellow-900 text-white py-20">
+      <section className="bg-gradient-to-br from-yellow-600 to-yellow-700 dark:from-yellow-800 dark:to-yellow-900 text-white py-20 pt-32">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
             <Zap className="h-16 w-16 mx-auto mb-6" />

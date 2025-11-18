@@ -3,10 +3,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle, ArrowRight, Phone, Settings, Calendar, DollarSign, Users, MapPin } from "lucide-react";
 import { Link } from "wouter";
 import { SEOHead } from "@/components/seo-head";
+import { PublicPageHeader } from "@/components/PublicPageHeader";
 
 export default function ServiceTechsPage() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+      <PublicPageHeader />
       <SEOHead 
         title="Service Technician Software - Pro Field Manager"
         description="Empower your service technicians with Pro Field Manager. Mobile work orders, GPS dispatch, parts inventory, digital forms, time tracking, and instant customer communication."
@@ -15,7 +17,7 @@ export default function ServiceTechsPage() {
       />
       
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-purple-600 to-purple-700 dark:from-purple-800 dark:to-purple-900 text-white py-20">
+      <section className="bg-gradient-to-br from-purple-600 to-purple-700 dark:from-purple-800 dark:to-purple-900 text-white py-20 pt-32">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
             <Settings className="h-16 w-16 mx-auto mb-6" />
