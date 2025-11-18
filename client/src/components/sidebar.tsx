@@ -88,6 +88,84 @@ interface NavigationItem {
   unreadCount?: number;
 }
 
+// Recursive SubItem Component for nested menus
+function SubMenuItem({
+  item,
+  isCurrentPath,
+  expandedItems,
+  toggleExpanded,
+  setIsOpen,
+  level = 1,
+}: {
+  item: NavigationItem;
+  isCurrentPath: (href: string) => boolean;
+  expandedItems: { [key: string]: boolean };
+  toggleExpanded: (itemName: string) => void;
+  setIsOpen: (open: boolean) => void;
+  level?: number;
+}) {
+  const hasSubItems = item.subItems && item.subItems.length > 0;
+  const isExpanded = expandedItems[item.name];
+  const isActive = isCurrentPath(item.href);
+
+  if (!hasSubItems) {
+    return (
+      <li key={item.name}>
+        <Link
+          href={item.href}
+          className={cn(
+            "flex items-center px-3 py-2 text-sm rounded-md transition-colors",
+            isActive
+              ? "bg-primary text-primary-foreground"
+              : "text-muted-foreground hover:bg-muted hover:text-foreground",
+          )}
+          onClick={() => setIsOpen(false)}
+          data-testid={`link-${item.href.replace(/\//g, '-')}`}
+        >
+          <item.icon className="w-4 h-4 mr-2" />
+          {item.name}
+        </Link>
+      </li>
+    );
+  }
+
+  return (
+    <li key={item.name}>
+      <button
+        onClick={() => toggleExpanded(item.name)}
+        className={cn(
+          "flex items-center w-full px-3 py-2 text-sm rounded-md transition-colors",
+          "text-muted-foreground hover:bg-muted hover:text-foreground",
+        )}
+        data-testid={`button-expand-${item.name.toLowerCase().replace(/\s+/g, '-')}`}
+      >
+        <item.icon className="w-4 h-4 mr-2" />
+        <span className="flex-1 text-left">{item.name}</span>
+        {isExpanded ? (
+          <ChevronDown className="w-4 h-4" />
+        ) : (
+          <ChevronRight className="w-4 h-4" />
+        )}
+      </button>
+      {isExpanded && (
+        <ul className={cn("mt-1 space-y-1", level === 1 ? "ml-6" : "ml-4")}>
+          {item.subItems.map((subItem) => (
+            <SubMenuItem
+              key={subItem.name}
+              item={subItem}
+              isCurrentPath={isCurrentPath}
+              expandedItems={expandedItems}
+              toggleExpanded={toggleExpanded}
+              setIsOpen={setIsOpen}
+              level={level + 1}
+            />
+          ))}
+        </ul>
+      )}
+    </li>
+  );
+}
+
 // Sortable Navigation Item Component
 function SortableNavItem({
   item,
@@ -191,21 +269,14 @@ function SortableNavItem({
               {isExpanded && !isCollapsed && item.subItems && (
                 <ul className="mt-1 ml-6 space-y-1">
                   {item.subItems.map((subItem) => (
-                    <li key={subItem.name}>
-                      <Link
-                        href={subItem.href}
-                        className={cn(
-                          "flex items-center px-3 py-2 text-sm rounded-md transition-colors",
-                          isCurrentPath(subItem.href)
-                            ? "bg-primary text-primary-foreground"
-                            : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                        )}
-                        onClick={() => setIsOpen(false)}
-                      >
-                        <subItem.icon className="w-4 h-4 mr-2" />
-                        {subItem.name}
-                      </Link>
-                    </li>
+                    <SubMenuItem
+                      key={subItem.name}
+                      item={subItem}
+                      isCurrentPath={isCurrentPath}
+                      expandedItems={expandedItems}
+                      toggleExpanded={toggleExpanded}
+                      setIsOpen={setIsOpen}
+                    />
                   ))}
                 </ul>
               )}
@@ -226,7 +297,6 @@ const DEFAULT_NAVIGATION_ORDER = [
   "Jobs",
   "My Tasks",
   "Money",
-  "Gas Cards",
   "Expenses",
   "Customers",
   "File Manager",
@@ -515,11 +585,23 @@ export function Sidebar() {
       requiresAuth: true,
       permission: "canAccessExpenses",
       subItems: [
-        { name: "All Expenses", href: "/expenses", icon: Receipt },
-        { name: "  └─ Categories", href: "/expense-categories", icon: Folder },
+        { 
+          name: "All Expenses", 
+          href: "/expenses", 
+          icon: Receipt,
+          subItems: [
+            { name: "Categories", href: "/expense-categories", icon: Folder },
+          ],
+        },
         { name: "Expense Reports", href: "/expense-reports", icon: FileBarChart },
-        { name: "Gas Cards", href: "/gas-cards", icon: CreditCard },
-        { name: "  └─ Gas Card Providers", href: "/gas-card-providers", icon: CreditCard },
+        { 
+          name: "Gas Cards", 
+          href: "/gas-cards", 
+          icon: CreditCard,
+          subItems: [
+            { name: "Gas Card Providers", href: "/gas-card-providers", icon: CreditCard },
+          ],
+        },
         ...(user?.role === "admin" || user?.role === "manager"
           ? [{ name: "Technician Expenses", href: "/technician-expenses", icon: User }]
           : []),
