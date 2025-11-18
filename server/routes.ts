@@ -25215,11 +25215,29 @@ ${fromName || ''}
     }
   });
 
-  // Frontend Sliders
-  app.get('/api/frontend/sliders', requireAuth, async (req, res) => {
+  // Frontend Sliders - Public endpoint for home page
+  app.get('/api/frontend/sliders', async (req, res) => {
     try {
-      const user = getAuthenticatedUser(req);
-      const sliders = await storage.getFrontendSliders(user.organizationId);
+      // Check if user is authenticated
+      const authHeader = req.headers.authorization;
+      const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+      
+      let organizationId = 1; // Default to organization 1 (profieldmanager)
+      
+      // If authenticated, use user's organization
+      if (token) {
+        try {
+          const user = await storage.getUserFromSessionToken(token);
+          if (user) {
+            organizationId = user.organizationId;
+          }
+        } catch (err) {
+          // If token is invalid, continue with default organization
+          console.log('Invalid token, using default organization');
+        }
+      }
+      
+      const sliders = await storage.getFrontendSliders(organizationId);
       res.json(sliders);
     } catch (error: any) {
       console.error('Error fetching frontend sliders:', error);
