@@ -25246,7 +25246,7 @@ ${fromName || ''}
   });
 
   // Frontend Sliders - Public endpoint for home page
-  app.get('/frontend/sliders', async (req, res) => {
+  app.get('/api/frontend/sliders', async (req, res) => {
     try {
       // Check if user is authenticated
       const authHeader = req.headers.authorization;
