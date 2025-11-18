@@ -16,6 +16,7 @@ import Projects from "@/pages/projects";
 import ProjectDetail from "@/pages/project-detail";
 import CalendarPage from "@/pages/calendar";
 import Leads from "@/pages/leads";
+import Money from "@/pages/money";
 import Expenses from "@/pages/expenses";
 import TechnicianExpenses from "@/pages/technician-expenses";
 import ExpenseReports from "@/pages/expense-reports";
@@ -201,6 +202,7 @@ function AuthenticatedApp() {
           <Route path="/jobs/:id/tasks" component={JobTasks} />
           <Route path="/task-groups" component={TaskGroups} />
           <Route path="/leads" component={Leads} />
+          <Route path="/money" component={Money} />
           <Route path="/expenses" component={Expenses} />
           <Route path="/technician-expenses" component={TechnicianExpenses} />
           <Route path="/expense-reports" component={ExpenseReports} />

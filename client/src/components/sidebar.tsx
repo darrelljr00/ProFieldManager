@@ -47,6 +47,7 @@ import {
   Scan,
   Layout,
   Image,
+  DollarSign,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -225,6 +226,7 @@ const DEFAULT_NAVIGATION_ORDER = [
   "Jobs",
   "My Tasks",
   "Leads",
+  "Money",
   "Expenses",
   "Quotes",
   "Invoices",
@@ -502,6 +504,13 @@ export function Sidebar() {
       icon: UserPlus,
       requiresAuth: true,
       permission: "canAccessLeads",
+    },
+    {
+      name: "Money",
+      href: "/money",
+      icon: DollarSign,
+      requiresAuth: true,
+      permission: "canAccessMoney",
     },
     // For non-managers/admins, add Technician Expenses as a main tab
     ...(user?.role !== "admin" && user?.role !== "manager"
