@@ -3779,7 +3779,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api', (req, res, next) => {
     console.log(`🔍 API MIDDLEWARE - ${req.method} ${req.path}`);
     // Skip auth for these routes
-    const publicRoutes = ['/auth/', '/seed', '/settings/', '/twilio-test-update/', '/shared/', '/debug/', '/user/', '/data/', '/quotes/response/', '/quotes/availability/', '/api/frontend/sliders'];
+    const publicRoutes = ['/auth/', '/seed', '/settings/', '/twilio-test-update/', '/shared/', '/debug/', '/user/', '/data/', '/quotes/response/', '/quotes/availability/', '/frontend/sliders'];
     // Add special handling for debug routes
     const debugRoutes = ['/debug/custom-domain-test'];
     const sharedPhotoRoute = req.path.match(/^\/shared\/[^\/]+$/); // Match /shared/{token}
@@ -25246,7 +25246,7 @@ ${fromName || ''}
   });
 
   // Frontend Sliders - Public endpoint for home page
-  app.get('/api/frontend/sliders', async (req, res) => {
+  app.get('/frontend/sliders', async (req, res) => {
     try {
       // Check if user is authenticated
       const authHeader = req.headers.authorization;
@@ -25275,7 +25275,7 @@ ${fromName || ''}
     }
   });
 
-  app.post('/api/frontend/sliders', requireManagerOrAdmin, async (req, res) => {
+  app.post('/frontend/sliders', requireManagerOrAdmin, async (req, res) => {
     try {
       const user = getAuthenticatedUser(req);
       const sliderData = {
