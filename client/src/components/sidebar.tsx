@@ -297,7 +297,6 @@ const DEFAULT_NAVIGATION_ORDER = [
   "Jobs",
   "My Tasks",
   "Money",
-  "Expenses",
   "Customers",
   "File Manager",
   "Parts & Supplies",
@@ -576,35 +575,33 @@ export function Sidebar() {
         { name: "Invoices", href: "/invoices", icon: FileText },
         { name: "Smart Capture", href: "/smart-capture", icon: Scan },
         { name: "Payments", href: "/payments", icon: CreditCard },
-      ],
-    },
-    {
-      name: "Expenses",
-      href: "/expenses",
-      icon: Receipt,
-      requiresAuth: true,
-      permission: "canAccessExpenses",
-      subItems: [
-        { 
-          name: "All Expenses", 
-          href: "/expenses", 
+        {
+          name: "Expenses",
+          href: "/expenses",
           icon: Receipt,
           subItems: [
-            { name: "Categories", href: "/expense-categories", icon: Folder },
+            { 
+              name: "All Expenses", 
+              href: "/expenses", 
+              icon: Receipt,
+              subItems: [
+                { name: "Categories", href: "/expense-categories", icon: Folder },
+              ],
+            },
+            { name: "Expense Reports", href: "/expense-reports", icon: FileBarChart },
+            { 
+              name: "Gas Cards", 
+              href: "/gas-cards", 
+              icon: CreditCard,
+              subItems: [
+                { name: "Gas Card Providers", href: "/gas-card-providers", icon: CreditCard },
+              ],
+            },
+            ...(user?.role === "admin" || user?.role === "manager"
+              ? [{ name: "Technician Expenses", href: "/technician-expenses", icon: User }]
+              : []),
           ],
         },
-        { name: "Expense Reports", href: "/expense-reports", icon: FileBarChart },
-        { 
-          name: "Gas Cards", 
-          href: "/gas-cards", 
-          icon: CreditCard,
-          subItems: [
-            { name: "Gas Card Providers", href: "/gas-card-providers", icon: CreditCard },
-          ],
-        },
-        ...(user?.role === "admin" || user?.role === "manager"
-          ? [{ name: "Technician Expenses", href: "/technician-expenses", icon: User }]
-          : []),
       ],
     },
     // For non-managers/admins, add Technician Expenses as a main tab
