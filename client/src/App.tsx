@@ -92,6 +92,12 @@ import Logout from "@/pages/logout";
 import { HelpButton } from "@/components/help-button";
 import { MobileSensorTracker } from "@/components/MobileSensorTracker";
 import { LiveChatWidget } from "@/components/LiveChatWidget";
+import GeneralContractorsPage from "@/pages/services/general-contractors";
+import ElectriciansPage from "@/pages/services/electricians";
+import PlumbersPage from "@/pages/services/plumbers";
+import ConstructionPage from "@/pages/services/construction";
+import HandymanPage from "@/pages/services/handyman";
+import HVACPage from "@/pages/services/hvac";
 
 function AuthenticatedApp() {
   const { isAdmin, user } = useAuth();
@@ -331,6 +337,12 @@ function Router() {
           <Route path="/features" component={FeaturesPage} />
           <Route path="/signup" component={FeaturesPage} />
           <Route path="/demo-signup" component={DemoSignupPage} />
+          <Route path="/services/general-contractors" component={GeneralContractorsPage} />
+          <Route path="/services/electricians" component={ElectriciansPage} />
+          <Route path="/services/plumbers" component={PlumbersPage} />
+          <Route path="/services/construction" component={ConstructionPage} />
+          <Route path="/services/handyman" component={HandymanPage} />
+          <Route path="/services/hvac" component={HVACPage} />
           <Route path="/login" component={UniversalLogin} />
           <Route path="/password-reset-request" component={PasswordResetRequest} />
           <Route path="/password-reset-complete" component={PasswordResetComplete} />

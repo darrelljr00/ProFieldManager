@@ -12,12 +12,12 @@ import { Link } from "wouter";
 import { useHeroSlides } from "@/hooks/useHeroSlides";
 
 const serviceTypes = [
-  { icon: Wrench, name: "General Contractors", color: "text-blue-600 dark:text-blue-400" },
-  { icon: Zap, name: "Electricians", color: "text-yellow-600 dark:text-yellow-400" },
-  { icon: Droplets, name: "Plumbers", color: "text-blue-500 dark:text-blue-300" },
-  { icon: HardHat, name: "Construction", color: "text-orange-600 dark:text-orange-400" },
-  { icon: Hammer, name: "Handyman Services", color: "text-red-600 dark:text-red-400" },
-  { icon: Truck, name: "HVAC Technicians", color: "text-green-600 dark:text-green-400" }
+  { icon: Wrench, name: "General Contractors", color: "text-blue-600 dark:text-blue-400", path: "/services/general-contractors" },
+  { icon: Zap, name: "Electricians", color: "text-yellow-600 dark:text-yellow-400", path: "/services/electricians" },
+  { icon: Droplets, name: "Plumbers", color: "text-blue-500 dark:text-blue-300", path: "/services/plumbers" },
+  { icon: HardHat, name: "Construction", color: "text-orange-600 dark:text-orange-400", path: "/services/construction" },
+  { icon: Hammer, name: "Handyman Services", color: "text-red-600 dark:text-red-400", path: "/services/handyman" },
+  { icon: Truck, name: "HVAC Technicians", color: "text-green-600 dark:text-green-400", path: "/services/hvac" }
 ];
 
 const features = [
@@ -341,17 +341,19 @@ export default function HomePage() {
             {serviceTypes.map((service, index) => {
               const Icon = service.icon;
               return (
-                <div
+                <Link
                   key={index}
+                  href={service.path}
                   className="text-center group hover:scale-105 transition-transform duration-200"
+                  data-testid={`link-service-${service.name.toLowerCase().replace(/\s+/g, '-')}`}
                 >
-                  <div className="bg-white dark:bg-slate-700 rounded-2xl p-6 shadow-lg group-hover:shadow-xl transition-shadow">
+                  <div className="bg-white dark:bg-slate-700 rounded-2xl p-6 shadow-lg group-hover:shadow-xl transition-shadow cursor-pointer">
                     <Icon className={`h-12 w-12 mx-auto mb-4 ${service.color}`} />
                     <h3 className="font-semibold text-slate-900 dark:text-white text-sm leading-tight">
                       {service.name}
                     </h3>
                   </div>
-                </div>
+                </Link>
               );
             })}
           </div>
@@ -501,6 +503,39 @@ export default function HomePage() {
               <Award className="h-5 w-5" />
               <span>Cancel anytime</span>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Service Links Footer Section */}
+      <section className="py-16 bg-slate-800 dark:bg-slate-950 border-t border-slate-700">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl font-bold text-white mb-3">
+              Solutions for Every Service Professional
+            </h2>
+            <p className="text-slate-400 text-lg">
+              Learn more about how Pro Field Manager helps your specific industry
+            </p>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6 max-w-6xl mx-auto">
+            {serviceTypes.map((service, index) => {
+              const Icon = service.icon;
+              return (
+                <Link
+                  key={index}
+                  href={service.path}
+                  className="flex flex-col items-center p-4 rounded-lg bg-slate-700/50 hover:bg-slate-700 transition-colors group"
+                  data-testid={`footer-link-${service.name.toLowerCase().replace(/\s+/g, '-')}`}
+                >
+                  <Icon className={`h-8 w-8 mb-3 ${service.color} group-hover:scale-110 transition-transform`} />
+                  <span className="text-white text-sm font-medium text-center leading-tight">
+                    {service.name}
+                  </span>
+                  <ArrowRight className="h-4 w-4 text-slate-400 mt-2 group-hover:translate-x-1 transition-transform" />
+                </Link>
+              );
+            })}
           </div>
         </div>
       </section>
