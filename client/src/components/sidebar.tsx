@@ -227,11 +227,8 @@ const DEFAULT_NAVIGATION_ORDER = [
   "My Tasks",
   "Leads",
   "Money",
-  "Expenses",
   "Quotes",
-  "Invoices",
   "Customers",
-  "Payments",
   "File Manager",
   "Parts & Supplies",
   "Inspections",
@@ -511,6 +508,20 @@ export function Sidebar() {
       icon: DollarSign,
       requiresAuth: true,
       permission: "canAccessMoney",
+      subItems: [
+        { name: "Overview", href: "/money", icon: DollarSign },
+        { name: "Invoices", href: "/invoices", icon: FileText },
+        { name: "Smart Capture", href: "/smart-capture", icon: Scan },
+        { name: "Payments", href: "/payments", icon: CreditCard },
+        { name: "Expenses", href: "/expenses", icon: Receipt },
+        { name: "Expense Reports", href: "/expense-reports", icon: FileBarChart },
+        { name: "Categories", href: "/expense-categories", icon: Folder },
+        { name: "Gas Card Providers", href: "/gas-card-providers", icon: CreditCard },
+        { name: "Gas Cards", href: "/gas-cards", icon: CreditCard },
+        ...(user?.role === "admin" || user?.role === "manager"
+          ? [{ name: "Technician Expenses", href: "/technician-expenses", icon: User }]
+          : []),
+      ],
     },
     // For non-managers/admins, add Technician Expenses as a main tab
     ...(user?.role !== "admin" && user?.role !== "manager"
@@ -538,14 +549,6 @@ export function Sidebar() {
           }))
       : []),
     {
-      name: "Expenses",
-      href: "/expenses",
-      icon: Receipt,
-      requiresAuth: true,
-      permission: "canAccessExpenses",
-      subItems: expenseSubItems,
-    },
-    {
       name: "Quotes",
       href: "/quotes",
       icon: Quote,
@@ -553,29 +556,11 @@ export function Sidebar() {
       permission: "canAccessQuotes",
     },
     {
-      name: "Invoices",
-      href: "/invoices",
-      icon: FileText,
-      requiresAuth: true,
-      permission: "canAccessInvoices",
-      subItems: [
-        { name: "All Invoices", href: "/invoices", icon: FileText },
-        { name: "Smart Capture", href: "/smart-capture", icon: Scan },
-      ],
-    },
-    {
       name: "Customers",
       href: "/customers",
       icon: Users,
       requiresAuth: true,
       permission: "canAccessCustomers",
-    },
-    {
-      name: "Payments",
-      href: "/payments",
-      icon: CreditCard,
-      requiresAuth: true,
-      permission: "canAccessPayments",
     },
     {
       name: "File Manager",
