@@ -226,6 +226,7 @@ const DEFAULT_NAVIGATION_ORDER = [
   "Jobs",
   "My Tasks",
   "Money",
+  "Gas Cards",
   "Expenses",
   "Customers",
   "File Manager",
@@ -505,8 +506,17 @@ export function Sidebar() {
         { name: "Invoices", href: "/invoices", icon: FileText },
         { name: "Smart Capture", href: "/smart-capture", icon: Scan },
         { name: "Payments", href: "/payments", icon: CreditCard },
+      ],
+    },
+    {
+      name: "Gas Cards",
+      href: "/gas-cards",
+      icon: CreditCard,
+      requiresAuth: true,
+      permission: "canAccessGasCards",
+      subItems: [
+        { name: "All Gas Cards", href: "/gas-cards", icon: CreditCard },
         { name: "Gas Card Providers", href: "/gas-card-providers", icon: CreditCard },
-        { name: "Gas Cards", href: "/gas-cards", icon: CreditCard },
       ],
     },
     {
