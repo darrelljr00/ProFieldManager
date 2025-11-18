@@ -235,7 +235,7 @@ const DEFAULT_NAVIGATION_ORDER = [
   "Inspections",
   "Team Messages",
   "Image Gallery",
-  "Messages",
+  "Text Messaging",
   "Live Tracking",
   "Reviews",
   "Market Research",
@@ -620,7 +620,7 @@ export function Sidebar() {
       permission: "canAccessImageGallery",
     },
     {
-      name: "Messages",
+      name: "Text Messaging",
       href: "/messages",
       icon: Mail,
       requiresAuth: true,
