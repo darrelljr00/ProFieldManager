@@ -1,0 +1,160 @@
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { CheckCircle, ArrowRight, Phone, Truck, Calendar, DollarSign, Users, MapPin } from "lucide-react";
+import { Link } from "wouter";
+
+export default function HVACPage() {
+  return (
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+      {/* Hero Section */}
+      <section className="bg-gradient-to-br from-green-600 to-green-700 dark:from-green-800 dark:to-green-900 text-white py-20">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto text-center">
+            <Truck className="h-16 w-16 mx-auto mb-6" />
+            <h1 className="text-5xl font-bold mb-6">
+              HVAC Business Management Software
+            </h1>
+            <p className="text-xl text-green-100 mb-8">
+              Manage service calls, installations, and maintenance contracts efficiently. Keep customers comfortable while growing your HVAC business with powerful field service tools.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button size="lg" className="bg-white text-green-600 hover:bg-green-50 px-8 py-6 text-lg" asChild>
+                <Link href="/demo-signup">
+                  Start Free Trial
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Link>
+              </Button>
+              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10 px-8 py-6 text-lg" asChild>
+                <Link href="/demo-signup">
+                  <Phone className="mr-2 h-5 w-5" />
+                  Schedule Demo
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Key Features */}
+      <section className="py-20">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-slate-900 dark:text-white mb-4">
+              Complete HVAC Service Management Platform
+            </h2>
+            <p className="text-xl text-slate-600 dark:text-slate-300 max-w-3xl mx-auto">
+              From emergency repairs to planned maintenance, manage every aspect of your HVAC business with ease.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <Card data-testid="card-service-agreements">
+              <CardContent className="p-6">
+                <Calendar className="h-12 w-12 text-green-600 mb-4" />
+                <h3 className="text-xl font-semibold mb-3">Maintenance Contracts</h3>
+                <p className="text-slate-600 dark:text-slate-400">
+                  Manage recurring maintenance agreements, automate scheduling, and ensure regular service visits for steady revenue.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card data-testid="card-smart-dispatch">
+              <CardContent className="p-6">
+                <MapPin className="h-12 w-12 text-green-600 mb-4" />
+                <h3 className="text-xl font-semibold mb-3">Smart Dispatch</h3>
+                <p className="text-slate-600 dark:text-slate-400">
+                  Assign jobs to technicians based on location, expertise, and availability. Minimize response time for emergency calls.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card data-testid="card-equipment-history">
+              <CardContent className="p-6">
+                <Users className="h-12 w-12 text-green-600 mb-4" />
+                <h3 className="text-xl font-semibold mb-3">Equipment History</h3>
+                <p className="text-slate-600 dark:text-slate-400">
+                  Track installed equipment, service history, warranty information, and maintenance schedules for each customer.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card data-testid="card-parts-inventory">
+              <CardContent className="p-6">
+                <DollarSign className="h-12 w-12 text-green-600 mb-4" />
+                <h3 className="text-xl font-semibold mb-3">Parts Inventory</h3>
+                <p className="text-slate-600 dark:text-slate-400">
+                  Track truck stock and warehouse inventory. Automatically update inventory and add parts to invoices during service calls.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card data-testid="card-diagnostic-forms">
+              <CardContent className="p-6">
+                <CheckCircle className="h-12 w-12 text-green-600 mb-4" />
+                <h3 className="text-xl font-semibold mb-3">Digital Diagnostics</h3>
+                <p className="text-slate-600 dark:text-slate-400">
+                  Customizable inspection forms, system diagnostics checklists, and digital customer signatures on mobile devices.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card data-testid="card-financing-integration">
+              <CardContent className="p-6">
+                <Phone className="h-12 w-12 text-green-600 mb-4" />
+                <h3 className="text-xl font-semibold mb-3">Customer Portal</h3>
+                <p className="text-slate-600 dark:text-slate-400">
+                  Give customers online access to view service history, schedule appointments, and pay invoices anytime.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Benefits Section */}
+      <section className="py-20 bg-white dark:bg-slate-800">
+        <div className="container mx-auto px-4">
+          <div className="max-w-3xl mx-auto">
+            <h2 className="text-4xl font-bold text-slate-900 dark:text-white mb-8 text-center">
+              Why HVAC Contractors Choose Pro Field Manager
+            </h2>
+            <div className="space-y-6">
+              {[
+                "Grow maintenance contract revenue by 35% with automated renewals and scheduling",
+                "Respond to emergency calls faster with GPS tracking and intelligent dispatch",
+                "Increase technician productivity with mobile access to equipment history and manuals",
+                "Improve first-time fix rates with better inventory management and parts tracking",
+                "Generate more revenue per call with professional quotes and upsell opportunities",
+                "Build customer loyalty with proactive maintenance reminders and excellent service"
+              ].map((benefit, index) => (
+                <div key={index} className="flex items-start gap-4" data-testid={`benefit-${index}`}>
+                  <CheckCircle className="h-6 w-6 text-green-600 flex-shrink-0 mt-1" />
+                  <p className="text-lg text-slate-700 dark:text-slate-300">{benefit}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 bg-green-600 dark:bg-green-700 text-white">
+        <div className="container mx-auto px-4 text-center">
+          <h2 className="text-4xl font-bold mb-6">
+            Ready to Heat Up Your Business Growth?
+          </h2>
+          <p className="text-xl text-green-100 mb-8 max-w-3xl mx-auto">
+            Join HVAC companies using Pro Field Manager to deliver exceptional service, grow maintenance contracts, and increase profitability.
+          </p>
+          <Button size="lg" className="bg-white text-green-600 hover:bg-green-50 px-12 py-6 text-lg" asChild data-testid="button-start-trial">
+            <Link href="/demo-signup">
+              Start Free 30-Day Trial
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Link>
+          </Button>
+          <p className="mt-6 text-green-200">No credit card required • Setup in minutes • Cancel anytime</p>
+        </div>
+      </section>
+    </div>
+  );
+}
