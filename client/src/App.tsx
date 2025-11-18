@@ -98,6 +98,9 @@ import PlumbersPage from "@/pages/services/plumbers";
 import ConstructionPage from "@/pages/services/construction";
 import HandymanPage from "@/pages/services/handyman";
 import HVACPage from "@/pages/services/hvac";
+import PressureWashersPage from "@/pages/services/pressure-washers";
+import WindowWashersPage from "@/pages/services/window-washers";
+import ServiceTechsPage from "@/pages/services/service-techs";
 
 function AuthenticatedApp() {
   const { isAdmin, user } = useAuth();
@@ -343,6 +346,9 @@ function Router() {
           <Route path="/services/construction" component={ConstructionPage} />
           <Route path="/services/handyman" component={HandymanPage} />
           <Route path="/services/hvac" component={HVACPage} />
+          <Route path="/services/pressure-washers" component={PressureWashersPage} />
+          <Route path="/services/window-washers" component={WindowWashersPage} />
+          <Route path="/services/service-techs" component={ServiceTechsPage} />
           <Route path="/login" component={UniversalLogin} />
           <Route path="/password-reset-request" component={PasswordResetRequest} />
           <Route path="/password-reset-complete" component={PasswordResetComplete} />

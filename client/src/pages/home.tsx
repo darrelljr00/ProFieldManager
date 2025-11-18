@@ -6,7 +6,8 @@ import {
   Wrench, Zap, Droplets, Hammer, HardHat, Truck, 
   Star, MapPin, Phone, Clock, CheckCircle, 
   ArrowRight, ChevronLeft, ChevronRight,
-  Shield, Award, Users, Calendar, Building2, Menu
+  Shield, Award, Users, Calendar, Building2, Menu,
+  Sparkles, Glasses, Settings
 } from "lucide-react";
 import { Link } from "wouter";
 import { useHeroSlides } from "@/hooks/useHeroSlides";
@@ -17,7 +18,10 @@ const serviceTypes = [
   { icon: Droplets, name: "Plumbers", color: "text-blue-500 dark:text-blue-300", path: "/services/plumbers" },
   { icon: HardHat, name: "Construction", color: "text-orange-600 dark:text-orange-400", path: "/services/construction" },
   { icon: Hammer, name: "Handyman Services", color: "text-red-600 dark:text-red-400", path: "/services/handyman" },
-  { icon: Truck, name: "HVAC Technicians", color: "text-green-600 dark:text-green-400", path: "/services/hvac" }
+  { icon: Truck, name: "HVAC Technicians", color: "text-green-600 dark:text-green-400", path: "/services/hvac" },
+  { icon: Sparkles, name: "Pressure Washers", color: "text-cyan-600 dark:text-cyan-400", path: "/services/pressure-washers" },
+  { icon: Glasses, name: "Window Washers", color: "text-sky-600 dark:text-sky-400", path: "/services/window-washers" },
+  { icon: Settings, name: "Service Techs", color: "text-purple-600 dark:text-purple-400", path: "/services/service-techs" }
 ];
 
 const features = [

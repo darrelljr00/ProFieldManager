@@ -1,0 +1,205 @@
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { CheckCircle, ArrowRight, Phone, Sparkles, Calendar, DollarSign, Users, MapPin } from "lucide-react";
+import { Link } from "wouter";
+import { SEOHead } from "@/components/seo-head";
+
+export default function PressureWashersPage() {
+  return (
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+      <SEOHead 
+        title="Pressure Washing Business Software - Pro Field Manager"
+        description="Manage your pressure washing business with Pro Field Manager. Job scheduling, route optimization, before/after photos, customer management, and mobile invoicing for pressure washing crews."
+        ogTitle="Pressure Washing Business Management Software"
+        ogDescription="Professional software for pressure washing businesses. Manage crews, schedule jobs, track equipment, and grow your cleaning service efficiently."
+      />
+      
+      {/* Hero Section */}
+      <section className="bg-gradient-to-br from-cyan-600 to-cyan-700 dark:from-cyan-800 dark:to-cyan-900 text-white py-20">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto text-center">
+            <Sparkles className="h-16 w-16 mx-auto mb-6" />
+            <h1 className="text-5xl font-bold mb-6">
+              Business Management for Pressure Washing Crews
+            </h1>
+            <p className="text-xl text-cyan-100 dark:text-cyan-200 mb-8">
+              Clean up your operations with powerful tools for scheduling crews, tracking jobs, managing equipment, and delivering spotless results to every customer.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button size="lg" className="bg-white text-cyan-600 hover:bg-cyan-50 dark:bg-slate-100 dark:text-cyan-700 dark:hover:bg-slate-200 px-8 py-6 text-lg" asChild data-testid="button-hero-start-trial">
+                <Link href="/demo-signup">
+                  Start Free Trial
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Link>
+              </Button>
+              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10 dark:border-slate-300 dark:hover:bg-slate-700 px-8 py-6 text-lg" asChild data-testid="button-hero-schedule-demo">
+                <Link href="/demo-signup">
+                  <Phone className="mr-2 h-5 w-5" />
+                  Schedule Demo
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Key Features */}
+      <section className="py-20">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-slate-900 dark:text-white mb-4">
+              Everything You Need to Run Your Pressure Washing Business
+            </h2>
+            <p className="text-xl text-slate-600 dark:text-slate-300 max-w-3xl mx-auto">
+              From residential driveways to commercial buildings, manage every aspect of your cleaning business efficiently.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <Card data-testid="card-job-scheduling">
+              <CardContent className="p-6">
+                <Calendar className="h-12 w-12 text-cyan-600 mb-4" />
+                <h3 className="text-xl font-semibold mb-3">Smart Scheduling</h3>
+                <p className="text-slate-600 dark:text-slate-400">
+                  Schedule crews efficiently with route optimization, weather alerts, and automated customer reminders.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card data-testid="card-before-after-photos">
+              <CardContent className="p-6">
+                <Sparkles className="h-12 w-12 text-cyan-600 mb-4" />
+                <h3 className="text-xl font-semibold mb-3">Before/After Photos</h3>
+                <p className="text-slate-600 dark:text-slate-400">
+                  Capture impressive transformations with built-in photo tools. Automatically attach to customer records and invoices.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card data-testid="card-equipment-tracking">
+              <CardContent className="p-6">
+                <MapPin className="h-12 w-12 text-cyan-600 mb-4" />
+                <h3 className="text-xl font-semibold mb-3">Equipment Tracking</h3>
+                <p className="text-slate-600 dark:text-slate-400">
+                  Track pressure washers, chemicals, and supplies. Monitor maintenance schedules and equipment locations in real-time.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card data-testid="card-crew-management">
+              <CardContent className="p-6">
+                <Users className="h-12 w-12 text-cyan-600 mb-4" />
+                <h3 className="text-xl font-semibold mb-3">Crew Management</h3>
+                <p className="text-slate-600 dark:text-slate-400">
+                  Assign jobs, track crew locations with GPS, monitor productivity, and manage timesheets from your mobile device.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card data-testid="card-mobile-invoicing">
+              <CardContent className="p-6">
+                <DollarSign className="h-12 w-12 text-cyan-600 mb-4" />
+                <h3 className="text-xl font-semibold mb-3">Mobile Invoicing</h3>
+                <p className="text-slate-600 dark:text-slate-400">
+                  Create and send professional invoices on-site. Accept payments immediately and get paid faster.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card data-testid="card-customer-portal">
+              <CardContent className="p-6">
+                <CheckCircle className="h-12 w-12 text-cyan-600 mb-4" />
+                <h3 className="text-xl font-semibold mb-3">Customer Portal</h3>
+                <p className="text-slate-600 dark:text-slate-400">
+                  Let customers view before/after photos, approve estimates, schedule services, and pay online 24/7.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Benefits Section */}
+      <section className="py-20 bg-slate-100 dark:bg-slate-800">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-4xl font-bold text-slate-900 dark:text-white mb-12 text-center">
+              Why Pressure Washing Businesses Choose Pro Field Manager
+            </h2>
+            
+            <div className="space-y-6">
+              <div className="flex items-start gap-4">
+                <CheckCircle className="h-6 w-6 text-cyan-600 flex-shrink-0 mt-1" />
+                <div>
+                  <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
+                    Weather-Smart Scheduling
+                  </h3>
+                  <p className="text-slate-600 dark:text-slate-400">
+                    Automatically reschedule jobs when rain is forecasted. Keep crews productive and customers informed with automated weather alerts.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-4">
+                <CheckCircle className="h-6 w-6 text-cyan-600 flex-shrink-0 mt-1" />
+                <div>
+                  <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
+                    Route Optimization
+                  </h3>
+                  <p className="text-slate-600 dark:text-slate-400">
+                    Maximize daily jobs with intelligent routing. Reduce fuel costs and travel time by scheduling jobs in the same neighborhoods together.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-4">
+                <CheckCircle className="h-6 w-6 text-cyan-600 flex-shrink-0 mt-1" />
+                <div>
+                  <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
+                    Visual Documentation
+                  </h3>
+                  <p className="text-slate-600 dark:text-slate-400">
+                    Showcase your work quality with before/after photo galleries. Build trust and generate referrals with proven results.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-4">
+                <CheckCircle className="h-6 w-6 text-cyan-600 flex-shrink-0 mt-1" />
+                <div>
+                  <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
+                    Seasonal Service Management
+                  </h3>
+                  <p className="text-slate-600 dark:text-slate-400">
+                    Set up recurring seasonal cleanings. Automatically remind customers when it's time for their annual house wash or deck cleaning.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 bg-cyan-600 dark:bg-cyan-800 text-white">
+        <div className="container mx-auto px-4 text-center">
+          <h2 className="text-4xl font-bold mb-6">
+            Ready to Power Up Your Pressure Washing Business?
+          </h2>
+          <p className="text-xl text-cyan-100 dark:text-cyan-200 mb-8 max-w-3xl mx-auto">
+            Join hundreds of pressure washing professionals using Pro Field Manager to streamline operations and grow their business.
+          </p>
+          <Button size="lg" className="bg-white text-cyan-600 hover:bg-cyan-50 dark:bg-slate-100 dark:text-cyan-700 dark:hover:bg-slate-200 px-12 py-4 text-lg" asChild data-testid="button-cta-start-trial">
+            <Link href="/demo-signup">
+              Start Your Free 30-Day Trial
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Link>
+          </Button>
+          <p className="mt-6 text-cyan-100 dark:text-cyan-200">
+            No credit card required • Full access to all features • Cancel anytime
+          </p>
+        </div>
+      </section>
+    </div>
+  );
+}
