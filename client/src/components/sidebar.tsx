@@ -527,8 +527,8 @@ export function Sidebar() {
       permission: "canAccessExpenses",
       subItems: [
         { name: "All Expenses", href: "/expenses", icon: Receipt },
+        { name: "  └─ Categories", href: "/expense-categories", icon: Folder },
         { name: "Expense Reports", href: "/expense-reports", icon: FileBarChart },
-        { name: "Categories", href: "/expense-categories", icon: Folder },
         ...(user?.role === "admin" || user?.role === "manager"
           ? [{ name: "Technician Expenses", href: "/technician-expenses", icon: User }]
           : []),
