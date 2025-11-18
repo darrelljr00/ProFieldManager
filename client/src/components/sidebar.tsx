@@ -226,6 +226,7 @@ const DEFAULT_NAVIGATION_ORDER = [
   "Jobs",
   "My Tasks",
   "Money",
+  "Expenses",
   "Customers",
   "File Manager",
   "Parts & Supplies",
@@ -504,11 +505,20 @@ export function Sidebar() {
         { name: "Invoices", href: "/invoices", icon: FileText },
         { name: "Smart Capture", href: "/smart-capture", icon: Scan },
         { name: "Payments", href: "/payments", icon: CreditCard },
-        { name: "Expenses", href: "/expenses", icon: Receipt },
-        { name: "Expense Reports", href: "/expense-reports", icon: FileBarChart },
-        { name: "Categories", href: "/expense-categories", icon: Folder },
         { name: "Gas Card Providers", href: "/gas-card-providers", icon: CreditCard },
         { name: "Gas Cards", href: "/gas-cards", icon: CreditCard },
+      ],
+    },
+    {
+      name: "Expenses",
+      href: "/expenses",
+      icon: Receipt,
+      requiresAuth: true,
+      permission: "canAccessExpenses",
+      subItems: [
+        { name: "All Expenses", href: "/expenses", icon: Receipt },
+        { name: "Expense Reports", href: "/expense-reports", icon: FileBarChart },
+        { name: "Categories", href: "/expense-categories", icon: Folder },
         ...(user?.role === "admin" || user?.role === "manager"
           ? [{ name: "Technician Expenses", href: "/technician-expenses", icon: User }]
           : []),
