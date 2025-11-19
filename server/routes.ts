@@ -12381,54 +12381,6 @@ ${fromName || ''}
         );
       console.log("Active time clock entries:", activeTimeClockEntries?.length);
       
-      // Fetch GPS OBD fuel consumption data for the date range
-      console.log("Fetching GPS OBD fuel data...");
-      const obdFuelData = await db.select({
-        id: obdDiagnosticData.id,
-        vehicleId: obdDiagnosticData.vehicleId,
-        deviceId: obdDiagnosticData.deviceId,
-        fuelLevel: obdDiagnosticData.fuelLevel,
-        timestamp: obdDiagnosticData.timestamp,
-      })
-        .from(obdDiagnosticData)
-        .where(
-          and(
-            eq(obdDiagnosticData.organizationId, organizationId),
-            gte(obdDiagnosticData.timestamp, startDate),
-            lte(obdDiagnosticData.timestamp, endDate),
-            isNotNull(obdDiagnosticData.fuelLevel)
-          )
-        )
-        .orderBy(obdDiagnosticData.timestamp);
-      console.log("OBD fuel data points:", obdFuelData?.length);
-      
-      // Fetch GPS trips for mileage data
-      console.log("Fetching GPS trips...");
-      const obdTripsData = await db.select()
-        .from(obdTrips)
-        .where(
-          and(
-            eq(obdTrips.organizationId, organizationId),
-            gte(obdTrips.startTime, startDate),
-            lte(obdTrips.startTime, endDate),
-            eq(obdTrips.status, 'completed')
-          )
-        );
-      console.log("OBD trips count:", obdTripsData?.length);
-      
-      // Fetch vehicle maintenance records for the date range
-      console.log("Fetching vehicle maintenance records...");
-      const maintenanceRecords = await db.select()
-        .from(vehicleMaintenanceRecords)
-        .where(
-          and(
-            eq(vehicleMaintenanceRecords.organizationId, organizationId),
-            gte(vehicleMaintenanceRecords.serviceDate, startDate),
-            lte(vehicleMaintenanceRecords.serviceDate, endDate)
-          )
-        );
-      console.log("Maintenance records count:", maintenanceRecords?.length);
-      
       // Filter projects by date range
       const filteredProjects = allProjects.filter((p: any) => {
         const projectDate = new Date(p.createdAt);
@@ -12446,63 +12398,6 @@ ${fromName || ''}
         .innerJoin(users, eq(quotes.userId, users.id))
         .where(eq(users.organizationId, organizationId));
       
-      
-      // Helper: Calculate GPS fuel consumption for a vehicle within a time range
-      const calculateGpsFuelCost = (vehicleId: number | null, startTime: Date, endTime: Date) => {
-        if (!vehicleId || !obdFuelData.length) return 0;
-        
-        // Get fuel readings for this vehicle within the time range
-        const vehicleFuelData = obdFuelData.filter(
-          (d: any) => d.vehicleId === vehicleId && 
-          new Date(d.timestamp) >= startTime && 
-          new Date(d.timestamp) <= endTime
-        );
-        
-        if (vehicleFuelData.length < 2) return 0; // Need at least 2 readings
-        
-        // Calculate fuel drop (initial - final)
-        const initialFuel = parseFloat(vehicleFuelData[0].fuelLevel || '0');
-        const finalFuel = parseFloat(vehicleFuelData[vehicleFuelData.length - 1].fuelLevel || '0');
-        const fuelDropPercent = Math.max(0, initialFuel - finalFuel);
-        
-        // Assume average tank size of 20 gallons, fuel price of $3.50/gallon
-        const tankSize = 20; // gallons
-        const fuelPricePerGallon = 3.50;
-        const gallonsUsed = (fuelDropPercent / 100) * tankSize;
-        const fuelCost = gallonsUsed * fuelPricePerGallon;
-        
-        return fuelCost;
-      };
-      
-      // Helper: Calculate maintenance cost for a vehicle based on mileage
-      const calculateMaintenanceCost = (vehicleId: number | null, startTime: Date, endTime: Date) => {
-        if (!vehicleId || !maintenanceRecords.length) return 0;
-        
-        // Get maintenance records for this vehicle
-        const vehicleMaintenance = maintenanceRecords.filter(
-          (m: any) => m.vehicleId === vehicleId &&
-          new Date(m.serviceDate) >= startTime &&
-          new Date(m.serviceDate) <= endTime
-        );
-        
-        // Sum all maintenance costs for this period
-        const maintenanceCost = vehicleMaintenance.reduce(
-          (sum: number, record: any) => sum + parseFloat(record.totalCost || '0'),
-          0
-        );
-        
-        return maintenanceCost;
-      };
-      
-      // Helper: Get vehicle assignment for a project
-      const getProjectVehicle = (projectId: number) => {
-        // Try to find vehicle from project assignments or travel segments
-        const travelToJob = allTravelSegments.find((seg: any) => seg.toProjectId === projectId);
-        if (travelToJob && travelToJob.vehicleId) {
-          return travelToJob.vehicleId;
-        }
-        return null; // No vehicle assigned
-      };
       // Calculate costs per job including travel costs
       const jobProfitData = filteredProjects.map((project: any) => {
         // Calculate revenue from multiple sources (in priority order)
@@ -12528,39 +12423,12 @@ ${fromName || ''}
           }
         }
         
+        // Material/supply costs from expenses linked to this project
+        const jobMaterials = allExpenses.filter((e: any) => e.projectId === project.id);
+        const materialsCost = jobMaterials.reduce((sum: number, exp: any) => 
+          sum + parseFloat(exp.amount || '0'), 0);
 
         // Travel costs - segments where this job is the destination
-        // Category-aware expense aggregation
-        const jobExpenses = allExpenses.filter((e: any) => e.projectId === project.id);
-        
-        // Separate expenses by category
-        const manualMaterialsCost = jobExpenses
-          .filter((e: any) => ['office_supplies', 'equipment', 'materials', 'supplies'].includes(e.category?.toLowerCase()))
-          .reduce((sum: number, exp: any) => sum + parseFloat(exp.amount || '0'), 0);
-        
-        const manualMaintenanceCost = jobExpenses
-          .filter((e: any) => ['maintenance', 'repairs', 'vehicle_maintenance'].includes(e.category?.toLowerCase()))
-          .reduce((sum: number, exp: any) => sum + parseFloat(exp.amount || '0'), 0);
-        
-        const manualFuelCost = jobExpenses
-          .filter((e: any) => ['fuel', 'gas', 'gasoline', 'diesel'].includes(e.category?.toLowerCase()))
-          .reduce((sum: number, exp: any) => sum + parseFloat(exp.amount || '0'), 0);
-        
-        // Travel-related expenses (meals, lodging, etc.)
-        const manualTravelCost = jobExpenses
-          .filter((e: any) => ['travel', 'meals', 'lodging', 'parking', 'tolls'].includes(e.category?.toLowerCase()))
-          .reduce((sum: number, exp: any) => sum + parseFloat(exp.amount || '0'), 0);
-        
-        // Catch-all for other expense categories not specifically mapped
-        const otherExpensesCost = jobExpenses
-          .filter((e: any) => {
-            const cat = e.category?.toLowerCase();
-            return !['office_supplies', 'equipment', 'materials', 'supplies', 
-                    'maintenance', 'repairs', 'vehicle_maintenance',
-                    'fuel', 'gas', 'gasoline', 'diesel',
-                    'travel', 'meals', 'lodging', 'parking', 'tolls'].includes(cat);
-          })
-          .reduce((sum: number, exp: any) => sum + parseFloat(exp.amount || '0'), 0);
         const travelToJob = allTravelSegments.filter((seg: any) => seg.toProjectId === project.id);
         const travelFuelCost = travelToJob.reduce((sum: number, seg: any) => 
           sum + parseFloat(seg.fuelCostCalculated || '0'), 0);
@@ -12616,22 +12484,10 @@ ${fromName || ''}
         }
         
         const laborCost = travelLaborCost + onsiteLaborCost; // Total labor cost (travel + on-site)
-        
-        // Calculate GPS-based fuel and maintenance costs
-        const projectVehicleId = getProjectVehicle(project.id);
-        const projectStartTime = project.scheduledDate ? new Date(project.scheduledDate) : new Date(project.createdAt);
-        const projectEndTime = project.completedAt ? new Date(project.completedAt) : new Date();
-        
-        const gpsFuelCost = calculateGpsFuelCost(projectVehicleId, projectStartTime, projectEndTime);
-        const gpsMaintenanceCost = calculateMaintenanceCost(projectVehicleId, projectStartTime, projectEndTime);
-        
-        // Total fuel cost = travel fuel + GPS fuel
-        const fuelCost = travelFuelCost + manualFuelCost + gpsFuelCost;
-        const maintenanceCost = manualMaintenanceCost + gpsMaintenanceCost;
-        const materialsCost = manualMaterialsCost;
+        const fuelCost = travelFuelCost; // Travel fuel cost
 
-        // Total costs and profit (now including GPS maintenance)
-        const totalExpenses = laborCost + fuelCost + materialsCost + maintenanceCost + manualTravelCost + otherExpensesCost;
+        // Total costs and profit
+        const totalExpenses = laborCost + fuelCost + materialsCost;
         const netProfit = revenue - totalExpenses;
         const profitMargin = revenue > 0 ? ((netProfit / revenue) * 100) : 0;
 
@@ -12647,15 +12503,7 @@ ${fromName || ''}
             labor: laborCost,
             fuel: fuelCost,
             materials: materialsCost,
-            maintenance: maintenanceCost,
             travelFuel: travelFuelCost,
-            gpsFuel: gpsFuelCost,
-            gpsMaintenance: gpsMaintenanceCost,
-            manualMaterials: manualMaterialsCost,
-            manualMaintenance: manualMaintenanceCost,
-            manualFuel: manualFuelCost,
-            manualTravel: manualTravelCost,
-            otherExpenses: otherExpensesCost,
             travelLabor: travelLaborCost,
             onsiteLabor: onsiteLaborCost,
             onsiteHours: onsiteHours,
@@ -12666,11 +12514,6 @@ ${fromName || ''}
           onsiteHours,
           netProfit,
           profitMargin,
-          manualMaterialsCost,
-          manualMaintenanceCost,
-          manualFuelCost,
-          manualTravelCost,
-          otherExpensesCost,
           technicianCount: 0,
           arrivedAt: project.arrivedAt, // GPS arrival timestamp
           timeExceededAt: project.timeExceededAt, // Time exceeded timestamp
@@ -12698,7 +12541,6 @@ ${fromName || ''}
               profit: 0,
               laborCost: 0,
               fuelCost: 0,
-              maintenanceCost: 0,
               materialsCost: 0,
               onsiteLaborCost: 0,
               onsiteHours: 0,
@@ -12715,7 +12557,6 @@ ${fromName || ''}
           dailyMap[dayKey].laborCost += job.costs.labor;
           dailyMap[dayKey].fuelCost += job.costs.fuel;
           dailyMap[dayKey].materialsCost += job.costs.materials;
-          dailyMap[dayKey].maintenanceCost = (dailyMap[dayKey].maintenanceCost || 0) + (job.costs.maintenance || 0);
           dailyMap[dayKey].onsiteLaborCost += job.onsiteLaborCost;
           dailyMap[dayKey].onsiteHours += job.onsiteHours;
           dailyMap[dayKey].totalCosts += job.costs.total;
@@ -12758,7 +12599,6 @@ ${fromName || ''}
               profit: 0,
               laborCost: 0,
               fuelCost: 0,
-              maintenanceCost: 0,
               materialsCost: 0,
               onsiteLaborCost: 0,
               onsiteHours: 0,
@@ -12775,7 +12615,6 @@ ${fromName || ''}
           periodMap[periodKey].laborCost += job.costs.labor;
           periodMap[periodKey].fuelCost += job.costs.fuel;
           periodMap[periodKey].materialsCost += job.costs.materials;
-          periodMap[periodKey].maintenanceCost = (periodMap[periodKey].maintenanceCost || 0) + (job.costs.maintenance || 0);
           periodMap[periodKey].onsiteLaborCost += job.onsiteLaborCost;
           periodMap[periodKey].onsiteHours += job.onsiteHours;
           periodMap[periodKey].totalCosts += job.costs.total;
@@ -12797,95 +12636,6 @@ ${fromName || ''}
       res.json({
         view,
         dateRange: { startDate, endDate },
-      // Calculate daily fuel costs (per 24-hour period)
-      const dailyFuelCostsMap = new Map<string, { date: string; gpsFuelCost: number; manualFuelCost: number; }>();
-      
-      // Initialize all dates in range with zero costs
-      const currentDate = new Date(startDate);
-      while (currentDate <= endDate) {
-        const dateKey = currentDate.toISOString().split('T')[0];
-        dailyFuelCostsMap.set(dateKey, { date: dateKey, gpsFuelCost: 0, manualFuelCost: 0 });
-        currentDate.setDate(currentDate.getDate() + 1);
-      }
-      
-      // Aggregate GPS fuel costs by day
-      obdFuelData.forEach((fuelReading: any) => {
-        const readingDate = new Date(fuelReading.timestamp).toISOString().split('T')[0];
-        if (dailyFuelCostsMap.has(readingDate)) {
-          // This is simplified - in production you'd calculate actual fuel consumption per day
-          // For now, we'll distribute total GPS fuel cost evenly across days with readings
-        }
-      });
-      
-      // Distribute GPS fuel costs across days proportionally
-      const totalGpsFuel = jobProfitData.reduce((s, j) => s + (j.costs.gpsFuel || 0), 0);
-      const daysWithGpsData = obdFuelData.length > 0 ? Math.max(1, Math.floor((endDate.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000))) : 0;
-      if (daysWithGpsData > 0) {
-        const avgDailyGpsFuel = totalGpsFuel / daysWithGpsData;
-        dailyFuelCostsMap.forEach((day) => {
-          day.gpsFuelCost = avgDailyGpsFuel;
-        });
-      }
-      
-      // Aggregate manual fuel expenses by day
-      allExpenses
-        .filter((e: any) => ['fuel', 'gas', 'gasoline', 'diesel'].includes(e.category?.toLowerCase()))
-        .forEach((expense: any) => {
-          const expenseDate = new Date(expense.expenseDate).toISOString().split('T')[0];
-          if (dailyFuelCostsMap.has(expenseDate)) {
-            dailyFuelCostsMap.get(expenseDate)!.manualFuelCost += parseFloat(expense.amount || '0');
-          }
-        });
-      
-      const dailyFuelCosts = Array.from(dailyFuelCostsMap.values()).map(day => ({
-        date: day.date,
-        gpsFuelCost: day.gpsFuelCost,
-        manualFuelCost: day.manualFuelCost,
-        totalFuelCost: day.gpsFuelCost + day.manualFuelCost,
-      }));
-      
-      // Calculate per-vehicle fuel costs
-      const vehicleFuelCostsMap = new Map<number, { vehicleId: number; vehicleName: string; gpsFuelCost: number; manualFuelCost: number; }>();
-      
-      // Get all vehicles
-      const allVehiclesData = await db.select().from(vehicles).where(eq(vehicles.organizationId, organizationId));
-      
-      // Initialize vehicle fuel costs
-      allVehiclesData.forEach((vehicle: any) => {
-        vehicleFuelCostsMap.set(vehicle.id, {
-          vehicleId: vehicle.id,
-          vehicleName: vehicle.vehicleNumber || `Vehicle ${vehicle.id}`,
-          gpsFuelCost: 0,
-          manualFuelCost: 0,
-        });
-      });
-      
-      // Aggregate GPS fuel costs by vehicle
-      jobProfitData.forEach((job: any) => {
-        if (job.vehicleId && vehicleFuelCostsMap.has(job.vehicleId)) {
-          vehicleFuelCostsMap.get(job.vehicleId)!.gpsFuelCost += job.costs.gpsFuel || 0;
-        }
-      });
-      
-      // Aggregate manual fuel expenses by vehicle (if vehicle is linked to expense)
-      allExpenses
-        .filter((e: any) => ['fuel', 'gas', 'gasoline', 'diesel'].includes(e.category?.toLowerCase()))
-        .forEach((expense: any) => {
-          if (expense.vehicleId && vehicleFuelCostsMap.has(expense.vehicleId)) {
-            vehicleFuelCostsMap.get(expense.vehicleId)!.manualFuelCost += parseFloat(expense.amount || '0');
-          }
-        });
-      
-      const vehicleFuelCosts = Array.from(vehicleFuelCostsMap.values())
-        .filter(v => v.gpsFuelCost > 0 || v.manualFuelCost > 0) // Only include vehicles with fuel costs
-        .map(vehicle => ({
-          vehicleId: vehicle.vehicleId,
-          vehicleName: vehicle.vehicleName,
-          gpsFuelCost: vehicle.gpsFuelCost,
-          manualFuelCost: vehicle.manualFuelCost,
-          totalFuelCost: vehicle.gpsFuelCost + vehicle.manualFuelCost,
-        }));
-
         data: groupedData,
         summary: {
           totalRevenue: jobProfitData.reduce((s, j) => s + j.revenue, 0),
@@ -12895,14 +12645,6 @@ ${fromName || ''}
           totalOnsiteHours: jobProfitData.reduce((s, j) => s + j.costs.onsiteHours, 0),
           totalFuelCost: jobProfitData.reduce((s, j) => s + j.costs.fuel, 0),
           totalMaterialsCost: jobProfitData.reduce((s, j) => s + j.costs.materials, 0),
-          totalMaintenanceCost: jobProfitData.reduce((s, j) => s + (j.costs.maintenance || 0), 0),
-          totalGpsFuelCost: jobProfitData.reduce((s, j) => s + (j.costs.gpsFuel || 0), 0),
-          totalGpsMaintenanceCost: jobProfitData.reduce((s, j) => s + (j.costs.gpsMaintenance || 0), 0),
-          totalManualMaterialsCost: jobProfitData.reduce((s, j) => s + (j.costs.manualMaterials || 0), 0),
-          totalManualMaintenanceCost: jobProfitData.reduce((s, j) => s + (j.costs.manualMaintenance || 0), 0),
-          totalManualFuelCost: jobProfitData.reduce((s, j) => s + (j.costs.manualFuel || 0), 0),
-          totalManualTravelCost: jobProfitData.reduce((s, j) => s + (j.costs.manualTravel || 0), 0),
-          totalOtherExpensesCost: jobProfitData.reduce((s, j) => s + (j.costs.otherExpenses || 0), 0),
           totalExpenses: jobProfitData.reduce((s, j) => s + j.costs.total, 0),
           totalNetProfit: jobProfitData.reduce((s, j) => s + j.netProfit, 0),
         }
