@@ -12818,7 +12818,7 @@ ${fromName || ''}
         
         if (!vehicle.fuelEconomyMpg || !trip.distanceMiles) return;
         
-        const tripDate = new Date(trip.startTime);
+        const tripDate = new Date(trip.endTime || trip.startTime);
         const key = view === 'job' ? `gps-trip-${trip.id}` : getGroupKey(tripDate, view as string);
         const miles = parseFloat(trip.distanceMiles.toString());
         const mpg = parseFloat(vehicle.fuelEconomyMpg.toString());
@@ -16249,7 +16249,7 @@ ${fromName || ''}
       const aggregated = new Map<string, any>();
 
       trips.forEach(trip => {
-        const tripDate = new Date(trip.startTime);
+        const tripDate = new Date(trip.endTime || trip.startTime);
         let key: string;
         let period: string;
 
