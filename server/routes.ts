@@ -12528,12 +12528,39 @@ ${fromName || ''}
           }
         }
         
-        // Material/supply costs from expenses linked to this project
-        const jobMaterials = allExpenses.filter((e: any) => e.projectId === project.id);
-        const materialsCost = jobMaterials.reduce((sum: number, exp: any) => 
-          sum + parseFloat(exp.amount || '0'), 0);
 
         // Travel costs - segments where this job is the destination
+        // Category-aware expense aggregation
+        const jobExpenses = allExpenses.filter((e: any) => e.projectId === project.id);
+        
+        // Separate expenses by category
+        const manualMaterialsCost = jobExpenses
+          .filter((e: any) => ['office_supplies', 'equipment', 'materials', 'supplies'].includes(e.category?.toLowerCase()))
+          .reduce((sum: number, exp: any) => sum + parseFloat(exp.amount || '0'), 0);
+        
+        const manualMaintenanceCost = jobExpenses
+          .filter((e: any) => ['maintenance', 'repairs', 'vehicle_maintenance'].includes(e.category?.toLowerCase()))
+          .reduce((sum: number, exp: any) => sum + parseFloat(exp.amount || '0'), 0);
+        
+        const manualFuelCost = jobExpenses
+          .filter((e: any) => ['fuel', 'gas', 'gasoline', 'diesel'].includes(e.category?.toLowerCase()))
+          .reduce((sum: number, exp: any) => sum + parseFloat(exp.amount || '0'), 0);
+        
+        // Travel-related expenses (meals, lodging, etc.)
+        const manualTravelCost = jobExpenses
+          .filter((e: any) => ['travel', 'meals', 'lodging', 'parking', 'tolls'].includes(e.category?.toLowerCase()))
+          .reduce((sum: number, exp: any) => sum + parseFloat(exp.amount || '0'), 0);
+        
+        // Catch-all for other expense categories not specifically mapped
+        const otherExpensesCost = jobExpenses
+          .filter((e: any) => {
+            const cat = e.category?.toLowerCase();
+            return !['office_supplies', 'equipment', 'materials', 'supplies', 
+                    'maintenance', 'repairs', 'vehicle_maintenance',
+                    'fuel', 'gas', 'gasoline', 'diesel',
+                    'travel', 'meals', 'lodging', 'parking', 'tolls'].includes(cat);
+          })
+          .reduce((sum: number, exp: any) => sum + parseFloat(exp.amount || '0'), 0);
         const travelToJob = allTravelSegments.filter((seg: any) => seg.toProjectId === project.id);
         const travelFuelCost = travelToJob.reduce((sum: number, seg: any) => 
           sum + parseFloat(seg.fuelCostCalculated || '0'), 0);
@@ -12599,11 +12626,12 @@ ${fromName || ''}
         const gpsMaintenanceCost = calculateMaintenanceCost(projectVehicleId, projectStartTime, projectEndTime);
         
         // Total fuel cost = travel fuel + GPS fuel
-        const fuelCost = travelFuelCost + gpsFuelCost;
-        const maintenanceCost = gpsMaintenanceCost;
+        const fuelCost = travelFuelCost + manualFuelCost + gpsFuelCost;
+        const maintenanceCost = manualMaintenanceCost + gpsMaintenanceCost;
+        const materialsCost = manualMaterialsCost;
 
         // Total costs and profit (now including GPS maintenance)
-        const totalExpenses = laborCost + fuelCost + materialsCost + maintenanceCost;
+        const totalExpenses = laborCost + fuelCost + materialsCost + maintenanceCost + manualTravelCost + otherExpensesCost;
         const netProfit = revenue - totalExpenses;
         const profitMargin = revenue > 0 ? ((netProfit / revenue) * 100) : 0;
 
@@ -12623,6 +12651,11 @@ ${fromName || ''}
             travelFuel: travelFuelCost,
             gpsFuel: gpsFuelCost,
             gpsMaintenance: gpsMaintenanceCost,
+            manualMaterials: manualMaterialsCost,
+            manualMaintenance: manualMaintenanceCost,
+            manualFuel: manualFuelCost,
+            manualTravel: manualTravelCost,
+            otherExpenses: otherExpensesCost,
             travelLabor: travelLaborCost,
             onsiteLabor: onsiteLaborCost,
             onsiteHours: onsiteHours,
@@ -12633,6 +12666,11 @@ ${fromName || ''}
           onsiteHours,
           netProfit,
           profitMargin,
+          manualMaterialsCost,
+          manualMaintenanceCost,
+          manualFuelCost,
+          manualTravelCost,
+          otherExpensesCost,
           technicianCount: 0,
           arrivedAt: project.arrivedAt, // GPS arrival timestamp
           timeExceededAt: project.timeExceededAt, // Time exceeded timestamp
@@ -12771,6 +12809,11 @@ ${fromName || ''}
           totalMaintenanceCost: jobProfitData.reduce((s, j) => s + (j.costs.maintenance || 0), 0),
           totalGpsFuelCost: jobProfitData.reduce((s, j) => s + (j.costs.gpsFuel || 0), 0),
           totalGpsMaintenanceCost: jobProfitData.reduce((s, j) => s + (j.costs.gpsMaintenance || 0), 0),
+          totalManualMaterialsCost: jobProfitData.reduce((s, j) => s + (j.costs.manualMaterials || 0), 0),
+          totalManualMaintenanceCost: jobProfitData.reduce((s, j) => s + (j.costs.manualMaintenance || 0), 0),
+          totalManualFuelCost: jobProfitData.reduce((s, j) => s + (j.costs.manualFuel || 0), 0),
+          totalManualTravelCost: jobProfitData.reduce((s, j) => s + (j.costs.manualTravel || 0), 0),
+          totalOtherExpensesCost: jobProfitData.reduce((s, j) => s + (j.costs.otherExpenses || 0), 0),
           totalExpenses: jobProfitData.reduce((s, j) => s + j.costs.total, 0),
           totalNetProfit: jobProfitData.reduce((s, j) => s + j.netProfit, 0),
         }
