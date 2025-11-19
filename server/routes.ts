@@ -12628,7 +12628,6 @@ ${fromName || ''}
             onsiteHours: onsiteHours,
             total: totalExpenses
           },
-          },
           // Top-level fields for easier chart access
           onsiteLaborCost,
           onsiteHours,
@@ -12661,6 +12660,7 @@ ${fromName || ''}
               profit: 0,
               laborCost: 0,
               fuelCost: 0,
+              maintenanceCost: 0,
               materialsCost: 0,
               onsiteLaborCost: 0,
               onsiteHours: 0,
@@ -12677,6 +12677,7 @@ ${fromName || ''}
           dailyMap[dayKey].laborCost += job.costs.labor;
           dailyMap[dayKey].fuelCost += job.costs.fuel;
           dailyMap[dayKey].materialsCost += job.costs.materials;
+          dailyMap[dayKey].maintenanceCost = (dailyMap[dayKey].maintenanceCost || 0) + (job.costs.maintenance || 0);
           dailyMap[dayKey].onsiteLaborCost += job.onsiteLaborCost;
           dailyMap[dayKey].onsiteHours += job.onsiteHours;
           dailyMap[dayKey].totalCosts += job.costs.total;
@@ -12719,6 +12720,7 @@ ${fromName || ''}
               profit: 0,
               laborCost: 0,
               fuelCost: 0,
+              maintenanceCost: 0,
               materialsCost: 0,
               onsiteLaborCost: 0,
               onsiteHours: 0,
@@ -12735,6 +12737,7 @@ ${fromName || ''}
           periodMap[periodKey].laborCost += job.costs.labor;
           periodMap[periodKey].fuelCost += job.costs.fuel;
           periodMap[periodKey].materialsCost += job.costs.materials;
+          periodMap[periodKey].maintenanceCost = (periodMap[periodKey].maintenanceCost || 0) + (job.costs.maintenance || 0);
           periodMap[periodKey].onsiteLaborCost += job.onsiteLaborCost;
           periodMap[periodKey].onsiteHours += job.onsiteHours;
           periodMap[periodKey].totalCosts += job.costs.total;
@@ -12765,6 +12768,9 @@ ${fromName || ''}
           totalOnsiteHours: jobProfitData.reduce((s, j) => s + j.costs.onsiteHours, 0),
           totalFuelCost: jobProfitData.reduce((s, j) => s + j.costs.fuel, 0),
           totalMaterialsCost: jobProfitData.reduce((s, j) => s + j.costs.materials, 0),
+          totalMaintenanceCost: jobProfitData.reduce((s, j) => s + (j.costs.maintenance || 0), 0),
+          totalGpsFuelCost: jobProfitData.reduce((s, j) => s + (j.costs.gpsFuel || 0), 0),
+          totalGpsMaintenanceCost: jobProfitData.reduce((s, j) => s + (j.costs.gpsMaintenance || 0), 0),
           totalExpenses: jobProfitData.reduce((s, j) => s + j.costs.total, 0),
           totalNetProfit: jobProfitData.reduce((s, j) => s + j.netProfit, 0),
         }
