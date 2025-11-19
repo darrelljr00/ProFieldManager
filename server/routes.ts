@@ -22310,6 +22310,10 @@ ${fromName || ''}
   const { registerPhoneSensorRoutes } = await import("./routes/phoneSensors");
   registerPhoneSensorRoutes(app);
 
+  // Website Layout CMS
+  const { setupWebsiteLayoutRoutes } = await import("./website-layout-routes");
+  setupWebsiteLayoutRoutes(app, storage, requireAuth, requireManagerOrAdmin, getAuthenticatedUser);
+
   // One Step GPS Integration - Fetch devices from One Step GPS API
   app.get("/api/onestep/devices", requireAuth, async (req, res) => {
     try {

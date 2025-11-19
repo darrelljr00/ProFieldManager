@@ -20,7 +20,8 @@ import {
   organizationTwilioSettings, organizationCallAnalytics,
   streamSessions, streamViewers, streamInvitations, streamNotifications,
   smartCaptureLists, smartCaptureItems, timeEntries, recurringJobSeries, calendarJobs, notifications,
-  websitePopups, liveChatSessions, liveChatMessages, liveChatDepartments, liveChatSettings
+  websitePopups, liveChatSessions, liveChatMessages, liveChatDepartments, liveChatSettings,
+  websiteLayoutSettings, websiteSocialLinks, websiteFooterSections, websiteFooterLinks
 } from "@shared/schema";
 import { marketResearchCompetitors } from "@shared/schema";
 import type { GasCard, InsertGasCard, GasCardAssignment, InsertGasCardAssignment, GasCardUsage, InsertGasCardUsage, GasCardProvider, InsertGasCardProvider } from "@shared/schema";
@@ -593,6 +594,22 @@ export interface IStorage {
   deleteWebsitePopup(id: number, organizationId: number): Promise<boolean>;
   recordPopupImpression(id: number, action: 'view' | 'click' | 'dismiss'): Promise<void>;
   getActivePopupsForPage(organizationId: number, pagePath: string): Promise<any[]>;
+  
+  // Website Layout CMS
+  getWebsiteLayoutSettings(organizationId: number): Promise<any>;
+  updateWebsiteLayoutSettings(organizationId: number, data: any): Promise<any>;
+  getWebsiteSocialLinks(organizationId: number): Promise<any[]>;
+  createWebsiteSocialLink(data: any): Promise<any>;
+  updateWebsiteSocialLink(id: number, data: any): Promise<any>;
+  deleteWebsiteSocialLink(id: number): Promise<boolean>;
+  getWebsiteFooterSections(organizationId: number): Promise<any[]>;
+  createWebsiteFooterSection(data: any): Promise<any>;
+  updateWebsiteFooterSection(id: number, data: any): Promise<any>;
+  deleteWebsiteFooterSection(id: number): Promise<boolean>;
+  getWebsiteFooterLinks(sectionId: number): Promise<any[]>;
+  createWebsiteFooterLink(data: any): Promise<any>;
+  updateWebsiteFooterLink(id: number, data: any): Promise<any>;
+  deleteWebsiteFooterLink(id: number): Promise<boolean>;
   
   // Live Chat
   createLiveChatSession(sessionData: any): Promise<any>;
@@ -11894,6 +11911,293 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error fetching active popups for page:', error);
       return [];
+    }
+  }
+
+  // Website Layout CMS Implementation
+  async getWebsiteLayoutSettings(organizationId: number): Promise<any> {
+    try {
+      const [settings] = await db
+        .select()
+        .from(websiteLayoutSettings)
+        .where(eq(websiteLayoutSettings.organizationId, organizationId));
+      
+      // Return defaults if not found
+      if (!settings) {
+        return {
+          organizationId,
+          contactBarTitle: "Ready to Transform Your Field Service Business?",
+          contactBarSubtitle: "Get started with a free demo or speak with our team",
+          contactBarPhone: "(555) 123-4567",
+          contactBarEmail: "sales@profieldmanager.com",
+          contactBarButtonText: "Start Free Demo",
+          contactBarButtonLink: "/demo-signup",
+          contactBarBackgroundColor: "#2563eb",
+          footerCompanyName: "Pro Field Manager",
+          footerCompanyDescription: "Professional field service management software designed to streamline your operations and grow your business.",
+          footerAddress: "123 Business Ave, Suite 100, Austin, TX 78701",
+          footerPhone: "(555) 123-4567",
+          footerEmail: "sales@profieldmanager.com",
+          footerCopyright: "Pro Field Manager. All rights reserved."
+        };
+      }
+      
+      return settings;
+    } catch (error) {
+      console.error('Error fetching website layout settings:', error);
+      throw error;
+    }
+  }
+
+  async updateWebsiteLayoutSettings(organizationId: number, data: any): Promise<any> {
+    try {
+      // Check if settings exist
+      const existing = await db
+        .select()
+        .from(websiteLayoutSettings)
+        .where(eq(websiteLayoutSettings.organizationId, organizationId));
+      
+      if (existing.length > 0) {
+        // Update existing settings
+        const [updated] = await db
+          .update(websiteLayoutSettings)
+          .set({
+            ...data,
+            updatedAt: new Date(),
+          })
+          .where(eq(websiteLayoutSettings.organizationId, organizationId))
+          .returning();
+        return updated;
+      } else {
+        // Insert new settings
+        const [created] = await db
+          .insert(websiteLayoutSettings)
+          .values({
+            organizationId,
+            ...data,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .returning();
+        return created;
+      }
+    } catch (error) {
+      console.error('Error updating website layout settings:', error);
+      throw error;
+    }
+  }
+
+  async getWebsiteSocialLinks(organizationId: number): Promise<any[]> {
+    try {
+      const links = await db
+        .select()
+        .from(websiteSocialLinks)
+        .where(eq(websiteSocialLinks.organizationId, organizationId))
+        .orderBy(asc(websiteSocialLinks.sortOrder));
+      return links;
+    } catch (error) {
+      console.error('Error fetching website social links:', error);
+      return [];
+    }
+  }
+
+  async createWebsiteSocialLink(data: any): Promise<any> {
+    try {
+      const [link] = await db
+        .insert(websiteSocialLinks)
+        .values({
+          ...data,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
+      return link;
+    } catch (error) {
+      console.error('Error creating website social link:', error);
+      throw error;
+    }
+  }
+
+  async updateWebsiteSocialLink(id: number, data: any): Promise<any> {
+    try {
+      const [link] = await db
+        .update(websiteSocialLinks)
+        .set({
+          ...data,
+          updatedAt: new Date(),
+        })
+        .where(eq(websiteSocialLinks.id, id))
+        .returning();
+      return link;
+    } catch (error) {
+      console.error('Error updating website social link:', error);
+      throw error;
+    }
+  }
+
+  async deleteWebsiteSocialLink(id: number): Promise<boolean> {
+    try {
+      await db
+        .delete(websiteSocialLinks)
+        .where(eq(websiteSocialLinks.id, id));
+      return true;
+    } catch (error) {
+      console.error('Error deleting website social link:', error);
+      return false;
+    }
+  }
+
+  async getWebsiteFooterSections(organizationId: number): Promise<any[]> {
+    try {
+      const sections = await db
+        .select({
+          id: websiteFooterSections.id,
+          organizationId: websiteFooterSections.organizationId,
+          key: websiteFooterSections.key,
+          title: websiteFooterSections.title,
+          description: websiteFooterSections.description,
+          sortOrder: websiteFooterSections.sortOrder,
+          isActive: websiteFooterSections.isActive,
+          createdAt: websiteFooterSections.createdAt,
+          updatedAt: websiteFooterSections.updatedAt,
+        })
+        .from(websiteFooterSections)
+        .where(eq(websiteFooterSections.organizationId, organizationId))
+        .orderBy(asc(websiteFooterSections.sortOrder));
+      
+      // Fetch links for each section
+      const sectionsWithLinks = await Promise.all(
+        sections.map(async (section) => {
+          const links = await db
+            .select()
+            .from(websiteFooterLinks)
+            .where(eq(websiteFooterLinks.sectionId, section.id))
+            .orderBy(asc(websiteFooterLinks.sortOrder));
+          
+          return {
+            ...section,
+            links,
+          };
+        })
+      );
+      
+      return sectionsWithLinks;
+    } catch (error) {
+      console.error('Error fetching website footer sections:', error);
+      return [];
+    }
+  }
+
+  async createWebsiteFooterSection(data: any): Promise<any> {
+    try {
+      const [section] = await db
+        .insert(websiteFooterSections)
+        .values({
+          ...data,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
+      return section;
+    } catch (error) {
+      console.error('Error creating website footer section:', error);
+      throw error;
+    }
+  }
+
+  async updateWebsiteFooterSection(id: number, data: any): Promise<any> {
+    try {
+      const [section] = await db
+        .update(websiteFooterSections)
+        .set({
+          ...data,
+          updatedAt: new Date(),
+        })
+        .where(eq(websiteFooterSections.id, id))
+        .returning();
+      return section;
+    } catch (error) {
+      console.error('Error updating website footer section:', error);
+      throw error;
+    }
+  }
+
+  async deleteWebsiteFooterSection(id: number): Promise<boolean> {
+    try {
+      // First delete all links in this section
+      await db
+        .delete(websiteFooterLinks)
+        .where(eq(websiteFooterLinks.sectionId, id));
+      
+      // Then delete the section
+      await db
+        .delete(websiteFooterSections)
+        .where(eq(websiteFooterSections.id, id));
+      
+      return true;
+    } catch (error) {
+      console.error('Error deleting website footer section:', error);
+      return false;
+    }
+  }
+
+  async getWebsiteFooterLinks(sectionId: number): Promise<any[]> {
+    try {
+      const links = await db
+        .select()
+        .from(websiteFooterLinks)
+        .where(eq(websiteFooterLinks.sectionId, sectionId))
+        .orderBy(asc(websiteFooterLinks.sortOrder));
+      return links;
+    } catch (error) {
+      console.error('Error fetching website footer links:', error);
+      return [];
+    }
+  }
+
+  async createWebsiteFooterLink(data: any): Promise<any> {
+    try {
+      const [link] = await db
+        .insert(websiteFooterLinks)
+        .values({
+          ...data,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
+      return link;
+    } catch (error) {
+      console.error('Error creating website footer link:', error);
+      throw error;
+    }
+  }
+
+  async updateWebsiteFooterLink(id: number, data: any): Promise<any> {
+    try {
+      const [link] = await db
+        .update(websiteFooterLinks)
+        .set({
+          ...data,
+          updatedAt: new Date(),
+        })
+        .where(eq(websiteFooterLinks.id, id))
+        .returning();
+      return link;
+    } catch (error) {
+      console.error('Error updating website footer link:', error);
+      throw error;
+    }
+  }
+
+  async deleteWebsiteFooterLink(id: number): Promise<boolean> {
+    try {
+      await db
+        .delete(websiteFooterLinks)
+        .where(eq(websiteFooterLinks.id, id));
+      return true;
+    } catch (error) {
+      console.error('Error deleting website footer link:', error);
+      return false;
     }
   }
 

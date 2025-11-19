@@ -104,6 +104,54 @@ interface FrontendBox {
   updatedAt: string;
 }
 
+interface LayoutSettings {
+  id?: number;
+  contactBarTitle?: string;
+  contactBarSubtitle?: string;
+  contactBarPhone?: string;
+  contactBarEmail?: string;
+  contactBarButtonText?: string;
+  contactBarButtonLink?: string;
+  contactBarBackgroundColor?: string;
+  footerCompanyName?: string;
+  footerDescription?: string;
+  footerAddress?: string;
+  footerPhone?: string;
+  footerEmail?: string;
+  footerCopyright?: string;
+}
+
+interface SocialLink {
+  id: number;
+  platform: string;
+  label: string;
+  url: string;
+  sortOrder: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+interface FooterSection {
+  id: number;
+  key: string;
+  title: string;
+  description?: string;
+  sortOrder: number;
+  links?: FooterLink[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+interface FooterLink {
+  id: number;
+  sectionId: number;
+  label: string;
+  url: string;
+  sortOrder: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export default function FrontendManagement() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("design");
@@ -117,6 +165,13 @@ export default function FrontendManagement() {
   const [showIconDialog, setShowIconDialog] = useState(false);
   const [showBoxDialog, setShowBoxDialog] = useState(false);
   const [showCategoryDialog, setShowCategoryDialog] = useState(false);
+  const [editingSocialLink, setEditingSocialLink] = useState<SocialLink | null>(null);
+  const [showSocialLinkDialog, setShowSocialLinkDialog] = useState(false);
+  const [editingFooterSection, setEditingFooterSection] = useState<FooterSection | null>(null);
+  const [showFooterSectionDialog, setShowFooterSectionDialog] = useState(false);
+  const [editingFooterLink, setEditingFooterLink] = useState<FooterLink | null>(null);
+  const [showFooterLinkDialog, setShowFooterLinkDialog] = useState(false);
+  const [selectedSectionId, setSelectedSectionId] = useState<number | null>(null);
   const [selectedPage, setSelectedPage] = useState<FrontendPage | null>(null);
   const [draggedComponent, setDraggedComponent] = useState<any>(null);
   const [canvasElements, setCanvasElements] = useState<any[]>([]);
@@ -207,6 +262,22 @@ export default function FrontendManagement() {
   const { data: categories = [] } = useQuery<FrontendCategory[]>({
     queryKey: ['/api/frontend/categories'],
     enabled: activeTab === 'categories'
+  });
+
+  // Layout queries
+  const { data: layoutSettings, isLoading: isLoadingSettings } = useQuery<LayoutSettings>({
+    queryKey: ['/api/website-layout/settings'],
+    enabled: activeTab === 'layout'
+  });
+
+  const { data: socialLinks = [], isLoading: isLoadingSocialLinks } = useQuery<SocialLink[]>({
+    queryKey: ['/api/website-layout/social-links'],
+    enabled: activeTab === 'layout'
+  });
+
+  const { data: footerSections = [], isLoading: isLoadingFooterSections } = useQuery<FooterSection[]>({
+    queryKey: ['/api/website-layout/footer-sections'],
+    enabled: activeTab === 'layout'
   });
 
   // Page mutations
@@ -476,6 +547,142 @@ export default function FrontendManagement() {
     }
   });
 
+  // Layout mutations
+  const updateLayoutSettingsMutation = useMutation({
+    mutationFn: (data: Partial<LayoutSettings>) => apiRequest('PUT', '/api/website-layout/settings', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/website-layout/settings'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/public/website-layout/settings'] });
+      toast({ title: "Success", description: "Layout settings updated successfully" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update layout settings", variant: "destructive" });
+    }
+  });
+
+  const createSocialLinkMutation = useMutation({
+    mutationFn: (data: Partial<SocialLink>) => apiRequest('POST', '/api/website-layout/social-links', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/website-layout/social-links'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/public/website-layout/social-links'] });
+      setShowSocialLinkDialog(false);
+      setEditingSocialLink(null);
+      toast({ title: "Success", description: "Social link created successfully" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to create social link", variant: "destructive" });
+    }
+  });
+
+  const updateSocialLinkMutation = useMutation({
+    mutationFn: ({ id, ...data }: Partial<SocialLink> & { id: number }) => 
+      apiRequest('PUT', `/api/website-layout/social-links/${id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/website-layout/social-links'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/public/website-layout/social-links'] });
+      setShowSocialLinkDialog(false);
+      setEditingSocialLink(null);
+      toast({ title: "Success", description: "Social link updated successfully" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update social link", variant: "destructive" });
+    }
+  });
+
+  const deleteSocialLinkMutation = useMutation({
+    mutationFn: (id: number) => apiRequest('DELETE', `/api/website-layout/social-links/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/website-layout/social-links'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/public/website-layout/social-links'] });
+      toast({ title: "Success", description: "Social link deleted successfully" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to delete social link", variant: "destructive" });
+    }
+  });
+
+  const createFooterSectionMutation = useMutation({
+    mutationFn: (data: Partial<FooterSection>) => apiRequest('POST', '/api/website-layout/footer-sections', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/website-layout/footer-sections'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/public/website-layout/footer-sections'] });
+      setShowFooterSectionDialog(false);
+      setEditingFooterSection(null);
+      toast({ title: "Success", description: "Footer section created successfully" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to create footer section", variant: "destructive" });
+    }
+  });
+
+  const updateFooterSectionMutation = useMutation({
+    mutationFn: ({ id, ...data }: Partial<FooterSection> & { id: number }) => 
+      apiRequest('PUT', `/api/website-layout/footer-sections/${id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/website-layout/footer-sections'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/public/website-layout/footer-sections'] });
+      setShowFooterSectionDialog(false);
+      setEditingFooterSection(null);
+      toast({ title: "Success", description: "Footer section updated successfully" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update footer section", variant: "destructive" });
+    }
+  });
+
+  const deleteFooterSectionMutation = useMutation({
+    mutationFn: (id: number) => apiRequest('DELETE', `/api/website-layout/footer-sections/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/website-layout/footer-sections'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/public/website-layout/footer-sections'] });
+      toast({ title: "Success", description: "Footer section deleted successfully" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to delete footer section", variant: "destructive" });
+    }
+  });
+
+  const createFooterLinkMutation = useMutation({
+    mutationFn: (data: Partial<FooterLink>) => apiRequest('POST', '/api/website-layout/footer-links', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/website-layout/footer-sections'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/public/website-layout/footer-sections'] });
+      setShowFooterLinkDialog(false);
+      setEditingFooterLink(null);
+      toast({ title: "Success", description: "Footer link created successfully" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to create footer link", variant: "destructive" });
+    }
+  });
+
+  const updateFooterLinkMutation = useMutation({
+    mutationFn: ({ id, ...data }: Partial<FooterLink> & { id: number }) => 
+      apiRequest('PUT', `/api/website-layout/footer-links/${id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/website-layout/footer-sections'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/public/website-layout/footer-sections'] });
+      setShowFooterLinkDialog(false);
+      setEditingFooterLink(null);
+      toast({ title: "Success", description: "Footer link updated successfully" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update footer link", variant: "destructive" });
+    }
+  });
+
+  const deleteFooterLinkMutation = useMutation({
+    mutationFn: (id: number) => apiRequest('DELETE', `/api/website-layout/footer-links/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/website-layout/footer-sections'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/public/website-layout/footer-sections'] });
+      toast({ title: "Success", description: "Footer link deleted successfully" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to delete footer link", variant: "destructive" });
+    }
+  });
+
   const handleSavePage = (data: any) => {
     if (editingPage) {
       updatePageMutation.mutate({ ...data, id: editingPage.id });
@@ -599,7 +806,7 @@ export default function FrontendManagement() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="design" className="flex items-center space-x-2">
             <Palette className="h-4 w-4" />
             <span>Design</span>
@@ -623,6 +830,10 @@ export default function FrontendManagement() {
           <TabsTrigger value="boxes" className="flex items-center space-x-2">
             <Box className="h-4 w-4" />
             <span>Boxes</span>
+          </TabsTrigger>
+          <TabsTrigger value="layout" className="flex items-center space-x-2" data-testid="tab-layout">
+            <Settings className="h-4 w-4" />
+            <span>Layout</span>
           </TabsTrigger>
         </TabsList>
 
@@ -1266,6 +1477,443 @@ export default function FrontendManagement() {
             ))}
           </div>
         </TabsContent>
+
+        {/* Layout Tab */}
+        <TabsContent value="layout" className="space-y-6">
+          <div className="grid grid-cols-1 gap-6">
+            
+            {/* Section 1: Contact Bar Settings */}
+            <Card data-testid="card-contact-bar-settings">
+              <CardHeader>
+                <CardTitle>Contact Bar Settings</CardTitle>
+                <CardDescription>Configure the top contact bar of your website</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {isLoadingSettings ? (
+                  <div className="text-center py-8">Loading...</div>
+                ) : (
+                  <form 
+                    className="space-y-4"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      const formData = new FormData(e.currentTarget);
+                      const data: Partial<LayoutSettings> = {
+                        contactBarTitle: formData.get('contactBarTitle') as string,
+                        contactBarSubtitle: formData.get('contactBarSubtitle') as string,
+                        contactBarPhone: formData.get('contactBarPhone') as string,
+                        contactBarEmail: formData.get('contactBarEmail') as string,
+                        contactBarButtonText: formData.get('contactBarButtonText') as string,
+                        contactBarButtonLink: formData.get('contactBarButtonLink') as string,
+                        contactBarBackgroundColor: formData.get('contactBarBackgroundColor') as string,
+                      };
+                      updateLayoutSettingsMutation.mutate(data);
+                    }}
+                  >
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="contactBarTitle">Title</Label>
+                        <Input
+                          id="contactBarTitle"
+                          name="contactBarTitle"
+                          defaultValue={layoutSettings?.contactBarTitle || ''}
+                          placeholder="Need help? Call us today!"
+                          data-testid="input-contact-bar-title"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="contactBarSubtitle">Subtitle</Label>
+                        <Input
+                          id="contactBarSubtitle"
+                          name="contactBarSubtitle"
+                          defaultValue={layoutSettings?.contactBarSubtitle || ''}
+                          placeholder="Available 24/7"
+                          data-testid="input-contact-bar-subtitle"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="contactBarPhone">Phone</Label>
+                        <Input
+                          id="contactBarPhone"
+                          name="contactBarPhone"
+                          defaultValue={layoutSettings?.contactBarPhone || ''}
+                          placeholder="+1 (555) 123-4567"
+                          data-testid="input-contact-bar-phone"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="contactBarEmail">Email</Label>
+                        <Input
+                          id="contactBarEmail"
+                          name="contactBarEmail"
+                          type="email"
+                          defaultValue={layoutSettings?.contactBarEmail || ''}
+                          placeholder="contact@example.com"
+                          data-testid="input-contact-bar-email"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="contactBarButtonText">Button Text</Label>
+                        <Input
+                          id="contactBarButtonText"
+                          name="contactBarButtonText"
+                          defaultValue={layoutSettings?.contactBarButtonText || ''}
+                          placeholder="Get Quote"
+                          data-testid="input-contact-bar-button-text"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="contactBarButtonLink">Button Link</Label>
+                        <Input
+                          id="contactBarButtonLink"
+                          name="contactBarButtonLink"
+                          defaultValue={layoutSettings?.contactBarButtonLink || ''}
+                          placeholder="/contact"
+                          data-testid="input-contact-bar-button-link"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="contactBarBackgroundColor">Background Color</Label>
+                        <Input
+                          id="contactBarBackgroundColor"
+                          name="contactBarBackgroundColor"
+                          type="color"
+                          defaultValue={layoutSettings?.contactBarBackgroundColor || '#000000'}
+                          data-testid="input-contact-bar-bg-color"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end">
+                      <Button type="submit" disabled={updateLayoutSettingsMutation.isPending} data-testid="button-save-contact-bar">
+                        <Save className="h-4 w-4 mr-2" />
+                        {updateLayoutSettingsMutation.isPending ? 'Saving...' : 'Save Contact Bar Settings'}
+                      </Button>
+                    </div>
+                  </form>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Section 2: Footer Company Information */}
+            <Card data-testid="card-footer-info">
+              <CardHeader>
+                <CardTitle>Footer Information</CardTitle>
+                <CardDescription>Manage company information displayed in the footer</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {isLoadingSettings ? (
+                  <div className="text-center py-8">Loading...</div>
+                ) : (
+                  <form 
+                    className="space-y-4"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      const formData = new FormData(e.currentTarget);
+                      const data: Partial<LayoutSettings> = {
+                        footerCompanyName: formData.get('footerCompanyName') as string,
+                        footerDescription: formData.get('footerDescription') as string,
+                        footerAddress: formData.get('footerAddress') as string,
+                        footerPhone: formData.get('footerPhone') as string,
+                        footerEmail: formData.get('footerEmail') as string,
+                        footerCopyright: formData.get('footerCopyright') as string,
+                      };
+                      updateLayoutSettingsMutation.mutate(data);
+                    }}
+                  >
+                    <div className="space-y-2">
+                      <Label htmlFor="footerCompanyName">Company Name</Label>
+                      <Input
+                        id="footerCompanyName"
+                        name="footerCompanyName"
+                        defaultValue={layoutSettings?.footerCompanyName || ''}
+                        placeholder="Your Company Name"
+                        data-testid="input-footer-company-name"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="footerDescription">Description</Label>
+                      <Textarea
+                        id="footerDescription"
+                        name="footerDescription"
+                        defaultValue={layoutSettings?.footerDescription || ''}
+                        placeholder="Brief description about your company..."
+                        rows={3}
+                        data-testid="input-footer-description"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="footerAddress">Address</Label>
+                        <Input
+                          id="footerAddress"
+                          name="footerAddress"
+                          defaultValue={layoutSettings?.footerAddress || ''}
+                          placeholder="123 Main St, City, State 12345"
+                          data-testid="input-footer-address"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="footerPhone">Phone</Label>
+                        <Input
+                          id="footerPhone"
+                          name="footerPhone"
+                          defaultValue={layoutSettings?.footerPhone || ''}
+                          placeholder="+1 (555) 123-4567"
+                          data-testid="input-footer-phone"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="footerEmail">Email</Label>
+                        <Input
+                          id="footerEmail"
+                          name="footerEmail"
+                          type="email"
+                          defaultValue={layoutSettings?.footerEmail || ''}
+                          placeholder="info@example.com"
+                          data-testid="input-footer-email"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="footerCopyright">Copyright Text</Label>
+                        <Input
+                          id="footerCopyright"
+                          name="footerCopyright"
+                          defaultValue={layoutSettings?.footerCopyright || ''}
+                          placeholder="© 2025 Your Company. All rights reserved."
+                          data-testid="input-footer-copyright"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end">
+                      <Button type="submit" disabled={updateLayoutSettingsMutation.isPending} data-testid="button-save-footer-info">
+                        <Save className="h-4 w-4 mr-2" />
+                        {updateLayoutSettingsMutation.isPending ? 'Saving...' : 'Save Footer Information'}
+                      </Button>
+                    </div>
+                  </form>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Section 3: Social Links Management */}
+            <Card data-testid="card-social-links">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Social Media Links</CardTitle>
+                    <CardDescription>Manage your social media links displayed in the footer</CardDescription>
+                  </div>
+                  <Button 
+                    onClick={() => {
+                      setEditingSocialLink(null);
+                      setShowSocialLinkDialog(true);
+                    }}
+                    className="flex items-center space-x-2"
+                    data-testid="button-add-social-link"
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span>Add Social Link</span>
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {isLoadingSocialLinks ? (
+                  <div className="text-center py-8">Loading...</div>
+                ) : socialLinks.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p>No social links configured yet.</p>
+                    <p className="text-sm mt-2">Click "Add Social Link" to get started.</p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Platform</TableHead>
+                        <TableHead>Label</TableHead>
+                        <TableHead>URL</TableHead>
+                        <TableHead>Sort Order</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {socialLinks.map((link: SocialLink) => (
+                        <TableRow key={link.id} data-testid={`row-social-link-${link.id}`}>
+                          <TableCell className="capitalize">{link.platform}</TableCell>
+                          <TableCell>{link.label}</TableCell>
+                          <TableCell className="max-w-xs truncate">{link.url}</TableCell>
+                          <TableCell>{link.sortOrder}</TableCell>
+                          <TableCell className="text-right space-x-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setEditingSocialLink(link);
+                                setShowSocialLinkDialog(true);
+                              }}
+                              data-testid={`button-edit-social-link-${link.id}`}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => deleteSocialLinkMutation.mutate(link.id)}
+                              data-testid={`button-delete-social-link-${link.id}`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Section 4: Footer Sections & Links */}
+            <Card data-testid="card-footer-sections">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Footer Navigation Sections</CardTitle>
+                    <CardDescription>Organize footer links into sections</CardDescription>
+                  </div>
+                  <Button 
+                    onClick={() => {
+                      setEditingFooterSection(null);
+                      setShowFooterSectionDialog(true);
+                    }}
+                    className="flex items-center space-x-2"
+                    data-testid="button-add-footer-section"
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span>Add Section</span>
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {isLoadingFooterSections ? (
+                  <div className="text-center py-8">Loading...</div>
+                ) : footerSections.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p>No footer sections configured yet.</p>
+                    <p className="text-sm mt-2">Click "Add Section" to get started.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {footerSections.map((section: FooterSection) => (
+                      <div key={section.id} className="border rounded-lg p-4" data-testid={`section-footer-${section.id}`}>
+                        <div className="flex items-center justify-between mb-4">
+                          <div>
+                            <h3 className="font-semibold text-lg">{section.title}</h3>
+                            <p className="text-sm text-muted-foreground">{section.description}</p>
+                            <p className="text-xs text-muted-foreground mt-1">Key: {section.key} • Sort Order: {section.sortOrder}</p>
+                          </div>
+                          <div className="flex space-x-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedSectionId(section.id);
+                                setEditingFooterLink(null);
+                                setShowFooterLinkDialog(true);
+                              }}
+                              data-testid={`button-add-link-section-${section.id}`}
+                            >
+                              <Plus className="h-4 w-4 mr-1" />
+                              Add Link
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setEditingFooterSection(section);
+                                setShowFooterSectionDialog(true);
+                              }}
+                              data-testid={`button-edit-section-${section.id}`}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => deleteFooterSectionMutation.mutate(section.id)}
+                              data-testid={`button-delete-section-${section.id}`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* Links for this section */}
+                        {section.links && section.links.length > 0 ? (
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Label</TableHead>
+                                <TableHead>URL</TableHead>
+                                <TableHead>Sort Order</TableHead>
+                                <TableHead className="text-right">Actions</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {section.links.map((link: FooterLink) => (
+                                <TableRow key={link.id} data-testid={`row-footer-link-${link.id}`}>
+                                  <TableCell>{link.label}</TableCell>
+                                  <TableCell className="max-w-xs truncate">{link.url}</TableCell>
+                                  <TableCell>{link.sortOrder}</TableCell>
+                                  <TableCell className="text-right space-x-2">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => {
+                                        setSelectedSectionId(section.id);
+                                        setEditingFooterLink(link);
+                                        setShowFooterLinkDialog(true);
+                                      }}
+                                      data-testid={`button-edit-link-${link.id}`}
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => deleteFooterLinkMutation.mutate(link.id)}
+                                      data-testid={`button-delete-link-${link.id}`}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        ) : (
+                          <div className="text-center py-4 text-sm text-muted-foreground border-t">
+                            No links in this section. Click "Add Link" to add one.
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
       </Tabs>
 
       {/* Page Dialog */}
@@ -1306,6 +1954,49 @@ export default function FrontendManagement() {
         onOpenChange={setShowCategoryDialog}
         category={editingCategory}
         onSave={handleSaveCategory}
+      />
+
+      {/* Social Link Dialog */}
+      <SocialLinkDialog
+        open={showSocialLinkDialog}
+        onOpenChange={setShowSocialLinkDialog}
+        socialLink={editingSocialLink}
+        onSave={(data) => {
+          if (editingSocialLink) {
+            updateSocialLinkMutation.mutate({ ...data, id: editingSocialLink.id });
+          } else {
+            createSocialLinkMutation.mutate(data);
+          }
+        }}
+      />
+
+      {/* Footer Section Dialog */}
+      <FooterSectionDialog
+        open={showFooterSectionDialog}
+        onOpenChange={setShowFooterSectionDialog}
+        section={editingFooterSection}
+        onSave={(data) => {
+          if (editingFooterSection) {
+            updateFooterSectionMutation.mutate({ ...data, id: editingFooterSection.id });
+          } else {
+            createFooterSectionMutation.mutate(data);
+          }
+        }}
+      />
+
+      {/* Footer Link Dialog */}
+      <FooterLinkDialog
+        open={showFooterLinkDialog}
+        onOpenChange={setShowFooterLinkDialog}
+        link={editingFooterLink}
+        sectionId={selectedSectionId}
+        onSave={(data) => {
+          if (editingFooterLink) {
+            updateFooterLinkMutation.mutate({ ...data, id: editingFooterLink.id });
+          } else {
+            createFooterLinkMutation.mutate({ ...data, sectionId: selectedSectionId });
+          }
+        }}
       />
     </div>
   );
@@ -2341,6 +3032,343 @@ function CategoryDialog({
             </Button>
             <Button type="submit">
               {category ? 'Update' : 'Create'} Category
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// Social Link Dialog Component
+function SocialLinkDialog({ 
+  open, 
+  onOpenChange, 
+  socialLink, 
+  onSave 
+}: { 
+  open: boolean; 
+  onOpenChange: (open: boolean) => void; 
+  socialLink: SocialLink | null; 
+  onSave: (data: any) => void; 
+}) {
+  const [formData, setFormData] = useState({
+    platform: 'facebook',
+    label: '',
+    url: '',
+    sortOrder: 0
+  });
+
+  React.useEffect(() => {
+    if (socialLink) {
+      setFormData({
+        platform: socialLink.platform || 'facebook',
+        label: socialLink.label || '',
+        url: socialLink.url || '',
+        sortOrder: socialLink.sortOrder || 0
+      });
+    } else {
+      setFormData({
+        platform: 'facebook',
+        label: '',
+        url: '',
+        sortOrder: 0
+      });
+    }
+  }, [socialLink]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave(formData);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{socialLink ? 'Edit Social Link' : 'Add Social Link'}</DialogTitle>
+          <DialogDescription>
+            {socialLink ? 'Update social media link details' : 'Add a new social media link to your footer'}
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit}>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="platform">Platform</Label>
+              <Select value={formData.platform} onValueChange={(value) => setFormData({ ...formData, platform: value })}>
+                <SelectTrigger data-testid="select-social-platform">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="facebook">Facebook</SelectItem>
+                  <SelectItem value="twitter">Twitter</SelectItem>
+                  <SelectItem value="linkedin">LinkedIn</SelectItem>
+                  <SelectItem value="instagram">Instagram</SelectItem>
+                  <SelectItem value="youtube">YouTube</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="label">Label</Label>
+              <Input
+                id="label"
+                value={formData.label}
+                onChange={(e) => setFormData({ ...formData, label: e.target.value })}
+                placeholder="Follow us on Facebook"
+                required
+                data-testid="input-social-label"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="url">URL</Label>
+              <Input
+                id="url"
+                type="url"
+                value={formData.url}
+                onChange={(e) => setFormData({ ...formData, url: e.target.value })}
+                placeholder="https://facebook.com/yourpage"
+                required
+                data-testid="input-social-url"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="sortOrder">Sort Order</Label>
+              <Input
+                id="sortOrder"
+                type="number"
+                value={formData.sortOrder}
+                onChange={(e) => setFormData({ ...formData, sortOrder: Number(e.target.value) })}
+                data-testid="input-social-sort-order"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" data-testid="button-submit-social-link">
+              {socialLink ? 'Update' : 'Add'} Social Link
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// Footer Section Dialog Component
+function FooterSectionDialog({ 
+  open, 
+  onOpenChange, 
+  section, 
+  onSave 
+}: { 
+  open: boolean; 
+  onOpenChange: (open: boolean) => void; 
+  section: FooterSection | null; 
+  onSave: (data: any) => void; 
+}) {
+  const [formData, setFormData] = useState({
+    key: '',
+    title: '',
+    description: '',
+    sortOrder: 0
+  });
+
+  React.useEffect(() => {
+    if (section) {
+      setFormData({
+        key: section.key || '',
+        title: section.title || '',
+        description: section.description || '',
+        sortOrder: section.sortOrder || 0
+      });
+    } else {
+      setFormData({
+        key: '',
+        title: '',
+        description: '',
+        sortOrder: 0
+      });
+    }
+  }, [section]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave(formData);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{section ? 'Edit Footer Section' : 'Add Footer Section'}</DialogTitle>
+          <DialogDescription>
+            {section ? 'Update footer section details' : 'Add a new navigation section to your footer'}
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit}>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="key">Key (unique identifier)</Label>
+              <Input
+                id="key"
+                value={formData.key}
+                onChange={(e) => setFormData({ ...formData, key: e.target.value })}
+                placeholder="company-info"
+                required
+                data-testid="input-section-key"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="title">Title</Label>
+              <Input
+                id="title"
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                placeholder="Company"
+                required
+                data-testid="input-section-title"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Optional description..."
+                rows={2}
+                data-testid="input-section-description"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="sortOrder">Sort Order</Label>
+              <Input
+                id="sortOrder"
+                type="number"
+                value={formData.sortOrder}
+                onChange={(e) => setFormData({ ...formData, sortOrder: Number(e.target.value) })}
+                data-testid="input-section-sort-order"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" data-testid="button-submit-footer-section">
+              {section ? 'Update' : 'Create'} Section
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// Footer Link Dialog Component
+function FooterLinkDialog({ 
+  open, 
+  onOpenChange, 
+  link, 
+  sectionId, 
+  onSave 
+}: { 
+  open: boolean; 
+  onOpenChange: (open: boolean) => void; 
+  link: FooterLink | null; 
+  sectionId: number | null; 
+  onSave: (data: any) => void; 
+}) {
+  const [formData, setFormData] = useState({
+    label: '',
+    url: '',
+    sortOrder: 0
+  });
+
+  React.useEffect(() => {
+    if (link) {
+      setFormData({
+        label: link.label || '',
+        url: link.url || '',
+        sortOrder: link.sortOrder || 0
+      });
+    } else {
+      setFormData({
+        label: '',
+        url: '',
+        sortOrder: 0
+      });
+    }
+  }, [link]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave(formData);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{link ? 'Edit Footer Link' : 'Add Footer Link'}</DialogTitle>
+          <DialogDescription>
+            {link ? 'Update footer link details' : 'Add a new link to this footer section'}
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit}>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="label">Label</Label>
+              <Input
+                id="label"
+                value={formData.label}
+                onChange={(e) => setFormData({ ...formData, label: e.target.value })}
+                placeholder="About Us"
+                required
+                data-testid="input-link-label"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="url">URL</Label>
+              <Input
+                id="url"
+                value={formData.url}
+                onChange={(e) => setFormData({ ...formData, url: e.target.value })}
+                placeholder="/about"
+                required
+                data-testid="input-link-url"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="sortOrder">Sort Order</Label>
+              <Input
+                id="sortOrder"
+                type="number"
+                value={formData.sortOrder}
+                onChange={(e) => setFormData({ ...formData, sortOrder: Number(e.target.value) })}
+                data-testid="input-link-sort-order"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" data-testid="button-submit-footer-link">
+              {link ? 'Update' : 'Add'} Link
             </Button>
           </DialogFooter>
         </form>

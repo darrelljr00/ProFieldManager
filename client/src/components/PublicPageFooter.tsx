@@ -1,8 +1,73 @@
-import { Building2, Mail, Phone, MapPin, Facebook, Twitter, Linkedin, Instagram } from "lucide-react";
+import { Building2, Mail, Phone, MapPin, Facebook, Twitter, Linkedin, Instagram, Youtube } from "lucide-react";
 import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+
+interface LayoutSettings {
+  footerCompanyName?: string;
+  footerCompanyDescription?: string;
+  footerAddress?: string;
+  footerPhone?: string;
+  footerEmail?: string;
+  footerCopyright?: string;
+}
+
+interface SocialLink {
+  id: number;
+  platform: string;
+  label: string;
+  url: string;
+  isActive: boolean;
+}
+
+interface FooterLink {
+  id: number;
+  label: string;
+  href: string;
+  isExternal: boolean;
+  isActive: boolean;
+}
+
+interface FooterSection {
+  id: number;
+  key: string;
+  title: string;
+  isActive: boolean;
+  links?: FooterLink[];
+}
+
+const socialIcons: Record<string, any> = {
+  facebook: Facebook,
+  twitter: Twitter,
+  linkedin: Linkedin,
+  instagram: Instagram,
+  youtube: Youtube,
+};
 
 export function PublicPageFooter() {
   const currentYear = new Date().getFullYear();
+  const organizationSlug = "pro-field-manager";
+
+  const { data: settings } = useQuery<LayoutSettings>({
+    queryKey: ['/api/public/website-layout/settings', organizationSlug],
+  });
+
+  const { data: socialLinks = [] } = useQuery<SocialLink[]>({
+    queryKey: ['/api/public/website-layout/social-links', organizationSlug],
+  });
+
+  const { data: footerSections = [] } = useQuery<FooterSection[]>({
+    queryKey: ['/api/public/website-layout/footer-sections', organizationSlug],
+  });
+
+  const companyName = settings?.footerCompanyName || "Pro Field Manager";
+  const companyDescription = settings?.footerCompanyDescription || "Professional field service management software designed to streamline your operations and grow your business.";
+  const address = settings?.footerAddress || "123 Business Ave, Suite 100, Austin, TX 78701";
+  const phone = settings?.footerPhone || "(555) 123-4567";
+  const email = settings?.footerEmail || "sales@profieldmanager.com";
+  const copyright = settings?.footerCopyright || "Pro Field Manager. All rights reserved.";
+
+  const activeSocialLinks = socialLinks.filter(link => link.isActive);
+  const activeSections = footerSections.filter(section => section.isActive);
 
   return (
     <footer className="bg-slate-900 dark:bg-slate-950 text-white" data-testid="public-page-footer">
@@ -12,115 +77,98 @@ export function PublicPageFooter() {
           <div data-testid="footer-section-company">
             <div className="flex items-center gap-2 mb-4">
               <Building2 className="h-8 w-8 text-blue-500" />
-              <span className="text-xl font-bold">Pro Field Manager</span>
+              <span className="text-xl font-bold">{companyName}</span>
             </div>
             <p className="text-gray-400 mb-4">
-              Professional field service management software designed to streamline your operations and grow your business.
+              {companyDescription}
             </p>
-            <div className="flex gap-4">
-              <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-blue-500 transition-colors" aria-label="Facebook" data-testid="link-social-facebook">
-                <Facebook className="h-5 w-5" />
-              </a>
-              <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-blue-400 transition-colors" aria-label="Twitter" data-testid="link-social-twitter">
-                <Twitter className="h-5 w-5" />
-              </a>
-              <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-blue-600 transition-colors" aria-label="LinkedIn" data-testid="link-social-linkedin">
-                <Linkedin className="h-5 w-5" />
-              </a>
-              <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-pink-500 transition-colors" aria-label="Instagram" data-testid="link-social-instagram">
-                <Instagram className="h-5 w-5" />
-              </a>
-            </div>
+            {activeSocialLinks.length > 0 && (
+              <div className="flex gap-4">
+                {activeSocialLinks.map((link) => {
+                  const Icon = socialIcons[link.platform.toLowerCase()] || Building2;
+                  return (
+                    <a
+                      key={link.id}
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-gray-400 hover:text-blue-500 transition-colors"
+                      aria-label={link.label}
+                      data-testid={`link-social-${link.platform.toLowerCase()}`}
+                    >
+                      <Icon className="h-5 w-5" />
+                    </a>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
-          {/* Quick Links */}
-          <div data-testid="footer-section-links">
-            <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
-            <ul className="space-y-2">
-              <li>
-                <Link href="/" className="text-gray-400 hover:text-white transition-colors" data-testid="footer-link-home">
-                  Home
-                </Link>
-              </li>
-              <li>
-                <Link href="/features" className="text-gray-400 hover:text-white transition-colors" data-testid="footer-link-features">
-                  Features
-                </Link>
-              </li>
-              <li>
-                <Link href="/features#pricing" className="text-gray-400 hover:text-white transition-colors" data-testid="footer-link-pricing">
-                  Pricing
-                </Link>
-              </li>
-              <li>
-                <Link href="/demo-signup" className="text-gray-400 hover:text-white transition-colors" data-testid="footer-link-demo">
-                  Free Demo
-                </Link>
-              </li>
-              <li>
-                <Link href="/login" className="text-gray-400 hover:text-white transition-colors" data-testid="footer-link-login">
-                  Login
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          {/* Services */}
-          <div data-testid="footer-section-services">
-            <h3 className="text-lg font-semibold mb-4">Services</h3>
-            <ul className="space-y-2">
-              <li>
-                <Link href="/services/general-contractors" className="text-gray-400 hover:text-white transition-colors" data-testid="footer-link-contractors">
-                  General Contractors
-                </Link>
-              </li>
-              <li>
-                <Link href="/services/electricians" className="text-gray-400 hover:text-white transition-colors" data-testid="footer-link-electricians">
-                  Electricians
-                </Link>
-              </li>
-              <li>
-                <Link href="/services/plumbers" className="text-gray-400 hover:text-white transition-colors" data-testid="footer-link-plumbers">
-                  Plumbers
-                </Link>
-              </li>
-              <li>
-                <Link href="/services/hvac" className="text-gray-400 hover:text-white transition-colors" data-testid="footer-link-hvac">
-                  HVAC Technicians
-                </Link>
-              </li>
-              <li>
-                <Link href="/services/construction" className="text-gray-400 hover:text-white transition-colors" data-testid="footer-link-construction">
-                  Construction
-                </Link>
-              </li>
-            </ul>
-          </div>
+          {/* Dynamic Footer Sections */}
+          {activeSections.map((section) => {
+            const activeLinks = (section.links || []).filter(link => link.isActive);
+            if (activeLinks.length === 0) return null;
+            
+            return (
+              <div key={section.id} data-testid={`footer-section-${section.key}`}>
+                <h3 className="text-lg font-semibold mb-4">{section.title}</h3>
+                <ul className="space-y-2">
+                  {activeLinks.map((link) => (
+                    <li key={link.id}>
+                      {link.isExternal ? (
+                        <a
+                          href={link.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-gray-400 hover:text-white transition-colors"
+                          data-testid={`footer-link-${link.label.toLowerCase().replace(/\s+/g, '-')}`}
+                        >
+                          {link.label}
+                        </a>
+                      ) : (
+                        <Link
+                          href={link.href}
+                          className="text-gray-400 hover:text-white transition-colors"
+                          data-testid={`footer-link-${link.label.toLowerCase().replace(/\s+/g, '-')}`}
+                        >
+                          {link.label}
+                        </Link>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })}
 
           {/* Contact Info */}
           <div data-testid="footer-section-contact">
             <h3 className="text-lg font-semibold mb-4">Contact Us</h3>
             <ul className="space-y-3">
-              <li className="flex items-start gap-2">
-                <MapPin className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
-                <span className="text-gray-400">
-                  123 Business Ave<br />
-                  Suite 100<br />
-                  Austin, TX 78701
-                </span>
-              </li>
-              <li className="flex items-center gap-2">
-                <Phone className="h-5 w-5 text-blue-500 flex-shrink-0" />
-                <a href="tel:+1-555-123-4567" className="text-gray-400 hover:text-white transition-colors" data-testid="footer-link-phone">
-                  (555) 123-4567
-                </a>
-              </li>
-              <li className="flex items-center gap-2">
-                <Mail className="h-5 w-5 text-blue-500 flex-shrink-0" />
-                <a href="mailto:sales@profieldmanager.com" className="text-gray-400 hover:text-white transition-colors" data-testid="footer-link-email">
-                  sales@profieldmanager.com
-                </a>
-              </li>
+              {address && (
+                <li className="flex items-start gap-2">
+                  <MapPin className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                  <span className="text-gray-400" style={{ whiteSpace: 'pre-line' }}>
+                    {address}
+                  </span>
+                </li>
+              )}
+              {phone && (
+                <li className="flex items-center gap-2">
+                  <Phone className="h-5 w-5 text-blue-500 flex-shrink-0" />
+                  <a href={`tel:${phone.replace(/[^0-9+]/g, '')}`} className="text-gray-400 hover:text-white transition-colors" data-testid="footer-link-phone">
+                    {phone}
+                  </a>
+                </li>
+              )}
+              {email && (
+                <li className="flex items-center gap-2">
+                  <Mail className="h-5 w-5 text-blue-500 flex-shrink-0" />
+                  <a href={`mailto:${email}`} className="text-gray-400 hover:text-white transition-colors" data-testid="footer-link-email">
+                    {email}
+                  </a>
+                </li>
+              )}
             </ul>
           </div>
         </div>
@@ -128,7 +176,7 @@ export function PublicPageFooter() {
         {/* Bottom Bar */}
         <div className="border-t border-gray-800 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-gray-400 text-sm" data-testid="text-copyright">
-            © {currentYear} Pro Field Manager. All rights reserved.
+            © {currentYear} {copyright}
           </p>
           <div className="flex gap-6 text-sm">
             <a href="/privacy" className="text-gray-400 hover:text-white transition-colors" data-testid="footer-link-privacy">
