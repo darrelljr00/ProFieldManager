@@ -23,8 +23,7 @@ export default function Quotes() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("all");
-  const [activeTab, setActiveTab] = useState("jobs");
-  const [jobsSubTab, setJobsSubTab] = useState("quotes");
+  const [activeTab, setActiveTab] = useState("quotes");
   const [isServiceDialogOpen, setIsServiceDialogOpen] = useState(false);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [serviceName, setServiceName] = useState("");
@@ -234,9 +233,9 @@ export default function Quotes() {
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Jobs</h1>
+          <h1 className="text-3xl font-bold">Quotes</h1>
           <p className="text-muted-foreground">
-            Manage your quotes and services
+            Create and manage your quotes
           </p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -256,10 +255,10 @@ export default function Quotes() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="jobs" className="flex items-center gap-2 relative" data-testid="tab-jobs">
-            <Briefcase className="h-4 w-4" />
-            Jobs
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="quotes" className="flex items-center gap-2 relative" data-testid="tab-quotes">
+            <FileText className="h-4 w-4" />
+            Quotes ({quotes.length})
             {pendingApprovalsCount > 0 && (
               <Badge 
                 variant="destructive" 
@@ -270,27 +269,17 @@ export default function Quotes() {
               </Badge>
             )}
           </TabsTrigger>
+          <TabsTrigger value="jobs" className="flex items-center gap-2" data-testid="tab-jobs">
+            <Briefcase className="h-4 w-4" />
+            Jobs
+          </TabsTrigger>
           <TabsTrigger value="trash" className="flex items-center gap-2" data-testid="tab-trash">
             <Trash2 className="h-4 w-4" />
             Trash ({trashedQuotes.length})
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="jobs" className="space-y-6 mt-6">
-          {/* Nested tabs for Jobs category */}
-          <Tabs value={jobsSubTab} onValueChange={setJobsSubTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="quotes" className="flex items-center gap-2" data-testid="subtab-quotes">
-                <FileText className="h-4 w-4" />
-                Quotes ({quotes.length})
-              </TabsTrigger>
-              <TabsTrigger value="services" className="flex items-center gap-2" data-testid="subtab-services">
-                <Wrench className="h-4 w-4" />
-                Services
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="quotes" className="space-y-6 mt-6">
+        <TabsContent value="quotes" className="space-y-6 mt-6">
 
       {/* Search and Filter Controls */}
       <Card>
@@ -454,9 +443,9 @@ export default function Quotes() {
 
           {/* Quotes Table */}
           <QuotesTable quotes={filteredQuotes} isLoading={isLoading} />
-            </TabsContent>
+        </TabsContent>
 
-            <TabsContent value="services" className="space-y-6 mt-6">
+        <TabsContent value="jobs" className="space-y-6 mt-6">
           {/* Services Content */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
@@ -697,8 +686,6 @@ export default function Quotes() {
               )}
             </CardContent>
           </Card>
-            </TabsContent>
-          </Tabs>
         </TabsContent>
 
         <TabsContent value="trash" className="space-y-6 mt-6">
