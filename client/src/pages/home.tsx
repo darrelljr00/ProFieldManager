@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import { Link } from "wouter";
 import { useHeroSlides } from "@/hooks/useHeroSlides";
+import { ContactUsBar } from "@/components/ContactUsBar";
+import { PublicPageFooter } from "@/components/PublicPageFooter";
 
 const serviceTypes = [
   { icon: Wrench, name: "General Contractors", color: "text-blue-600 dark:text-blue-400", path: "/services/general-contractors" },
@@ -543,6 +545,12 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Contact Us Bar */}
+      <ContactUsBar />
+
+      {/* Footer */}
+      <PublicPageFooter />
     </div>
   );
 }

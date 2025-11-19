@@ -25,6 +25,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { SubscriptionPlanSelector } from "@/components/subscription-plan-selector";
 import { Link } from "wouter";
 import { useHeroSlides } from "@/hooks/useHeroSlides";
+import { ContactUsBar } from "@/components/ContactUsBar";
+import { PublicPageFooter } from "@/components/PublicPageFooter";
 
 const subscriptionPlans = [
   {
@@ -1001,6 +1003,12 @@ export default function FeaturesPage() {
           </div>
         </div>
       </div>
+
+      {/* Contact Us Bar */}
+      <ContactUsBar />
+
+      {/* Footer */}
+      <PublicPageFooter />
     </div>
   );
 }

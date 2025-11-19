@@ -234,12 +234,6 @@ export default function ServiceTechsPage() {
           </p>
         </div>
       </section>
-
-      {/* Contact Us Bar */}
-      <ContactUsBar />
-
-      {/* Footer */}
-      <PublicPageFooter />
     </div>
   );
 }

@@ -18,6 +18,8 @@ import {
   DialogTrigger 
 } from "@/components/ui/dialog";
 import { Eye, EyeOff, Lock, User, UserPlus, AlertCircle, MapPin } from "lucide-react";
+import { ContactUsBar } from "@/components/ContactUsBar";
+import { PublicPageFooter } from "@/components/PublicPageFooter";
 
 interface LoginData {
   username: string;
@@ -730,6 +732,12 @@ export default function LoginPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Contact Us Bar */}
+      <ContactUsBar />
+
+      {/* Footer */}
+      <PublicPageFooter />
     </div>
   );
 }

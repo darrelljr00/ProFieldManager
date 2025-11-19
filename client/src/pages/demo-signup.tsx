@@ -13,6 +13,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Eye, EyeOff, Rocket, CheckCircle, Building2, Users, TrendingUp, Clock, Shield, Star, ChevronLeft, ChevronRight } from "lucide-react";
+import { ContactUsBar } from "@/components/ContactUsBar";
+import { PublicPageFooter } from "@/components/PublicPageFooter";
 
 const demoSignupSchema = registerSchema.extend({
   organizationName: z.string().min(1, "Business name is required"),
@@ -616,6 +618,12 @@ export default function DemoSignupPage() {
           </div>
         </div>
       </div>
+
+      {/* Contact Us Bar */}
+      <ContactUsBar />
+
+      {/* Footer */}
+      <PublicPageFooter />
     </div>
   );
 }

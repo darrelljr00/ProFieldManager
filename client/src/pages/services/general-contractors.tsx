@@ -4,6 +4,8 @@ import { CheckCircle, ArrowRight, Phone, Wrench, Calendar, DollarSign, Users, Ma
 import { Link } from "wouter";
 import { SEOHead } from "@/components/seo-head";
 import { PublicPageHeader } from "@/components/PublicPageHeader";
+import { ContactUsBar } from "@/components/ContactUsBar";
+import { PublicPageFooter } from "@/components/PublicPageFooter";
 
 export default function GeneralContractorsPage() {
   return (
@@ -165,6 +167,12 @@ export default function GeneralContractorsPage() {
           <p className="mt-6 text-blue-200">No credit card required • Setup in minutes • Cancel anytime</p>
         </div>
       </section>
+
+      {/* Contact Us Bar */}
+      <ContactUsBar />
+
+      {/* Footer */}
+      <PublicPageFooter />
     </div>
   );
 }

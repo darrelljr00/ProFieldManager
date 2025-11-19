@@ -167,12 +167,6 @@ export default function HVACPage() {
           <p className="mt-6 text-green-200">No credit card required • Setup in minutes • Cancel anytime</p>
         </div>
       </section>
-
-      {/* Contact Us Bar */}
-      <ContactUsBar />
-
-      {/* Footer */}
-      <PublicPageFooter />
     </div>
   );
 }

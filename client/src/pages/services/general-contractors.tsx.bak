@@ -1,33 +1,33 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { CheckCircle, ArrowRight, Phone, Droplets, Calendar, DollarSign, Users, MapPin } from "lucide-react";
+import { CheckCircle, ArrowRight, Phone, Wrench, Calendar, DollarSign, Users, MapPin } from "lucide-react";
 import { Link } from "wouter";
 import { SEOHead } from "@/components/seo-head";
 import { PublicPageHeader } from "@/components/PublicPageHeader";
 import { ContactUsBar } from "@/components/ContactUsBar";
 import { PublicPageFooter } from "@/components/PublicPageFooter";
 
-export default function PlumbersPage() {
+export default function GeneralContractorsPage() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       <PublicPageHeader />
       <SEOHead 
-        title="Plumbing Business Software - Pro Field Manager"
-        description="Manage your plumbing business efficiently with Pro Field Manager. Emergency dispatch, customer history, mobile invoicing, maintenance scheduling, and route optimization."
-        ogTitle="Field Service Management for Plumbers"
-        ogDescription="Professional software for plumbing businesses. Handle emergency calls, scheduled maintenance, and installations with powerful field service tools."
+        title="General Contractors Software - Pro Field Manager"
+        description="Streamline construction projects with Pro Field Manager. Manage crews, track costs, schedule jobs, and deliver exceptional results with our comprehensive platform for general contractors."
+        ogTitle="Field Service Management for General Contractors"
+        ogDescription="Professional software for general contractors to manage projects, crews, invoicing, and customer communication all in one powerful platform."
       />
       
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-blue-500 to-blue-600 dark:from-blue-700 dark:to-blue-800 text-white py-20 pt-32">
+      <section className="bg-gradient-to-br from-blue-600 to-blue-700 dark:from-blue-800 dark:to-blue-900 text-white py-20 pt-32">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
-            <Droplets className="h-16 w-16 mx-auto mb-6" />
+            <Wrench className="h-16 w-16 mx-auto mb-6" />
             <h1 className="text-5xl font-bold mb-6">
-              Field Service Management for Plumbers
+              Field Service Management for General Contractors
             </h1>
             <p className="text-xl text-blue-100 dark:text-blue-200 mb-8">
-              Handle emergency calls, scheduled maintenance, and installations seamlessly. Manage your plumbing business with tools built for field service professionals.
+              Streamline your construction projects, manage crews efficiently, and deliver exceptional results with our comprehensive platform built specifically for general contractors.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button size="lg" className="bg-white text-blue-600 hover:bg-blue-50 dark:bg-slate-100 dark:text-blue-700 dark:hover:bg-slate-200 px-8 py-6 text-lg" asChild data-testid="button-hero-start-trial">
@@ -52,60 +52,50 @@ export default function PlumbersPage() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-slate-900 dark:text-white mb-4">
-              Plumbing Business Management Made Simple
+              Everything You Need to Manage Construction Projects
             </h2>
             <p className="text-xl text-slate-600 dark:text-slate-300 max-w-3xl mx-auto">
-              From burst pipes to new installations, manage every plumbing job efficiently with our comprehensive platform.
+              From project scheduling to crew management, invoicing to customer communication - all in one powerful platform.
             </p>
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <Card data-testid="card-emergency-dispatch">
+            <Card data-testid="card-project-scheduling">
               <CardContent className="p-6">
                 <Calendar className="h-12 w-12 text-blue-600 mb-4" />
-                <h3 className="text-xl font-semibold mb-3">Emergency Dispatch</h3>
+                <h3 className="text-xl font-semibold mb-3">Project Scheduling</h3>
                 <p className="text-slate-600 dark:text-slate-400">
-                  Quickly assign urgent service calls to the nearest available plumber with real-time GPS tracking and smart routing.
+                  Drag-and-drop calendar with crew assignments, material tracking, and automated reminders for milestones.
                 </p>
               </CardContent>
             </Card>
 
-            <Card data-testid="card-customer-history">
+            <Card data-testid="card-crew-management">
               <CardContent className="p-6">
                 <Users className="h-12 w-12 text-blue-600 mb-4" />
-                <h3 className="text-xl font-semibold mb-3">Customer History</h3>
+                <h3 className="text-xl font-semibold mb-3">Crew Management</h3>
                 <p className="text-slate-600 dark:text-slate-400">
-                  Access complete service history, previous work orders, and customer preferences before arriving on-site.
+                  Track crew locations, hours worked, and productivity with GPS tracking and mobile time clock integration.
                 </p>
               </CardContent>
             </Card>
 
-            <Card data-testid="card-mobile-invoicing">
+            <Card data-testid="card-job-costing">
               <CardContent className="p-6">
                 <DollarSign className="h-12 w-12 text-blue-600 mb-4" />
-                <h3 className="text-xl font-semibold mb-3">Mobile Invoicing</h3>
+                <h3 className="text-xl font-semibold mb-3">Job Costing</h3>
                 <p className="text-slate-600 dark:text-slate-400">
-                  Create and send professional invoices from your phone, collect payments on-site, and get paid faster.
+                  Real-time labor and material cost tracking to ensure projects stay profitable and within budget.
                 </p>
               </CardContent>
             </Card>
 
-            <Card data-testid="card-photo-documentation">
-              <CardContent className="p-6">
-                <Phone className="h-12 w-12 text-blue-600 mb-4" />
-                <h3 className="text-xl font-semibold mb-3">Photo Documentation</h3>
-                <p className="text-slate-600 dark:text-slate-400">
-                  Capture before/after photos, document issues, and share updates with customers instantly from mobile devices.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card data-testid="card-maintenance-scheduling">
+            <Card data-testid="card-professional-invoicing">
               <CardContent className="p-6">
                 <CheckCircle className="h-12 w-12 text-blue-600 mb-4" />
-                <h3 className="text-xl font-semibold mb-3">Maintenance Scheduling</h3>
+                <h3 className="text-xl font-semibold mb-3">Professional Invoicing</h3>
                 <p className="text-slate-600 dark:text-slate-400">
-                  Set up recurring service appointments for water heaters, backflow testing, and routine maintenance checks.
+                  Generate detailed invoices with progress billing, customizable templates, and automated payment reminders.
                 </p>
               </CardContent>
             </Card>
@@ -115,7 +105,17 @@ export default function PlumbersPage() {
                 <MapPin className="h-12 w-12 text-blue-600 mb-4" />
                 <h3 className="text-xl font-semibold mb-3">Route Optimization</h3>
                 <p className="text-slate-600 dark:text-slate-400">
-                  Minimize drive time between jobs with intelligent routing that considers traffic, job priority, and technician location.
+                  Smart routing between job sites to reduce travel time, fuel costs, and improve daily efficiency.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card data-testid="card-mobile-apps">
+              <CardContent className="p-6">
+                <Phone className="h-12 w-12 text-blue-600 mb-4" />
+                <h3 className="text-xl font-semibold mb-3">Mobile Apps</h3>
+                <p className="text-slate-600 dark:text-slate-400">
+                  Field crews can access schedules, capture photos, get customer signatures, and update job status on-site.
                 </p>
               </CardContent>
             </Card>
@@ -128,16 +128,16 @@ export default function PlumbersPage() {
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto">
             <h2 className="text-4xl font-bold text-slate-900 dark:text-white mb-8 text-center">
-              Why Plumbers Choose Pro Field Manager
+              Why General Contractors Choose Pro Field Manager
             </h2>
             <div className="space-y-6">
               {[
-                "Respond to emergencies faster with GPS-based dispatch and mobile alerts",
-                "Increase daily job capacity by 30% with optimized scheduling and routing",
-                "Reduce no-shows with automated SMS/email appointment reminders",
-                "Improve cash flow with mobile payments and instant digital invoicing",
-                "Build customer trust with photo documentation and transparent pricing",
-                "Track inventory and parts usage to prevent shortages and control costs"
+                "Reduce administrative time by 40% with automated scheduling and invoicing",
+                "Improve crew productivity with real-time job updates and GPS tracking",
+                "Get paid faster with professional invoices and online payment options",
+                "Track project profitability with detailed cost breakdowns and reports",
+                "Enhance customer satisfaction with real-time updates and professional communication",
+                "Scale your business without adding administrative overhead"
               ].map((benefit, index) => (
                 <div key={index} className="flex items-start gap-4" data-testid={`benefit-${index}`}>
                   <CheckCircle className="h-6 w-6 text-green-600 flex-shrink-0 mt-1" />
@@ -153,10 +153,10 @@ export default function PlumbersPage() {
       <section className="py-20 bg-blue-600 dark:bg-blue-700 text-white">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-4xl font-bold mb-6">
-            Ready to Fix Your Business Operations?
+            Ready to Streamline Your Construction Business?
           </h2>
           <p className="text-xl text-blue-100 mb-8 max-w-3xl mx-auto">
-            Join plumbing professionals using Pro Field Manager to handle more jobs, improve service quality, and grow revenue.
+            Join hundreds of general contractors using Pro Field Manager to manage projects more efficiently and grow their business.
           </p>
           <Button size="lg" className="bg-white text-blue-600 hover:bg-blue-50 px-12 py-6 text-lg" asChild data-testid="button-start-trial">
             <Link href="/demo-signup">
@@ -167,12 +167,6 @@ export default function PlumbersPage() {
           <p className="mt-6 text-blue-200">No credit card required • Setup in minutes • Cancel anytime</p>
         </div>
       </section>
-
-      {/* Contact Us Bar */}
-      <ContactUsBar />
-
-      {/* Footer */}
-      <PublicPageFooter />
     </div>
   );
 }

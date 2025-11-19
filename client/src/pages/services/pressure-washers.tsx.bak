@@ -204,12 +204,6 @@ export default function PressureWashersPage() {
           </p>
         </div>
       </section>
-
-      {/* Contact Us Bar */}
-      <ContactUsBar />
-
-      {/* Footer */}
-      <PublicPageFooter />
     </div>
   );
 }
