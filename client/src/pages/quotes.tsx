@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { QuoteForm } from "@/components/quote-form";
 import { QuotesTable } from "@/components/quotes-table";
 import { TrashedQuotesTable } from "@/components/trashed-quotes-table";
-import { Plus, FileText, TrendingUp, Clock, CheckCircle, Search, Filter, Trash2, Wrench, Edit, DollarSign, X } from "lucide-react";
+import { Plus, FileText, TrendingUp, Clock, CheckCircle, Search, Filter, Trash2, Wrench, Edit, DollarSign, X, Briefcase } from "lucide-react";
 import type { Quote, Customer, QuoteLineItem, Service } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -23,7 +23,8 @@ export default function Quotes() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("all");
-  const [activeTab, setActiveTab] = useState("active");
+  const [activeTab, setActiveTab] = useState("jobs");
+  const [jobsSubTab, setJobsSubTab] = useState("quotes");
   const [isServiceDialogOpen, setIsServiceDialogOpen] = useState(false);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [serviceName, setServiceName] = useState("");
@@ -255,10 +256,10 @@ export default function Quotes() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="active" className="flex items-center gap-2 relative">
-            <FileText className="h-4 w-4" />
-            Active Quotes ({quotes.length})
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="jobs" className="flex items-center gap-2 relative" data-testid="tab-jobs">
+            <Briefcase className="h-4 w-4" />
+            Jobs
             {pendingApprovalsCount > 0 && (
               <Badge 
                 variant="destructive" 
@@ -269,17 +270,27 @@ export default function Quotes() {
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="services" className="flex items-center gap-2">
-            <Wrench className="h-4 w-4" />
-            Services
-          </TabsTrigger>
-          <TabsTrigger value="trash" className="flex items-center gap-2">
+          <TabsTrigger value="trash" className="flex items-center gap-2" data-testid="tab-trash">
             <Trash2 className="h-4 w-4" />
             Trash ({trashedQuotes.length})
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="active" className="space-y-6 mt-6">
+        <TabsContent value="jobs" className="space-y-6 mt-6">
+          {/* Nested tabs for Jobs category */}
+          <Tabs value={jobsSubTab} onValueChange={setJobsSubTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="quotes" className="flex items-center gap-2" data-testid="subtab-quotes">
+                <FileText className="h-4 w-4" />
+                Quotes ({quotes.length})
+              </TabsTrigger>
+              <TabsTrigger value="services" className="flex items-center gap-2" data-testid="subtab-services">
+                <Wrench className="h-4 w-4" />
+                Services
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="quotes" className="space-y-6 mt-6">
 
       {/* Search and Filter Controls */}
       <Card>
@@ -443,9 +454,9 @@ export default function Quotes() {
 
           {/* Quotes Table */}
           <QuotesTable quotes={filteredQuotes} isLoading={isLoading} />
-        </TabsContent>
+            </TabsContent>
 
-        <TabsContent value="services" className="space-y-6 mt-6">
+            <TabsContent value="services" className="space-y-6 mt-6">
           {/* Services Content */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
@@ -686,6 +697,8 @@ export default function Quotes() {
               )}
             </CardContent>
           </Card>
+            </TabsContent>
+          </Tabs>
         </TabsContent>
 
         <TabsContent value="trash" className="space-y-6 mt-6">
