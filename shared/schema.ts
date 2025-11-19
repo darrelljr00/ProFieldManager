@@ -2968,6 +2968,69 @@ export const frontendBoxes = pgTable("frontend_boxes", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Website Layout Settings - Headers and Footers CMS
+export const websiteLayoutSettings = pgTable("website_layout_settings", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id).unique(),
+  
+  // Contact Bar Settings
+  contactBarTitle: text("contact_bar_title").default("Ready to Transform Your Field Service Business?"),
+  contactBarSubtitle: text("contact_bar_subtitle").default("Get started with a free demo or speak with our team"),
+  contactBarPhone: text("contact_bar_phone").default("(555) 123-4567"),
+  contactBarEmail: text("contact_bar_email").default("sales@profieldmanager.com"),
+  contactBarButtonText: text("contact_bar_button_text").default("Start Free Demo"),
+  contactBarButtonLink: text("contact_bar_button_link").default("/demo-signup"),
+  contactBarBackgroundColor: text("contact_bar_background_color").default("#2563eb"),
+  
+  // Footer Company Info
+  footerCompanyName: text("footer_company_name").default("Pro Field Manager"),
+  footerCompanyDescription: text("footer_company_description").default("Professional field service management software designed to streamline your operations and grow your business."),
+  footerAddress: text("footer_address").default("123 Business Ave, Suite 100, Austin, TX 78701"),
+  footerPhone: text("footer_phone").default("(555) 123-4567"),
+  footerEmail: text("footer_email").default("sales@profieldmanager.com"),
+  footerCopyright: text("footer_copyright").default("Pro Field Manager. All rights reserved."),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const websiteSocialLinks = pgTable("website_social_links", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  platform: text("platform").notNull(), // facebook, twitter, linkedin, instagram, youtube
+  label: text("label").notNull(),
+  url: text("url").notNull(),
+  iconName: text("icon_name"), // lucide icon name
+  sortOrder: integer("sort_order").default(0),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const websiteFooterSections = pgTable("website_footer_sections", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  key: text("key").notNull(), // quick-links, services, contact, etc
+  title: text("title").notNull(),
+  description: text("description"),
+  sortOrder: integer("sort_order").default(0),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const websiteFooterLinks = pgTable("website_footer_links", {
+  id: serial("id").primaryKey(),
+  sectionId: integer("section_id").notNull().references(() => websiteFooterSections.id),
+  label: text("label").notNull(),
+  href: text("href").notNull(),
+  isExternal: boolean("is_external").default(false),
+  sortOrder: integer("sort_order").default(0),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Call Manager System - Phone Number Provisioning and Call Management
 export const phoneNumbers = pgTable("phone_numbers", {
   id: serial("id").primaryKey(),
@@ -3464,6 +3527,46 @@ export const insertFrontendBoxSchema = createInsertSchema(frontendBoxes, {
   updatedAt: true,
 });
 
+// Website Layout Insert Schemas
+export const insertWebsiteLayoutSettingsSchema = createInsertSchema(websiteLayoutSettings, {
+  organizationId: z.number(),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertWebsiteSocialLinkSchema = createInsertSchema(websiteSocialLinks, {
+  platform: z.string().min(1, "Platform is required"),
+  label: z.string().min(1, "Label is required"),
+  url: z.string().url("Must be a valid URL"),
+  organizationId: z.number(),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertWebsiteFooterSectionSchema = createInsertSchema(websiteFooterSections, {
+  key: z.string().min(1, "Key is required"),
+  title: z.string().min(1, "Title is required"),
+  organizationId: z.number(),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertWebsiteFooterLinkSchema = createInsertSchema(websiteFooterLinks, {
+  sectionId: z.number(),
+  label: z.string().min(1, "Label is required"),
+  href: z.string().min(1, "Link is required"),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Tutorial System Insert Schemas
 export const insertTutorialSchema = createInsertSchema(tutorials).omit({
   id: true,
@@ -3496,6 +3599,16 @@ export type FrontendIcon = typeof frontendIcons.$inferSelect;
 export type InsertFrontendIcon = z.infer<typeof insertFrontendIconSchema>;
 export type FrontendBox = typeof frontendBoxes.$inferSelect;
 export type InsertFrontendBox = z.infer<typeof insertFrontendBoxSchema>;
+
+// Website Layout Types
+export type WebsiteLayoutSettings = typeof websiteLayoutSettings.$inferSelect;
+export type InsertWebsiteLayoutSettings = z.infer<typeof insertWebsiteLayoutSettingsSchema>;
+export type WebsiteSocialLink = typeof websiteSocialLinks.$inferSelect;
+export type InsertWebsiteSocialLink = z.infer<typeof insertWebsiteSocialLinkSchema>;
+export type WebsiteFooterSection = typeof websiteFooterSections.$inferSelect;
+export type InsertWebsiteFooterSection = z.infer<typeof insertWebsiteFooterSectionSchema>;
+export type WebsiteFooterLink = typeof websiteFooterLinks.$inferSelect;
+export type InsertWebsiteFooterLink = z.infer<typeof insertWebsiteFooterLinkSchema>;
 
 // Tutorial System Types
 export type Tutorial = typeof tutorials.$inferSelect;
