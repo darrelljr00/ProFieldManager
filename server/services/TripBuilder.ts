@@ -209,6 +209,22 @@ export class TripBuilder {
         distance >= this.TRIP_START_MIN_DISTANCE_MILES &&
         speed >= this.TRIP_START_SPEED_MPH
       ) {
+        const existingTrip = await db
+          .select()
+          .from(obdTrips)
+          .where(
+            and(
+              eq(obdTrips.vehicleId, vehicleId),
+              eq(obdTrips.startTime, new Date(ping1.timestamp))
+            )
+          )
+          .limit(1);
+
+        if (existingTrip.length > 0) {
+          console.log(`⏭️  Skipping duplicate trip for vehicle ${vehicleId}`);
+          return;
+        }
+
         await db.insert(obdTrips).values({
           organizationId,
           vehicleId,
