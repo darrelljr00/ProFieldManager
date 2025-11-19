@@ -12797,6 +12797,95 @@ ${fromName || ''}
       res.json({
         view,
         dateRange: { startDate, endDate },
+      // Calculate daily fuel costs (per 24-hour period)
+      const dailyFuelCostsMap = new Map<string, { date: string; gpsFuelCost: number; manualFuelCost: number; }>();
+      
+      // Initialize all dates in range with zero costs
+      const currentDate = new Date(startDate);
+      while (currentDate <= endDate) {
+        const dateKey = currentDate.toISOString().split('T')[0];
+        dailyFuelCostsMap.set(dateKey, { date: dateKey, gpsFuelCost: 0, manualFuelCost: 0 });
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+      
+      // Aggregate GPS fuel costs by day
+      obdFuelData.forEach((fuelReading: any) => {
+        const readingDate = new Date(fuelReading.timestamp).toISOString().split('T')[0];
+        if (dailyFuelCostsMap.has(readingDate)) {
+          // This is simplified - in production you'd calculate actual fuel consumption per day
+          // For now, we'll distribute total GPS fuel cost evenly across days with readings
+        }
+      });
+      
+      // Distribute GPS fuel costs across days proportionally
+      const totalGpsFuel = jobProfitData.reduce((s, j) => s + (j.costs.gpsFuel || 0), 0);
+      const daysWithGpsData = obdFuelData.length > 0 ? Math.max(1, Math.floor((endDate.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000))) : 0;
+      if (daysWithGpsData > 0) {
+        const avgDailyGpsFuel = totalGpsFuel / daysWithGpsData;
+        dailyFuelCostsMap.forEach((day) => {
+          day.gpsFuelCost = avgDailyGpsFuel;
+        });
+      }
+      
+      // Aggregate manual fuel expenses by day
+      allExpenses
+        .filter((e: any) => ['fuel', 'gas', 'gasoline', 'diesel'].includes(e.category?.toLowerCase()))
+        .forEach((expense: any) => {
+          const expenseDate = new Date(expense.expenseDate).toISOString().split('T')[0];
+          if (dailyFuelCostsMap.has(expenseDate)) {
+            dailyFuelCostsMap.get(expenseDate)!.manualFuelCost += parseFloat(expense.amount || '0');
+          }
+        });
+      
+      const dailyFuelCosts = Array.from(dailyFuelCostsMap.values()).map(day => ({
+        date: day.date,
+        gpsFuelCost: day.gpsFuelCost,
+        manualFuelCost: day.manualFuelCost,
+        totalFuelCost: day.gpsFuelCost + day.manualFuelCost,
+      }));
+      
+      // Calculate per-vehicle fuel costs
+      const vehicleFuelCostsMap = new Map<number, { vehicleId: number; vehicleName: string; gpsFuelCost: number; manualFuelCost: number; }>();
+      
+      // Get all vehicles
+      const allVehiclesData = await db.select().from(vehicles).where(eq(vehicles.organizationId, organizationId));
+      
+      // Initialize vehicle fuel costs
+      allVehiclesData.forEach((vehicle: any) => {
+        vehicleFuelCostsMap.set(vehicle.id, {
+          vehicleId: vehicle.id,
+          vehicleName: vehicle.vehicleNumber || `Vehicle ${vehicle.id}`,
+          gpsFuelCost: 0,
+          manualFuelCost: 0,
+        });
+      });
+      
+      // Aggregate GPS fuel costs by vehicle
+      jobProfitData.forEach((job: any) => {
+        if (job.vehicleId && vehicleFuelCostsMap.has(job.vehicleId)) {
+          vehicleFuelCostsMap.get(job.vehicleId)!.gpsFuelCost += job.costs.gpsFuel || 0;
+        }
+      });
+      
+      // Aggregate manual fuel expenses by vehicle (if vehicle is linked to expense)
+      allExpenses
+        .filter((e: any) => ['fuel', 'gas', 'gasoline', 'diesel'].includes(e.category?.toLowerCase()))
+        .forEach((expense: any) => {
+          if (expense.vehicleId && vehicleFuelCostsMap.has(expense.vehicleId)) {
+            vehicleFuelCostsMap.get(expense.vehicleId)!.manualFuelCost += parseFloat(expense.amount || '0');
+          }
+        });
+      
+      const vehicleFuelCosts = Array.from(vehicleFuelCostsMap.values())
+        .filter(v => v.gpsFuelCost > 0 || v.manualFuelCost > 0) // Only include vehicles with fuel costs
+        .map(vehicle => ({
+          vehicleId: vehicle.vehicleId,
+          vehicleName: vehicle.vehicleName,
+          gpsFuelCost: vehicle.gpsFuelCost,
+          manualFuelCost: vehicle.manualFuelCost,
+          totalFuelCost: vehicle.gpsFuelCost + vehicle.manualFuelCost,
+        }));
+
         data: groupedData,
         summary: {
           totalRevenue: jobProfitData.reduce((s, j) => s + j.revenue, 0),
