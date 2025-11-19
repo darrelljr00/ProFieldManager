@@ -318,6 +318,7 @@ app.use((req, res, next) => {
       const { OneStepPoller } = await import("./services/OneStepPoller");
       const { TripBuilder } = await import("./services/TripBuilder");
       const { getAutoJobService } = await import("./autoJobService");
+      const { CustomerEtaService } = await import("./customerEtaService");
       log('✅ GPS service modules imported');
 
       const gpsPoller = new OneStepPoller();
@@ -336,10 +337,14 @@ app.use((req, res, next) => {
       autoJobService.start();
       log('✅ Auto Job Service started successfully');
 
+      CustomerEtaService.start();
+      log('✅ Customer ETA Service started successfully');
+
       log('🚗 OneStep GPS background services started');
       log('   📍 GPS Poller: Active (30-60s intervals per org)');
       log('   🛣️  Trip Builder: Active (60s intervals) - Using Google Maps Directions API for accurate road mileage');
       log('   ⚡ Auto Job Service: Active (60s intervals)');
+      log('   📲 Customer ETA Service: Active (60s intervals) - SMS notifications when technician is near');
 
       // Cleanup handlers
       process.on("SIGTERM", () => {
@@ -347,6 +352,7 @@ app.use((req, res, next) => {
         gpsPoller.stop();
         clearInterval(tripBuilderInterval);
         autoJobService.stop();
+        CustomerEtaService.stop();
       });
 
       process.on("SIGINT", () => {
@@ -354,6 +360,7 @@ app.use((req, res, next) => {
         gpsPoller.stop();
         clearInterval(tripBuilderInterval);
         autoJobService.stop();
+        CustomerEtaService.stop();
       });
     } catch (error) {
       console.error("❌ Failed to start OneStep GPS services:", error);

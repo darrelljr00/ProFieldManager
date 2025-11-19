@@ -81,6 +81,7 @@ Preferred communication style: Simple, everyday language.
 - **Job Start/Complete Tracking**: "Start Job" button with automatic time tracking and analytics integration.
 - **GPS Display Settings**: Configurable map layer (dark, light, satellite, hybrid), zoom level, and metric visibility (speed, fuel, engine temp) that apply to both GPS Tracking and GPS Analytics/Route Monitoring maps.
 - **Pro Field Sense - Phone Sensor Productivity Tracking**: Monitors technician productivity using mobile device sensors including GPS location, accelerometer for activity detection (walking, sitting, driving, stationary), screen time tracking, step counting, distance measurement, and battery status. Calculates productivity scores based on activity patterns and idle time, with visual analytics showing activity breakdowns and daily performance metrics in the Employee Performance Analytics section of Reports.
+- **Customer ETA Notifications**: Automated SMS notifications to customers when their technician is approaching the job site. Uses real-time GPS tracking combined with Google Maps Distance Matrix API to calculate accurate drive times, sends customizable SMS alerts when technician is within configured time threshold (default 15 minutes), includes live tracking links, and prevents duplicate notifications (one per job per day). Requires Twilio configuration and job GPS coordinates.
 
 ## External Dependencies
 

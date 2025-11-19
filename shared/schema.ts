@@ -4823,6 +4823,76 @@ export const vehicleJobAssignments = pgTable("vehicle_job_assignments", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Customer ETA Notification Settings - organization-level settings for customer arrival notifications
+export const customerEtaSettings = pgTable("customer_eta_settings", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id).unique(),
+  
+  // Feature toggle
+  enabled: boolean("enabled").default(false),
+  
+  // Notification timing
+  notifyMinutesBeforeArrival: integer("notify_minutes_before_arrival").default(15), // Send SMS when technician is X minutes away
+  
+  // SMS template
+  smsTemplate: text("sms_template").default("Hi {customerName}, {technicianName} from {companyName} is about 15 minutes away from your location at {address}. Track their arrival: {trackingLink}"),
+  
+  // Tracking settings
+  trackingEnabled: boolean("tracking_enabled").default(true), // Enable live technician location tracking link
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Customer ETA Notifications - tracks which notifications have been sent
+export const customerEtaNotifications = pgTable("customer_eta_notifications", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  projectId: integer("project_id").notNull().references(() => projects.id),
+  userId: integer("user_id").notNull().references(() => users.id), // Technician
+  customerId: integer("customer_id").references(() => customers.id),
+  
+  // Customer contact
+  customerPhone: text("customer_phone").notNull(),
+  customerName: text("customer_name"),
+  
+  // ETA details
+  estimatedMinutesAway: integer("estimated_minutes_away"),
+  estimatedArrivalTime: timestamp("estimated_arrival_time"),
+  technicianLatitude: text("technician_latitude"),
+  technicianLongitude: text("technician_longitude"),
+  
+  // Job location
+  jobLatitude: text("job_latitude"),
+  jobLongitude: text("job_longitude"),
+  jobAddress: text("job_address"),
+  
+  // Notification details
+  smsSent: boolean("sms_sent").default(false),
+  smsContent: text("sms_content"),
+  smsSid: text("sms_sid"), // Twilio message SID
+  smsStatus: text("sms_status"), // sent, delivered, failed
+  smsError: text("sms_error"),
+  
+  // Tracking link
+  trackingLink: text("tracking_link"),
+  
+  sentAt: timestamp("sent_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Zod schemas for customer ETA settings
+export const insertCustomerEtaSettingsSchema = createInsertSchema(customerEtaSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCustomerEtaNotificationSchema = createInsertSchema(customerEtaNotifications).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Zod schema for Vehicle Job Assignments
 export const insertVehicleJobAssignmentSchema = createInsertSchema(vehicleJobAssignments).omit({
   id: true,
@@ -4833,6 +4903,12 @@ export const insertVehicleJobAssignmentSchema = createInsertSchema(vehicleJobAss
 // Types
 export type VehicleJobAssignment = typeof vehicleJobAssignments.$inferSelect;
 export type InsertVehicleJobAssignment = z.infer<typeof insertVehicleJobAssignmentSchema>;
+
+// Customer ETA Types
+export type CustomerEtaSettings = typeof customerEtaSettings.$inferSelect;
+export type InsertCustomerEtaSettings = z.infer<typeof insertCustomerEtaSettingsSchema>;
+export type CustomerEtaNotification = typeof customerEtaNotifications.$inferSelect;
+export type InsertCustomerEtaNotification = z.infer<typeof insertCustomerEtaNotificationSchema>;
 
 // Time Clock Task Triggers Zod schemas
 export const insertTimeClockTaskTriggerSchema = createInsertSchema(timeClockTaskTriggers).omit({

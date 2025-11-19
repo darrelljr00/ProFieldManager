@@ -503,6 +503,49 @@ export default function Settings() {
     },
   });
 
+  interface CustomerEtaSettings {
+    enabled: boolean;
+    notifyMinutesBeforeArrival: number;
+    trackingEnabled: boolean;
+    smsTemplate: string;
+  }
+
+  const { data: customerEtaSettings } = useQuery<CustomerEtaSettings>({
+    queryKey: ["/api/settings/customer-eta"],
+  });
+
+  const [etaFormData, setEtaFormData] = React.useState({
+    enabled: false,
+    notifyMinutesBeforeArrival: 15,
+    trackingEnabled: true,
+    smsTemplate: "Hi {customerName}, {technicianName} from {companyName} is about {estimatedMinutes} minutes away from your location at {address}. Track their arrival: {trackingLink}"
+  });
+
+  React.useEffect(() => {
+    if (customerEtaSettings) {
+      setEtaFormData(customerEtaSettings);
+    }
+  }, [customerEtaSettings]);
+
+  const customerEtaMutation = useMutation({
+    mutationFn: (data: Partial<CustomerEtaSettings>) =>
+      apiRequest("PUT", "/api/settings/customer-eta", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/customer-eta"] });
+      toast({
+        title: "Success",
+        description: "Customer ETA settings saved successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save customer ETA settings",
+        variant: "destructive",
+      });
+    },
+  });
+
   const invoiceMutation = useMutation({
     mutationFn: (data: Partial<InvoiceSettings>) =>
       apiRequest("PUT", "/api/settings/invoice", data),
@@ -1877,6 +1920,108 @@ export default function Settings() {
                         jobTimestampMutation.mutate({ showTimestampOptions: checked });
                       }}
                     />
+                  </div>
+                </div>
+                
+                <Separator />
+                
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Customer ETA Notifications</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Automatically notify customers via SMS when their assigned technician is approaching the job site
+                  </p>
+                  
+                  <Separator />
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Enable Customer ETA SMS Alerts</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Send automated SMS to customers when technician is near their location
+                      </p>
+                    </div>
+                    <Switch 
+                      checked={etaFormData.enabled}
+                      onCheckedChange={(checked) => setEtaFormData({ ...etaFormData, enabled: checked })}
+                      data-testid="switch-customer-eta-enabled"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="etaNotifyMinutes">Send Alert When Technician Is:</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id="etaNotifyMinutes"
+                        type="number"
+                        min="5"
+                        max="60"
+                        placeholder="15"
+                        value={etaFormData.notifyMinutesBeforeArrival}
+                        onChange={(e) => setEtaFormData({ ...etaFormData, notifyMinutesBeforeArrival: parseInt(e.target.value) || 15 })}
+                        className="w-24"
+                        data-testid="input-eta-notify-minutes"
+                      />
+                      <span className="text-sm text-muted-foreground">minutes away</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Customers will receive an SMS notification when the technician is this many minutes from arrival
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="etaSmsTemplate">SMS Message Template</Label>
+                    <Textarea
+                      id="etaSmsTemplate"
+                      placeholder="Hi {customerName}, {technicianName} from {companyName} is about {estimatedMinutes} minutes away from your location at {address}. Track their arrival: {trackingLink}"
+                      value={etaFormData.smsTemplate}
+                      onChange={(e) => setEtaFormData({ ...etaFormData, smsTemplate: e.target.value })}
+                      className="min-h-[100px]"
+                      data-testid="textarea-eta-sms-template"
+                    />
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Available variables: {`{customerName}`}, {`{technicianName}`}, {`{companyName}`}, {`{address}`}, {`{estimatedMinutes}`}, {`{trackingLink}`}
+                    </p>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Include Live Tracking Link</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Add Google Maps link so customers can track technician's live location
+                      </p>
+                    </div>
+                    <Switch 
+                      checked={etaFormData.trackingEnabled}
+                      onCheckedChange={(checked) => setEtaFormData({ ...etaFormData, trackingEnabled: checked })}
+                      data-testid="switch-eta-tracking-enabled"
+                    />
+                  </div>
+                  
+                  <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                    <h4 className="font-medium text-green-900 dark:text-green-100 mb-2 flex items-center gap-2">
+                      <MessageSquare className="h-4 w-4" />
+                      How Customer ETA Notifications Work
+                    </h4>
+                    <ul className="text-sm text-green-800 dark:text-green-200 space-y-1">
+                      <li>• System monitors technician GPS location in real-time</li>
+                      <li>• Uses Google Maps to calculate accurate drive time to job site</li>
+                      <li>• Sends SMS when technician enters the configured time threshold</li>
+                      <li>• Only one notification sent per job per day</li>
+                      <li>• Requires job to have customer phone number and GPS coordinates</li>
+                      <li>• Twilio must be configured for SMS delivery</li>
+                    </ul>
+                  </div>
+                  
+                  <div className="flex justify-end">
+                    <Button 
+                      type="button"
+                      onClick={() => customerEtaMutation.mutate(etaFormData)}
+                      disabled={customerEtaMutation.isPending}
+                      data-testid="button-save-customer-eta-settings"
+                    >
+                      <Save className="h-4 w-4 mr-2" />
+                      {customerEtaMutation.isPending ? "Saving..." : "Save Customer ETA Settings"}
+                    </Button>
                   </div>
                 </div>
               </div>
