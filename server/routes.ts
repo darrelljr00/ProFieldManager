@@ -12381,6 +12381,54 @@ ${fromName || ''}
         );
       console.log("Active time clock entries:", activeTimeClockEntries?.length);
       
+      // Fetch GPS OBD fuel consumption data for the date range
+      console.log("Fetching GPS OBD fuel data...");
+      const obdFuelData = await db.select({
+        id: obdDiagnosticData.id,
+        vehicleId: obdDiagnosticData.vehicleId,
+        deviceId: obdDiagnosticData.deviceId,
+        fuelLevel: obdDiagnosticData.fuelLevel,
+        timestamp: obdDiagnosticData.timestamp,
+      })
+        .from(obdDiagnosticData)
+        .where(
+          and(
+            eq(obdDiagnosticData.organizationId, organizationId),
+            gte(obdDiagnosticData.timestamp, startDate),
+            lte(obdDiagnosticData.timestamp, endDate),
+            isNotNull(obdDiagnosticData.fuelLevel)
+          )
+        )
+        .orderBy(obdDiagnosticData.timestamp);
+      console.log("OBD fuel data points:", obdFuelData?.length);
+      
+      // Fetch GPS trips for mileage data
+      console.log("Fetching GPS trips...");
+      const obdTripsData = await db.select()
+        .from(obdTrips)
+        .where(
+          and(
+            eq(obdTrips.organizationId, organizationId),
+            gte(obdTrips.startTime, startDate),
+            lte(obdTrips.startTime, endDate),
+            eq(obdTrips.status, 'completed')
+          )
+        );
+      console.log("OBD trips count:", obdTripsData?.length);
+      
+      // Fetch vehicle maintenance records for the date range
+      console.log("Fetching vehicle maintenance records...");
+      const maintenanceRecords = await db.select()
+        .from(vehicleMaintenanceRecords)
+        .where(
+          and(
+            eq(vehicleMaintenanceRecords.organizationId, organizationId),
+            gte(vehicleMaintenanceRecords.serviceDate, startDate),
+            lte(vehicleMaintenanceRecords.serviceDate, endDate)
+          )
+        );
+      console.log("Maintenance records count:", maintenanceRecords?.length);
+      
       // Filter projects by date range
       const filteredProjects = allProjects.filter((p: any) => {
         const projectDate = new Date(p.createdAt);
@@ -12398,6 +12446,63 @@ ${fromName || ''}
         .innerJoin(users, eq(quotes.userId, users.id))
         .where(eq(users.organizationId, organizationId));
       
+      
+      // Helper: Calculate GPS fuel consumption for a vehicle within a time range
+      const calculateGpsFuelCost = (vehicleId: number | null, startTime: Date, endTime: Date) => {
+        if (!vehicleId || !obdFuelData.length) return 0;
+        
+        // Get fuel readings for this vehicle within the time range
+        const vehicleFuelData = obdFuelData.filter(
+          (d: any) => d.vehicleId === vehicleId && 
+          new Date(d.timestamp) >= startTime && 
+          new Date(d.timestamp) <= endTime
+        );
+        
+        if (vehicleFuelData.length < 2) return 0; // Need at least 2 readings
+        
+        // Calculate fuel drop (initial - final)
+        const initialFuel = parseFloat(vehicleFuelData[0].fuelLevel || '0');
+        const finalFuel = parseFloat(vehicleFuelData[vehicleFuelData.length - 1].fuelLevel || '0');
+        const fuelDropPercent = Math.max(0, initialFuel - finalFuel);
+        
+        // Assume average tank size of 20 gallons, fuel price of $3.50/gallon
+        const tankSize = 20; // gallons
+        const fuelPricePerGallon = 3.50;
+        const gallonsUsed = (fuelDropPercent / 100) * tankSize;
+        const fuelCost = gallonsUsed * fuelPricePerGallon;
+        
+        return fuelCost;
+      };
+      
+      // Helper: Calculate maintenance cost for a vehicle based on mileage
+      const calculateMaintenanceCost = (vehicleId: number | null, startTime: Date, endTime: Date) => {
+        if (!vehicleId || !maintenanceRecords.length) return 0;
+        
+        // Get maintenance records for this vehicle
+        const vehicleMaintenance = maintenanceRecords.filter(
+          (m: any) => m.vehicleId === vehicleId &&
+          new Date(m.serviceDate) >= startTime &&
+          new Date(m.serviceDate) <= endTime
+        );
+        
+        // Sum all maintenance costs for this period
+        const maintenanceCost = vehicleMaintenance.reduce(
+          (sum: number, record: any) => sum + parseFloat(record.totalCost || '0'),
+          0
+        );
+        
+        return maintenanceCost;
+      };
+      
+      // Helper: Get vehicle assignment for a project
+      const getProjectVehicle = (projectId: number) => {
+        // Try to find vehicle from project assignments or travel segments
+        const travelToJob = allTravelSegments.find((seg: any) => seg.toProjectId === projectId);
+        if (travelToJob && travelToJob.vehicleId) {
+          return travelToJob.vehicleId;
+        }
+        return null; // No vehicle assigned
+      };
       // Calculate costs per job including travel costs
       const jobProfitData = filteredProjects.map((project: any) => {
         // Calculate revenue from multiple sources (in priority order)
@@ -12484,10 +12589,21 @@ ${fromName || ''}
         }
         
         const laborCost = travelLaborCost + onsiteLaborCost; // Total labor cost (travel + on-site)
-        const fuelCost = travelFuelCost; // Travel fuel cost
+        
+        // Calculate GPS-based fuel and maintenance costs
+        const projectVehicleId = getProjectVehicle(project.id);
+        const projectStartTime = project.scheduledDate ? new Date(project.scheduledDate) : new Date(project.createdAt);
+        const projectEndTime = project.completedAt ? new Date(project.completedAt) : new Date();
+        
+        const gpsFuelCost = calculateGpsFuelCost(projectVehicleId, projectStartTime, projectEndTime);
+        const gpsMaintenanceCost = calculateMaintenanceCost(projectVehicleId, projectStartTime, projectEndTime);
+        
+        // Total fuel cost = travel fuel + GPS fuel
+        const fuelCost = travelFuelCost + gpsFuelCost;
+        const maintenanceCost = gpsMaintenanceCost;
 
-        // Total costs and profit
-        const totalExpenses = laborCost + fuelCost + materialsCost;
+        // Total costs and profit (now including GPS maintenance)
+        const totalExpenses = laborCost + fuelCost + materialsCost + maintenanceCost;
         const netProfit = revenue - totalExpenses;
         const profitMargin = revenue > 0 ? ((netProfit / revenue) * 100) : 0;
 
@@ -12503,11 +12619,15 @@ ${fromName || ''}
             labor: laborCost,
             fuel: fuelCost,
             materials: materialsCost,
+            maintenance: maintenanceCost,
             travelFuel: travelFuelCost,
+            gpsFuel: gpsFuelCost,
+            gpsMaintenance: gpsMaintenanceCost,
             travelLabor: travelLaborCost,
             onsiteLabor: onsiteLaborCost,
             onsiteHours: onsiteHours,
             total: totalExpenses
+          },
           },
           // Top-level fields for easier chart access
           onsiteLaborCost,
