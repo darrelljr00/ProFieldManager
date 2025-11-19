@@ -19,7 +19,7 @@ import {
 import { 
   TrendingUp, TrendingDown, DollarSign, Users, Target, Calculator,
   BarChart3, Download, CalendarIcon, Filter, Clock, Briefcase, CheckSquare,
-  Check, Activity, FileText, AlertTriangle
+  Check, Activity, FileText, AlertTriangle, Fuel, Wrench, Package, Receipt
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useWebSocket } from "@/hooks/useWebSocket";
@@ -2433,6 +2433,119 @@ export default function Reports() {
               </CardContent>
             </Card>
           </div>
+
+          {/* GPS vs Manual Cost Breakdown */}
+          <Card className="mt-6">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Cost Breakdown - GPS & Manual Tracking</CardTitle>
+                  <CardDescription>Detailed expense categorization with GPS tracking integration</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Fuel Costs */}
+                <div className="border rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Fuel className="h-5 w-5 text-blue-500" />
+                    <h4 className="font-semibold">Fuel Costs</h4>
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">GPS Tracked:</span>
+                      <span className="font-medium text-blue-600">
+                        ${(profitLossDetailedData?.summary?.totalGpsFuelCost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Manual:</span>
+                      <span className="font-medium">
+                        ${(profitLossDetailedData?.summary?.totalManualFuelCost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    <div className="border-t pt-2 flex justify-between font-semibold">
+                      <span>Total:</span>
+                      <span>${(profitLossDetailedData?.summary?.totalFuelCost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Maintenance Costs */}
+                <div className="border rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Wrench className="h-5 w-5 text-orange-500" />
+                    <h4 className="font-semibold">Maintenance</h4>
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">GPS Tracked:</span>
+                      <span className="font-medium text-orange-600">
+                        ${(profitLossDetailedData?.summary?.totalGpsMaintenanceCost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Manual:</span>
+                      <span className="font-medium">
+                        ${(profitLossDetailedData?.summary?.totalManualMaintenanceCost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    <div className="border-t pt-2 flex justify-between font-semibold">
+                      <span>Total:</span>
+                      <span>${(profitLossDetailedData?.summary?.totalMaintenanceCost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Materials & Supplies */}
+                <div className="border rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Package className="h-5 w-5 text-green-500" />
+                    <h4 className="font-semibold">Materials</h4>
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Manual Entries:</span>
+                      <span className="font-medium">
+                        ${(profitLossDetailedData?.summary?.totalManualMaterialsCost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    <div className="border-t pt-2 flex justify-between font-semibold">
+                      <span>Total:</span>
+                      <span>${(profitLossDetailedData?.summary?.totalMaterialsCost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Other Expenses */}
+                <div className="border rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Receipt className="h-5 w-5 text-purple-500" />
+                    <h4 className="font-semibold">Other Expenses</h4>
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Travel:</span>
+                      <span className="font-medium">
+                        ${(profitLossDetailedData?.summary?.totalManualTravelCost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Miscellaneous:</span>
+                      <span className="font-medium">
+                        ${(profitLossDetailedData?.summary?.totalOtherExpensesCost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    <div className="border-t pt-2 flex justify-between font-semibold">
+                      <span>Total:</span>
+                      <span>${((profitLossDetailedData?.summary?.totalManualTravelCost || 0) + (profitLossDetailedData?.summary?.totalOtherExpensesCost || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
