@@ -82,7 +82,7 @@ import {
   plannedRoutes, routeWaypoints, routeDeviations, routeStops,
   insertPlannedRouteSchema, insertRouteWaypointSchema, insertRouteDeviationSchema, insertRouteStopSchema,
   InsertRouteWaypoint,
-  cacheSettings, insertCacheSettingsSchema
+  cacheSettings, insertCacheSettingsSchema, customerEtaSettings, customerEtaNotifications
 } from "@shared/schema";
 import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull, isNull } from "drizzle-orm";
 import { DocuSignService, getDocuSignConfig } from "./docusign";
@@ -1853,6 +1853,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error('Error updating job timestamp visibility settings:', error);
       res.status(500).json({ message: 'Failed to update job settings' });
+    }
+  });
+
+  // Customer ETA notification settings
+  app.get('/api/settings/customer-eta', requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const [etaSettings] = await db
+        .select()
+        .from(customerEtaSettings)
+        .where(eq(customerEtaSettings.organizationId, user.organizationId))
+        .limit(1);
+      
+      // Return default settings if none exist
+      res.json(etaSettings || {
+        enabled: false,
+        notifyMinutesBeforeArrival: 15,
+        trackingEnabled: true,
+        smsTemplate: "Hi {customerName}, {technicianName} from {companyName} is about {estimatedMinutes} minutes away from your location at {address}. Track their arrival: {trackingLink}"
+      });
+    } catch (error: any) {
+      console.error('Error fetching customer ETA settings:', error);
+      res.status(500).json({ message: 'Failed to fetch customer ETA settings' });
+    }
+  });
+
+  app.put('/api/settings/customer-eta', requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { enabled, notifyMinutesBeforeArrival, trackingEnabled, smsTemplate } = req.body;
+
+      // Check if settings exist
+      const [existing] = await db
+        .select()
+        .from(customerEtaSettings)
+        .where(eq(customerEtaSettings.organizationId, user.organizationId))
+        .limit(1);
+
+      if (existing) {
+        // Update existing settings
+        await db
+          .update(customerEtaSettings)
+          .set({
+            enabled,
+            notifyMinutesBeforeArrival,
+            trackingEnabled,
+            smsTemplate,
+            updatedAt: new Date(),
+          })
+          .where(eq(customerEtaSettings.organizationId, user.organizationId));
+      } else {
+        // Create new settings
+        await db.insert(customerEtaSettings).values({
+          organizationId: user.organizationId,
+          enabled,
+          notifyMinutesBeforeArrival,
+          trackingEnabled,
+          smsTemplate,
+        });
+      }
+
+      res.json({ message: 'Customer ETA settings updated successfully' });
+    } catch (error: any) {
+      console.error('Error updating customer ETA settings:', error);
+      res.status(500).json({ message: 'Failed to update customer ETA settings' });
     }
   });
   // Authentication routes (public)
