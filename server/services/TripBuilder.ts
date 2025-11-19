@@ -2,6 +2,7 @@ import { db } from "../db";
 import { obdLocationData, obdTrips, vehicles } from "@shared/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { haversineDistance, calculateSpeed, isSignificantMovement } from "../utils/gps";
+import { TripDistanceCalculator } from "./TripDistanceCalculator";
 
 interface LocationPoint {
   id: number;
@@ -19,6 +20,17 @@ export class TripBuilder {
   private readonly TRIP_START_MIN_DISTANCE_MILES = 0.093; // 150 meters (~490 feet)
   private readonly TRIP_END_IDLE_MINUTES = 10;
   private readonly MIN_CONSECUTIVE_POINTS = 2;
+  private distanceCalculator: TripDistanceCalculator | null = null;
+
+  constructor() {
+    const apiKey = process.env.GOOGLE_MAPS_API_KEY || process.env.VITE_GOOGLE_MAPS_API_KEY;
+    if (apiKey) {
+      this.distanceCalculator = new TripDistanceCalculator(apiKey);
+      console.log('✅ Google Maps integration enabled for trip distance calculation');
+    } else {
+      console.warn('⚠️  Google Maps API key not found - using haversine distance for trips');
+    }
+  }
 
   async processLocationPings(organizationId: number) {
     try {
@@ -129,7 +141,47 @@ export class TripBuilder {
         const duration = Math.round(
           (lastTimestamp.getTime() - new Date(trip.startTime).getTime()) / (1000 * 60)
         );
-        const avgSpeed = duration > 0 ? (totalDistance / (duration / 60)) : 0;
+
+        let actualDistance = totalDistance;
+        let distanceSource = 'haversine';
+
+        if (this.distanceCalculator) {
+          const allPings = await db
+            .select()
+            .from(obdLocationData)
+            .where(
+              and(
+                eq(obdLocationData.vehicleId, trip.vehicleId),
+                eq(obdLocationData.organizationId, trip.organizationId),
+                sql`${obdLocationData.timestamp} >= ${new Date(trip.startTime)}`,
+                sql`${obdLocationData.timestamp} <= ${lastTimestamp}`
+              )
+            )
+            .orderBy(obdLocationData.timestamp);
+
+          if (allPings.length >= 2) {
+            const gpsPath = allPings.map(ping => ({
+              lat: parseFloat(ping.latitude),
+              lng: parseFloat(ping.longitude),
+              timestamp: new Date(ping.timestamp)
+            }));
+
+            const gmapsResult = await this.distanceCalculator.calculateTripDistanceFromPath(gpsPath);
+            if (gmapsResult !== null) {
+              actualDistance = gmapsResult.miles;
+              distanceSource = 'google_maps';
+              console.log(`📍 Google Maps distance: ${gmapsResult.miles.toFixed(2)} mi (haversine: ${totalDistance.toFixed(2)} mi, ${gpsPath.length} GPS points)`);
+            } else {
+              console.warn(`⚠️  Google Maps calculation failed, falling back to haversine distance`);
+            }
+          } else {
+            console.warn(`⚠️  Not enough GPS points (${allPings.length}) for Google Maps calculation, using haversine`);
+          }
+        } else {
+          console.warn(`⚠️  Google Maps API key missing, using haversine distance`);
+        }
+
+        const avgSpeed = duration > 0 ? (actualDistance / (duration / 60)) : 0;
 
         await db
           .update(obdTrips)
@@ -137,7 +189,7 @@ export class TripBuilder {
             endTime: lastTimestamp,
             endLatitude: lastLat.toString(),
             endLongitude: lastLng.toString(),
-            distanceMiles: totalDistance.toFixed(2),
+            distanceMiles: actualDistance.toFixed(2),
             durationMinutes: duration,
             averageSpeed: avgSpeed.toFixed(2),
             maxSpeed: maxSpeed.toFixed(2),
@@ -146,7 +198,7 @@ export class TripBuilder {
           })
           .where(eq(obdTrips.id, trip.id));
 
-        console.log(`🏁 Trip completed: ${totalDistance.toFixed(2)} miles, ${duration} min`);
+        console.log(`🏁 Trip completed: ${actualDistance.toFixed(2)} miles (${distanceSource}), ${duration} min`);
         
         await this.detectAndCreateTrip(
           trip.organizationId,

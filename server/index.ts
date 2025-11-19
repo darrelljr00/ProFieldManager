@@ -328,17 +328,17 @@ app.use((req, res, next) => {
       await gpsPoller.start();
       log('✅ GPS Poller started successfully');
 
-      // TripBuilder DISABLED - Using OneStepGPS API trips with real odometer mileage instead
-      // const tripBuilderInterval = setInterval(async () => {
-      //   await tripBuilder.runTripBuilder();
-      // }, 60000);
+      const tripBuilderInterval = setInterval(async () => {
+        await tripBuilder.runTripBuilder();
+      }, 60000);
+      log('✅ Trip Builder started with Google Maps distance calculation');
 
       autoJobService.start();
       log('✅ Auto Job Service started successfully');
 
       log('🚗 OneStep GPS background services started');
       log('   📍 GPS Poller: Active (30-60s intervals per org)');
-      log('   🛣️  Trip Builder: DISABLED (using OneStepGPS API trips)');
+      log('   🛣️  Trip Builder: Active (60s intervals) - Using Google Maps Directions API for accurate road mileage');
       log('   ⚡ Auto Job Service: Active (60s intervals)');
 
       // Cleanup handlers
