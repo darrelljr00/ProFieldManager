@@ -5228,6 +5228,63 @@ export default function Settings() {
                       </p>
                     </div>
                   </div>
+
+                  <div className="grid grid-cols-2 gap-4 pl-6">
+                    <div>
+                      <Label htmlFor="vehicleInspectionAlertDelay">Missing Inspection Alert (After Clock-In)</Label>
+                      <Select name="vehicleInspectionAlertDelay" defaultValue="15">
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select delay time" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="5">Alert after 5 minutes</SelectItem>
+                          <SelectItem value="10">Alert after 10 minutes</SelectItem>
+                          <SelectItem value="15">Alert after 15 minutes</SelectItem>
+                          <SelectItem value="20">Alert after 20 minutes</SelectItem>
+                          <SelectItem value="30">Alert after 30 minutes</SelectItem>
+                          <SelectItem value="disabled">Disabled</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Alert technician if no inspection completed after clocking in
+                      </p>
+                    </div>
+                    <div>
+                      <Label htmlFor="vehicleInspectionAlertMethod">Alert Notification Method</Label>
+                      <Select name="vehicleInspectionAlertMethod" defaultValue="internal">
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select method" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="internal">Internal Notification</SelectItem>
+                          <SelectItem value="email">Email</SelectItem>
+                          <SelectItem value="sms">SMS</SelectItem>
+                          <SelectItem value="both">Email & SMS</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        How to send the missing inspection alert
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 pl-6">
+                    <div>
+                      <Label htmlFor="vehicleInspectionNotifyManagers">Notify Managers</Label>
+                      <Select name="vehicleInspectionNotifyManagers" defaultValue="no">
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select option" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="yes">Yes - Notify managers/admins</SelectItem>
+                          <SelectItem value="no">No - Only notify technician</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Alert managers when technicians miss vehicle inspections
+                      </p>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Save Button */}

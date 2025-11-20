@@ -11,130 +11,284 @@ import { eq, and, gte, lte, isNull, sql } from "drizzle-orm";
 import { NotificationService } from "./notificationService";
 
 export class VehicleInspectionAlertService {
-  private static intervalId: NodeJS.Timeout | null = null;
-  private static isRunning = false;
-  private static checkIntervalMs = 60000; // Check every 1 minute
+  // Track scheduled timers so they can be canceled
+  private static scheduledTimers: Map<number, NodeJS.Timeout> = new Map();
 
-  static start() {
-    if (this.isRunning) {
-      console.log("⚠️  Vehicle inspection alert service is already running");
-      return;
+  static async start() {
+    // Service is now event-driven, triggered on clock-in
+    // On startup, rebuild timers for any existing clock-ins without inspections
+    try {
+      await this.rebuildPendingAlerts();
+      console.log("✅ Vehicle inspection alert service ready (event-driven)");
+    } catch (error) {
+      console.error("❌ Error starting vehicle inspection alert service:", error);
+      throw error; // Propagate error so server startup can handle it
     }
-
-    this.isRunning = true;
-    console.log("🚗 Starting vehicle inspection alert service...");
-    
-    // Run immediately on start
-    this.checkForMissingInspections();
-    
-    // Then run at interval
-    this.intervalId = setInterval(() => {
-      this.checkForMissingInspections();
-    }, this.checkIntervalMs);
-    
-    console.log(`✅ Vehicle inspection alert service started (checking every ${this.checkIntervalMs / 1000}s)`);
   }
 
   static stop() {
-    if (!this.isRunning) {
-      console.log("⚠️  Vehicle inspection alert service is not running");
-      return;
+    // Cancel all scheduled timers
+    for (const [clockInId, timer] of this.scheduledTimers.entries()) {
+      clearTimeout(timer);
     }
-
-    if (this.intervalId) {
-      clearInterval(this.intervalId);
-      this.intervalId = null;
-    }
-
-    this.isRunning = false;
+    this.scheduledTimers.clear();
     console.log("🛑 Vehicle inspection alert service stopped");
   }
 
-  static async checkForMissingInspections() {
-    try {
-      // Get all organizations
-      const allOrgs = await db
-        .select({ id: organizations.id })
-        .from(organizations);
+  /**
+   * Cancel a scheduled alert for a specific clock-in
+   * Called when technician clocks out or submits an inspection
+   */
+  static cancelAlert(clockInId: number) {
+    const timer = this.scheduledTimers.get(clockInId);
+    if (timer) {
+      clearTimeout(timer);
+      this.scheduledTimers.delete(clockInId);
+      console.log(`🚫 Canceled vehicle inspection alert for clock-in ${clockInId}`);
+    }
+  }
 
-      if (allOrgs.length === 0) {
-        return;
+  /**
+   * Rebuild timers for clock-ins that happened before server started
+   * This ensures alerts are sent even after server restarts
+   */
+  private static async rebuildPendingAlerts() {
+    try {
+      // Get all organizations that have alerts enabled (or use defaults)
+      const allSettings = await db
+        .select()
+        .from(vehicleInspectionAlertSettings)
+        .execute();
+
+      // Build a map of organization settings
+      const settingsMap = new Map();
+      for (const setting of allSettings) {
+        settingsMap.set(setting.organizationId, setting);
       }
 
-      // Get settings for all organizations (may not exist for some)
-      const orgSettings = await db
-        .select()
-        .from(vehicleInspectionAlertSettings);
+      // Get all clock-ins from today that are still open (no clock-out)
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
 
-      // Create a map of org settings
-      const settingsMap = new Map(orgSettings.map(s => [s.organizationId, s]));
+      const openClockIns = await db
+        .select({
+          id: timeClock.id,
+          userId: timeClock.userId,
+          organizationId: timeClock.organizationId,
+          clockInTime: timeClock.clockInTime,
+        })
+        .from(timeClock)
+        .where(
+          and(
+            gte(timeClock.clockInTime, today),
+            isNull(timeClock.clockOutTime)
+          )
+        )
+        .execute();
 
-      console.log(`🔍 Checking vehicle inspections for ${allOrgs.length} organization(s)...`);
+      let rebuiltCount = 0;
+      const now = new Date();
 
-      // Check each organization with their settings or defaults
-      for (const org of allOrgs) {
-        const setting = settingsMap.get(org.id) || {
-          organizationId: org.id,
-          enabled: true, // Default: enabled
-          alertDelayMinutes: 15, // Default: 15 minutes
+      for (const clockIn of openClockIns) {
+        // Get settings for this organization (or use defaults)
+        const settings = settingsMap.get(clockIn.organizationId) || {
+          organizationId: clockIn.organizationId,
+          enabled: true,
+          alertDelayMinutes: 15,
           alertMessage: "Reminder: Please complete your vehicle inspection. You clocked in {minutes} minutes ago and haven't submitted an inspection yet.",
           sendReminderNotifications: true,
           notifyManagers: false,
         };
 
-        // Skip if explicitly disabled
-        if (setting.enabled === false) {
+        // Skip if alerts are disabled for this org
+        if (settings.enabled === false) {
           continue;
         }
 
-        await this.checkOrganization(setting);
+        // Check if inspection already exists
+        const [existingInspection] = await db
+          .select()
+          .from(inspectionRecords)
+          .where(
+            and(
+              eq(inspectionRecords.userId, clockIn.userId),
+              gte(inspectionRecords.submittedAt, clockIn.clockInTime)
+            )
+          )
+          .limit(1)
+          .execute();
+
+        // Skip if inspection already completed
+        if (existingInspection) {
+          continue;
+        }
+
+        // Check if alert was already sent
+        const [existingAlert] = await db
+          .select()
+          .from(vehicleInspectionAlerts)
+          .where(eq(vehicleInspectionAlerts.timeClockId, clockIn.id))
+          .limit(1)
+          .execute();
+
+        // Skip if alert already sent
+        if (existingAlert) {
+          continue;
+        }
+
+        // Calculate when alert should be sent
+        const alertTime = new Date(clockIn.clockInTime.getTime() + settings.alertDelayMinutes * 60 * 1000);
+        const msUntilAlert = alertTime.getTime() - now.getTime();
+
+        // Cancel any existing timer for this clock-in
+        this.cancelAlert(clockIn.id);
+
+        // If alert time has passed, send immediately
+        // If alert time is in the future, schedule it
+        if (msUntilAlert <= 0) {
+          // Alert should have been sent already, send it now
+          await this.performInspectionCheck(
+            clockIn.userId,
+            clockIn.organizationId,
+            clockIn.id,
+            clockIn.clockInTime,
+            settings.alertDelayMinutes,
+            settings.alertMessage,
+            settings.sendReminderNotifications,
+            settings.notifyManagers
+          );
+          rebuiltCount++;
+        } else {
+          // Alert should be sent in the future, schedule it
+          const timer = setTimeout(async () => {
+            this.scheduledTimers.delete(clockIn.id); // Remove from tracking once executed
+            await this.performInspectionCheck(
+              clockIn.userId,
+              clockIn.organizationId,
+              clockIn.id,
+              clockIn.clockInTime,
+              settings.alertDelayMinutes,
+              settings.alertMessage,
+              settings.sendReminderNotifications,
+              settings.notifyManagers
+            );
+          }, msUntilAlert);
+          
+          // Track the timer so it can be canceled later
+          this.scheduledTimers.set(clockIn.id, timer);
+          rebuiltCount++;
+        }
+      }
+
+      if (rebuiltCount > 0) {
+        console.log(`🔄 Rebuilt ${rebuiltCount} pending vehicle inspection alert(s)`);
       }
     } catch (error) {
-      console.error("Error in vehicle inspection alert service:", error);
+      console.error("Error rebuilding pending alerts:", error);
     }
   }
 
-  private static async checkOrganization(setting: any) {
-    const { organizationId, alertDelayMinutes, alertMessage, sendReminderNotifications, notifyManagers } = setting;
-
+  /**
+   * Check vehicle inspection for a specific user after clock-in
+   * This is called when a technician clocks in
+   */
+  static async checkOnClockIn(
+    userId: number,
+    organizationId: number,
+    clockInId: number,
+    clockInTime: Date
+  ) {
     try {
-      // Calculate cutoff time (current time - alert delay minutes)
-      const cutoffTime = new Date();
-      cutoffTime.setMinutes(cutoffTime.getMinutes() - alertDelayMinutes);
+      // Get settings for this organization
+      const [settings] = await db
+        .select()
+        .from(vehicleInspectionAlertSettings)
+        .where(eq(vehicleInspectionAlertSettings.organizationId, organizationId))
+        .limit(1);
 
-      // Find all clock-ins OLDER than the cutoff (clocked in more than alertDelayMinutes ago)
-      const recentClockIns = await db
+      // Use defaults if no settings exist
+      const config = settings || {
+        organizationId,
+        enabled: true,
+        alertDelayMinutes: 15,
+        alertMessage: "Reminder: Please complete your vehicle inspection. You clocked in {minutes} minutes ago and haven't submitted an inspection yet.",
+        sendReminderNotifications: true,
+        notifyManagers: false,
+      };
+
+      // Skip if disabled
+      if (config.enabled === false) {
+        return;
+      }
+
+      // Cancel any existing timer for this clock-in (shouldn't happen, but be safe)
+      this.cancelAlert(clockInId);
+
+      // Schedule the check after the configured delay
+      const timer = setTimeout(async () => {
+        this.scheduledTimers.delete(clockInId); // Remove from tracking once executed
+        await this.performInspectionCheck(
+          userId,
+          organizationId,
+          clockInId,
+          clockInTime,
+          config.alertDelayMinutes,
+          config.alertMessage,
+          config.sendReminderNotifications,
+          config.notifyManagers
+        );
+      }, config.alertDelayMinutes * 60 * 1000); // Convert minutes to milliseconds
+
+      // Track the timer so it can be canceled later
+      this.scheduledTimers.set(clockInId, timer);
+
+      console.log(`🚗 Vehicle inspection check scheduled for user ${userId} in ${config.alertDelayMinutes} minutes`);
+    } catch (error) {
+      console.error("Error scheduling vehicle inspection check:", error);
+    }
+  }
+
+  private static async performInspectionCheck(
+    userId: number,
+    organizationId: number,
+    clockInId: number,
+    clockInTime: Date,
+    alertDelayMinutes: number,
+    alertMessage: string,
+    sendReminderNotifications: boolean,
+    notifyManagers: boolean
+  ) {
+    try {
+      // Get user info
+      const [user] = await db
         .select({
-          clockId: timeClock.id,
-          userId: timeClock.userId,
-          clockInTime: timeClock.clockInTime,
           userName: sql<string>`COALESCE(${users.firstName} || ' ' || ${users.lastName}, ${users.username})`.as('userName'),
           userEmail: users.email,
         })
-        .from(timeClock)
-        .innerJoin(users, eq(timeClock.userId, users.id))
-        .where(
-          and(
-            eq(timeClock.organizationId, organizationId),
-            isNull(timeClock.clockOutTime), // Still clocked in
-            lte(timeClock.clockInTime, cutoffTime) // Clocked in BEFORE cutoff (more than alertDelayMinutes ago)
-          )
-        );
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
 
-      console.log(`  👷 Found ${recentClockIns.length} active clock-ins for org ${organizationId}`);
-
-      for (const clockIn of recentClockIns) {
-        await this.checkUserInspection(
-          clockIn,
-          organizationId,
-          alertDelayMinutes,
-          alertMessage,
-          sendReminderNotifications,
-          notifyManagers
-        );
+      if (!user) {
+        return;
       }
+
+      await this.checkUserInspection(
+        {
+          clockId: clockInId,
+          userId,
+          clockInTime,
+          userName: user.userName,
+          userEmail: user.userEmail,
+        },
+        organizationId,
+        alertDelayMinutes,
+        alertMessage,
+        sendReminderNotifications,
+        notifyManagers
+      );
     } catch (error) {
-      console.error(`Error checking organization ${organizationId}:`, error);
+      console.error("Error performing vehicle inspection check:", error);
     }
   }
 
@@ -149,6 +303,19 @@ export class VehicleInspectionAlertService {
     const { clockId, userId, clockInTime, userName, userEmail } = clockIn;
 
     try {
+      // First check if technician has already clocked out
+      const [timeClockEntry] = await db
+        .select()
+        .from(timeClock)
+        .where(eq(timeClock.id, clockId))
+        .limit(1);
+
+      if (!timeClockEntry || timeClockEntry.clockOutTime) {
+        // Technician has clocked out, cancel this alert
+        console.log(`  ℹ️  User ${userName} (ID: ${userId}) has already clocked out, skipping inspection alert`);
+        return;
+      }
+
       // Check if we already sent an alert for this clock-in
       const existingAlert = await db
         .select()
@@ -202,20 +369,29 @@ export class VehicleInspectionAlertService {
       // Personalize the alert message
       const personalizedMessage = alertMessage.replace("{minutes}", minutesSinceClockIn.toString());
 
-      // Record the alert
-      const [alert] = await db
-        .insert(vehicleInspectionAlerts)
-        .values({
-          organizationId,
-          userId,
-          timeClockId: clockId,
-          clockInTime,
-          alertSentAt: new Date(),
-          minutesAfterClockIn: minutesSinceClockIn,
-          alertMessage: personalizedMessage,
-          notificationSent: sendReminderNotifications,
-        })
-        .returning();
+      // Record the alert FIRST to prevent duplicate notifications (race condition protection)
+      try {
+        const [alert] = await db
+          .insert(vehicleInspectionAlerts)
+          .values({
+            organizationId,
+            userId,
+            timeClockId: clockId,
+            clockInTime,
+            alertSentAt: new Date(),
+            minutesAfterClockIn: minutesSinceClockIn,
+            alertMessage: personalizedMessage,
+            notificationSent: sendReminderNotifications,
+          })
+          .returning();
+      } catch (insertError: any) {
+        // Handle duplicate key error (another timer already inserted the alert)
+        if (insertError?.code === '23505') { // PostgreSQL duplicate key error code
+          console.log(`  ℹ️  Alert already sent for user ${userName}, skipping duplicate`);
+          return;
+        }
+        throw insertError; // Re-throw if it's a different error
+      }
 
       // Send notification to the technician
       if (sendReminderNotifications) {
@@ -309,6 +485,9 @@ export class VehicleInspectionAlertService {
       if (!activeClockIn) {
         return;
       }
+
+      // Cancel any scheduled alert for this clock-in
+      this.cancelAlert(activeClockIn.id);
 
       // Update any pending alerts for this clock-in
       await db

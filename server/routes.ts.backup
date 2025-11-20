@@ -57,7 +57,7 @@ import {
   type InsertSmartCaptureList,
   type InsertSmartCaptureItem
 } from "@shared/schema";
-import { AuthService, requireAuth, requireAdmin, requireManagerOrAdmin, requireTaskDelegationPermission } from "./auth";
+import { AuthService, requireAuth, requireAdmin, requireManagerOrAdmin, requireTaskDelegationPermission, blockDemoAccountWrites } from "./auth";
 import { ZodError } from "zod";
 import { seedDatabase } from "./seed-data";
 import { nanoid } from "nanoid";
@@ -75,14 +75,15 @@ import {
   partsSupplies, inventoryTransactions, stockAlerts,
   partsCategories, meetings, meetingParticipants, meetingMessages, meetingRecordings,
   jobSiteGeofences, jobSiteEvents, gpsTrackingData,
-  obdLocationData, obdDiagnosticData, obdTrips, savedRouteReplays, services,
+  obdLocationData, obdDiagnosticData, obdTrips, savedRouteReplays, services, jobsServices,
   inspectionRecords, jobTravelSegments, projectUsers, employees,
   syncConfigurations, syncHistory, syncConflicts,
   insertSyncConfigurationSchema,
   plannedRoutes, routeWaypoints, routeDeviations, routeStops,
   insertPlannedRouteSchema, insertRouteWaypointSchema, insertRouteDeviationSchema, insertRouteStopSchema,
   InsertRouteWaypoint,
-  cacheSettings, insertCacheSettingsSchema
+  cacheSettings, insertCacheSettingsSchema, customerEtaSettings, customerEtaNotifications,
+  vehicleInspectionAlertSettings, vehicleInspectionAlerts
 } from "@shared/schema";
 import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull, isNull } from "drizzle-orm";
 import { DocuSignService, getDocuSignConfig } from "./docusign";
@@ -98,6 +99,7 @@ import archiver from 'archiver';
 // Removed fileUploadRouter import - using direct route instead
 // Object storage imports already imported at top - removed duplicates
 import { NotificationService, setBroadcastFunction, notifyUserCreation, notifyPasswordReset } from "./notificationService";
+import { VehicleInspectionAlertService } from "./vehicleInspectionAlertService";
 import { getCachedNotificationUnreadCount, getCachedInternalMessages, invalidateNotificationCache, invalidateMessageCache, clearAllQueryCaches, clearOrganizationCaches } from './cache/queryCache';
 import { routeMonitoringService } from "./routeMonitoring";
 import { cacheConfigService } from "./cache/CacheConfigService";
@@ -114,6 +116,8 @@ declare global {
         role?: string;
         firstName?: string;
         lastName?: string;
+        isDemoAccount?: boolean;
+        demoExpiresAt?: Date;
         organizationId: number;
       };
     }
@@ -708,6 +712,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       version: "1.0.0"
     });
   });
+  // Block write operations for demo accounts - applies globally to all routes
+  app.use(blockDemoAccountWrites);
 
   // Live Streaming API Routes
   // Get active streams for the organization
@@ -1851,6 +1857,163 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: 'Failed to update job settings' });
     }
   });
+
+  // Customer ETA notification settings
+  app.get('/api/settings/customer-eta', requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const [etaSettings] = await db
+        .select()
+        .from(customerEtaSettings)
+        .where(eq(customerEtaSettings.organizationId, user.organizationId))
+        .limit(1);
+      
+      // Return default settings if none exist
+      res.json(etaSettings || {
+        enabled: false,
+        notifyMinutesBeforeArrival: 15,
+        trackingEnabled: true,
+        smsTemplate: "Hi {customerName}, {technicianName} from {companyName} is about {estimatedMinutes} minutes away from your location at {address}. Track their arrival: {trackingLink}"
+      });
+    } catch (error: any) {
+      console.error('Error fetching customer ETA settings:', error);
+      res.status(500).json({ message: 'Failed to fetch customer ETA settings' });
+    }
+  });
+
+  app.put('/api/settings/customer-eta', requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { enabled, notifyMinutesBeforeArrival, trackingEnabled, smsTemplate } = req.body;
+
+      // Check if settings exist
+      const [existing] = await db
+        .select()
+        .from(customerEtaSettings)
+        .where(eq(customerEtaSettings.organizationId, user.organizationId))
+        .limit(1);
+
+      if (existing) {
+        // Update existing settings
+        await db
+          .update(customerEtaSettings)
+          .set({
+            enabled,
+            notifyMinutesBeforeArrival,
+            trackingEnabled,
+            smsTemplate,
+            updatedAt: new Date(),
+          })
+          .where(eq(customerEtaSettings.organizationId, user.organizationId));
+      } else {
+        // Create new settings
+        await db.insert(customerEtaSettings).values({
+          organizationId: user.organizationId,
+          enabled,
+          notifyMinutesBeforeArrival,
+          trackingEnabled,
+          smsTemplate,
+        });
+      }
+
+      res.json({ message: 'Customer ETA settings updated successfully' });
+    } catch (error: any) {
+      console.error('Error updating customer ETA settings:', error);
+      res.status(500).json({ message: 'Failed to update customer ETA settings' });
+    }
+  });
+
+  // Vehicle Inspection Alert Settings endpoints
+  app.get('/api/settings/vehicle-inspection-alerts', requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const [alertSettings] = await db
+        .select()
+        .from(vehicleInspectionAlertSettings)
+        .where(eq(vehicleInspectionAlertSettings.organizationId, user.organizationId))
+        .limit(1);
+      
+      res.json(alertSettings || {
+        enabled: true,
+        alertDelayMinutes: 15,
+        alertMessage: "Reminder: Please complete your vehicle inspection. You clocked in {minutes} minutes ago and haven't submitted an inspection yet.",
+        sendReminderNotifications: true,
+        notifyManagers: false
+      });
+    } catch (error: any) {
+      console.error('Error fetching vehicle inspection alert settings:', error);
+      res.status(500).json({ message: 'Failed to fetch vehicle inspection alert settings' });
+    }
+  });
+
+  app.put('/api/settings/vehicle-inspection-alerts', requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { enabled, alertDelayMinutes, alertMessage, sendReminderNotifications, notifyManagers } = req.body;
+
+      const [existing] = await db
+        .select()
+        .from(vehicleInspectionAlertSettings)
+        .where(eq(vehicleInspectionAlertSettings.organizationId, user.organizationId))
+        .limit(1);
+
+      if (existing) {
+        await db
+          .update(vehicleInspectionAlertSettings)
+          .set({
+            enabled,
+            alertDelayMinutes,
+            alertMessage,
+            sendReminderNotifications,
+            notifyManagers,
+            updatedAt: new Date(),
+          })
+          .where(eq(vehicleInspectionAlertSettings.organizationId, user.organizationId));
+      } else {
+        await db.insert(vehicleInspectionAlertSettings).values({
+          organizationId: user.organizationId,
+          enabled,
+          alertDelayMinutes,
+          alertMessage,
+          sendReminderNotifications,
+          notifyManagers,
+        });
+      }
+
+      res.json({ message: 'Vehicle inspection alert settings updated successfully' });
+    } catch (error: any) {
+      console.error('Error updating vehicle inspection alert settings:', error);
+      res.status(500).json({ message: 'Failed to update vehicle inspection alert settings' });
+    }
+  });
+
+  // Get vehicle inspection alerts history
+  app.get('/api/vehicle-inspection-alerts/history', requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const alerts = await db
+        .select({
+          id: vehicleInspectionAlerts.id,
+          userId: vehicleInspectionAlerts.userId,
+          userName: users.name,
+          clockInTime: vehicleInspectionAlerts.clockInTime,
+          alertSentAt: vehicleInspectionAlerts.alertSentAt,
+          minutesAfterClockIn: vehicleInspectionAlerts.minutesAfterClockIn,
+          alertMessage: vehicleInspectionAlerts.alertMessage,
+          inspectionCompletedAt: vehicleInspectionAlerts.inspectionCompletedAt,
+        })
+        .from(vehicleInspectionAlerts)
+        .innerJoin(users, eq(vehicleInspectionAlerts.userId, users.id))
+        .where(eq(vehicleInspectionAlerts.organizationId, user.organizationId))
+        .orderBy(desc(vehicleInspectionAlerts.alertSentAt))
+        .limit(100);
+
+      res.json(alerts);
+    } catch (error: any) {
+      console.error('Error fetching vehicle inspection alert history:', error);
+      res.status(500).json({ message: 'Failed to fetch alert history' });
+    }
+  });
   // Authentication routes (public)
   
   // COMPLETELY STEALTH AUTH ENDPOINT - Looks like regular data validation
@@ -1906,6 +2069,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           lastName: user.lastName,
           organizationId: user.organizationId,
           role: user.role,
+          isDemoAccount: user.isDemoAccount || false,
+          demoExpiresAt: user.demoExpiresAt,
         },
         token,
       });
@@ -1919,6 +2084,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/register", async (req, res) => {
     try {
       const validatedData = registerSchema.parse(req.body);
+      const isDemo = req.body.isDemo === true || req.query.demo === 'true';
       
       // Check if user already exists
       const existingUser = await storage.getUserByUsername(validatedData.username);
@@ -1931,17 +2097,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Email already exists" });
       }
 
-      // Hash password and create user
+      // Hash password
       const hashedPassword = await AuthService.hashPassword(validatedData.password);
+      
+      // Create organization with business details (if provided)
+      let organizationId;
+      const orgName = validatedData.organizationName || validatedData.companyName || `${validatedData.username}'s Organization`;
+      const slug = orgName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      
+      // Build full address from components if provided
+      let fullAddress = validatedData.address || '';
+      if (validatedData.city || validatedData.state || validatedData.zipCode) {
+        const addressParts = [fullAddress, validatedData.city, validatedData.state, validatedData.zipCode].filter(Boolean);
+        fullAddress = addressParts.join(', ');
+      }
+      
+      const organization = await storage.createOrganization({
+        name: orgName,
+        slug,
+        phone: validatedData.phone || null,
+        address: fullAddress || null,
+        email: validatedData.email,
+        subscriptionStatus: isDemo ? "trial" : "trial",
+        subscriptionPlan: "starter",
+      });
+      
+      organizationId = organization.id;
+      
+      // For demo accounts, set expiration to 30 days from now
+      const demoExpiresAt = isDemo ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) : null;
       const userData = {
         ...validatedData,
+        organizationId,
         password: hashedPassword,
-        role: "user",
+        role: isDemo ? "admin" : "user",
         isActive: true,
         emailVerified: false,
+        isDemoAccount: isDemo,
+        demoExpiresAt: demoExpiresAt,
       };
 
       const user = await storage.createUser(userData);
+      
+      // For demo accounts, seed sample data
+      if (isDemo) {
+        try {
+          const { seedDemoAccountData } = await import("./seed-demo-data");
+          await seedDemoAccountData(user.id, user.organizationId);
+          console.log(`✅ Demo account created for user ${user.id} with sample data`);
+        } catch (seedError) {
+          console.error("❌ Failed to seed demo data:", seedError);
+        }
+      }
       
       // Create session
       const session = await AuthService.createSession(
@@ -1966,8 +2173,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           firstName: user.firstName,
           lastName: user.lastName,
           role: user.role,
+          isDemoAccount: user.isDemoAccount || false,
+          demoExpiresAt: user.demoExpiresAt,
         },
         token: session.token,
+        isDemo: isDemo,
       });
     } catch (error) {
       if (error instanceof ZodError) {
@@ -2229,6 +2439,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           firstName: user.firstName,
           lastName: user.lastName,
           role: user.role,
+          isDemoAccount: user.isDemoAccount || false,
+          demoExpiresAt: user.demoExpiresAt,
         },
         token: session.token, // Always include token for custom domain localStorage
       };
@@ -2478,6 +2690,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         firstName: user.firstName,
         lastName: user.lastName,
         role: user.role,
+          isDemoAccount: user.isDemoAccount || false,
+          demoExpiresAt: user.demoExpiresAt,
         organizationId: user.organizationId,
         userType: user.userType
       };
@@ -2513,6 +2727,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         user: userData,
         token: session.token,
+        isDemo: isDemo,
         isCustomDomain: isFromCustomDomain // Tell frontend it came from custom domain
       });
 
@@ -2626,6 +2841,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           role: user.role
         },
         token: session.token,
+        isDemo: isDemo,
         debug: {
           isCustomDomain,
           cookieDomain: isCustomDomain ? '.profieldmanager.com' : 'default',
@@ -3293,6 +3509,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       canAccessMySchedule: user.canAccessMySchedule,
       canAccessSaasAdmin: user.canAccessSaasAdmin,
       role: user.role,
+          isDemoAccount: user.isDemoAccount || false,
+          demoExpiresAt: user.demoExpiresAt,
       organizationId: user.organizationId
     });
     
@@ -3400,9 +3618,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           password: userPassword,
           firstName: "Jane",
           lastName: "User",
-          role: "user",
+          role: isDemo ? "admin" : "user",
           isActive: true,
           emailVerified: false,
+        isDemoAccount: isDemo,
+        demoExpiresAt: demoExpiresAt,
         });
 
         console.log("✅ Created sample user accounts");
@@ -3718,7 +3938,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api', (req, res, next) => {
     console.log(`🔍 API MIDDLEWARE - ${req.method} ${req.path}`);
     // Skip auth for these routes
-    const publicRoutes = ['/auth/', '/seed', '/settings/', '/twilio-test-update/', '/shared/', '/debug/', '/user/', '/data/', '/quotes/response/', '/quotes/availability/'];
+    const publicRoutes = ['/auth/', '/seed', '/settings/', '/twilio-test-update/', '/shared/', '/debug/', '/user/', '/data/', '/quotes/response/', '/quotes/availability/', '/frontend/sliders'];
     // Add special handling for debug routes
     const debugRoutes = ['/debug/custom-domain-test'];
     const sharedPhotoRoute = req.path.match(/^\/shared\/[^\/]+$/); // Match /shared/{token}
@@ -7172,6 +7392,8 @@ ${fromName || ''}
           firstName: user.firstName,
           lastName: user.lastName,
           role: user.role,
+          isDemoAccount: user.isDemoAccount || false,
+          demoExpiresAt: user.demoExpiresAt,
         }));
       res.json(safeUsers);
     } catch (error: any) {
@@ -7193,6 +7415,8 @@ ${fromName || ''}
           firstName: user.firstName,
           lastName: user.lastName,
           role: user.role,
+          isDemoAccount: user.isDemoAccount || false,
+          demoExpiresAt: user.demoExpiresAt,
         }));
       res.json(safeUsers);
     } catch (error: any) {
@@ -7569,6 +7793,9 @@ ${fromName || ''}
       // Hash password and create user
       const hashedPassword = await AuthService.hashPassword(validatedData.password);
       
+      // For demo accounts, set expiration to 30 days from now
+      const demoExpiresAt = isDemo ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) : null;
+      
       // Get the admin's organization ID for automatic assignment
       const adminUser = getAuthenticatedUser(req);
       
@@ -7580,9 +7807,22 @@ ${fromName || ''}
         userType: req.body.userType || "both",
         isActive: req.body.isActive !== false,
         emailVerified: false,
+        isDemoAccount: isDemo,
+        demoExpiresAt: demoExpiresAt,
       };
 
       const user = await storage.createUser(userData);
+      
+      // For demo accounts, seed sample data
+      if (isDemo) {
+        try {
+          const { seedDemoAccountData } = await import("./seed-demo-data");
+          await seedDemoAccountData(user.id, user.organizationId);
+          console.log(`✅ Demo account created for user ${user.id} with sample data`);
+        } catch (seedError) {
+          console.error("❌ Failed to seed demo data:", seedError);
+        }
+      }
       
 
       // Generate setup token for password setup
@@ -10052,7 +10292,7 @@ ${fromName || ''}
             content: "You are an expert at reading receipts and extracting structured data. Analyze the receipt image and extract the vendor/merchant name, total amount, date, and suggest an expense category. For gas/fuel receipts, also extract gallons (fuel quantity) and price per gallon. Return the data in JSON format with keys: vendor, amount (as number), date (in ISO format YYYY-MM-DD), category (one of: fuel, materials, equipment, labor, vehicle_maintenance, tools, supplies, travel, meals, permits, insurance, utilities, rent, professional_services, office_supplies, marketing, technology, general), gallons (as number, for fuel receipts only), pricePerGallon (as number, for fuel receipts only). If you cannot find a field, use null for that field."
           },
           {
-            role: "user",
+            role: isDemo ? "admin" : "user",
             content: [
               {
                 type: "text",
@@ -12156,7 +12396,7 @@ ${fromName || ''}
           id: 2,
           name: "Julissa Martinez",
           email: "julissa@texaspowerwash.net",
-          role: "user",
+          role: isDemo ? "admin" : "user",
           jobsAssigned: 3,
           tasksTotal: 8,
           tasksCompleted: 6,
@@ -12737,7 +12977,7 @@ ${fromName || ''}
         
         if (!vehicle.fuelEconomyMpg || !trip.distanceMiles) return;
         
-        const tripDate = new Date(trip.startTime);
+        const tripDate = new Date(trip.endTime || trip.startTime);
         const key = view === 'job' ? `gps-trip-${trip.id}` : getGroupKey(tripDate, view as string);
         const miles = parseFloat(trip.distanceMiles.toString());
         const mpg = parseFloat(vehicle.fuelEconomyMpg.toString());
@@ -13080,7 +13320,7 @@ ${fromName || ''}
       }
 
       // Fetch projects (jobs), related data, and GPS tracking events
-      const [allProjects, allTasks, timeClockEntries, jobSiteEventsData] = await Promise.all([
+      const [allProjects, allTasks, timeClockEntries, jobSiteEventsData, jobsServicesData, projectUsersData] = await Promise.all([
         db.select()
           .from(projects)
           .where(
@@ -13158,6 +13398,41 @@ ${fromName || ''}
             )
           )
           .orderBy(desc(jobSiteEvents.eventTime))
+,
+
+        // Fetch job-service relationships for estimated completion times
+        db.select({
+          jobId: jobsServices.jobId,
+          serviceId: jobsServices.serviceId,
+          estimatedCompletionTimeSnapshot: jobsServices.estimatedCompletionTimeSnapshot
+        })
+          .from(jobsServices)
+          .innerJoin(projects, eq(jobsServices.jobId, projects.id))
+          .where(
+            and(
+              eq(jobsServices.organizationId, organizationId),
+              gte(projects.createdAt, startDate),
+              lte(projects.createdAt, endDate)
+            )
+          )
+,
+
+        // Fetch assigned team members for jobs
+        db.select({
+          projectId: projectUsers.projectId,
+          userId: projectUsers.userId,
+          userName: sql<string>`CONCAT(${users.firstName}, ' ', ${users.lastName})`.as('userName')
+        })
+          .from(projectUsers)
+          .innerJoin(users, eq(projectUsers.userId, users.id))
+          .innerJoin(projects, eq(projectUsers.projectId, projects.id))
+          .where(
+            and(
+              eq(projects.organizationId, organizationId),
+              gte(projects.createdAt, startDate),
+              lte(projects.createdAt, endDate)
+            )
+          )
       ]);
 
       // Calculate job analytics
@@ -13218,7 +13493,60 @@ ${fromName || ''}
         const totalJobTime = job.startDate && job.endDate ? 
           (new Date(job.endDate).getTime() - new Date(job.startDate).getTime()) / (1000 * 60 * 60) : 0;
 
+        // Calculate estimated hours from services
+        const jobServices = jobsServicesData.filter(js => js.jobId === job.id);
+        const totalEstimatedMinutes = jobServices.reduce((sum, js) => 
+          sum + (parseInt(js.estimatedCompletionTimeSnapshot || "0") || 0), 0
+        );
+        const estimatedHours = totalEstimatedMinutes / 60;
+
+        // Collect unique technician names who worked on this job from multiple sources
+        const technicianNamesSet = new Set<string>();
+        
+        // 1. From GPS tracking events
+        jobEvents
+          .filter(event => event.userName)
+          .forEach(event => technicianNamesSet.add(event.userName!));
+        
+        // 2. From time clock entries related to this job
+        timeClockEntries
+          .filter(entry => {
+            // Match by job location or time range overlap
+            const entryDate = new Date(entry.clockInTime);
+            const jobStart = job.startDate ? new Date(job.startDate) : null;
+            const jobEnd = job.endDate ? new Date(job.endDate) : null;
+            
+            if (jobStart && jobEnd) {
+              return entryDate >= jobStart && entryDate <= jobEnd;
+            }
+            return false;
+          })
+          .forEach(entry => {
+            if (entry.userName) technicianNamesSet.add(entry.userName);
+          });
+        
+        // 3. From tasks assigned to this job
+        jobTasks
+          .filter(task => task.assignedToId)
+          .forEach(task => {
+            const assignedUser = timeClockEntries.find(tc => tc.userId === task.assignedToId);
+            if (assignedUser?.userName) technicianNamesSet.add(assignedUser.userName);
+          });
+        
+        
+        // 4. From assigned team members (project_users)
+        projectUsersData
+          .filter(pu => pu.projectId === job.id)
+          .forEach(pu => {
+            if (pu.userName) technicianNamesSet.add(pu.userName);
+          });
+        const technicianNames = Array.from(technicianNamesSet);
+        const techniciansText = technicianNames.length > 0 
+          ? technicianNames.join(', ') : 'No technicians assigned';
+
+
         return {
+          estimatedHours: Math.round(estimatedHours * 10) / 10,
           jobName: job.name || `Job ${job.id}`,
           onsiteDuration: Math.round(totalActualOnsiteHours * 10) / 10,
           totalJobTime: Math.round(totalJobTime * 10) / 10,
@@ -16168,7 +16496,7 @@ ${fromName || ''}
       const aggregated = new Map<string, any>();
 
       trips.forEach(trip => {
-        const tripDate = new Date(trip.startTime);
+        const tripDate = new Date(trip.endTime || trip.startTime);
         let key: string;
         let period: string;
 
@@ -21452,10 +21780,10 @@ ${fromName || ''}
             }
 
 
-            // Calculate speed from last 2 GPS pings for each device
+            // Calculate speed from last 5 GPS pings for each device (rolling average)
             for (const location of locations) {
               try {
-                // Query last 2 pings for this device ordered by timestamp DESC
+                // Query last 5 pings for this device ordered by timestamp DESC
                 const recentPings = await db
                   .select()
                   .from(obdLocationData)
@@ -21466,26 +21794,56 @@ ${fromName || ''}
                     )
                   )
                   .orderBy(desc(obdLocationData.timestamp))
-                  .limit(2);
+                  .limit(5);
 
                 // If we have at least 2 pings, calculate speed from them
                 if (recentPings.length >= 2) {
-                  const ping1 = recentPings[1]; // Older ping
-                  const ping2 = recentPings[0]; // Newer ping
+                  const individualSpeeds: number[] = [];
                   
-                  const calculatedSpeed = calculateSpeed(
-                    parseFloat(ping1.latitude),
-                    parseFloat(ping1.longitude),
-                    new Date(ping1.timestamp),
-                    parseFloat(ping2.latitude),
-                    parseFloat(ping2.longitude),
-                    new Date(ping2.timestamp)
-                  );
+                  // Calculate speed between each consecutive pair of pings
+                  for (let i = 0; i < recentPings.length - 1; i++) {
+                    const olderPing = recentPings[i + 1];
+                    const newerPing = recentPings[i];
+                    
+                    const speed = calculateSpeed(
+                      parseFloat(olderPing.latitude),
+                      parseFloat(olderPing.longitude),
+                      new Date(olderPing.timestamp),
+                      parseFloat(newerPing.latitude),
+                      parseFloat(newerPing.longitude),
+                      new Date(newerPing.timestamp)
+                    );
+                    
+                    // Filter out unrealistic speeds (likely GPS drift)
+                    if (speed < 120) {
+                      individualSpeeds.push(speed);
+                    }
+                  }
                   
-                  // Update the location speed with the calculated value
-                  location.speed = calculatedSpeed;
+                  // Calculate weighted average (more recent speeds get higher weight using exponential weighting: 2^i where i=0 is most recent)
+                  let weightedSum = 0;
+                  let totalWeight = 0;
+                  const numSpeeds = individualSpeeds.length;
                   
-                  console.log(`📊 Calculated speed for device ${location.deviceId}: ${calculatedSpeed.toFixed(1)} mph`);
+                  // Handle case where all speeds were filtered out as unrealistic
+                  if (numSpeeds === 0) {
+                    location.speed = 0;
+                    console.log(`⚠️  All speed readings filtered out for device ${location.deviceId} (likely GPS errors), defaulting to 0 mph`);
+                  } else {
+                    for (let i = 0; i < numSpeeds; i++) {
+                      const weight = Math.pow(2, numSpeeds - 1 - i); // i=0 (most recent) gets highest weight
+                      weightedSum += individualSpeeds[i] * weight;
+                      totalWeight += weight;
+                    }
+                    
+                    const averageSpeed = weightedSum / totalWeight;
+                    
+                    // Cap at reasonable maximum speed
+                    const cappedSpeed = Math.min(averageSpeed, 100);
+                    location.speed = cappedSpeed;
+                    
+                    console.log(`📊 Calculated speed for device ${location.deviceId}: ${cappedSpeed.toFixed(1)} mph (average of ${individualSpeeds.map(s => s.toFixed(1)).join(", ")} mph)${cappedSpeed < averageSpeed ? ' [capped at 100 mph]' : ''}`);
+                  }
                 } else {
                   console.log(`⚠️  Not enough pings to calculate speed for device ${location.deviceId} (found ${recentPings.length})`);
                 }
@@ -22198,6 +22556,10 @@ ${fromName || ''}
   // Phone Sensor Productivity Tracking
   const { registerPhoneSensorRoutes } = await import("./routes/phoneSensors");
   registerPhoneSensorRoutes(app);
+
+  // Website Layout CMS
+  const { setupWebsiteLayoutRoutes } = await import("./website-layout-routes");
+  setupWebsiteLayoutRoutes(app, storage, requireAuth, requireManagerOrAdmin, getAuthenticatedUser);
 
   // One Step GPS Integration - Fetch devices from One Step GPS API
   app.get("/api/onestep/devices", requireAuth, async (req, res) => {
@@ -22971,6 +23333,9 @@ ${fromName || ''}
         hasFailures: failedItems.length > 0
       });
       
+      // Mark vehicle inspection alert as completed
+      await VehicleInspectionAlertService.markInspectionCompleted(user.id, user.organizationId, record.id);
+
       res.json(record);
     } catch (error: any) {
       console.error("Error submitting inspection:", error);
@@ -24583,6 +24948,19 @@ ${fromName || ''}
         console.error('Error sending clock-in notifications:', notificationError);
       }
       
+      // Trigger vehicle inspection alert check
+      try {
+        const { VehicleInspectionAlertService } = await import('./vehicleInspectionAlertService');
+        VehicleInspectionAlertService.checkOnClockIn(
+          user.id,
+          user.organizationId,
+          entry.id,
+          new Date(entry.clockInTime)
+        );
+      } catch (inspectionError) {
+        console.error('Error triggering vehicle inspection check:', inspectionError);
+      }
+      
       res.json({ entry, message: "Successfully clocked in" });
     } catch (error: any) {
       console.error("Error clocking in:", error);
@@ -25134,11 +25512,29 @@ ${fromName || ''}
     }
   });
 
-  // Frontend Sliders
-  app.get('/api/frontend/sliders', requireAuth, async (req, res) => {
+  // Frontend Sliders - Public endpoint for home page
+  app.get('/api/frontend/sliders', async (req, res) => {
     try {
-      const user = getAuthenticatedUser(req);
-      const sliders = await storage.getFrontendSliders(user.organizationId);
+      // Check if user is authenticated
+      const authHeader = req.headers.authorization;
+      const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+      
+      let organizationId = 1; // Default to organization 1 (profieldmanager)
+      
+      // If authenticated, use user's organization
+      if (token) {
+        try {
+          const user = await storage.getUserFromSessionToken(token);
+          if (user) {
+            organizationId = user.organizationId;
+          }
+        } catch (err) {
+          // If token is invalid, continue with default organization
+          console.log('Invalid token, using default organization');
+        }
+      }
+      
+      const sliders = await storage.getFrontendSliders(organizationId);
       res.json(sliders);
     } catch (error: any) {
       console.error('Error fetching frontend sliders:', error);
@@ -25146,7 +25542,7 @@ ${fromName || ''}
     }
   });
 
-  app.post('/api/frontend/sliders', requireManagerOrAdmin, async (req, res) => {
+  app.post('/frontend/sliders', requireManagerOrAdmin, async (req, res) => {
     try {
       const user = getAuthenticatedUser(req);
       const sliderData = {
@@ -26431,6 +26827,20 @@ ${fromName || ''}
             title: `Employee Clocked In`,
             message: `${user.firstName} ${user.lastName} clocked in at ${clockInTime.toTimeString().slice(0, 5)}${location ? ` from ${location}` : ''}`,
             userId: admin.id,
+      }
+      
+      // Trigger vehicle inspection alert check
+      try {
+        const { VehicleInspectionAlertService } = await import('./vehicleInspectionAlertService');
+        VehicleInspectionAlertService.checkOnClockIn(
+          user.id,
+          user.organizationId,
+          timeClockEntry.id,
+          new Date(timeClockEntry.clockInTime)
+        );
+      } catch (inspectionError) {
+        console.error('Error triggering vehicle inspection check:', inspectionError);
+      }
             organizationId: user.organizationId,
             relatedEntityType: 'time_clock',
             relatedEntityId: timeClockEntry.id,
@@ -26440,9 +26850,10 @@ ${fromName || ''}
           });
         }
         
-        console.log(`📢 Clock-in notifications sent to ${adminUsers.length} admins/managers`);
-      } catch (notificationError) {
-        console.error('Error sending clock-in notifications:', notificationError);
+        );
+      } catch (inspectionError) {
+        console.error('Error triggering vehicle inspection check:', inspectionError);
+      }
       }
       
       res.json({ 

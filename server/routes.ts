@@ -24948,6 +24948,19 @@ ${fromName || ''}
         console.error('Error sending clock-in notifications:', notificationError);
       }
       
+      // Trigger vehicle inspection alert check
+      try {
+        const { VehicleInspectionAlertService } = await import('./vehicleInspectionAlertService');
+        VehicleInspectionAlertService.checkOnClockIn(
+          user.id,
+          user.organizationId,
+          entry.id,
+          new Date(entry.clockInTime)
+        );
+      } catch (inspectionError) {
+        console.error('Error triggering vehicle inspection check:', inspectionError);
+      }
+      
       res.json({ entry, message: "Successfully clocked in" });
     } catch (error: any) {
       console.error("Error clocking in:", error);
@@ -24962,6 +24975,14 @@ ${fromName || ''}
       const { notes } = req.body;
       
       const entry = await storage.clockOut(user.id, notes);
+      
+      // Cancel any scheduled vehicle inspection alert for this clock-in
+      try {
+        const { VehicleInspectionAlertService } = await import('./vehicleInspectionAlertService');
+        VehicleInspectionAlertService.cancelAlert(entry.id);
+      } catch (cancelError) {
+        console.error('Error canceling vehicle inspection alert:', cancelError);
+      }
       
       // Broadcast to organization for real-time updates
       broadcastToWebUsers(user.organizationId, 'time_clock_update', {
@@ -26826,6 +26847,19 @@ ${fromName || ''}
         console.log(`📢 Clock-in notifications sent to ${adminUsers.length} admins/managers`);
       } catch (notificationError) {
         console.error('Error sending clock-in notifications:', notificationError);
+      }
+      
+      // Trigger vehicle inspection alert check
+      try {
+        const { VehicleInspectionAlertService } = await import('./vehicleInspectionAlertService');
+        VehicleInspectionAlertService.checkOnClockIn(
+          user.id,
+          user.organizationId,
+          timeClockEntry.id,
+          new Date(timeClockEntry.clockInTime)
+        );
+      } catch (inspectionError) {
+        console.error('Error triggering vehicle inspection check:', inspectionError);
       }
       
       res.json({ 

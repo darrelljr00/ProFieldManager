@@ -340,7 +340,7 @@ app.use((req, res, next) => {
 
       CustomerEtaService.start();
       log('✅ Customer ETA Service started successfully');
-      VehicleInspectionAlertService.start();
+      await VehicleInspectionAlertService.start();
       log('✅ Vehicle Inspection Alert Service started successfully');
 
       log('🚗 OneStep GPS background services started');
@@ -356,6 +356,7 @@ app.use((req, res, next) => {
         clearInterval(tripBuilderInterval);
         autoJobService.stop();
         CustomerEtaService.stop();
+        VehicleInspectionAlertService.stop();
       });
 
       process.on("SIGINT", () => {
@@ -364,6 +365,7 @@ app.use((req, res, next) => {
         clearInterval(tripBuilderInterval);
         autoJobService.stop();
         CustomerEtaService.stop();
+        VehicleInspectionAlertService.stop();
       });
     } catch (error) {
       console.error("❌ Failed to start OneStep GPS services:", error);
