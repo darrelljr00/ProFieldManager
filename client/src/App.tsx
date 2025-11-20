@@ -28,6 +28,7 @@ import Reports from "@/pages/reports";
 import GasCardProviders from "@/pages/gas-card-providers";
 import GasCards from "@/pages/gas-cards";
 import Quotes from "@/pages/quotes";
+import Services from "@/pages/services";
 import Invoices from "@/pages/invoices";
 import InvoiceTemplates from "@/pages/invoice-templates";
 import Messages from "@/pages/messages";
@@ -212,6 +213,7 @@ function AuthenticatedApp() {
           <Route path="/gas-card-providers" component={GasCardProviders} />
           <Route path="/gas-cards" component={GasCards} />
           <Route path="/quotes" component={Quotes} />
+          <Route path="/services" component={Services} />
           <Route path="/invoices" component={Invoices} />
           <Route path="/invoice-templates" component={InvoiceTemplates} />
           <Route path="/messages" component={Messages} />
