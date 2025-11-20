@@ -19,12 +19,16 @@ export interface ConnectOnboardingParams {
 }
 
 export interface ConnectAccountStatus {
-  accountId: string | null;
-  onboardingComplete: boolean;
+  isConnected: boolean;
+  accountId?: string;
+  hasCompletedOnboarding: boolean;
   chargesEnabled: boolean;
   payoutsEnabled: boolean;
-  detailsSubmitted: boolean;
-  dashboardUrl: string | null;
+  requirements?: {
+    currently_due: string[];
+    eventually_due: string[];
+    past_due: string[];
+  };
 }
 
 /**
@@ -115,12 +119,10 @@ export async function getConnectAccountStatus(organizationId: number): Promise<C
 
     if (!org || !org.stripeConnectAccountId) {
       return {
-        accountId: null,
-        onboardingComplete: false,
+        isConnected: false,
+        hasCompletedOnboarding: false,
         chargesEnabled: false,
         payoutsEnabled: false,
-        detailsSubmitted: false,
-        dashboardUrl: null,
       };
     }
 
@@ -138,28 +140,44 @@ export async function getConnectAccountStatus(organizationId: number): Promise<C
       })
       .where(eq(organizations.id, organizationId));
 
-    // Create login link for dashboard
-    let dashboardUrl: string | null = null;
-    if (account.details_submitted) {
-      try {
-        const loginLink = await stripe.accounts.createLoginLink(account.id);
-        dashboardUrl = loginLink.url;
-      } catch (error) {
-        console.error('Error creating dashboard link:', error);
-      }
-    }
-
     return {
+      isConnected: true,
       accountId: account.id,
-      onboardingComplete: account.charges_enabled && account.payouts_enabled,
+      hasCompletedOnboarding: account.details_submitted,
       chargesEnabled: account.charges_enabled,
       payoutsEnabled: account.payouts_enabled,
-      detailsSubmitted: account.details_submitted,
-      dashboardUrl,
+      requirements: account.requirements ? {
+        currently_due: account.requirements.currently_due || [],
+        eventually_due: account.requirements.eventually_due || [],
+        past_due: account.requirements.past_due || [],
+      } : undefined,
     };
   } catch (error: any) {
     console.error('Error getting Connect account status:', error);
     throw new Error(`Failed to get account status: ${error.message}`);
+  }
+}
+
+/**
+ * Create a dashboard login link for a connected account
+ */
+export async function createDashboardLink(organizationId: number): Promise<string> {
+  try {
+    const [org] = await db
+      .select()
+      .from(organizations)
+      .where(eq(organizations.id, organizationId))
+      .limit(1);
+
+    if (!org || !org.stripeConnectAccountId) {
+      throw new Error('No Stripe Connect account found');
+    }
+
+    const loginLink = await stripe.accounts.createLoginLink(org.stripeConnectAccountId);
+    return loginLink.url;
+  } catch (error: any) {
+    console.error('Error creating dashboard link:', error);
+    throw new Error(`Failed to create dashboard link: ${error.message}`);
   }
 }
 
@@ -253,6 +271,7 @@ export default {
   createConnectAccount,
   createAccountLink,
   getConnectAccountStatus,
+  createDashboardLink,
   disconnectConnectAccount,
   createPaymentIntentWithFee,
 };

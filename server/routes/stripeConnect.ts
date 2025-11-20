@@ -15,7 +15,63 @@ export function registerStripeConnectRoutes(app: Express) {
     }
   });
 
-  // Create Connect onboarding link
+  // Create new Stripe Connect account
+  app.post('/api/stripe-connect/create-account', requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+      const host = req.headers.host;
+      const baseUrl = `${protocol}://${host}`;
+
+      const onboardingUrl = await stripeConnectService.createAccountLink({
+        organizationId: user.organizationId,
+        email: user.email!,
+        refreshUrl: `${baseUrl}/settings?tab=payment&refresh=true`,
+        returnUrl: `${baseUrl}/settings?tab=payment&success=true`,
+      });
+
+      res.json({ url: onboardingUrl });
+    } catch (error: any) {
+      console.error('Error creating account:', error);
+      res.status(500).json({ message: error.message || 'Failed to create account' });
+    }
+  });
+
+  // Create account link for onboarding/updating info
+  app.post('/api/stripe-connect/create-account-link', requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+      const host = req.headers.host;
+      const baseUrl = `${protocol}://${host}`;
+
+      const onboardingUrl = await stripeConnectService.createAccountLink({
+        organizationId: user.organizationId,
+        email: user.email!,
+        refreshUrl: `${baseUrl}/settings?tab=payment&refresh=true`,
+        returnUrl: `${baseUrl}/settings?tab=payment&success=true`,
+      });
+
+      res.json({ url: onboardingUrl });
+    } catch (error: any) {
+      console.error('Error creating account link:', error);
+      res.status(500).json({ message: error.message || 'Failed to create account link' });
+    }
+  });
+
+  // Create dashboard link
+  app.post('/api/stripe-connect/dashboard-link', requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const dashboardUrl = await stripeConnectService.createDashboardLink(user.organizationId);
+      res.json({ url: dashboardUrl });
+    } catch (error: any) {
+      console.error('Error creating dashboard link:', error);
+      res.status(500).json({ message: error.message || 'Failed to create dashboard link' });
+    }
+  });
+
+  // Legacy route for backwards compatibility
   app.post('/api/stripe-connect/onboard', requireAuth, async (req, res) => {
     try {
       const user = req.user!;
@@ -26,8 +82,8 @@ export function registerStripeConnectRoutes(app: Express) {
       const onboardingUrl = await stripeConnectService.createAccountLink({
         organizationId: user.organizationId,
         email: user.email!,
-        refreshUrl: `${baseUrl}/settings?tab=payments&refresh=true`,
-        returnUrl: `${baseUrl}/settings?tab=payments&success=true`,
+        refreshUrl: `${baseUrl}/settings?tab=payment&refresh=true`,
+        returnUrl: `${baseUrl}/settings?tab=payment&success=true`,
       });
 
       res.json({ url: onboardingUrl });
@@ -48,8 +104,8 @@ export function registerStripeConnectRoutes(app: Express) {
       const onboardingUrl = await stripeConnectService.createAccountLink({
         organizationId: user.organizationId,
         email: user.email!,
-        refreshUrl: `${baseUrl}/settings?tab=payments&refresh=true`,
-        returnUrl: `${baseUrl}/settings?tab=payments&success=true`,
+        refreshUrl: `${baseUrl}/settings?tab=payment&refresh=true`,
+        returnUrl: `${baseUrl}/settings?tab=payment&success=true`,
       });
 
       res.json({ url: onboardingUrl });

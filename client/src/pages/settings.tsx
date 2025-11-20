@@ -21,6 +21,7 @@ import { InvoicePreview } from "@/components/InvoicePreview";
 import SoundSettings from "@/components/SoundSettings";
 import { FileStorageManager } from "@/components/file-storage-manager";
 import { VehicleManagement } from "@/components/vehicle-management";
+import { StripeConnectSettings } from "@/components/stripe-connect-settings";
 
 type PaymentSettings = {
   stripeEnabled: boolean;
@@ -1270,6 +1271,8 @@ export default function Settings() {
               </form>
             </CardContent>
           </Card>
+
+          <StripeConnectSettings />
         </TabsContent>
 
         <TabsContent value="company">
