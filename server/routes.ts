@@ -75,7 +75,7 @@ import {
   partsSupplies, inventoryTransactions, stockAlerts,
   partsCategories, meetings, meetingParticipants, meetingMessages, meetingRecordings,
   jobSiteGeofences, jobSiteEvents, gpsTrackingData,
-  obdLocationData, obdDiagnosticData, obdTrips, savedRouteReplays, services,
+  obdLocationData, obdDiagnosticData, obdTrips, savedRouteReplays, services, jobsServices,
   inspectionRecords, jobTravelSegments, projectUsers, employees,
   syncConfigurations, syncHistory, syncConflicts,
   insertSyncConfigurationSchema,
@@ -13226,7 +13226,7 @@ ${fromName || ''}
       }
 
       // Fetch projects (jobs), related data, and GPS tracking events
-      const [allProjects, allTasks, timeClockEntries, jobSiteEventsData] = await Promise.all([
+      const [allProjects, allTasks, timeClockEntries, jobSiteEventsData, jobsServicesData] = await Promise.all([
         db.select()
           .from(projects)
           .where(
@@ -13304,6 +13304,23 @@ ${fromName || ''}
             )
           )
           .orderBy(desc(jobSiteEvents.eventTime))
+,
+
+        // Fetch job-service relationships for estimated completion times
+        db.select({
+          jobId: jobsServices.jobId,
+          serviceId: jobsServices.serviceId,
+          estimatedCompletionTimeSnapshot: jobsServices.estimatedCompletionTimeSnapshot
+        })
+          .from(jobsServices)
+          .innerJoin(projects, eq(jobsServices.jobId, projects.id))
+          .where(
+            and(
+              eq(jobsServices.organizationId, organizationId),
+              gte(projects.createdAt, startDate),
+              lte(projects.createdAt, endDate)
+            )
+          )
       ]);
 
       // Calculate job analytics
@@ -13364,7 +13381,16 @@ ${fromName || ''}
         const totalJobTime = job.startDate && job.endDate ? 
           (new Date(job.endDate).getTime() - new Date(job.startDate).getTime()) / (1000 * 60 * 60) : 0;
 
+        // Calculate estimated hours from services
+        const jobServices = jobsServicesData.filter(js => js.jobId === job.id);
+        const totalEstimatedMinutes = jobServices.reduce((sum, js) => 
+          sum + (parseInt(js.estimatedCompletionTimeSnapshot || "0") || 0), 0
+        );
+        const estimatedHours = totalEstimatedMinutes / 60;
+
+
         return {
+          estimatedHours: Math.round(estimatedHours * 10) / 10,
           jobName: job.name || `Job ${job.id}`,
           onsiteDuration: Math.round(totalActualOnsiteHours * 10) / 10,
           totalJobTime: Math.round(totalJobTime * 10) / 10,

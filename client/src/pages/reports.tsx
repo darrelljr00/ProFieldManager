@@ -2043,9 +2043,9 @@ export default function Reports() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Job Completion Time vs Onsite Duration</CardTitle>
+                  <CardTitle>Estimated vs Actual Job Completion Time</CardTitle>
                   <CardDescription>
-                    Correlation between time spent onsite and job completion
+                    Compare service catalog estimates with actual technician completion times
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -2053,13 +2053,15 @@ export default function Reports() {
                     <BarChart data={jobAnalyticsData?.jobDurationData || []}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="jobName" angle={-45} textAnchor="end" height={100} />
-                      <YAxis />
+                      <YAxis label={{ value: 'Hours', angle: -90, position: 'insideLeft' }} />
                       <Tooltip formatter={(value, name) => [
-                        name === 'onsiteDuration' ? `${value} hours` : `${value} hours`,
-                        name === 'onsiteDuration' ? 'Onsite Time' : 'Total Job Time'
+                        `${value} hours`,
+                        name === 'estimatedHours' ? 'Estimated (Service Catalog)' : 
+                        name === 'onsiteDuration' ? 'Actual Onsite Time' : 'Total Job Time'
                       ]} />
                       <Legend />
-                      <Bar dataKey="onsiteDuration" fill="#0088FE" name="Onsite Duration" />
+                      <Bar dataKey="estimatedHours" fill="#8B5CF6" name="Estimated (Service Catalog)" />
+                      <Bar dataKey="onsiteDuration" fill="#0088FE" name="Actual Onsite Time" />
                       <Bar dataKey="totalJobTime" fill="#00C49F" name="Total Job Time" />
                     </BarChart>
                   </ResponsiveContainer>
