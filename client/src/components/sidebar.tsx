@@ -48,6 +48,7 @@ import {
   Layout,
   Image,
   DollarSign,
+  Wrench,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -555,6 +556,8 @@ export function Sidebar() {
       subItems: [
         { name: "All Jobs", href: "/jobs", icon: Briefcase },
         { name: "Task Groups", href: "/task-groups", icon: Folder },
+        { name: "Quotes", href: "/quotes", icon: Quote },
+        { name: "Services", href: "/quotes?tab=jobs", icon: Wrench },
       ],
     },
     {
@@ -638,7 +641,6 @@ export function Sidebar() {
       subItems: [
         { name: "All Customers", href: "/customers", icon: Users },
         { name: "Leads", href: "/leads", icon: UserPlus },
-        { name: "Quotes", href: "/quotes", icon: Quote },
       ],
     },
     {
