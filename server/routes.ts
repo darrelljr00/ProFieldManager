@@ -13226,7 +13226,7 @@ ${fromName || ''}
       }
 
       // Fetch projects (jobs), related data, and GPS tracking events
-      const [allProjects, allTasks, timeClockEntries, jobSiteEventsData, jobsServicesData] = await Promise.all([
+      const [allProjects, allTasks, timeClockEntries, jobSiteEventsData, jobsServicesData, projectUsersData] = await Promise.all([
         db.select()
           .from(projects)
           .where(
@@ -13321,6 +13321,24 @@ ${fromName || ''}
               lte(projects.createdAt, endDate)
             )
           )
+,
+
+        // Fetch assigned team members for jobs
+        db.select({
+          projectId: projectUsers.projectId,
+          userId: projectUsers.userId,
+          userName: sql<string>`CONCAT(${users.firstName}, ' ', ${users.lastName})`.as('userName')
+        })
+          .from(projectUsers)
+          .innerJoin(users, eq(projectUsers.userId, users.id))
+          .innerJoin(projects, eq(projectUsers.projectId, projects.id))
+          .where(
+            and(
+              eq(projects.organizationId, organizationId),
+              gte(projects.createdAt, startDate),
+              lte(projects.createdAt, endDate)
+            )
+          )
       ]);
 
       // Calculate job analytics
@@ -13388,16 +13406,49 @@ ${fromName || ''}
         );
         const estimatedHours = totalEstimatedMinutes / 60;
 
-        // Collect unique technician names who worked on this job
-        const technicianNames = [...new Set(
-          jobEvents
-            .filter(event => event.userName)
-            .map(event => event.userName)
-        )];
+        // Collect unique technician names who worked on this job from multiple sources
+        const technicianNamesSet = new Set<string>();
+        
+        // 1. From GPS tracking events
+        jobEvents
+          .filter(event => event.userName)
+          .forEach(event => technicianNamesSet.add(event.userName!));
+        
+        // 2. From time clock entries related to this job
+        timeClockEntries
+          .filter(entry => {
+            // Match by job location or time range overlap
+            const entryDate = new Date(entry.clockInTime);
+            const jobStart = job.startDate ? new Date(job.startDate) : null;
+            const jobEnd = job.endDate ? new Date(job.endDate) : null;
+            
+            if (jobStart && jobEnd) {
+              return entryDate >= jobStart && entryDate <= jobEnd;
+            }
+            return false;
+          })
+          .forEach(entry => {
+            if (entry.userName) technicianNamesSet.add(entry.userName);
+          });
+        
+        // 3. From tasks assigned to this job
+        jobTasks
+          .filter(task => task.assignedToId)
+          .forEach(task => {
+            const assignedUser = timeClockEntries.find(tc => tc.userId === task.assignedToId);
+            if (assignedUser?.userName) technicianNamesSet.add(assignedUser.userName);
+          });
+        
+        
+        // 4. From assigned team members (project_users)
+        projectUsersData
+          .filter(pu => pu.projectId === job.id)
+          .forEach(pu => {
+            if (pu.userName) technicianNamesSet.add(pu.userName);
+          });
+        const technicianNames = Array.from(technicianNamesSet);
         const techniciansText = technicianNames.length > 0 
-          ? technicianNames.join(', ') 
-          : 'No technicians assigned';
-
+          ? technicianNames.join(', ') : 'No technicians assigned';
 
 
         return {
