@@ -100,6 +100,7 @@ export default function Reports() {
   const [performanceIssuesDateRange, setPerformanceIssuesDateRange] = useState("30days");
   const [timeOffDateRange, setTimeOffDateRange] = useState("30days");
   const [jobAnalyticsDateRange, setJobAnalyticsDateRange] = useState("30days");
+  const [selectedEmployee, setSelectedEmployee] = useState<string>("all");
   const [profitLossView, setProfitLossView] = useState<'daily' | 'weekly' | 'monthly' | 'job' | 'vehicle'>('monthly');
   const [gasMaintView, setGasMaintView] = useState<'job' | 'daily' | 'weekly' | 'monthly' | 'yearly'>('job');
   const [selectedGasMaintVehicle, setSelectedGasMaintVehicle] = useState<string>('all');
@@ -173,9 +174,23 @@ export default function Reports() {
     select: (data) => data || { metrics: {}, data: { invoices: [], leads: [], expenses: [], customers: [], employees: [] } }
   });
 
+  // Fetch list of employees
+  const { data: employees } = useQuery<any[]>({
+    queryKey: ["/api/users"],
+  });
+
   // Fetch job analytics data
+  const jobAnalyticsParams = useMemo(() => {
+    const params = new URLSearchParams();
+    params.append('dateRange', jobAnalyticsDateRange);
+    if (selectedEmployee && selectedEmployee !== 'all') {
+      params.append('employeeId', selectedEmployee);
+    }
+    return params.toString();
+  }, [jobAnalyticsDateRange, selectedEmployee]);
+
   const { data: jobAnalyticsData, isLoading: jobAnalyticsLoading, refetch: refetchJobAnalytics } = useQuery<JobAnalyticsData>({
-    queryKey: ["/api/job-analytics", jobAnalyticsDateRange],
+    queryKey: [`/api/job-analytics?${jobAnalyticsParams}`],
     enabled: true,
     refetchInterval: realTimeUpdates ? 30000 : false,
     select: (data) => data || {
@@ -1973,20 +1988,36 @@ export default function Reports() {
                       </span>
                     </CardDescription>
                   </div>
-                  <Select value={jobAnalyticsDateRange} onValueChange={setJobAnalyticsDateRange}>
-                    <SelectTrigger className="w-40">
-                      <CalendarIcon className="h-4 w-4 mr-2" />
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="7days">Last 7 Days</SelectItem>
-                      <SelectItem value="30days">Last 30 Days</SelectItem>
-                      <SelectItem value="90days">Last 90 Days</SelectItem>
-                      <SelectItem value="6months">Last 6 Months</SelectItem>
-                      <SelectItem value="12months">Last 12 Months</SelectItem>
-                      <SelectItem value="2years">Last 2 Years</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="flex gap-2">
+                    <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
+                      <SelectTrigger className="w-48">
+                        <Users className="h-4 w-4 mr-2" />
+                        <SelectValue placeholder="All Employees" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Employees</SelectItem>
+                        {employees?.filter(emp => emp.isActive).map((employee) => (
+                          <SelectItem key={employee.id} value={employee.id.toString()}>
+                            {employee.firstName} {employee.lastName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select value={jobAnalyticsDateRange} onValueChange={setJobAnalyticsDateRange}>
+                      <SelectTrigger className="w-40">
+                        <CalendarIcon className="h-4 w-4 mr-2" />
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="7days">Last 7 Days</SelectItem>
+                        <SelectItem value="30days">Last 30 Days</SelectItem>
+                        <SelectItem value="90days">Last 90 Days</SelectItem>
+                        <SelectItem value="6months">Last 6 Months</SelectItem>
+                        <SelectItem value="12months">Last 12 Months</SelectItem>
+                        <SelectItem value="2years">Last 2 Years</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>

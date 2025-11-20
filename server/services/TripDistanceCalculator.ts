@@ -49,21 +49,48 @@ export class TripDistanceCalculator {
         },
       });
 
-      if (response.data.routes.length === 0) {
+      if (!response.data) {
+        console.error('Google Maps API returned no data');
+        return null;
+      }
+
+      if (response.data.status !== 'OK') {
+        console.error(`Google Maps API error: ${response.data.status}`, response.data.error_message || '');
+        return null;
+      }
+
+      if (!response.data.routes || response.data.routes.length === 0) {
         console.warn('No route found for GPS path');
         return null;
       }
 
       const route = response.data.routes[0];
-      const totalDistance = route.legs.reduce((sum, leg) => sum + leg.distance.value, 0);
+      
+      if (!route.legs || route.legs.length === 0) {
+        console.warn('Route has no legs');
+        return null;
+      }
+
+      const totalDistance = route.legs.reduce((sum, leg) => {
+        return sum + (leg.distance?.value || 0);
+      }, 0);
 
       return {
         meters: totalDistance,
         miles: totalDistance / 1609.34,
       };
     } catch (error: any) {
-      console.error('Error calculating trip distance from GPS path:', error.message);
-      console.error('Error details:', error.response?.data || error);
+      if (error.response) {
+        console.error('Google Maps API HTTP error:', {
+          status: error.response.status,
+          statusText: error.response.statusText,
+          data: error.response.data
+        });
+      } else if (error.request) {
+        console.error('Google Maps API request failed (no response):', error.message);
+      } else {
+        console.error('Error setting up Google Maps request:', error.message);
+      }
       return null;
     }
   }

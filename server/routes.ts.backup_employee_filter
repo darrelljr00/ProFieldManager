@@ -13291,9 +13291,6 @@ ${fromName || ''}
       const user = getAuthenticatedUser(req);
       const organizationId = user.organizationId;
 
-      // Parse employee filter
-      const employeeId = req.query.employeeId as string | undefined;
-
       // Parse date range filter
       const dateRange = (req.query.dateRange as string) || '30days';
       let startDate: Date;
@@ -13369,13 +13366,12 @@ ${fromName || ''}
           userName: sql<string>`CONCAT(${users.firstName}, ' ', ${users.lastName})`.as('userName')
         })
           .from(timeClock)
-          .innerJoin(users, eq(timeClock.userId, users.id))
+          .leftJoin(users, eq(timeClock.userId, users.id))
           .where(
             and(
               eq(timeClock.organizationId, organizationId),
               gte(timeClock.clockInTime, startDate),
-              lte(timeClock.clockInTime, endDate),
-              employeeId && employeeId !== 'all' ? eq(timeClock.userId, parseInt(employeeId)) : undefined
+              lte(timeClock.clockInTime, endDate)
             )
           )
           .orderBy(desc(timeClock.clockInTime)),
@@ -13392,14 +13388,13 @@ ${fromName || ''}
           projectName: projects.name
         })
           .from(jobSiteEvents)
-          .innerJoin(users, eq(jobSiteEvents.userId, users.id))
-          .innerJoin(projects, eq(jobSiteEvents.projectId, projects.id))
+          .leftJoin(users, eq(jobSiteEvents.userId, users.id))
+          .leftJoin(projects, eq(jobSiteEvents.projectId, projects.id))
           .where(
             and(
               eq(jobSiteEvents.organizationId, organizationId),
               gte(jobSiteEvents.eventTime, startDate),
-              lte(jobSiteEvents.eventTime, endDate),
-              employeeId && employeeId !== 'all' ? eq(jobSiteEvents.userId, parseInt(employeeId)) : undefined
+              lte(jobSiteEvents.eventTime, endDate)
             )
           )
           .orderBy(desc(jobSiteEvents.eventTime))
@@ -13435,8 +13430,7 @@ ${fromName || ''}
             and(
               eq(projects.organizationId, organizationId),
               gte(projects.createdAt, startDate),
-              lte(projects.createdAt, endDate),
-              employeeId && employeeId !== 'all' ? eq(projectUsers.userId, parseInt(employeeId)) : undefined
+              lte(projects.createdAt, endDate)
             )
           )
       ]);
