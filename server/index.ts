@@ -319,6 +319,7 @@ app.use((req, res, next) => {
       const { TripBuilder } = await import("./services/TripBuilder");
       const { getAutoJobService } = await import("./autoJobService");
       const { CustomerEtaService } = await import("./customerEtaService");
+      const { VehicleInspectionAlertService } = await import('./vehicleInspectionAlertService');
       log('✅ GPS service modules imported');
 
       const gpsPoller = new OneStepPoller();
@@ -339,6 +340,8 @@ app.use((req, res, next) => {
 
       CustomerEtaService.start();
       log('✅ Customer ETA Service started successfully');
+      VehicleInspectionAlertService.start();
+      log('✅ Vehicle Inspection Alert Service started successfully');
 
       log('🚗 OneStep GPS background services started');
       log('   📍 GPS Poller: Active (30-60s intervals per org)');

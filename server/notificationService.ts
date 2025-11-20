@@ -120,6 +120,8 @@ export class NotificationService {
       'schedule_reminder': 'scheduleReminder',
       'user_created': 'userCreated',
       'password_reset': 'passwordReset',
+      'vehicle_inspection_reminder': 'vehicleInspectionReminder',
+      'vehicle_inspection_missing': 'vehicleInspectionMissing',
     };
 
     const settingPrefix = typeMap[type];

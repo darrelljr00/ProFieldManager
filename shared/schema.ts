@@ -4881,6 +4881,41 @@ export const customerEtaNotifications = pgTable("customer_eta_notifications", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Vehicle Inspection Alert Settings - organization-level settings for vehicle inspection reminders
+export const vehicleInspectionAlertSettings = pgTable("vehicle_inspection_alert_settings", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id).unique(),
+  
+  enabled: boolean("enabled").default(true),
+  alertDelayMinutes: integer("alert_delay_minutes").default(15),
+  alertMessage: text("alert_message").default("Reminder: Please complete your vehicle inspection. You clocked in {minutes} minutes ago and haven't submitted an inspection yet."),
+  sendReminderNotifications: boolean("send_reminder_notifications").default(true),
+  notifyManagers: boolean("notify_managers").default(false),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Vehicle Inspection Alerts - tracks which alerts have been sent
+export const vehicleInspectionAlerts = pgTable("vehicle_inspection_alerts", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  userId: integer("user_id").notNull().references(() => users.id),
+  timeClockId: integer("time_clock_id").notNull().references(() => timeClock.id),
+  
+  clockInTime: timestamp("clock_in_time").notNull(),
+  alertSentAt: timestamp("alert_sent_at").notNull(),
+  minutesAfterClockIn: integer("minutes_after_clock_in").notNull(),
+  
+  alertMessage: text("alert_message").notNull(),
+  notificationSent: boolean("notification_sent").default(false),
+  
+  inspectionCompletedAt: timestamp("inspection_completed_at"),
+  inspectionRecordId: integer("inspection_record_id").references(() => inspectionRecords.id),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Zod schemas for customer ETA settings
 export const insertCustomerEtaSettingsSchema = createInsertSchema(customerEtaSettings).omit({
   id: true,
@@ -4889,6 +4924,18 @@ export const insertCustomerEtaSettingsSchema = createInsertSchema(customerEtaSet
 });
 
 export const insertCustomerEtaNotificationSchema = createInsertSchema(customerEtaNotifications).omit({
+  id: true,
+  createdAt: true,
+});
+
+// Zod schemas for vehicle inspection alerts
+export const insertVehicleInspectionAlertSettingsSchema = createInsertSchema(vehicleInspectionAlertSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertVehicleInspectionAlertSchema = createInsertSchema(vehicleInspectionAlerts).omit({
   id: true,
   createdAt: true,
 });
@@ -4909,6 +4956,12 @@ export type CustomerEtaSettings = typeof customerEtaSettings.$inferSelect;
 export type InsertCustomerEtaSettings = z.infer<typeof insertCustomerEtaSettingsSchema>;
 export type CustomerEtaNotification = typeof customerEtaNotifications.$inferSelect;
 export type InsertCustomerEtaNotification = z.infer<typeof insertCustomerEtaNotificationSchema>;
+
+// Vehicle Inspection Alert Types
+export type VehicleInspectionAlertSettings = typeof vehicleInspectionAlertSettings.$inferSelect;
+export type InsertVehicleInspectionAlertSettings = z.infer<typeof insertVehicleInspectionAlertSettingsSchema>;
+export type VehicleInspectionAlert = typeof vehicleInspectionAlerts.$inferSelect;
+export type InsertVehicleInspectionAlert = z.infer<typeof insertVehicleInspectionAlertSchema>;
 
 // Time Clock Task Triggers Zod schemas
 export const insertTimeClockTaskTriggerSchema = createInsertSchema(timeClockTaskTriggers).omit({

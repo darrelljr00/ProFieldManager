@@ -82,7 +82,8 @@ import {
   plannedRoutes, routeWaypoints, routeDeviations, routeStops,
   insertPlannedRouteSchema, insertRouteWaypointSchema, insertRouteDeviationSchema, insertRouteStopSchema,
   InsertRouteWaypoint,
-  cacheSettings, insertCacheSettingsSchema, customerEtaSettings, customerEtaNotifications
+  cacheSettings, insertCacheSettingsSchema, customerEtaSettings, customerEtaNotifications,
+  vehicleInspectionAlertSettings, vehicleInspectionAlerts
 } from "@shared/schema";
 import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull, isNull } from "drizzle-orm";
 import { DocuSignService, getDocuSignConfig } from "./docusign";
@@ -98,6 +99,7 @@ import archiver from 'archiver';
 // Removed fileUploadRouter import - using direct route instead
 // Object storage imports already imported at top - removed duplicates
 import { NotificationService, setBroadcastFunction, notifyUserCreation, notifyPasswordReset } from "./notificationService";
+import { VehicleInspectionAlertService } from "./vehicleInspectionAlertService";
 import { getCachedNotificationUnreadCount, getCachedInternalMessages, invalidateNotificationCache, invalidateMessageCache, clearAllQueryCaches, clearOrganizationCaches } from './cache/queryCache';
 import { routeMonitoringService } from "./routeMonitoring";
 import { cacheConfigService } from "./cache/CacheConfigService";
@@ -1918,6 +1920,98 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error('Error updating customer ETA settings:', error);
       res.status(500).json({ message: 'Failed to update customer ETA settings' });
+    }
+  });
+
+  // Vehicle Inspection Alert Settings endpoints
+  app.get('/api/settings/vehicle-inspection-alerts', requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const [alertSettings] = await db
+        .select()
+        .from(vehicleInspectionAlertSettings)
+        .where(eq(vehicleInspectionAlertSettings.organizationId, user.organizationId))
+        .limit(1);
+      
+      res.json(alertSettings || {
+        enabled: true,
+        alertDelayMinutes: 15,
+        alertMessage: "Reminder: Please complete your vehicle inspection. You clocked in {minutes} minutes ago and haven't submitted an inspection yet.",
+        sendReminderNotifications: true,
+        notifyManagers: false
+      });
+    } catch (error: any) {
+      console.error('Error fetching vehicle inspection alert settings:', error);
+      res.status(500).json({ message: 'Failed to fetch vehicle inspection alert settings' });
+    }
+  });
+
+  app.put('/api/settings/vehicle-inspection-alerts', requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { enabled, alertDelayMinutes, alertMessage, sendReminderNotifications, notifyManagers } = req.body;
+
+      const [existing] = await db
+        .select()
+        .from(vehicleInspectionAlertSettings)
+        .where(eq(vehicleInspectionAlertSettings.organizationId, user.organizationId))
+        .limit(1);
+
+      if (existing) {
+        await db
+          .update(vehicleInspectionAlertSettings)
+          .set({
+            enabled,
+            alertDelayMinutes,
+            alertMessage,
+            sendReminderNotifications,
+            notifyManagers,
+            updatedAt: new Date(),
+          })
+          .where(eq(vehicleInspectionAlertSettings.organizationId, user.organizationId));
+      } else {
+        await db.insert(vehicleInspectionAlertSettings).values({
+          organizationId: user.organizationId,
+          enabled,
+          alertDelayMinutes,
+          alertMessage,
+          sendReminderNotifications,
+          notifyManagers,
+        });
+      }
+
+      res.json({ message: 'Vehicle inspection alert settings updated successfully' });
+    } catch (error: any) {
+      console.error('Error updating vehicle inspection alert settings:', error);
+      res.status(500).json({ message: 'Failed to update vehicle inspection alert settings' });
+    }
+  });
+
+  // Get vehicle inspection alerts history
+  app.get('/api/vehicle-inspection-alerts/history', requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const alerts = await db
+        .select({
+          id: vehicleInspectionAlerts.id,
+          userId: vehicleInspectionAlerts.userId,
+          userName: users.name,
+          clockInTime: vehicleInspectionAlerts.clockInTime,
+          alertSentAt: vehicleInspectionAlerts.alertSentAt,
+          minutesAfterClockIn: vehicleInspectionAlerts.minutesAfterClockIn,
+          alertMessage: vehicleInspectionAlerts.alertMessage,
+          inspectionCompletedAt: vehicleInspectionAlerts.inspectionCompletedAt,
+        })
+        .from(vehicleInspectionAlerts)
+        .innerJoin(users, eq(vehicleInspectionAlerts.userId, users.id))
+        .where(eq(vehicleInspectionAlerts.organizationId, user.organizationId))
+        .orderBy(desc(vehicleInspectionAlerts.alertSentAt))
+        .limit(100);
+
+      res.json(alerts);
+    } catch (error: any) {
+      console.error('Error fetching vehicle inspection alert history:', error);
+      res.status(500).json({ message: 'Failed to fetch alert history' });
     }
   });
   // Authentication routes (public)
@@ -23239,6 +23333,9 @@ ${fromName || ''}
         hasFailures: failedItems.length > 0
       });
       
+      // Mark vehicle inspection alert as completed
+      await VehicleInspectionAlertService.markInspectionCompleted(user.id, user.organizationId, record.id);
+
       res.json(record);
     } catch (error: any) {
       console.error("Error submitting inspection:", error);
