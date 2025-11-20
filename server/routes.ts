@@ -13402,8 +13402,7 @@ ${fromName || ''}
               employeeId && employeeId !== 'all' ? eq(jobSiteEvents.userId, parseInt(employeeId)) : undefined
             )
           )
-          .orderBy(desc(jobSiteEvents.eventTime))
-,
+          .orderBy(desc(jobSiteEvents.eventTime)),
 
         // Fetch job-service relationships for estimated completion times
         db.select({
@@ -13419,8 +13418,7 @@ ${fromName || ''}
               gte(projects.createdAt, startDate),
               lte(projects.createdAt, endDate)
             )
-          )
-,
+          ),
 
         // Fetch assigned team members for jobs
         db.select({

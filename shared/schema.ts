@@ -29,6 +29,14 @@ export const organizations = pgTable("organizations", {
   stripeSubscriptionId: text("stripe_subscription_id"),
   stripePriceId: text("stripe_price_id"),
   
+  // Stripe Connect - for organizations to accept payments
+  stripeConnectAccountId: text("stripe_connect_account_id"), // Stripe connected account ID (acct_xxx)
+  stripeConnectOnboardingComplete: boolean("stripe_connect_onboarding_complete").default(false),
+  stripeConnectChargesEnabled: boolean("stripe_connect_charges_enabled").default(false),
+  stripeConnectPayoutsEnabled: boolean("stripe_connect_payouts_enabled").default(false),
+  stripeConnectDetailsSubmitted: boolean("stripe_connect_details_submitted").default(false),
+  platformFeePercentage: decimal("platform_fee_percentage", { precision: 5, scale: 2 }).default("2.5"), // Platform fee % (e.g., 2.5%)
+  
   // Usage limits based on plan
   maxUsers: integer("max_users").default(5),
   maxProjects: integer("max_projects").default(50),
