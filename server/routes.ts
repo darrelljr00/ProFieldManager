@@ -2699,7 +2699,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userType: user.userType
       };
 
-      if (popup === 'true') {
+      // Return HTML for both popup and iframe scenarios
+      if (popup === 'true' || req.headers.referer) {
         // Return HTML for popup that posts success message
         return res.send(`
           <!DOCTYPE html>
@@ -2707,7 +2708,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           <head><title>Authentication Successful</title></head>
           <body>
             <script>
-              if (window.opener) {
+              const message = {
+                type: 'auth_success',
+                token: '${session.token}',
+                user: ${JSON.stringify(userData)}
+              };
+              
+              // Try popup window first (window.opener)
+              if (window.opener && window.opener !== window) {
+                window.opener.postMessage(message, '*');
+                window.close();
+              } 
+              // Try iframe (window.parent)
+              else if (window.parent && window.parent !== window) {
+                window.parent.postMessage(message, '*');
+              }
                 window.opener.postMessage({
                   type: 'auth_success',
                   token: '${session.token}',
