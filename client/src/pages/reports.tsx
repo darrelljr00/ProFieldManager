@@ -2054,11 +2054,36 @@ export default function Reports() {
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="jobName" angle={-45} textAnchor="end" height={100} />
                       <YAxis label={{ value: 'Hours', angle: -90, position: 'insideLeft' }} />
-                      <Tooltip formatter={(value, name) => [
-                        `${value} hours`,
-                        name === 'estimatedHours' ? 'Estimated (Service Catalog)' : 
-                        name === 'onsiteDuration' ? 'Actual Onsite Time' : 'Total Job Time'
-                      ]} />
+                      <Tooltip 
+                        content={({ active, payload }) => {
+                          if (active && payload && payload.length) {
+                            const data = payload[0].payload;
+                            return (
+                              <div className="bg-white p-3 border border-gray-200 rounded shadow-lg">
+                                <p className="font-semibold text-sm mb-2">{data.jobName}</p>
+                                <p className="text-xs text-gray-600 mb-2">
+                                  <span className="font-medium">Technicians:</span> {data.technicians || 'None'}
+                                </p>
+                                <div className="space-y-1">
+                                  <p className="text-xs flex items-center">
+                                    <span className="inline-block w-3 h-3 rounded mr-2" style={{ backgroundColor: '#8B5CF6' }}></span>
+                                    Estimated: <span className="font-medium ml-1">{data.estimatedHours || 0}h</span>
+                                  </p>
+                                  <p className="text-xs flex items-center">
+                                    <span className="inline-block w-3 h-3 rounded mr-2" style={{ backgroundColor: '#0088FE' }}></span>
+                                    Actual Onsite: <span className="font-medium ml-1">{data.onsiteDuration || 0}h</span>
+                                  </p>
+                                  <p className="text-xs flex items-center">
+                                    <span className="inline-block w-3 h-3 rounded mr-2" style={{ backgroundColor: '#00C49F' }}></span>
+                                    Total Job Time: <span className="font-medium ml-1">{data.totalJobTime || 0}h</span>
+                                  </p>
+                                </div>
+                              </div>
+                            );
+                          }
+                          return null;
+                        }}
+                      />
                       <Legend />
                       <Bar dataKey="estimatedHours" fill="#8B5CF6" name="Estimated (Service Catalog)" />
                       <Bar dataKey="onsiteDuration" fill="#0088FE" name="Actual Onsite Time" />

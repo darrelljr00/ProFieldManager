@@ -13388,6 +13388,17 @@ ${fromName || ''}
         );
         const estimatedHours = totalEstimatedMinutes / 60;
 
+        // Collect unique technician names who worked on this job
+        const technicianNames = [...new Set(
+          jobEvents
+            .filter(event => event.userName)
+            .map(event => event.userName)
+        )];
+        const techniciansText = technicianNames.length > 0 
+          ? technicianNames.join(', ') 
+          : 'No technicians assigned';
+
+
 
         return {
           estimatedHours: Math.round(estimatedHours * 10) / 10,
