@@ -1,5 +1,6 @@
 import express, { type Express, Request } from "express";
 import * as crypto from "crypto";
+import { registerStripeConnectRoutes } from "./routes/stripeConnect";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import Stripe from "stripe";
@@ -1129,6 +1130,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Create HTTP server first
+  // Register Stripe Connect routes
+  registerStripeConnectRoutes(app);
   const httpServer = createServer(app);
 
   // WebSocket server for real-time updates
