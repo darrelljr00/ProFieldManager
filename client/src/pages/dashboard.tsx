@@ -123,15 +123,33 @@ export default function Dashboard() {
 
 
 
-  const { data: stats, isLoading: statsLoading } = useQuery({
+  const { data: stats, isLoading: statsLoading } = useQuery<{
+    totalRevenue: number;
+    pendingInvoices: number;
+    paidInvoices: number;
+    overdueInvoices: number;
+    pendingValue: number;
+    paidValue: number;
+    overdueValue: number;
+  }>({
     queryKey: ["/api/dashboard/stats"],
   });
 
-  const { data: taskAnalytics, isLoading: taskAnalyticsLoading } = useQuery({
+  const { data: taskAnalytics, isLoading: taskAnalyticsLoading } = useQuery<{
+    summary: {
+      totalTasks: number;
+      completedTasks: number;
+      completionRate: number;
+      completedToday: number;
+      completedThisWeek: number;
+      averageCompletionTime: number;
+      activeTeamMembers?: number;
+    };
+  }>({
     queryKey: ["/api/analytics/tasks"],
   });
 
-  const { data: invoices, isLoading: invoicesLoading } = useQuery({
+  const { data: invoices, isLoading: invoicesLoading } = useQuery<any[]>({
     queryKey: ["/api/invoices"],
   });
 
@@ -164,24 +182,27 @@ export default function Dashboard() {
   }, [taskAnalytics]);
 
   // WebSocket connection for real-time updates
-  const { isConnected } = useWebSocket({
-    onMessage: (data) => {
-      if (data.eventType === 'team_status_updated') {
-        console.log('📊 Real-time team status update received:', data.data);
-        setTeamStatus({
-          online: data.data.online || 0,
-          inField: data.data.inField || 0,
-          webSocketConnected: data.data.webSocketConnected || 0
-        });
-      }
-      
-      // Handle task analytics updates
-      if (data.eventType === 'task_analytics_updated') {
-        console.log('📊 Real-time task analytics update received:', data.data);
-        setTaskAnalyticsData(data.data);
-      }
+  const { isConnected, lastMessage } = useWebSocket();
+
+  // Handle WebSocket messages for real-time updates
+  useEffect(() => {
+    if (!lastMessage) return;
+    
+    if (lastMessage.eventType === 'team_status_updated') {
+      console.log('📊 Real-time team status update received:', lastMessage.data);
+      setTeamStatus({
+        online: lastMessage.data?.online || 0,
+        inField: lastMessage.data?.inField || 0,
+        webSocketConnected: lastMessage.data?.webSocketConnected || 0
+      });
     }
-  });
+    
+    // Handle task analytics updates
+    if (lastMessage.eventType === 'task_analytics_updated') {
+      console.log('📊 Real-time task analytics update received:', lastMessage.data);
+      setTaskAnalyticsData(lastMessage.data);
+    }
+  }, [lastMessage]);
 
   // Use default settings if not loaded yet
   const settings: DashboardSettings = dashboardSettings || {
@@ -346,10 +367,10 @@ export default function Dashboard() {
                 <CardContent>
                   {taskAnalyticsLoading ? (
                     <div className="text-sm text-muted-foreground">Loading analytics...</div>
-                  ) : (taskAnalyticsData?.summary || taskAnalytics?.summary) ? (
+                  ) : ((taskAnalyticsData as any)?.summary || (taskAnalytics as any)?.summary) ? (
                     <div className="space-y-3">
                       {(() => {
-                        const data = taskAnalyticsData?.summary || taskAnalytics?.summary;
+                        const data = (taskAnalyticsData as any)?.summary || (taskAnalytics as any)?.summary;
                         return (
                           <>
                             <div className="flex justify-between items-center">
