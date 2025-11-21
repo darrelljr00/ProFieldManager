@@ -12,7 +12,9 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useWebSocket } from "@/hooks/useWebSocket";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { WalkthroughPlayer } from "@/components/interactive-walkthrough";
+import { coreWalkthroughs } from "@/data/walkthroughs";
 
 type DashboardSettings = {
   // Widget visibility
@@ -58,6 +60,68 @@ export default function Dashboard() {
 
   // Enhanced task analytics state for real-time updates
   const [taskAnalyticsData, setTaskAnalyticsData] = useState<any>(null);
+
+  // Onboarding walkthrough auto-launch logic
+  const [shouldShowOnboarding, setShouldShowOnboarding] = useState(false);
+  const [onboardingDismissed, setOnboardingDismissed] = useState(false);
+
+  // Query onboarding status
+  const { data: onboardingStatus } = useQuery<{
+    exists: boolean;
+    completed: boolean;
+    dismissed: boolean;
+  }>({
+    queryKey: ["/api/onboarding/status/new-user-onboarding"],
+    enabled: !!user, // Only fetch when user is logged in
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
+
+  // Auto-launch onboarding for new users
+  useEffect(() => {
+    if (!onboardingStatus) return;
+    
+    // If onboarding doesn't exist OR is not completed and not dismissed, show it
+    if (!onboardingStatus.exists || (!onboardingStatus.completed && !onboardingStatus.dismissed)) {
+      // Small delay to allow page to fully render first
+      const timer = setTimeout(() => {
+        setShouldShowOnboarding(true);
+      }, 2000); // 2 second delay after page load
+      
+      return () => clearTimeout(timer);
+    } else {
+      setShouldShowOnboarding(false);
+    }
+  }, [onboardingStatus]);
+
+  // Handle onboarding completion or dismissal
+  const handleOnboardingComplete = async () => {
+    setShouldShowOnboarding(false);
+    try {
+      await apiRequest('POST', '/api/onboarding/complete', {
+        walkthroughId: 'new-user-onboarding'
+      });
+      // Invalidate the query to refresh status
+      queryClient.invalidateQueries({ queryKey: ["/api/onboarding/status/new-user-onboarding"] });
+    } catch (error) {
+      console.error('Error marking onboarding as complete:', error);
+    }
+  };
+
+  const handleOnboardingDismiss = async () => {
+    setShouldShowOnboarding(false);
+    setOnboardingDismissed(true);
+    try {
+      await apiRequest('POST', '/api/onboarding/dismiss', {
+        walkthroughId: 'new-user-onboarding'
+      });
+      // Invalidate the query to refresh status
+      queryClient.invalidateQueries({ queryKey: ["/api/onboarding/status/new-user-onboarding"] });
+    } catch (error) {
+      console.error('Error dismissing onboarding:', error);
+    }
+  };
+
+
 
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ["/api/dashboard/stats"],
@@ -445,6 +509,15 @@ export default function Dashboard() {
           </p>
         </div>
       </main>
+
+      {/* Onboarding Walkthrough */}
+      {shouldShowOnboarding && coreWalkthroughs.find(w => w.id === 'new-user-onboarding') && (
+        <WalkthroughPlayer
+          walkthrough={coreWalkthroughs.find(w => w.id === 'new-user-onboarding')!}
+          onComplete={handleOnboardingComplete}
+          onClose={handleOnboardingDismiss}
+        />
+      )}
     </div>
   );
 }
