@@ -6275,28 +6275,3 @@ export const insertLiveChatSettingsSchema = createInsertSchema(liveChatSettings)
 
 export type LiveChatSettings = typeof liveChatSettings.$inferSelect;
 export type InsertLiveChatSettings = z.infer<typeof insertLiveChatSettingsSchema>;
-
-// Onboarding walkthrough status tracking
-export const onboardingStatus = pgTable("onboarding_status", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id),
-  organizationId: integer("organization_id").notNull().references(() => organizations.id),
-  walkthroughId: varchar("walkthrough_id").notNull(), // e.g., 'new-user-onboarding'
-  completed: boolean("completed").notNull().default(false),
-  startedAt: timestamp("started_at").defaultNow(),
-  completedAt: timestamp("completed_at"),
-  rating: integer("rating"), // 1-5 stars
-  feedback: text("feedback"),
-  dismissed: boolean("dismissed").notNull().default(false), // User dismissed without completing
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
-export const insertOnboardingStatusSchema = createInsertSchema(onboardingStatus).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-export type InsertOnboardingStatus = z.infer<typeof insertOnboardingStatusSchema>;
-export type OnboardingStatus = typeof onboardingStatus.$inferSelect;

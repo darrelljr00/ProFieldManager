@@ -12,9 +12,7 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useWebSocket } from "@/hooks/useWebSocket";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { WalkthroughPlayer } from "@/components/interactive-walkthrough";
-import { coreWalkthroughs } from "@/data/walkthroughs";
+import { apiRequest } from "@/lib/queryClient";
 
 type DashboardSettings = {
   // Widget visibility
@@ -61,95 +59,15 @@ export default function Dashboard() {
   // Enhanced task analytics state for real-time updates
   const [taskAnalyticsData, setTaskAnalyticsData] = useState<any>(null);
 
-  // Onboarding walkthrough auto-launch logic
-  const [shouldShowOnboarding, setShouldShowOnboarding] = useState(false);
-  const [onboardingDismissed, setOnboardingDismissed] = useState(false);
-
-  // Query onboarding status
-  const { data: onboardingStatus } = useQuery<{
-    exists: boolean;
-    completed: boolean;
-    dismissed: boolean;
-  }>({
-    queryKey: ["/api/onboarding/status/new-user-onboarding"],
-    enabled: !!user, // Only fetch when user is logged in
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-  });
-
-  // Auto-launch onboarding for new users
-  useEffect(() => {
-    if (!onboardingStatus) return;
-    
-    // If onboarding doesn't exist OR is not completed and not dismissed, show it
-    if (!onboardingStatus.exists || (!onboardingStatus.completed && !onboardingStatus.dismissed)) {
-      // Small delay to allow page to fully render first
-      const timer = setTimeout(() => {
-        setShouldShowOnboarding(true);
-      }, 2000); // 2 second delay after page load
-      
-      return () => clearTimeout(timer);
-    } else {
-      setShouldShowOnboarding(false);
-    }
-  }, [onboardingStatus]);
-
-  // Handle onboarding completion or dismissal
-  const handleOnboardingComplete = async () => {
-    setShouldShowOnboarding(false);
-    try {
-      await apiRequest('POST', '/api/onboarding/complete', {
-        walkthroughId: 'new-user-onboarding'
-      });
-      // Invalidate the query to refresh status
-      queryClient.invalidateQueries({ queryKey: ["/api/onboarding/status/new-user-onboarding"] });
-    } catch (error) {
-      console.error('Error marking onboarding as complete:', error);
-    }
-  };
-
-  const handleOnboardingDismiss = async () => {
-    setShouldShowOnboarding(false);
-    setOnboardingDismissed(true);
-    try {
-      await apiRequest('POST', '/api/onboarding/dismiss', {
-        walkthroughId: 'new-user-onboarding'
-      });
-      // Invalidate the query to refresh status
-      queryClient.invalidateQueries({ queryKey: ["/api/onboarding/status/new-user-onboarding"] });
-    } catch (error) {
-      console.error('Error dismissing onboarding:', error);
-    }
-  };
-
-
-
-  const { data: stats, isLoading: statsLoading } = useQuery<{
-    totalRevenue: number;
-    pendingInvoices: number;
-    paidInvoices: number;
-    overdueInvoices: number;
-    pendingValue: number;
-    paidValue: number;
-    overdueValue: number;
-  }>({
+  const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ["/api/dashboard/stats"],
   });
 
-  const { data: taskAnalytics, isLoading: taskAnalyticsLoading } = useQuery<{
-    summary: {
-      totalTasks: number;
-      completedTasks: number;
-      completionRate: number;
-      completedToday: number;
-      completedThisWeek: number;
-      averageCompletionTime: number;
-      activeTeamMembers?: number;
-    };
-  }>({
+  const { data: taskAnalytics, isLoading: taskAnalyticsLoading } = useQuery({
     queryKey: ["/api/analytics/tasks"],
   });
 
-  const { data: invoices, isLoading: invoicesLoading } = useQuery<any[]>({
+  const { data: invoices, isLoading: invoicesLoading } = useQuery({
     queryKey: ["/api/invoices"],
   });
 
@@ -182,27 +100,24 @@ export default function Dashboard() {
   }, [taskAnalytics]);
 
   // WebSocket connection for real-time updates
-  const { isConnected, lastMessage } = useWebSocket();
-
-  // Handle WebSocket messages for real-time updates
-  useEffect(() => {
-    if (!lastMessage) return;
-    
-    if (lastMessage.eventType === 'team_status_updated') {
-      console.log('📊 Real-time team status update received:', lastMessage.data);
-      setTeamStatus({
-        online: lastMessage.data?.online || 0,
-        inField: lastMessage.data?.inField || 0,
-        webSocketConnected: lastMessage.data?.webSocketConnected || 0
-      });
+  const { isConnected } = useWebSocket({
+    onMessage: (data) => {
+      if (data.eventType === 'team_status_updated') {
+        console.log('📊 Real-time team status update received:', data.data);
+        setTeamStatus({
+          online: data.data.online || 0,
+          inField: data.data.inField || 0,
+          webSocketConnected: data.data.webSocketConnected || 0
+        });
+      }
+      
+      // Handle task analytics updates
+      if (data.eventType === 'task_analytics_updated') {
+        console.log('📊 Real-time task analytics update received:', data.data);
+        setTaskAnalyticsData(data.data);
+      }
     }
-    
-    // Handle task analytics updates
-    if (lastMessage.eventType === 'task_analytics_updated') {
-      console.log('📊 Real-time task analytics update received:', lastMessage.data);
-      setTaskAnalyticsData(lastMessage.data);
-    }
-  }, [lastMessage]);
+  });
 
   // Use default settings if not loaded yet
   const settings: DashboardSettings = dashboardSettings || {
@@ -367,10 +282,10 @@ export default function Dashboard() {
                 <CardContent>
                   {taskAnalyticsLoading ? (
                     <div className="text-sm text-muted-foreground">Loading analytics...</div>
-                  ) : ((taskAnalyticsData as any)?.summary || (taskAnalytics as any)?.summary) ? (
+                  ) : (taskAnalyticsData?.summary || taskAnalytics?.summary) ? (
                     <div className="space-y-3">
                       {(() => {
-                        const data = (taskAnalyticsData as any)?.summary || (taskAnalytics as any)?.summary;
+                        const data = taskAnalyticsData?.summary || taskAnalytics?.summary;
                         return (
                           <>
                             <div className="flex justify-between items-center">
@@ -530,15 +445,6 @@ export default function Dashboard() {
           </p>
         </div>
       </main>
-
-      {/* Onboarding Walkthrough */}
-      {shouldShowOnboarding && coreWalkthroughs.find(w => w.id === 'new-user-onboarding') && (
-        <WalkthroughPlayer
-          walkthrough={coreWalkthroughs.find(w => w.id === 'new-user-onboarding')!}
-          onComplete={handleOnboardingComplete}
-          onClose={handleOnboardingDismiss}
-        />
-      )}
     </div>
   );
 }
