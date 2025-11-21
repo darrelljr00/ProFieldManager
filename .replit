@@ -64,5 +64,9 @@ externalPort = 3002
 localPort = 39417
 externalPort = 3000
 
+[[ports]]
+localPort = 40443
+externalPort = 6000
+
 [agent]
 integrations = ["javascript_websocket:1.0.0", "javascript_sendgrid:1.0.0", "javascript_openai:1.0.0"]

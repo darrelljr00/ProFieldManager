@@ -151,7 +151,100 @@ if (process.env.OPENAI_API_KEY) {
   console.log("⚠️ OpenAI API key not configured - OCR features will be disabled");
 }
 
-app.get("/api/tutorials", async (req, res) => {
+export async function registerRoutes(app: Express) {
+  const httpServer = createServer(app);
+  const wss = new WebSocketServer({ noServer: true });
+
+  // Store connected clients by user ID
+  const clients = new Map<number, Set<WebSocket>>();
+
+  // Handle WebSocket upgrade only for /ws path
+  httpServer.on('upgrade', (request, socket, head) => {
+    const pathname = new URL(request.url || '', `http://${request.headers.host}`).pathname;
+    
+    // Only handle /ws path for application WebSocket, let Vite handle its own
+    if (pathname === '/ws') {
+      wss.handleUpgrade(request, socket, head, (ws) => {
+        wss.emit('connection', ws, request);
+      });
+    }
+    // Otherwise, let it pass through for Vite HMR
+  });
+
+  // WebSocket connection handler
+  wss.on('connection', (ws: WebSocket, req) => {
+    console.log('Application WebSocket client connected');
+    
+    // Extract user ID from URL query params
+    const url = new URL(req.url || '', `http://${req.headers.host}`);
+    const userId = url.searchParams.get('userId');
+    
+    if (userId) {
+      const userIdNum = parseInt(userId);
+      if (!clients.has(userIdNum)) {
+        clients.set(userIdNum, new Set());
+      }
+      clients.get(userIdNum)!.add(ws);
+      console.log(`Application WebSocket client registered for user ${userIdNum}`);
+    }
+    
+    ws.on('close', () => {
+      if (userId) {
+        const userIdNum = parseInt(userId);
+        const userClients = clients.get(userIdNum);
+        if (userClients) {
+          userClients.delete(ws);
+          if (userClients.size === 0) {
+            clients.delete(userIdNum);
+          }
+        }
+      }
+      console.log('Application WebSocket client disconnected');
+    });
+  });
+
+  // Broadcast function for all web users in an organization
+  const broadcastToWebUsers = (organizationIdOrEvent: number | string, eventTypeOrData?: string | any, dataOrUndefined?: any) => {
+    // Handle both call signatures:
+    // 1. broadcastToWebUsers(eventType, data)
+    // 2. broadcastToWebUsers(organizationId, eventType, data)
+    let eventType: string;
+    let data: any;
+    
+    if (typeof organizationIdOrEvent === 'string') {
+      // Signature 1: (eventType, data)
+      eventType = organizationIdOrEvent;
+      data = eventTypeOrData;
+    } else {
+      // Signature 2: (organizationId, eventType, data)
+      eventType = eventTypeOrData as string;
+      data = dataOrUndefined;
+    }
+    
+    const message = JSON.stringify({ type: eventType, data });
+    clients.forEach((userClients) => {
+      userClients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(message);
+        }
+      });
+    });
+  };
+
+  // Broadcast function for a specific user
+  const broadcastToUser = (userId: number, organizationId: number, eventType: string, data: any) => {
+    const message = JSON.stringify({ type: eventType, data });
+    const userClients = clients.get(userId);
+    if (userClients) {
+      userClients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(message);
+        }
+      });
+    }
+  };
+
+  app.get("/api/tutorials", async (req, res) => {
     try {
       const { organizationId, category } = req.query;
       const tutorials = await storage.getTutorials(
@@ -3960,7 +4053,6 @@ app.get("/api/tutorials", async (req, res) => {
       console.error("Error fetching documentation compliance:", error);
       res.status(500).json({ message: "Error fetching documentation compliance: " + error.message });
     }
-
   });
 
   // Onboarding walkthrough status endpoints
