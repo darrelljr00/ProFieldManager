@@ -4775,8 +4775,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const platformFeeAmount = Math.round(amountInCents * (platformFeePercentage / 100));
 
       // Check if organization has Stripe Connect enabled
-      const useStripeConnect = organization.stripeConnectAccountId && 
-                               organization.stripeConnectChargesEnabled;
+      const hasConnectAccount = !!organization.stripeConnectAccountId;
+      const chargesEnabled = organization.stripeConnectChargesEnabled;
+      
+      // Block payments if Connect enrolled but charges disabled
+      if (hasConnectAccount && !chargesEnabled) {
+        return res.status(400).json({ 
+          message: "Stripe Connect charges are currently disabled for this organization. Please contact support to enable payments." 
+        });
+      }
+      
+      const useStripeConnect = hasConnectAccount && chargesEnabled;
 
       let paymentIntent;
       
@@ -4784,26 +4793,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Create payment on platform account with transfer to connected account (destination charges pattern)
         paymentIntent = await stripe.paymentIntents.create({
           amount: amountInCents,
-          currency: quote.currency?.toLowerCase() || 'usd',
+          currency: invoice.currency?.toLowerCase() || 'usd',
           automatic_payment_methods: { enabled: true },
           transfer_data: {
             destination: organization.stripeConnectAccountId,
             amount: amountInCents - platformFeeAmount, // Amount to transfer (after platform fee)
           },
           metadata: {
-            quoteId: quoteId.toString(),
+            invoiceId: invoiceId.toString(),
             userId: req.user.id.toString(),
             organizationId: req.user.organizationId.toString(),
             platformFee: platformFeeAmount.toString(),
           },
         });
       } else {
-        // Fallback to direct payment (legacy)
+        // Direct payment on platform account (for orgs without Stripe Connect)
         paymentIntent = await stripe.paymentIntents.create({
           amount: amountInCents,
-          currency: quote.currency?.toLowerCase() || 'usd',
+          currency: invoice.currency?.toLowerCase() || 'usd',
+          automatic_payment_methods: { enabled: true },
           metadata: {
-            quoteId: quoteId.toString(),
+            invoiceId: invoiceId.toString(),
             userId: req.user.id.toString(),
             organizationId: req.user.organizationId.toString(),
           },
@@ -4858,8 +4868,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const platformFeeAmount = Math.round(amountInCents * (platformFeePercentage / 100));
 
       // Check if organization has Stripe Connect enabled
-      const useStripeConnect = organization.stripeConnectAccountId && 
-                               organization.stripeConnectChargesEnabled;
+      const hasConnectAccount = !!organization.stripeConnectAccountId;
+      const chargesEnabled = organization.stripeConnectChargesEnabled;
+      
+      // Block payments if Connect enrolled but charges disabled
+      if (hasConnectAccount && !chargesEnabled) {
+        return res.status(400).json({ 
+          message: "Stripe Connect charges are currently disabled for this organization. Please contact support to enable payments." 
+        });
+      }
+      
+      const useStripeConnect = hasConnectAccount && chargesEnabled;
 
       let paymentIntent;
       
@@ -4881,7 +4900,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           },
         });
       } else {
-        // Fallback to direct payment (legacy)
+        // Direct payment on platform account (for orgs without Stripe Connect)
         paymentIntent = await stripe.paymentIntents.create({
           amount: amountInCents,
           currency: quote.currency?.toLowerCase() || 'usd',
@@ -4925,6 +4944,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).send(`Webhook signature verification failed.`);
       }
 
+      // Check for duplicate event (idempotency)
+      const existingEvent = await db.select()
+        .from(stripeWebhookEvents)
+        .where(eq(stripeWebhookEvents.eventId, event.id))
+        .limit(1);
+      
+      if (existingEvent.length > 0) {
+        console.log('Duplicate webhook event received, skipping:', event.id);
+        return res.json({ received: true, duplicate: true });
+      }
+
       // Log webhook event to database for audit trail
       try {
         const organizationId = event.data?.object?.metadata?.organizationId 
@@ -4941,7 +4971,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       } catch (logError) {
         console.error('Failed to log webhook event:', logError);
-        // Continue processing even if logging fails
+        // If event already exists (race condition), treat as duplicate
+        if (logError.message?.includes('duplicate') || logError.code === '23505') {
+          console.log('Race condition: duplicate event detected during insert');
+          return res.json({ received: true, duplicate: true });
+        }
+        // Continue processing even if logging fails for other reasons
       }
 
       // Process the event

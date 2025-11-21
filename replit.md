@@ -84,10 +84,11 @@ Preferred communication style: Simple, everyday language.
 - **Customer ETA Notifications**: Automated SMS notifications to customers when their technician is approaching the job site. Uses real-time GPS tracking combined with Google Maps Distance Matrix API to calculate accurate drive times, sends customizable SMS alerts when technician is within configured time threshold (default 15 minutes), includes live tracking links, and prevents duplicate notifications (one per job per day). Requires Twilio configuration and job GPS coordinates.
 - **Job Analytics Employee Filtering**: Filter job completion analytics by specific employees or view all employees. Employee dropdown in Reports > Job Analytics tab allows managers to analyze individual technician performance including job duration, completion rate, and time-based metrics. Backend filters all queries (time clock, job site events, project users) by selected employee.
 - **Enhanced Google Maps API Error Diagnostics**: Comprehensive error handling for Google Maps API failures including 403 Forbidden detection with actionable troubleshooting steps, structured logging for HTTP errors vs transport failures, and improved null/undefined checks across geocoding and directions API calls. Applies to GPS tracking reverse geocoding and trip distance calculations.
+- **Stripe Connect Marketplace Payments**: Full marketplace payment infrastructure enabling organizations to connect their own Stripe accounts to receive customer payments with automatic platform fee deduction. Uses Stripe Connect Express accounts with destination charges pattern. Platform creates payment on platform account, transfers (amount - platformFee) to organization's connected account via `transfer_data.destination`. Features include: OAuth onboarding flow, account status dashboard, webhook event logging to `stripe_webhook_events` table with duplicate event protection, invoice and quote payment endpoints with automatic payment methods, revenue protection (blocks payments when Connect enabled but charges disabled), and proper metadata tracking for reconciliation.
 
 ## External Dependencies
 
-- **Stripe**: For subscription billing and payment processing.
+- **Stripe**: For subscription billing, payment processing, and Stripe Connect marketplace payments.
 - **Twilio**: For SMS messaging.
 - **SendGrid**: For email notifications.
 - **OpenAI**: For receipt OCR using GPT-5 Vision API.
