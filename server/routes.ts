@@ -84,7 +84,8 @@ import {
   insertPlannedRouteSchema, insertRouteWaypointSchema, insertRouteDeviationSchema, insertRouteStopSchema,
   InsertRouteWaypoint,
   cacheSettings, insertCacheSettingsSchema, customerEtaSettings, customerEtaNotifications,
-  vehicleInspectionAlertSettings, vehicleInspectionAlerts
+  vehicleInspectionAlertSettings, vehicleInspectionAlerts,
+  stripeWebhookEvents
 } from "@shared/schema";
 import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull, isNull } from "drizzle-orm";
 import { DocuSignService, getDocuSignConfig } from "./docusign";
@@ -4761,23 +4762,151 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Invoice not found" });
       }
 
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount: Math.round(parseFloat(invoice.total) * 100), // Convert to cents
-        currency: invoice.currency.toLowerCase(),
-        metadata: {
-          invoiceId: invoiceId.toString(),
-          userId: req.user.id.toString(),
-        },
-      });
+      // Get organization to check for Stripe Connect account
+      const organization = await storage.getOrganizationById(req.user.organizationId);
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
 
-      // Update invoice with payment intent ID
-      await storage.updateInvoice(invoiceId, req.user.id, {
+      const amountInCents = Math.round(parseFloat(invoice.total) * 100);
+      
+      // Calculate platform fee if using Stripe Connect
+      const platformFeePercentage = parseFloat(organization.platformFeePercentage || "0");
+      const platformFeeAmount = Math.round(amountInCents * (platformFeePercentage / 100));
+
+      // Check if organization has Stripe Connect enabled
+      const useStripeConnect = organization.stripeConnectAccountId && 
+                               organization.stripeConnectChargesEnabled;
+
+      let paymentIntent;
+      
+      if (useStripeConnect) {
+        // Create payment on platform account with transfer to connected account (destination charges pattern)
+        paymentIntent = await stripe.paymentIntents.create({
+          amount: amountInCents,
+          currency: quote.currency?.toLowerCase() || 'usd',
+          automatic_payment_methods: { enabled: true },
+          transfer_data: {
+            destination: organization.stripeConnectAccountId,
+            amount: amountInCents - platformFeeAmount, // Amount to transfer (after platform fee)
+          },
+          metadata: {
+            quoteId: quoteId.toString(),
+            userId: req.user.id.toString(),
+            organizationId: req.user.organizationId.toString(),
+            platformFee: platformFeeAmount.toString(),
+          },
+        });
+      } else {
+        // Fallback to direct payment (legacy)
+        paymentIntent = await stripe.paymentIntents.create({
+          amount: amountInCents,
+          currency: quote.currency?.toLowerCase() || 'usd',
+          metadata: {
+            quoteId: quoteId.toString(),
+            userId: req.user.id.toString(),
+            organizationId: req.user.organizationId.toString(),
+          },
+        });
+      }
+
+      // Update quote with payment intent ID
+      await storage.updateQuote(quoteId, req.user.id, {
         stripePaymentIntentId: paymentIntent.id,
       });
 
-      res.json({ clientSecret: paymentIntent.client_secret });
+      res.json({ 
+        clientSecret: paymentIntent.client_secret,
+        connectedAccount: useStripeConnect,
+        platformFee: platformFeeAmount / 100, // Return in dollars for frontend display
+      });
     } catch (error: any) {
-      res.status(500).json({ message: "Error creating payment intent: " + error.message });
+      console.error("Error creating quote payment intent:", error);
+      res.status(500).json({ message: "Error creating quote payment intent: " + error.message });
+    }
+  });
+
+
+  // Quote payment intent creation with Connect support
+  app.post("/api/payments/stripe/create-quote-intent", async (req, res) => {
+    try {
+      // Validate request body
+      if (!req.body || !req.body.quoteId) {
+        return res.status(400).json({ message: "Quote ID is required" });
+      }
+      
+      const quoteId = parseInt(req.body.quoteId);
+      if (isNaN(quoteId) || quoteId <= 0) {
+        return res.status(400).json({ message: "Invalid quote ID" });
+      }
+      
+      const quote = await storage.getQuoteById(quoteId, req.user.id);
+      if (!quote) {
+        return res.status(404).json({ message: "Quote not found" });
+      }
+
+      // Get organization to check for Stripe Connect account
+      const organization = await storage.getOrganizationById(req.user.organizationId);
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      const amountInCents = Math.round(parseFloat(quote.total) * 100);
+      
+      // Calculate platform fee if using Stripe Connect
+      const platformFeePercentage = parseFloat(organization.platformFeePercentage || "0");
+      const platformFeeAmount = Math.round(amountInCents * (platformFeePercentage / 100));
+
+      // Check if organization has Stripe Connect enabled
+      const useStripeConnect = organization.stripeConnectAccountId && 
+                               organization.stripeConnectChargesEnabled;
+
+      let paymentIntent;
+      
+      if (useStripeConnect) {
+        // Create payment on platform account with transfer to connected account (destination charges pattern)
+        paymentIntent = await stripe.paymentIntents.create({
+          amount: amountInCents,
+          currency: quote.currency?.toLowerCase() || 'usd',
+          automatic_payment_methods: { enabled: true },
+          transfer_data: {
+            destination: organization.stripeConnectAccountId,
+            amount: amountInCents - platformFeeAmount, // Amount to transfer (after platform fee)
+          },
+          metadata: {
+            quoteId: quoteId.toString(),
+            userId: req.user.id.toString(),
+            organizationId: req.user.organizationId.toString(),
+            platformFee: platformFeeAmount.toString(),
+          },
+        });
+      } else {
+        // Fallback to direct payment (legacy)
+        paymentIntent = await stripe.paymentIntents.create({
+          amount: amountInCents,
+          currency: quote.currency?.toLowerCase() || 'usd',
+          automatic_payment_methods: { enabled: true },
+          metadata: {
+            quoteId: quoteId.toString(),
+            userId: req.user.id.toString(),
+            organizationId: req.user.organizationId.toString(),
+          },
+        });
+      }
+
+      // Update quote with payment intent ID
+      await storage.updateQuote(quoteId, req.user.id, {
+        stripePaymentIntentId: paymentIntent.id,
+      });
+
+      res.json({ 
+        clientSecret: paymentIntent.client_secret,
+        connectedAccount: useStripeConnect,
+        platformFee: platformFeeAmount / 100, // Return in dollars for frontend display
+      });
+    } catch (error: any) {
+      console.error("Error creating quote payment intent:", error);
+      res.status(500).json({ message: "Error creating quote payment intent: " + error.message });
     }
   });
 
@@ -4786,38 +4915,105 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const sig = req.headers['stripe-signature'];
       const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+      const connectedAccountId = req.headers['stripe-account'] as string | undefined;
       
       let event;
       try {
         event = stripe.webhooks.constructEvent(req.body, sig!, endpointSecret!);
       } catch (err) {
+        console.error('Webhook signature verification failed:', err);
         return res.status(400).send(`Webhook signature verification failed.`);
       }
 
-      if (event.type === 'payment_intent.succeeded') {
-        const paymentIntent = event.data.object;
-        const { invoiceId, userId } = paymentIntent.metadata;
+      // Log webhook event to database for audit trail
+      try {
+        const organizationId = event.data?.object?.metadata?.organizationId 
+          ? parseInt(event.data.object.metadata.organizationId) 
+          : null;
 
-        // Create payment record
-        await storage.createPayment({
-          invoiceId: parseInt(invoiceId),
-          amount: (paymentIntent.amount / 100).toString(),
-          currency: paymentIntent.currency.toUpperCase(),
-          method: 'stripe',
-          status: 'completed',
-          externalId: paymentIntent.id,
+        await db.insert(stripeWebhookEvents).values({
+          eventId: event.id,
+          eventType: event.type,
+          connectedAccountId: connectedAccountId || null,
+          organizationId: organizationId,
+          data: event as any,
+          processed: false,
         });
+      } catch (logError) {
+        console.error('Failed to log webhook event:', logError);
+        // Continue processing even if logging fails
+      }
 
-        // Update invoice status
-        await storage.updateInvoice(parseInt(invoiceId), parseInt(userId), {
-          status: 'paid',
-          paidAt: new Date(),
-          paymentMethod: 'stripe',
-        });
+      // Process the event
+      try {
+        if (event.type === 'payment_intent.succeeded') {
+          const paymentIntent = event.data.object;
+          const { invoiceId, quoteId, userId, organizationId } = paymentIntent.metadata;
+
+          // Handle invoice payment
+          if (invoiceId) {
+            await storage.createPayment({
+              invoiceId: parseInt(invoiceId),
+              amount: (paymentIntent.amount / 100).toString(),
+              currency: paymentIntent.currency.toUpperCase(),
+              method: 'stripe',
+              status: 'completed',
+              externalId: paymentIntent.id,
+            });
+
+            await storage.updateInvoice(parseInt(invoiceId), parseInt(userId), {
+              status: 'paid',
+              paidAt: new Date(),
+              paymentMethod: 'stripe',
+            });
+          }
+
+          // Handle quote payment
+          if (quoteId) {
+            // TODO: Create payment record for quotes when quotes.payments relationship is implemented
+            await storage.updateQuote(parseInt(quoteId), parseInt(userId), {
+              paymentStatus: 'paid',
+              paidAt: new Date(),
+              paymentMethod: 'stripe',
+            });
+          }
+        } else if (event.type === 'payment_intent.payment_failed') {
+          const paymentIntent = event.data.object;
+          const { invoiceId, userId } = paymentIntent.metadata;
+
+          if (invoiceId) {
+            await storage.createPayment({
+              invoiceId: parseInt(invoiceId),
+              amount: (paymentIntent.amount / 100).toString(),
+              currency: paymentIntent.currency.toUpperCase(),
+              method: 'stripe',
+              status: 'failed',
+              externalId: paymentIntent.id,
+            });
+          }
+        }
+
+        // Mark webhook event as processed
+        await db.update(stripeWebhookEvents)
+          .set({ processed: true, processedAt: new Date() })
+          .where(eq(stripeWebhookEvents.eventId, event.id));
+
+      } catch (processingError: any) {
+        console.error('Error processing webhook:', processingError);
+        
+        // Log the error in the webhook event record
+        await db.update(stripeWebhookEvents)
+          .set({ 
+            processed: false, 
+            processingError: processingError.message,
+            processedAt: new Date()
+          })
+          .where(eq(stripeWebhookEvents.eventId, event.id));
       }
 
       res.json({ received: true });
     } catch (error: any) {
+      console.error('Webhook handler error:', error);
       res.status(500).json({ message: error.message });
     }
   });
