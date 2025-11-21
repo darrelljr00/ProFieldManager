@@ -20,6 +20,7 @@ import {
   Star
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface WalkthroughStep {
   id: string;
@@ -32,6 +33,7 @@ interface WalkthroughStep {
   duration?: number;
   isRequired?: boolean;
   validation?: string;
+  tabTarget?: string; // New: e.g., "payment", "company" for Settings tabs
 }
 
 export interface InteractiveWalkthrough {
@@ -51,6 +53,112 @@ interface WalkthroughPlayerProps {
   onClose: () => void;
 }
 
+// Animated Arrow Component
+function AnimatedArrow({ position, targetElement }: { position: 'top' | 'bottom' | 'left' | 'right', targetElement: HTMLElement | null }) {
+  if (!targetElement) return null;
+  
+  const rect = targetElement.getBoundingClientRect();
+  const arrowSize = 60;
+  
+  // Calculate arrow position based on target element and position
+  let arrowStyle: React.CSSProperties = {
+    position: 'fixed',
+    zIndex: 10003,
+  };
+  
+  let rotation = 0;
+  
+  switch (position) {
+    case 'top':
+      arrowStyle.left = `${rect.left + rect.width / 2 - arrowSize / 2}px`;
+      arrowStyle.top = `${rect.top - arrowSize - 20}px`;
+      rotation = 180;
+      break;
+    case 'bottom':
+      arrowStyle.left = `${rect.left + rect.width / 2 - arrowSize / 2}px`;
+      arrowStyle.top = `${rect.bottom + 20}px`;
+      rotation = 0;
+      break;
+    case 'left':
+      arrowStyle.left = `${rect.left - arrowSize - 20}px`;
+      arrowStyle.top = `${rect.top + rect.height / 2 - arrowSize / 2}px`;
+      rotation = 90;
+      break;
+    case 'right':
+      arrowStyle.left = `${rect.right + 20}px`;
+      arrowStyle.top = `${rect.top + rect.height / 2 - arrowSize / 2}px`;
+      rotation = -90;
+      break;
+  }
+  
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.5 }}
+      animate={{ 
+        opacity: [0.7, 1, 0.7],
+        scale: [1, 1.1, 1],
+        y: position === 'bottom' ? [0, 10, 0] : position === 'top' ? [0, -10, 0] : 0,
+        x: position === 'right' ? [0, 10, 0] : position === 'left' ? [0, -10, 0] : 0,
+      }}
+      transition={{
+        duration: 1.5,
+        repeat: Infinity,
+        ease: "easeInOut"
+      }}
+      style={arrowStyle}
+    >
+      <svg 
+        width={arrowSize} 
+        height={arrowSize} 
+        viewBox="0 0 24 24" 
+        fill="none"
+        style={{ transform: `rotate(${rotation}deg)` }}
+      >
+        <motion.path
+          d="M12 5L12 19M12 19L5 12M12 19L19 12"
+          stroke="#3b82f6"
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          initial={{ pathLength: 0 }}
+          animate={{ pathLength: 1 }}
+          transition={{ duration: 0.8, repeat: Infinity, repeatDelay: 0.5 }}
+        />
+      </svg>
+    </motion.div>
+  );
+}
+
+// Spotlight Overlay Component
+function SpotlightOverlay({ targetElement }: { targetElement: HTMLElement | null }) {
+  if (!targetElement) {
+    return <div className="fixed inset-0 bg-black/60 z-[10000] pointer-events-none" />;
+  }
+  
+  const rect = targetElement.getBoundingClientRect();
+  const padding = 8;
+  
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[10000] pointer-events-none"
+      style={{
+        background: `
+          radial-gradient(
+            ellipse ${rect.width + padding * 2}px ${rect.height + padding * 2}px at ${rect.left + rect.width / 2}px ${rect.top + rect.height / 2}px,
+            transparent 0%,
+            transparent 100%,
+            rgba(0, 0, 0, 0.6) 100%
+          ),
+          rgba(0, 0, 0, 0.6)
+        `,
+      }}
+    />
+  );
+}
+
 export function WalkthroughPlayer({ walkthrough, onComplete, onClose }: WalkthroughPlayerProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -65,6 +173,7 @@ export function WalkthroughPlayer({ walkthrough, onComplete, onClose }: Walkthro
   const [countdownInterval, setCountdownInterval] = useState<NodeJS.Timeout | null>(null);
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [isNarrating, setIsNarrating] = useState(false);
+  const [showCursor, setShowCursor] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const speechSynthesisRef = useRef<SpeechSynthesisUtterance | null>(null);
@@ -73,9 +182,26 @@ export function WalkthroughPlayer({ walkthrough, onComplete, onClose }: Walkthro
   const progress = ((currentStep + 1) / walkthrough.steps.length) * 100;
   const isLastStep = currentStep === walkthrough.steps.length - 1;
 
+  // Tab switching function
+  const switchTab = async (tabName: string) => {
+    // Find tab button
+    const tabButton = document.querySelector(`button[value="${tabName}"], button[data-value="${tabName}"]`) as HTMLElement;
+    if (tabButton) {
+      tabButton.click();
+      await new Promise(resolve => setTimeout(resolve, 500)); // Wait for tab to render
+      return true;
+    }
+    return false;
+  };
+
   // Highlight target element
   useEffect(() => {
     if (currentStepData?.targetSelector) {
+      // Handle tab switching if specified
+      if (currentStepData.tabTarget) {
+        switchTab(currentStepData.tabTarget);
+      }
+      
       const element = document.querySelector(currentStepData.targetSelector) as HTMLElement;
       if (element) {
         setHighlightedElement(element);
@@ -87,12 +213,13 @@ export function WalkthroughPlayer({ walkthrough, onComplete, onClose }: Walkthro
           inline: 'center'
         });
 
-        // Add enhanced highlight styling with pulsing animation for auto-play
+        // Add enhanced highlight styling
         element.style.position = 'relative';
         element.style.zIndex = '10001';
-        element.style.boxShadow = '0 0 0 4px rgba(59, 130, 246, 0.5), 0 0 0 8px rgba(59, 130, 246, 0.2)';
+        element.style.boxShadow = '0 0 0 4px rgba(59, 130, 246, 0.6), 0 0 20px rgba(59, 130, 246, 0.4)';
         element.style.borderRadius = '8px';
         element.style.transition = 'all 0.3s ease';
+        element.style.backgroundColor = 'rgba(59, 130, 246, 0.05)';
         
         // Add pulsing animation for auto-play mode
         if (isAutoPlaying) {
@@ -108,10 +235,11 @@ export function WalkthroughPlayer({ walkthrough, onComplete, onClose }: Walkthro
         highlightedElement.style.boxShadow = '';
         highlightedElement.style.borderRadius = '';
         highlightedElement.style.transition = '';
+        highlightedElement.style.backgroundColor = '';
         highlightedElement.classList.remove('walkthrough-highlight');
       }
     };
-  }, [currentStep, currentStepData, highlightedElement]);
+  }, [currentStep, currentStepData, highlightedElement, isAutoPlaying]);
 
   // Audio narration function
   const narrateStep = (text: string) => {
@@ -186,6 +314,13 @@ export function WalkthroughPlayer({ walkthrough, onComplete, onClose }: Walkthro
             } else if (step.targetSelector.includes('expense')) {
               window.location.hash = '#/expenses';
               await new Promise(resolve => setTimeout(resolve, 1000));
+            } else if (step.targetSelector.includes('settings')) {
+              window.location.hash = '#/settings';
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              // If tab specified, switch to it
+              if (step.tabTarget) {
+                await switchTab(step.tabTarget);
+              }
             }
           }
         }
@@ -196,18 +331,29 @@ export function WalkthroughPlayer({ walkthrough, onComplete, onClose }: Walkthro
           const element = document.querySelector(step.targetSelector) as HTMLInputElement;
           if (element) {
             element.focus();
-            
-            // Simulate typing character by character
-            const text = step.actionData;
             element.value = '';
+            setShowCursor(true);
+            
+            // Enhanced typing with variable speed and cursor
+            const text = step.actionData;
             
             for (let i = 0; i < text.length; i++) {
-              await new Promise(resolve => setTimeout(resolve, 100));
+              // Variable typing speed for realism (80-150ms)
+              const typingSpeed = 80 + Math.random() * 70;
+              await new Promise(resolve => setTimeout(resolve, typingSpeed));
+              
               element.value = text.substring(0, i + 1);
               element.dispatchEvent(new Event('input', { bubbles: true }));
+              
+              // Scroll if text is long
+              if (element.scrollWidth > element.clientWidth) {
+                element.scrollLeft = element.scrollWidth;
+              }
             }
             
+            setShowCursor(false);
             element.dispatchEvent(new Event('change', { bubbles: true }));
+            element.blur();
           }
         }
         break;
@@ -232,7 +378,7 @@ export function WalkthroughPlayer({ walkthrough, onComplete, onClose }: Walkthro
         
       case 'highlight':
         // Just highlight the element without any action
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 1500));
         break;
         
       case 'scroll':
@@ -311,8 +457,8 @@ export function WalkthroughPlayer({ walkthrough, onComplete, onClose }: Walkthro
     // Execute the step action
     executeStep();
     
-    // Start countdown (3 seconds)
-    setAutoPlayCountdown(3);
+    // Start countdown (4 seconds for better viewing)
+    setAutoPlayCountdown(4);
     
     // Countdown interval
     const countdown = setInterval(() => {
@@ -327,7 +473,7 @@ export function WalkthroughPlayer({ walkthrough, onComplete, onClose }: Walkthro
     
     setCountdownInterval(countdown);
     
-    // Set timer for next step (3 seconds)
+    // Set timer for next step
     const timer = setTimeout(() => {
       clearInterval(countdown);
       setCountdownInterval(null);
@@ -341,12 +487,12 @@ export function WalkthroughPlayer({ walkthrough, onComplete, onClose }: Walkthro
         setIsPlaying(false);
         setShowRating(true);
       }
-    }, 3000);
+    }, 4000);
     
     setAutoPlayTimer(timer);
   };
 
-  // Auto play effect
+  // Auto-play next step
   useEffect(() => {
     if (isAutoPlaying && isPlaying) {
       executeCurrentStep();
@@ -368,6 +514,10 @@ export function WalkthroughPlayer({ walkthrough, onComplete, onClose }: Walkthro
       if (countdownInterval) {
         clearInterval(countdownInterval);
       }
+      // Stop any ongoing narration
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
     };
   }, []);
 
@@ -384,65 +534,116 @@ export function WalkthroughPlayer({ walkthrough, onComplete, onClose }: Walkthro
   if (showRating) {
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-        <Card className="w-full max-w-md mx-4">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-green-600" />
-              Walkthrough Complete!
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              You've completed "{walkthrough.title}". How would you rate this walkthrough?
-            </p>
-            
-            <div className="flex gap-1">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <button
-                  key={star}
-                  onClick={() => setRating(star)}
-                  className={cn(
-                    "p-1 rounded",
-                    rating >= star ? "text-yellow-500" : "text-gray-300 hover:text-yellow-400"
-                  )}
-                >
-                  <Star className="w-6 h-6 fill-current" />
-                </button>
-              ))}
-            </div>
-            
-            <textarea
-              placeholder="Any feedback to help us improve? (optional)"
-              value={feedback}
-              onChange={(e) => setFeedback(e.target.value)}
-              className="w-full p-2 border rounded-md resize-none h-20 text-sm"
-            />
-            
-            <div className="flex gap-2">
-              <Button onClick={handleComplete} className="flex-1">
-                Complete
-              </Button>
-              <Button variant="outline" onClick={onClose}>
-                Skip Rating
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: "spring", duration: 0.5 }}
+        >
+          <Card className="w-full max-w-md mx-4">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-green-600" />
+                Walkthrough Complete!
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                You've completed "{walkthrough.title}". How would you rate this walkthrough?
+              </p>
+              
+              <div className="flex gap-1 justify-center">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <motion.button
+                    key={star}
+                    whileHover={{ scale: 1.2 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => setRating(star)}
+                    className={cn(
+                      "p-1 rounded",
+                      rating >= star ? "text-yellow-500" : "text-gray-300 hover:text-yellow-400"
+                    )}
+                  >
+                    <Star className="w-8 h-8 fill-current" />
+                  </motion.button>
+                ))}
+              </div>
+              
+              <textarea
+                placeholder="Any feedback to help us improve? (optional)"
+                value={feedback}
+                onChange={(e) => setFeedback(e.target.value)}
+                className="w-full p-2 border rounded-md resize-none h-20 text-sm"
+              />
+              
+              <div className="flex gap-2">
+                <Button onClick={handleComplete} className="flex-1">
+                  Complete
+                </Button>
+                <Button variant="outline" onClick={onClose}>
+                  Skip Rating
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
     );
   }
 
   return (
     <>
-      {/* Overlay */}
-      <div 
-        ref={overlayRef}
-        className="fixed inset-0 bg-black/30 z-50"
-      />
+      {/* Enhanced Spotlight Overlay */}
+      <AnimatePresence>
+        <SpotlightOverlay targetElement={highlightedElement} />
+      </AnimatePresence>
+      
+      {/* Animated Arrow */}
+      {highlightedElement && currentStepData?.position !== 'center' && (
+        <AnimatedArrow position={currentStepData.position} targetElement={highlightedElement} />
+      )}
+      
+      {/* Typing Cursor Effect */}
+      {showCursor && (
+        <style>
+          {`
+            @keyframes blink {
+              0%, 49% { opacity: 1; }
+              50%, 100% { opacity: 0; }
+            }
+            input:focus::after, textarea:focus::after {
+              content: '|';
+              animation: blink 1s infinite;
+              margin-left: 2px;
+            }
+          `}
+        </style>
+      )}
+      
+      {/* Global walkthrough highlight animation */}
+      <style>
+        {`
+          @keyframes walkthrough-pulse {
+            0%, 100% {
+              box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.6), 0 0 20px rgba(59, 130, 246, 0.4);
+            }
+            50% {
+              box-shadow: 0 0 0 8px rgba(59, 130, 246, 0.4), 0 0 30px rgba(59, 130, 246, 0.6);
+            }
+          }
+          .walkthrough-highlight {
+            animation: walkthrough-pulse 2s infinite;
+          }
+        `}
+      </style>
       
       {/* Floating Play Button - Top Right */}
       {!isPlaying && !isAutoPlaying && (
-        <div className="fixed top-4 right-4 z-[70]">
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ type: "spring", stiffness: 260, damping: 20 }}
+          className="fixed top-4 right-4 z-[10005]"
+        >
           <Button
             onClick={startAutoPlay}
             size="lg"
@@ -450,12 +651,17 @@ export function WalkthroughPlayer({ walkthrough, onComplete, onClose }: Walkthro
           >
             <Play className="w-6 h-6" />
           </Button>
-        </div>
+        </motion.div>
       )}
 
       {/* Walkthrough Controls */}
-      <div className="fixed top-4 right-4 z-[60]">
-        <Card className="w-80">
+      <motion.div
+        initial={{ x: 400, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        transition={{ type: "spring", stiffness: 100, damping: 20 }}
+        className="fixed top-4 right-4 z-[10004]"
+      >
+        <Card className="w-80 shadow-2xl">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <div>
@@ -482,7 +688,7 @@ export function WalkthroughPlayer({ walkthrough, onComplete, onClose }: Walkthro
                   className={audioEnabled ? 'text-blue-600' : 'text-muted-foreground'}
                   title={audioEnabled ? 'Disable Audio' : 'Enable Audio'}
                 >
-                  🔊
+                  {audioEnabled ? '🔊' : '🔇'}
                 </Button>
                 <Button size="sm" variant="ghost" onClick={onClose}>
                   <X className="w-4 h-4" />
@@ -493,7 +699,12 @@ export function WalkthroughPlayer({ walkthrough, onComplete, onClose }: Walkthro
           </CardHeader>
           
           <CardContent className="space-y-4">
-            <div>
+            <motion.div
+              key={currentStep}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
               <div className="flex items-center gap-2 mb-2">
                 {getActionIcon(currentStepData?.action)}
                 <h4 className="font-medium text-sm">{currentStepData?.title}</h4>
@@ -507,7 +718,7 @@ export function WalkthroughPlayer({ walkthrough, onComplete, onClose }: Walkthro
                   Type: "{currentStepData.actionData}"
                 </div>
               )}
-            </div>
+            </motion.div>
             
             {/* Manual Controls - Only show when not in auto-play */}
             {!isAutoPlaying && (
@@ -553,11 +764,23 @@ export function WalkthroughPlayer({ walkthrough, onComplete, onClose }: Walkthro
             
             {/* Auto-play status and countdown */}
             {isAutoPlaying && (
-              <div className="text-center space-y-2">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-center space-y-2"
+              >
                 <div className="flex items-center justify-center gap-2 text-sm font-medium text-blue-600">
                   <Play className="w-4 h-4 animate-pulse" />
                   Auto-Playing Walkthrough
-                  {isNarrating && <span className="text-green-600 animate-pulse">🎵</span>}
+                  {isNarrating && (
+                    <motion.span
+                      animate={{ scale: [1, 1.2, 1] }}
+                      transition={{ duration: 1, repeat: Infinity }}
+                      className="text-green-600"
+                    >
+                      🎵
+                    </motion.span>
+                  )}
                 </div>
                 {autoPlayCountdown > 0 && (
                   <>
@@ -565,12 +788,12 @@ export function WalkthroughPlayer({ walkthrough, onComplete, onClose }: Walkthro
                       Next step in {autoPlayCountdown}s
                     </div>
                     <Progress 
-                      value={((3 - autoPlayCountdown) / 3) * 100} 
+                      value={((4 - autoPlayCountdown) / 4) * 100} 
                       className="h-2"
                     />
                   </>
                 )}
-              </div>
+              </motion.div>
             )}
             
             <div className="text-xs text-muted-foreground text-center">
@@ -578,10 +801,10 @@ export function WalkthroughPlayer({ walkthrough, onComplete, onClose }: Walkthro
             </div>
           </CardContent>
         </Card>
-      </div>
+      </motion.div>
     </>
   );
 }
 
 // Import and re-export walkthroughs from data module
-export { BUILTIN_WALKTHROUGHS } from "@/data/walkthroughs";
+export { coreWalkthroughs as BUILTIN_WALKTHROUGHS } from "@/data/walkthroughs";
