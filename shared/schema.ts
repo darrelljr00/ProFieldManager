@@ -418,6 +418,19 @@ export const payments = pgTable("payments", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const stripeWebhookEvents = pgTable("stripe_webhook_events", {
+  id: serial("id").primaryKey(),
+  eventId: text("event_id").notNull().unique(), // Stripe event ID (evt_xxx)
+  eventType: text("event_type").notNull(), // payment_intent.succeeded, etc.
+  connectedAccountId: text("connected_account_id"), // For connected account events
+  organizationId: integer("organization_id").references(() => organizations.id),
+  data: jsonb("data").notNull(), // Full event payload
+  processed: boolean("processed").default(false).notNull(),
+  processingError: text("processing_error"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  processedAt: timestamp("processed_at"),
+});
+
 export const settings = pgTable("settings", {
   id: serial("id").primaryKey(),
   organizationId: integer("organization_id").references(() => organizations.id),
@@ -2431,6 +2444,9 @@ export type InsertQuoteAvailability = z.infer<typeof insertQuoteAvailabilitySche
 
 export type Payment = typeof payments.$inferSelect;
 export type InsertPayment = z.infer<typeof insertPaymentSchema>;
+
+export type StripeWebhookEvent = typeof stripeWebhookEvents.$inferSelect;
+export type InsertStripeWebhookEvent = typeof stripeWebhookEvents.$inferInsert;
 
 export type Setting = typeof settings.$inferSelect;
 export type InsertSetting = z.infer<typeof insertSettingSchema>;
