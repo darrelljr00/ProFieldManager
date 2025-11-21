@@ -23,14 +23,15 @@ export default function DirectLogin() {
       iframe.style.height = '1px';
       document.body.appendChild(iframe);
 
-      // Build the authentication URL with credentials
-      const authUrl = `https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/auth/login-fallback?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
+      // Build the authentication URL with credentials using current origin
+      const currentOrigin = window.location.origin;
+      const authUrl = `${currentOrigin}/api/auth/login-fallback?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
       
       console.log('🔐 DIRECT LOGIN: Using iframe authentication URL:', authUrl);
 
       // Set up message listener for iframe response
       const messageHandler = (event: MessageEvent) => {
-        if (event.origin !== 'https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev') {
+        if (event.origin !== currentOrigin) {
           return;
         }
 
