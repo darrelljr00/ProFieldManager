@@ -6279,6 +6279,7 @@ export type InsertLiveChatSettings = z.infer<typeof insertLiveChatSettingsSchema
 // Onboarding walkthrough status tracking
 export const onboardingStatus = pgTable("onboarding_status", {
   id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
   organizationId: integer("organization_id").notNull().references(() => organizations.id),
   walkthroughId: varchar("walkthrough_id").notNull(), // e.g., 'new-user-onboarding'
   completed: boolean("completed").notNull().default(false),
