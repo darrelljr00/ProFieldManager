@@ -205,6 +205,87 @@ export async function registerRoutes(app: Express) {
     }
   };
 
+  // Authentication endpoints
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const credentials = loginSchema.parse(req.body);
+      
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.username, credentials.username))
+        .limit(1);
+
+      if (!user || !await AuthService.verifyPassword(credentials.password, user.password)) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      if (!user.isActive) {
+        return res.status(401).json({ message: "Account is inactive" });
+      }
+
+      const session = await AuthService.createSession(
+        user.id,
+        req.headers['user-agent'],
+        req.ip,
+        credentials.gpsData
+      );
+
+      res.json({
+        token: session.token,
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+          organizationId: user.organizationId,
+          isDemoAccount: user.isDemoAccount,
+          demoExpiresAt: user.demoExpiresAt,
+          canAccessDashboard: user.canAccessDashboard,
+          canAccessCalendar: user.canAccessCalendar,
+          canAccessTimeClock: user.canAccessTimeClock,
+          canAccessJobs: user.canAccessJobs,
+          canAccessMyTasks: user.canAccessMyTasks,
+          canAccessLeads: user.canAccessLeads,
+          canAccessExpenses: user.canAccessExpenses,
+          canAccessQuotes: user.canAccessQuotes,
+          canAccessInvoices: user.canAccessInvoices,
+          canAccessCustomers: user.canAccessCustomers,
+          canAccessPayments: user.canAccessPayments,
+          canAccessFileManager: user.canAccessFileManager,
+          canAccessPartsSupplies: user.canAccessPartsSupplies,
+          canAccessMySchedule: user.canAccessMySchedule,
+          canAccessTutorials: user.canAccessTutorials,
+          canAccessFormBuilder: user.canAccessFormBuilder,
+          canAccessInspections: user.canAccessInspections,
+          canAccessInternalMessages: user.canAccessInternalMessages,
+          canAccessTeamMessages: user.canAccessTeamMessages,
+          canAccessImageGallery: user.canAccessImageGallery,
+          canAccessSMS: user.canAccessSMS,
+          canAccessMessages: user.canAccessMessages,
+          canAccessGpsTracking: user.canAccessGpsTracking,
+          canAccessWeather: user.canAccessWeather,
+          canAccessReviews: user.canAccessReviews,
+          canAccessMarketResearch: user.canAccessMarketResearch,
+          canAccessHR: user.canAccessHR,
+          canAccessUsers: user.canAccessUsers,
+          canAccessSaasAdmin: user.canAccessSaasAdmin,
+          canAccessAdminSettings: user.canAccessAdminSettings,
+          canAccessReports: user.canAccessReports
+        }
+      });
+    } catch (error: any) {
+      console.error("Login error:", error);
+      res.status(500).json({ message: "Login failed" });
+    }
+  });
+
+  app.get("/api/auth/me", requireAuth, async (req, res) => {
+    res.json(req.user);
+  });
+
   app.get("/api/tutorials", async (req, res) => {
     try {
       const { organizationId, category } = req.query;
