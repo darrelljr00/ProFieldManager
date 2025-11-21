@@ -2,6 +2,255 @@ import { InteractiveWalkthrough } from "@/components/interactive-walkthrough";
 
 export const coreWalkthroughs: InteractiveWalkthrough[] = [
   {
+    id: 'new-user-onboarding',
+    title: 'Complete Setup - Get Started in 5 Minutes',
+    description: 'Set up your account, connect Stripe for payments, and create your first customer and invoice',
+    category: 'getting-started',
+    estimatedTime: 12,
+    difficulty: 'beginner',
+    steps: [
+      {
+        id: 'welcome',
+        title: 'Welcome to Pro Field Manager!',
+        description: 'Let\'s get your account set up so you can start managing your field service business. This quick tour will guide you through the essential setup steps.',
+        position: 'center',
+        action: 'info'
+      },
+      {
+        id: 'navigate-settings',
+        title: 'Open Settings',
+        description: 'First, let\'s set up your company profile. Click on Settings in the sidebar.',
+        targetSelector: 'a[href="/settings"]',
+        position: 'right',
+        action: 'click'
+      },
+      {
+        id: 'wait-settings-load',
+        title: 'Loading Settings',
+        description: 'The settings page is loading.',
+        action: 'wait',
+        duration: 1000,
+        position: 'center'
+      },
+      {
+        id: 'switch-to-company-tab',
+        title: 'Company Profile Tab',
+        description: 'Now let\'s switch to the Company tab to set up your business information.',
+        targetSelector: 'button[value="company"]',
+        tabTarget: 'company',
+        position: 'bottom',
+        action: 'click'
+      },
+      {
+        id: 'company-name',
+        title: 'Enter Your Company Name',
+        description: 'Type your company name. This will appear on all your invoices and quotes.',
+        targetSelector: 'input[name="companyName"]',
+        position: 'top',
+        action: 'type',
+        actionData: 'ABC Field Services'
+      },
+      {
+        id: 'company-email',
+        title: 'Enter Company Email',
+        description: 'Add your business email address for customer communications.',
+        targetSelector: 'input[name="email"]',
+        position: 'top',
+        action: 'type',
+        actionData: 'contact@abcfieldservices.com'
+      },
+      {
+        id: 'company-phone',
+        title: 'Enter Company Phone',
+        description: 'Add your business phone number.',
+        targetSelector: 'input[name="phone"]',
+        position: 'top',
+        action: 'type',
+        actionData: '(555) 987-6543'
+      },
+      {
+        id: 'company-address',
+        title: 'Enter Business Address',
+        description: 'Type your business address for invoices and service locations.',
+        targetSelector: 'input[name="address"]',
+        position: 'top',
+        action: 'type',
+        actionData: '123 Main Street, Suite 100'
+      },
+      {
+        id: 'save-company',
+        title: 'Save Company Profile',
+        description: 'Click Save to store your company information.',
+        targetSelector: 'button[type="submit"]',
+        position: 'bottom',
+        action: 'click'
+      },
+      {
+        id: 'wait-save',
+        title: 'Saving...',
+        description: 'Your company profile is being saved.',
+        action: 'wait',
+        duration: 1500,
+        position: 'center'
+      },
+      {
+        id: 'switch-to-payment-tab',
+        title: 'Payment Settings',
+        description: 'Great! Now let\'s connect Stripe so you can accept customer payments. Click on the Payment tab.',
+        targetSelector: 'button[value="payment"]',
+        tabTarget: 'payment',
+        position: 'bottom',
+        action: 'click'
+      },
+      {
+        id: 'wait-payment-load',
+        title: 'Loading Payment Settings',
+        description: 'The payment settings are loading.',
+        action: 'wait',
+        duration: 1000,
+        position: 'center'
+      },
+      {
+        id: 'stripe-connect-section',
+        title: 'Stripe Connect',
+        description: 'This is the Stripe Connect section. Connecting your Stripe account allows you to accept credit card payments directly from invoices and quotes.',
+        targetSelector: '[data-testid="button-connect-stripe"]',
+        position: 'left',
+        action: 'highlight'
+      },
+      {
+        id: 'connect-stripe-info',
+        title: 'About Stripe Connect',
+        description: 'When you click "Connect Stripe Account", you\'ll be taken to Stripe to complete a quick setup. The platform will automatically deduct a small fee from each transaction. You can do this now or skip it for later.',
+        position: 'center',
+        action: 'info'
+      },
+      {
+        id: 'navigate-customers',
+        title: 'Create Your First Customer',
+        description: 'Now let\'s add your first customer! Click on Customers in the sidebar.',
+        targetSelector: 'a[href="/customers"]',
+        position: 'right',
+        action: 'click'
+      },
+      {
+        id: 'wait-customers-load',
+        title: 'Loading Customers',
+        description: 'The customers page is loading.',
+        action: 'wait',
+        duration: 1000,
+        position: 'center'
+      },
+      {
+        id: 'add-customer-button',
+        title: 'Click Add Customer',
+        description: 'Click the "Add Customer" button to open the customer creation form.',
+        targetSelector: '[data-testid="button-add-customer"], .add-customer-btn',
+        position: 'bottom',
+        action: 'click'
+      },
+      {
+        id: 'customer-name',
+        title: 'Enter Customer Name',
+        description: 'Type the customer\'s full name or company name.',
+        targetSelector: 'input[name="name"]',
+        position: 'top',
+        action: 'type',
+        actionData: 'Smith Home Services'
+      },
+      {
+        id: 'customer-email',
+        title: 'Enter Customer Email',
+        description: 'Add the customer\'s email address. This is where invoices will be sent.',
+        targetSelector: 'input[name="email"]',
+        position: 'top',
+        action: 'type',
+        actionData: 'john.smith@example.com'
+      },
+      {
+        id: 'customer-phone',
+        title: 'Enter Customer Phone',
+        description: 'Add the customer\'s phone number for communication.',
+        targetSelector: 'input[name="phone"]',
+        position: 'top',
+        action: 'type',
+        actionData: '(555) 123-4567'
+      },
+      {
+        id: 'customer-address',
+        title: 'Enter Service Address',
+        description: 'Type the customer\'s service address.',
+        targetSelector: 'input[name="address"]',
+        position: 'top',
+        action: 'type',
+        actionData: '456 Oak Avenue'
+      },
+      {
+        id: 'save-customer',
+        title: 'Save Customer',
+        description: 'Click Save to create your first customer!',
+        targetSelector: 'button[type="submit"]',
+        position: 'bottom',
+        action: 'click'
+      },
+      {
+        id: 'wait-customer-save',
+        title: 'Creating Customer',
+        description: 'Your customer is being created.',
+        action: 'wait',
+        duration: 1500,
+        position: 'center'
+      },
+      {
+        id: 'navigate-invoices',
+        title: 'Create Your First Invoice',
+        description: 'Excellent! Now let\'s create an invoice for this customer. Click on Invoices in the sidebar.',
+        targetSelector: 'a[href="/invoices"]',
+        position: 'right',
+        action: 'click'
+      },
+      {
+        id: 'wait-invoices-load',
+        title: 'Loading Invoices',
+        description: 'The invoices page is loading.',
+        action: 'wait',
+        duration: 1000,
+        position: 'center'
+      },
+      {
+        id: 'add-invoice-button',
+        title: 'Click Create Invoice',
+        description: 'Click the "Create Invoice" or "Add Invoice" button to start a new invoice.',
+        targetSelector: '[data-testid="button-create-invoice"], [data-testid="button-add-invoice"], .add-invoice-btn',
+        position: 'bottom',
+        action: 'click'
+      },
+      {
+        id: 'select-customer-invoice',
+        title: 'Select the Customer',
+        description: 'Choose the customer you just created from the dropdown.',
+        targetSelector: 'select[name="customerId"], [data-testid="select-customer"]',
+        position: 'top',
+        action: 'highlight'
+      },
+      {
+        id: 'invoice-details-info',
+        title: 'Invoice Details',
+        description: 'Fill in the invoice details like date, due date, and any notes. You can also add line items for services, products, or labor.',
+        position: 'center',
+        action: 'info'
+      },
+      {
+        id: 'completion',
+        title: 'Setup Complete!',
+        description: 'Congratulations! You\'ve completed the essential setup: ✓ Company profile configured, ✓ Payment settings viewed, ✓ First customer added, ✓ Ready to create invoices. You\'re all set to start managing your field service business!',
+        position: 'center',
+        action: 'info'
+      }
+    ]
+  },
+
+  {
     id: 'dashboard-tour',
     title: 'Dashboard Overview',
     description: 'Get familiar with your main dashboard and key metrics',
