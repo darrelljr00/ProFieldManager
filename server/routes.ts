@@ -86,7 +86,7 @@ import {
   cacheSettings, insertCacheSettingsSchema, customerEtaSettings, customerEtaNotifications,
   vehicleInspectionAlertSettings, vehicleInspectionAlerts,
   stripeWebhookEvents
-} from "@shared/schema";
+, onboardingStatus} from "@shared/schema";
 import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull, isNull } from "drizzle-orm";
 import { DocuSignService, getDocuSignConfig } from "./docusign";
 import { ensureOrganizationFolders, createOrganizationFolders } from "./folderCreation";
@@ -26455,6 +26455,195 @@ ${fromName || ''}
   });
 
   // Tutorial System Routes
+  // Get onboarding status for current organization
+  app.get("/api/onboarding/status/:walkthroughId", requireAuth, async (req, res) => {
+    try {
+      const { walkthroughId } = req.params;
+      const organizationId = req.user!.organizationId;
+
+      const status = await db
+        .select()
+        .from(onboardingStatus)
+        .where(
+          and(
+            eq(onboardingStatus.organizationId, organizationId),
+            eq(onboardingStatus.walkthroughId, walkthroughId)
+          )
+        )
+        .limit(1);
+
+      if (status.length === 0) {
+        return res.json({ 
+          exists: false, 
+          completed: false, 
+          dismissed: false 
+        });
+      }
+
+      res.json({
+        exists: true,
+        ...status[0],
+      });
+    } catch (error: any) {
+      console.error("Error fetching onboarding status:", error);
+      res.status(500).json({ message: "Error fetching onboarding status" });
+    }
+  });
+
+  // Start a walkthrough (track that user started it)
+  app.post("/api/onboarding/start", requireAuth, async (req, res) => {
+    try {
+      const { walkthroughId } = req.body;
+      const organizationId = req.user!.organizationId;
+
+      if (!walkthroughId) {
+        return res.status(400).json({ message: "walkthroughId is required" });
+      }
+
+      // Check if already exists
+      const existing = await db
+        .select()
+        .from(onboardingStatus)
+        .where(
+          and(
+            eq(onboardingStatus.organizationId, organizationId),
+            eq(onboardingStatus.walkthroughId, walkthroughId)
+          )
+        )
+        .limit(1);
+
+      if (existing.length > 0) {
+        return res.json(existing[0]);
+      }
+
+      // Create new status
+      const [newStatus] = await db
+        .insert(onboardingStatus)
+        .values({
+          organizationId,
+          walkthroughId,
+          completed: false,
+          dismissed: false,
+        })
+        .returning();
+
+      res.json(newStatus);
+    } catch (error: any) {
+      console.error("Error starting walkthrough:", error);
+      res.status(500).json({ message: "Error starting walkthrough" });
+    }
+  });
+
+  // Complete a walkthrough
+  app.post("/api/onboarding/complete", requireAuth, async (req, res) => {
+    try {
+      const { walkthroughId, rating, feedback } = req.body;
+      const organizationId = req.user!.organizationId;
+
+      if (!walkthroughId) {
+        return res.status(400).json({ message: "walkthroughId is required" });
+      }
+
+      // Update or create status
+      const existing = await db
+        .select()
+        .from(onboardingStatus)
+        .where(
+          and(
+            eq(onboardingStatus.organizationId, organizationId),
+            eq(onboardingStatus.walkthroughId, walkthroughId)
+          )
+        )
+        .limit(1);
+
+      if (existing.length > 0) {
+        const [updated] = await db
+          .update(onboardingStatus)
+          .set({
+            completed: true,
+            completedAt: new Date(),
+            rating: rating || null,
+            feedback: feedback || null,
+            updatedAt: new Date(),
+          })
+          .where(eq(onboardingStatus.id, existing[0].id))
+          .returning();
+
+        return res.json(updated);
+      } else {
+        const [newStatus] = await db
+          .insert(onboardingStatus)
+          .values({
+            organizationId,
+            walkthroughId,
+            completed: true,
+            completedAt: new Date(),
+            rating: rating || null,
+            feedback: feedback || null,
+          })
+          .returning();
+
+        return res.json(newStatus);
+      }
+    } catch (error: any) {
+      console.error("Error completing walkthrough:", error);
+      res.status(500).json({ message: "Error completing walkthrough" });
+    }
+  });
+
+  // Dismiss a walkthrough (user chose not to complete it)
+  app.post("/api/onboarding/dismiss", requireAuth, async (req, res) => {
+    try {
+      const { walkthroughId } = req.body;
+      const organizationId = req.user!.organizationId;
+
+      if (!walkthroughId) {
+        return res.status(400).json({ message: "walkthroughId is required" });
+      }
+
+      // Update or create status
+      const existing = await db
+        .select()
+        .from(onboardingStatus)
+        .where(
+          and(
+            eq(onboardingStatus.organizationId, organizationId),
+            eq(onboardingStatus.walkthroughId, walkthroughId)
+          )
+        )
+        .limit(1);
+
+      if (existing.length > 0) {
+        const [updated] = await db
+          .update(onboardingStatus)
+          .set({
+            dismissed: true,
+            updatedAt: new Date(),
+          })
+          .where(eq(onboardingStatus.id, existing[0].id))
+          .returning();
+
+        return res.json(updated);
+      } else {
+        const [newStatus] = await db
+          .insert(onboardingStatus)
+          .values({
+            organizationId,
+            walkthroughId,
+            completed: false,
+            dismissed: true,
+          })
+          .returning();
+
+        return res.json(newStatus);
+      }
+    } catch (error: any) {
+      console.error("Error dismissing walkthrough:", error);
+      res.status(500).json({ message: "Error dismissing walkthrough" });
+    }
+  });
+
+
   app.get("/api/tutorials", async (req, res) => {
     try {
       const { organizationId, category } = req.query;
