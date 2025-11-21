@@ -23,66 +23,94 @@ export default function DirectLogin() {
       iframe.style.height = '1px';
       document.body.appendChild(iframe);
 
-      // Use the standard login endpoint with POST
-      const currentOrigin = window.location.origin;
-      const loginUrl = `${currentOrigin}/api/auth/login`;
+      // Build the authentication URL with credentials
+      const authUrl = `https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/auth/login-fallback?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
       
-      console.log('🔐 DIRECT LOGIN: Attempting login via POST:', loginUrl);
+      console.log('🔐 DIRECT LOGIN: Using iframe authentication URL:', authUrl);
 
-      // Perform direct POST request to login endpoint
-      const response = await fetch(loginUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          username,
-          password
-        })
-      });
+      // Set up message listener for iframe response
+      const messageHandler = (event: MessageEvent) => {
+        if (event.origin !== 'https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev') {
+          return;
+        }
 
-      console.log('🔐 LOGIN RESPONSE:', {
-        status: response.status,
-        ok: response.ok
-      });
+        console.log('📨 IFRAME RESPONSE:', event.data);
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('🚨 LOGIN ERROR:', errorText);
-        toast({
-          title: "Login Failed",
-          description: "Invalid credentials - please try again",
-          variant: "destructive",
-        });
+        if (event.data.type === 'auth_success') {
+          // Store the authentication data
+          localStorage.setItem('auth_token', event.data.token);
+          localStorage.setItem('user_data', JSON.stringify(event.data.user));
+
+          toast({
+            title: "Login Successful",
+            description: "Welcome to Pro Field Manager!",
+          });
+
+          window.removeEventListener('message', messageHandler);
+          document.body.removeChild(iframe);
+          setLocation('/dashboard');
+        } else if (event.data.type === 'auth_error') {
+          toast({
+            title: "Login Failed",
+            description: event.data.message || "Invalid credentials",
+            variant: "destructive",
+          });
+
+          window.removeEventListener('message', messageHandler);
+          document.body.removeChild(iframe);
+        }
+      };
+
+      window.addEventListener('message', messageHandler);
+
+      // Set timeout
+      const timeout = setTimeout(() => {
+        window.removeEventListener('message', messageHandler);
         document.body.removeChild(iframe);
-        return;
-      }
-
-      const data = await response.json();
-      console.log('✅ LOGIN SUCCESS:', data);
-
-      if (data.token && data.user) {
-        localStorage.setItem('auth_token', data.token);
-        localStorage.setItem('user_data', JSON.stringify(data.user));
-
-        toast({
-          title: "Login Successful",
-          description: `Welcome back, ${data.user.firstName || data.user.username}!`,
+        
+        // Fallback: Direct authentication attempt
+        console.log('🔐 IFRAME TIMEOUT - Attempting direct fetch');
+        
+        fetch(authUrl, {
+          method: 'GET',
+          mode: 'cors',
+          credentials: 'include'
+        }).then(async (response) => {
+          if (response.ok) {
+            const data = await response.json();
+            console.log('✅ DIRECT FETCH SUCCESS:', data);
+            
+            if (data.token && data.user) {
+              localStorage.setItem('auth_token', data.token);
+              localStorage.setItem('user_data', JSON.stringify(data.user));
+              
+              toast({
+                title: "Login Successful",
+                description: "Welcome to Pro Field Manager!",
+              });
+              
+              setLocation('/dashboard');
+              return;
+            }
+          }
+          
+          toast({
+            title: "Login Failed",
+            description: "Please check your credentials and try again",
+            variant: "destructive",
+          });
+        }).catch((error) => {
+          console.error('🚨 DIRECT FETCH ERROR:', error);
+          toast({
+            title: "Login Failed", 
+            description: "Network error - please try again",
+            variant: "destructive",
+          });
         });
+      }, 5000);
 
-        document.body.removeChild(iframe);
-        setLocation('/dashboard');
-      } else {
-        console.error('⚠️ MISSING AUTH DATA:', data);
-        toast({
-          title: "Login Failed",
-          description: "Invalid response from server",
-          variant: "destructive",
-        });
-        document.body.removeChild(iframe);
-      }
+      // Load the authentication URL in the iframe
+      iframe.src = authUrl;
 
     } catch (error) {
       console.error('🚨 DIRECT LOGIN ERROR:', error);

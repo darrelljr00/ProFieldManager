@@ -16,7 +16,6 @@ import sharp from "sharp";
 import { addTimestampToImage, TimestampOptions } from "./imageTimestamp";
 import { storage } from "./storage";
 import { weatherService } from './weather';
-import { twilioService } from './twilio';
 import { 
   insertCustomerSchema, 
   insertInvoiceSchema, 
@@ -152,60 +151,7 @@ if (process.env.OPENAI_API_KEY) {
   console.log("⚠️ OpenAI API key not configured - OCR features will be disabled");
 }
 
-export async function registerRoutes(app: Express) {
-  // Create HTTP server
-  const httpServer = createServer(app);
-  
-  // Initialize WebSocket server
-  const wss = new WebSocketServer({ server: httpServer });
-  const clients = new Map<number, Set<WebSocket>>();
-
-  // WebSocket connection handling
-  wss.on('connection', (ws: WebSocket, req: any) => {
-    const userId = req.user?.id;
-    
-    if (!userId) {
-      ws.close();
-      return;
-    }
-
-    if (!clients.has(userId)) {
-      clients.set(userId, new Set());
-    }
-    clients.get(userId)!.add(ws);
-
-    ws.on('close', () => {
-      const userClients = clients.get(userId);
-      if (userClients) {
-        userClients.delete(ws);
-        if (userClients.size === 0) {
-          clients.delete(userId);
-        }
-      }
-    });
-  });
-
-  // Broadcast functions
-  const broadcastToWebUsers = (organizationId: number | string, event: string, data: any) => {
-    wss.clients.forEach((client) => {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(JSON.stringify({ event, data }));
-      }
-    });
-  };
-
-  const broadcastToUser = (userId: number, event: string, data: any) => {
-    const userClients = clients.get(userId);
-    if (userClients) {
-      userClients.forEach((client) => {
-        if (client.readyState === WebSocket.OPEN) {
-          client.send(JSON.stringify({ event, data }));
-        }
-      });
-    }
-  };
-
-  app.get("/api/tutorials", async (req, res) => {
+app.get("/api/tutorials", async (req, res) => {
     try {
       const { organizationId, category } = req.query;
       const tutorials = await storage.getTutorials(
@@ -1701,8 +1647,8 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Twilio Integration API Routes  
-  // twilioService is imported at the top of the file
+  // Twilio Integration API Routes
+  const { twilioService } = await import("./twilio");
 
   // Get Twilio account information
   app.get("/api/twilio/account", requireAdmin, async (req, res) => {
