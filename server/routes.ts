@@ -3957,7 +3957,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api', (req, res, next) => {
     console.log(`🔍 API MIDDLEWARE - ${req.method} ${req.path}`);
     // Skip auth for these routes
-    const publicRoutes = ['/auth/', '/seed', '/settings/', '/twilio-test-update/', '/shared/', '/debug/', '/user/', '/data/', '/quotes/response/', '/quotes/availability/', '/frontend/sliders'];
+    const publicRoutes = ['/auth/', '/seed', '/settings/', '/twilio-test-update/', '/shared/', '/debug/', '/user/', '/data/', '/quotes/response/', '/quotes/availability/', '/frontend/sliders', '/public/invoice/', '/public/quote/', '/public/checkout/'];
     // Add special handling for debug routes
     const debugRoutes = ['/debug/custom-domain-test'];
     const sharedPhotoRoute = req.path.match(/^\/shared\/[^\/]+$/); // Match /shared/{token}
