@@ -1,29 +1,53 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRoute, useLocation } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Building2, Mail, Phone, MapPin, Calendar, FileText, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { Building2, Mail, Phone, MapPin, Calendar, FileText, Loader2, CheckCircle2, AlertCircle, CreditCard, Lock } from "lucide-react";
 import { format } from "date-fns";
-import StripeCheckoutForm from "@/components/payments/stripe-checkout-form";
 
 export default function PublicInvoicePayment() {
   const [, params] = useRoute("/:orgSlug/invoice/:invoiceId/pay");
-  const [, setLocation] = useLocation();
-  const { orgSlug, invoiceId } = params || {};
+  const [location] = useLocation();
+  const { orgSlug, invoiceId } = params as { orgSlug: string; invoiceId: string } || {};
+  const [processing, setProcessing] = useState(false);
+  const [checkoutError, setCheckoutError] = useState("");
+  
+  // Check if payment was cancelled
+  const cancelled = new URLSearchParams(location.split('?')[1]).get('cancelled');
 
   const { data, isLoading, error } = useQuery({
     queryKey: [`/api/public/invoice/${orgSlug}/${invoiceId}`],
     enabled: !!orgSlug && !!invoiceId,
   });
 
-  const handlePaymentSuccess = (paymentIntentId: string) => {
-    setLocation(`/payment/success?type=invoice&id=${invoiceId}&pi=${paymentIntentId}`);
-  };
-
-  const handlePaymentError = (error: string) => {
-    console.error("Payment failed:", error);
+  const handlePayNow = async () => {
+    setProcessing(true);
+    setCheckoutError("");
+    
+    try {
+      const response = await fetch(`/api/public/checkout/invoice/${orgSlug}/${invoiceId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create checkout session');
+      }
+      
+      const { url } = await response.json();
+      
+      // Redirect to Stripe Checkout
+      window.location.href = url;
+    } catch (error: any) {
+      console.error('Checkout error:', error);
+      setCheckoutError(error.message || 'Failed to start payment');
+      setProcessing(false);
+    }
   };
 
   if (isLoading) {
@@ -215,29 +239,61 @@ export default function PublicInvoicePayment() {
             </CardContent>
           </Card>
 
-          {/* Payment Form */}
+          {/* Payment Action */}
           <Card>
             <CardHeader>
               <CardTitle>Pay Invoice</CardTitle>
               <CardDescription>
-                Enter your card details to complete payment
+                Click below to securely pay this invoice with Stripe
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <StripeCheckoutForm
-                amount={amountInCents}
-                currency={invoice.currency || 'USD'}
-                invoiceId={invoice.id}
-                description={`Invoice #${invoice.invoiceNumber}`}
-                businessName={customer?.name || organization.name}
-                onSuccess={handlePaymentSuccess}
-                onError={handlePaymentError}
-              />
+            <CardContent className="space-y-4">
+              {cancelled && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>Payment was cancelled. You can try again below.</AlertDescription>
+                </Alert>
+              )}
+              
+              {checkoutError && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{checkoutError}</AlertDescription>
+                </Alert>
+              )}
 
-              <div className="mt-4 text-xs text-muted-foreground text-center">
-                <div>Secure payment powered by Stripe</div>
-                <div>Your payment information is encrypted and secure</div>
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 space-y-2">
+                <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                  <Lock className="h-4 w-4" />
+                  <span>Secure payment powered by Stripe</span>
+                </div>
+                <div className="text-xs text-muted-foreground text-center">
+                  You'll be redirected to Stripe's secure checkout page
+                </div>
               </div>
+
+              <Button 
+                onClick={handlePayNow}
+                disabled={processing}
+                className="w-full"
+                size="lg"
+                data-testid="button-pay-now"
+              >
+                {processing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Redirecting to Stripe...
+                  </>
+                ) : (
+                  <>
+                    <CreditCard className="mr-2 h-5 w-5" />
+                    Pay {new Intl.NumberFormat('en-US', {
+                      style: 'currency',
+                      currency: invoice.currency || 'USD'
+                    }).format(parseFloat(invoice.total))}
+                  </>
+                )}
+              </Button>
             </CardContent>
           </Card>
         </div>

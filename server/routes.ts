@@ -4929,6 +4929,223 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Create Stripe Checkout Session for invoice payment (public, no auth required)
+  app.post("/api/public/checkout/invoice/:orgSlug/:invoiceId", async (req, res) => {
+    try {
+      const { orgSlug, invoiceId } = req.params;
+      
+      // Get organization by slug
+      const org = await db.select().from(organizations).where(eq(organizations.slug, orgSlug)).limit(1);
+      if (!org || org.length === 0) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+      
+      const organization = org[0];
+      
+      // Get invoice
+      const invoiceResult = await db.select().from(invoices)
+        .where(and(
+          eq(invoices.id, parseInt(invoiceId)),
+          eq(invoices.organizationId, organization.id)
+        ))
+        .limit(1);
+      
+      if (!invoiceResult || invoiceResult.length === 0) {
+        return res.status(404).json({ message: "Invoice not found" });
+      }
+      
+      const invoice = invoiceResult[0];
+      
+      // Check if already paid
+      if (invoice.status === "paid") {
+        return res.status(400).json({ message: "Invoice already paid" });
+      }
+      
+      const amountInCents = Math.round(parseFloat(invoice.total) * 100);
+      
+      // Calculate platform fee if using Stripe Connect
+      const platformFeePercentage = parseFloat(organization.platformFeePercentage || "0");
+      const platformFeeAmount = Math.round(amountInCents * (platformFeePercentage / 100));
+
+      // Check if organization has Stripe Connect enabled
+      const hasConnectAccount = !!organization.stripeConnectAccountId;
+      const chargesEnabled = organization.stripeConnectChargesEnabled;
+      
+      // Block payments if Connect enrolled but charges disabled
+      if (hasConnectAccount && !chargesEnabled) {
+        return res.status(400).json({ 
+          message: "Online payments are currently unavailable. Please contact the business directly." 
+        });
+      }
+      
+      const useStripeConnect = hasConnectAccount && chargesEnabled;
+
+      // Create Checkout Session
+      const sessionParams: any = {
+        mode: 'payment',
+        payment_method_types: ['card'],
+        line_items: [
+          {
+            price_data: {
+              currency: invoice.currency?.toLowerCase() || 'usd',
+              product_data: {
+                name: `Invoice #${invoice.invoiceNumber}`,
+                description: `Payment for invoice #${invoice.invoiceNumber} from ${organization.name}`,
+              },
+              unit_amount: amountInCents,
+            },
+            quantity: 1,
+          },
+        ],
+        success_url: `${req.protocol}://${req.get('host')}/payment/success?type=invoice&id=${invoiceId}&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${req.protocol}://${req.get('host')}/${orgSlug}/invoice/${invoiceId}/pay?cancelled=true`,
+        metadata: {
+          type: 'invoice',
+          invoiceId: invoiceId.toString(),
+          organizationId: organization.id.toString(),
+        },
+      };
+
+      // Add Connect account and platform fee if applicable
+      if (useStripeConnect) {
+        sessionParams.payment_intent_data = {
+          application_fee_amount: platformFeeAmount,
+          transfer_data: {
+            destination: organization.stripeConnectAccountId,
+          },
+          metadata: {
+            invoiceId: invoiceId.toString(),
+            organizationId: organization.id.toString(),
+            platformFee: platformFeeAmount.toString(),
+          },
+        };
+      } else {
+        sessionParams.payment_intent_data = {
+          metadata: {
+            invoiceId: invoiceId.toString(),
+            organizationId: organization.id.toString(),
+          },
+        };
+      }
+
+      const session = await stripe.checkout.sessions.create(sessionParams);
+
+      res.json({ url: session.url });
+    } catch (error: any) {
+      console.error("Error creating checkout session for invoice:", error);
+      res.status(500).json({ message: "Error creating payment session: " + error.message });
+    }
+  });
+  
+  // Create Stripe Checkout Session for quote payment (public, no auth required)
+  app.post("/api/public/checkout/quote/:orgSlug/:quoteId", async (req, res) => {
+    try {
+      const { orgSlug, quoteId } = req.params;
+      
+      // Get organization by slug
+      const org = await db.select().from(organizations).where(eq(organizations.slug, orgSlug)).limit(1);
+      if (!org || org.length === 0) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+      
+      const organization = org[0];
+      
+      // Get quote
+      const quoteResult = await db.select().from(quotes)
+        .where(and(
+          eq(quotes.id, parseInt(quoteId)),
+          eq(quotes.organizationId, organization.id)
+        ))
+        .limit(1);
+      
+      if (!quoteResult || quoteResult.length === 0) {
+        return res.status(404).json({ message: "Quote not found" });
+      }
+      
+      const quote = quoteResult[0];
+      
+      // Check if already accepted/paid
+      if (quote.status === "accepted" || quote.status === "paid") {
+        return res.status(400).json({ message: "Quote already accepted and paid" });
+      }
+      
+      const amountInCents = Math.round(parseFloat(quote.total) * 100);
+      
+      // Calculate platform fee if using Stripe Connect
+      const platformFeePercentage = parseFloat(organization.platformFeePercentage || "0");
+      const platformFeeAmount = Math.round(amountInCents * (platformFeePercentage / 100));
+
+      // Check if organization has Stripe Connect enabled
+      const hasConnectAccount = !!organization.stripeConnectAccountId;
+      const chargesEnabled = organization.stripeConnectChargesEnabled;
+      
+      // Block payments if Connect enrolled but charges disabled
+      if (hasConnectAccount && !chargesEnabled) {
+        return res.status(400).json({ 
+          message: "Online payments are currently unavailable. Please contact the business directly." 
+        });
+      }
+      
+      const useStripeConnect = hasConnectAccount && chargesEnabled;
+
+      // Create Checkout Session
+      const sessionParams: any = {
+        mode: 'payment',
+        payment_method_types: ['card'],
+        line_items: [
+          {
+            price_data: {
+              currency: quote.currency?.toLowerCase() || 'usd',
+              product_data: {
+                name: `Quote #${quote.quoteNumber}`,
+                description: `Payment for quote #${quote.quoteNumber} from ${organization.name}`,
+              },
+              unit_amount: amountInCents,
+            },
+            quantity: 1,
+          },
+        ],
+        success_url: `${req.protocol}://${req.get('host')}/payment/success?type=quote&id=${quoteId}&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${req.protocol}://${req.get('host')}/${orgSlug}/quote/${quoteId}/pay?cancelled=true`,
+        metadata: {
+          type: 'quote',
+          quoteId: quoteId.toString(),
+          organizationId: organization.id.toString(),
+        },
+      };
+
+      // Add Connect account and platform fee if applicable
+      if (useStripeConnect) {
+        sessionParams.payment_intent_data = {
+          application_fee_amount: platformFeeAmount,
+          transfer_data: {
+            destination: organization.stripeConnectAccountId,
+          },
+          metadata: {
+            quoteId: quoteId.toString(),
+            organizationId: organization.id.toString(),
+            platformFee: platformFeeAmount.toString(),
+          },
+        };
+      } else {
+        sessionParams.payment_intent_data = {
+          metadata: {
+            quoteId: quoteId.toString(),
+            organizationId: organization.id.toString(),
+          },
+        };
+      }
+
+      const session = await stripe.checkout.sessions.create(sessionParams);
+
+      res.json({ url: session.url });
+    } catch (error: any) {
+      console.error("Error creating checkout session for quote:", error);
+      res.status(500).json({ message: "Error creating payment session: " + error.message });
+    }
+  });
+
+
   // Public routes for customer payment (no authentication required)
   
   // Get public invoice data for payment page
