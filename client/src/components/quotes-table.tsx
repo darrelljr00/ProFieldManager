@@ -34,15 +34,16 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Eye, Mail, FileText, Trash2, Check, X, Download, Briefcase } from "lucide-react";
+import { Eye, Mail, FileText, Trash2, Check, X, Download, Briefcase, Link2 } from "lucide-react";
 import { useLocation } from "wouter";
 
 interface QuotesTableProps {
   quotes: (Quote & { customer: Customer; lineItems: QuoteLineItem[] })[];
   isLoading?: boolean;
+  onCopyPaymentLink?: (quoteId: number) => void;
 }
 
-export function QuotesTable({ quotes, isLoading }: QuotesTableProps) {
+export function QuotesTable({ quotes, isLoading, onCopyPaymentLink }: QuotesTableProps) {
   const [selectedQuote, setSelectedQuote] = useState<Quote & { customer: Customer; lineItems: QuoteLineItem[] } | null>(null);
   const [emailDialog, setEmailDialog] = useState<Quote & { customer: Customer } | null>(null);
   const [viewDialog, setViewDialog] = useState<Quote | null>(null);
@@ -345,6 +346,17 @@ export function QuotesTable({ quotes, isLoading }: QuotesTableProps) {
                       >
                         <Mail className="h-4 w-4" />
                       </Button>
+                      {onCopyPaymentLink && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => onCopyPaymentLink(quote.id)}
+                          title="Copy Payment Link"
+                          data-testid={`copy-payment-link-quote-${quote.id}`}
+                        >
+                          <Link2 className="h-4 w-4" />
+                        </Button>
+                      )}
                       {quote.status === "pending" && (
                         <>
                           <Button

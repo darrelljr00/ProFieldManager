@@ -17,7 +17,7 @@ import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
-import { Plus, Search, Filter, Upload, FileText, Calendar, Package, Clock, CheckCircle, XCircle, Edit, Eye, Mail, MessageSquare, Printer } from "lucide-react";
+import { Plus, Search, Filter, Upload, FileText, Calendar, Package, Clock, CheckCircle, XCircle, Edit, Eye, Mail, MessageSquare, Printer, Link2, Copy } from "lucide-react";
 
 export default function Invoices() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -39,6 +39,40 @@ export default function Invoices() {
     retry: 1,
     retryOnMount: true,
   });
+  
+  // Get organization for payment links
+  const { data: organization } = useQuery({
+    queryKey: ["/api/organization"],
+    enabled: !!user,
+  });
+  
+  // Copy payment link to clipboard
+  const copyPaymentLink = (invoiceId: number) => {
+    const org = organization as any;
+    if (!org?.slug) {
+      toast({
+        title: "Error",
+        description: "Organization slug not available",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const link = `${window.location.origin}/${org.slug}/invoice/${invoiceId}/pay`;
+    navigator.clipboard.writeText(link).then(() => {
+      toast({
+        title: "Link copied!",
+        description: "Payment link copied to clipboard",
+      });
+    }).catch((err) => {
+      console.error('Failed to copy link:', err);
+      toast({
+        title: "Error",
+        description: "Failed to copy link",
+        variant: "destructive",
+      });
+    });
+  };
 
   // Query for pending Smart Capture invoices (admin/manager only)
   const { data: pendingInvoices = [], isLoading: isPendingLoading } = useQuery({
@@ -385,6 +419,7 @@ export default function Invoices() {
               isLoading={isLoading}
               title="All Invoices"
               showViewAll={false}
+              onCopyPaymentLink={copyPaymentLink}
             />
           </TabsContent>
           
@@ -394,6 +429,7 @@ export default function Invoices() {
               isLoading={isLoading}
               title="Smart Capture Invoices"
               showViewAll={false}
+              onCopyPaymentLink={copyPaymentLink}
             />
           </TabsContent>
           
@@ -457,7 +493,7 @@ export default function Invoices() {
                           </div>
                         </div>
                         
-                        <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
+                        <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-gray-100">
                           <Button
                             onClick={() => {
                               setSelectedInvoice(invoice);
@@ -513,6 +549,16 @@ export default function Invoices() {
                           >
                             <Edit className="w-4 h-4 mr-2" />
                             {editAndApproveInvoiceMutation.isPending ? 'Processing...' : 'Edit & Approve'}
+                          </Button>
+                          
+                          <Button
+                            onClick={() => copyPaymentLink(invoice.id)}
+                            variant="outline"
+                            className="border-purple-300 text-purple-700 hover:bg-purple-50"
+                            data-testid={`copy-payment-link-${invoice.id}`}
+                          >
+                            <Link2 className="w-4 h-4 mr-2" />
+                            Copy Payment Link
                           </Button>
                         </div>
                       </div>

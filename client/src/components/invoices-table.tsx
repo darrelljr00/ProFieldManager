@@ -10,7 +10,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Eye, Download, MoreHorizontal, Send, CheckCircle, ArrowRight, Clock, X, AlertTriangle, Mail, MessageSquare } from "lucide-react";
+import { Eye, Download, MoreHorizontal, Send, CheckCircle, ArrowRight, Clock, X, AlertTriangle, Mail, MessageSquare, Link2 } from "lucide-react";
 import { format } from "date-fns";
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -23,9 +23,10 @@ interface InvoicesTableProps {
   isLoading?: boolean;
   title: string;
   showViewAll?: boolean;
+  onCopyPaymentLink?: (invoiceId: number) => void;
 }
 
-export function InvoicesTable({ invoices, isLoading, title, showViewAll }: InvoicesTableProps) {
+export function InvoicesTable({ invoices, isLoading, title, showViewAll, onCopyPaymentLink }: InvoicesTableProps) {
   const { toast } = useToast();
   const [selectedInvoice, setSelectedInvoice] = useState<(Invoice & { customer: Customer; lineItems: InvoiceLineItem[] }) | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
@@ -129,12 +130,12 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll }: Invoi
       <body>
         <div class="header">
           <div class="company-info">
-            ${companySettings?.logo ? `<img src="${companySettings.logo}" alt="Logo" style="max-height: 80px; max-width: 200px; margin-bottom: 10px;">` : ''}
-            <h2>${companySettings?.companyName || 'Your Company'}</h2>
-            <p>${companySettings?.companyStreetAddress || ''}</p>
-            <p>${companySettings?.companyCity || ''}, ${companySettings?.companyState || ''} ${companySettings?.companyZipCode || ''}</p>
-            <p>Phone: ${companySettings?.companyPhone || ''}</p>
-            ${companySettings?.companyEmail ? `<p>Email: ${companySettings.companyEmail}</p>` : ''}
+            ${(companySettings as any)?.logo ? `<img src="${(companySettings as any).logo}" alt="Logo" style="max-height: 80px; max-width: 200px; margin-bottom: 10px;">` : ''}
+            <h2>${(companySettings as any)?.companyName || 'Your Company'}</h2>
+            <p>${(companySettings as any)?.companyStreetAddress || ''}</p>
+            <p>${(companySettings as any)?.companyCity || ''}, ${(companySettings as any)?.companyState || ''} ${(companySettings as any)?.companyZipCode || ''}</p>
+            <p>Phone: ${(companySettings as any)?.companyPhone || ''}</p>
+            ${(companySettings as any)?.companyEmail ? `<p>Email: ${(companySettings as any).companyEmail}</p>` : ''}
           </div>
           <div class="invoice-title">
             <h1>INVOICE</h1>
@@ -420,6 +421,15 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll }: Invoi
                                 <MessageSquare className="w-4 h-4 mr-2" />
                                 Send via SMS
                               </DropdownMenuItem>
+                              {onCopyPaymentLink && (
+                                <DropdownMenuItem 
+                                  onClick={() => onCopyPaymentLink(invoice.id)}
+                                  data-testid={`copy-payment-link-invoice-${invoice.id}`}
+                                >
+                                  <Link2 className="w-4 h-4 mr-2" />
+                                  Copy Payment Link
+                                </DropdownMenuItem>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                           <DropdownMenu>
@@ -511,14 +521,14 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll }: Invoi
               {/* Company Header with Logo */}
               <div className="flex justify-between items-start border-b pb-6">
                 <div className="flex items-center space-x-4">
-                  {companySettings?.logo && (
+                  {(companySettings as any)?.logo && (
                     <img 
-                      src={companySettings.logo} 
+                      src={(companySettings as any).logo} 
                       alt="Company Logo" 
                       className={`object-contain ${
-                        companySettings.logoSize === 'small' ? 'h-12 w-12' :
-                        companySettings.logoSize === 'large' ? 'h-24 w-24' :
-                        companySettings.logoSize === 'xlarge' ? 'h-32 w-32' :
+                        (companySettings as any).logoSize === 'small' ? 'h-12 w-12' :
+                        (companySettings as any).logoSize === 'large' ? 'h-24 w-24' :
+                        (companySettings as any).logoSize === 'xlarge' ? 'h-32 w-32' :
                         'h-16 w-16'
                       }`}
                       onError={(e) => {
@@ -528,20 +538,20 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll }: Invoi
                   )}
                   <div>
                     <h2 className="text-2xl font-bold text-gray-900">
-                      {companySettings?.companyName || "Your Company Name"}
+                      {(companySettings as any)?.companyName || "Your Company Name"}
                     </h2>
                     <p className="text-sm text-gray-600">
-                      {companySettings?.companyStreetAddress || "123 Business Street"}
+                      {(companySettings as any)?.companyStreetAddress || "123 Business Street"}
                     </p>
                     <p className="text-sm text-gray-600">
-                      {companySettings?.companyCity || "City"}, {companySettings?.companyState || "State"} {companySettings?.companyZipCode || "12345"}
+                      {(companySettings as any)?.companyCity || "City"}, {(companySettings as any)?.companyState || "State"} {(companySettings as any)?.companyZipCode || "12345"}
                     </p>
                     <p className="text-sm text-gray-600">
-                      Phone: {companySettings?.companyPhone || "(555) 123-4567"}
+                      Phone: {(companySettings as any)?.companyPhone || "(555) 123-4567"}
                     </p>
-                    {companySettings?.companyEmail && (
+                    {(companySettings as any)?.companyEmail && (
                       <p className="text-sm text-gray-600">
-                        Email: {companySettings.companyEmail}
+                        Email: {(companySettings as any).companyEmail}
                       </p>
                     )}
                   </div>

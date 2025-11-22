@@ -10,7 +10,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { QuoteForm } from "@/components/quote-form";
 import { QuotesTable } from "@/components/quotes-table";
 import { TrashedQuotesTable } from "@/components/trashed-quotes-table";
-import { Plus, FileText, TrendingUp, Clock, CheckCircle, Search, Trash2 } from "lucide-react";
+import { Plus, FileText, TrendingUp, Clock, CheckCircle, Search, Trash2, Link2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import type { Quote, Customer, QuoteLineItem } from "@shared/schema";
 
 export default function Quotes() {
@@ -19,6 +21,8 @@ export default function Quotes() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("all");
   const [activeTab, setActiveTab] = useState("quotes");
+  const { toast } = useToast();
+  const { user } = useAuth();
 
   const { data: quotes = [], isLoading, error } = useQuery<(Quote & { customer: Customer; lineItems: QuoteLineItem[] })[]>({
     queryKey: ["/api/quotes"],
@@ -27,6 +31,40 @@ export default function Quotes() {
   const { data: trashedQuotes = [], isLoading: trashedLoading, error: trashedError } = useQuery<(Quote & { customer: Customer; lineItems: QuoteLineItem[] })[]>({
     queryKey: ["/api/quotes/trash"],
   });
+  
+  // Get organization for payment links
+  const { data: organization } = useQuery({
+    queryKey: ["/api/organization"],
+    enabled: !!user,
+  });
+  
+  // Copy payment link to clipboard
+  const copyPaymentLink = (quoteId: number) => {
+    const org = organization as any;
+    if (!org?.slug) {
+      toast({
+        title: "Error",
+        description: "Organization slug not available",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const link = `${window.location.origin}/${org.slug}/quote/${quoteId}/pay`;
+    navigator.clipboard.writeText(link).then(() => {
+      toast({
+        title: "Link copied!",
+        description: "Payment link copied to clipboard",
+      });
+    }).catch((err) => {
+      console.error('Failed to copy link:', err);
+      toast({
+        title: "Error",
+        description: "Failed to copy link",
+        variant: "destructive",
+      });
+    });
+  };
 
   // Calculate pending approvals count (sent quotes without response)
   const pendingApprovalsCount = useMemo(() => {
@@ -299,7 +337,7 @@ export default function Quotes() {
       </div>
 
           {/* Quotes Table */}
-          <QuotesTable quotes={filteredQuotes} isLoading={isLoading} />
+          <QuotesTable quotes={filteredQuotes} isLoading={isLoading} onCopyPaymentLink={copyPaymentLink} />
         </TabsContent>
 
         <TabsContent value="trash" className="space-y-6 mt-6">
