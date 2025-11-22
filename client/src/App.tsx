@@ -103,6 +103,10 @@ import HVACPage from "@/pages/services/hvac";
 import PressureWashersPage from "@/pages/services/pressure-washers";
 import WindowWashersPage from "@/pages/services/window-washers";
 import ServiceTechsPage from "@/pages/services/service-techs";
+import PublicInvoicePayment from "@/pages/public-invoice-payment";
+import PublicQuotePayment from "@/pages/public-quote-payment";
+import PaymentSuccess from "@/pages/payment-success";
+import PaymentError from "@/pages/payment-error";
 
 function AuthenticatedApp() {
   const { isAdmin, user } = useAuth();
@@ -363,6 +367,12 @@ function Router() {
           <Route path="/quote/:action/:token" component={QuoteResponsePage} />
           <Route path="/site/:orgSlug/:pageSlug" component={FrontendPageRenderer} />
           <Route path="/quote-availability/:token" component={QuoteAvailabilityPage} />
+          {/* Public payment pages - no authentication required */}
+          <Route path="/:orgSlug/invoice/:invoiceId/pay" component={PublicInvoicePayment} />
+          <Route path="/:orgSlug/quote/:quoteId/pay" component={PublicQuotePayment} />
+          <Route path="/payment/success" component={PaymentSuccess} />
+          <Route path="/payment/error" component={PaymentError} />
+          
           <Route component={DirectLogin} />
         </Switch>
       </Suspense>

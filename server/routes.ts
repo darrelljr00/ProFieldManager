@@ -4929,6 +4929,322 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Public routes for customer payment (no authentication required)
+  
+  // Get public invoice data for payment page
+  app.get("/api/public/invoice/:orgSlug/:invoiceId", async (req, res) => {
+    try {
+      const { orgSlug, invoiceId } = req.params;
+      
+      // Get organization by slug
+      const org = await db.select().from(organizations).where(eq(organizations.slug, orgSlug)).limit(1);
+      if (!org || org.length === 0) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+      
+      // Get invoice
+      const invoiceResult = await db.select().from(invoices)
+        .where(and(
+          eq(invoices.id, parseInt(invoiceId)),
+          eq(invoices.organizationId, org[0].id)
+        ))
+        .limit(1);
+      
+      if (!invoiceResult || invoiceResult.length === 0) {
+        return res.status(404).json({ message: "Invoice not found" });
+      }
+      
+      const invoice = invoiceResult[0];
+      
+      // Get customer info
+      const customerResult = await db.select().from(customers)
+        .where(eq(customers.id, invoice.customerId))
+        .limit(1);
+      
+      // Return public invoice data (only what's needed for payment)
+      res.json({
+        invoice: {
+          id: invoice.id,
+          invoiceNumber: invoice.invoiceNumber,
+          date: invoice.date,
+          dueDate: invoice.dueDate,
+          total: invoice.total,
+          currency: invoice.currency,
+          status: invoice.status,
+          items: invoice.items,
+          notes: invoice.notes,
+        },
+        organization: {
+          name: org[0].name,
+          logo: org[0].logo,
+          address: org[0].address,
+          phone: org[0].phone,
+          email: org[0].email,
+        },
+        customer: customerResult[0] ? {
+          name: customerResult[0].name,
+          email: customerResult[0].email,
+        } : null,
+      });
+    } catch (error: any) {
+      console.error("Error fetching public invoice:", error);
+      res.status(500).json({ message: "Error fetching invoice" });
+    }
+  });
+  
+  // Get public quote data for payment page
+  app.get("/api/public/quote/:orgSlug/:quoteId", async (req, res) => {
+    try {
+      const { orgSlug, quoteId } = req.params;
+      
+      // Get organization by slug
+      const org = await db.select().from(organizations).where(eq(organizations.slug, orgSlug)).limit(1);
+      if (!org || org.length === 0) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+      
+      // Get quote
+      const quoteResult = await db.select().from(quotes)
+        .where(and(
+          eq(quotes.id, parseInt(quoteId)),
+          eq(quotes.organizationId, org[0].id)
+        ))
+        .limit(1);
+      
+      if (!quoteResult || quoteResult.length === 0) {
+        return res.status(404).json({ message: "Quote not found" });
+      }
+      
+      const quote = quoteResult[0];
+      
+      // Get customer info
+      const customerResult = await db.select().from(customers)
+        .where(eq(customers.id, quote.customerId))
+        .limit(1);
+      
+      // Return public quote data (only what's needed for payment)
+      res.json({
+        quote: {
+          id: quote.id,
+          quoteNumber: quote.quoteNumber,
+          date: quote.date,
+          expiryDate: quote.expiryDate,
+          total: quote.total,
+          currency: quote.currency,
+          status: quote.status,
+          items: quote.items,
+          notes: quote.notes,
+        },
+        organization: {
+          name: org[0].name,
+          logo: org[0].logo,
+          address: org[0].address,
+          phone: org[0].phone,
+          email: org[0].email,
+        },
+        customer: customerResult[0] ? {
+          name: customerResult[0].name,
+          email: customerResult[0].email,
+        } : null,
+      });
+    } catch (error: any) {
+      console.error("Error fetching public quote:", error);
+      res.status(500).json({ message: "Error fetching quote" });
+    }
+  });
+
+
+  // Public payment intent creation (no auth required)
+  app.post("/api/public/payments/stripe/create-intent/:orgSlug/:invoiceId", async (req, res) => {
+    try {
+      const { orgSlug, invoiceId } = req.params;
+      
+      // Get organization by slug
+      const org = await db.select().from(organizations).where(eq(organizations.slug, orgSlug)).limit(1);
+      if (!org || org.length === 0) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+      
+      const organization = org[0];
+      
+      // Get invoice
+      const invoiceResult = await db.select().from(invoices)
+        .where(and(
+          eq(invoices.id, parseInt(invoiceId)),
+          eq(invoices.organizationId, organization.id)
+        ))
+        .limit(1);
+      
+      if (!invoiceResult || invoiceResult.length === 0) {
+        return res.status(404).json({ message: "Invoice not found" });
+      }
+      
+      const invoice = invoiceResult[0];
+      
+      // Check if already paid
+      if (invoice.status === "paid") {
+        return res.status(400).json({ message: "Invoice already paid" });
+      }
+      
+      const amountInCents = Math.round(parseFloat(invoice.total) * 100);
+      
+      // Calculate platform fee if using Stripe Connect
+      const platformFeePercentage = parseFloat(organization.platformFeePercentage || "0");
+      const platformFeeAmount = Math.round(amountInCents * (platformFeePercentage / 100));
+
+      // Check if organization has Stripe Connect enabled
+      const hasConnectAccount = !!organization.stripeConnectAccountId;
+      const chargesEnabled = organization.stripeConnectChargesEnabled;
+      
+      // Block payments if Connect enrolled but charges disabled
+      if (hasConnectAccount && !chargesEnabled) {
+        return res.status(400).json({ 
+          message: "Stripe Connect charges are currently disabled for this organization. Please contact support to enable payments." 
+        });
+      }
+      
+      const useStripeConnect = hasConnectAccount && chargesEnabled;
+
+      let paymentIntent;
+      
+      if (useStripeConnect) {
+        // Create payment on platform account with transfer to connected account (destination charges pattern)
+        paymentIntent = await stripe.paymentIntents.create({
+          amount: amountInCents,
+          currency: invoice.currency?.toLowerCase() || 'usd',
+          automatic_payment_methods: { enabled: true },
+          transfer_data: {
+            destination: organization.stripeConnectAccountId,
+            amount: amountInCents - platformFeeAmount,
+          },
+          metadata: {
+            invoiceId: invoiceId.toString(),
+            organizationId: organization.id.toString(),
+            platformFee: platformFeeAmount.toString(),
+            publicPayment: 'true',
+          },
+        });
+      } else {
+        // Direct payment on platform account (for orgs without Stripe Connect)
+        paymentIntent = await stripe.paymentIntents.create({
+          amount: amountInCents,
+          currency: invoice.currency?.toLowerCase() || 'usd',
+          automatic_payment_methods: { enabled: true },
+          metadata: {
+            invoiceId: invoiceId.toString(),
+            organizationId: organization.id.toString(),
+            publicPayment: 'true',
+          },
+        });
+      }
+
+      res.json({ 
+        clientSecret: paymentIntent.client_secret,
+        connectedAccount: useStripeConnect,
+        platformFee: platformFeeAmount / 100,
+      });
+    } catch (error: any) {
+      console.error("Error creating public invoice payment intent:", error);
+      res.status(500).json({ message: "Error creating payment intent: " + error.message });
+    }
+  });
+  
+  // Public quote payment intent creation (no auth required)
+  app.post("/api/public/payments/stripe/create-intent/:orgSlug/:quoteId/quote", async (req, res) => {
+    try {
+      const { orgSlug, quoteId } = req.params;
+      
+      // Get organization by slug
+      const org = await db.select().from(organizations).where(eq(organizations.slug, orgSlug)).limit(1);
+      if (!org || org.length === 0) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+      
+      const organization = org[0];
+      
+      // Get quote
+      const quoteResult = await db.select().from(quotes)
+        .where(and(
+          eq(quotes.id, parseInt(quoteId)),
+          eq(quotes.organizationId, organization.id)
+        ))
+        .limit(1);
+      
+      if (!quoteResult || quoteResult.length === 0) {
+        return res.status(404).json({ message: "Quote not found" });
+      }
+      
+      const quote = quoteResult[0];
+      
+      // Check if already accepted/paid
+      if (quote.status === "accepted" || quote.status === "paid") {
+        return res.status(400).json({ message: "Quote already accepted and paid" });
+      }
+      
+      const amountInCents = Math.round(parseFloat(quote.total) * 100);
+      
+      // Calculate platform fee if using Stripe Connect
+      const platformFeePercentage = parseFloat(organization.platformFeePercentage || "0");
+      const platformFeeAmount = Math.round(amountInCents * (platformFeePercentage / 100));
+
+      // Check if organization has Stripe Connect enabled
+      const hasConnectAccount = !!organization.stripeConnectAccountId;
+      const chargesEnabled = organization.stripeConnectChargesEnabled;
+      
+      // Block payments if Connect enrolled but charges disabled
+      if (hasConnectAccount && !chargesEnabled) {
+        return res.status(400).json({ 
+          message: "Stripe Connect charges are currently disabled for this organization. Please contact support to enable payments." 
+        });
+      }
+      
+      const useStripeConnect = hasConnectAccount && chargesEnabled;
+
+      let paymentIntent;
+      
+      if (useStripeConnect) {
+        // Create payment on platform account with transfer to connected account (destination charges pattern)
+        paymentIntent = await stripe.paymentIntents.create({
+          amount: amountInCents,
+          currency: quote.currency?.toLowerCase() || 'usd',
+          automatic_payment_methods: { enabled: true },
+          transfer_data: {
+            destination: organization.stripeConnectAccountId,
+            amount: amountInCents - platformFeeAmount,
+          },
+          metadata: {
+            quoteId: quoteId.toString(),
+            organizationId: organization.id.toString(),
+            platformFee: platformFeeAmount.toString(),
+            publicPayment: 'true',
+          },
+        });
+      } else {
+        // Direct payment on platform account (for orgs without Stripe Connect)
+        paymentIntent = await stripe.paymentIntents.create({
+          amount: amountInCents,
+          currency: quote.currency?.toLowerCase() || 'usd',
+          automatic_payment_methods: { enabled: true },
+          metadata: {
+            quoteId: quoteId.toString(),
+            organizationId: organization.id.toString(),
+            publicPayment: 'true',
+          },
+        });
+      }
+
+      res.json({ 
+        clientSecret: paymentIntent.client_secret,
+        connectedAccount: useStripeConnect,
+        platformFee: platformFeeAmount / 100,
+      });
+    } catch (error: any) {
+      console.error("Error creating public quote payment intent:", error);
+      res.status(500).json({ message: "Error creating payment intent: " + error.message });
+    }
+  });
+
+
   // Stripe webhook for payment confirmation
   app.post("/api/webhooks/stripe", async (req, res) => {
     try {
