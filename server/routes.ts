@@ -4942,11 +4942,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const organization = org[0];
       
-      // Get invoice
-      const invoiceResult = await db.select().from(invoices)
+      // Get invoice by joining through user to validate organization
+      const invoiceResult = await db.select({
+        invoice: invoices,
+      })
+        .from(invoices)
+        .innerJoin(users, eq(invoices.userId, users.id))
         .where(and(
           eq(invoices.id, parseInt(invoiceId)),
-          eq(invoices.organizationId, organization.id)
+          eq(users.organizationId, organization.id)
         ))
         .limit(1);
       
@@ -4954,7 +4958,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Invoice not found" });
       }
       
-      const invoice = invoiceResult[0];
+      const invoice = invoiceResult[0]?.invoice;
+      if (!invoice) {
+        return res.status(404).json({ message: "Invoice not found" });
+      }
       
       // Check if already paid
       if (invoice.status === "paid") {
@@ -5050,11 +5057,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const organization = org[0];
       
-      // Get quote
-      const quoteResult = await db.select().from(quotes)
+      // Get quote by joining through user to validate organization
+      const quoteResult = await db.select({
+        quote: quotes,
+      })
+        .from(quotes)
+        .innerJoin(users, eq(quotes.userId, users.id))
         .where(and(
           eq(quotes.id, parseInt(quoteId)),
-          eq(quotes.organizationId, organization.id)
+          eq(users.organizationId, organization.id)
         ))
         .limit(1);
       
@@ -5062,7 +5073,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Quote not found" });
       }
       
-      const quote = quoteResult[0];
+      const quote = quoteResult[0]?.quote;
+      if (!quote) {
+        return res.status(404).json({ message: "Quote not found" });
+      }
       
       // Check if already accepted/paid
       if (quote.status === "accepted" || quote.status === "paid") {
@@ -5159,11 +5173,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Organization not found" });
       }
       
-      // Get invoice
-      const invoiceResult = await db.select().from(invoices)
+      // Get invoice by joining through user to validate organization
+      const invoiceResult = await db.select({
+        invoice: invoices,
+      })
+        .from(invoices)
+        .innerJoin(users, eq(invoices.userId, users.id))
         .where(and(
           eq(invoices.id, parseInt(invoiceId)),
-          eq(invoices.organizationId, org[0].id)
+          eq(users.organizationId, org[0].id)
         ))
         .limit(1);
       
@@ -5171,12 +5189,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Invoice not found" });
       }
       
-      const invoice = invoiceResult[0];
+      const invoice = invoiceResult[0]?.invoice;
+      if (!invoice) {
+        return res.status(404).json({ message: "Invoice not found" });
+      }
       
       // Get customer info
-      const customerResult = await db.select().from(customers)
-        .where(eq(customers.id, invoice.customerId))
-        .limit(1);
+      let customerResult = [];
+      if (invoice.customerId) {
+        customerResult = await db.select().from(customers)
+          .where(eq(customers.id, invoice.customerId))
+          .limit(1);
+      }
       
       // Return public invoice data (only what's needed for payment)
       res.json({
@@ -5220,11 +5244,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Organization not found" });
       }
       
-      // Get quote
-      const quoteResult = await db.select().from(quotes)
+      // Get quote by joining through user to validate organization
+      const quoteResult = await db.select({
+        quote: quotes,
+      })
+        .from(quotes)
+        .innerJoin(users, eq(quotes.userId, users.id))
         .where(and(
           eq(quotes.id, parseInt(quoteId)),
-          eq(quotes.organizationId, org[0].id)
+          eq(users.organizationId, org[0].id)
         ))
         .limit(1);
       
@@ -5232,12 +5260,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Quote not found" });
       }
       
-      const quote = quoteResult[0];
+      const quote = quoteResult[0]?.quote;
+      if (!quote) {
+        return res.status(404).json({ message: "Quote not found" });
+      }
       
       // Get customer info
-      const customerResult = await db.select().from(customers)
-        .where(eq(customers.id, quote.customerId))
-        .limit(1);
+      let customerResult = [];
+      if (quote.customerId) {
+        customerResult = await db.select().from(customers)
+          .where(eq(customers.id, quote.customerId))
+          .limit(1);
+      }
       
       // Return public quote data (only what's needed for payment)
       res.json({
