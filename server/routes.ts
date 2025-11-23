@@ -29289,20 +29289,15 @@ ${fromName || ''}
       }
       
       // Get the invoice to verify it's a Smart Capture invoice pending approval
-      const invoice = await storage.getInvoices(user.id, { 
-        id: invoiceId,
-        organizationId: user.organizationId 
-      });
-      
-      if (!invoice || invoice.length === 0) {
+      const invoice = await storage.getInvoice(invoiceId, user.organizationId);
+      if (!invoice) {
         return res.status(404).json({ message: "Invoice not found" });
       }
       
-      const currentInvoice = invoice[0];
-      if (!currentInvoice.isSmartCaptureInvoice || currentInvoice.status !== 'pending_approval') {
+      if (!invoice.isSmartCaptureInvoice || invoice.status !== 'pending_approval') {
+      
         return res.status(400).json({ message: "Invoice is not eligible for approval" });
       }
-      
       // Approve the invoice
       const approvedInvoice = await storage.updateInvoice(invoiceId, user.id, {
         status: 'sent', // Move to sent status after approval
@@ -29393,17 +29388,12 @@ ${fromName || ''}
       }
       
       // Get the invoice to verify it's a Smart Capture invoice pending approval
-      const invoice = await storage.getInvoices(user.id, { 
-        id: invoiceId,
-        organizationId: user.organizationId 
-      });
-      
-      if (!invoice || invoice.length === 0) {
+      const invoice = await storage.getInvoice(invoiceId, user.organizationId);
+      if (!invoice) {
         return res.status(404).json({ message: "Invoice not found" });
       }
       
-      const currentInvoice = invoice[0];
-      if (!currentInvoice.isSmartCaptureInvoice || currentInvoice.status !== 'pending_approval') {
+      if (!invoice.isSmartCaptureInvoice || invoice.status !== 'pending_approval') {
         return res.status(400).json({ message: "Invoice is not eligible for editing and approval" });
       }
       
