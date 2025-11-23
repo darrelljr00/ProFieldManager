@@ -197,7 +197,8 @@ export default function Invoices() {
   // Approve Smart Capture invoice mutation
   const approveInvoiceMutation = useMutation({
     mutationFn: async (invoiceId: number) => {
-      return apiRequest("PUT", `/api/smart-capture/invoices/${invoiceId}/approve`);
+      const response = await apiRequest("PUT", `/api/smart-capture/invoices/${invoiceId}/approve`);
+      return response.json();
     },
     onSuccess: async () => {
       await Promise.all([
@@ -221,7 +222,8 @@ export default function Invoices() {
   // Reject Smart Capture invoice mutation
   const rejectInvoiceMutation = useMutation({
     mutationFn: async ({ invoiceId, rejectionReason }: { invoiceId: number; rejectionReason: string }) => {
-      return apiRequest("PUT", `/api/smart-capture/invoices/${invoiceId}/reject`, { rejectionReason });
+      const response = await apiRequest("PUT", `/api/smart-capture/invoices/${invoiceId}/reject`, { rejectionReason });
+      return response.json();
     },
     onSuccess: async () => {
       await Promise.all([
@@ -245,7 +247,8 @@ export default function Invoices() {
   // Edit and approve Smart Capture invoice mutation
   const editAndApproveInvoiceMutation = useMutation({
     mutationFn: async ({ invoiceId, edits }: { invoiceId: number; edits: any }) => {
-      return apiRequest("PUT", `/api/smart-capture/invoices/${invoiceId}/edit-and-approve`, edits);
+      const response = await apiRequest("PUT", `/api/smart-capture/invoices/${invoiceId}/edit-and-approve`, edits);
+      return response.json();
     },
     onSuccess: async () => {
       await Promise.all([
