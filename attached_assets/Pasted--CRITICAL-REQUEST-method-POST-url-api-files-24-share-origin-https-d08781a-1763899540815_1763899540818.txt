@@ -1,0 +1,61 @@
+🌍 CRITICAL REQUEST: {
+  method: 'POST',
+  url: '/api/files/24/share',
+  origin: 'https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev',
+  host: 'd08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev',
+  contentType: 'application/json',
+  hasAuth: true,
+  authHeader: 'MISSING',
+  authPreview: 'NONE',
+  isCustomDomain: false,
+  timestamp: '2025-11-23T12:05:10.893Z'
+}
+✅ SESSION VALIDATION SUCCESS for: sales@texaspowerwash.net
+🔍 SESSION DATA USER OBJECT: {
+  "id": 5,
+  "username": "sales@texaspowerwash.net",
+  "email": "sales@texaspowerwash.net",
+  "organizationId": 2,
+  "role": "admin",
+  "firstName": "Darrell",
+  "lastName": "Johnson",
+  "isActive": true,
+  "isDemoAccount": false,
+  "demoExpiresAt": null,
+  "canAccessDashboard": true,
+  "canAccessCalendar": true,
+  "canAccessTimeClock": true,
+  "canAccessJobs": true,
+  "canAccessMyTasks": true,
+  "canAccessLeads": true,
+  "canAccessExpenses": true,
+  "canAccessQuotes": true,
+  "canAccessInvoices": true,
+  "canAccessCustomers": true,
+  "canAccessPayments": true,
+  "canAccessFileManager": true,
+  "canAccessPartsSupplies": true,
+  "canAccessMySchedule": true,
+  "canAccessTutorials": true,
+  "canAccessFormBuilder": true,
+  "canAccessInspections": true,
+  "canAccessInternalMessages": true,
+  "canAccessTeamMessages": true,
+  "canAccessImageGallery": true,
+  "canAccessSMS": true,
+  "canAccessMessages": true,
+  "canAccessGpsTracking": true,
+  "canAccessWeather": true,
+  "canAccessReviews": true,
+  "canAccessMarketResearch": true,
+  "canAccessHR": false,
+  "canAccessUsers": false,
+  "canAccessSaasAdmin": true,
+  "canAccessAdminSettings": false,
+  "canAccessReports": true
+}
+🔍 USER ID: 5
+🔍 USER ORG ID: 2
+🎯 AUTH MIDDLEWARE - About to call next() for: /api/files/24/share
+Error creating file share: NeonDbError: column "is_active" of relation "file_shares" does not exist
+    at execute (file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:1556:55)
