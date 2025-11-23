@@ -29299,7 +29299,7 @@ ${fromName || ''}
         return res.status(400).json({ message: "Invoice is not eligible for approval" });
       }
       // Approve the invoice
-      const approvedInvoice = await storage.updateInvoice(invoiceId, user.id, {
+      const approvedInvoice = await storage.updateInvoice(invoiceId, {
         status: 'sent', // Move to sent status after approval
         approvedBy: user.id,
         approvedAt: new Date()
@@ -29350,7 +29350,7 @@ ${fromName || ''}
       }
       
       // Reject the invoice - move back to draft status
-      const rejectedInvoice = await storage.updateInvoice(invoiceId, user.id, {
+      const rejectedInvoice = await storage.updateInvoice(invoiceId, {
         status: 'draft', // Move back to draft for editing
         rejectedBy: user.id,
         rejectedAt: new Date(),
@@ -29398,7 +29398,7 @@ ${fromName || ''}
       }
       
       // Update invoice with changes and approve
-      const updatedInvoice = await storage.updateInvoice(invoiceId, user.id, {
+      const updatedInvoice = await storage.updateInvoice(invoiceId, {
         ...(notes !== undefined && { notes }),
         ...(taxRate !== undefined && { taxRate }),
         ...(taxAmount !== undefined && { taxAmount }),
