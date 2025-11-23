@@ -29448,16 +29448,13 @@ ${fromName || ''}
       }
 
       // Get invoice from storage
-      const invoice = await storage.getInvoices(user.id, { 
-        id: invoiceId,
-        organizationId: user.organizationId 
-      });
+      const invoice = await storage.getInvoice(invoiceId, user.organizationId);
       
-      if (!invoice || invoice.length === 0) {
+      if (!invoice) {
         return res.status(404).json({ message: "Invoice not found" });
       }
       
-      const currentInvoice = invoice[0];
+      const currentInvoice = invoice;
       if (!currentInvoice.isSmartCaptureInvoice) {
         return res.status(400).json({ message: "Invoice is not a Smart Capture invoice" });
       }
