@@ -678,11 +678,11 @@ export default function MyTasks() {
             <div className="space-y-6">
               <div className="flex flex-wrap gap-2">
                 <Badge variant={getStatusColor(selectedTask.status)}>
-                  {selectedTask.status.replace("-", " ")}
+                  {selectedTask.status?.replace("-", " ") || "pending"}
                 </Badge>
                 <Badge variant={getPriorityColor(selectedTask.priority)} className="flex items-center gap-1">
                   {getPriorityIcon(selectedTask.priority)}
-                  {selectedTask.priority}
+                  {selectedTask.priority || "medium"}
                 </Badge>
                 {selectedTask.project && (
                   <Badge variant="outline">
