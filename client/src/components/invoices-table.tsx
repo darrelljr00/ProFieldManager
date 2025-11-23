@@ -1,16 +1,41 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Eye, Download, MoreHorizontal, Send, CheckCircle, ArrowRight, Clock, X, AlertTriangle, Mail, MessageSquare, Link2 } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Eye,
+  Download,
+  MoreHorizontal,
+  Send,
+  CheckCircle,
+  ArrowRight,
+  Clock,
+  X,
+  AlertTriangle,
+  Mail,
+  MessageSquare,
+  Link2,
+} from "lucide-react";
 import { format } from "date-fns";
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -26,27 +51,31 @@ interface InvoicesTableProps {
   onCopyPaymentLink?: (invoiceId: number) => void;
 }
 
-export function InvoicesTable({ invoices, isLoading, title, showViewAll, onCopyPaymentLink }: InvoicesTableProps) {
+export function InvoicesTable({
+  invoices,
+  isLoading,
+  title,
+  showViewAll,
+  onCopyPaymentLink,
+}: InvoicesTableProps) {
   const { toast } = useToast();
-  const [selectedInvoice, setSelectedInvoice] = useState<(Invoice & { customer: Customer; lineItems: InvoiceLineItem[] }) | null>(null);
+  const [selectedInvoice, setSelectedInvoice] = useState<
+    (Invoice & { customer: Customer; lineItems: InvoiceLineItem[] }) | null
+  >(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
 
   // Fetch company settings for logo and company info
-  const { data: companySettings, isLoading: companySettingsLoading, error: companyError } = useQuery({
-    queryKey: ['/api/settings/company'],
-  });
-
-  // Debug company settings
-  console.log("🔍 COMPANY DEBUG:", {
-    companySettings,
+  const {
+    data: companySettings,
     isLoading: companySettingsLoading,
-    error: companyError?.message || 'none',
-    isObject: typeof companySettings === 'object' && companySettings !== null,
-    keys: companySettings ? Object.keys(companySettings) : 'no keys'
-  });
+    error: companyError,
+  } = useQuery({
+    queryKey: ["/api/settings/company"],
+  });"""""",
 
   const sendInvoiceMutation = useMutation({
-    mutationFn: (invoiceId: number) => apiRequest("POST", `/api/invoices/${invoiceId}/send`),
+    mutationFn: (invoiceId: number) =>
+      apiRequest("POST", `/api/invoices/${invoiceId}/send`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
       toast({
@@ -64,7 +93,8 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll, onCopyP
   });
 
   const sendInvoiceSmsMutation = useMutation({
-    mutationFn: (invoiceId: number) => apiRequest("POST", `/api/invoices/${invoiceId}/send-sms`),
+    mutationFn: (invoiceId: number) =>
+      apiRequest("POST", `/api/invoices/${invoiceId}/send-sms`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
       toast({
@@ -90,8 +120,10 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll, onCopyP
   });
 
   // Download/Print invoice function
-  const handleDownloadInvoice = (invoice: Invoice & { customer: Customer; lineItems: InvoiceLineItem[] }) => {
-    const printWindow = window.open('', '_blank');
+  const handleDownloadInvoice = (
+    invoice: Invoice & { customer: Customer; lineItems: InvoiceLineItem[] },
+  ) => {
+    const printWindow = window.open("", "_blank");
     if (!printWindow) return;
 
     const html = `
@@ -130,12 +162,12 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll, onCopyP
       <body>
         <div class="header">
           <div class="company-info">
-            ${(companySettings as any)?.logo ? `<img src="${(companySettings as any).logo}" alt="Logo" style="max-height: 80px; max-width: 200px; margin-bottom: 10px;">` : ''}
-            <h2>${(companySettings as any)?.companyName || 'Your Company'}</h2>
-            <p>${(companySettings as any)?.companyStreetAddress || ''}</p>
-            <p>${(companySettings as any)?.companyCity || ''}, ${(companySettings as any)?.companyState || ''} ${(companySettings as any)?.companyZipCode || ''}</p>
-            <p>Phone: ${(companySettings as any)?.companyPhone || ''}</p>
-            ${(companySettings as any)?.companyEmail ? `<p>Email: ${(companySettings as any).companyEmail}</p>` : ''}
+            ${(companySettings as any)?.logo ? `<img src="${(companySettings as any).logo}" alt="Logo" style="max-height: 80px; max-width: 200px; margin-bottom: 10px;">` : ""}
+            <h2>${(companySettings as any)?.companyName || "Your Company"}</h2>
+            <p>${(companySettings as any)?.companyStreetAddress || ""}</p>
+            <p>${(companySettings as any)?.companyCity || ""}, ${(companySettings as any)?.companyState || ""} ${(companySettings as any)?.companyZipCode || ""}</p>
+            <p>Phone: ${(companySettings as any)?.companyPhone || ""}</p>
+            ${(companySettings as any)?.companyEmail ? `<p>Email: ${(companySettings as any).companyEmail}</p>` : ""}
           </div>
           <div class="invoice-title">
             <h1>INVOICE</h1>
@@ -152,10 +184,10 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll, onCopyP
           </div>
           <div class="info-box">
             <h3>Bill To</h3>
-            <p><strong>${invoice.customer?.name || 'N/A'}</strong></p>
-            <p>${invoice.customer?.email || ''}</p>
-            <p>${invoice.customer?.phone || ''}</p>
-            <p>${invoice.customer?.address || ''}</p>
+            <p><strong>${invoice.customer?.name || "N/A"}</strong></p>
+            <p>${invoice.customer?.email || ""}</p>
+            <p>${invoice.customer?.phone || ""}</p>
+            <p>${invoice.customer?.address || ""}</p>
           </div>
         </div>
 
@@ -169,14 +201,20 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll, onCopyP
             </tr>
           </thead>
           <tbody>
-            ${invoice.lineItems?.map(item => `
+            ${
+              invoice.lineItems
+                ?.map(
+                  (item) => `
               <tr>
                 <td>${item.description}</td>
                 <td class="text-right">${item.quantity}</td>
                 <td class="text-right">$${parseFloat(item.rate).toFixed(2)}</td>
                 <td class="text-right">$${parseFloat(item.amount).toFixed(2)}</td>
               </tr>
-            `).join('') || ''}
+            `,
+                )
+                .join("") || ""
+            }
           </tbody>
         </table>
 
@@ -188,7 +226,7 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll, onCopyP
             </div>
             <div class="total-row">
               <span>Tax:</span>
-              <span>$${parseFloat(invoice.taxAmount || '0').toFixed(2)}</span>
+              <span>$${parseFloat(invoice.taxAmount || "0").toFixed(2)}</span>
             </div>
             <div class="total-row final">
               <span>Total:</span>
@@ -197,12 +235,16 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll, onCopyP
           </div>
         </div>
 
-        ${invoice.notes ? `
+        ${
+          invoice.notes
+            ? `
           <div class="notes">
             <h3>Notes</h3>
             <p>${invoice.notes}</p>
           </div>
-        ` : ''}
+        `
+            : ""
+        }
 
         <div class="footer">
           <p>Thank you for your business!</p>
@@ -220,19 +262,33 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll, onCopyP
   };
 
   const updateStatusMutation = useMutation({
-    mutationFn: ({ invoiceId, status, paymentMethod }: { invoiceId: number; status: string; paymentMethod?: string }) => 
+    mutationFn: ({
+      invoiceId,
+      status,
+      paymentMethod,
+    }: {
+      invoiceId: number;
+      status: string;
+      paymentMethod?: string;
+    }) =>
       apiRequest("PATCH", `/api/invoices/${invoiceId}/status`, {
         status,
         paymentMethod,
-        paidAt: status === 'paid' ? new Date().toISOString() : undefined
+        paidAt: status === "paid" ? new Date().toISOString() : undefined,
       }),
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
-      const statusText = variables.status === 'paid' ? 'paid' : 
-                        variables.status === 'overdue' ? 'overdue' : 
-                        variables.status === 'sent' ? 'sent' :
-                        variables.status === 'cancelled' ? 'cancelled' : 'updated';
+      const statusText =
+        variables.status === "paid"
+          ? "paid"
+          : variables.status === "overdue"
+            ? "overdue"
+            : variables.status === "sent"
+              ? "sent"
+              : variables.status === "cancelled"
+                ? "cancelled"
+                : "updated";
       toast({
         title: "Success",
         description: `Invoice marked as ${statusText}`,
@@ -249,24 +305,33 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll, onCopyP
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'paid': return 'bg-green-100 text-green-800';
-      case 'sent': return 'bg-yellow-100 text-yellow-800';
-      case 'overdue': return 'bg-red-100 text-red-800';
-      case 'draft': return 'bg-gray-100 text-gray-800';
-      case 'cancelled': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case "paid":
+        return "bg-green-100 text-green-800";
+      case "sent":
+        return "bg-yellow-100 text-yellow-800";
+      case "overdue":
+        return "bg-red-100 text-red-800";
+      case "draft":
+        return "bg-gray-100 text-gray-800";
+      case "cancelled":
+        return "bg-gray-100 text-gray-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
-  const formatSafeDate = (dateValue: string | Date | null | undefined, fallback: string = 'N/A'): string => {
+  const formatSafeDate = (
+    dateValue: string | Date | null | undefined,
+    fallback: string = "N/A",
+  ): string => {
     if (!dateValue) return fallback;
-    
+
     try {
       const date = new Date(dateValue);
       if (isNaN(date.getTime())) return fallback;
-      return format(date, 'MMM dd, yyyy');
+      return format(date, "MMM dd, yyyy");
     } catch (error) {
-      console.error('Date formatting error:', error);
+      console.error("Date formatting error:", error);
       return fallback;
     }
   };
@@ -275,7 +340,9 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll, onCopyP
     return (
       <Card className="bg-white rounded-xl shadow-sm border border-gray-200">
         <CardHeader>
-          <CardTitle className="text-lg font-semibold text-gray-900">{title}</CardTitle>
+          <CardTitle className="text-lg font-semibold text-gray-900">
+            {title}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -296,9 +363,14 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll, onCopyP
       <Card className="bg-white rounded-xl shadow-sm border border-gray-200">
         <CardHeader className="border-b border-gray-200">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg font-semibold text-gray-900">{title}</CardTitle>
+            <CardTitle className="text-lg font-semibold text-gray-900">
+              {title}
+            </CardTitle>
             {showViewAll && (
-              <Button variant="ghost" className="text-primary hover:text-blue-700 font-medium text-sm">
+              <Button
+                variant="ghost"
+                className="text-primary hover:text-blue-700 font-medium text-sm"
+              >
                 View All <ArrowRight className="ml-1 w-4 h-4" />
               </Button>
             )}
@@ -350,7 +422,9 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll, onCopyP
                             </span>
                           )}
                           <div>
-                            <div className="text-sm font-medium text-gray-900">{invoice.invoiceNumber}</div>
+                            <div className="text-sm font-medium text-gray-900">
+                              {invoice.invoiceNumber}
+                            </div>
                             <div className="text-sm text-gray-500">
                               {formatSafeDate(invoice.invoiceDate)}
                             </div>
@@ -358,8 +432,12 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll, onCopyP
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{invoice.customer?.name || 'N/A'}</div>
-                        <div className="text-sm text-gray-500">{invoice.customer?.email || 'N/A'}</div>
+                        <div className="text-sm font-medium text-gray-900">
+                          {invoice.customer?.name || "N/A"}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {invoice.customer?.email || "N/A"}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         ${parseFloat(invoice.total).toFixed(2)}
@@ -374,8 +452,8 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll, onCopyP
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
                         <div className="flex items-center justify-end space-x-2">
-                          <Button 
-                            variant="ghost" 
+                          <Button
+                            variant="ghost"
                             size="icon"
                             onClick={() => {
                               setSelectedInvoice(invoice);
@@ -389,8 +467,8 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll, onCopyP
                           </Button>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button 
-                                variant="ghost" 
+                              <Button
+                                variant="ghost"
                                 size="icon"
                                 data-testid="button-share-invoice"
                               >
@@ -398,23 +476,27 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll, onCopyP
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem 
+                              <DropdownMenuItem
                                 onClick={() => handleDownloadInvoice(invoice)}
                                 data-testid="menu-download-invoice"
                               >
                                 <Download className="w-4 h-4 mr-2" />
                                 Download/Print
                               </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => sendInvoiceMutation.mutate(invoice.id)}
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  sendInvoiceMutation.mutate(invoice.id)
+                                }
                                 disabled={sendInvoiceMutation.isPending}
                                 data-testid="menu-email-invoice"
                               >
                                 <Mail className="w-4 h-4 mr-2" />
                                 Send via Email
                               </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => sendInvoiceSmsMutation.mutate(invoice.id)}
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  sendInvoiceSmsMutation.mutate(invoice.id)
+                                }
                                 disabled={sendInvoiceSmsMutation.isPending}
                                 data-testid="menu-sms-invoice"
                               >
@@ -422,7 +504,7 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll, onCopyP
                                 Send via SMS
                               </DropdownMenuItem>
                               {onCopyPaymentLink && (
-                                <DropdownMenuItem 
+                                <DropdownMenuItem
                                   onClick={() => onCopyPaymentLink(invoice.id)}
                                   data-testid={`copy-payment-link-invoice-${invoice.id}`}
                                 >
@@ -439,64 +521,74 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll, onCopyP
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              
                               {/* Mark as Paid */}
-                              {(invoice.status === 'sent' || invoice.status === 'overdue' || invoice.status === 'draft') && (
-                                <DropdownMenuItem 
-                                  onClick={() => updateStatusMutation.mutate({
-                                    invoiceId: invoice.id,
-                                    status: 'paid',
-                                    paymentMethod: 'manual'
-                                  })}
+                              {(invoice.status === "sent" ||
+                                invoice.status === "overdue" ||
+                                invoice.status === "draft") && (
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    updateStatusMutation.mutate({
+                                      invoiceId: invoice.id,
+                                      status: "paid",
+                                      paymentMethod: "manual",
+                                    })
+                                  }
                                   disabled={updateStatusMutation.isPending}
                                 >
                                   <CheckCircle className="w-4 h-4 mr-2" />
                                   Mark as Paid
                                 </DropdownMenuItem>
                               )}
-                              
+
                               {/* Mark as Overdue */}
-                              {invoice.status === 'sent' && (
-                                <DropdownMenuItem 
-                                  onClick={() => updateStatusMutation.mutate({
-                                    invoiceId: invoice.id,
-                                    status: 'overdue'
-                                  })}
+                              {invoice.status === "sent" && (
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    updateStatusMutation.mutate({
+                                      invoiceId: invoice.id,
+                                      status: "overdue",
+                                    })
+                                  }
                                   disabled={updateStatusMutation.isPending}
                                 >
                                   <AlertTriangle className="w-4 h-4 mr-2" />
                                   Mark as Late
                                 </DropdownMenuItem>
                               )}
-                              
+
                               {/* Mark as Unpaid (back to sent) */}
-                              {invoice.status === 'paid' && (
-                                <DropdownMenuItem 
-                                  onClick={() => updateStatusMutation.mutate({
-                                    invoiceId: invoice.id,
-                                    status: 'sent'
-                                  })}
+                              {invoice.status === "paid" && (
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    updateStatusMutation.mutate({
+                                      invoiceId: invoice.id,
+                                      status: "sent",
+                                    })
+                                  }
                                   disabled={updateStatusMutation.isPending}
                                 >
                                   <Clock className="w-4 h-4 mr-2" />
                                   Mark as Unpaid
                                 </DropdownMenuItem>
                               )}
-                              
+
                               {/* Cancel Invoice */}
-                              {(invoice.status !== 'cancelled' && invoice.status !== 'paid') && (
-                                <DropdownMenuItem 
-                                  onClick={() => updateStatusMutation.mutate({
-                                    invoiceId: invoice.id,
-                                    status: 'cancelled'
-                                  })}
-                                  disabled={updateStatusMutation.isPending}
-                                  className="text-red-600 hover:text-red-700"
-                                >
-                                  <X className="w-4 h-4 mr-2" />
-                                  Cancel Invoice
-                                </DropdownMenuItem>
-                              )}
+                              {invoice.status !== "cancelled" &&
+                                invoice.status !== "paid" && (
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      updateStatusMutation.mutate({
+                                        invoiceId: invoice.id,
+                                        status: "cancelled",
+                                      })
+                                    }
+                                    disabled={updateStatusMutation.isPending}
+                                    className="text-red-600 hover:text-red-700"
+                                  >
+                                    <X className="w-4 h-4 mr-2" />
+                                    Cancel Invoice
+                                  </DropdownMenuItem>
+                                )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>
@@ -522,32 +614,41 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll, onCopyP
               <div className="flex justify-between items-start border-b pb-6">
                 <div className="flex items-center space-x-4">
                   {(companySettings as any)?.logo && (
-                    <img 
-                      src={(companySettings as any).logo} 
-                      alt="Company Logo" 
+                    <img
+                      src={(companySettings as any).logo}
+                      alt="Company Logo"
                       className={`object-contain ${
-                        (companySettings as any).logoSize === 'small' ? 'h-12 w-12' :
-                        (companySettings as any).logoSize === 'large' ? 'h-24 w-24' :
-                        (companySettings as any).logoSize === 'xlarge' ? 'h-32 w-32' :
-                        'h-16 w-16'
+                        (companySettings as any).logoSize === "small"
+                          ? "h-12 w-12"
+                          : (companySettings as any).logoSize === "large"
+                            ? "h-24 w-24"
+                            : (companySettings as any).logoSize === "xlarge"
+                              ? "h-32 w-32"
+                              : "h-16 w-16"
                       }`}
                       onError={(e) => {
-                        e.currentTarget.style.display = 'none';
+                        e.currentTarget.style.display = "none";
                       }}
                     />
                   )}
                   <div>
                     <h2 className="text-2xl font-bold text-gray-900">
-                      {(companySettings as any)?.companyName || "Your Company Name"}
+                      {(companySettings as any)?.companyName ||
+                        "Your Company Name"}
                     </h2>
                     <p className="text-sm text-gray-600">
-                      {(companySettings as any)?.companyStreetAddress || "123 Business Street"}
+                      {(companySettings as any)?.companyStreetAddress ||
+                        "123 Business Street"}
                     </p>
                     <p className="text-sm text-gray-600">
-                      {(companySettings as any)?.companyCity || "City"}, {(companySettings as any)?.companyState || "State"} {(companySettings as any)?.companyZipCode || "12345"}
+                      {(companySettings as any)?.companyCity || "City"},{" "}
+                      {(companySettings as any)?.companyState || "State"}{" "}
+                      {(companySettings as any)?.companyZipCode || "12345"}
                     </p>
                     <p className="text-sm text-gray-600">
-                      Phone: {(companySettings as any)?.companyPhone || "(555) 123-4567"}
+                      Phone:{" "}
+                      {(companySettings as any)?.companyPhone ||
+                        "(555) 123-4567"}
                     </p>
                     {(companySettings as any)?.companyEmail && (
                       <p className="text-sm text-gray-600">
@@ -558,58 +659,94 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll, onCopyP
                 </div>
                 <div className="text-right">
                   <h1 className="text-3xl font-bold text-gray-900">INVOICE</h1>
-                  <p className="text-lg text-gray-600">#{selectedInvoice.invoiceNumber}</p>
+                  <p className="text-lg text-gray-600">
+                    #{selectedInvoice.invoiceNumber}
+                  </p>
                 </div>
               </div>
 
               {/* Invoice Header */}
               <div className="grid grid-cols-2 gap-6">
                 <div>
-                  <h3 className="text-lg font-semibold mb-2">Invoice Information</h3>
+                  <h3 className="text-lg font-semibold mb-2">
+                    Invoice Information
+                  </h3>
                   <div className="space-y-2">
                     <div>
-                      <Label className="text-sm font-medium text-gray-500">Invoice Number</Label>
+                      <Label className="text-sm font-medium text-gray-500">
+                        Invoice Number
+                      </Label>
                       <p className="text-sm">{selectedInvoice.invoiceNumber}</p>
                     </div>
                     <div>
-                      <Label className="text-sm font-medium text-gray-500">Status</Label>
+                      <Label className="text-sm font-medium text-gray-500">
+                        Status
+                      </Label>
                       <div>
-                        <Badge className={getStatusColor(selectedInvoice.status)}>
+                        <Badge
+                          className={getStatusColor(selectedInvoice.status)}
+                        >
                           {selectedInvoice.status}
                         </Badge>
                       </div>
                     </div>
                     <div>
-                      <Label className="text-sm font-medium text-gray-500">Invoice Date</Label>
-                      <p className="text-sm">{formatSafeDate(selectedInvoice.invoiceDate)}</p>
+                      <Label className="text-sm font-medium text-gray-500">
+                        Invoice Date
+                      </Label>
+                      <p className="text-sm">
+                        {formatSafeDate(selectedInvoice.invoiceDate)}
+                      </p>
                     </div>
                     <div>
-                      <Label className="text-sm font-medium text-gray-500">Due Date</Label>
-                      <p className="text-sm">{formatSafeDate(selectedInvoice.dueDate)}</p>
+                      <Label className="text-sm font-medium text-gray-500">
+                        Due Date
+                      </Label>
+                      <p className="text-sm">
+                        {formatSafeDate(selectedInvoice.dueDate)}
+                      </p>
                     </div>
                   </div>
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold mb-2">Customer Information</h3>
+                  <h3 className="text-lg font-semibold mb-2">
+                    Customer Information
+                  </h3>
                   <div className="space-y-2">
                     <div>
-                      <Label className="text-sm font-medium text-gray-500">Customer Name</Label>
-                      <p className="text-sm">{selectedInvoice.customer?.name || 'N/A'}</p>
+                      <Label className="text-sm font-medium text-gray-500">
+                        Customer Name
+                      </Label>
+                      <p className="text-sm">
+                        {selectedInvoice.customer?.name || "N/A"}
+                      </p>
                     </div>
                     <div>
-                      <Label className="text-sm font-medium text-gray-500">Email</Label>
-                      <p className="text-sm">{selectedInvoice.customer?.email || 'N/A'}</p>
+                      <Label className="text-sm font-medium text-gray-500">
+                        Email
+                      </Label>
+                      <p className="text-sm">
+                        {selectedInvoice.customer?.email || "N/A"}
+                      </p>
                     </div>
                     {selectedInvoice.customer?.phone && (
                       <div>
-                        <Label className="text-sm font-medium text-gray-500">Phone</Label>
-                        <p className="text-sm">{selectedInvoice.customer.phone}</p>
+                        <Label className="text-sm font-medium text-gray-500">
+                          Phone
+                        </Label>
+                        <p className="text-sm">
+                          {selectedInvoice.customer.phone}
+                        </p>
                       </div>
                     )}
                     {selectedInvoice.customer?.address && (
                       <div>
-                        <Label className="text-sm font-medium text-gray-500">Address</Label>
-                        <p className="text-sm">{selectedInvoice.customer.address}</p>
+                        <Label className="text-sm font-medium text-gray-500">
+                          Address
+                        </Label>
+                        <p className="text-sm">
+                          {selectedInvoice.customer.address}
+                        </p>
                       </div>
                     )}
                   </div>
@@ -632,9 +769,15 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll, onCopyP
                     {(selectedInvoice.lineItems || []).map((item, index) => (
                       <TableRow key={`${selectedInvoice.id}-line-${index}`}>
                         <TableCell>{item.description}</TableCell>
-                        <TableCell className="text-right">{item.quantity}</TableCell>
-                        <TableCell className="text-right">${parseFloat(item.rate).toFixed(2)}</TableCell>
-                        <TableCell className="text-right">${parseFloat(item.amount).toFixed(2)}</TableCell>
+                        <TableCell className="text-right">
+                          {item.quantity}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          ${parseFloat(item.rate).toFixed(2)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          ${parseFloat(item.amount).toFixed(2)}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -647,15 +790,24 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll, onCopyP
                   <div className="w-64 space-y-2">
                     <div className="flex justify-between">
                       <span className="text-sm font-medium">Subtotal:</span>
-                      <span className="text-sm">${parseFloat(selectedInvoice.subtotal).toFixed(2)}</span>
+                      <span className="text-sm">
+                        ${parseFloat(selectedInvoice.subtotal).toFixed(2)}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm font-medium">Tax:</span>
-                      <span className="text-sm">${parseFloat(selectedInvoice.taxAmount || '0').toFixed(2)}</span>
+                      <span className="text-sm">
+                        $
+                        {parseFloat(selectedInvoice.taxAmount || "0").toFixed(
+                          2,
+                        )}
+                      </span>
                     </div>
                     <div className="flex justify-between border-t pt-2">
                       <span className="font-semibold">Total:</span>
-                      <span className="font-semibold">${parseFloat(selectedInvoice.total).toFixed(2)}</span>
+                      <span className="font-semibold">
+                        ${parseFloat(selectedInvoice.total).toFixed(2)}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -665,7 +817,9 @@ export function InvoicesTable({ invoices, isLoading, title, showViewAll, onCopyP
               {selectedInvoice.notes && (
                 <div>
                   <h3 className="text-lg font-semibold mb-2">Notes</h3>
-                  <p className="text-sm text-gray-600">{selectedInvoice.notes}</p>
+                  <p className="text-sm text-gray-600">
+                    {selectedInvoice.notes}
+                  </p>
                 </div>
               )}
             </div>

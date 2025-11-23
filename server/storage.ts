@@ -1415,13 +1415,24 @@ export class DatabaseStorage implements IStorage {
         isUploadedInvoice: invoices.isUploadedInvoice,
         createdAt: invoices.createdAt,
         updatedAt: invoices.updatedAt,
+        customer: {
+          id: customers.id,
+          name: customers.name,
+          email: customers.email,
+          phone: customers.phone,
+          address: customers.address,
+        },
       })
       .from(invoices)
       .innerJoin(users, eq(invoices.userId, users.id))
+      .leftJoin(customers, eq(invoices.customerId, customers.id))
       .where(eq(users.organizationId, organizationId))
       .orderBy(desc(invoices.createdAt));
 
-    return results;
+    return results.map(inv => ({
+      ...inv,
+      lineItems: [],
+    }));
   }
 
   async getInvoice(id: number, organizationId: number): Promise<any> {
