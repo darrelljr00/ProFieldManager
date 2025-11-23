@@ -1458,6 +1458,7 @@ export class DatabaseStorage implements IStorage {
         attachmentUrl: invoices.attachmentUrl,
         originalFileName: invoices.originalFileName,
         isUploadedInvoice: invoices.isUploadedInvoice,
+        isSmartCaptureInvoice: invoices.isSmartCaptureInvoice,
         createdAt: invoices.createdAt,
         updatedAt: invoices.updatedAt,
         customerName: customers.name,
