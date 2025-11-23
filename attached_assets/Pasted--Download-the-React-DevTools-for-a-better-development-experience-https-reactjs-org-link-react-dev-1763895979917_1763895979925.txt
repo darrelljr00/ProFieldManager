@@ -1,0 +1,285 @@
+ Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+ 🚀 SAAS ADMIN MODULE LOADED - Component file is being executed
+ Router state: {isAuthenticated: false, isLoading: true, currentPath: '/quotes'}
+ Router state: {isAuthenticated: false, isLoading: true, currentPath: '/quotes'}
+ 🌐 API Request: {method: 'GET', originalUrl: '/api/auth/me', fullUrl: '/api/auth/me', isCustomDomain: false, hasAuthHeader: false, …}
+ 🌐 API Request: {method: 'GET', originalUrl: '/api/auth/me', fullUrl: '/api/auth/me', isCustomDomain: false, hasAuthHeader: false, …}
+ 📡 API Response: {originalUrl: '/api/auth/me', fullUrl: '/api/auth/me', status: 200, statusText: 'OK', ok: true, …}
+ 🏷️ CUSTOM DOMAIN DETECTED - Setting flags from server response
+ 🏷️ CUSTOM DOMAIN DETECTED - Setting flags from server response
+ 📡 API Response: {originalUrl: '/api/auth/me', fullUrl: '/api/auth/me', status: 200, statusText: 'OK', ok: true, …}
+ Router state: {isAuthenticated: true, isLoading: false, currentPath: '/quotes'}
+ Router state: {isAuthenticated: true, isLoading: false, currentPath: '/quotes'}
+ AuthenticatedApp - isAdmin: true user role: admin
+ AuthenticatedApp - isAdmin: true user role: admin
+ 🌐 API Request: {method: 'GET', originalUrl: '/api/auth/me', fullUrl: '/api/auth/me', isCustomDomain: false, hasAuthHeader: false, …}
+ 🌐 API Request: {method: 'GET', originalUrl: '/api/auth/me', fullUrl: '/api/auth/me', isCustomDomain: false, hasAuthHeader: false, …}
+ 🌐 Query Request: {originalUrl: '/api/settings/sounds', fullUrl: '/api/settings/sounds', isCustomDomain: false, hasAuthHeader: false}
+ 🔌 Creating WebSocket connection to: wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws for user: sales@texaspowerwash.net
+ 🌐 Query Request: {originalUrl: '/api/internal-messages', fullUrl: '/api/internal-messages', isCustomDomain: false, hasAuthHeader: false}
+ 🌐 Query Request: {originalUrl: '/api/notifications/unread-count', fullUrl: '/api/notifications/unread-count', isCustomDomain: false, hasAuthHeader: false}
+ 🌐 Query Request: {originalUrl: '/api/navigation-order', fullUrl: '/api/navigation-order', isCustomDomain: false, hasAuthHeader: false}
+ 🌐 API Request: {method: 'GET', originalUrl: '/api/navigation/check-updates?lastCheck=2025-11-06T06%3A00%3A09.396Z', fullUrl: '/api/navigation/check-updates?lastCheck=2025-11-06T06%3A00%3A09.396Z', isCustomDomain: false, hasAuthHeader: false, …}
+ Current user: {id: 5, username: 'sales@texaspowerwash.net', email: 'sales@texaspowerwash.net', organizationId: 2, role: 'admin', …}
+ User permissions: {canAccessHR: undefined, canAccessUserManagement: undefined, canAccessSaasAdmin: undefined, canAccessAdminSettings: undefined, canAccessReports: undefined}
+ 🌐 Query Request: {originalUrl: '/api/expense-categories', fullUrl: '/api/expense-categories', isCustomDomain: false, hasAuthHeader: false}
+ 🌐 Query Request: {originalUrl: '/api/settings/company', fullUrl: '/api/settings/company', isCustomDomain: false, hasAuthHeader: false}
+ 🌐 API Request: {method: 'GET', originalUrl: '/api/auth/me', fullUrl: '/api/auth/me', isCustomDomain: false, hasAuthHeader: false, …}
+ 🌐 Query Request: {originalUrl: '/api/quotes', fullUrl: '/api/quotes', isCustomDomain: false, hasAuthHeader: false}
+ 🌐 Query Request: {originalUrl: '/api/quotes/trash', fullUrl: '/api/quotes/trash', isCustomDomain: false, hasAuthHeader: false}
+ 🌐 Query Request: {originalUrl: '/api/organization', fullUrl: '/api/organization', isCustomDomain: false, hasAuthHeader: false}
+ 🌐 API Request: {method: 'GET', originalUrl: '/api/auth/me', fullUrl: '/api/auth/me', isCustomDomain: false, hasAuthHeader: false, …}
+ 🌐 API Request: {method: 'GET', originalUrl: '/api/auth/me', fullUrl: '/api/auth/me', isCustomDomain: false, hasAuthHeader: false, …}
+ 🌐 API Request: {method: 'GET', originalUrl: '/api/auth/me', fullUrl: '/api/auth/me', isCustomDomain: false, hasAuthHeader: false, …}
+ 🔌 Creating WebSocket connection to: wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws for user: sales@texaspowerwash.net
+ 🌐 API Request: {method: 'GET', originalUrl: '/api/auth/me', fullUrl: '/api/auth/me', isCustomDomain: false, hasAuthHeader: false, …}
+ 🌐 API Request: {method: 'GET', originalUrl: '/api/auth/me', fullUrl: '/api/auth/me', isCustomDomain: false, hasAuthHeader: false, …}
+ 🔌 Creating WebSocket connection to: wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws for user: sales@texaspowerwash.net
+ 🌐 API Request: {method: 'GET', originalUrl: '/api/auth/me', fullUrl: '/api/auth/me', isCustomDomain: false, hasAuthHeader: false, …}
+ Starting GPS tracking for user: sales@texaspowerwash.net
+ 🌐 API Request: {method: 'GET', originalUrl: '/api/geofences', fullUrl: '/api/geofences', isCustomDomain: false, hasAuthHeader: false, …}
+ 🔄 Authentication detected, current path: /quotes
+WebSocket connection to '<URL>' failed: WebSocket is closed before the connection is established.
+WebSocket connection to '<URL>' failed: WebSocket is closed before the connection is established.
+WebSocket connection to '<URL>' failed: WebSocket is closed before the connection is established.
+WebSocket connection to '<URL>' failed: WebSocket is closed before the connection is established.
+WebSocket connection to '<URL>' failed: WebSocket is closed before the connection is established.
+WebSocket connection to '<URL>' failed: WebSocket is closed before the connection is established.
+ 🌐 API Request: {method: 'GET', originalUrl: '/api/auth/me', fullUrl: '/api/auth/me', isCustomDomain: false, hasAuthHeader: false, …}
+ 🌐 API Request: {method: 'GET', originalUrl: '/api/auth/me', fullUrl: '/api/auth/me', isCustomDomain: false, hasAuthHeader: false, …}
+ 🔌 Creating WebSocket connection to: wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws for user: sales@texaspowerwash.net
+ Current user: {id: 5, username: 'sales@texaspowerwash.net', email: 'sales@texaspowerwash.net', organizationId: 2, role: 'admin', …}
+ User permissions: {canAccessHR: undefined, canAccessUserManagement: undefined, canAccessSaasAdmin: undefined, canAccessAdminSettings: undefined, canAccessReports: undefined}
+ 🌐 API Request: {method: 'GET', originalUrl: '/api/auth/me', fullUrl: '/api/auth/me', isCustomDomain: false, hasAuthHeader: false, …}
+ 🌐 API Request: {method: 'GET', originalUrl: '/api/auth/me', fullUrl: '/api/auth/me', isCustomDomain: false, hasAuthHeader: false, …}
+ 🌐 API Request: {method: 'GET', originalUrl: '/api/auth/me', fullUrl: '/api/auth/me', isCustomDomain: false, hasAuthHeader: false, …}
+ 🌐 API Request: {method: 'GET', originalUrl: '/api/auth/me', fullUrl: '/api/auth/me', isCustomDomain: false, hasAuthHeader: false, …}
+ 🔌 Creating WebSocket connection to: wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws for user: sales@texaspowerwash.net
+ 🌐 API Request: {method: 'GET', originalUrl: '/api/auth/me', fullUrl: '/api/auth/me', isCustomDomain: false, hasAuthHeader: false, …}
+ 🌐 API Request: {method: 'GET', originalUrl: '/api/auth/me', fullUrl: '/api/auth/me', isCustomDomain: false, hasAuthHeader: false, …}
+ 🔌 Creating WebSocket connection to: wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws for user: sales@texaspowerwash.net
+ 🌐 API Request: {method: 'GET', originalUrl: '/api/auth/me', fullUrl: '/api/auth/me', isCustomDomain: false, hasAuthHeader: false, …}
+ Starting GPS tracking for user: sales@texaspowerwash.net
+ 🌐 API Request: {method: 'GET', originalUrl: '/api/geofences', fullUrl: '/api/geofences', isCustomDomain: false, hasAuthHeader: false, …}
+ AuthenticatedApp - isAdmin: false user role: undefined
+ AuthenticatedApp - isAdmin: false user role: undefined
+ AuthenticatedApp - isAdmin: false user role: undefined
+ AuthenticatedApp - isAdmin: false user role: undefined
+quotes:1 Geolocation permission has been blocked as the user has ignored the permission prompt several times. This can be reset in Page Info which can be accessed by clicking the tune icon next to the URL. See https://www.chromestatus.com/feature/6443143280984064 for more information.
+useWebSocket.ts:107 WebSocket error: Event {isTrusted: true, type: 'error', target: WebSocket, currentTarget: WebSocket, eventPhase: 2, …}
+ws.onerror @ useWebSocket.ts:107
+useWebSocket.ts:108 WebSocket error details: {readyState: 3, url: 'wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws', protocol: '', extensions: ''}
+useWebSocket.ts:102 WebSocket disconnected
+useWebSocket.ts:107 WebSocket error: Event {isTrusted: true, type: 'error', target: WebSocket, currentTarget: WebSocket, eventPhase: 2, …}
+ws.onerror @ useWebSocket.ts:107
+useWebSocket.ts:108 WebSocket error details: {readyState: 3, url: 'wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws', protocol: '', extensions: ''}
+useWebSocket.ts:102 WebSocket disconnected
+useWebSocket.ts:107 WebSocket error: Event {isTrusted: true, type: 'error', target: WebSocket, currentTarget: WebSocket, eventPhase: 2, …}
+ws.onerror @ useWebSocket.ts:107
+useWebSocket.ts:108 WebSocket error details: {readyState: 3, url: 'wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws', protocol: '', extensions: ''}
+useWebSocket.ts:102 WebSocket disconnected
+quotes:1 Geolocation permission has been blocked as the user has ignored the permission prompt several times. This can be reset in Page Info which can be accessed by clicking the tune icon next to the URL. See https://www.chromestatus.com/feature/6443143280984064 for more information.
+useWebSocket.ts:107 WebSocket error: Event {isTrusted: true, type: 'error', target: WebSocket, currentTarget: WebSocket, eventPhase: 2, …}
+ws.onerror @ useWebSocket.ts:107
+useWebSocket.ts:108 WebSocket error details: {readyState: 3, url: 'wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws', protocol: '', extensions: ''}
+useWebSocket.ts:102 WebSocket disconnected
+useWebSocket.ts:107 WebSocket error: Event {isTrusted: true, type: 'error', target: WebSocket, currentTarget: WebSocket, eventPhase: 2, …}
+ws.onerror @ useWebSocket.ts:107
+useWebSocket.ts:108 WebSocket error details: {readyState: 3, url: 'wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws', protocol: '', extensions: ''}
+useWebSocket.ts:102 WebSocket disconnected
+useWebSocket.ts:107 WebSocket error: Event {isTrusted: true, type: 'error', target: WebSocket, currentTarget: WebSocket, eventPhase: 2, …}
+ws.onerror @ useWebSocket.ts:107
+useWebSocket.ts:108 WebSocket error details: {readyState: 3, url: 'wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws', protocol: '', extensions: ''}
+useWebSocket.ts:102 WebSocket disconnected
+queryClient.ts:69 📡 API Response: {originalUrl: '/api/auth/me', fullUrl: '/api/auth/me', status: 200, statusText: 'OK', ok: true, …}
+App.tsx:116 AuthenticatedApp - isAdmin: false user role: undefined
+App.tsx:116 AuthenticatedApp - isAdmin: false user role: undefined
+App.tsx:116 AuthenticatedApp - isAdmin: false user role: undefined
+App.tsx:116 AuthenticatedApp - isAdmin: false user role: undefined
+queryClient.ts:69 📡 API Response: {originalUrl: '/api/navigation/check-updates?lastCheck=2025-11-06T06%3A00%3A09.396Z', fullUrl: '/api/navigation/check-updates?lastCheck=2025-11-06T06%3A00%3A09.396Z', status: 200, statusText: 'OK', ok: true, …}
+queryClient.ts:111  GET https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/quotes/trash 500 (Internal Server Error)
+(anonymous) @ queryClient.ts:111
+fetchFn @ @tanstack_react-query.js?v=5390f148:840
+run @ @tanstack_react-query.js?v=5390f148:494
+start @ @tanstack_react-query.js?v=5390f148:536
+fetch @ @tanstack_react-query.js?v=5390f148:926
+executeFetch_fn @ @tanstack_react-query.js?v=5390f148:2211
+onSubscribe @ @tanstack_react-query.js?v=5390f148:1898
+subscribe @ @tanstack_react-query.js?v=5390f148:24
+(anonymous) @ @tanstack_react-query.js?v=5390f148:3022
+subscribeToStore @ chunk-RPCDYKBN.js?v=5390f148:11984
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=5390f148:16915
+commitPassiveMountOnFiber @ chunk-RPCDYKBN.js?v=5390f148:18156
+commitPassiveMountEffects_complete @ chunk-RPCDYKBN.js?v=5390f148:18129
+commitPassiveMountEffects_begin @ chunk-RPCDYKBN.js?v=5390f148:18119
+commitPassiveMountEffects @ chunk-RPCDYKBN.js?v=5390f148:18109
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=5390f148:19490
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=5390f148:19447
+commitRootImpl @ chunk-RPCDYKBN.js?v=5390f148:19416
+commitRoot @ chunk-RPCDYKBN.js?v=5390f148:19277
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=5390f148:18895
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=5390f148:9119
+(anonymous) @ chunk-RPCDYKBN.js?v=5390f148:18627
+setTimeout
+scheduleFn @ @tanstack_react-query.js?v=5390f148:555
+flush @ @tanstack_react-query.js?v=5390f148:569
+batch @ @tanstack_react-query.js?v=5390f148:587
+dispatch_fn @ @tanstack_react-query.js?v=5390f148:996
+setData @ @tanstack_react-query.js?v=5390f148:696
+onSuccess @ @tanstack_react-query.js?v=5390f148:897
+resolve @ @tanstack_react-query.js?v=5390f148:456
+Promise.then
+run @ @tanstack_react-query.js?v=5390f148:498
+start @ @tanstack_react-query.js?v=5390f148:536
+fetch @ @tanstack_react-query.js?v=5390f148:926
+executeFetch_fn @ @tanstack_react-query.js?v=5390f148:2211
+onSubscribe @ @tanstack_react-query.js?v=5390f148:1898
+subscribe @ @tanstack_react-query.js?v=5390f148:24
+(anonymous) @ @tanstack_react-query.js?v=5390f148:3022
+subscribeToStore @ chunk-RPCDYKBN.js?v=5390f148:11984
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=5390f148:16915
+invokePassiveEffectMountInDEV @ chunk-RPCDYKBN.js?v=5390f148:18324
+invokeEffectsInDev @ chunk-RPCDYKBN.js?v=5390f148:19701
+commitDoubleInvokeEffectsInDEV @ chunk-RPCDYKBN.js?v=5390f148:19686
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=5390f148:19503
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=5390f148:19447
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=5390f148:18868
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=5390f148:9119
+commitRootImpl @ chunk-RPCDYKBN.js?v=5390f148:19432
+commitRoot @ chunk-RPCDYKBN.js?v=5390f148:19277
+finishConcurrentRender @ chunk-RPCDYKBN.js?v=5390f148:18805
+performConcurrentWorkOnRoot @ chunk-RPCDYKBN.js?v=5390f148:18718
+workLoop @ chunk-RPCDYKBN.js?v=5390f148:197
+flushWork @ chunk-RPCDYKBN.js?v=5390f148:176
+performWorkUntilDeadline @ chunk-RPCDYKBN.js?v=5390f148:384
+queryClient.ts:15 ❌ HTTP Error Response: {status: 500, statusText: 'Internal Server Error', url: 'https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/quotes/trash', headers: {…}, body: '{"message":"invalid input syntax for type integer: \\"NaN\\""}'}
+throwIfResNotOk @ queryClient.ts:15
+await in throwIfResNotOk
+(anonymous) @ queryClient.ts:120
+await in (anonymous)
+fetchFn @ @tanstack_react-query.js?v=5390f148:840
+run @ @tanstack_react-query.js?v=5390f148:494
+start @ @tanstack_react-query.js?v=5390f148:536
+fetch @ @tanstack_react-query.js?v=5390f148:926
+executeFetch_fn @ @tanstack_react-query.js?v=5390f148:2211
+onSubscribe @ @tanstack_react-query.js?v=5390f148:1898
+subscribe @ @tanstack_react-query.js?v=5390f148:24
+(anonymous) @ @tanstack_react-query.js?v=5390f148:3022
+subscribeToStore @ chunk-RPCDYKBN.js?v=5390f148:11984
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=5390f148:16915
+commitPassiveMountOnFiber @ chunk-RPCDYKBN.js?v=5390f148:18156
+commitPassiveMountEffects_complete @ chunk-RPCDYKBN.js?v=5390f148:18129
+commitPassiveMountEffects_begin @ chunk-RPCDYKBN.js?v=5390f148:18119
+commitPassiveMountEffects @ chunk-RPCDYKBN.js?v=5390f148:18109
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=5390f148:19490
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=5390f148:19447
+commitRootImpl @ chunk-RPCDYKBN.js?v=5390f148:19416
+commitRoot @ chunk-RPCDYKBN.js?v=5390f148:19277
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=5390f148:18895
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=5390f148:9119
+(anonymous) @ chunk-RPCDYKBN.js?v=5390f148:18627
+setTimeout
+scheduleFn @ @tanstack_react-query.js?v=5390f148:555
+flush @ @tanstack_react-query.js?v=5390f148:569
+batch @ @tanstack_react-query.js?v=5390f148:587
+dispatch_fn @ @tanstack_react-query.js?v=5390f148:996
+setData @ @tanstack_react-query.js?v=5390f148:696
+onSuccess @ @tanstack_react-query.js?v=5390f148:897
+resolve @ @tanstack_react-query.js?v=5390f148:456
+Promise.then
+run @ @tanstack_react-query.js?v=5390f148:498
+start @ @tanstack_react-query.js?v=5390f148:536
+fetch @ @tanstack_react-query.js?v=5390f148:926
+executeFetch_fn @ @tanstack_react-query.js?v=5390f148:2211
+onSubscribe @ @tanstack_react-query.js?v=5390f148:1898
+subscribe @ @tanstack_react-query.js?v=5390f148:24
+(anonymous) @ @tanstack_react-query.js?v=5390f148:3022
+subscribeToStore @ chunk-RPCDYKBN.js?v=5390f148:11984
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=5390f148:16915
+invokePassiveEffectMountInDEV @ chunk-RPCDYKBN.js?v=5390f148:18324
+invokeEffectsInDev @ chunk-RPCDYKBN.js?v=5390f148:19701
+commitDoubleInvokeEffectsInDEV @ chunk-RPCDYKBN.js?v=5390f148:19686
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=5390f148:19503
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=5390f148:19447
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=5390f148:18868
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=5390f148:9119
+commitRootImpl @ chunk-RPCDYKBN.js?v=5390f148:19432
+commitRoot @ chunk-RPCDYKBN.js?v=5390f148:19277
+finishConcurrentRender @ chunk-RPCDYKBN.js?v=5390f148:18805
+performConcurrentWorkOnRoot @ chunk-RPCDYKBN.js?v=5390f148:18718
+workLoop @ chunk-RPCDYKBN.js?v=5390f148:197
+flushWork @ chunk-RPCDYKBN.js?v=5390f148:176
+performWorkUntilDeadline @ chunk-RPCDYKBN.js?v=5390f148:384
+queryClient.ts:69 📡 API Response: {originalUrl: '/api/auth/me', fullUrl: '/api/auth/me', status: 200, statusText: 'OK', ok: true, …}
+queryClient.ts:69 📡 API Response: {originalUrl: '/api/geofences', fullUrl: '/api/geofences', status: 200, statusText: 'OK', ok: true, …}
+App.tsx:116 AuthenticatedApp - isAdmin: false user role: undefined
+App.tsx:116 AuthenticatedApp - isAdmin: false user role: undefined
+queryClient.ts:69 📡 API Response: {originalUrl: '/api/auth/me', fullUrl: '/api/auth/me', status: 200, statusText: 'OK', ok: true, …}
+queryClient.ts:69 📡 API Response: {originalUrl: '/api/geofences', fullUrl: '/api/geofences', status: 200, statusText: 'OK', ok: true, …}
+App.tsx:116 AuthenticatedApp - isAdmin: false user role: undefined
+App.tsx:116 AuthenticatedApp - isAdmin: false user role: undefined
+queryClient.ts:69 📡 API Response: {originalUrl: '/api/auth/me', fullUrl: '/api/auth/me', status: 200, statusText: 'OK', ok: true, …}
+queryClient.ts:69 📡 API Response: {originalUrl: '/api/auth/me', fullUrl: '/api/auth/me', status: 200, statusText: 'OK', ok: true, …}
+queryClient.ts:69 📡 API Response: {originalUrl: '/api/auth/me', fullUrl: '/api/auth/me', status: 200, statusText: 'OK', ok: true, …}
+queryClient.ts:69 📡 API Response: {originalUrl: '/api/auth/me', fullUrl: '/api/auth/me', status: 200, statusText: 'OK', ok: true, …}
+queryClient.ts:69 📡 API Response: {originalUrl: '/api/auth/me', fullUrl: '/api/auth/me', status: 200, statusText: 'OK', ok: true, …}
+queryClient.ts:69 📡 API Response: {originalUrl: '/api/auth/me', fullUrl: '/api/auth/me', status: 200, statusText: 'OK', ok: true, …}
+queryClient.ts:69 📡 API Response: {originalUrl: '/api/auth/me', fullUrl: '/api/auth/me', status: 200, statusText: 'OK', ok: true, …}
+queryClient.ts:69 📡 API Response: {originalUrl: '/api/auth/me', fullUrl: '/api/auth/me', status: 200, statusText: 'OK', ok: true, …}
+queryClient.ts:69 📡 API Response: {originalUrl: '/api/auth/me', fullUrl: '/api/auth/me', status: 200, statusText: 'OK', ok: true, …}
+queryClient.ts:69 📡 API Response: {originalUrl: '/api/auth/me', fullUrl: '/api/auth/me', status: 200, statusText: 'OK', ok: true, …}
+queryClient.ts:69 📡 API Response: {originalUrl: '/api/auth/me', fullUrl: '/api/auth/me', status: 200, statusText: 'OK', ok: true, …}
+queryClient.ts:69 📡 API Response: {originalUrl: '/api/auth/me', fullUrl: '/api/auth/me', status: 200, statusText: 'OK', ok: true, …}
+queryClient.ts:69 📡 API Response: {originalUrl: '/api/auth/me', fullUrl: '/api/auth/me', status: 200, statusText: 'OK', ok: true, …}
+queryClient.ts:69 📡 API Response: {originalUrl: '/api/auth/me', fullUrl: '/api/auth/me', status: 200, statusText: 'OK', ok: true, …}
+queryClient.ts:69 📡 API Response: {originalUrl: '/api/auth/me', fullUrl: '/api/auth/me', status: 200, statusText: 'OK', ok: true, …}
+App.tsx:116 AuthenticatedApp - isAdmin: true user role: admin
+App.tsx:116 AuthenticatedApp - isAdmin: true user role: admin
+useWebSocket.ts:35 🔌 Creating WebSocket connection to: wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws for user: sales@texaspowerwash.net
+queryClient.ts:104 🌐 Query Request: {originalUrl: '/api/navigation-order', fullUrl: '/api/navigation-order', isCustomDomain: false, hasAuthHeader: false}
+sidebar.tsx:463 Current user: {id: 5, username: 'sales@texaspowerwash.net', email: 'sales@texaspowerwash.net', organizationId: 2, role: 'admin', …}
+sidebar.tsx:464 User permissions: {canAccessHR: undefined, canAccessUserManagement: undefined, canAccessSaasAdmin: undefined, canAccessAdminSettings: undefined, canAccessReports: undefined}
+useWebSocket.ts:35 🔌 Creating WebSocket connection to: wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws for user: sales@texaspowerwash.net
+useWebSocket.ts:35 🔌 Creating WebSocket connection to: wss://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/ws for user: sales@texaspowerwash.net
+use-gps-tracking.ts:200 Starting GPS tracking for user: sales@texaspowerwash.net
+queryClient.ts:48 🌐 API Request: {method: 'GET', originalUrl: '/api/geofences', fullUrl: '/api/geofences', isCustomDomain: false, hasAuthHeader: false, …}
+App.tsx:116 AuthenticatedApp - isAdmin: true user role: admin
+App.tsx:116 AuthenticatedApp - isAdmin: true user role: admin
+quotes:1 Geolocation permission has been blocked as the user has ignored the permission prompt several times. This can be reset in Page Info which can be accessed by clicking the tune icon next to the URL. See https://www.chromestatus.com/feature/6443143280984064 for more information.
+use-gps-tracking.ts:178 GPS tracking error: GeolocationPositionError {code: 1, message: 'User denied Geolocation'}
+watchIdRef.current.navigator.geolocation.watchPosition.enableHighAccuracy @ use-gps-tracking.ts:178
+queryClient.ts:69 📡 API Response: {originalUrl: '/api/geofences', fullUrl: '/api/geofences', status: 200, statusText: 'OK', ok: true, …}
+App.tsx:116 AuthenticatedApp - isAdmin: true user role: admin
+App.tsx:116 AuthenticatedApp - isAdmin: true user role: admin
+useWebSocket.ts:41 WebSocket connected
+useWebSocket.ts:60 WebSocket authenticated successfully
+useWebSocket.ts:41 WebSocket connected
+useWebSocket.ts:60 WebSocket authenticated successfully
+useWebSocket.ts:41 WebSocket connected
+App.tsx:116 AuthenticatedApp - isAdmin: true user role: admin
+App.tsx:116 AuthenticatedApp - isAdmin: true user role: admin
+useWebSocket.ts:60 WebSocket authenticated successfully
+App.tsx:116 AuthenticatedApp - isAdmin: true user role: admin
+App.tsx:116 AuthenticatedApp - isAdmin: true user role: admin
+App.tsx:116 AuthenticatedApp - isAdmin: true user role: admin
+App.tsx:116 AuthenticatedApp - isAdmin: true user role: admin
+quotes-table.tsx:60  GET https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/quotes/17/download/pdf 500 (Internal Server Error)
+handleDownload @ quotes-table.tsx:60
+onClick @ quotes-table.tsx:393
+callCallback2 @ chunk-RPCDYKBN.js?v=5390f148:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=5390f148:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=5390f148:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=5390f148:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=5390f148:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=5390f148:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=5390f148:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=5390f148:7051
+(anonymous) @ chunk-RPCDYKBN.js?v=5390f148:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=5390f148:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=5390f148:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=5390f148:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=5390f148:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=5390f148:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=5390f148:5449
+App.tsx:116 AuthenticatedApp - isAdmin: true user role: admin
+App.tsx:116 AuthenticatedApp - isAdmin: true user role: admin

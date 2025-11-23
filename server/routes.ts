@@ -7070,12 +7070,28 @@ ${fromName || ''}
         return res.status(404).json({ message: "Quote not found" });
       }
 
-      const htmlPdf = await import('html-pdf-node');
+      // Use Puppeteer directly with system Chromium
+      const puppeteer = await import('puppeteer');
       
       // Generate HTML content for the quote
       const htmlContent = generateQuoteHTML(quote);
       
-      const options = {
+      // Launch browser with system Chromium
+      const browser = await puppeteer.default.launch({
+        headless: true,
+        executablePath: '/nix/store/zi4f80l169xlmivz8vja8wlphq74qqk0-chromium-125.0.6422.141/bin/chromium',
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-gpu'
+        ]
+      });
+      
+      const page = await browser.newPage();
+      await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+      
+      const pdfBuffer = await page.pdf({
         format: 'A4',
         printBackground: true,
         margin: {
@@ -7084,9 +7100,9 @@ ${fromName || ''}
           left: '1cm',
           right: '1cm'
         }
-      };
+      });
       
-      const pdfBuffer = await htmlPdf.default.generatePdf({ content: htmlContent }, options);
+      await browser.close();
       
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="Quote-${quote.quoteNumber}.pdf"`);
@@ -7094,7 +7110,6 @@ ${fromName || ''}
     } catch (error: any) {
       console.error("Error generating PDF:", error);
       console.error("Error stack:", error.stack);
-      console.error("Error details:", JSON.stringify(error, null, 2));
       res.status(500).json({ 
         message: "Failed to generate PDF",
         error: error.message,
