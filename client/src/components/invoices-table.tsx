@@ -71,7 +71,7 @@ export function InvoicesTable({
     error: companyError,
   } = useQuery({
     queryKey: ["/api/settings/company"],
-  });"""""",
+  });
 
   const sendInvoiceMutation = useMutation({
     mutationFn: (invoiceId: number) =>

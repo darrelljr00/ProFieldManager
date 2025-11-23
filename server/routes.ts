@@ -24907,21 +24907,12 @@ ${fromName || ''}
   });
 
   // Create a new task group
-  app.post("/api/task-groups", async (req, res) => {
+  app.post("/api/task-groups", requireAuth, async (req, res) => {
     try {
-      console.log("🔧 Task Group Creation - Request received:", {
-        user: req.user,
-        userId: req.user?.id,
-        organizationId: req.user?.organizationId,
-        body: req.body
-      });
+      const user = getAuthenticatedUser(req);
+      const userId = user.id;
+      const organizationId = user.organizationId;
 
-      // TEMPORARILY REMOVE AUTH REQUIREMENT FOR TESTING
-      const userId = null; // Always null for testing
-      const organizationId = 1; // Default to organization 1
-
-      console.log("🧪 TESTING MODE - Task Group Creation WITHOUT Authentication");
-      console.log("🧪 Using userId: null, organizationId: 1");
       const { name, description, color, templates } = req.body;
 
       if (!name?.trim()) {
