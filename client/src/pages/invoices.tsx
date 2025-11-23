@@ -199,9 +199,11 @@ export default function Invoices() {
     mutationFn: async (invoiceId: number) => {
       return apiRequest("PUT", `/api/smart-capture/invoices/${invoiceId}/approve`);
     },
-    onSuccess: () => {
-      queryClient.refetchQueries({ queryKey: ["/api/smart-capture/invoices/pending"] });
-      queryClient.refetchQueries({ queryKey: ["/api/invoices"] });
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ["/api/smart-capture/invoices/pending"] }),
+        queryClient.refetchQueries({ queryKey: ["/api/invoices"] })
+      ]);
       toast({
         title: "Success",
         description: "Smart Capture invoice approved successfully",
@@ -221,9 +223,11 @@ export default function Invoices() {
     mutationFn: async ({ invoiceId, rejectionReason }: { invoiceId: number; rejectionReason: string }) => {
       return apiRequest("PUT", `/api/smart-capture/invoices/${invoiceId}/reject`, { rejectionReason });
     },
-    onSuccess: () => {
-      queryClient.refetchQueries({ queryKey: ["/api/smart-capture/invoices/pending"] });
-      queryClient.refetchQueries({ queryKey: ["/api/invoices"] });
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ["/api/smart-capture/invoices/pending"] }),
+        queryClient.refetchQueries({ queryKey: ["/api/invoices"] })
+      ]);
       toast({
         title: "Success",
         description: "Smart Capture invoice rejected successfully",
@@ -243,9 +247,11 @@ export default function Invoices() {
     mutationFn: async ({ invoiceId, edits }: { invoiceId: number; edits: any }) => {
       return apiRequest("PUT", `/api/smart-capture/invoices/${invoiceId}/edit-and-approve`, edits);
     },
-    onSuccess: () => {
-      queryClient.refetchQueries({ queryKey: ["/api/smart-capture/invoices/pending"] });
-      queryClient.refetchQueries({ queryKey: ["/api/invoices"] });
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ["/api/smart-capture/invoices/pending"] }),
+        queryClient.refetchQueries({ queryKey: ["/api/invoices"] })
+      ]);
       toast({
         title: "Success",
         description: "Smart Capture invoice edited and approved successfully",
