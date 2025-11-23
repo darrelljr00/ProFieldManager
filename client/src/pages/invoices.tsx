@@ -200,8 +200,8 @@ export default function Invoices() {
       return apiRequest("PUT", `/api/smart-capture/invoices/${invoiceId}/approve`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/smart-capture/invoices/pending"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
+      queryClient.refetchQueries({ queryKey: ["/api/smart-capture/invoices/pending"] });
+      queryClient.refetchQueries({ queryKey: ["/api/invoices"] });
       toast({
         title: "Success",
         description: "Smart Capture invoice approved successfully",
@@ -222,8 +222,8 @@ export default function Invoices() {
       return apiRequest("PUT", `/api/smart-capture/invoices/${invoiceId}/reject`, { rejectionReason });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/smart-capture/invoices/pending"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
+      queryClient.refetchQueries({ queryKey: ["/api/smart-capture/invoices/pending"] });
+      queryClient.refetchQueries({ queryKey: ["/api/invoices"] });
       toast({
         title: "Success",
         description: "Smart Capture invoice rejected successfully",
@@ -244,8 +244,8 @@ export default function Invoices() {
       return apiRequest("PUT", `/api/smart-capture/invoices/${invoiceId}/edit-and-approve`, edits);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/smart-capture/invoices/pending"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
+      queryClient.refetchQueries({ queryKey: ["/api/smart-capture/invoices/pending"] });
+      queryClient.refetchQueries({ queryKey: ["/api/invoices"] });
       toast({
         title: "Success",
         description: "Smart Capture invoice edited and approved successfully",
