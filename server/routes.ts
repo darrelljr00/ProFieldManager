@@ -14714,6 +14714,12 @@ ${fromName || ''}
         leadPrice: leadData.leadPrice ? parseFloat(leadData.leadPrice) : null,
         followUpDate: leadData.followUpDate ? new Date(leadData.followUpDate) : null,
         contactedAt: leadData.contactedAt ? new Date(leadData.contactedAt) : null,
+        followUpAttempt1Date: leadData.followUpAttempt1Date ? new Date(leadData.followUpAttempt1Date) : null,
+        followUpAttempt2Date: leadData.followUpAttempt2Date ? new Date(leadData.followUpAttempt2Date) : null,
+        followUpAttempt3Date: leadData.followUpAttempt3Date ? new Date(leadData.followUpAttempt3Date) : null,
+        followUpAttempt4Date: leadData.followUpAttempt4Date ? new Date(leadData.followUpAttempt4Date) : null,
+        lastAutomaticFollowUp: leadData.lastAutomaticFollowUp ? new Date(leadData.lastAutomaticFollowUp) : null,
+        nextAutomaticFollowUp: leadData.nextAutomaticFollowUp ? new Date(leadData.nextAutomaticFollowUp) : null,
       });
       
       if (!updatedLead) {
