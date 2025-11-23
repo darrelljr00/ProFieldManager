@@ -3985,6 +3985,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = getAuthenticatedUser(req);
       const stats = await storage.getInvoiceStats(user.organizationId);
       
+      console.log('📊 Dashboard Stats from DB:', stats);
+      
       // Get task completion analytics for the organization
       const taskAnalytics = await storage.getTaskCompletionAnalytics(user.organizationId);
       
@@ -4008,8 +4010,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         topPerformers: taskAnalytics.topPerformers
       };
       
+      console.log('📊 Dashboard Stats Response:', dashboardStats);
+      
       res.json(dashboardStats);
     } catch (error: any) {
+      console.error('❌ Dashboard Stats Error:', error);
       res.status(500).json({ message: error.message });
     }
   });
