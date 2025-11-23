@@ -5,7 +5,7 @@ import {
   expenses, expenseCategories, vendors, expenseReports, gasCards, 
   gasCardAssignments, gasCardUsage, gasCardProviders, leads, messages,
   images, settings, organizations, userSessions, subscriptionPlans,
-  projectFiles, projectWaivers, fileManager, fileFolders, projectUsers, timeClock, timeClockSettings,
+  projectFiles, projectWaivers, fileManager, fileFolders, fileShares, projectUsers, timeClock, timeClockSettings,
   internalMessages, internalMessageRecipients, messageGroups, messageGroupMembers,
   inspectionTemplates, inspectionItems, inspectionRecords, inspectionResponses, inspectionNotifications,
   smsMessages, smsTemplates, sharedPhotoLinks, fileSecuritySettings, fileSecurityScans, fileAccessLogs,
@@ -237,6 +237,14 @@ export interface IStorage {
   setDefaultPermissions(organizationId: number, userRole: string, resourceType: string, permissions: any): Promise<any>;
   checkFileAccess(userId: number, fileId: number, organizationId: number, action: string): Promise<boolean>;
   checkFolderAccess(userId: number, folderId: number, organizationId: number, action: string): Promise<boolean>;
+  
+  // File Share methods
+  createFileShare(shareData: any): Promise<any>;
+  getFileShare(id: number): Promise<any>;
+  getFileShareByToken(token: string): Promise<any>;
+  updateFileShare(id: number, updates: any): Promise<any>;
+  deleteFileShare(id: number): Promise<boolean>;
+  getFileShares(fileId: number): Promise<any[]>;
   
   // Dashboard Profile methods
   getDashboardProfiles(): Promise<any[]>;
@@ -10848,6 +10856,147 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error checking folder access:', error);
       return false;
+    }
+  }
+
+  // File Share methods
+  async createFileShare(shareData: any): Promise<any> {
+    try {
+      const { nanoid } = await import('nanoid');
+      const shareToken = nanoid(32);
+      
+      const [share] = await db
+        .insert(fileShares)
+        .values({
+          ...shareData,
+          shareToken,
+          createdAt: new Date(),
+        })
+        .returning();
+      
+      return share;
+    } catch (error) {
+      console.error('Error creating file share:', error);
+      throw error;
+    }
+  }
+
+  async getFileShare(id: number): Promise<any> {
+    try {
+      const [share] = await db
+        .select()
+        .from(fileShares)
+        .where(eq(fileShares.id, id))
+        .limit(1);
+      
+      return share;
+    } catch (error) {
+      console.error('Error getting file share:', error);
+      throw error;
+    }
+  }
+
+  async getFileShareByToken(token: string): Promise<any> {
+    try {
+      const [share] = await db
+        .select({
+          share: fileShares,
+          file: fileManager,
+        })
+        .from(fileShares)
+        .leftJoin(fileManager, eq(fileShares.fileId, fileManager.id))
+        .where(
+          and(
+            eq(fileShares.shareToken, token),
+            eq(fileShares.isActive, true)
+          )
+        )
+        .limit(1);
+      
+      if (!share) return null;
+      
+      if (share.share.expiresAt && new Date(share.share.expiresAt) < new Date()) {
+        await db
+          .update(fileShares)
+          .set({ isActive: false })
+          .where(eq(fileShares.id, share.share.id));
+        return null;
+      }
+      
+      if (share.share.maxAccess && share.share.accessCount >= share.share.maxAccess) {
+        await db
+          .update(fileShares)
+          .set({ isActive: false })
+          .where(eq(fileShares.id, share.share.id));
+        return null;
+      }
+      
+      await db
+        .update(fileShares)
+        .set({ accessCount: sql`${fileShares.accessCount} + 1` })
+        .where(eq(fileShares.id, share.share.id));
+      
+      return { ...share.share, file: share.file };
+    } catch (error) {
+      console.error('Error getting file share by token:', error);
+      throw error;
+    }
+  }
+
+  async updateFileShare(id: number, updates: any): Promise<any> {
+    try {
+      const [share] = await db
+        .update(fileShares)
+        .set(updates)
+        .where(eq(fileShares.id, id))
+        .returning();
+      
+      return share;
+    } catch (error) {
+      console.error('Error updating file share:', error);
+      throw error;
+    }
+  }
+
+  async deleteFileShare(id: number): Promise<boolean> {
+    try {
+      await db
+        .delete(fileShares)
+        .where(eq(fileShares.id, id));
+      
+      return true;
+    } catch (error) {
+      console.error('Error deleting file share:', error);
+      return false;
+    }
+  }
+
+  async getFileShares(fileId: number): Promise<any[]> {
+    try {
+      return await db
+        .select({
+          id: fileShares.id,
+          fileId: fileShares.fileId,
+          sharedBy: fileShares.sharedBy,
+          sharedWith: fileShares.sharedWith,
+          shareToken: fileShares.shareToken,
+          permissions: fileShares.permissions,
+          expiresAt: fileShares.expiresAt,
+          accessCount: fileShares.accessCount,
+          maxAccess: fileShares.maxAccess,
+          isActive: fileShares.isActive,
+          createdAt: fileShares.createdAt,
+          sharedByName: users.firstName,
+          sharedByLastName: users.lastName,
+          sharedByEmail: users.email,
+        })
+        .from(fileShares)
+        .leftJoin(users, eq(fileShares.sharedBy, users.id))
+        .where(eq(fileShares.fileId, fileId))
+        .orderBy(desc(fileShares.createdAt));
+    } catch (error) {
+      console.error('Error getting file shares:', error);
+      throw error;
     }
   }
 
