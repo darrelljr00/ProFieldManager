@@ -7093,7 +7093,13 @@ ${fromName || ''}
       res.send(pdfBuffer);
     } catch (error: any) {
       console.error("Error generating PDF:", error);
-      res.status(500).json({ message: "Failed to generate PDF" });
+      console.error("Error stack:", error.stack);
+      console.error("Error details:", JSON.stringify(error, null, 2));
+      res.status(500).json({ 
+        message: "Failed to generate PDF",
+        error: error.message,
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
     }
   });
 

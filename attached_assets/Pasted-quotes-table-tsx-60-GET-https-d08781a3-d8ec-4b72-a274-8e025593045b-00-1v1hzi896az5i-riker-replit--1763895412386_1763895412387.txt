@@ -1,0 +1,62 @@
+quotes-table.tsx:60  GET https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev/api/quotes/17/download/pdf 500 (Internal Server Error)
+handleDownload @ quotes-table.tsx:60
+onClick @ quotes-table.tsx:393
+callCallback2 @ chunk-RPCDYKBN.js?v=5390f148:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=5390f148:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=5390f148:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=5390f148:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=5390f148:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=5390f148:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=5390f148:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=5390f148:7051
+(anonymous) @ chunk-RPCDYKBN.js?v=5390f148:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=5390f148:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=5390f148:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=5390f148:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=5390f148:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=5390f148:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=5390f148:5449
+App.tsx:116 AuthenticatedApp - isAdmin: true user role: admin
+App.tsx:116 AuthenticatedApp - isAdmin: true user role: admin
+queryClient.ts:104 🌐 Query Request: {originalUrl: '/api/notifications/unread-count', fullUrl: '/api/notifications/unread-count', isCustomDomain: false, hasAuthHeader: false}
+queryClient.ts:104 🌐 Query Request: {originalUrl: '/api/internal-messages', fullUrl: '/api/internal-messages', isCustomDomain: false, hasAuthHeader: false}
+queryClient.ts:48 🌐 API Request: {method: 'GET', originalUrl: '/api/navigation/check-updates?lastCheck=2025-11-06T06%3A00%3A09.396Z', fullUrl: '/api/navigation/check-updates?lastCheck=2025-11-06T06%3A00%3A09.396Z', isCustomDomain: false, hasAuthHeader: false, …}
+queryClient.ts:69 📡 API Response: {originalUrl: '/api/navigation/check-updates?lastCheck=2025-11-06T06%3A00%3A09.396Z', fullUrl: '/api/navigation/check-updates?lastCheck=2025-11-06T06%3A00%3A09.396Z', status: 200, statusText: 'OK', ok: true, …}
+queryClient.ts:104 🌐 Query Request: {originalUrl: '/api/notifications/unread-count', fullUrl: '/api/notifications/unread-count', isCustomDomain: false, hasAuthHeader: false}
+queryClient.ts:104 🌐 Query Request: {originalUrl: '/api/internal-messages', fullUrl: '/api/internal-messages', isCustomDomain: false, hasAuthHeader: false}
+queryClient.ts:48 🌐 API Request: {method: 'GET', originalUrl: '/api/navigation/check-updates?lastCheck=2025-11-06T06%3A00%3A09.396Z', fullUrl: '/api/navigation/check-updates?lastCheck=2025-11-06T06%3A00%3A09.396Z', isCustomDomain: false, hasAuthHeader: false, …}
+queryClient.ts:69 📡 API Response: {originalUrl: '/api/navigation/check-updates?lastCheck=2025-11-06T06%3A00%3A09.396Z', fullUrl: '/api/navigation/check-updates?lastCheck=2025-11-06T06%3A00%3A09.396Z', status: 200, statusText: 'OK', ok: true, …}
+queryClient.ts:104 🌐 Query Request: {originalUrl: '/api/notifications/unread-count', fullUrl: '/api/notifications/unread-count', isCustomDomain: false, hasAuthHeader: false}
+queryClient.ts:104 🌐 Query Request: {originalUrl: '/api/internal-messages', fullUrl: '/api/internal-messages', isCustomDomain: false, hasAuthHeader: false}
+queryClient.ts:48 🌐 API Request: {method: 'GET', originalUrl: '/api/navigation/check-updates?lastCheck=2025-11-06T06%3A00%3A09.396Z', fullUrl: '/api/navigation/check-updates?lastCheck=2025-11-06T06%3A00%3A09.396Z', isCustomDomain: false, hasAuthHeader: false, …}
+queryClient.ts:69 📡 API Response: {originalUrl: '/api/navigation/check-updates?lastCheck=2025-11-06T06%3A00%3A09.396Z', fullUrl: '/api/navigation/check-updates?lastCheck=2025-11-06T06%3A00%3A09.396Z', status: 200, statusText: 'OK', ok: true, …}
+queryClient.ts:104 🌐 Query Request: {originalUrl: '/api/notifications/unread-count', fullUrl: '/api/notifications/unread-count', isCustomDomain: false, hasAuthHeader: false}
+queryClient.ts:104 🌐 Query Request: {originalUrl: '/api/internal-messages', fullUrl: '/api/internal-messages', isCustomDomain: false, hasAuthHeader: false}
+queryClient.ts:48 🌐 API Request: {method: 'GET', originalUrl: '/api/navigation/check-updates?lastCheck=2025-11-06T06%3A00%3A09.396Z', fullUrl: '/api/navigation/check-updates?lastCheck=2025-11-06T06%3A00%3A09.396Z', isCustomDomain: false, hasAuthHeader: false, …}
+queryClient.ts:69 📡 API Response: {originalUrl: '/api/navigation/check-updates?lastCheck=2025-11-06T06%3A00%3A09.396Z', fullUrl: '/api/navigation/check-updates?lastCheck=2025-11-06T06%3A00%3A09.396Z', status: 200, statusText: 'OK', ok: true, …}
+App.tsx:116 AuthenticatedApp - isAdmin: true user role: admin
+App.tsx:116 AuthenticatedApp - isAdmin: true user role: admin
+App.tsx:116 AuthenticatedApp - isAdmin: true user role: admin
+App.tsx:116 AuthenticatedApp - isAdmin: true user role: admin
+App.tsx:116 AuthenticatedApp - isAdmin: true user role: admin
+App.tsx:116 AuthenticatedApp - isAdmin: true user role: admin
+quotes:1 Geolocation permission has been blocked as the user has ignored the permission prompt several times. This can be reset in Page Info which can be accessed by clicking the tune icon next to the URL. See https://www.chromestatus.com/feature/6443143280984064 for more information.
+use-gps-tracking.ts:178 GPS tracking error: GeolocationPositionError {code: 1, message: 'User denied Geolocation'}
+watchIdRef.current.navigator.geolocation.watchPosition.enableHighAccuracy @ use-gps-tracking.ts:178
+queryClient.ts:104 🌐 Query Request: {originalUrl: '/api/notifications/unread-count', fullUrl: '/api/notifications/unread-count', isCustomDomain: false, hasAuthHeader: false}
+queryClient.ts:104 🌐 Query Request: {originalUrl: '/api/internal-messages', fullUrl: '/api/internal-messages', isCustomDomain: false, hasAuthHeader: false}
+queryClient.ts:48 🌐 API Request: {method: 'GET', originalUrl: '/api/navigation/check-updates?lastCheck=2025-11-06T06%3A00%3A09.396Z', fullUrl: '/api/navigation/check-updates?lastCheck=2025-11-06T06%3A00%3A09.396Z', isCustomDomain: false, hasAuthHeader: false, …}
+queryClient.ts:69 📡 API Response: {originalUrl: '/api/navigation/check-updates?lastCheck=2025-11-06T06%3A00%3A09.396Z', fullUrl: '/api/navigation/check-updates?lastCheck=2025-11-06T06%3A00%3A09.396Z', status: 200, statusText: 'OK', ok: true, …}
+App.tsx:116 AuthenticatedApp - isAdmin: true user role: admin
+App.tsx:116 AuthenticatedApp - isAdmin: true user role: admin
+queryClient.ts:48 🌐 API Request: {method: 'GET', originalUrl: '/api/auth/me', fullUrl: '/api/auth/me', isCustomDomain: false, hasAuthHeader: false, …}
+App.tsx:116 AuthenticatedApp - isAdmin: true user role: admin
+App.tsx:116 AuthenticatedApp - isAdmin: true user role: admin
+quotes:1 Geolocation permission has been blocked as the user has ignored the permission prompt several times. This can be reset in Page Info which can be accessed by clicking the tune icon next to the URL. See https://www.chromestatus.com/feature/6443143280984064 for more information.
+use-gps-tracking.ts:178 GPS tracking error: GeolocationPositionError {code: 1, message: 'User denied Geolocation'}
+watchIdRef.current.navigator.geolocation.watchPosition.enableHighAccuracy @ use-gps-tracking.ts:178
+queryClient.ts:69 📡 API Response: {originalUrl: '/api/auth/me', fullUrl: '/api/auth/me', status: 200, statusText: 'OK', ok: true, …}
+queryClient.ts:104 🌐 Query Request: {originalUrl: '/api/notifications/unread-count', fullUrl: '/api/notifications/unread-count', isCustomDomain: false, hasAuthHeader: false}
+queryClient.ts:104 🌐 Query Request: {originalUrl: '/api/internal-messages', fullUrl: '/api/internal-messages', isCustomDomain: false, hasAuthHeader: false}
+queryClient.ts:48 🌐 API Request: {method: 'GET', originalUrl: '/api/navigation/check-updates?lastCheck=2025-11-06T06%3A00%3A09.396Z', fullUrl: '/api/navigation/check-updates?lastCheck=2025-11-06T06%3A00%3A09.396Z', isCustomDomain: false, hasAuthHeader: false, …}
+queryClient.ts:69 📡 API Response: {originalUrl: '/api/navigation/check-updates?lastCheck=2025-11-06T06%3A00%3A09.396Z', fullUrl: '/api/navigation/check-updates?lastCheck=2025-11-06T06%3A00%3A09.396Z', status: 200, statusText: 'OK', ok: true, …}
