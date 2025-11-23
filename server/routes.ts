@@ -21105,28 +21105,14 @@ ${fromName || ''}
   app.get("/api/shared-files/:token", async (req, res) => {
     try {
       const { token } = req.params;
-      const share = await storage.getFileShare(token);
+      const share = await storage.getFileShareByToken(token);
       
       if (!share) {
         return res.status(404).json({ message: "Share not found or expired" });
       }
 
-      // Check if share is expired
-      if (share.expiresAt && new Date() > share.expiresAt) {
-        return res.status(404).json({ message: "Share has expired" });
-      }
-
-      // Check access limits
-      if (share.maxAccess && share.accessCount >= share.maxAccess) {
-        return res.status(403).json({ message: "Share access limit reached" });
-      }
-
-      // Update access count
-      await storage.updateFileShareAccess(share.id);
-
       res.json({
         file: share.file,
-        sharedBy: share.sharedByUser.username,
         permissions: share.permissions,
       });
     } catch (error: any) {

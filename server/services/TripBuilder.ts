@@ -1,7 +1,11 @@
 import { db } from "../db";
 import { obdLocationData, obdTrips, vehicles } from "@shared/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
-import { haversineDistance, calculateSpeed, isSignificantMovement } from "../utils/gps";
+import {
+  haversineDistance,
+  calculateSpeed,
+  isSignificantMovement,
+} from "../utils/gps";
 import { TripDistanceCalculator } from "./TripDistanceCalculator";
 
 interface LocationPoint {
@@ -23,12 +27,17 @@ export class TripBuilder {
   private distanceCalculator: TripDistanceCalculator | null = null;
 
   constructor() {
-    const apiKey = process.env.GOOGLE_MAPS_API_KEY || process.env.VITE_GOOGLE_MAPS_API_KEY;
+    const apiKey =
+      process.env.GOOGLE_MAPS_API_KEY || process.env.VITE_GOOGLE_MAPS_API_KEY;
     if (apiKey) {
       this.distanceCalculator = new TripDistanceCalculator(apiKey);
-      console.log('✅ Google Maps integration enabled for trip distance calculation');
+      console.log(
+        "✅ Google Maps integration enabled for trip distance calculation",
+      );
     } else {
-      console.warn('⚠️  Google Maps API key not found - using haversine distance for trips');
+      console.warn(
+        "⚠️  Google Maps API key not found - using haversine distance for trips",
+      );
     }
   }
 
@@ -40,15 +49,18 @@ export class TripBuilder {
         .where(
           and(
             eq(vehicles.organizationId, organizationId),
-            eq(vehicles.oneStepGpsEnabled, true)
-          )
+            eq(vehicles.oneStepGpsEnabled, true),
+          ),
         );
 
       for (const vehicle of enabledVehicles) {
         await this.processVehiclePings(organizationId, vehicle.id);
       }
     } catch (error: any) {
-      console.error(`Error processing trips for org ${organizationId}:`, error.message);
+      console.error(
+        `Error processing trips for org ${organizationId}:`,
+        error.message,
+      );
     }
   }
 
@@ -64,8 +76,8 @@ export class TripBuilder {
           and(
             eq(obdTrips.organizationId, organizationId),
             eq(obdTrips.vehicleId, vehicleId),
-            eq(obdTrips.status, "active")
-          )
+            eq(obdTrips.status, "active"),
+          ),
         )
         .orderBy(desc(obdTrips.startTime))
         .limit(1);
@@ -81,8 +93,8 @@ export class TripBuilder {
           and(
             eq(obdLocationData.organizationId, organizationId),
             eq(obdLocationData.vehicleId, vehicleId),
-            sql`${obdLocationData.timestamp} > ${lastProcessedTime}`
-          )
+            sql`${obdLocationData.timestamp} > ${lastProcessedTime}`,
+          ),
         )
         .orderBy(obdLocationData.timestamp)
         .limit(BATCH_SIZE);
@@ -92,7 +104,11 @@ export class TripBuilder {
       if (activeTrip.length > 0) {
         await this.updateActiveTrip(activeTrip[0], newPings as any[]);
       } else {
-        await this.detectAndCreateTrip(organizationId, vehicleId, newPings as any[]);
+        await this.detectAndCreateTrip(
+          organizationId,
+          vehicleId,
+          newPings as any[],
+        );
       }
 
       processedCount += newPings.length;
@@ -102,7 +118,9 @@ export class TripBuilder {
     }
 
     if (processedCount > 0) {
-      console.log(`📊 Processed ${processedCount} pings for vehicle ${vehicleId}`);
+      console.log(
+        `📊 Processed ${processedCount} pings for vehicle ${vehicleId}`,
+      );
     }
   }
 
@@ -120,30 +138,39 @@ export class TripBuilder {
       const timestamp = new Date(ping.timestamp);
 
       const distance = haversineDistance(lastLat, lastLng, lat, lng);
-      const speed = calculateSpeed(lastLat, lastLng, lastTimestamp, lat, lng, timestamp);
+      const speed = calculateSpeed(
+        lastLat,
+        lastLng,
+        lastTimestamp,
+        lat,
+        lng,
+        timestamp,
+      );
 
       if (isSignificantMovement(distance, speed)) {
         totalDistance += distance;
         movingPoints++;
-        
+
         if (speed > maxSpeed) {
           maxSpeed = speed;
         }
-        
+
         lastLat = lat;
         lastLng = lng;
         lastTimestamp = timestamp;
       }
 
-      const timeSinceLastMove = (timestamp.getTime() - lastTimestamp.getTime()) / (1000 * 60);
-      
+      const timeSinceLastMove =
+        (timestamp.getTime() - lastTimestamp.getTime()) / (1000 * 60);
+
       if (timeSinceLastMove > this.TRIP_END_IDLE_MINUTES) {
         const duration = Math.round(
-          (lastTimestamp.getTime() - new Date(trip.startTime).getTime()) / (1000 * 60)
+          (lastTimestamp.getTime() - new Date(trip.startTime).getTime()) /
+            (1000 * 60),
         );
 
         let actualDistance = totalDistance;
-        let distanceSource = 'haversine';
+        let distanceSource = "haversine";
 
         if (this.distanceCalculator) {
           const allPings = await db
@@ -154,34 +181,45 @@ export class TripBuilder {
                 eq(obdLocationData.vehicleId, trip.vehicleId),
                 eq(obdLocationData.organizationId, trip.organizationId),
                 sql`${obdLocationData.timestamp} >= ${new Date(trip.startTime)}`,
-                sql`${obdLocationData.timestamp} <= ${lastTimestamp}`
-              )
+                sql`${obdLocationData.timestamp} <= ${lastTimestamp}`,
+              ),
             )
             .orderBy(obdLocationData.timestamp);
 
           if (allPings.length >= 2) {
-            const gpsPath = allPings.map(ping => ({
+            const gpsPath = allPings.map((ping) => ({
               lat: parseFloat(ping.latitude),
               lng: parseFloat(ping.longitude),
-              timestamp: new Date(ping.timestamp)
+              timestamp: new Date(ping.timestamp),
             }));
 
-            const gmapsResult = await this.distanceCalculator.calculateTripDistanceFromPath(gpsPath);
+            const gmapsResult =
+              await this.distanceCalculator.calculateTripDistanceFromPath(
+                gpsPath,
+              );
             if (gmapsResult !== null) {
               actualDistance = gmapsResult.miles;
-              distanceSource = 'google_maps';
-              console.log(`📍 Google Maps distance: ${gmapsResult.miles.toFixed(2)} mi (haversine: ${totalDistance.toFixed(2)} mi, ${gpsPath.length} GPS points)`);
+              distanceSource = "google_maps";
+              console.log(
+                `📍 Google Maps distance: ${gmapsResult.miles.toFixed(2)} mi (haversine: ${totalDistance.toFixed(2)} mi, ${gpsPath.length} GPS points)`,
+              );
             } else {
-              console.warn(`⚠️  Google Maps calculation failed, falling back to haversine distance`);
+              console.warn(
+                `⚠️  Google Maps calculation failed, falling back to haversine distance`,
+              );
             }
           } else {
-            console.warn(`⚠️  Not enough GPS points (${allPings.length}) for Google Maps calculation, using haversine`);
+            console.warn(
+              `⚠️  Not enough GPS points (${allPings.length}) for Google Maps calculation, using haversine`,
+            );
           }
         } else {
-          console.warn(`⚠️  Google Maps API key missing, using haversine distance`);
+          console.warn(
+            `⚠️  Google Maps API key missing, using haversine distance`,
+          );
         }
 
-        const avgSpeed = duration > 0 ? (actualDistance / (duration / 60)) : 0;
+        const avgSpeed = duration > 0 ? actualDistance / (duration / 60) : 0;
 
         await db
           .update(obdTrips)
@@ -198,12 +236,14 @@ export class TripBuilder {
           })
           .where(eq(obdTrips.id, trip.id));
 
-        console.log(`🏁 Trip completed: ${actualDistance.toFixed(2)} miles (${distanceSource}), ${duration} min`);
-        
+        console.log(
+          `🏁 Trip completed: ${actualDistance.toFixed(2)} miles (${distanceSource}), ${duration} min`,
+        );
+
         await this.detectAndCreateTrip(
           trip.organizationId,
           trip.vehicleId,
-          newPings.slice(newPings.indexOf(ping) + 1)
+          newPings.slice(newPings.indexOf(ping) + 1),
         );
         return;
       }
@@ -211,9 +251,10 @@ export class TripBuilder {
 
     if (movingPoints > 0) {
       const duration = Math.round(
-        (lastTimestamp.getTime() - new Date(trip.startTime).getTime()) / (1000 * 60)
+        (lastTimestamp.getTime() - new Date(trip.startTime).getTime()) /
+          (1000 * 60),
       );
-      const avgSpeed = duration > 0 ? (totalDistance / (duration / 60)) : 0;
+      const avgSpeed = duration > 0 ? totalDistance / (duration / 60) : 0;
 
       await db
         .update(obdTrips)
@@ -234,7 +275,7 @@ export class TripBuilder {
   private async detectAndCreateTrip(
     organizationId: number,
     vehicleId: number,
-    pings: LocationPoint[]
+    pings: LocationPoint[],
   ) {
     if (pings.length < this.MIN_CONSECUTIVE_POINTS) return;
 
@@ -254,7 +295,7 @@ export class TripBuilder {
         new Date(ping1.timestamp),
         lat2,
         lng2,
-        new Date(ping2.timestamp)
+        new Date(ping2.timestamp),
       );
 
       if (
@@ -267,13 +308,12 @@ export class TripBuilder {
           .where(
             and(
               eq(obdTrips.vehicleId, vehicleId),
-              eq(obdTrips.startTime, new Date(ping1.timestamp))
-            )
+              eq(obdTrips.startTime, new Date(ping1.timestamp)),
+            ),
           )
           .limit(1);
 
         if (existingTrip.length > 0) {
-          console.log(`⏭️  Skipping duplicate trip for vehicle ${vehicleId}`);
           return;
         }
 
@@ -290,15 +330,19 @@ export class TripBuilder {
           endLongitude: lng2.toString(),
           distanceMiles: distance.toFixed(2),
           durationMinutes: Math.round(
-            (new Date(ping2.timestamp).getTime() - new Date(ping1.timestamp).getTime()) / (1000 * 60)
+            (new Date(ping2.timestamp).getTime() -
+              new Date(ping1.timestamp).getTime()) /
+              (1000 * 60),
           ),
           averageSpeed: speed.toFixed(2),
           maxSpeed: speed.toFixed(2),
           status: "active",
         });
 
-        console.log(`🚗 New trip started for vehicle ${vehicleId}: ${speed.toFixed(1)} mph`);
-        
+        console.log(
+          `🚗 New trip started for vehicle ${vehicleId}: ${speed.toFixed(1)} mph`,
+        );
+
         await this.updateActiveTrip(
           await db
             .select()
@@ -306,13 +350,13 @@ export class TripBuilder {
             .where(
               and(
                 eq(obdTrips.vehicleId, vehicleId),
-                eq(obdTrips.status, "active")
-              )
+                eq(obdTrips.status, "active"),
+              ),
             )
             .orderBy(desc(obdTrips.startTime))
             .limit(1)
-            .then(trips => trips[0]),
-          pings.slice(i + 2)
+            .then((trips) => trips[0]),
+          pings.slice(i + 2),
         );
         return;
       }
