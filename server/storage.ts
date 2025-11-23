@@ -1537,14 +1537,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getInvoiceStats(organizationId: number): Promise<any> {
+    // Get total invoices count
     const [totalInvoices] = await db
       .select({ count: sql<number>`count(*)` })
       .from(invoices)
       .innerJoin(users, eq(invoices.userId, users.id))
       .where(eq(users.organizationId, organizationId));
 
+    // Get paid invoices count and revenue
     const [paidInvoices] = await db
-      .select({ count: sql<number>`count(*)` })
+      .select({ 
+        count: sql<number>`count(*)`,
+        revenue: sql<number>`COALESCE(SUM(CAST(${invoices.total} AS DECIMAL)), 0)`
+      })
       .from(invoices)
       .innerJoin(users, eq(invoices.userId, users.id))
       .where(and(
@@ -1552,10 +1557,44 @@ export class DatabaseStorage implements IStorage {
         eq(invoices.status, 'paid')
       ));
 
+    // Get pending invoices (sent, pending_approval)
+    const [pendingInvoices] = await db
+      .select({ 
+        count: sql<number>`count(*)`,
+        revenue: sql<number>`COALESCE(SUM(CAST(${invoices.total} AS DECIMAL)), 0)`
+      })
+      .from(invoices)
+      .innerJoin(users, eq(invoices.userId, users.id))
+      .where(and(
+        eq(users.organizationId, organizationId),
+        sql`${invoices.status} IN ('sent', 'pending_approval')`
+      ));
+
+    // Get overdue invoices
+    const [overdueInvoices] = await db
+      .select({ 
+        count: sql<number>`count(*)`,
+        revenue: sql<number>`COALESCE(SUM(CAST(${invoices.total} AS DECIMAL)), 0)`
+      })
+      .from(invoices)
+      .innerJoin(users, eq(invoices.userId, users.id))
+      .where(and(
+        eq(users.organizationId, organizationId),
+        eq(invoices.status, 'overdue')
+      ));
+
+    // Calculate total revenue (paid + pending + overdue)
+    const totalRevenue = (paidInvoices?.revenue || 0) + (pendingInvoices?.revenue || 0) + (overdueInvoices?.revenue || 0);
+
     return {
-      totalInvoices: totalInvoices.count,
-      paidInvoices: paidInvoices.count,
-      pendingInvoices: totalInvoices.count - paidInvoices.count
+      totalInvoices: totalInvoices.count || 0,
+      paidInvoices: paidInvoices.count || 0,
+      pendingInvoices: pendingInvoices.count || 0,
+      overdueInvoices: overdueInvoices.count || 0,
+      totalRevenue: Number(totalRevenue),
+      paidValue: Number(paidInvoices?.revenue || 0),
+      pendingValue: Number(pendingInvoices?.revenue || 0),
+      overdueValue: Number(overdueInvoices?.revenue || 0)
     };
   }
 

@@ -3983,21 +3983,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/dashboard/stats", async (req, res) => {
     try {
       const user = getAuthenticatedUser(req);
-      const stats = await storage.getInvoiceStats(user.id);
+      const stats = await storage.getInvoiceStats(user.organizationId);
       
       // Get task completion analytics for the organization
       const taskAnalytics = await storage.getTaskCompletionAnalytics(user.organizationId);
       
       // Add missing fields required by the frontend plus task analytics
       const dashboardStats = {
-        totalRevenue: 0,
-        totalInvoices: stats.totalInvoices || "0",
-        paidInvoices: stats.paidInvoices || "0", 
+        totalRevenue: stats.totalRevenue || 0,
+        totalInvoices: stats.totalInvoices || 0,
+        paidInvoices: stats.paidInvoices || 0, 
         pendingInvoices: stats.pendingInvoices || 0,
-        overdueInvoices: 0,
-        pendingValue: 0,
-        paidValue: 0,
-        overdueValue: 0,
+        overdueInvoices: stats.overdueInvoices || 0,
+        pendingValue: stats.pendingValue || 0,
+        paidValue: stats.paidValue || 0,
+        overdueValue: stats.overdueValue || 0,
         // Task completion analytics
         totalTasks: taskAnalytics.totalTasks,
         completedTasks: taskAnalytics.completedTasks,

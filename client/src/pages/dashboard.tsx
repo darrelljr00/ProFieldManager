@@ -15,7 +15,7 @@ import { useWebSocket } from "@/hooks/useWebSocket";
 import { apiRequest } from "@/lib/queryClient";
 
 type DashboardSettings = {
-  // Widget visibility
+  // Widget visibilityWelcome back! Here's what's happening with your invoices.Welcome back! Here's what's happening with your invoices.
   showStatsCards: boolean;
   showRevenueChart: boolean;
   showRecentActivity: boolean;
