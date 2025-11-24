@@ -41,8 +41,6 @@ export default function TechnicianExpenses() {
   const [receiptPreview, setReceiptPreview] = useState<string>("");
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
-  const [isProcessingOCR, setIsProcessingOCR] = useState(false);
-  const [ocrData, setOcrData] = useState<any>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -129,80 +127,13 @@ export default function TechnicianExpenses() {
     },
   });
 
-  // Handle image selection from camera or file with OCR processing
-  const handleImageSelect = async (file: File) => {
+  // Handle image selection from camera or file
+  const handleImageSelect = (file: File) => {
     setReceiptImage(file);
     const reader = new FileReader();
-    reader.onloadend = async () => {
+    reader.onloadend = () => {
       const base64Image = reader.result as string;
       setReceiptPreview(base64Image);
-      
-      // Process OCR to extract receipt data
-      setIsProcessingOCR(true);
-      try {
-        const response = await apiRequest("POST", "/api/expenses/ocr-receipt", {
-          image: base64Image
-        });
-        const result = await response.json();
-        
-        if (result.success && result.data) {
-          setOcrData(result.data);
-          
-          // Auto-populate form fields with extracted data
-          const form = document.querySelector('form') as HTMLFormElement;
-          if (form) {
-            // Set vendor
-            if (result.data.vendor) {
-              const vendorInput = form.querySelector('[name="vendor"]') as HTMLInputElement;
-              if (vendorInput) vendorInput.value = result.data.vendor;
-            }
-            
-            // Set amount
-            if (result.data.amount) {
-              const amountInput = form.querySelector('[name="amount"]') as HTMLInputElement;
-              if (amountInput) amountInput.value = result.data.amount.toString();
-            }
-            
-            // Set date
-            if (result.data.date) {
-              const dateInput = form.querySelector('[name="expenseDate"]') as HTMLInputElement;
-              if (dateInput) dateInput.value = result.data.date;
-            }
-            
-            // Set category
-            if (result.data.category) {
-              const categorySelect = form.querySelector('[name="category"]') as HTMLSelectElement;
-              if (categorySelect) categorySelect.value = result.data.category;
-            }
-            
-            // Set gallons (for fuel/gas receipts)
-            if (result.data.gallons) {
-              const gallonsInput = form.querySelector('[name="gallons"]') as HTMLInputElement;
-              if (gallonsInput) gallonsInput.value = result.data.gallons.toString();
-            }
-            
-            // Set price per gallon (for fuel/gas receipts)
-            if (result.data.pricePerGallon) {
-              const pricePerGallonInput = form.querySelector('[name="pricePerGallon"]') as HTMLInputElement;
-              if (pricePerGallonInput) pricePerGallonInput.value = result.data.pricePerGallon.toString();
-            }
-          }
-          
-          toast({
-            title: "Receipt scanned successfully",
-            description: "Form fields have been auto-populated from the receipt",
-          });
-        }
-      } catch (error: any) {
-        console.error("OCR processing error:", error);
-        toast({
-          title: "OCR processing failed",
-          description: "Could not extract data from receipt. Please fill in manually.",
-          variant: "destructive",
-        });
-      } finally {
-        setIsProcessingOCR(false);
-      }
     };
     reader.readAsDataURL(file);
   };
@@ -214,8 +145,6 @@ export default function TechnicianExpenses() {
     setReceiptPreview("");
     setUploadProgress(0);
     setSelectedProjectId("");
-    setIsProcessingOCR(false);
-    setOcrData(null);
   };
 
   // Handle form submit
@@ -530,7 +459,7 @@ export default function TechnicianExpenses() {
           <DialogHeader>
             <DialogTitle>{editingExpense ? "Edit Expense" : "Add New Expense"}</DialogTitle>
             <DialogDescription>
-              {editingExpense ? "Update expense details" : "Create a new expense entry with receipt photo"}
+              {editingExpense ? "Update expense details" : "Create a new expense entry with receipt upload"}
             </DialogDescription>
           </DialogHeader>
           
@@ -593,7 +522,7 @@ export default function TechnicianExpenses() {
                   placeholder="0.000"
                   data-testid="input-expense-price-per-gallon"
                 />
-                <p className="text-xs text-muted-foreground mt-1">Auto-extracted from receipt</p>
+                <p className="text-xs text-muted-foreground mt-1">For fuel/gas receipts</p>
               </div>
             </div>
 
@@ -730,14 +659,6 @@ export default function TechnicianExpenses() {
               {/* Image Preview */}
               {receiptPreview && (
                 <div className="relative border rounded-lg p-2">
-                  {isProcessingOCR && (
-                    <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center z-10">
-                      <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg flex items-center gap-2">
-                        <div className="animate-spin w-5 h-5 border-3 border-primary border-t-transparent rounded-full" />
-                        <span className="text-sm font-medium">Scanning receipt...</span>
-                      </div>
-                    </div>
-                  )}
                   <Button
                     type="button"
                     variant="ghost"
@@ -746,7 +667,6 @@ export default function TechnicianExpenses() {
                     onClick={() => {
                       setReceiptImage(null);
                       setReceiptPreview("");
-                      setOcrData(null);
                     }}
                   >
                     <X className="h-4 w-4" />
@@ -760,14 +680,6 @@ export default function TechnicianExpenses() {
                     <ImageIcon className="h-3 w-3" />
                     {receiptImage?.name || "Current receipt"}
                   </p>
-                  {ocrData && !isProcessingOCR && (
-                    <div className="mt-2 p-2 bg-green-50 dark:bg-green-900/20 rounded border border-green-200 dark:border-green-800">
-                      <p className="text-xs text-green-700 dark:text-green-400 font-medium flex items-center gap-1">
-                        <Receipt className="h-3 w-3" />
-                        Receipt data extracted successfully
-                      </p>
-                    </div>
-                  )}
                 </div>
               )}
 
