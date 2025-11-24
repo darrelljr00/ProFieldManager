@@ -56,8 +56,6 @@ import type { Expense } from "@shared/schema";
 interface ExpenseWithDetails extends Expense {
   project?: { name: string };
   user?: { firstName: string; lastName: string };
-  receiptUrl?: string | null;
-  source?: string;
   userName?: string;
 }
 
