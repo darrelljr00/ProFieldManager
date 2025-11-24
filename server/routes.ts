@@ -4019,6 +4019,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Dashboard recent activity
+  app.get("/api/dashboard/recent-activity", async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const limit = parseInt(req.query.limit as string) || 10;
+      const activity = await storage.getRecentActivity(user.organizationId, limit);
+      res.json(activity);
+    } catch (error: any) {
+      console.error("❌ Recent Activity Error:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Customer routes
   app.get("/api/customers", requireAuth, async (req, res) => {
     try {

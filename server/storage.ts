@@ -264,6 +264,7 @@ export interface IStorage {
   ): Promise<any>;
   deleteInvoice(id: number): Promise<void>;
   getInvoiceStats(organizationId: number): Promise<any>;
+  getRecentActivity(organizationId: number, limit: number): Promise<any[]>;
 
   // Draft Invoice methods for Smart Capture auto-invoicing
   ensureDraftInvoiceForProject(
@@ -2435,6 +2436,162 @@ export class DatabaseStorage implements IStorage {
       pendingValue: Number(pendingInvoices?.revenue || 0),
       overdueValue: Number(overdueInvoices?.revenue || 0),
     };
+  }
+
+  async getRecentActivity(organizationId: number, limit: number = 10): Promise<any[]> {
+    const activities: any[] = [];
+
+    // Get recent invoices
+    const recentInvoices = await db
+      .select({
+        id: invoices.id,
+        invoiceNumber: invoices.invoiceNumber,
+        total: invoices.total,
+        status: invoices.status,
+        createdAt: invoices.createdAt,
+        customerName: customers.name,
+      })
+      .from(invoices)
+      .innerJoin(users, eq(invoices.userId, users.id))
+      .leftJoin(customers, eq(invoices.customerId, customers.id))
+      .where(eq(users.organizationId, organizationId))
+      .orderBy(desc(invoices.createdAt))
+      .limit(5);
+
+    recentInvoices.forEach((inv) => {
+      if (inv.status === 'paid') {
+        activities.push({
+          type: 'payment',
+          message: `Invoice ${inv.invoiceNumber} paid`,
+          details: `${inv.customerName || 'Unknown'} • $${Number(inv.total).toLocaleString()}`,
+          time: inv.createdAt,
+          icon: 'CheckCircle',
+          iconBg: 'bg-green-100',
+          iconColor: 'text-green-600',
+        });
+      } else if (inv.status === 'overdue') {
+        activities.push({
+          type: 'overdue',
+          message: 'Invoice overdue',
+          details: `${inv.customerName || 'Unknown'} • $${Number(inv.total).toLocaleString()}`,
+          time: inv.createdAt,
+          icon: 'AlertTriangle',
+          iconBg: 'bg-red-100',
+          iconColor: 'text-red-600',
+        });
+      } else {
+        activities.push({
+          type: 'invoice',
+          message: 'New invoice created',
+          details: `${inv.customerName || 'Unknown'} • $${Number(inv.total).toLocaleString()}`,
+          time: inv.createdAt,
+          icon: 'FileText',
+          iconBg: 'bg-blue-100',
+          iconColor: 'text-blue-600',
+        });
+      }
+    });
+
+    // Get recent customers
+    const recentCustomers = await db
+      .select({
+        id: customers.id,
+        name: customers.name,
+        createdAt: customers.createdAt,
+      })
+      .from(customers)
+      .innerJoin(users, eq(customers.createdByUserId, users.id))
+      .where(eq(users.organizationId, organizationId))
+      .orderBy(desc(customers.createdAt))
+      .limit(3);
+
+    recentCustomers.forEach((cust) => {
+      activities.push({
+        type: 'customer',
+        message: 'New customer added',
+        details: cust.name,
+        time: cust.createdAt,
+        icon: 'UserPlus',
+        iconBg: 'bg-green-100',
+        iconColor: 'text-green-600',
+      });
+    });
+
+    // Get recent projects
+    const recentProjects = await db
+      .select({
+        id: projects.id,
+        name: projects.name,
+        status: projects.status,
+        createdAt: projects.createdAt,
+      })
+      .from(projects)
+      .innerJoin(users, eq(projects.userId, users.id))
+      .where(eq(users.organizationId, organizationId))
+      .orderBy(desc(projects.createdAt))
+      .limit(3);
+
+    recentProjects.forEach((proj) => {
+      activities.push({
+        type: 'project',
+        message: 'New project created',
+        details: proj.name,
+        time: proj.createdAt,
+        icon: 'Briefcase',
+        iconBg: 'bg-purple-100',
+        iconColor: 'text-purple-600',
+      });
+    });
+
+    // Get recent SMS messages
+    const recentMessages = await db
+      .select({
+        id: smsMessages.id,
+        recipient: smsMessages.recipient,
+        status: smsMessages.status,
+        createdAt: smsMessages.createdAt,
+      })
+      .from(smsMessages)
+      .where(eq(smsMessages.organizationId, organizationId))
+      .orderBy(desc(smsMessages.createdAt))
+      .limit(3);
+
+    recentMessages.forEach((msg) => {
+      activities.push({
+        type: 'message',
+        message: 'SMS sent',
+        details: `To: ${msg.recipient}`,
+        time: msg.createdAt,
+        icon: 'MessageCircle',
+        iconBg: 'bg-indigo-100',
+        iconColor: 'text-indigo-600',
+      });
+    });
+
+    // Sort all activities by time descending and limit
+    return activities
+      .sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
+      .slice(0, limit)
+      .map((activity) => ({
+        ...activity,
+        time: this.formatTimeAgo(activity.time),
+      }));
+  }
+
+  private formatTimeAgo(date: Date | string | null): string {
+    if (!date) return 'Unknown';
+    const now = new Date();
+    const past = new Date(date);
+    const diffMs = now.getTime() - past.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return past.toLocaleDateString();
   }
 
   // Draft Invoice methods for Smart Capture auto-invoicing
