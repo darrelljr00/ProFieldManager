@@ -45,12 +45,16 @@ import {
 
 type Message = {
   id: number;
-  to: string;
-  from: string;
-  body: string;
+  organizationId: number;
+  recipient: string;
+  message: string;
   status: string;
-  direction: "inbound" | "outbound";
+  sentAt: string | null;
+  deliveredAt: string | null;
+  cost: string;
   twilioSid: string;
+  errorMessage: string | null;
+  sentBy: number;
   createdAt: string;
   customerName?: string;
 };
@@ -164,8 +168,9 @@ export default function Messages() {
     }
   };
 
-  const formatPhoneNumber = (phone: string) => {
+  const formatPhoneNumber = (phone: string | null | undefined) => {
     // Simple phone number formatting
+    if (!phone) return "";
     const cleaned = phone.replace(/\D/g, "");
     if (cleaned.length === 11 && cleaned.startsWith("1")) {
       return `+1 (${cleaned.slice(1, 4)}) ${cleaned.slice(4, 7)}-${cleaned.slice(7)}`;
@@ -306,39 +311,11 @@ export default function Messages() {
                 </Button>
               </div>
             ) : (
-              <div className="mb-4 flex justify-between items-center">
+              <div className="mb-4">
                 <p className="text-sm text-muted-foreground">
                   {messages.length} message{messages.length !== 1 ? "s" : ""} •
                   Auto-refreshing every 5 seconds
                 </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    // Simulate receiving a message for demo purposes
-                    const demoMessage = {
-                      to: "+15559876543",
-                      from: "+15551234567",
-                      body: "Thanks for the quote! When can we schedule the work?",
-                      status: "received",
-                      direction: "inbound" as const,
-                      twilioSid: `SM${Date.now()}${Math.random().toString(36).substr(2, 9)}`,
-                    };
-
-                    apiRequest("POST", "/api/messages/webhook", {
-                      MessageSid: demoMessage.twilioSid,
-                      From: demoMessage.from,
-                      To: demoMessage.to,
-                      Body: demoMessage.body,
-                    }).then(() => {
-                      queryClient.invalidateQueries({
-                        queryKey: ["/api/messages"],
-                      });
-                    });
-                  }}
-                >
-                  Simulate Incoming Message
-                </Button>
               </div>
             )}
             {messages.length > 0 && (
@@ -347,59 +324,33 @@ export default function Messages() {
                   {messages.map((message) => (
                     <div
                       key={message.id}
-                      className={`flex ${
-                        message.direction === "outbound"
-                          ? "justify-end"
-                          : "justify-start"
-                      }`}
+                      className="flex justify-end"
                     >
                       <div
-                        className={`max-w-[70%] rounded-lg p-4 ${
-                          message.direction === "outbound"
-                            ? "bg-blue-500 text-white"
-                            : "bg-gray-100 text-gray-900"
-                        }`}
+                        className="max-w-[70%] rounded-lg p-4 bg-blue-500 text-white"
                       >
                         <div className="flex items-center gap-2 mb-2">
-                          {message.direction === "outbound" ? (
-                            <div className="flex items-center gap-1 text-blue-100">
-                              <User className="h-3 w-3" />
-                              <span className="text-xs">You</span>
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-1 text-gray-600">
-                              <Phone className="h-3 w-3" />
-                              <span className="text-xs">
-                                {message.customerName ||
-                                  formatPhoneNumber(message.from)}
-                              </span>
-                            </div>
-                          )}
-                          <span
-                            className={`text-xs ${
-                              message.direction === "outbound"
-                                ? "text-blue-100"
-                                : "text-gray-500"
-                            }`}
-                          >
+                          <div className="flex items-center gap-1 text-blue-100">
+                            <Send className="h-3 w-3" />
+                            <span className="text-xs">To: {formatPhoneNumber(message.recipient)}</span>
+                          </div>
+                          <span className="text-xs text-blue-100">
                             {format(
                               new Date(message.createdAt),
                               "MMM dd, h:mm a",
                             )}
                           </span>
                         </div>
-                        <p className="text-sm">{message.body}</p>
-                        {message.direction === "outbound" && (
-                          <div className="flex items-center gap-1 mt-2">
-                            {getStatusIcon(message.status)}
-                            <Badge
-                              variant={getStatusColor(message.status) as any}
-                              className="text-xs"
-                            >
-                              {message.status}
-                            </Badge>
-                          </div>
-                        )}
+                        <p className="text-sm">{message.message}</p>
+                        <div className="flex items-center gap-1 mt-2">
+                          {getStatusIcon(message.status)}
+                          <Badge
+                            variant={getStatusColor(message.status) as any}
+                            className="text-xs"
+                          >
+                            {message.status}
+                          </Badge>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -415,18 +366,12 @@ export default function Messages() {
             <CardDescription>Overview of your SMS activity</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div className="text-center">
                 <div className="text-2xl font-bold text-blue-600">
-                  {messages.filter((m) => m.direction === "outbound").length}
+                  {messages.length}
                 </div>
-                <div className="text-sm text-muted-foreground">Sent</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">
-                  {messages.filter((m) => m.direction === "inbound").length}
-                </div>
-                <div className="text-sm text-muted-foreground">Received</div>
+                <div className="text-sm text-muted-foreground">Total Sent</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-green-600">
