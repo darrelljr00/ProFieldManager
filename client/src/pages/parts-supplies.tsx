@@ -1,26 +1,72 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Plus, Package, AlertTriangle, TrendingDown, MoreHorizontal, Edit, Trash2, Eye, Search, Filter, X, Upload, Image as ImageIcon } from "lucide-react";
-import { insertPartsSuppliesSchema, insertSmartCaptureListSchema, insertSmartCaptureItemSchema } from "@shared/schema";
-import { ObjectUploader } from "@/components/ObjectUploader";
+import {
+  Plus,
+  Package,
+  AlertTriangle,
+  TrendingDown,
+  Edit,
+  Search,
+  Filter,
+  X,
+  Upload,
+  Image as ImageIcon,
+} from "lucide-react";
+import { insertPartsSuppliesSchema } from "@shared/schema";
 import type { UploadResult } from "@uppy/core";
 
+/**
+ * NOTE: This file replaces your ObjectUploader usage with a File Manager style uploader.
+ * - Uploads to /api/files/upload
+ * - Lists recent files from GET /api/files (assumes your backend provides it)
+ * - Returns cloudinary URL as cloudinaryUrl in response JSON (your backend already returns that)
+ */
+
+/* -------------------------
+   Validation schema
+   ------------------------- */
 const createPartSchema = z.object({
   name: z.string().min(1, "Part name is required"),
   description: z.string().optional(),
@@ -48,26 +94,249 @@ const createPartSchema = z.object({
 
 type CreatePartFormData = z.infer<typeof createPartSchema>;
 
-// Smart Capture schemas (defined directly to avoid ZodEffects issues)
-const createSmartCaptureListSchema = z.object({
-  name: z.string().min(1, "List name is required"),
-  description: z.string().optional(),
-  status: z.enum(["draft", "active", "archived"]).default("draft")
-});
+/* -------------------------
+   Constants & helpers
+   ------------------------- */
+// Developer-provided fallback file path (use as fallback preview)
+const FALLBACK_LOCAL_IMAGE =
+  "/mnt/data/37204609-1985-4691-aa3c-8de06b1e188e.png";
 
-const createSmartCaptureItemSchema = z.object({
-  partNumber: z.string().optional(),
-  vehicleNumber: z.string().optional(),
-  inventoryNumber: z.string().optional(),
-  description: z.string().optional(),
-  quantity: z.number().min(1, "Quantity must be at least 1").default(1),
-  unitPrice: z.string().optional(),
-  location: z.string().min(1, "Location is required"),
-  notes: z.string().optional()
-});
+function getImageSrc(imageUrl?: string | null) {
+  if (!imageUrl) return FALLBACK_LOCAL_IMAGE;
+  if (/^https?:\/\//i.test(imageUrl)) return imageUrl;
+  if (/^(data:|blob:)/i.test(imageUrl)) return imageUrl;
+  if (imageUrl.startsWith("/")) return imageUrl;
+  return imageUrl || FALLBACK_LOCAL_IMAGE;
+}
 
-type CreateSmartCaptureListData = z.infer<typeof createSmartCaptureListSchema>;
-type CreateSmartCaptureItemData = z.infer<typeof createSmartCaptureItemSchema>;
+/* -------------------------
+   FileManagerUpload component
+   - Button that opens modal
+   - Shows recent files (GET /api/files)
+   - Allows selecting existing or uploading new file to POST /api/files/upload
+   - Calls onUploaded(url) when done
+   ------------------------- */
+
+function FileManagerUpload({
+  onUploaded,
+  accept = "image/*",
+  maxFileSize = 10 * 1024 * 1024,
+}: {
+  onUploaded: (url: string) => void;
+  accept?: string;
+  maxFileSize?: number;
+}) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const [open, setOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [selectedFileId, setSelectedFileId] = useState<number | null>(null);
+
+  // Fetch recent files from file manager (assumes GET /api/files returns list)
+  const {
+    data: files = [],
+    isLoading: filesLoading,
+    refetch,
+  } = useQuery({
+    queryKey: ["/api/files", "recent"],
+    queryFn: async () => {
+      try {
+        const res = await apiRequest("GET", "/api/files?limit=50");
+        return res.json();
+      } catch (err) {
+        console.error("Failed to fetch files", err);
+        return [];
+      }
+    },
+    enabled: open, // only load when modal opens
+  });
+
+  useEffect(() => {
+    if (open) {
+      refetch();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  async function handleFileInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > maxFileSize) {
+      toast({
+        title: "File too large",
+        description: `Maximum allowed size is ${Math.round(maxFileSize / 1024 / 1024)}MB`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("description", `Uploaded from Parts Manager`);
+      fd.append("tags", "parts");
+      // optional folderId/projectId can be appended here if needed
+
+      const res = await fetch("/api/files/upload", {
+        method: "POST",
+        body: fd,
+      });
+
+      const json = await res.json();
+      if (!res.ok) {
+        console.error("Upload failed", json);
+        toast({
+          title: "Upload failed",
+          description: json?.message || "Unknown error",
+          variant: "destructive",
+        });
+        setUploading(false);
+        return;
+      }
+
+      const url =
+        json?.cloudinaryUrl || json?.file?.fileUrl || json?.file?.filePath;
+      if (url) {
+        toast({ title: "Upload successful", description: "File uploaded." });
+        // Refresh files list so user can select it
+        await refetch();
+        onUploaded(url);
+        setOpen(false);
+        queryClient.invalidateQueries({ queryKey: ["/api/files"] });
+      } else {
+        toast({
+          title: "Upload completed",
+          description: "Upload succeeded but server did not return URL",
+          variant: "destructive",
+        });
+      }
+    } catch (err) {
+      console.error("Upload error", err);
+      toast({
+        title: "Upload error",
+        description: String(err),
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function handleSelectExisting(file: any) {
+    const url =
+      file?.fileUrl || file?.filePath || file?.cloudinaryUrl || file?.secureUrl;
+    if (url) {
+      onUploaded(url);
+      setOpen(false);
+      toast({ title: "Selected", description: "Using existing file." });
+    } else {
+      toast({
+        title: "No URL",
+        description: "This file doesn't have a usable URL.",
+        variant: "destructive",
+      });
+    }
+  }
+
+  return (
+    <>
+      <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
+        <Upload className="h-4 w-4 mr-2" />
+        Choose / Upload
+      </Button>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>File Manager — Select or Upload</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* Upload new */}
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-2 cursor-pointer px-3 py-2 rounded-md border bg-white">
+                <input
+                  type="file"
+                  accept={accept}
+                  onChange={handleFileInputChange}
+                  className="hidden"
+                />
+                <Upload className="h-4 w-4" />
+                <span>{uploading ? "Uploading..." : "Upload new file"}</span>
+              </label>
+              <div className="text-sm text-muted-foreground">
+                or select an existing file below
+              </div>
+            </div>
+
+            {/* Files grid */}
+            <div>
+              {filesLoading ? (
+                <div>Loading files...</div>
+              ) : files.length === 0 ? (
+                <div className="text-sm text-muted-foreground">
+                  No recent files. Upload one above.
+                </div>
+              ) : (
+                <div className="grid grid-cols-4 gap-3">
+                  {files.map((f: any) => {
+                    const thumb =
+                      f.fileUrl ||
+                      f.filePath ||
+                      f.secureUrl ||
+                      f.cloudinaryUrl ||
+                      FALLBACK_LOCAL_IMAGE;
+                    return (
+                      <div
+                        key={f.id || f.publicId || thumb}
+                        className={`border rounded-md overflow-hidden cursor-pointer p-1 flex flex-col`}
+                        onClick={() => {
+                          setSelectedFileId(f.id || null);
+                          handleSelectExisting(f);
+                        }}
+                        title={f.fileName || f.originalName || thumb}
+                      >
+                        <div className="w-full h-24 bg-gray-100 overflow-hidden flex items-center justify-center">
+                          {/* image or icon */}
+                          <img
+                            src={getImageSrc(thumb)}
+                            alt={f.fileName || f.originalName || "file"}
+                            className="object-cover w-full h-full"
+                            onError={(e) => {
+                              const el = e.currentTarget as HTMLImageElement;
+                              if (el.src !== FALLBACK_LOCAL_IMAGE)
+                                el.src = FALLBACK_LOCAL_IMAGE;
+                            }}
+                          />
+                        </div>
+                        <div className="mt-2 text-xs truncate">
+                          {f.fileName || f.originalName || "Untitled"}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setOpen(false)}>
+                Close
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+/* -------------------------
+   Main page component
+   ------------------------- */
 
 export default function PartsSuppliesPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -75,47 +344,38 @@ export default function PartsSuppliesPage() {
   const [selectedPart, setSelectedPart] = useState<any>(null);
   const [editingPart, setEditingPart] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("inventory");
-  
-  // Smart Capture states
-  const [isCreateListDialogOpen, setIsCreateListDialogOpen] = useState(false);
-  const [isAddItemDialogOpen, setIsAddItemDialogOpen] = useState(false);
-  const [selectedSmartCaptureList, setSelectedSmartCaptureList] = useState<any>(null);
-  const [editingSmartCaptureItem, setEditingSmartCaptureItem] = useState<any>(null);
-  
+
   // Search and Filter states
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [stockStatusFilter, setStockStatusFilter] = useState("all");
   const [supplierFilter, setSupplierFilter] = useState("all");
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
-  
+
   // Image upload state
   const [uploadedImageUrl, setUploadedImageUrl] = useState("");
-  const lastUploadMetaRef = useRef<{publicURL: string; objectPath: string} | null>(null);
-  
+  const lastUploadMetaRef = useRef<{
+    publicURL: string;
+    objectPath: string;
+  } | null>(null);
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Image upload handlers (using public storage for parts inventory)
+  // Image upload handlers (we keep these for backwards compatibility, but the FileManagerUpload handles the real upload)
   const handleGetUploadParameters = async () => {
     try {
-      console.log('🔄 Getting public upload parameters for parts inventory...');
-      const response = await apiRequest('POST', '/api/objects/upload-public');
+      const response = await apiRequest("POST", "/api/objects/upload-public");
       const result = await response.json();
-      console.log('✅ Public upload parameters received:', result);
-      
-      // Store the public URL and object path for use in onComplete
       lastUploadMetaRef.current = {
         publicURL: result.publicURL,
-        objectPath: result.objectPath
+        objectPath: result.objectPath,
       };
-      
       return {
-        method: 'PUT' as const,
+        method: "PUT" as const,
         url: result.uploadURL,
       };
     } catch (error) {
-      console.error('❌ Failed to get public upload parameters:', error);
       toast({
         title: "Upload Error",
         description: "Failed to get upload URL. Please try again.",
@@ -125,11 +385,10 @@ export default function PartsSuppliesPage() {
     }
   };
 
-  // Handle dialog open/close
+  // Dialog open/close
   const handleDialogOpenChange = (open: boolean) => {
     setIsCreateDialogOpen(open);
     if (!open) {
-      // Dialog is closing - clear uploaded image and reset form
       setUploadedImageUrl("");
       form.reset();
     }
@@ -137,37 +396,57 @@ export default function PartsSuppliesPage() {
 
   // Fetch parts and supplies
   const { data: partsSupplies = [], isLoading: partsLoading } = useQuery({
-    queryKey: ['/api/parts-supplies']
+    queryKey: ["/api/parts-supplies"],
+    queryFn: async () => {
+      const res = await apiRequest("GET", "/api/parts-supplies");
+      return res.json();
+    },
   });
 
-  // Filter and search logic
-  const filteredPartsSupplies = Array.isArray(partsSupplies) && partsSupplies.length > 0 
-    ? partsSupplies.filter((part: any) => {
-        const matchesSearch = searchTerm === "" || 
-          part.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          part.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          part.sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          part.supplier?.toLowerCase().includes(searchTerm.toLowerCase());
+  // Filtering and helpers
+  const filteredPartsSupplies =
+    Array.isArray(partsSupplies) && partsSupplies.length > 0
+      ? partsSupplies.filter((part: any) => {
+          const matchesSearch =
+            searchTerm === "" ||
+            part.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            part.description
+              ?.toLowerCase()
+              .includes(searchTerm.toLowerCase()) ||
+            part.sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            part.supplier?.toLowerCase().includes(searchTerm.toLowerCase());
 
-        const matchesCategory = categoryFilter === "all" || part.category === categoryFilter;
-        
-        const matchesStockStatus = stockStatusFilter === "all" || 
-          (stockStatusFilter === "low" && part.isLowStock) ||
-          (stockStatusFilter === "out" && part.isOutOfStock) ||
-          (stockStatusFilter === "normal" && !part.isLowStock && !part.isOutOfStock);
-        
-        const matchesSupplier = supplierFilter === "all" || part.supplier === supplierFilter;
+          const matchesCategory =
+            categoryFilter === "all" || part.category === categoryFilter;
 
-        return matchesSearch && matchesCategory && matchesStockStatus && matchesSupplier;
-      })
+          const matchesStockStatus =
+            stockStatusFilter === "all" ||
+            (stockStatusFilter === "low" && part.isLowStock) ||
+            (stockStatusFilter === "out" && part.isOutOfStock) ||
+            (stockStatusFilter === "normal" &&
+              !part.isLowStock &&
+              !part.isOutOfStock);
+
+          const matchesSupplier =
+            supplierFilter === "all" || part.supplier === supplierFilter;
+
+          return (
+            matchesSearch &&
+            matchesCategory &&
+            matchesStockStatus &&
+            matchesSupplier
+          );
+        })
+      : [];
+
+  const uniqueSuppliers = Array.isArray(partsSupplies)
+    ? Array.from(
+        new Set(
+          partsSupplies.map((part: any) => part.supplier).filter(Boolean),
+        ),
+      )
     : [];
 
-  // Get unique suppliers for filter dropdown
-  const uniqueSuppliers = Array.isArray(partsSupplies) 
-    ? Array.from(new Set(partsSupplies.map((part: any) => part.supplier).filter(Boolean)))
-    : [];
-
-  // Clear all filters
   const clearAllFilters = () => {
     setSearchTerm("");
     setCategoryFilter("all");
@@ -175,82 +454,96 @@ export default function PartsSuppliesPage() {
     setSupplierFilter("all");
   };
 
-  // Count active filters
   const activeFiltersCount = [
     searchTerm !== "",
-    categoryFilter !== "all", 
+    categoryFilter !== "all",
     stockStatusFilter !== "all",
-    supplierFilter !== "all"
+    supplierFilter !== "all",
   ].filter(Boolean).length;
 
-  // Fetch categories
   const { data: categories = [] } = useQuery({
-    queryKey: ['/api/parts-categories']
+    queryKey: ["/api/parts-categories"],
+    queryFn: async () => {
+      const res = await apiRequest("GET", "/api/parts-categories");
+      return res.json();
+    },
   });
 
-  // Fetch stock alerts
   const { data: stockAlerts = [] } = useQuery({
-    queryKey: ['/api/stock-alerts']
+    queryKey: ["/api/stock-alerts"],
+    queryFn: async () => {
+      const res = await apiRequest("GET", "/api/stock-alerts");
+      return res.json();
+    },
   });
 
-  // Fetch Smart Capture lists
-  const { data: smartCaptureLists = [], isLoading: smartCaptureLoading } = useQuery({
-    queryKey: ['/api/smart-capture/lists']
-  });
-
-  // Fetch Smart Capture items for selected list
-  const { data: smartCaptureItems = [] } = useQuery({
-    queryKey: ['/api/smart-capture/lists', selectedSmartCaptureList?.id, 'items'],
-    enabled: !!selectedSmartCaptureList?.id
-  });
-
-  // Create part mutation
+  // Mutations
   const createPartMutation = useMutation({
     mutationFn: async (data: any) => {
-      const response = await apiRequest('POST', '/api/parts-supplies', data);
+      const response = await apiRequest("POST", "/api/parts-supplies", data);
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/parts-supplies'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/stock-alerts'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/parts-supplies"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stock-alerts"] });
       setIsCreateDialogOpen(false);
-      setUploadedImageUrl(""); // Clear uploaded image
-      form.reset(); // Reset form
+      setUploadedImageUrl("");
+      form.reset();
       toast({ title: "Success", description: "Part created successfully" });
     },
     onError: (error: any) => {
-      toast({ title: "Error", description: error.message || "Failed to create part", variant: "destructive" });
-    }
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create part",
+        variant: "destructive",
+      });
+    },
   });
 
-  // Update stock mutation
   const updateStockMutation = useMutation({
-    mutationFn: async ({ partId, newStock, reason }: { partId: number, newStock: number, reason?: string }) => {
-      const response = await apiRequest('PUT', `/api/parts-supplies/${partId}/stock`, { newStock, reason });
+    mutationFn: async ({
+      partId,
+      newStock,
+      reason,
+    }: {
+      partId: number;
+      newStock: number;
+      reason?: string;
+    }) => {
+      const response = await apiRequest(
+        "PUT",
+        `/api/parts-supplies/${partId}/stock`,
+        { newStock, reason },
+      );
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/parts-supplies'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/stock-alerts'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/parts-supplies"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stock-alerts"] });
       toast({ title: "Success", description: "Stock updated successfully" });
     },
     onError: (error: any) => {
-      toast({ title: "Error", description: error.message || "Failed to update stock", variant: "destructive" });
-    }
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update stock",
+        variant: "destructive",
+      });
+    },
   });
 
-  // Edit part mutation
   const editPartMutation = useMutation({
     mutationFn: async (data: any) => {
-      if (!editingPart?.id) {
-        throw new Error('No part selected for editing');
-      }
-      const response = await apiRequest('PUT', `/api/parts-supplies/${editingPart.id}`, data);
+      if (!editingPart?.id) throw new Error("No part selected for editing");
+      const response = await apiRequest(
+        "PUT",
+        `/api/parts-supplies/${editingPart.id}`,
+        data,
+      );
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/parts-supplies'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/stock-alerts'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/parts-supplies"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stock-alerts"] });
       setIsEditDialogOpen(false);
       setEditingPart(null);
       setUploadedImageUrl("");
@@ -258,41 +551,12 @@ export default function PartsSuppliesPage() {
       toast({ title: "Success", description: "Part updated successfully" });
     },
     onError: (error: any) => {
-      toast({ title: "Error", description: error.message || "Failed to update part", variant: "destructive" });
-    }
-  });
-
-  // Smart Capture mutations
-  const createSmartCaptureListMutation = useMutation({
-    mutationFn: async (data: CreateSmartCaptureListData) => {
-      const response = await apiRequest('POST', '/api/smart-capture/lists', data);
-      return response.json();
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update part",
+        variant: "destructive",
+      });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/smart-capture/lists'] });
-      setIsCreateListDialogOpen(false);
-      smartCaptureListForm.reset();
-      toast({ title: "Success", description: "Smart Capture list created successfully" });
-    },
-    onError: (error: any) => {
-      toast({ title: "Error", description: error.message || "Failed to create Smart Capture list", variant: "destructive" });
-    }
-  });
-
-  const createSmartCaptureItemMutation = useMutation({
-    mutationFn: async (data: CreateSmartCaptureItemData & { listId: number }) => {
-      const response = await apiRequest('POST', `/api/smart-capture/lists/${data.listId}/items`, data);
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/smart-capture/lists', selectedSmartCaptureList?.id, 'items'] });
-      setIsAddItemDialogOpen(false);
-      smartCaptureItemForm.reset();
-      toast({ title: "Success", description: "Item added to Smart Capture list successfully" });
-    },
-    onError: (error: any) => {
-      toast({ title: "Error", description: error.message || "Failed to add item to Smart Capture list", variant: "destructive" });
-    }
   });
 
   const form = useForm<CreatePartFormData>({
@@ -319,11 +583,10 @@ export default function PartsSuppliesPage() {
       binLocation: "",
       imageUrl: "",
       requiresSpecialHandling: false,
-      isHazardous: false
-    }
+      isHazardous: false,
+    },
   });
 
-  // Edit form
   const editForm = useForm<CreatePartFormData>({
     resolver: zodResolver(createPartSchema),
     defaultValues: {
@@ -348,80 +611,43 @@ export default function PartsSuppliesPage() {
       binLocation: "",
       imageUrl: "",
       requiresSpecialHandling: false,
-      isHazardous: false
-    }
+      isHazardous: false,
+    },
   });
 
-  // Smart Capture forms
-  const smartCaptureListForm = useForm<CreateSmartCaptureListData>({
-    resolver: zodResolver(createSmartCaptureListSchema),
-    defaultValues: {
-      name: "",
-      description: "",
-      status: "draft"
-    }
-  });
-
-  const smartCaptureItemForm = useForm<CreateSmartCaptureItemData>({
-    resolver: zodResolver(createSmartCaptureItemSchema),
-    defaultValues: {
-      partNumber: "",
-      vehicleNumber: "",
-      inventoryNumber: "",
-      description: "",
-      quantity: 1,
-      unitPrice: "",
-      location: "",
-      notes: ""
-    }
-  });
-
-
-
-  const handleUploadComplete = async (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
+  const handleUploadComplete = async (
+    result: UploadResult<Record<string, unknown>, Record<string, unknown>>,
+  ) => {
+    // kept for compatibility with object-uploader patterns; main upload happens via /api/files/upload
     if (result.successful && result.successful.length > 0) {
-      // Use the stored publicURL from handleGetUploadParameters
-      const imageUrl = lastUploadMetaRef.current?.publicURL;
-      if (!imageUrl) {
-        console.error('❌ No public URL found in upload metadata');
-        toast({
-          title: "Upload Error", 
-          description: "Failed to get public image URL",
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      console.log('📁 Upload completed, using stored public URL:', imageUrl);
+      const imageUrl =
+        lastUploadMetaRef.current?.publicURL || FALLBACK_LOCAL_IMAGE;
       setUploadedImageUrl(imageUrl);
-      
-      // If we're editing a part, immediately update the part's image in the database
+
       if (editingPart && editingPart.id) {
         try {
-          await apiRequest('PUT', `/api/parts-supplies/${editingPart.id}/image`, {
-            imageURL: imageUrl
-          });
-          
-          // Refresh the parts list to show the updated image
+          await apiRequest(
+            "PUT",
+            `/api/parts-supplies/${editingPart.id}/image`,
+            {
+              imageURL: imageUrl,
+            },
+          );
           queryClient.invalidateQueries({ queryKey: ["/api/parts-supplies"] });
-          
           toast({
             title: "Success",
             description: "Image uploaded and part updated successfully",
           });
         } catch (error) {
-          console.error('Failed to update part image:', error);
           toast({
             title: "Upload Complete",
-            description: "Image uploaded but failed to update part. Please save the form to apply changes.",
+            description:
+              "Image uploaded but failed to update part. Please save the form to apply changes.",
             variant: "destructive",
           });
         }
       } else {
-        toast({
-          title: "Success",
-          description: "Image uploaded successfully",
-        });
+        toast({ title: "Success", description: "Image uploaded successfully" });
       }
     }
   };
@@ -432,7 +658,7 @@ export default function PartsSuppliesPage() {
       unitCost: data.unitCost ? parseFloat(data.unitCost) : null,
       unitPrice: data.unitPrice ? parseFloat(data.unitPrice) : null,
       weight: data.weight ? parseFloat(data.weight) : null,
-      imageUrl: uploadedImageUrl || null, // Include uploaded image URL
+      imageUrl: uploadedImageUrl || null,
     };
     createPartMutation.mutate(formattedData);
   };
@@ -448,30 +674,9 @@ export default function PartsSuppliesPage() {
     editPartMutation.mutate(formattedData);
   };
 
-  // Smart Capture form handlers
-  const onSmartCaptureListSubmit = (data: CreateSmartCaptureListData) => {
-    createSmartCaptureListMutation.mutate(data);
-  };
-
-  const onSmartCaptureItemSubmit = (data: CreateSmartCaptureItemData) => {
-    if (!selectedSmartCaptureList?.id) {
-      toast({ title: "Error", description: "Please select a Smart Capture list first", variant: "destructive" });
-      return;
-    }
-    const formattedData = {
-      ...data,
-      listId: selectedSmartCaptureList.id,
-      unitPrice: data.unitPrice || "0"
-    };
-    createSmartCaptureItemMutation.mutate(formattedData);
-  };
-
-  // Handle editing a part
   const handleEditPart = (part: any) => {
     setEditingPart(part);
     setUploadedImageUrl(part.imageUrl || "");
-    
-    // Populate the edit form with current part data
     editForm.reset({
       name: part.name || "",
       description: part.description || "",
@@ -496,11 +701,9 @@ export default function PartsSuppliesPage() {
       requiresSpecialHandling: part.requiresSpecialHandling || false,
       isHazardous: part.isHazardous || false,
     });
-    
     setIsEditDialogOpen(true);
   };
 
-  // Handle closing edit dialog
   const handleEditDialogClose = (open: boolean) => {
     setIsEditDialogOpen(open);
     if (!open) {
@@ -510,14 +713,21 @@ export default function PartsSuppliesPage() {
     }
   };
 
-  // Calculate inventory stats
+  // Inventory stats
   const partsArray = Array.isArray(partsSupplies) ? partsSupplies : [];
   const alertsArray = Array.isArray(stockAlerts) ? stockAlerts : [];
   const totalParts = partsArray.length;
-  const lowStockParts = partsArray.filter((part: any) => part.isLowStock).length;
-  const outOfStockParts = partsArray.filter((part: any) => part.isOutOfStock).length;
-  const totalValue = partsArray.reduce((sum: number, part: any) => 
-    sum + (part.currentStock * (parseFloat(part.unitCost?.toString() || '0') || 0)), 0
+  const lowStockParts = partsArray.filter(
+    (part: any) => part.isLowStock,
+  ).length;
+  const outOfStockParts = partsArray.filter(
+    (part: any) => part.isOutOfStock,
+  ).length;
+  const totalValue = partsArray.reduce(
+    (sum: number, part: any) =>
+      sum +
+      part.currentStock * (parseFloat(part.unitCost?.toString() || "0") || 0),
+    0,
   );
 
   return (
@@ -526,8 +736,11 @@ export default function PartsSuppliesPage() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Parts & Supplies</h1>
-          <p className="text-muted-foreground">Manage your inventory and track stock levels</p>
+          <p className="text-muted-foreground">
+            Manage your inventory and track stock levels
+          </p>
         </div>
+
         <Dialog open={isCreateDialogOpen} onOpenChange={handleDialogOpenChange}>
           <DialogTrigger asChild>
             <Button>
@@ -535,12 +748,17 @@ export default function PartsSuppliesPage() {
               Add Part
             </Button>
           </DialogTrigger>
+
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Add New Part</DialogTitle>
             </DialogHeader>
+
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="space-y-4"
+              >
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -555,6 +773,7 @@ export default function PartsSuppliesPage() {
                       </FormItem>
                     )}
                   />
+
                   <FormField
                     control={form.control}
                     name="sku"
@@ -577,23 +796,31 @@ export default function PartsSuppliesPage() {
                     <FormItem>
                       <FormLabel>Description</FormLabel>
                       <FormControl>
-                        <Textarea placeholder="Part description..." {...field} />
+                        <Textarea
+                          placeholder="Part description..."
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
-                {/* Image Upload Section */}
+                {/* Image Upload Section — replaced with File Manager style */}
                 <div className="space-y-3">
                   <FormLabel>Part Image</FormLabel>
                   <div className="flex items-center gap-4">
-                    {uploadedImageUrl && (
+                    {uploadedImageUrl ? (
                       <div className="relative">
-                        <img 
-                          src={uploadedImageUrl} 
-                          alt="Part preview" 
+                        <img
+                          src={getImageSrc(uploadedImageUrl)}
+                          alt="Part preview"
                           className="w-16 h-16 object-cover rounded-md border"
+                          onError={(e) => {
+                            const el = e.currentTarget as HTMLImageElement;
+                            if (el.src !== FALLBACK_LOCAL_IMAGE)
+                              el.src = FALLBACK_LOCAL_IMAGE;
+                          }}
                         />
                         <Button
                           type="button"
@@ -605,22 +832,21 @@ export default function PartsSuppliesPage() {
                           ×
                         </Button>
                       </div>
-                    )}
-                    <ObjectUploader
-                      maxNumberOfFiles={1}
-                      maxFileSize={5242880} // 5MB
-                      onGetUploadParameters={handleGetUploadParameters}
-                      onComplete={handleUploadComplete}
-                      buttonClassName="h-10"
-                    >
-                      <div className="flex items-center gap-2">
-                        <Upload className="h-4 w-4" />
-                        <span>{uploadedImageUrl ? "Change Image" : "Upload Image"}</span>
+                    ) : (
+                      <div className="w-16 h-16 bg-gray-50 rounded-md border flex items-center justify-center">
+                        <ImageIcon className="h-6 w-6 text-gray-400" />
                       </div>
-                    </ObjectUploader>
+                    )}
+
+                    <FileManagerUpload
+                      onUploaded={(url) => {
+                        setUploadedImageUrl(url);
+                        // No immediate DB update for create; imageUrl will be embedded on submit
+                      }}
+                    />
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Upload a clear image of the part (JPG, PNG - max 5MB)
+                    Upload a clear image of the part (JPG, PNG - max 10MB)
                   </p>
                 </div>
 
@@ -631,7 +857,10 @@ export default function PartsSuppliesPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Category *</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                        >
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Select category" />
@@ -650,13 +879,17 @@ export default function PartsSuppliesPage() {
                       </FormItem>
                     )}
                   />
+
                   <FormField
                     control={form.control}
                     name="unit"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Unit</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                        >
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Select unit" />
@@ -685,12 +918,19 @@ export default function PartsSuppliesPage() {
                       <FormItem>
                         <FormLabel>Current Stock</FormLabel>
                         <FormControl>
-                          <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value) || 0)} />
+                          <Input
+                            type="number"
+                            {...field}
+                            onChange={(e) =>
+                              field.onChange(parseInt(e.target.value) || 0)
+                            }
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
+
                   <FormField
                     control={form.control}
                     name="minStockLevel"
@@ -698,12 +938,19 @@ export default function PartsSuppliesPage() {
                       <FormItem>
                         <FormLabel>Min Stock Level</FormLabel>
                         <FormControl>
-                          <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value) || 0)} />
+                          <Input
+                            type="number"
+                            {...field}
+                            onChange={(e) =>
+                              field.onChange(parseInt(e.target.value) || 0)
+                            }
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
+
                   <FormField
                     control={form.control}
                     name="reorderPoint"
@@ -711,7 +958,13 @@ export default function PartsSuppliesPage() {
                       <FormItem>
                         <FormLabel>Reorder Point</FormLabel>
                         <FormControl>
-                          <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value) || 0)} />
+                          <Input
+                            type="number"
+                            {...field}
+                            onChange={(e) =>
+                              field.onChange(parseInt(e.target.value) || 0)
+                            }
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -727,12 +980,18 @@ export default function PartsSuppliesPage() {
                       <FormItem>
                         <FormLabel>Unit Cost ($)</FormLabel>
                         <FormControl>
-                          <Input type="number" step="0.01" placeholder="0.00" {...field} />
+                          <Input
+                            type="number"
+                            step="0.01"
+                            placeholder="0.00"
+                            {...field}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
+
                   <FormField
                     control={form.control}
                     name="unitPrice"
@@ -740,7 +999,12 @@ export default function PartsSuppliesPage() {
                       <FormItem>
                         <FormLabel>Unit Price ($)</FormLabel>
                         <FormControl>
-                          <Input type="number" step="0.01" placeholder="0.00" {...field} />
+                          <Input
+                            type="number"
+                            step="0.01"
+                            placeholder="0.00"
+                            {...field}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -762,6 +1026,7 @@ export default function PartsSuppliesPage() {
                       </FormItem>
                     )}
                   />
+
                   <FormField
                     control={form.control}
                     name="supplier"
@@ -778,359 +1043,17 @@ export default function PartsSuppliesPage() {
                 </div>
 
                 <div className="flex justify-end space-x-2 pt-4">
-                  <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={createPartMutation.isPending}>
-                    {createPartMutation.isPending ? "Creating..." : "Create Part"}
-                  </Button>
-                </div>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
-
-        {/* Edit Part Dialog */}
-        <Dialog open={isEditDialogOpen} onOpenChange={handleEditDialogClose}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Edit Part</DialogTitle>
-            </DialogHeader>
-            <Form {...editForm}>
-              <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={editForm.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Part Name *</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g., Brake Fluid" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={editForm.control}
-                    name="sku"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>SKU</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g., BF-001" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <FormField
-                  control={editForm.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Description</FormLabel>
-                      <FormControl>
-                        <Textarea placeholder="Brief description of the part..." {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={editForm.control}
-                    name="category"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Category *</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select category" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="Automotive">Automotive</SelectItem>
-                            <SelectItem value="Tools">Tools</SelectItem>
-                            <SelectItem value="Safety">Safety</SelectItem>
-                            <SelectItem value="Electrical">Electrical</SelectItem>
-                            <SelectItem value="Plumbing">Plumbing</SelectItem>
-                            <SelectItem value="Hardware">Hardware</SelectItem>
-                            <SelectItem value="Other">Other</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={editForm.control}
-                    name="unit"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Unit</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select unit" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="each">Each</SelectItem>
-                            <SelectItem value="box">Box</SelectItem>
-                            <SelectItem value="case">Case</SelectItem>
-                            <SelectItem value="gallon">Gallon</SelectItem>
-                            <SelectItem value="liter">Liter</SelectItem>
-                            <SelectItem value="pound">Pound</SelectItem>
-                            <SelectItem value="kilogram">Kilogram</SelectItem>
-                            <SelectItem value="foot">Foot</SelectItem>
-                            <SelectItem value="meter">Meter</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                {/* Stock Information */}
-                <div className="grid grid-cols-3 gap-4">
-                  <FormField
-                    control={editForm.control}
-                    name="currentStock"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Current Stock</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            min="0" 
-                            {...field} 
-                            onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                            value={field.value || 0}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={editForm.control}
-                    name="minStockLevel"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Min Stock Level</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            min="0" 
-                            {...field} 
-                            onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                            value={field.value || 0}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={editForm.control}
-                    name="maxStockLevel"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Max Stock Level</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            min="0" 
-                            {...field} 
-                            onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                            value={field.value || 0}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                {/* Pricing Information */}
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={editForm.control}
-                    name="unitCost"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Unit Cost ($)</FormLabel>
-                        <FormControl>
-                          <Input placeholder="0.00" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={editForm.control}
-                    name="unitPrice"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Unit Price ($)</FormLabel>
-                        <FormControl>
-                          <Input placeholder="0.00" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                {/* Image Upload */}
-                <div className="space-y-2">
-                  <FormLabel>Product Image</FormLabel>
-                  <div className="flex items-center gap-4">
-                    {(uploadedImageUrl || editingPart?.imageUrl) && (
-                      <div className="w-20 h-20 border rounded-md overflow-hidden">
-                        <img 
-                          src={uploadedImageUrl || editingPart?.imageUrl} 
-                          alt="Part preview"
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    )}
-                    <ObjectUploader
-                      maxNumberOfFiles={1}
-                      maxFileSize={10485760} // 10MB
-                      onGetUploadParameters={handleGetUploadParameters}
-                      onComplete={handleUploadComplete}
-                      buttonClassName="flex-shrink-0"
-                    >
-                      <div className="flex items-center gap-2">
-                        <ImageIcon className="h-4 w-4" />
-                        <span>{uploadedImageUrl || editingPart?.imageUrl ? "Change Image" : "Upload Image"}</span>
-                      </div>
-                    </ObjectUploader>
-                  </div>
-                </div>
-
-                {/* Location Information */}
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={editForm.control}
-                    name="location"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Location</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g., Warehouse A" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={editForm.control}
-                    name="binLocation"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Bin Location</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g., A-12-C" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                {/* Supplier Information */}
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={editForm.control}
-                    name="supplier"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Supplier</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g., ABC Supply Co." {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={editForm.control}
-                    name="supplierSku"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Supplier SKU</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Supplier's part number" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                {/* Safety Flags */}
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={editForm.control}
-                    name="requiresSpecialHandling"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                        <FormControl>
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                        <div className="space-y-1 leading-none">
-                          <FormLabel>Requires Special Handling</FormLabel>
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={editForm.control}
-                    name="isHazardous"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                        <FormControl>
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                        <div className="space-y-1 leading-none">
-                          <FormLabel>Hazardous Material</FormLabel>
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <div className="flex justify-end space-x-2 pt-4">
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => handleEditDialogClose(false)}
-                    disabled={editPartMutation.isPending}
+                    onClick={() => setIsCreateDialogOpen(false)}
                   >
                     Cancel
                   </Button>
-                  <Button 
-                    type="submit" 
-                    disabled={editPartMutation.isPending}
-                  >
-                    {editPartMutation.isPending ? "Updating..." : "Update Part"}
+                  <Button type="submit" disabled={createPartMutation.isPending}>
+                    {createPartMutation.isPending
+                      ? "Creating..."
+                      : "Create Part"}
                   </Button>
                 </div>
               </form>
@@ -1139,10 +1062,404 @@ export default function PartsSuppliesPage() {
         </Dialog>
       </div>
 
-      {/* Search and Filter Controls */}
+      {/* Edit dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={handleEditDialogClose}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Part</DialogTitle>
+          </DialogHeader>
+          <Form {...editForm}>
+            <form
+              onSubmit={editForm.handleSubmit(onEditSubmit)}
+              className="space-y-4"
+            >
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={editForm.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Part Name *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., Brake Fluid" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={editForm.control}
+                  name="sku"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>SKU</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., BF-001" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={editForm.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Brief description of the part..."
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={editForm.control}
+                  name="category"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Category *</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select category" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="Automotive">Automotive</SelectItem>
+                          <SelectItem value="Tools">Tools</SelectItem>
+                          <SelectItem value="Safety">Safety</SelectItem>
+                          <SelectItem value="Electrical">Electrical</SelectItem>
+                          <SelectItem value="Plumbing">Plumbing</SelectItem>
+                          <SelectItem value="Hardware">Hardware</SelectItem>
+                          <SelectItem value="Other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={editForm.control}
+                  name="unit"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Unit</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select unit" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="each">Each</SelectItem>
+                          <SelectItem value="box">Box</SelectItem>
+                          <SelectItem value="case">Case</SelectItem>
+                          <SelectItem value="gallon">Gallon</SelectItem>
+                          <SelectItem value="liter">Liter</SelectItem>
+                          <SelectItem value="pound">Pound</SelectItem>
+                          <SelectItem value="kilogram">Kilogram</SelectItem>
+                          <SelectItem value="foot">Foot</SelectItem>
+                          <SelectItem value="meter">Meter</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Stock info */}
+              <div className="grid grid-cols-3 gap-4">
+                <FormField
+                  control={editForm.control}
+                  name="currentStock"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Current Stock</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="0"
+                          {...field}
+                          onChange={(e) =>
+                            field.onChange(parseInt(e.target.value) || 0)
+                          }
+                          value={field.value || 0}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={editForm.control}
+                  name="minStockLevel"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Min Stock Level</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="0"
+                          {...field}
+                          onChange={(e) =>
+                            field.onChange(parseInt(e.target.value) || 0)
+                          }
+                          value={field.value || 0}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={editForm.control}
+                  name="maxStockLevel"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Max Stock Level</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="0"
+                          {...field}
+                          onChange={(e) =>
+                            field.onChange(parseInt(e.target.value) || 0)
+                          }
+                          value={field.value || 0}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Pricing */}
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={editForm.control}
+                  name="unitCost"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Unit Cost ($)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="0.00" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={editForm.control}
+                  name="unitPrice"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Unit Price ($)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="0.00" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Image Upload (edit) */}
+              <div className="space-y-2">
+                <FormLabel>Product Image</FormLabel>
+                <div className="flex items-center gap-4">
+                  {uploadedImageUrl || editingPart?.imageUrl ? (
+                    <div className="w-20 h-20 border rounded-md overflow-hidden">
+                      <img
+                        src={getImageSrc(
+                          uploadedImageUrl || editingPart?.imageUrl,
+                        )}
+                        alt="Part preview"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          const el = e.currentTarget as HTMLImageElement;
+                          if (el.src !== FALLBACK_LOCAL_IMAGE)
+                            el.src = FALLBACK_LOCAL_IMAGE;
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-20 h-20 border rounded-md flex items-center justify-center bg-gray-50">
+                      <ImageIcon className="h-6 w-6 text-gray-400" />
+                    </div>
+                  )}
+
+                  <FileManagerUpload
+                    onUploaded={async (url) => {
+                      setUploadedImageUrl(url);
+                      // Update backend for the editing part immediately (so preview persists)
+                      if (editingPart?.id) {
+                        try {
+                          await apiRequest(
+                            "PUT",
+                            `/api/parts-supplies/${editingPart.id}/image`,
+                            {
+                              imageURL: url,
+                            },
+                          );
+                          queryClient.invalidateQueries({
+                            queryKey: ["/api/parts-supplies"],
+                          });
+                          toast({
+                            title: "Success",
+                            description: "Part image updated.",
+                          });
+                        } catch (err) {
+                          toast({
+                            title: "Error",
+                            description: "Failed to update part image",
+                            variant: "destructive",
+                          });
+                        }
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Location, supplier, safety flags, etc. */}
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={editForm.control}
+                  name="location"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Location</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., Warehouse A" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={editForm.control}
+                  name="binLocation"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Bin Location</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., A-12-C" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={editForm.control}
+                  name="supplier"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Supplier</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., ABC Supply Co." {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={editForm.control}
+                  name="supplierSku"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Supplier SKU</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Supplier's part number"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={editForm.control}
+                  name="requiresSpecialHandling"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>Requires Special Handling</FormLabel>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={editForm.control}
+                  name="isHazardous"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>Hazardous Material</FormLabel>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="flex justify-end space-x-2 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => handleEditDialogClose(false)}
+                  disabled={editPartMutation.isPending}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={editPartMutation.isPending}>
+                  {editPartMutation.isPending ? "Updating..." : "Update Part"}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Search & Filters Card */}
       <Card className="p-4">
         <div className="space-y-4">
-          {/* Main Search Bar */}
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -1163,7 +1480,10 @@ export default function PartsSuppliesPage() {
                 <Filter className="h-4 w-4" />
                 Filters
                 {activeFiltersCount > 0 && (
-                  <Badge variant="secondary" className="ml-1 px-1.5 py-0.5 text-xs">
+                  <Badge
+                    variant="secondary"
+                    className="ml-1 px-1.5 py-0.5 text-xs"
+                  >
                     {activeFiltersCount}
                   </Badge>
                 )}
@@ -1177,12 +1497,16 @@ export default function PartsSuppliesPage() {
             </div>
           </div>
 
-          {/* Advanced Filters */}
           {showAdvancedFilters && (
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-4 border-t">
               <div>
-                <label className="text-sm font-medium mb-2 block">Category</label>
-                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <label className="text-sm font-medium mb-2 block">
+                  Category
+                </label>
+                <Select
+                  value={categoryFilter}
+                  onValueChange={setCategoryFilter}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="All Categories" />
                   </SelectTrigger>
@@ -1199,8 +1523,13 @@ export default function PartsSuppliesPage() {
               </div>
 
               <div>
-                <label className="text-sm font-medium mb-2 block">Stock Status</label>
-                <Select value={stockStatusFilter} onValueChange={setStockStatusFilter}>
+                <label className="text-sm font-medium mb-2 block">
+                  Stock Status
+                </label>
+                <Select
+                  value={stockStatusFilter}
+                  onValueChange={setStockStatusFilter}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="All Status" />
                   </SelectTrigger>
@@ -1214,15 +1543,22 @@ export default function PartsSuppliesPage() {
               </div>
 
               <div>
-                <label className="text-sm font-medium mb-2 block">Supplier</label>
-                <Select value={supplierFilter} onValueChange={setSupplierFilter}>
+                <label className="text-sm font-medium mb-2 block">
+                  Supplier
+                </label>
+                <Select
+                  value={supplierFilter}
+                  onValueChange={setSupplierFilter}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="All Suppliers" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Suppliers</SelectItem>
                     {uniqueSuppliers.map((supplier) => (
-                      <SelectItem key={supplier} value={supplier}>{supplier}</SelectItem>
+                      <SelectItem key={supplier} value={supplier}>
+                        {supplier}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -1230,7 +1566,9 @@ export default function PartsSuppliesPage() {
 
               <div className="flex items-end">
                 <div className="text-sm text-muted-foreground">
-                  Showing {filteredPartsSupplies.length} of {Array.isArray(partsSupplies) ? partsSupplies.length : 0} parts
+                  Showing {filteredPartsSupplies.length} of{" "}
+                  {Array.isArray(partsSupplies) ? partsSupplies.length : 0}{" "}
+                  parts
                 </div>
               </div>
             </div>
@@ -1238,7 +1576,7 @@ export default function PartsSuppliesPage() {
         </div>
       </Card>
 
-      {/* Stats Cards */}
+      {/* Stats cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -1247,7 +1585,9 @@ export default function PartsSuppliesPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalParts}</div>
-            <p className="text-xs text-muted-foreground">Active inventory items</p>
+            <p className="text-xs text-muted-foreground">
+              Active inventory items
+            </p>
           </CardContent>
         </Card>
 
@@ -1257,7 +1597,9 @@ export default function PartsSuppliesPage() {
             <AlertTriangle className="h-4 w-4 text-orange-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{lowStockParts}</div>
+            <div className="text-2xl font-bold text-orange-600">
+              {lowStockParts}
+            </div>
             <p className="text-xs text-muted-foreground">Items below minimum</p>
           </CardContent>
         </Card>
@@ -1268,7 +1610,9 @@ export default function PartsSuppliesPage() {
             <TrendingDown className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{outOfStockParts}</div>
+            <div className="text-2xl font-bold text-red-600">
+              {outOfStockParts}
+            </div>
             <p className="text-xs text-muted-foreground">Items at zero stock</p>
           </CardContent>
         </Card>
@@ -1280,12 +1624,14 @@ export default function PartsSuppliesPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">${totalValue.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">Current inventory value</p>
+            <p className="text-xs text-muted-foreground">
+              Current inventory value
+            </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Main Content */}
+      {/* Main content tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="inventory">Inventory</TabsTrigger>
@@ -1297,7 +1643,6 @@ export default function PartsSuppliesPage() {
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="smart-capture">Smart Capture</TabsTrigger>
         </TabsList>
 
         <TabsContent value="inventory" className="space-y-4">
@@ -1325,12 +1670,16 @@ export default function PartsSuppliesPage() {
                   <TableBody>
                     {partsLoading ? (
                       <TableRow>
-                        <TableCell colSpan={10} className="text-center">Loading...</TableCell>
+                        <TableCell colSpan={10} className="text-center">
+                          Loading...
+                        </TableCell>
                       </TableRow>
                     ) : filteredPartsSupplies.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={10} className="text-center">
-                          {partsArray.length === 0 ? "No parts found. Click \"Add Part\" to get started." : "No parts match your search criteria."}
+                          {partsArray.length === 0
+                            ? 'No parts found. Click "Add Part" to get started.'
+                            : "No parts match your search criteria."}
                         </TableCell>
                       </TableRow>
                     ) : (
@@ -1338,10 +1687,16 @@ export default function PartsSuppliesPage() {
                         <TableRow key={part.id}>
                           <TableCell>
                             {part.imageUrl ? (
-                              <img 
-                                src={part.imageUrl} 
+                              <img
+                                src={getImageSrc(part.imageUrl)}
                                 alt={part.name}
                                 className="w-12 h-12 object-cover rounded-md border"
+                                onError={(e) => {
+                                  const el =
+                                    e.currentTarget as HTMLImageElement;
+                                  if (el.src !== FALLBACK_LOCAL_IMAGE)
+                                    el.src = FALLBACK_LOCAL_IMAGE;
+                                }}
                               />
                             ) : (
                               <div className="w-12 h-12 bg-gray-100 rounded-md border flex items-center justify-center">
@@ -1349,25 +1704,39 @@ export default function PartsSuppliesPage() {
                               </div>
                             )}
                           </TableCell>
-                          <TableCell className="font-medium">{part.name}</TableCell>
+                          <TableCell className="font-medium">
+                            {part.name}
+                          </TableCell>
                           <TableCell>{part.sku || "-"}</TableCell>
                           <TableCell>
                             <Badge variant="secondary">{part.category}</Badge>
                           </TableCell>
-                          <TableCell>{part.currentStock} {part.unit}</TableCell>
+                          <TableCell>
+                            {part.currentStock} {part.unit}
+                          </TableCell>
                           <TableCell>{part.minStockLevel}</TableCell>
                           <TableCell>
                             {part.isOutOfStock ? (
                               <Badge variant="destructive">Out of Stock</Badge>
                             ) : part.isLowStock ? (
-                              <Badge variant="secondary" className="bg-orange-100 text-orange-800">
+                              <Badge
+                                variant="secondary"
+                                className="bg-orange-100 text-orange-800"
+                              >
                                 Low Stock
                               </Badge>
                             ) : (
-                              <Badge variant="outline" className="text-green-700">In Stock</Badge>
+                              <Badge
+                                variant="outline"
+                                className="text-green-700"
+                              >
+                                In Stock
+                              </Badge>
                             )}
                           </TableCell>
-                          <TableCell>${parseFloat(part.unitCost || 0).toFixed(2)}</TableCell>
+                          <TableCell>
+                            ${parseFloat(part.unitCost || 0).toFixed(2)}
+                          </TableCell>
                           <TableCell>{part.location || "-"}</TableCell>
                           <TableCell>
                             <div className="flex items-center space-x-2">
@@ -1403,23 +1772,31 @@ export default function PartsSuppliesPage() {
                   </p>
                 ) : (
                   alertsArray.map((alert: any) => (
-                    <div key={alert.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div
+                      key={alert.id}
+                      className="flex items-center justify-between p-4 border rounded-lg"
+                    >
                       <div className="flex items-center space-x-3">
-                        <AlertTriangle className={`h-5 w-5 ${
-                          alert.alertType === 'OUT_OF_STOCK' ? 'text-red-500' : 'text-orange-500'
-                        }`} />
+                        <AlertTriangle
+                          className={`h-5 w-5 ${alert.alertType === "OUT_OF_STOCK" ? "text-red-500" : "text-orange-500"}`}
+                        />
                         <div>
                           <div className="font-medium">{alert.partName}</div>
                           <div className="text-sm text-muted-foreground">
-                            {alert.alertType === 'OUT_OF_STOCK' 
-                              ? 'Out of stock' 
-                              : `Low stock: ${alert.currentStock} remaining (min: ${alert.minStockLevel})`
-                            }
+                            {alert.alertType === "OUT_OF_STOCK"
+                              ? "Out of stock"
+                              : `Low stock: ${alert.currentStock} remaining (min: ${alert.minStockLevel})`}
                           </div>
                         </div>
                       </div>
-                      <Badge variant={alert.alertType === 'OUT_OF_STOCK' ? 'destructive' : 'secondary'}>
-                        {alert.alertType.replace('_', ' ').toLowerCase()}
+                      <Badge
+                        variant={
+                          alert.alertType === "OUT_OF_STOCK"
+                            ? "destructive"
+                            : "secondary"
+                        }
+                      >
+                        {alert.alertType.replace("_", " ").toLowerCase()}
                       </Badge>
                     </div>
                   ))

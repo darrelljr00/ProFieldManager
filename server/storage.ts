@@ -1,42 +1,201 @@
 import { db } from "./db";
 import { ensureOrganizationFolders } from "./folderCreation";
-import { 
-  users, customers, invoices, invoiceLineItems, quotes, quoteLineItems, payments, projects, tasks, taskGroups, taskTemplates,
-  expenses, expenseCategories, vendors, expenseReports, gasCards, 
-  gasCardAssignments, gasCardUsage, gasCardProviders, leads, messages,
-  images, settings, organizations, userSessions, subscriptionPlans,
-  projectFiles, projectWaivers, fileManager, fileFolders, fileShares, projectUsers, timeClock, timeClockSettings,
-  internalMessages, internalMessageRecipients, messageGroups, messageGroupMembers,
-  inspectionTemplates, inspectionItems, inspectionRecords, inspectionResponses, inspectionNotifications,
-  smsMessages, smsTemplates, sharedPhotoLinks, fileSecuritySettings, fileSecurityScans, fileAccessLogs,
-  digitalSignatures, documentSignatureFields, departments, employees, employeeDocuments, timeOffRequests, performanceReviews, disciplinaryActions,
-  navigationOrder, backupSettings, backupJobs, partsSupplies, partsCategories, inventoryTransactions, stockAlerts,
-  filePermissions, folderPermissions, defaultPermissions, userDashboardSettings, dashboardProfiles, vehicles,
-  vehicleMaintenanceIntervals, vehicleMaintenanceRecords, vehicleJobAssignments, timeClockTaskTriggers,
-  taskTriggers, taskTriggerInstances, frontendPages, frontendSliders, frontendComponents,
-  frontendIcons, frontendBoxes, frontendCategories, tutorials, tutorialProgress, tutorialCategories, leadSettings,
-  meetings, meetingParticipants, meetingMessages, meetingRecordings, phoneNumbers,
-  callRecords, callRecordings, callTranscripts, voicemails, callQueues, 
-  organizationTwilioSettings, organizationCallAnalytics,
-  streamSessions, streamViewers, streamInvitations, streamNotifications,
-  smartCaptureLists, smartCaptureItems, timeEntries, recurringJobSeries, calendarJobs, notifications,
-  websitePopups, liveChatSessions, liveChatMessages, liveChatDepartments, liveChatSettings,
-  websiteLayoutSettings, websiteSocialLinks, websiteFooterSections, websiteFooterLinks
+import {
+  users,
+  customers,
+  invoices,
+  invoiceLineItems,
+  quotes,
+  quoteLineItems,
+  payments,
+  projects,
+  tasks,
+  taskGroups,
+  taskTemplates,
+  expenses,
+  expenseCategories,
+  vendors,
+  expenseReports,
+  gasCards,
+  gasCardAssignments,
+  gasCardUsage,
+  gasCardProviders,
+  leads,
+  messages,
+  images,
+  settings,
+  organizations,
+  userSessions,
+  subscriptionPlans,
+  projectFiles,
+  projectWaivers,
+  fileManager,
+  fileFolders,
+  fileShares,
+  projectUsers,
+  timeClock,
+  timeClockSettings,
+  internalMessages,
+  internalMessageRecipients,
+  messageGroups,
+  messageGroupMembers,
+  inspectionTemplates,
+  inspectionItems,
+  inspectionRecords,
+  inspectionResponses,
+  inspectionNotifications,
+  smsMessages,
+  smsTemplates,
+  sharedPhotoLinks,
+  fileSecuritySettings,
+  fileSecurityScans,
+  fileAccessLogs,
+  digitalSignatures,
+  documentSignatureFields,
+  departments,
+  employees,
+  employeeDocuments,
+  timeOffRequests,
+  performanceReviews,
+  disciplinaryActions,
+  navigationOrder,
+  backupSettings,
+  backupJobs,
+  partsSupplies,
+  partsCategories,
+  inventoryTransactions,
+  stockAlerts,
+  filePermissions,
+  folderPermissions,
+  defaultPermissions,
+  userDashboardSettings,
+  dashboardProfiles,
+  vehicles,
+  vehicleMaintenanceIntervals,
+  vehicleMaintenanceRecords,
+  vehicleJobAssignments,
+  timeClockTaskTriggers,
+  taskTriggers,
+  taskTriggerInstances,
+  frontendPages,
+  frontendSliders,
+  frontendComponents,
+  frontendIcons,
+  frontendBoxes,
+  frontendCategories,
+  tutorials,
+  tutorialProgress,
+  tutorialCategories,
+  leadSettings,
+  meetings,
+  meetingParticipants,
+  meetingMessages,
+  meetingRecordings,
+  phoneNumbers,
+  callRecords,
+  callRecordings,
+  callTranscripts,
+  voicemails,
+  callQueues,
+  organizationTwilioSettings,
+  organizationCallAnalytics,
+  streamSessions,
+  streamViewers,
+  streamInvitations,
+  streamNotifications,
+  smartCaptureLists,
+  smartCaptureItems,
+  timeEntries,
+  recurringJobSeries,
+  calendarJobs,
+  notifications,
+  websitePopups,
+  liveChatSessions,
+  liveChatMessages,
+  liveChatDepartments,
+  liveChatSettings,
+  websiteLayoutSettings,
+  websiteSocialLinks,
+  websiteFooterSections,
+  websiteFooterLinks,
 } from "@shared/schema";
 import { marketResearchCompetitors } from "@shared/schema";
-import type { GasCard, InsertGasCard, GasCardAssignment, InsertGasCardAssignment, GasCardUsage, InsertGasCardUsage, GasCardProvider, InsertGasCardProvider } from "@shared/schema";
-import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull, isNull, exists, ne, not, notInArray, lt, ilike, count, sum, avg, max, min } from "drizzle-orm";
-import type { 
-  User, Customer, Invoice, Quote, Project, Task, 
-  Expense, ExpenseCategory, ExpenseReport,
-  Lead, Message, Organization, Department,
-  Employee, TimeOffRequest, PerformanceReview, DisciplinaryAction,
-  NavigationOrder, InsertNavigationOrder, BackupSettings, BackupJob,
-  Meeting, MeetingParticipant, MeetingMessage, MeetingRecording,
-  InsertMeeting, InsertMeetingParticipant, InsertMeetingMessage, InsertMeetingRecording,
-  StreamSession, StreamViewer, StreamInvitation, StreamNotification,
-  InsertStreamInvitation, InsertStreamNotification,
-  SmartCaptureList, SmartCaptureItem, InsertSmartCaptureList, InsertSmartCaptureItem
+import type {
+  GasCard,
+  InsertGasCard,
+  GasCardAssignment,
+  InsertGasCardAssignment,
+  GasCardUsage,
+  InsertGasCardUsage,
+  GasCardProvider,
+  InsertGasCardProvider,
+} from "@shared/schema";
+import {
+  eq,
+  and,
+  desc,
+  asc,
+  like,
+  or,
+  sql,
+  gt,
+  gte,
+  lte,
+  inArray,
+  isNotNull,
+  isNull,
+  exists,
+  ne,
+  not,
+  notInArray,
+  lt,
+  ilike,
+  count,
+  sum,
+  avg,
+  max,
+  min,
+} from "drizzle-orm";
+import type {
+  User,
+  Customer,
+  Invoice,
+  Quote,
+  Project,
+  Task,
+  Expense,
+  ExpenseCategory,
+  ExpenseReport,
+  Lead,
+  Message,
+  Organization,
+  Department,
+  Employee,
+  TimeOffRequest,
+  PerformanceReview,
+  DisciplinaryAction,
+  NavigationOrder,
+  InsertNavigationOrder,
+  BackupSettings,
+  BackupJob,
+  Meeting,
+  MeetingParticipant,
+  MeetingMessage,
+  MeetingRecording,
+  InsertMeeting,
+  InsertMeetingParticipant,
+  InsertMeetingMessage,
+  InsertMeetingRecording,
+  StreamSession,
+  StreamViewer,
+  StreamInvitation,
+  StreamNotification,
+  InsertStreamInvitation,
+  InsertStreamNotification,
+  SmartCaptureList,
+  SmartCaptureItem,
+  InsertSmartCaptureList,
+  InsertSmartCaptureItem,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -47,14 +206,28 @@ export interface IStorage {
   createUser(userData: any): Promise<User>;
   updateUser(id: number, updates: any): Promise<User>;
   updateUserPassword(userId: number, hashedPassword: string): Promise<User>;
-  updateUserStripeInfo(userId: number, customerId: string, subscriptionId?: string): Promise<User>;
+  updateUserStripeInfo(
+    userId: number,
+    customerId: string,
+    subscriptionId?: string,
+  ): Promise<User>;
   deleteUser(id: number, deletedBy?: number): Promise<void>;
-  hardDeleteUser(id: number, deletedBy: number): Promise<{ success: boolean; message: string; dependencies?: any }>;
+  hardDeleteUser(
+    id: number,
+    deletedBy: number,
+  ): Promise<{ success: boolean; message: string; dependencies?: any }>;
   getAllUsers(organizationId?: number): Promise<User[]>;
   getUsersByOrganization(organizationId: number): Promise<User[]>;
-  getOrganizationAdminsAndManagers(organizationId: number): Promise<Array<{ id: number; email: string; firstName: string; lastName: string | null }>>; 
+  getOrganizationAdminsAndManagers(organizationId: number): Promise<
+    Array<{
+      id: number;
+      email: string;
+      firstName: string;
+      lastName: string | null;
+    }>
+  >;
   getUserStats(organizationId?: number): Promise<any>;
-  
+
   // Organization methods
   getOrganization(id: number): Promise<Organization | undefined>;
   getOrganizationById(id: number): Promise<Organization | undefined>;
@@ -64,34 +237,63 @@ export interface IStorage {
   getAllOrganizations(): Promise<Organization[]>;
   getAllOrganizationsWithDetails(): Promise<any[]>;
   getOrganizationUsage(organizationId: number): Promise<any>;
-  
+
   // Customer methods
   getCustomers(organizationId: number): Promise<Customer[]>;
   getCustomer(id: number, userId: number): Promise<Customer | undefined>;
-  getCustomerByEmail(email: string, organizationId: number): Promise<Customer | undefined>;
+  getCustomerByEmail(
+    email: string,
+    organizationId: number,
+  ): Promise<Customer | undefined>;
   createCustomer(customerData: any): Promise<Customer>;
   updateCustomer(id: number, userId: number, updates: any): Promise<Customer>;
   deleteCustomer(id: number, userId: number): Promise<boolean>;
   getCustomerLocations(organizationId: number): Promise<any[]>;
-  
+
   // Invoice methods
   getInvoices(organizationId: number): Promise<any[]>;
   getInvoice(id: number, organizationId: number): Promise<any>;
   createInvoice(invoiceData: any): Promise<any>;
   createUploadedInvoice(invoiceData: any): Promise<any>;
   updateInvoice(id: number, updates: any): Promise<any>;
-  updateInvoiceStatus(invoiceId: number, status: string, paymentMethod?: string, paidAt?: Date): Promise<any>;
+  updateInvoiceStatus(
+    invoiceId: number,
+    status: string,
+    paymentMethod?: string,
+    paidAt?: Date,
+  ): Promise<any>;
   deleteInvoice(id: number): Promise<void>;
   getInvoiceStats(organizationId: number): Promise<any>;
-  
+
   // Draft Invoice methods for Smart Capture auto-invoicing
-  ensureDraftInvoiceForProject(projectId: number, customerId: number, userId: number, organizationId: number): Promise<any>;
-  getDraftInvoiceForProject(projectId: number, organizationId: number): Promise<any>;
-  upsertDraftInvoiceLineItem(invoiceId: number, lineItemData: any, organizationId: number): Promise<any>;
-  removeDraftInvoiceLineItem(invoiceId: number, smartCaptureItemId: number): Promise<void>;
-  deleteDraftInvoiceLineItemBySmartCaptureItem(smartCaptureItemId: number, organizationId: number): Promise<boolean>;
-  finalizeDraftInvoiceForProject(projectId: number, organizationId: number): Promise<any>;
-  
+  ensureDraftInvoiceForProject(
+    projectId: number,
+    customerId: number,
+    userId: number,
+    organizationId: number,
+  ): Promise<any>;
+  getDraftInvoiceForProject(
+    projectId: number,
+    organizationId: number,
+  ): Promise<any>;
+  upsertDraftInvoiceLineItem(
+    invoiceId: number,
+    lineItemData: any,
+    organizationId: number,
+  ): Promise<any>;
+  removeDraftInvoiceLineItem(
+    invoiceId: number,
+    smartCaptureItemId: number,
+  ): Promise<void>;
+  deleteDraftInvoiceLineItemBySmartCaptureItem(
+    smartCaptureItemId: number,
+    organizationId: number,
+  ): Promise<boolean>;
+  finalizeDraftInvoiceForProject(
+    projectId: number,
+    organizationId: number,
+  ): Promise<any>;
+
   // Quote methods
   getQuotes(organizationId: number): Promise<any[]>;
   getTrashedQuotes(organizationId: number): Promise<any[]>;
@@ -101,14 +303,25 @@ export interface IStorage {
   deleteQuote(id: number, organizationId: number): Promise<boolean>;
   restoreQuote(id: number, organizationId: number): Promise<boolean>;
   hardDeleteQuote(id: number, organizationId: number): Promise<boolean>;
-  
+
   // Quote token-based response methods (no auth required)
-  getQuoteByToken(action: 'approve' | 'deny', token: string): Promise<any>;
-  generateQuoteTokens(quoteId: number): Promise<{ approvalToken: string; denialToken: string }>;
-  updateQuoteResponse(action: 'approve' | 'deny', token: string, responseMethod: string): Promise<any>;
-  
+  getQuoteByToken(action: "approve" | "deny", token: string): Promise<any>;
+  generateQuoteTokens(
+    quoteId: number,
+  ): Promise<{ approvalToken: string; denialToken: string }>;
+  updateQuoteResponse(
+    action: "approve" | "deny",
+    token: string,
+    responseMethod: string,
+  ): Promise<any>;
+
   // Project/Job methods
-  getProjects(organizationId: number, userId?: number, userRole?: string, status?: string): Promise<any[]>;
+  getProjects(
+    organizationId: number,
+    userId?: number,
+    userRole?: string,
+    status?: string,
+  ): Promise<any[]>;
   getProject(id: number, userId: number): Promise<any>;
   deleteProject(id: number, userId: number): Promise<boolean>;
   cancelProject(id: number, userId: number): Promise<boolean>;
@@ -119,22 +332,33 @@ export interface IStorage {
   getProjectsWithLocation(userId: number): Promise<any[]>;
   createProject(projectData: any): Promise<any>;
   updateProject(id: number, updates: any): Promise<any>;
-  assignUserToProject(userId: number, projectId: number, role?: string): Promise<any>;
+  assignUserToProject(
+    userId: number,
+    projectId: number,
+    role?: string,
+  ): Promise<any>;
   removeUserFromProject(userId: number, projectId: number): Promise<void>;
-  
+
   // Project waiver methods
-  attachWaiversToProject(projectId: number, waiverIds: number[], attachedBy: number): Promise<void>;
+  attachWaiversToProject(
+    projectId: number,
+    waiverIds: number[],
+    attachedBy: number,
+  ): Promise<void>;
   getProjectWaivers(projectId: number): Promise<any[]>;
   removeWaiverFromProject(projectId: number, fileId: number): Promise<void>;
-  
+
   // Recurring job methods
   createRecurringJobSeries(seriesData: any): Promise<any>;
-  generateRecurringJobOccurrences(seriesId: number, organizationId: number): Promise<void>;
+  generateRecurringJobOccurrences(
+    seriesId: number,
+    organizationId: number,
+  ): Promise<void>;
   getRecurringJobSeries(organizationId: number): Promise<any[]>;
   getRecurringJobOccurrences(seriesId: number): Promise<any[]>;
   updateRecurringJobSeries(seriesId: number, updates: any): Promise<any>;
   deactivateRecurringJobSeries(seriesId: number): Promise<void>;
-  
+
   // Expense methods
   getExpenses(organizationId: number, userId?: number): Promise<any[]>;
   getExpense(id: number, userId?: number): Promise<any>;
@@ -142,28 +366,28 @@ export interface IStorage {
   updateExpense(id: number, userId: number, updates: any): Promise<any>;
   deleteExpense(id: number, userId: number): Promise<boolean>;
   approveExpense(id: number, approvedBy: number): Promise<boolean>;
-  
+
   // Expense trash methods
   getTrashedExpenses(organizationId: number, userId?: number): Promise<any[]>;
   restoreExpense(id: number, userId: number): Promise<boolean>;
   permanentlyDeleteExpense(id: number, userId: number): Promise<boolean>;
-  
+
   // Expense categories methods
   getExpenseCategories(organizationId: number): Promise<any[]>;
   createExpenseCategory(categoryData: any): Promise<any>;
   updateExpenseCategory(id: number, updates: any): Promise<any>;
   deleteExpenseCategory(id: number): Promise<void>;
-  
+
   // Payment methods
   getPayments(userId: number): Promise<any[]>;
   createPayment(paymentData: any): Promise<any>;
-  
+
   // Lead methods
   getLeads(organizationId: number): Promise<any[]>;
   createLead(leadData: any): Promise<any>;
   updateLead(id: number, updates: any): Promise<any>;
   deleteLead(id: number): Promise<void>;
-  
+
   // Settings methods
   getSystemSettings(): Promise<any[]>;
   getSubscriptionPlans(): Promise<any[]>;
@@ -173,25 +397,29 @@ export interface IStorage {
   updateSettings(category: string, settings: any): Promise<void>;
   updateSystemSetting(key: string, value: string): Promise<void>;
   getAllOrganizationsWithDetails(): Promise<any[]>;
-  
+
   // Subscription plan management methods
   getAllSubscriptionPlans(): Promise<any[]>;
   getSubscriptionPlan(id: number): Promise<any>;
   createSubscriptionPlan(planData: any): Promise<any>;
   updateSubscriptionPlan(id: number, updates: any): Promise<any>;
   deleteSubscriptionPlan(id: number): Promise<void>;
-  
+
   // Plan feature management methods
   getPlanFeatures(): Promise<any[]>;
   createPlanFeature(featureData: any): Promise<any>;
   updatePlanFeature(id: number, updates: any): Promise<any>;
   deletePlanFeature(id: number): Promise<void>;
-  
+
   // Plan feature value management methods
   getPlanFeatureValues(planId: number): Promise<any[]>;
-  setPlanFeatureValue(planId: number, featureId: number, value: any): Promise<any>;
+  setPlanFeatureValue(
+    planId: number,
+    featureId: number,
+    value: any,
+  ): Promise<any>;
   deletePlanFeatureValue(planId: number, featureId: number): Promise<void>;
-  
+
   // File methods
   getFiles(organizationId: number, folderId?: number): Promise<any[]>;
   getAllFiles(): Promise<any[]>;
@@ -199,45 +427,90 @@ export interface IStorage {
   createFile(fileData: any): Promise<any>;
   uploadFile(fileData: any): Promise<any>;
   updateFile(id: number, updates: any): Promise<any>;
-  updateFileLocation(id: number, filePath: string, fileUrl: string, useS3: boolean): Promise<any>;
+  updateFileLocation(
+    id: number,
+    filePath: string,
+    fileUrl: string,
+    useS3: boolean,
+  ): Promise<any>;
   deleteFile(id: number): Promise<void>;
-  createTextFile(organizationId: number, userId: number, name: string, content: string, folderId?: number): Promise<any>;
+  createTextFile(
+    organizationId: number,
+    userId: number,
+    name: string,
+    content: string,
+    folderId?: number,
+  ): Promise<any>;
   updateTextFile(id: number, content: string): Promise<any>;
   convertToPdf(fileId: number, organizationId: number): Promise<string>;
   uploadProjectFile(fileData: any): Promise<any>;
   getProjectFiles(projectId: number, userId: number): Promise<any[]>;
   getProjectFile(fileId: number, userId: number): Promise<any>;
   deleteProjectFile(fileId: number, userId: number): Promise<boolean>;
-  
+
   // Time entry methods
   getTimeEntries(projectId: number, userId: number): Promise<any[]>;
-  
+
   // Folder methods
   getFolders(organizationId: number, parentId?: number): Promise<any[]>;
   createFolder(folderData: any): Promise<any>;
   updateFolder(id: number, updates: any): Promise<any>;
   deleteFolder(id: number): Promise<void>;
-  
+
   // Drag and drop methods
-  moveFileToFolder(fileId: number, folderId: number | null, userId: number): Promise<{ file: any; previousFolderId: number | null }>;
-  undoFileMove(fileId: number, previousFolderId: number | null, userId: number): Promise<any>;
-  
+  moveFileToFolder(
+    fileId: number,
+    folderId: number | null,
+    userId: number,
+  ): Promise<{ file: any; previousFolderId: number | null }>;
+  undoFileMove(
+    fileId: number,
+    previousFolderId: number | null,
+    userId: number,
+  ): Promise<any>;
+
   // File and Folder Permissions methods
   getFilePermissions(fileId: number, organizationId: number): Promise<any[]>;
-  getFolderPermissions(folderId: number, organizationId: number): Promise<any[]>;
+  getFolderPermissions(
+    folderId: number,
+    organizationId: number,
+  ): Promise<any[]>;
   createFilePermission(permissionData: any): Promise<any>;
   createFolderPermission(permissionData: any): Promise<any>;
   updateFilePermission(id: number, updates: any): Promise<any>;
   updateFolderPermission(id: number, updates: any): Promise<any>;
   deleteFilePermission(id: number): Promise<boolean>;
   deleteFolderPermission(id: number): Promise<boolean>;
-  getUserFilePermissions(userId: number, fileId: number, organizationId: number): Promise<any>;
-  getUserFolderPermissions(userId: number, folderId: number, organizationId: number): Promise<any>;
+  getUserFilePermissions(
+    userId: number,
+    fileId: number,
+    organizationId: number,
+  ): Promise<any>;
+  getUserFolderPermissions(
+    userId: number,
+    folderId: number,
+    organizationId: number,
+  ): Promise<any>;
   getDefaultPermissions(organizationId: number): Promise<any[]>;
-  setDefaultPermissions(organizationId: number, userRole: string, resourceType: string, permissions: any): Promise<any>;
-  checkFileAccess(userId: number, fileId: number, organizationId: number, action: string): Promise<boolean>;
-  checkFolderAccess(userId: number, folderId: number, organizationId: number, action: string): Promise<boolean>;
-  
+  setDefaultPermissions(
+    organizationId: number,
+    userRole: string,
+    resourceType: string,
+    permissions: any,
+  ): Promise<any>;
+  checkFileAccess(
+    userId: number,
+    fileId: number,
+    organizationId: number,
+    action: string,
+  ): Promise<boolean>;
+  checkFolderAccess(
+    userId: number,
+    folderId: number,
+    organizationId: number,
+    action: string,
+  ): Promise<boolean>;
+
   // File Share methods
   createFileShare(shareData: any): Promise<any>;
   getFileShare(id: number): Promise<any>;
@@ -245,24 +518,37 @@ export interface IStorage {
   updateFileShare(id: number, updates: any): Promise<any>;
   deleteFileShare(id: number): Promise<boolean>;
   getFileShares(fileId: number): Promise<any[]>;
-  
+
   // Dashboard Profile methods
   getDashboardProfiles(): Promise<any[]>;
   getDashboardProfile(profileType: string): Promise<any>;
   createDashboardProfile(profileData: any): Promise<any>;
   updateDashboardProfile(id: number, updates: any): Promise<any>;
-  updateUserDashboardSettings(userId: number, organizationId: number, settings: any): Promise<any>;
-  applyDashboardProfile(userId: number, organizationId: number, profileType: string): Promise<any>;
-  
+  updateUserDashboardSettings(
+    userId: number,
+    organizationId: number,
+    settings: any,
+  ): Promise<any>;
+  applyDashboardProfile(
+    userId: number,
+    organizationId: number,
+    profileType: string,
+  ): Promise<any>;
+
   // Image methods
   createImage(imageData: any): Promise<any>;
   getImages(userId: number): Promise<any[]>;
   getImageById(imageId: number): Promise<any>;
   getImagesByIds(imageIds: number[]): Promise<any[]>;
-  saveImageAnnotations(imageId: number, userId: number, annotations: any, annotatedImageUrl: string): Promise<void>;
+  saveImageAnnotations(
+    imageId: number,
+    userId: number,
+    annotations: any,
+    annotatedImageUrl: string,
+  ): Promise<void>;
   deleteImage(imageId: number, userId: number): Promise<boolean>;
   deleteImage(id: number): Promise<void>;
-  
+
   // Form Builder methods
   getCustomForms(organizationId: number): Promise<any[]>;
   getCustomForm(id: number, organizationId: number): Promise<any>;
@@ -274,14 +560,14 @@ export interface IStorage {
   getFormSubmissions(formId: number): Promise<any[]>;
   createFormSubmission(submissionData: any): Promise<any>;
   updateFormSubmissionCount(formId: number): Promise<void>;
-  
+
   // Calendar jobs methods
   getCalendarJobs(organizationId: number): Promise<any[]>;
   getCalendarJob(id: number, organizationId: number): Promise<any>;
   createCalendarJob(jobData: any): Promise<any>;
   updateCalendarJob(id: number, updates: any): Promise<any>;
   deleteCalendarJob(id: number): Promise<void>;
-  
+
   // Task management methods
   getTeamTasksForManager(userId: number): Promise<any[]>;
   getTasksCreatedByUser(userId: number): Promise<any[]>;
@@ -290,33 +576,48 @@ export interface IStorage {
   getAllTasksForOrganization(organizationId: number): Promise<any[]>;
   getAllTasks(organizationId: number): Promise<any[]>;
   createTask(taskData: any): Promise<any>;
-  createTaskForOrganization(organizationId: number, taskData: any, userId: number): Promise<any>;
+  createTaskForOrganization(
+    organizationId: number,
+    taskData: any,
+    userId: number,
+  ): Promise<any>;
   canUserDelegateTask(userId: number, assignedToId: number): Promise<boolean>;
   updateTask(id: number, userId: number, updates: any): Promise<any>;
   deleteTask(id: number): Promise<void>;
-  
+
   // Task Group methods
   getTaskGroups(organizationId: number): Promise<any[]>;
   getTaskGroup(id: number, organizationId: number): Promise<any>;
   createTaskGroup(groupData: any): Promise<any>;
-  updateTaskGroup(id: number, organizationId: number, updates: any): Promise<any>;
+  updateTaskGroup(
+    id: number,
+    organizationId: number,
+    updates: any,
+  ): Promise<any>;
   deleteTaskGroup(id: number, organizationId: number): Promise<boolean>;
-  
+
   // Task Template methods
   getTaskTemplates(taskGroupId: number): Promise<any[]>;
   getTaskTemplate(id: number): Promise<any>;
   createTaskTemplate(templateData: any): Promise<any>;
   updateTaskTemplate(id: number, updates: any): Promise<any>;
   deleteTaskTemplate(id: number): Promise<boolean>;
-  createTasksFromGroup(projectId: number, taskGroupId: number, userId: number): Promise<any[]>;
-  
+  createTasksFromGroup(
+    projectId: number,
+    taskGroupId: number,
+    userId: number,
+  ): Promise<any[]>;
+
   // GPS tracking methods
   createGPSSession(sessionData: any): Promise<any>;
   getGPSSessions(organizationId: number): Promise<any[]>;
   getGPSStats(organizationId: number): Promise<any>;
-  
+
   // SMS and Review methods
   getSmsMessages(organizationId: number): Promise<any[]>;
+  getMessages(userId: number): Promise<any[]>;
+  createMessage(messageData: any): Promise<any>;
+  updateMessageStatus(messageSid: string, status: string, errorCode?: string, errorMessage?: string): Promise<void>;
   createSmsMessage(messageData: any): Promise<any>;
   getSmsTemplates(organizationId: number): Promise<any[]>;
   createSmsTemplate(templateData: any): Promise<any>;
@@ -324,7 +625,7 @@ export interface IStorage {
   getReviewAnalytics(organizationId: number): Promise<any>;
   createReviewRequest(requestData: any): Promise<any>;
   getGoogleMyBusinessSettings(userId: number): Promise<any>;
-  
+
   // Gas card methods
   getGasCards(): Promise<GasCard[]>;
   createGasCard(data: InsertGasCard): Promise<GasCard>;
@@ -332,44 +633,93 @@ export interface IStorage {
   deleteGasCard(id: number): Promise<boolean>;
   getGasCardAssignments(): Promise<GasCardAssignment[]>;
   getActiveGasCardAssignments(): Promise<GasCardAssignment[]>;
-  createGasCardAssignment(data: InsertGasCardAssignment): Promise<GasCardAssignment>;
-  returnGasCard(assignmentId: number, returnedDate: Date): Promise<GasCardAssignment>;
-  
+  createGasCardAssignment(
+    data: InsertGasCardAssignment,
+  ): Promise<GasCardAssignment>;
+  returnGasCard(
+    assignmentId: number,
+    returnedDate: Date,
+  ): Promise<GasCardAssignment>;
+
   // Gas card usage tracking methods
-  getGasCardUsage(organizationId: number, cardId?: number, startDate?: Date, endDate?: Date): Promise<GasCardUsage[]>;
+  getGasCardUsage(
+    organizationId: number,
+    cardId?: number,
+    startDate?: Date,
+    endDate?: Date,
+  ): Promise<GasCardUsage[]>;
   createGasCardUsage(data: InsertGasCardUsage): Promise<GasCardUsage>;
-  updateGasCardUsage(id: number, data: Partial<InsertGasCardUsage>): Promise<GasCardUsage>;
+  updateGasCardUsage(
+    id: number,
+    data: Partial<InsertGasCardUsage>,
+  ): Promise<GasCardUsage>;
   deleteGasCardUsage(id: number): Promise<boolean>;
   approveGasCardUsage(id: number, approvedBy: number): Promise<GasCardUsage>;
-  
+
   // Gas card provider methods
   getGasCardProviders(organizationId: number): Promise<any[]>;
   getGasCardProvider(id: number, organizationId: number): Promise<any>;
   createGasCardProvider(providerData: any): Promise<any>;
-  updateGasCardProvider(id: number, organizationId: number, updates: any): Promise<any>;
+  updateGasCardProvider(
+    id: number,
+    organizationId: number,
+    updates: any,
+  ): Promise<any>;
   deleteGasCardProvider(id: number, organizationId: number): Promise<boolean>;
-  
+
   // Time clock methods
   getCurrentTimeClockEntry(userId: number): Promise<any>;
-  clockIn(userId: number, organizationId: number, location?: string, ipAddress?: string): Promise<any>;
+  clockIn(
+    userId: number,
+    organizationId: number,
+    location?: string,
+    ipAddress?: string,
+  ): Promise<any>;
   clockOut(userId: number, notes?: string): Promise<any>;
   startBreak(userId: number): Promise<any>;
   endBreak(userId: number): Promise<any>;
-  getTimeClockEntries(userId: number, startDate?: Date, endDate?: Date): Promise<any[]>;
-  getTimeClockEntriesForOrganization(organizationId: number, startDate?: Date, endDate?: Date): Promise<any[]>;
+  getTimeClockEntries(
+    userId: number,
+    startDate?: Date,
+    endDate?: Date,
+  ): Promise<any[]>;
+  getTimeClockEntriesForOrganization(
+    organizationId: number,
+    startDate?: Date,
+    endDate?: Date,
+  ): Promise<any[]>;
   updateTimeClockEntry(id: number, updates: any): Promise<any>;
   getTimeClockSettings(organizationId: number): Promise<any>;
   updateTimeClockSettings(organizationId: number, settings: any): Promise<any>;
-  
+
   // Time clock task trigger methods
-  getTimeClockTaskTriggers(organizationId: number, userId?: number): Promise<any[]>;
+  getTimeClockTaskTriggers(
+    organizationId: number,
+    userId?: number,
+  ): Promise<any[]>;
   getTimeClockTaskTrigger(id: number, organizationId: number): Promise<any>;
   createTimeClockTaskTrigger(triggerData: any): Promise<any>;
-  updateTimeClockTaskTrigger(id: number, organizationId: number, updates: any): Promise<any>;
-  deleteTimeClockTaskTrigger(id: number, organizationId: number): Promise<boolean>;
-  getActiveTriggersForEvent(organizationId: number, triggerEvent: string, userId?: number): Promise<any[]>;
-  processTriggerForTimeClockEvent(userId: number, organizationId: number, triggerEvent: string, eventData?: any): Promise<void>;
-  
+  updateTimeClockTaskTrigger(
+    id: number,
+    organizationId: number,
+    updates: any,
+  ): Promise<any>;
+  deleteTimeClockTaskTrigger(
+    id: number,
+    organizationId: number,
+  ): Promise<boolean>;
+  getActiveTriggersForEvent(
+    organizationId: number,
+    triggerEvent: string,
+    userId?: number,
+  ): Promise<any[]>;
+  processTriggerForTimeClockEvent(
+    userId: number,
+    organizationId: number,
+    triggerEvent: string,
+    eventData?: any,
+  ): Promise<void>;
+
   // Internal messaging methods
   getInternalMessages(userId: number): Promise<any[]>;
   getInternalMessage(messageId: number, userId: number): Promise<any>;
@@ -377,7 +727,7 @@ export interface IStorage {
   markMessageAsRead(messageId: number, userId: number): Promise<boolean>;
   deleteInternalMessage(messageId: number, userId: number): Promise<boolean>;
   sendGroupMessage(groupId: number, messageData: any): Promise<any>;
-  
+
   // Inspection methods
   getInspectionTemplates(organizationId: number, type?: string): Promise<any[]>;
   createInspectionTemplate(templateData: any): Promise<any>;
@@ -385,10 +735,14 @@ export interface IStorage {
   createInspectionItem(itemData: any): Promise<any>;
   updateInspectionItem(itemId: number, itemData: any): Promise<any>;
   deleteInspectionItem(itemId: number): Promise<boolean>;
-  getInspectionRecords(userId: number, organizationId: number, type?: string): Promise<any[]>;
+  getInspectionRecords(
+    userId: number,
+    organizationId: number,
+    type?: string,
+  ): Promise<any[]>;
   createInspectionRecord(recordData: any): Promise<any>;
   getInspectionRecord(recordId: number, userId: number): Promise<any>;
-  
+
   // Shared photo link methods
   createSharedPhotoLink(linkData: any): Promise<any>;
   getSharedPhotoLinks(userId: number): Promise<any[]>;
@@ -396,33 +750,51 @@ export interface IStorage {
   updateSharedPhotoLinkAccess(token: string): Promise<any>;
   deactivateSharedPhotoLink(linkId: number, userId: number): Promise<boolean>;
   deleteSharedPhotoLink(linkId: number, userId: number): Promise<boolean>;
-  
+
   // Image annotation methods
-  saveImageAnnotations(imageId: number, userId: number, annotations: any, annotatedImageUrl: string): Promise<any>;
-  
+  saveImageAnnotations(
+    imageId: number,
+    userId: number,
+    annotations: any,
+    annotatedImageUrl: string,
+  ): Promise<any>;
+
   // File security methods
   getFileSecuritySettings(organizationId: number): Promise<any>;
-  updateFileSecuritySettings(organizationId: number, settings: any): Promise<any>;
+  updateFileSecuritySettings(
+    organizationId: number,
+    settings: any,
+  ): Promise<any>;
   createFileSecurityScan(scanData: any): Promise<any>;
   getFileSecurityScans(organizationId: number, limit?: number): Promise<any[]>;
   getFileSecurityStats(organizationId: number): Promise<any>;
   logFileAccess(accessData: any): Promise<any>;
-  
+
   // Navigation order methods
-  getNavigationOrder(userId: number, organizationId: number): Promise<NavigationOrder | undefined>;
-  saveNavigationOrder(userId: number, organizationId: number, navigationItems: string[]): Promise<NavigationOrder>;
-  resetNavigationOrder(userId: number, organizationId: number): Promise<boolean>;
+  getNavigationOrder(
+    userId: number,
+    organizationId: number,
+  ): Promise<NavigationOrder | undefined>;
+  saveNavigationOrder(
+    userId: number,
+    organizationId: number,
+    navigationItems: string[],
+  ): Promise<NavigationOrder>;
+  resetNavigationOrder(
+    userId: number,
+    organizationId: number,
+  ): Promise<boolean>;
   getFileAccessLogs(organizationId: number, limit?: number): Promise<any[]>;
-  
+
   // File integrity methods
   getAllProjectFiles(): Promise<any[]>;
   deleteProjectFile(fileId: number): Promise<boolean>;
-  
+
   // Digital signature methods
   createDigitalSignature(signatureData: any): Promise<any>;
   getProjectSignatures(projectId: number): Promise<any[]>;
   deleteSignature(signatureId: number): Promise<boolean>;
-  
+
   // Department methods
   getDepartments(organizationId: number): Promise<Department[]>;
   getDepartment(id: number): Promise<Department | undefined>;
@@ -437,44 +809,88 @@ export interface IStorage {
   createEmployee(employeeData: any): Promise<Employee>;
   updateEmployee(id: number, updates: any): Promise<Employee>;
   deleteEmployee(id: number): Promise<boolean>;
-  
+
   // Employee Document methods
-  getEmployeeDocuments(employeeId: number, organizationId: number): Promise<any[]>;
-  getEmployeeDocument(id: number, organizationId: number): Promise<any | undefined>;
+  getEmployeeDocuments(
+    employeeId: number,
+    organizationId: number,
+  ): Promise<any[]>;
+  getEmployeeDocument(
+    id: number,
+    organizationId: number,
+  ): Promise<any | undefined>;
   createEmployeeDocument(documentData: any): Promise<any>;
   updateEmployeeDocument(id: number, updates: any): Promise<any>;
   deleteEmployeeDocument(id: number): Promise<boolean>;
-  
+
   // Time off request methods
-  getTimeOffRequests(organizationId: number, employeeId?: number): Promise<TimeOffRequest[]>;
+  getTimeOffRequests(
+    organizationId: number,
+    employeeId?: number,
+  ): Promise<TimeOffRequest[]>;
   createTimeOffRequest(requestData: any): Promise<TimeOffRequest>;
   updateTimeOffRequest(id: number, updates: any): Promise<TimeOffRequest>;
-  approveTimeOffRequest(id: number, approvedBy: number): Promise<TimeOffRequest>;
-  rejectTimeOffRequest(id: number, approvedBy: number, reason: string): Promise<TimeOffRequest>;
-  
+  approveTimeOffRequest(
+    id: number,
+    approvedBy: number,
+  ): Promise<TimeOffRequest>;
+  rejectTimeOffRequest(
+    id: number,
+    approvedBy: number,
+    reason: string,
+  ): Promise<TimeOffRequest>;
+
   // Performance review methods
-  getPerformanceReviews(organizationId: number, employeeId?: number): Promise<PerformanceReview[]>;
+  getPerformanceReviews(
+    organizationId: number,
+    employeeId?: number,
+  ): Promise<PerformanceReview[]>;
   createPerformanceReview(reviewData: any): Promise<PerformanceReview>;
   updatePerformanceReview(id: number, updates: any): Promise<PerformanceReview>;
-  
+
   // Backup methods
-  getBackupSettings(organizationId: number): Promise<BackupSettings | undefined>;
+  getBackupSettings(
+    organizationId: number,
+  ): Promise<BackupSettings | undefined>;
   createBackupSettings(settingsData: any): Promise<BackupSettings>;
-  updateBackupSettings(organizationId: number, updates: any): Promise<BackupSettings>;
+  updateBackupSettings(
+    organizationId: number,
+    updates: any,
+  ): Promise<BackupSettings>;
   getBackupJobs(organizationId: number, limit?: number): Promise<BackupJob[]>;
   createBackupJob(jobData: any): Promise<BackupJob>;
   updateBackupJob(id: number, updates: any): Promise<BackupJob>;
-  createManualBackup(organizationId: number, userId: number, options: any): Promise<any>;
-  
+  createManualBackup(
+    organizationId: number,
+    userId: number,
+    options: any,
+  ): Promise<any>;
+
   // Disciplinary action methods
-  getDisciplinaryActions(organizationId: number, employeeId?: number): Promise<DisciplinaryAction[]>;
+  getDisciplinaryActions(
+    organizationId: number,
+    employeeId?: number,
+  ): Promise<DisciplinaryAction[]>;
   createDisciplinaryAction(actionData: any): Promise<DisciplinaryAction>;
-  updateDisciplinaryAction(id: number, updates: any): Promise<DisciplinaryAction>;
+  updateDisciplinaryAction(
+    id: number,
+    updates: any,
+  ): Promise<DisciplinaryAction>;
 
   // Navigation order methods
-  getNavigationOrder(userId: number, organizationId: number): Promise<NavigationOrder | undefined>;
-  saveNavigationOrder(userId: number, organizationId: number, navigationItems: string[]): Promise<NavigationOrder>;
-  resetNavigationOrder(userId: number, organizationId: number): Promise<boolean>;
+  getNavigationOrder(
+    userId: number,
+    organizationId: number,
+  ): Promise<NavigationOrder | undefined>;
+  saveNavigationOrder(
+    userId: number,
+    organizationId: number,
+    navigationItems: string[],
+  ): Promise<NavigationOrder>;
+  resetNavigationOrder(
+    userId: number,
+    organizationId: number,
+  ): Promise<boolean>;
 
   // Parts and Supplies Inventory methods
   getPartsSupplies(organizationId: number): Promise<any[]>;
@@ -482,7 +898,12 @@ export interface IStorage {
   createPartSupply(partData: any): Promise<any>;
   updatePartSupply(id: number, updates: any): Promise<any>;
   deletePartSupply(id: number): Promise<boolean>;
-  updatePartStock(partId: number, newStock: number, userId: number, reason?: string): Promise<any>;
+  updatePartStock(
+    partId: number,
+    newStock: number,
+    userId: number,
+    reason?: string,
+  ): Promise<any>;
 
   // Parts Categories methods
   getPartsCategories(organizationId: number): Promise<any[]>;
@@ -491,7 +912,10 @@ export interface IStorage {
   deletePartsCategory(id: number): Promise<boolean>;
 
   // Inventory Transaction methods
-  getInventoryTransactions(organizationId: number, partId?: number): Promise<any[]>;
+  getInventoryTransactions(
+    organizationId: number,
+    partId?: number,
+  ): Promise<any[]>;
   createInventoryTransaction(transactionData: any): Promise<any>;
 
   // Stock Alert methods
@@ -499,110 +923,257 @@ export interface IStorage {
   createStockAlert(alertData: any): Promise<any>;
   acknowledgeStockAlert(alertId: number, userId: number): Promise<any>;
   checkAndCreateLowStockAlerts(organizationId: number): Promise<any[]>;
-  
+
   // Smart Capture methods
   getSmartCaptureLists(organizationId: number): Promise<SmartCaptureList[]>;
-  getSmartCaptureList(id: number, organizationId: number): Promise<SmartCaptureList | undefined>;
-  createSmartCaptureList(listData: InsertSmartCaptureList, organizationId: number, userId: number): Promise<SmartCaptureList>;
-  updateSmartCaptureList(id: number, organizationId: number, updates: Partial<InsertSmartCaptureList>): Promise<SmartCaptureList>;
+  getSmartCaptureList(
+    id: number,
+    organizationId: number,
+  ): Promise<SmartCaptureList | undefined>;
+  createSmartCaptureList(
+    listData: InsertSmartCaptureList,
+    organizationId: number,
+    userId: number,
+  ): Promise<SmartCaptureList>;
+  updateSmartCaptureList(
+    id: number,
+    organizationId: number,
+    updates: Partial<InsertSmartCaptureList>,
+  ): Promise<SmartCaptureList>;
   deleteSmartCaptureList(id: number, organizationId: number): Promise<boolean>;
-  getSmartCaptureItems(listId: number, organizationId: number): Promise<SmartCaptureItem[]>;
-  createSmartCaptureItem(listId: number, organizationId: number, itemData: InsertSmartCaptureItem, userId: number): Promise<SmartCaptureItem>;
-  updateSmartCaptureItem(itemId: number, organizationId: number, updates: Partial<InsertSmartCaptureItem>): Promise<SmartCaptureItem>;
-  deleteSmartCaptureItem(itemId: number, organizationId: number): Promise<boolean>;
-  createSmartCaptureItemsBulk(listId: number, organizationId: number, items: InsertSmartCaptureItem[], userId: number): Promise<SmartCaptureItem[]>;
-  
+  getSmartCaptureItems(
+    listId: number,
+    organizationId: number,
+  ): Promise<SmartCaptureItem[]>;
+  createSmartCaptureItem(
+    listId: number,
+    organizationId: number,
+    itemData: InsertSmartCaptureItem,
+    userId: number,
+  ): Promise<SmartCaptureItem>;
+  updateSmartCaptureItem(
+    itemId: number,
+    organizationId: number,
+    updates: Partial<InsertSmartCaptureItem>,
+  ): Promise<SmartCaptureItem>;
+  deleteSmartCaptureItem(
+    itemId: number,
+    organizationId: number,
+  ): Promise<boolean>;
+  createSmartCaptureItemsBulk(
+    listId: number,
+    organizationId: number,
+    items: InsertSmartCaptureItem[],
+    userId: number,
+  ): Promise<SmartCaptureItem[]>;
+
   // Smart Capture search and linking methods
-  searchSmartCaptureItems(organizationId: number, filters: { query?: string; partNumber?: string; vehicleNumber?: string; inventoryNumber?: string; limit?: number }): Promise<SmartCaptureItem[]>;
-  getSmartCaptureItemById(id: number, organizationId: number): Promise<SmartCaptureItem | null>;
-  linkProjectSmartCaptureItem(projectItemId: number, masterItemId: number, organizationId: number): Promise<SmartCaptureItem>;
-  refreshProjectSmartCapturePrice(projectItemId: number, organizationId: number): Promise<SmartCaptureItem>;
-  
+  searchSmartCaptureItems(
+    organizationId: number,
+    filters: {
+      query?: string;
+      partNumber?: string;
+      vehicleNumber?: string;
+      inventoryNumber?: string;
+      limit?: number;
+    },
+  ): Promise<SmartCaptureItem[]>;
+  getSmartCaptureItemById(
+    id: number,
+    organizationId: number,
+  ): Promise<SmartCaptureItem | null>;
+  linkProjectSmartCaptureItem(
+    projectItemId: number,
+    masterItemId: number,
+    organizationId: number,
+  ): Promise<SmartCaptureItem>;
+  refreshProjectSmartCapturePrice(
+    projectItemId: number,
+    organizationId: number,
+  ): Promise<SmartCaptureItem>;
+
   // Market Research Competitors methods
-  getMarketResearchCompetitors(organizationId: number, businessNiche?: string): Promise<any[]>;
+  getMarketResearchCompetitors(
+    organizationId: number,
+    businessNiche?: string,
+  ): Promise<any[]>;
   getMarketResearchCompetitor(id: number, organizationId: number): Promise<any>;
   createMarketResearchCompetitor(competitorData: any): Promise<any>;
   updateMarketResearchCompetitor(id: number, updates: any): Promise<any>;
   deleteMarketResearchCompetitor(id: number): Promise<void>;
-  
+
   // Task Group methods
   getTaskGroups(organizationId: number): Promise<any[]>;
   getTaskGroup(id: number, organizationId: number): Promise<any>;
   createTaskGroup(groupData: any): Promise<any>;
-  updateTaskGroup(id: number, organizationId: number, updates: any): Promise<any>;
+  updateTaskGroup(
+    id: number,
+    organizationId: number,
+    updates: any,
+  ): Promise<any>;
   deleteTaskGroup(id: number, organizationId: number): Promise<boolean>;
-  
+
   // Task Template methods
   getTaskTemplates(taskGroupId: number): Promise<any[]>;
   getTaskTemplate(id: number): Promise<any>;
   createTaskTemplate(templateData: any): Promise<any>;
   updateTaskTemplate(id: number, updates: any): Promise<any>;
   deleteTaskTemplate(id: number): Promise<boolean>;
-  createTasksFromGroup(projectId: number, taskGroupId: number, userId: number): Promise<any[]>;
-  
+  createTasksFromGroup(
+    projectId: number,
+    taskGroupId: number,
+    userId: number,
+  ): Promise<any[]>;
+
   // Vehicle Management methods
   getVehicles(organizationId: number): Promise<any[]>;
   getVehicle(id: number, organizationId: number): Promise<any>;
   createVehicle(vehicleData: any): Promise<any>;
   updateVehicle(id: number, organizationId: number, updates: any): Promise<any>;
   deleteVehicle(id: number, organizationId: number): Promise<boolean>;
-  getVehicleByNumber(vehicleNumber: string, organizationId: number): Promise<any>;
-  getVehicleByLicensePlate(licensePlate: string, organizationId: number): Promise<any>;
-  
+  getVehicleByNumber(
+    vehicleNumber: string,
+    organizationId: number,
+  ): Promise<any>;
+  getVehicleByLicensePlate(
+    licensePlate: string,
+    organizationId: number,
+  ): Promise<any>;
+
   // Vehicle Maintenance Interval methods
-  getVehicleMaintenanceIntervals(vehicleId: number, organizationId: number): Promise<any[]>;
+  getVehicleMaintenanceIntervals(
+    vehicleId: number,
+    organizationId: number,
+  ): Promise<any[]>;
   createVehicleMaintenanceInterval(intervalData: any): Promise<any>;
-  updateVehicleMaintenanceInterval(id: number, organizationId: number, updates: any): Promise<any>;
-  deleteVehicleMaintenanceInterval(id: number, organizationId: number): Promise<boolean>;
-  createDefaultMaintenanceIntervals(vehicleId: number, organizationId: number): Promise<any[]>;
-  createCustomMaintenanceIntervals(vehicleId: number, organizationId: number, customIntervals: any[]): Promise<any[]>;
-  
+  updateVehicleMaintenanceInterval(
+    id: number,
+    organizationId: number,
+    updates: any,
+  ): Promise<any>;
+  deleteVehicleMaintenanceInterval(
+    id: number,
+    organizationId: number,
+  ): Promise<boolean>;
+  createDefaultMaintenanceIntervals(
+    vehicleId: number,
+    organizationId: number,
+  ): Promise<any[]>;
+  createCustomMaintenanceIntervals(
+    vehicleId: number,
+    organizationId: number,
+    customIntervals: any[],
+  ): Promise<any[]>;
+
   // Vehicle Maintenance Record methods
-  getVehicleMaintenanceRecords(vehicleId: number, organizationId: number): Promise<any[]>;
+  getVehicleMaintenanceRecords(
+    vehicleId: number,
+    organizationId: number,
+  ): Promise<any[]>;
   createVehicleMaintenanceRecord(recordData: any): Promise<any>;
-  updateMaintenanceStatus(intervalId: number, organizationId: number, status: string): Promise<any>;
-  getMaintenanceStatusForVehicle(vehicleId: number, organizationId: number): Promise<any[]>;
-  
+  updateMaintenanceStatus(
+    intervalId: number,
+    organizationId: number,
+    status: string,
+  ): Promise<any>;
+  getMaintenanceStatusForVehicle(
+    vehicleId: number,
+    organizationId: number,
+  ): Promise<any[]>;
+
   // Vehicle Job Assignment methods
-  getVehicleJobAssignments(organizationId: number, date?: string): Promise<any[]>;
-  getVehicleJobAssignmentsByUser(userId: number, organizationId: number, date?: string): Promise<any[]>;
-  getVehicleJobAssignmentsByVehicle(vehicleId: number, organizationId: number, date?: string): Promise<any[]>;
+  getVehicleJobAssignments(
+    organizationId: number,
+    date?: string,
+  ): Promise<any[]>;
+  getVehicleJobAssignmentsByUser(
+    userId: number,
+    organizationId: number,
+    date?: string,
+  ): Promise<any[]>;
+  getVehicleJobAssignmentsByVehicle(
+    vehicleId: number,
+    organizationId: number,
+    date?: string,
+  ): Promise<any[]>;
   createVehicleJobAssignment(assignmentData: any): Promise<any>;
-  updateVehicleJobAssignment(id: number, organizationId: number, updates: any): Promise<any>;
-  deleteVehicleJobAssignment(id: number, organizationId: number): Promise<boolean>;
-  getUsersWithVehicleInspections(organizationId: number, date: string): Promise<any[]>;
-  connectUsersToVehicleJobs(organizationId: number, date: string): Promise<any[]>;
-  
+  updateVehicleJobAssignment(
+    id: number,
+    organizationId: number,
+    updates: any,
+  ): Promise<any>;
+  deleteVehicleJobAssignment(
+    id: number,
+    organizationId: number,
+  ): Promise<boolean>;
+  getUsersWithVehicleInspections(
+    organizationId: number,
+    date: string,
+  ): Promise<any[]>;
+  connectUsersToVehicleJobs(
+    organizationId: number,
+    date: string,
+  ): Promise<any[]>;
+
   // Frontend Management methods
   getFrontendCategories(organizationId: number): Promise<any[]>;
   getFrontendCategory(id: number, organizationId: number): Promise<any>;
   createFrontendCategory(categoryData: any): Promise<any>;
-  updateFrontendCategory(id: number, organizationId: number, updates: any): Promise<any>;
+  updateFrontendCategory(
+    id: number,
+    organizationId: number,
+    updates: any,
+  ): Promise<any>;
   deleteFrontendCategory(id: number, organizationId: number): Promise<boolean>;
-  
+
   getFrontendPages(organizationId: number): Promise<any[]>;
   getFrontendPage(id: number, organizationId: number): Promise<any>;
-  getPublishedFrontendPageBySlug(orgSlug: string, pageSlug: string): Promise<any>;
+  getPublishedFrontendPageBySlug(
+    orgSlug: string,
+    pageSlug: string,
+  ): Promise<any>;
   createFrontendPage(pageData: any): Promise<any>;
-  updateFrontendPage(id: number, organizationId: number, updates: any): Promise<any>;
+  updateFrontendPage(
+    id: number,
+    organizationId: number,
+    updates: any,
+  ): Promise<any>;
   deleteFrontendPage(id: number, organizationId: number): Promise<boolean>;
-  saveFrontendPageComponents(pageId: number, organizationId: number, components: any[]): Promise<boolean>;
-  
+  saveFrontendPageComponents(
+    pageId: number,
+    organizationId: number,
+    components: any[],
+  ): Promise<boolean>;
+
   getFrontendSliders(organizationId: number): Promise<any[]>;
   getFrontendSlider(id: number, organizationId: number): Promise<any>;
   createFrontendSlider(sliderData: any): Promise<any>;
-  updateFrontendSlider(id: number, organizationId: number, updates: any): Promise<any>;
+  updateFrontendSlider(
+    id: number,
+    organizationId: number,
+    updates: any,
+  ): Promise<any>;
   deleteFrontendSlider(id: number, organizationId: number): Promise<boolean>;
-  
+
   // Website Popups
   getWebsitePopups(organizationId: number): Promise<any[]>;
   getWebsitePopup(id: number, organizationId: number): Promise<any>;
   createWebsitePopup(popupData: any): Promise<any>;
-  updateWebsitePopup(id: number, organizationId: number, updates: any): Promise<any>;
+  updateWebsitePopup(
+    id: number,
+    organizationId: number,
+    updates: any,
+  ): Promise<any>;
   deleteWebsitePopup(id: number, organizationId: number): Promise<boolean>;
-  recordPopupImpression(id: number, action: 'view' | 'click' | 'dismiss'): Promise<void>;
-  getActivePopupsForPage(organizationId: number, pagePath: string): Promise<any[]>;
-  
+  recordPopupImpression(
+    id: number,
+    action: "view" | "click" | "dismiss",
+  ): Promise<void>;
+  getActivePopupsForPage(
+    organizationId: number,
+    pagePath: string,
+  ): Promise<any[]>;
+
   // Website Layout CMS
   getWebsiteLayoutSettings(organizationId: number): Promise<any>;
   updateWebsiteLayoutSettings(organizationId: number, data: any): Promise<any>;
@@ -618,47 +1189,80 @@ export interface IStorage {
   createWebsiteFooterLink(data: any): Promise<any>;
   updateWebsiteFooterLink(id: number, data: any): Promise<any>;
   deleteWebsiteFooterLink(id: number): Promise<boolean>;
-  
+
   // Live Chat
   createLiveChatSession(sessionData: any): Promise<any>;
   getLiveChatSessions(organizationId: number, status?: string): Promise<any[]>;
   getLiveChatSession(id: number): Promise<any>;
-  updateLiveChatSessionStatus(id: number, status: string, endedAt?: Date): Promise<any>;
-  assignLiveChatAgent(sessionId: number, agentId: number, agentName: string): Promise<any>;
+  updateLiveChatSessionStatus(
+    id: number,
+    status: string,
+    endedAt?: Date,
+  ): Promise<any>;
+  assignLiveChatAgent(
+    sessionId: number,
+    agentId: number,
+    agentName: string,
+  ): Promise<any>;
   closeLiveChatSession(id: number): Promise<any>;
   createLiveChatMessage(messageData: any): Promise<any>;
   getLiveChatMessages(sessionId: number): Promise<any[]>;
   markChatMessageRead(messageId: number): Promise<void>;
-  
+
   // Live Chat Departments
   getLiveChatDepartments(organizationId: number): Promise<any[]>;
   getLiveChatDepartment(id: number, organizationId: number): Promise<any>;
   createLiveChatDepartment(departmentData: any): Promise<any>;
-  updateLiveChatDepartment(id: number, organizationId: number, updates: any): Promise<any>;
-  deleteLiveChatDepartment(id: number, organizationId: number): Promise<boolean>;
-  
+  updateLiveChatDepartment(
+    id: number,
+    organizationId: number,
+    updates: any,
+  ): Promise<any>;
+  deleteLiveChatDepartment(
+    id: number,
+    organizationId: number,
+  ): Promise<boolean>;
+
   // Live Chat Settings
   getLiveChatSettings(organizationId: number): Promise<any>;
   updateLiveChatSettings(organizationId: number, updates: any): Promise<any>;
-  
-  getFrontendComponents(organizationId: number, pageId?: number): Promise<any[]>;
+
+  getFrontendComponents(
+    organizationId: number,
+    pageId?: number,
+  ): Promise<any[]>;
   getFrontendComponent(id: number, organizationId: number): Promise<any>;
   createFrontendComponent(componentData: any): Promise<any>;
-  updateFrontendComponent(id: number, organizationId: number, updates: any): Promise<any>;
+  updateFrontendComponent(
+    id: number,
+    organizationId: number,
+    updates: any,
+  ): Promise<any>;
   deleteFrontendComponent(id: number, organizationId: number): Promise<boolean>;
-  
+
   getFrontendIcons(organizationId: number): Promise<any[]>;
   getFrontendIcon(id: number, organizationId: number): Promise<any>;
   createFrontendIcon(iconData: any): Promise<any>;
-  updateFrontendIcon(id: number, organizationId: number, updates: any): Promise<any>;
+  updateFrontendIcon(
+    id: number,
+    organizationId: number,
+    updates: any,
+  ): Promise<any>;
   deleteFrontendIcon(id: number, organizationId: number): Promise<boolean>;
-  
+
   getFrontendBoxes(organizationId: number, pageId?: number): Promise<any[]>;
   getFrontendBox(id: number, organizationId: number): Promise<any>;
   createFrontendBox(boxData: any): Promise<any>;
-  updateFrontendBox(id: number, organizationId: number, updates: any): Promise<any>;
+  updateFrontendBox(
+    id: number,
+    organizationId: number,
+    updates: any,
+  ): Promise<any>;
   deleteFrontendBox(id: number, organizationId: number): Promise<boolean>;
-  updateFrontendBoxOrder(organizationId: number, boxUpdates: any[]): Promise<any[]>;
+  updateFrontendBoxOrder(
+    organizationId: number,
+    boxUpdates: any[],
+  ): Promise<any[]>;
 
   // Tutorial System methods
   getTutorials(organizationId?: number, category?: string): Promise<any[]>;
@@ -671,97 +1275,194 @@ export interface IStorage {
   updateTutorialCategory(id: number, updates: any): Promise<any>;
   deleteTutorialCategory(id: number): Promise<void>;
   getTutorialProgress(userId: number, tutorialId?: number): Promise<any[]>;
-  startTutorial(userId: number, tutorialId: number, organizationId: number): Promise<any>;
-  updateTutorialProgress(userId: number, tutorialId: number, progressData: any): Promise<any>;
-  completeTutorial(userId: number, tutorialId: number, rating?: number, feedback?: string): Promise<any>;
+  startTutorial(
+    userId: number,
+    tutorialId: number,
+    organizationId: number,
+  ): Promise<any>;
+  updateTutorialProgress(
+    userId: number,
+    tutorialId: number,
+    progressData: any,
+  ): Promise<any>;
+  completeTutorial(
+    userId: number,
+    tutorialId: number,
+    rating?: number,
+    feedback?: string,
+  ): Promise<any>;
   getUserTutorialStats(userId: number): Promise<any>;
 
   // Meeting methods
   getMeetings(organizationId: number, userId?: number): Promise<Meeting[]>;
   getMeeting(id: number, organizationId: number): Promise<Meeting | undefined>;
   createMeeting(meetingData: InsertMeeting): Promise<Meeting>;
-  updateMeeting(id: number, organizationId: number, updates: Partial<InsertMeeting>): Promise<Meeting>;
+  updateMeeting(
+    id: number,
+    organizationId: number,
+    updates: Partial<InsertMeeting>,
+  ): Promise<Meeting>;
   deleteMeeting(id: number, organizationId: number): Promise<boolean>;
   cleanupExpiredMeetings(): Promise<number>;
   joinMeeting(meetingId: number, userId: number): Promise<MeetingParticipant>;
-  joinMeetingWithStatus(meetingId: number, userId: number, status: string): Promise<MeetingParticipant>;
+  joinMeetingWithStatus(
+    meetingId: number,
+    userId: number,
+    status: string,
+  ): Promise<MeetingParticipant>;
   leaveMeeting(meetingId: number, userId: number): Promise<boolean>;
   getMeetingParticipants(meetingId: number): Promise<MeetingParticipant[]>;
   getWaitingRoomParticipants(meetingId: number): Promise<MeetingParticipant[]>;
   admitParticipant(participantId: number, admittedBy: number): Promise<boolean>;
   denyParticipant(participantId: number): Promise<boolean>;
   getMeetingMessages(meetingId: number): Promise<MeetingMessage[]>;
-  createMeetingMessage(messageData: InsertMeetingMessage): Promise<MeetingMessage>;
-  getMeetingRecordings(meetingId: number, organizationId: number): Promise<MeetingRecording[]>;
-  createMeetingRecording(recordingData: InsertMeetingRecording): Promise<MeetingRecording>;
-  updateMeetingStatus(id: number, organizationId: number, status: string): Promise<Meeting>;
+  createMeetingMessage(
+    messageData: InsertMeetingMessage,
+  ): Promise<MeetingMessage>;
+  getMeetingRecordings(
+    meetingId: number,
+    organizationId: number,
+  ): Promise<MeetingRecording[]>;
+  createMeetingRecording(
+    recordingData: InsertMeetingRecording,
+  ): Promise<MeetingRecording>;
+  updateMeetingStatus(
+    id: number,
+    organizationId: number,
+    status: string,
+  ): Promise<Meeting>;
 
   // Call Manager methods
   getPhoneNumbers(organizationId: number): Promise<any[]>;
   getPhoneNumber(id: number, organizationId: number): Promise<any>;
   createPhoneNumber(phoneData: any): Promise<any>;
-  updatePhoneNumber(id: number, organizationId: number, updates: any): Promise<any>;
+  updatePhoneNumber(
+    id: number,
+    organizationId: number,
+    updates: any,
+  ): Promise<any>;
   deletePhoneNumber(id: number, organizationId: number): Promise<boolean>;
-  
+
   // Call Record methods
-  getCallRecords(organizationId: number, phoneNumberId?: number): Promise<any[]>;
+  getCallRecords(
+    organizationId: number,
+    phoneNumberId?: number,
+  ): Promise<any[]>;
   getCallRecord(id: number, organizationId: number): Promise<any>;
   createCallRecord(callData: any): Promise<any>;
-  updateCallRecord(id: number, organizationId: number, updates: any): Promise<any>;
-  
+  updateCallRecord(
+    id: number,
+    organizationId: number,
+    updates: any,
+  ): Promise<any>;
+
   // Call Recording methods
-  getCallRecordings(organizationId: number, callRecordId?: number): Promise<any[]>;
+  getCallRecordings(
+    organizationId: number,
+    callRecordId?: number,
+  ): Promise<any[]>;
   createCallRecording(recordingData: any): Promise<any>;
-  
+
   // Voicemail methods
   getVoicemails(organizationId: number, phoneNumberId?: number): Promise<any[]>;
   createVoicemail(voicemailData: any): Promise<any>;
-  updateVoicemail(id: number, organizationId: number, updates: any): Promise<any>;
+  updateVoicemail(
+    id: number,
+    organizationId: number,
+    updates: any,
+  ): Promise<any>;
   deleteVoicemail(id: number, organizationId: number): Promise<boolean>;
-  
+
   // Call Queue methods
   getCallQueues(organizationId: number): Promise<any[]>;
   createCallQueue(queueData: any): Promise<any>;
-  updateCallQueue(id: number, organizationId: number, updates: any): Promise<any>;
+  updateCallQueue(
+    id: number,
+    organizationId: number,
+    updates: any,
+  ): Promise<any>;
   deleteCallQueue(id: number, organizationId: number): Promise<boolean>;
-  
+
   // Organization Twilio Settings methods
   getOrganizationTwilioSettings(organizationId: number): Promise<any>;
   createOrganizationTwilioSettings(settingsData: any): Promise<any>;
-  updateOrganizationTwilioSettings(organizationId: number, updates: any): Promise<any>;
-  
+  updateOrganizationTwilioSettings(
+    organizationId: number,
+    updates: any,
+  ): Promise<any>;
+
   // Organization Call Analytics methods
-  getOrganizationCallAnalytics(organizationId: number, periodStart?: Date, periodEnd?: Date): Promise<any[]>;
+  getOrganizationCallAnalytics(
+    organizationId: number,
+    periodStart?: Date,
+    periodEnd?: Date,
+  ): Promise<any[]>;
   createOrganizationCallAnalytics(analyticsData: any): Promise<any>;
-  updateOrganizationCallAnalytics(id: number, organizationId: number, updates: any): Promise<any>;
+  updateOrganizationCallAnalytics(
+    id: number,
+    organizationId: number,
+    updates: any,
+  ): Promise<any>;
 
   // Streaming methods
   getActiveStreams(organizationId: number): Promise<StreamSession[]>;
-  getStreamSession(streamId: string, organizationId: number): Promise<StreamSession | undefined>;
+  getStreamSession(
+    streamId: string,
+    organizationId: number,
+  ): Promise<StreamSession | undefined>;
   createStreamSession(streamData: any): Promise<StreamSession>;
-  updateStreamSession(streamId: string, organizationId: number, updates: any): Promise<StreamSession>;
-  endStreamSession(streamId: string, organizationId: number): Promise<StreamSession>;
+  updateStreamSession(
+    streamId: string,
+    organizationId: number,
+    updates: any,
+  ): Promise<StreamSession>;
+  endStreamSession(
+    streamId: string,
+    organizationId: number,
+  ): Promise<StreamSession>;
   getStreamViewers(streamId: string): Promise<StreamViewer[]>;
   addStreamViewer(streamId: string, userId: number): Promise<StreamViewer>;
   removeStreamViewer(streamId: string, userId: number): Promise<boolean>;
-  
-  // Stream invitation methods
-  createStreamInvitation(invitationData: InsertStreamInvitation): Promise<StreamInvitation>;
-  getStreamInvitations(streamId: string, organizationId: number): Promise<StreamInvitation[]>;
-  getUserStreamInvitations(userId: number, organizationId: number): Promise<StreamInvitation[]>;
-  updateStreamInvitation(invitationId: number, updates: any): Promise<StreamInvitation>;
-  respondToStreamInvitation(invitationId: number, status: 'accepted' | 'declined'): Promise<StreamInvitation>;
-  
-  // Stream notification methods
-  createStreamNotification(notificationData: InsertStreamNotification): Promise<StreamNotification>;
-  getUserStreamNotifications(userId: number, organizationId: number): Promise<StreamNotification[]>;
-  markStreamNotificationAsRead(notificationId: number): Promise<StreamNotification>;
-  markStreamNotificationAsDelivered(notificationId: number, deliveryType: 'websocket' | 'email'): Promise<StreamNotification>;
 
+  // Stream invitation methods
+  createStreamInvitation(
+    invitationData: InsertStreamInvitation,
+  ): Promise<StreamInvitation>;
+  getStreamInvitations(
+    streamId: string,
+    organizationId: number,
+  ): Promise<StreamInvitation[]>;
+  getUserStreamInvitations(
+    userId: number,
+    organizationId: number,
+  ): Promise<StreamInvitation[]>;
+  updateStreamInvitation(
+    invitationId: number,
+    updates: any,
+  ): Promise<StreamInvitation>;
+  respondToStreamInvitation(
+    invitationId: number,
+    status: "accepted" | "declined",
+  ): Promise<StreamInvitation>;
+
+  // Stream notification methods
+  createStreamNotification(
+    notificationData: InsertStreamNotification,
+  ): Promise<StreamNotification>;
+  getUserStreamNotifications(
+    userId: number,
+    organizationId: number,
+  ): Promise<StreamNotification[]>;
+  markStreamNotificationAsRead(
+    notificationId: number,
+  ): Promise<StreamNotification>;
+  markStreamNotificationAsDelivered(
+    notificationId: number,
+    deliveryType: "websocket" | "email",
+  ): Promise<StreamNotification>;
 }
 
 export class DatabaseStorage implements IStorage {
-  
   // User methods
   async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
@@ -769,7 +1470,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.username, username));
     return user || undefined;
   }
 
@@ -782,10 +1486,12 @@ export class DatabaseStorage implements IStorage {
     const [user] = await db
       .select()
       .from(users)
-      .where(and(
-        eq(users.passwordResetToken, token),
-        gt(users.passwordResetExpires, new Date())
-      ))
+      .where(
+        and(
+          eq(users.passwordResetToken, token),
+          gt(users.passwordResetExpires, new Date()),
+        ),
+      )
       .limit(1);
     return user || undefined;
   }
@@ -796,20 +1502,19 @@ export class DatabaseStorage implements IStorage {
       username: userData.username,
       password: userData.password,
       email: userData.email,
-      role: userData.role || 'user',
-      isActive: userData.isActive ?? true
+      role: userData.role || "user",
+      isActive: userData.isActive ?? true,
     };
-    
+
     if (userData.firstName) insertData.firstName = userData.firstName;
-    if (userData.isDemoAccount !== undefined) insertData.isDemoAccount = userData.isDemoAccount;
-    if (userData.demoExpiresAt) insertData.demoExpiresAt = userData.demoExpiresAt;
+    if (userData.isDemoAccount !== undefined)
+      insertData.isDemoAccount = userData.isDemoAccount;
+    if (userData.demoExpiresAt)
+      insertData.demoExpiresAt = userData.demoExpiresAt;
     if (userData.lastName) insertData.lastName = userData.lastName;
     if (userData.lastLoginAt) insertData.lastLoginAt = userData.lastLoginAt;
 
-    const [user] = await db
-      .insert(users)
-      .values(insertData)
-      .returning();
+    const [user] = await db.insert(users).values(insertData).returning();
 
     // Automatically create employee record when user is created
     try {
@@ -817,15 +1522,15 @@ export class DatabaseStorage implements IStorage {
         userId: user.id,
         organizationId: user.organizationId,
         firstName: user.firstName || user.username,
-        lastName: user.lastName || '',
+        lastName: user.lastName || "",
         email: user.email,
-        position: userData.position || 'Employee',
-        department: userData.department || 'General',
+        position: userData.position || "Employee",
+        department: userData.department || "General",
         hireDate: new Date(),
-        status: 'active'
+        status: "active",
       });
     } catch (error) {
-      console.error('Error creating employee record for user:', error);
+      console.error("Error creating employee record for user:", error);
       // Don't fail user creation if employee creation fails
     }
 
@@ -836,62 +1541,110 @@ export class DatabaseStorage implements IStorage {
     const updateData: any = {};
     if (updates.username !== undefined) updateData.username = updates.username;
     if (updates.email !== undefined) updateData.email = updates.email;
-    if (updates.firstName !== undefined) updateData.firstName = updates.firstName;
+    if (updates.firstName !== undefined)
+      updateData.firstName = updates.firstName;
     if (updates.lastName !== undefined) updateData.lastName = updates.lastName;
     if (updates.role !== undefined) updateData.role = updates.role;
     if (updates.isActive !== undefined) updateData.isActive = updates.isActive;
-    if (updates.lastLoginAt !== undefined) updateData.lastLoginAt = updates.lastLoginAt;
-    
+    if (updates.lastLoginAt !== undefined)
+      updateData.lastLoginAt = updates.lastLoginAt;
+
     // Permission fields
-    if (updates.canViewProfiles !== undefined) updateData.canViewProfiles = updates.canViewProfiles;
-    if (updates.canEditProfiles !== undefined) updateData.canEditProfiles = updates.canEditProfiles;
-    if (updates.canCreateInvoices !== undefined) updateData.canCreateInvoices = updates.canCreateInvoices;
-    if (updates.canViewAllData !== undefined) updateData.canViewAllData = updates.canViewAllData;
-    if (updates.canManageProjects !== undefined) updateData.canManageProjects = updates.canManageProjects;
-    if (updates.canAccessReports !== undefined) updateData.canAccessReports = updates.canAccessReports;
-    
+    if (updates.canViewProfiles !== undefined)
+      updateData.canViewProfiles = updates.canViewProfiles;
+    if (updates.canEditProfiles !== undefined)
+      updateData.canEditProfiles = updates.canEditProfiles;
+    if (updates.canCreateInvoices !== undefined)
+      updateData.canCreateInvoices = updates.canCreateInvoices;
+    if (updates.canViewAllData !== undefined)
+      updateData.canViewAllData = updates.canViewAllData;
+    if (updates.canManageProjects !== undefined)
+      updateData.canManageProjects = updates.canManageProjects;
+    if (updates.canAccessReports !== undefined)
+      updateData.canAccessReports = updates.canAccessReports;
+
     // Tab access permissions
-    if (updates.canAccessDashboard !== undefined) updateData.canAccessDashboard = updates.canAccessDashboard;
-    if (updates.canAccessCustomers !== undefined) updateData.canAccessCustomers = updates.canAccessCustomers;
-    if (updates.canAccessProjects !== undefined) updateData.canAccessProjects = updates.canAccessProjects;
-    if (updates.canAccessInvoices !== undefined) updateData.canAccessInvoices = updates.canAccessInvoices;
-    if (updates.canAccessQuotes !== undefined) updateData.canAccessQuotes = updates.canAccessQuotes;
-    if (updates.canAccessExpenses !== undefined) updateData.canAccessExpenses = updates.canAccessExpenses;
-    if (updates.canAccessExpenseReports !== undefined) updateData.canAccessExpenseReports = updates.canAccessExpenseReports;
-    if (updates.canAccessPayments !== undefined) updateData.canAccessPayments = updates.canAccessPayments;
-    if (updates.canAccessMessages !== undefined) updateData.canAccessMessages = updates.canAccessMessages;
-    if (updates.canAccessInternalMessages !== undefined) updateData.canAccessInternalMessages = updates.canAccessInternalMessages;
-    if (updates.canAccessSMS !== undefined) updateData.canAccessSMS = updates.canAccessSMS;
-    if (updates.canAccessCalendar !== undefined) updateData.canAccessCalendar = updates.canAccessCalendar;
-    if (updates.canAccessImageGallery !== undefined) updateData.canAccessImageGallery = updates.canAccessImageGallery;
-    if (updates.canAccessReviews !== undefined) updateData.canAccessReviews = updates.canAccessReviews;
-    if (updates.canAccessMarketResearch !== undefined) updateData.canAccessMarketResearch = updates.canAccessMarketResearch;
-    if (updates.canAccessLeads !== undefined) updateData.canAccessLeads = updates.canAccessLeads;
-    if (updates.canAccessGasCards !== undefined) updateData.canAccessGasCards = updates.canAccessGasCards;
-    if (updates.canAccessSettings !== undefined) updateData.canAccessSettings = updates.canAccessSettings;
-    if (updates.canAccessUsers !== undefined) updateData.canAccessUsers = updates.canAccessUsers;
-    if (updates.canAccessAdminSettings !== undefined) updateData.canAccessAdminSettings = updates.canAccessAdminSettings;
-    if (updates.canAccessHR !== undefined) updateData.canAccessHR = updates.canAccessHR;
-    if (updates.canAccessSaasAdmin !== undefined) updateData.canAccessSaasAdmin = updates.canAccessSaasAdmin;
-    if (updates.canAccessExpenseCategories !== undefined) updateData.canAccessExpenseCategories = updates.canAccessExpenseCategories;
-    if (updates.canAccessGasCardProviders !== undefined) updateData.canAccessGasCardProviders = updates.canAccessGasCardProviders;
-    if (updates.canAccessFileManager !== undefined) updateData.canAccessFileManager = updates.canAccessFileManager;
-    if (updates.canAccessFormBuilder !== undefined) updateData.canAccessFormBuilder = updates.canAccessFormBuilder;
-    if (updates.canAccessTimeClock !== undefined) updateData.canAccessTimeClock = updates.canAccessTimeClock;
-    if (updates.canAccessMyTasks !== undefined) updateData.canAccessMyTasks = updates.canAccessMyTasks;
-    if (updates.canAccessInspections !== undefined) updateData.canAccessInspections = updates.canAccessInspections;
-    if (updates.canAccessGpsTracking !== undefined) updateData.canAccessGpsTracking = updates.canAccessGpsTracking;
-    if (updates.canAccessMobileTest !== undefined) updateData.canAccessMobileTest = updates.canAccessMobileTest;
-    if (updates.canAccessJobs !== undefined) updateData.canAccessJobs = updates.canAccessJobs;
-    if (updates.canAccessLiveStream !== undefined) updateData.canAccessLiveStream = updates.canAccessLiveStream;
-    
+    if (updates.canAccessDashboard !== undefined)
+      updateData.canAccessDashboard = updates.canAccessDashboard;
+    if (updates.canAccessCustomers !== undefined)
+      updateData.canAccessCustomers = updates.canAccessCustomers;
+    if (updates.canAccessProjects !== undefined)
+      updateData.canAccessProjects = updates.canAccessProjects;
+    if (updates.canAccessInvoices !== undefined)
+      updateData.canAccessInvoices = updates.canAccessInvoices;
+    if (updates.canAccessQuotes !== undefined)
+      updateData.canAccessQuotes = updates.canAccessQuotes;
+    if (updates.canAccessExpenses !== undefined)
+      updateData.canAccessExpenses = updates.canAccessExpenses;
+    if (updates.canAccessExpenseReports !== undefined)
+      updateData.canAccessExpenseReports = updates.canAccessExpenseReports;
+    if (updates.canAccessPayments !== undefined)
+      updateData.canAccessPayments = updates.canAccessPayments;
+    if (updates.canAccessMessages !== undefined)
+      updateData.canAccessMessages = updates.canAccessMessages;
+    if (updates.canAccessInternalMessages !== undefined)
+      updateData.canAccessInternalMessages = updates.canAccessInternalMessages;
+    if (updates.canAccessSMS !== undefined)
+      updateData.canAccessSMS = updates.canAccessSMS;
+    if (updates.canAccessCalendar !== undefined)
+      updateData.canAccessCalendar = updates.canAccessCalendar;
+    if (updates.canAccessImageGallery !== undefined)
+      updateData.canAccessImageGallery = updates.canAccessImageGallery;
+    if (updates.canAccessReviews !== undefined)
+      updateData.canAccessReviews = updates.canAccessReviews;
+    if (updates.canAccessMarketResearch !== undefined)
+      updateData.canAccessMarketResearch = updates.canAccessMarketResearch;
+    if (updates.canAccessLeads !== undefined)
+      updateData.canAccessLeads = updates.canAccessLeads;
+    if (updates.canAccessGasCards !== undefined)
+      updateData.canAccessGasCards = updates.canAccessGasCards;
+    if (updates.canAccessSettings !== undefined)
+      updateData.canAccessSettings = updates.canAccessSettings;
+    if (updates.canAccessUsers !== undefined)
+      updateData.canAccessUsers = updates.canAccessUsers;
+    if (updates.canAccessAdminSettings !== undefined)
+      updateData.canAccessAdminSettings = updates.canAccessAdminSettings;
+    if (updates.canAccessHR !== undefined)
+      updateData.canAccessHR = updates.canAccessHR;
+    if (updates.canAccessSaasAdmin !== undefined)
+      updateData.canAccessSaasAdmin = updates.canAccessSaasAdmin;
+    if (updates.canAccessExpenseCategories !== undefined)
+      updateData.canAccessExpenseCategories =
+        updates.canAccessExpenseCategories;
+    if (updates.canAccessGasCardProviders !== undefined)
+      updateData.canAccessGasCardProviders = updates.canAccessGasCardProviders;
+    if (updates.canAccessFileManager !== undefined)
+      updateData.canAccessFileManager = updates.canAccessFileManager;
+    if (updates.canAccessFormBuilder !== undefined)
+      updateData.canAccessFormBuilder = updates.canAccessFormBuilder;
+    if (updates.canAccessTimeClock !== undefined)
+      updateData.canAccessTimeClock = updates.canAccessTimeClock;
+    if (updates.canAccessMyTasks !== undefined)
+      updateData.canAccessMyTasks = updates.canAccessMyTasks;
+    if (updates.canAccessInspections !== undefined)
+      updateData.canAccessInspections = updates.canAccessInspections;
+    if (updates.canAccessGpsTracking !== undefined)
+      updateData.canAccessGpsTracking = updates.canAccessGpsTracking;
+    if (updates.canAccessMobileTest !== undefined)
+      updateData.canAccessMobileTest = updates.canAccessMobileTest;
+    if (updates.canAccessJobs !== undefined)
+      updateData.canAccessJobs = updates.canAccessJobs;
+    if (updates.canAccessLiveStream !== undefined)
+      updateData.canAccessLiveStream = updates.canAccessLiveStream;
+
     // HR-specific permissions
-    if (updates.canViewHREmployees !== undefined) updateData.canViewHREmployees = updates.canViewHREmployees;
-    if (updates.canEditHREmployees !== undefined) updateData.canEditHREmployees = updates.canEditHREmployees;  
-    if (updates.canViewAllEmployees !== undefined) updateData.canViewAllEmployees = updates.canViewAllEmployees;
-    if (updates.canEditAllEmployees !== undefined) updateData.canEditAllEmployees = updates.canEditAllEmployees;
-    if (updates.canViewOwnHRProfile !== undefined) updateData.canViewOwnHRProfile = updates.canViewOwnHRProfile;
-    if (updates.canEditOwnHRProfile !== undefined) updateData.canEditOwnHRProfile = updates.canEditOwnHRProfile;
+    if (updates.canViewHREmployees !== undefined)
+      updateData.canViewHREmployees = updates.canViewHREmployees;
+    if (updates.canEditHREmployees !== undefined)
+      updateData.canEditHREmployees = updates.canEditHREmployees;
+    if (updates.canViewAllEmployees !== undefined)
+      updateData.canViewAllEmployees = updates.canViewAllEmployees;
+    if (updates.canEditAllEmployees !== undefined)
+      updateData.canEditAllEmployees = updates.canEditAllEmployees;
+    if (updates.canViewOwnHRProfile !== undefined)
+      updateData.canViewOwnHRProfile = updates.canViewOwnHRProfile;
+    if (updates.canEditOwnHRProfile !== undefined)
+      updateData.canEditOwnHRProfile = updates.canEditOwnHRProfile;
 
     // Check if there are any fields to update
     if (Object.keys(updateData).length === 0) {
@@ -911,7 +1664,10 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async updateUserPassword(userId: number, hashedPassword: string): Promise<User> {
+  async updateUserPassword(
+    userId: number,
+    hashedPassword: string,
+  ): Promise<User> {
     const [user] = await db
       .update(users)
       .set({ password: hashedPassword, updatedAt: new Date() })
@@ -920,7 +1676,11 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async updateUserStripeInfo(userId: number, customerId: string, subscriptionId?: string): Promise<User> {
+  async updateUserStripeInfo(
+    userId: number,
+    customerId: string,
+    subscriptionId?: string,
+  ): Promise<User> {
     const updateData: any = { stripeCustomerId: customerId };
     if (subscriptionId) {
       updateData.stripeSubscriptionId = subscriptionId;
@@ -943,7 +1703,7 @@ export class DatabaseStorage implements IStorage {
           deletedAt: new Date(),
           deletedBy: deletedBy || null,
           passwordResetToken: null,
-          passwordResetExpires: null
+          passwordResetExpires: null,
         })
         .where(eq(users.id, id));
 
@@ -951,7 +1711,10 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
-  async hardDeleteUser(id: number, deletedBy: number): Promise<{ success: boolean; message: string; dependencies?: any }> {
+  async hardDeleteUser(
+    id: number,
+    deletedBy: number,
+  ): Promise<{ success: boolean; message: string; dependencies?: any }> {
     // Check if user exists and is inactive
     const user = await this.getUser(id);
     if (!user) {
@@ -959,7 +1722,11 @@ export class DatabaseStorage implements IStorage {
     }
 
     if (user.isActive) {
-      return { success: false, message: "Can only hard delete inactive users. Please deactivate the user first." };
+      return {
+        success: false,
+        message:
+          "Can only hard delete inactive users. Please deactivate the user first.",
+      };
     }
 
     // Check for critical business data dependencies
@@ -970,59 +1737,68 @@ export class DatabaseStorage implements IStorage {
       expenses: 0,
       customers: 0,
       payments: 0,
-      internalMessages: 0
+      internalMessages: 0,
     };
 
     try {
       // Count critical business records
-      const [jobCount] = await db.select({ count: sql<number>`count(*)` })
+      const [jobCount] = await db
+        .select({ count: sql<number>`count(*)` })
         .from(calendarJobs)
         .where(eq(calendarJobs.userId, id));
       dependencies.jobs = Number(jobCount.count);
 
-      const [invoiceCount] = await db.select({ count: sql<number>`count(*)` })
+      const [invoiceCount] = await db
+        .select({ count: sql<number>`count(*)` })
         .from(invoices)
         .where(eq(invoices.createdBy, id));
       dependencies.invoices = Number(invoiceCount.count);
 
-      const [quoteCount] = await db.select({ count: sql<number>`count(*)` })
+      const [quoteCount] = await db
+        .select({ count: sql<number>`count(*)` })
         .from(quotes)
         .where(eq(quotes.createdBy, id));
       dependencies.quotes = Number(quoteCount.count);
 
-      const [expenseCount] = await db.select({ count: sql<number>`count(*)` })
+      const [expenseCount] = await db
+        .select({ count: sql<number>`count(*)` })
         .from(expenses)
         .where(eq(expenses.userId, id));
       dependencies.expenses = Number(expenseCount.count);
 
-      const [customerCount] = await db.select({ count: sql<number>`count(*)` })
+      const [customerCount] = await db
+        .select({ count: sql<number>`count(*)` })
         .from(customers)
         .where(eq(customers.createdBy, id));
       dependencies.customers = Number(customerCount.count);
 
-      const [paymentCount] = await db.select({ count: sql<number>`count(*)` })
+      const [paymentCount] = await db
+        .select({ count: sql<number>`count(*)` })
         .from(payments)
         .where(eq(payments.createdBy, id));
       dependencies.payments = Number(paymentCount.count);
 
-      const [messageCount] = await db.select({ count: sql<number>`count(*)` })
+      const [messageCount] = await db
+        .select({ count: sql<number>`count(*)` })
         .from(internalMessages)
         .where(eq(internalMessages.senderId, id));
       dependencies.internalMessages = Number(messageCount.count);
 
       // Check if user has any critical data
-      const hasData = Object.values(dependencies).some((count: any) => count > 0);
+      const hasData = Object.values(dependencies).some(
+        (count: any) => count > 0,
+      );
 
       if (hasData) {
         return {
           success: false,
-          message: `Cannot permanently delete user with existing business records. User has: ${
-            Object.entries(dependencies)
-              .filter(([_, count]) => count > 0)
-              .map(([key, count]) => `${count} ${key}`)
-              .join(', ')
-          }. User will remain deactivated.`,
-          dependencies
+          message: `Cannot permanently delete user with existing business records. User has: ${Object.entries(
+            dependencies,
+          )
+            .filter(([_, count]) => count > 0)
+            .map(([key, count]) => `${count} ${key}`)
+            .join(", ")}. User will remain deactivated.`,
+          dependencies,
         };
       }
 
@@ -1031,24 +1807,26 @@ export class DatabaseStorage implements IStorage {
         // Delete ephemeral data
         await tx.delete(userSessions).where(eq(userSessions.userId, id));
         await tx.delete(notifications).where(eq(notifications.userId, id));
-        
+
         // Delete the user record
         await tx.delete(users).where(eq(users.id, id));
       });
 
-      console.log(`✅ Hard deleted user ${id} (${user.username}) by admin ${deletedBy} - no business data dependencies`);
-      return { 
-        success: true, 
-        message: "User permanently deleted successfully. User had no business records.",
-        dependencies 
+      console.log(
+        `✅ Hard deleted user ${id} (${user.username}) by admin ${deletedBy} - no business data dependencies`,
+      );
+      return {
+        success: true,
+        message:
+          "User permanently deleted successfully. User had no business records.",
+        dependencies,
       };
-
     } catch (error) {
       console.error("Error during hard delete dependency check:", error);
       return {
         success: false,
         message: `Failed to delete user: ${error}`,
-        dependencies
+        dependencies,
       };
     }
   }
@@ -1069,20 +1847,18 @@ export class DatabaseStorage implements IStorage {
           state: customers.state,
           zipCode: customers.zipCode,
           country: customers.country,
-          createdAt: customers.createdAt
+          createdAt: customers.createdAt,
         })
         .from(customers)
         .where(eq(customers.organizationId, organizationId))
         .orderBy(desc(customers.createdAt));
-      
+
       return results;
     } catch (error) {
-      console.error('Error fetching customers:', error);
+      console.error("Error fetching customers:", error);
       return [];
     }
   }
-
-
 
   async getCustomer(id: number, userId: number): Promise<Customer | undefined> {
     const [customer] = await db
@@ -1093,28 +1869,33 @@ export class DatabaseStorage implements IStorage {
     return customer || undefined;
   }
 
-  async getCustomerByEmail(email: string, organizationId: number): Promise<Customer | undefined> {
+  async getCustomerByEmail(
+    email: string,
+    organizationId: number,
+  ): Promise<Customer | undefined> {
     const [customer] = await db
       .select()
       .from(customers)
       .innerJoin(users, eq(customers.userId, users.id))
-      .where(and(
-        eq(customers.email, email),
-        eq(users.organizationId, organizationId)
-      ));
+      .where(
+        and(
+          eq(customers.email, email),
+          eq(users.organizationId, organizationId),
+        ),
+      );
     return customer || undefined;
   }
 
   async createCustomer(customerData: any): Promise<Customer> {
     console.log("💾 Storage createCustomer called with data:", customerData);
-    
+
     const insertData: any = {
-      userId: customerData.userId,  // This should be the actual userId who created the customer
-      organizationId: customerData.organizationId,  // FIXED: Include organizationId
+      userId: customerData.userId, // This should be the actual userId who created the customer
+      organizationId: customerData.organizationId, // FIXED: Include organizationId
       name: customerData.name,
-      email: customerData.email
+      email: customerData.email,
     };
-    
+
     if (customerData.phone) insertData.phone = customerData.phone;
     if (customerData.address) insertData.address = customerData.address;
     if (customerData.city) insertData.city = customerData.city;
@@ -1131,7 +1912,11 @@ export class DatabaseStorage implements IStorage {
     return customer;
   }
 
-  async updateCustomer(id: number, userId: number, updates: any): Promise<Customer> {
+  async updateCustomer(
+    id: number,
+    userId: number,
+    updates: any,
+  ): Promise<Customer> {
     const [customer] = await db
       .update(customers)
       .set(updates)
@@ -1141,32 +1926,37 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteCustomer(id: number, userId: number): Promise<boolean> {
-    const result = await db
-      .delete(customers)
-      .where(eq(customers.id, id));
+    const result = await db.delete(customers).where(eq(customers.id, id));
     return result.rowCount > 0;
   }
 
   async getCustomerLocations(organizationId: number): Promise<any[]> {
     try {
-      console.log('📍 getCustomerLocations called for org:', organizationId, 'Type:', typeof organizationId);
-      console.log('📍 organizationId value details:', {
+      console.log(
+        "📍 getCustomerLocations called for org:",
+        organizationId,
+        "Type:",
+        typeof organizationId,
+      );
+      console.log("📍 organizationId value details:", {
         value: organizationId,
         type: typeof organizationId,
         isNaN: isNaN(organizationId),
         asNumber: Number(organizationId),
-        asString: String(organizationId)
+        asString: String(organizationId),
       });
-      
+
       // Ensure organizationId is a valid number
       const orgId = Number(organizationId);
       if (!orgId || isNaN(orgId)) {
-        console.error('❌ Invalid organizationId:', organizationId);
-        throw new Error(`Organization ID must be a valid number, got: ${organizationId} (${typeof organizationId})`);
+        console.error("❌ Invalid organizationId:", organizationId);
+        throw new Error(
+          `Organization ID must be a valid number, got: ${organizationId} (${typeof organizationId})`,
+        );
       }
-      
-      console.log('📍 Using organizationId:', orgId, 'Type:', typeof orgId);
-      
+
+      console.log("📍 Using organizationId:", orgId, "Type:", typeof orgId);
+
       // Fetch unique customer locations for autocomplete suggestions
       const locations = await db
         .select({
@@ -1178,18 +1968,18 @@ export class DatabaseStorage implements IStorage {
         .from(customers)
         .where(eq(customers.organizationId, orgId))
         .limit(100);
-      
-      console.log('📍 Found locations count:', locations.length);
-      
+
+      console.log("📍 Found locations count:", locations.length);
+
       // Filter out locations that have no address, city, or state
-      const filtered = locations.filter(location => 
-        location.address || location.city || location.state
+      const filtered = locations.filter(
+        (location) => location.address || location.city || location.state,
       );
-      
-      console.log('📍 Filtered locations count:', filtered.length);
+
+      console.log("📍 Filtered locations count:", filtered.length);
       return filtered;
     } catch (error) {
-      console.error('❌ Error in getCustomerLocations:', error);
+      console.error("❌ Error in getCustomerLocations:", error);
       throw error;
     }
   }
@@ -1229,29 +2019,41 @@ export class DatabaseStorage implements IStorage {
     return await db
       .select()
       .from(users)
-      .where(and(eq(users.organizationId, organizationId), eq(users.isActive, true)))
+      .where(
+        and(eq(users.organizationId, organizationId), eq(users.isActive, true)),
+      )
       .orderBy(users.firstName, users.lastName, users.username);
-
   }
-  async getOrganizationAdminsAndManagers(organizationId: number): Promise<Array<{ id: number; email: string; firstName: string; lastName: string | null }>> {
+  async getOrganizationAdminsAndManagers(organizationId: number): Promise<
+    Array<{
+      id: number;
+      email: string;
+      firstName: string;
+      lastName: string | null;
+    }>
+  > {
     return await db
-      .select({ 
-        id: users.id, 
-        email: users.email, 
-        firstName: users.firstName, 
-        lastName: users.lastName 
+      .select({
+        id: users.id,
+        email: users.email,
+        firstName: users.firstName,
+        lastName: users.lastName,
       })
       .from(users)
-      .where(and(
-        eq(users.organizationId, organizationId),
-        eq(users.isActive, true),
-        or(eq(users.role, 'admin'), eq(users.role, 'manager'))
-      ));
+      .where(
+        and(
+          eq(users.organizationId, organizationId),
+          eq(users.isActive, true),
+          or(eq(users.role, "admin"), eq(users.role, "manager")),
+        ),
+      );
   }
 
   async getUserStats(organizationId?: number): Promise<any> {
-    let whereCondition = organizationId ? eq(users.organizationId, organizationId) : undefined;
-    
+    let whereCondition = organizationId
+      ? eq(users.organizationId, organizationId)
+      : undefined;
+
     const [totalUsers] = await db
       .select({ count: sql<number>`count(*)` })
       .from(users)
@@ -1265,7 +2067,7 @@ export class DatabaseStorage implements IStorage {
     return {
       totalUsers: totalUsers.count,
       activeUsers: activeUsers.count,
-      inactiveUsers: totalUsers.count - activeUsers.count
+      inactiveUsers: totalUsers.count - activeUsers.count,
     };
   }
 
@@ -1280,10 +2082,10 @@ export class DatabaseStorage implements IStorage {
         .select()
         .from(organizations)
         .where(eq(organizations.id, id));
-      
+
       return organization || undefined;
     } catch (error) {
-      console.error('Error getting organization by ID:', error);
+      console.error("Error getting organization by ID:", error);
       throw error;
     }
   }
@@ -1294,25 +2096,28 @@ export class DatabaseStorage implements IStorage {
         .select()
         .from(organizations)
         .where(eq(organizations.slug, slug));
-      
+
       return organization || undefined;
     } catch (error) {
-      console.error('Error getting organization by slug:', error);
+      console.error("Error getting organization by slug:", error);
       throw error;
     }
   }
 
   // Update organization Twilio settings
-  async updateOrganizationTwilioSettings(organizationId: number, settings: any): Promise<void> {
+  async updateOrganizationTwilioSettings(
+    organizationId: number,
+    settings: any,
+  ): Promise<void> {
     try {
-      console.log('🔧 TWILIO SETTINGS DEBUG:', {
+      console.log("🔧 TWILIO SETTINGS DEBUG:", {
         organizationId,
         settings,
         accountSid: settings.accountSid,
-        authToken: settings.authToken ? 'PRESENT' : 'NULL',
+        authToken: settings.authToken ? "PRESENT" : "NULL",
         webhookUrl: settings.webhookUrl,
         statusCallbackUrl: settings.statusCallbackUrl,
-        isConfigured: settings.isConfigured
+        isConfigured: settings.isConfigured,
       });
 
       // Use raw SQL for now to avoid schema mismatch issues
@@ -1344,15 +2149,15 @@ export class DatabaseStorage implements IStorage {
           is_active = ${settings.isConfigured || false},
           updated_at = NOW()
       `);
-      
-      console.log('✅ TWILIO SETTINGS UPDATED:', result);
+
+      console.log("✅ TWILIO SETTINGS UPDATED:", result);
     } catch (error) {
-      console.error('❌ TWILIO SETTINGS ERROR:', error);
-      console.error('Error details:', {
+      console.error("❌ TWILIO SETTINGS ERROR:", error);
+      console.error("Error details:", {
         message: error.message,
         code: error.code,
         detail: error.detail,
-        hint: error.hint
+        hint: error.hint,
       });
       throw error;
     }
@@ -1361,12 +2166,13 @@ export class DatabaseStorage implements IStorage {
   // Get phone number by ID
   async getPhoneNumberById(phoneId: number): Promise<any> {
     try {
-      const [phoneNumber] = await db.select()
+      const [phoneNumber] = await db
+        .select()
         .from(callManagerPhoneNumbers)
         .where(eq(callManagerPhoneNumbers.id, phoneId));
       return phoneNumber;
     } catch (error) {
-      console.error('Error getting phone number by ID:', error);
+      console.error("Error getting phone number by ID:", error);
       throw error;
     }
   }
@@ -1379,7 +2185,7 @@ export class DatabaseStorage implements IStorage {
         .from(users)
         .where(eq(users.organizationId, organizationId));
 
-      // Get project count  
+      // Get project count
       const projectCount = await db
         .select({ count: sql<number>`count(*)` })
         .from(projects)
@@ -1389,10 +2195,10 @@ export class DatabaseStorage implements IStorage {
       return {
         userCount: userCount[0]?.count || 0,
         projectCount: projectCount[0]?.count || 0,
-        storageUsedGB: 0 // Placeholder for storage calculation
+        storageUsedGB: 0, // Placeholder for storage calculation
       };
     } catch (error) {
-      console.error('Error getting organization usage:', error);
+      console.error("Error getting organization usage:", error);
       throw error;
     }
   }
@@ -1437,7 +2243,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.organizationId, organizationId))
       .orderBy(desc(invoices.createdAt));
 
-    return results.map(inv => ({
+    return results.map((inv) => ({
       ...inv,
       lineItems: [],
     }));
@@ -1475,10 +2281,7 @@ export class DatabaseStorage implements IStorage {
       .from(invoices)
       .leftJoin(customers, eq(invoices.customerId, customers.id))
       .innerJoin(users, eq(invoices.userId, users.id))
-      .where(and(
-        eq(invoices.id, id),
-        eq(users.organizationId, organizationId)
-      ))
+      .where(and(eq(invoices.id, id), eq(users.organizationId, organizationId)))
       .limit(1);
 
     if (!invoice) {
@@ -1493,15 +2296,12 @@ export class DatabaseStorage implements IStorage {
 
     return {
       ...invoice,
-      items: lineItems
+      items: lineItems,
     };
   }
 
   async createInvoice(invoiceData: any): Promise<any> {
-    const [invoice] = await db
-      .insert(invoices)
-      .values(invoiceData)
-      .returning();
+    const [invoice] = await db.insert(invoices).values(invoiceData).returning();
     return invoice;
   }
 
@@ -1526,18 +2326,28 @@ export class DatabaseStorage implements IStorage {
     return invoice;
   }
 
-  async updateInvoiceStatus(invoiceId: number, status: string, paymentMethod?: string, paidAt?: Date): Promise<any> {
+  async updateInvoiceStatus(
+    invoiceId: number,
+    status: string,
+    paymentMethod?: string,
+    paidAt?: Date,
+  ): Promise<any> {
     const updateData: any = {
       status,
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
 
-    if (status === 'paid') {
+    if (status === "paid") {
       updateData.paidAt = paidAt || new Date();
       if (paymentMethod) {
         updateData.paymentMethod = paymentMethod;
       }
-    } else if (status === 'draft' || status === 'sent' || status === 'overdue' || status === 'cancelled') {
+    } else if (
+      status === "draft" ||
+      status === "sent" ||
+      status === "overdue" ||
+      status === "cancelled"
+    ) {
       // For non-paid statuses, clear payment fields
       updateData.paidAt = null;
       updateData.paymentMethod = null;
@@ -1548,7 +2358,7 @@ export class DatabaseStorage implements IStorage {
       .set(updateData)
       .where(eq(invoices.id, invoiceId))
       .returning();
-    
+
     return invoice;
   }
 
@@ -1566,45 +2376,54 @@ export class DatabaseStorage implements IStorage {
 
     // Get paid invoices count and revenue
     const [paidInvoices] = await db
-      .select({ 
+      .select({
         count: sql<number>`count(*)`,
-        revenue: sql<number>`COALESCE(SUM(CAST(${invoices.total} AS DECIMAL)), 0)`
+        revenue: sql<number>`COALESCE(SUM(CAST(${invoices.total} AS DECIMAL)), 0)`,
       })
       .from(invoices)
       .innerJoin(users, eq(invoices.userId, users.id))
-      .where(and(
-        eq(users.organizationId, organizationId),
-        eq(invoices.status, 'paid')
-      ));
+      .where(
+        and(
+          eq(users.organizationId, organizationId),
+          eq(invoices.status, "paid"),
+        ),
+      );
 
     // Get pending invoices (sent, pending_approval)
     const [pendingInvoices] = await db
-      .select({ 
+      .select({
         count: sql<number>`count(*)`,
-        revenue: sql<number>`COALESCE(SUM(CAST(${invoices.total} AS DECIMAL)), 0)`
+        revenue: sql<number>`COALESCE(SUM(CAST(${invoices.total} AS DECIMAL)), 0)`,
       })
       .from(invoices)
       .innerJoin(users, eq(invoices.userId, users.id))
-      .where(and(
-        eq(users.organizationId, organizationId),
-        sql`${invoices.status} IN ('sent', 'pending_approval')`
-      ));
+      .where(
+        and(
+          eq(users.organizationId, organizationId),
+          sql`${invoices.status} IN ('sent', 'pending_approval')`,
+        ),
+      );
 
     // Get overdue invoices
     const [overdueInvoices] = await db
-      .select({ 
+      .select({
         count: sql<number>`count(*)`,
-        revenue: sql<number>`COALESCE(SUM(CAST(${invoices.total} AS DECIMAL)), 0)`
+        revenue: sql<number>`COALESCE(SUM(CAST(${invoices.total} AS DECIMAL)), 0)`,
       })
       .from(invoices)
       .innerJoin(users, eq(invoices.userId, users.id))
-      .where(and(
-        eq(users.organizationId, organizationId),
-        eq(invoices.status, 'overdue')
-      ));
+      .where(
+        and(
+          eq(users.organizationId, organizationId),
+          eq(invoices.status, "overdue"),
+        ),
+      );
 
     // Calculate total revenue (paid + pending + overdue)
-    const totalRevenue = (paidInvoices?.revenue || 0) + (pendingInvoices?.revenue || 0) + (overdueInvoices?.revenue || 0);
+    const totalRevenue =
+      (paidInvoices?.revenue || 0) +
+      (pendingInvoices?.revenue || 0) +
+      (overdueInvoices?.revenue || 0);
 
     return {
       totalInvoices: totalInvoices.count || 0,
@@ -1614,18 +2433,30 @@ export class DatabaseStorage implements IStorage {
       totalRevenue: Number(totalRevenue),
       paidValue: Number(paidInvoices?.revenue || 0),
       pendingValue: Number(pendingInvoices?.revenue || 0),
-      overdueValue: Number(overdueInvoices?.revenue || 0)
+      overdueValue: Number(overdueInvoices?.revenue || 0),
     };
   }
 
   // Draft Invoice methods for Smart Capture auto-invoicing
-  async ensureDraftInvoiceForProject(projectId: number, customerId: number, userId: number, organizationId: number): Promise<any> {
+  async ensureDraftInvoiceForProject(
+    projectId: number,
+    customerId: number,
+    userId: number,
+    organizationId: number,
+  ): Promise<any> {
     // Validate organization scoping - ensure project and customer belong to the same organization
-    await this.validateProjectCustomerOrganization(projectId, customerId, organizationId);
-    
+    await this.validateProjectCustomerOrganization(
+      projectId,
+      customerId,
+      organizationId,
+    );
+
     // Check if a draft invoice already exists for this project
-    const existingDraft = await this.getDraftInvoiceForProject(projectId, organizationId);
-    
+    const existingDraft = await this.getDraftInvoiceForProject(
+      projectId,
+      organizationId,
+    );
+
     if (existingDraft) {
       return existingDraft;
     }
@@ -1633,7 +2464,7 @@ export class DatabaseStorage implements IStorage {
     // Get project details for invoice data - already validated above
     const project = await this.getProject(projectId, userId);
     if (!project) {
-      throw new Error('Project not found');
+      throw new Error("Project not found");
     }
 
     // Create a new draft invoice in a transaction
@@ -1643,16 +2474,16 @@ export class DatabaseStorage implements IStorage {
         customerId,
         projectId,
         invoiceNumber: `SC-DRAFT-${projectId}-${Date.now()}`,
-        status: 'draft',
-        subtotal: '0.00',
-        taxRate: '0.00',
-        taxAmount: '0.00',
-        total: '0.00',
-        currency: 'USD',
+        status: "draft",
+        subtotal: "0.00",
+        taxRate: "0.00",
+        taxAmount: "0.00",
+        total: "0.00",
+        currency: "USD",
         invoiceDate: new Date(),
         dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
         isSmartCaptureInvoice: true,
-        notes: `Auto-generated Smart Capture invoice for ${project.name}`
+        notes: `Auto-generated Smart Capture invoice for ${project.name}`,
       };
 
       const [invoice] = await tx
@@ -1665,38 +2496,49 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Smart Capture specific version that auto-detects customer and validates Smart Capture is enabled
-  async ensureDraftInvoiceForSmartCaptureProject(projectId: number, organizationId: number, userId: number): Promise<any> {
+  async ensureDraftInvoiceForSmartCaptureProject(
+    projectId: number,
+    organizationId: number,
+    userId: number,
+  ): Promise<any> {
     // Check if project exists and has Smart Capture enabled
     const [project] = await db
       .select({
         id: projects.id,
         customerId: projects.customerId,
         enableSmartCapture: projects.enableSmartCapture,
-        name: projects.name
+        name: projects.name,
       })
       .from(projects)
-      .where(and(
-        eq(projects.id, projectId),
-        eq(projects.organizationId, organizationId)
-      ))
+      .where(
+        and(
+          eq(projects.id, projectId),
+          eq(projects.organizationId, organizationId),
+        ),
+      )
       .limit(1);
 
     if (!project) {
-      throw new Error('Project not found or access denied');
+      throw new Error("Project not found or access denied");
     }
 
     if (!project.enableSmartCapture) {
-      throw new Error('Smart Capture is not enabled for this project');
+      throw new Error("Smart Capture is not enabled for this project");
     }
 
     if (!project.customerId) {
-      console.warn(`⚠️ Project ${projectId} has Smart Capture enabled but no customer assigned. Draft invoice creation skipped.`);
+      console.warn(
+        `⚠️ Project ${projectId} has Smart Capture enabled but no customer assigned. Draft invoice creation skipped.`,
+      );
       return null;
     }
 
     // Check if a draft invoice already exists for this project
-    const existingDraft = await this.getDraftInvoiceForProject(projectId, organizationId);
-    
+    const existingDraft = await this.getDraftInvoiceForProject(
+      projectId,
+      organizationId,
+    );
+
     if (existingDraft) {
       return existingDraft;
     }
@@ -1708,16 +2550,16 @@ export class DatabaseStorage implements IStorage {
         customerId: project.customerId,
         projectId,
         invoiceNumber: `SC-DRAFT-${projectId}-${Date.now()}`,
-        status: 'draft',
-        subtotal: '0.00',
-        taxRate: '0.00',
-        taxAmount: '0.00',
-        total: '0.00',
-        currency: 'USD',
+        status: "draft",
+        subtotal: "0.00",
+        taxRate: "0.00",
+        taxAmount: "0.00",
+        total: "0.00",
+        currency: "USD",
         invoiceDate: new Date(),
         dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
         isSmartCaptureInvoice: true,
-        notes: `Auto-generated Smart Capture invoice for ${project.name}`
+        notes: `Auto-generated Smart Capture invoice for ${project.name}`,
       };
 
       const [invoice] = await tx
@@ -1725,12 +2567,17 @@ export class DatabaseStorage implements IStorage {
         .values(invoiceData)
         .returning();
 
-      console.log(`✅ Created new Smart Capture draft invoice ${invoice.invoiceNumber} for project ${projectId}`);
+      console.log(
+        `✅ Created new Smart Capture draft invoice ${invoice.invoiceNumber} for project ${projectId}`,
+      );
       return invoice;
     });
   }
 
-  async getDraftInvoiceForProject(projectId: number, organizationId: number): Promise<any> {
+  async getDraftInvoiceForProject(
+    projectId: number,
+    organizationId: number,
+  ): Promise<any> {
     const [invoice] = await db
       .select({
         id: invoices.id,
@@ -1749,16 +2596,18 @@ export class DatabaseStorage implements IStorage {
         dueDate: invoices.dueDate,
         isSmartCaptureInvoice: invoices.isSmartCaptureInvoice,
         createdAt: invoices.createdAt,
-        updatedAt: invoices.updatedAt
+        updatedAt: invoices.updatedAt,
       })
       .from(invoices)
       .innerJoin(users, eq(invoices.userId, users.id))
-      .where(and(
-        eq(invoices.projectId, projectId),
-        eq(invoices.status, 'draft'),
-        eq(invoices.isSmartCaptureInvoice, true),
-        eq(users.organizationId, organizationId)
-      ))
+      .where(
+        and(
+          eq(invoices.projectId, projectId),
+          eq(invoices.status, "draft"),
+          eq(invoices.isSmartCaptureInvoice, true),
+          eq(users.organizationId, organizationId),
+        ),
+      )
       .limit(1);
 
     if (!invoice) {
@@ -1774,19 +2623,23 @@ export class DatabaseStorage implements IStorage {
 
     return {
       ...invoice,
-      lineItems
+      lineItems,
     };
   }
 
-  async upsertDraftInvoiceLineItem(invoiceId: number, lineItemData: any, organizationId: number): Promise<any> {
+  async upsertDraftInvoiceLineItem(
+    invoiceId: number,
+    lineItemData: any,
+    organizationId: number,
+  ): Promise<any> {
     const {
       description,
       quantity,
       rate,
       amount,
-      sourceType = 'smart_capture',
+      sourceType = "smart_capture",
       smartCaptureItemId,
-      priceSnapshot
+      priceSnapshot,
     } = lineItemData;
 
     // Validate organization access to the invoice
@@ -1794,7 +2647,9 @@ export class DatabaseStorage implements IStorage {
 
     // Ensure we have a smartCaptureItemId for the unique constraint
     if (!smartCaptureItemId) {
-      throw new Error('smartCaptureItemId is required for draft invoice line items');
+      throw new Error(
+        "smartCaptureItemId is required for draft invoice line items",
+      );
     }
 
     // Use transaction for atomic operation with simple check-and-upsert
@@ -1803,10 +2658,12 @@ export class DatabaseStorage implements IStorage {
       const [existingItem] = await tx
         .select()
         .from(invoiceLineItems)
-        .where(and(
-          eq(invoiceLineItems.invoiceId, invoiceId),
-          eq(invoiceLineItems.smartCaptureItemId, smartCaptureItemId)
-        ))
+        .where(
+          and(
+            eq(invoiceLineItems.invoiceId, invoiceId),
+            eq(invoiceLineItems.smartCaptureItemId, smartCaptureItemId),
+          ),
+        )
         .limit(1);
 
       const lineItemValues = {
@@ -1817,7 +2674,7 @@ export class DatabaseStorage implements IStorage {
         amount: amount.toString(),
         sourceType,
         smartCaptureItemId,
-        priceSnapshot: priceSnapshot ? priceSnapshot.toString() : null
+        priceSnapshot: priceSnapshot ? priceSnapshot.toString() : null,
       };
 
       let upsertedItem;
@@ -1831,7 +2688,7 @@ export class DatabaseStorage implements IStorage {
             quantity: lineItemValues.quantity,
             rate: lineItemValues.rate,
             amount: lineItemValues.amount,
-            priceSnapshot: lineItemValues.priceSnapshot
+            priceSnapshot: lineItemValues.priceSnapshot,
           })
           .where(eq(invoiceLineItems.id, existingItem.id))
           .returning();
@@ -1852,7 +2709,11 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
-  async removeDraftInvoiceLineItem(invoiceId: number, smartCaptureItemId: number, organizationId: number): Promise<void> {
+  async removeDraftInvoiceLineItem(
+    invoiceId: number,
+    smartCaptureItemId: number,
+    organizationId: number,
+  ): Promise<void> {
     // Validate organization access to the invoice
     await this.validateInvoiceOrganizationAccess(invoiceId, organizationId);
 
@@ -1861,17 +2722,22 @@ export class DatabaseStorage implements IStorage {
       // Delete the line item
       await tx
         .delete(invoiceLineItems)
-        .where(and(
-          eq(invoiceLineItems.invoiceId, invoiceId),
-          eq(invoiceLineItems.smartCaptureItemId, smartCaptureItemId)
-        ));
+        .where(
+          and(
+            eq(invoiceLineItems.invoiceId, invoiceId),
+            eq(invoiceLineItems.smartCaptureItemId, smartCaptureItemId),
+          ),
+        );
 
       // Recalculate invoice totals within the transaction
       await this.recalculateInvoiceTotals(invoiceId);
     });
   }
 
-  async deleteDraftInvoiceLineItemBySmartCaptureItem(smartCaptureItemId: number, organizationId: number): Promise<boolean> {
+  async deleteDraftInvoiceLineItemBySmartCaptureItem(
+    smartCaptureItemId: number,
+    organizationId: number,
+  ): Promise<boolean> {
     try {
       // Use transaction for atomic operation
       return await db.transaction(async (tx) => {
@@ -1879,17 +2745,19 @@ export class DatabaseStorage implements IStorage {
         // We need to ensure organization scoping by joining with users table
         const affectedInvoices = await tx
           .select({
-            invoiceId: invoiceLineItems.invoiceId
+            invoiceId: invoiceLineItems.invoiceId,
           })
           .from(invoiceLineItems)
           .innerJoin(invoices, eq(invoiceLineItems.invoiceId, invoices.id))
           .innerJoin(users, eq(invoices.userId, users.id))
-          .where(and(
-            eq(invoiceLineItems.smartCaptureItemId, smartCaptureItemId),
-            eq(invoices.status, 'draft'),
-            eq(invoices.isSmartCaptureInvoice, true),
-            eq(users.organizationId, organizationId)
-          ));
+          .where(
+            and(
+              eq(invoiceLineItems.smartCaptureItemId, smartCaptureItemId),
+              eq(invoices.status, "draft"),
+              eq(invoices.isSmartCaptureInvoice, true),
+              eq(users.organizationId, organizationId),
+            ),
+          );
 
         if (affectedInvoices.length === 0) {
           // No matching line items found, return success (idempotent operation)
@@ -1897,15 +2765,20 @@ export class DatabaseStorage implements IStorage {
         }
 
         // Delete all line items linked to this Smart Capture item within organization scope
-        await tx
-          .delete(invoiceLineItems)
-          .where(and(
+        await tx.delete(invoiceLineItems).where(
+          and(
             eq(invoiceLineItems.smartCaptureItemId, smartCaptureItemId),
-            inArray(invoiceLineItems.invoiceId, affectedInvoices.map(inv => inv.invoiceId))
-          ));
+            inArray(
+              invoiceLineItems.invoiceId,
+              affectedInvoices.map((inv) => inv.invoiceId),
+            ),
+          ),
+        );
 
         // Recalculate totals for all affected invoices
-        const uniqueInvoiceIds = [...new Set(affectedInvoices.map(inv => inv.invoiceId))];
+        const uniqueInvoiceIds = [
+          ...new Set(affectedInvoices.map((inv) => inv.invoiceId)),
+        ];
         for (const invoiceId of uniqueInvoiceIds) {
           await this.recalculateInvoiceTotals(invoiceId);
         }
@@ -1913,12 +2786,18 @@ export class DatabaseStorage implements IStorage {
         return true;
       });
     } catch (error) {
-      console.error('Error deleting draft invoice line items by Smart Capture item:', error);
+      console.error(
+        "Error deleting draft invoice line items by Smart Capture item:",
+        error,
+      );
       return false;
     }
   }
 
-  async finalizeDraftInvoiceForProject(projectId: number, organizationId: number): Promise<any> {
+  async finalizeDraftInvoiceForProject(
+    projectId: number,
+    organizationId: number,
+  ): Promise<any> {
     // Use transaction with locking to prevent race conditions and double-finalization
     return await db.transaction(async (tx) => {
       // Get draft invoice with SELECT FOR UPDATE lock to prevent concurrent finalization
@@ -1940,26 +2819,32 @@ export class DatabaseStorage implements IStorage {
           dueDate: invoices.dueDate,
           isSmartCaptureInvoice: invoices.isSmartCaptureInvoice,
           createdAt: invoices.createdAt,
-          updatedAt: invoices.updatedAt
+          updatedAt: invoices.updatedAt,
         })
         .from(invoices)
         .innerJoin(users, eq(invoices.userId, users.id))
-        .where(and(
-          eq(invoices.projectId, projectId),
-          eq(invoices.status, 'draft'),
-          eq(invoices.isSmartCaptureInvoice, true),
-          eq(users.organizationId, organizationId)
-        ))
-        .for('update') // Row-level lock to prevent double-finalization
+        .where(
+          and(
+            eq(invoices.projectId, projectId),
+            eq(invoices.status, "draft"),
+            eq(invoices.isSmartCaptureInvoice, true),
+            eq(users.organizationId, organizationId),
+          ),
+        )
+        .for("update") // Row-level lock to prevent double-finalization
         .limit(1);
-      
+
       if (!draftInvoice) {
-        throw new Error('No draft invoice found for this project or access denied - organization mismatch');
+        throw new Error(
+          "No draft invoice found for this project or access denied - organization mismatch",
+        );
       }
 
       // Double-check status to prevent race conditions
-      if (draftInvoice.status !== 'draft') {
-        throw new Error(`Invoice has already been finalized. Current status: ${draftInvoice.status}`);
+      if (draftInvoice.status !== "draft") {
+        throw new Error(
+          `Invoice has already been finalized. Current status: ${draftInvoice.status}`,
+        );
       }
 
       // Get line items count for validation
@@ -1970,7 +2855,7 @@ export class DatabaseStorage implements IStorage {
 
       // Only finalize if there are line items
       if (lineItemCount.count === 0) {
-        throw new Error('Cannot finalize invoice with no line items');
+        throw new Error("Cannot finalize invoice with no line items");
       }
 
       // Generate final invoice number with better uniqueness
@@ -1981,18 +2866,22 @@ export class DatabaseStorage implements IStorage {
       const [finalizedInvoice] = await tx
         .update(invoices)
         .set({
-          status: 'sent',
+          status: "sent",
           invoiceNumber: finalInvoiceNumber,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
-        .where(and(
-          eq(invoices.id, draftInvoice.id),
-          eq(invoices.status, 'draft') // Double-check status in update
-        ))
+        .where(
+          and(
+            eq(invoices.id, draftInvoice.id),
+            eq(invoices.status, "draft"), // Double-check status in update
+          ),
+        )
         .returning();
 
       if (!finalizedInvoice) {
-        throw new Error('Failed to finalize invoice - it may have been finalized by another process');
+        throw new Error(
+          "Failed to finalize invoice - it may have been finalized by another process",
+        );
       }
 
       return finalizedInvoice;
@@ -2000,7 +2889,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Submit Smart Capture invoice for approval
-  async submitSmartCaptureInvoiceForApproval(projectId: number, organizationId: number): Promise<any> {
+  async submitSmartCaptureInvoiceForApproval(
+    projectId: number,
+    organizationId: number,
+  ): Promise<any> {
     return await db.transaction(async (tx) => {
       // Find the draft Smart Capture invoice for this project
       const [draftInvoice] = await tx
@@ -2015,17 +2907,21 @@ export class DatabaseStorage implements IStorage {
         })
         .from(invoices)
         .innerJoin(users, eq(invoices.userId, users.id))
-        .where(and(
-          eq(invoices.projectId, projectId),
-          eq(invoices.status, 'draft'),
-          eq(invoices.isSmartCaptureInvoice, true),
-          eq(users.organizationId, organizationId)
-        ))
-        .for('update') // Row-level lock
+        .where(
+          and(
+            eq(invoices.projectId, projectId),
+            eq(invoices.status, "draft"),
+            eq(invoices.isSmartCaptureInvoice, true),
+            eq(users.organizationId, organizationId),
+          ),
+        )
+        .for("update") // Row-level lock
         .limit(1);
-      
+
       if (!draftInvoice) {
-        throw new Error('No draft Smart Capture invoice found for this project');
+        throw new Error(
+          "No draft Smart Capture invoice found for this project",
+        );
       }
 
       // Check if invoice has line items
@@ -2035,24 +2931,30 @@ export class DatabaseStorage implements IStorage {
         .where(eq(invoiceLineItems.invoiceId, draftInvoice.id));
 
       if (lineItemCount.count === 0) {
-        throw new Error('Cannot submit invoice with no line items for approval');
+        throw new Error(
+          "Cannot submit invoice with no line items for approval",
+        );
       }
 
       // Update invoice status to pending_approval
       const [submittedInvoice] = await tx
         .update(invoices)
         .set({
-          status: 'pending_approval',
-          updatedAt: new Date()
+          status: "pending_approval",
+          updatedAt: new Date(),
         })
-        .where(and(
-          eq(invoices.id, draftInvoice.id),
-          eq(invoices.status, 'draft') // Double-check status in update
-        ))
+        .where(
+          and(
+            eq(invoices.id, draftInvoice.id),
+            eq(invoices.status, "draft"), // Double-check status in update
+          ),
+        )
         .returning();
 
       if (!submittedInvoice) {
-        throw new Error('Failed to submit invoice for approval - it may have been submitted by another process');
+        throw new Error(
+          "Failed to submit invoice for approval - it may have been submitted by another process",
+        );
       }
 
       return submittedInvoice;
@@ -2060,37 +2962,52 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Helper method to validate invoice organization access
-  private async validateInvoiceOrganizationAccess(invoiceId: number, organizationId: number): Promise<void> {
+  private async validateInvoiceOrganizationAccess(
+    invoiceId: number,
+    organizationId: number,
+  ): Promise<void> {
     const [invoice] = await db
       .select({ id: invoices.id })
       .from(invoices)
       .innerJoin(users, eq(invoices.userId, users.id))
-      .where(and(
-        eq(invoices.id, invoiceId),
-        eq(users.organizationId, organizationId)
-      ))
+      .where(
+        and(
+          eq(invoices.id, invoiceId),
+          eq(users.organizationId, organizationId),
+        ),
+      )
       .limit(1);
 
     if (!invoice) {
-      throw new Error('Invoice not found or access denied - organization mismatch');
+      throw new Error(
+        "Invoice not found or access denied - organization mismatch",
+      );
     }
   }
 
   // Helper method to validate project and customer organization scoping
-  private async validateProjectCustomerOrganization(projectId: number, customerId: number, organizationId: number): Promise<void> {
+  private async validateProjectCustomerOrganization(
+    projectId: number,
+    customerId: number,
+    organizationId: number,
+  ): Promise<void> {
     // Validate project belongs to organization
     const [project] = await db
       .select({ id: projects.id })
       .from(projects)
       .innerJoin(users, eq(projects.userId, users.id))
-      .where(and(
-        eq(projects.id, projectId),
-        eq(users.organizationId, organizationId)
-      ))
+      .where(
+        and(
+          eq(projects.id, projectId),
+          eq(users.organizationId, organizationId),
+        ),
+      )
       .limit(1);
 
     if (!project) {
-      throw new Error('Project not found or access denied - organization mismatch');
+      throw new Error(
+        "Project not found or access denied - organization mismatch",
+      );
     }
 
     // Validate customer belongs to organization
@@ -2098,14 +3015,18 @@ export class DatabaseStorage implements IStorage {
       .select({ id: customers.id })
       .from(customers)
       .innerJoin(users, eq(customers.userId, users.id))
-      .where(and(
-        eq(customers.id, customerId),
-        eq(users.organizationId, organizationId)
-      ))
+      .where(
+        and(
+          eq(customers.id, customerId),
+          eq(users.organizationId, organizationId),
+        ),
+      )
       .limit(1);
 
     if (!customer) {
-      throw new Error('Customer not found or access denied - organization mismatch');
+      throw new Error(
+        "Customer not found or access denied - organization mismatch",
+      );
     }
   }
 
@@ -2114,7 +3035,7 @@ export class DatabaseStorage implements IStorage {
     try {
       const [subtotalResult] = await db
         .select({
-          subtotal: sql<number>`COALESCE(SUM(CAST(amount AS DECIMAL(10,2))), 0)`
+          subtotal: sql<number>`COALESCE(SUM(CAST(amount AS DECIMAL(10,2))), 0)`,
         })
         .from(invoiceLineItems)
         .where(eq(invoiceLineItems.invoiceId, invoiceId));
@@ -2126,10 +3047,11 @@ export class DatabaseStorage implements IStorage {
         if (rawSubtotal !== null && rawSubtotal !== undefined) {
           const subtotalValue = String(rawSubtotal);
           const subtotalNum = parseFloat(subtotalValue);
-          subtotal = (!isNaN(subtotalNum) && isFinite(subtotalNum)) ? subtotalNum : 0;
+          subtotal =
+            !isNaN(subtotalNum) && isFinite(subtotalNum) ? subtotalNum : 0;
         }
       } catch (e) {
-        console.error('Error processing subtotal:', e);
+        console.error("Error processing subtotal:", e);
         subtotal = 0;
       }
 
@@ -2147,31 +3069,38 @@ export class DatabaseStorage implements IStorage {
         if (rawTaxRate !== null && rawTaxRate !== undefined) {
           const taxRateValue = String(rawTaxRate);
           const taxRateNum = parseFloat(taxRateValue);
-          taxRate = (!isNaN(taxRateNum) && isFinite(taxRateNum)) ? taxRateNum : 0;
+          taxRate = !isNaN(taxRateNum) && isFinite(taxRateNum) ? taxRateNum : 0;
         }
       } catch (e) {
-        console.error('Error processing tax rate:', e);
+        console.error("Error processing tax rate:", e);
         taxRate = 0;
       }
-      
+
       // Bulletproof calculations
       let taxAmount = 0;
       let total = 0;
       try {
         const taxAmountNum = (subtotal * taxRate) / 100;
-        taxAmount = (!isNaN(taxAmountNum) && isFinite(taxAmountNum)) ? taxAmountNum : 0;
-        
+        taxAmount =
+          !isNaN(taxAmountNum) && isFinite(taxAmountNum) ? taxAmountNum : 0;
+
         const totalNum = subtotal + taxAmount;
-        total = (!isNaN(totalNum) && isFinite(totalNum)) ? totalNum : 0;
+        total = !isNaN(totalNum) && isFinite(totalNum) ? totalNum : 0;
       } catch (e) {
-        console.error('Error calculating tax and total:', e);
+        console.error("Error calculating tax and total:", e);
         taxAmount = 0;
         total = subtotal; // Fallback to subtotal if tax calculation fails
       }
 
       // Final validation before .toFixed() calls
-      const safeSubtotal = (typeof subtotal === 'number' && !isNaN(subtotal) && isFinite(subtotal)) ? subtotal : 0;
-      const safeTotal = (typeof total === 'number' && !isNaN(total) && isFinite(total)) ? total : 0;
+      const safeSubtotal =
+        typeof subtotal === "number" && !isNaN(subtotal) && isFinite(subtotal)
+          ? subtotal
+          : 0;
+      const safeTotal =
+        typeof total === "number" && !isNaN(total) && isFinite(total)
+          ? total
+          : 0;
 
       // Update invoice totals (removed taxAmount as it doesn't exist in schema)
       await db
@@ -2179,23 +3108,23 @@ export class DatabaseStorage implements IStorage {
         .set({
           subtotal: safeSubtotal.toFixed(2),
           total: safeTotal.toFixed(2),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(invoices.id, invoiceId));
     } catch (error) {
-      console.error('Error in recalculateInvoiceTotals:', error);
+      console.error("Error in recalculateInvoiceTotals:", error);
       // Emergency fallback: set totals to 0 to prevent app crash
       try {
         await db
           .update(invoices)
           .set({
-            subtotal: '0.00',
-            total: '0.00',
-            updatedAt: new Date()
+            subtotal: "0.00",
+            total: "0.00",
+            updatedAt: new Date(),
           })
           .where(eq(invoices.id, invoiceId));
       } catch (fallbackError) {
-        console.error('Emergency fallback failed:', fallbackError);
+        console.error("Emergency fallback failed:", fallbackError);
         throw error; // Re-throw original error if fallback fails
       }
     }
@@ -2212,15 +3141,17 @@ export class DatabaseStorage implements IStorage {
           username: users.username,
           firstName: users.firstName,
           lastName: users.lastName,
-        }
+        },
       })
       .from(quotes)
       .innerJoin(users, eq(quotes.userId, users.id))
       .leftJoin(customers, eq(quotes.customerId, customers.id))
-      .where(and(
-        eq(users.organizationId, organizationId),
-        eq(quotes.isDeleted, false)
-      ))
+      .where(
+        and(
+          eq(users.organizationId, organizationId),
+          eq(quotes.isDeleted, false),
+        ),
+      )
       .orderBy(desc(quotes.createdAt));
 
     // Get line items for each quote
@@ -2230,15 +3161,15 @@ export class DatabaseStorage implements IStorage {
         .select()
         .from(quoteLineItems)
         .where(eq(quoteLineItems.quoteId, row.quote.id));
-      
+
       result.push({
         ...row.quote,
         customer: row.customer,
         user: row.user,
-        lineItems: lineItems
+        lineItems: lineItems,
       });
     }
-    
+
     return result;
   }
 
@@ -2252,16 +3183,18 @@ export class DatabaseStorage implements IStorage {
           username: users.username,
           firstName: users.firstName,
           lastName: users.lastName,
-        }
+        },
       })
       .from(quotes)
       .innerJoin(users, eq(quotes.userId, users.id))
       .leftJoin(customers, eq(quotes.customerId, customers.id))
-      .where(and(
-        eq(quotes.id, id),
-        eq(users.organizationId, organizationId),
-        eq(quotes.isDeleted, false)
-      ));
+      .where(
+        and(
+          eq(quotes.id, id),
+          eq(users.organizationId, organizationId),
+          eq(quotes.isDeleted, false),
+        ),
+      );
 
     if (!quoteWithCustomer) {
       return null;
@@ -2272,20 +3205,17 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(quoteLineItems)
       .where(eq(quoteLineItems.quoteId, id));
-    
+
     return {
       ...quoteWithCustomer.quote,
       customer: quoteWithCustomer.customer,
       user: quoteWithCustomer.user,
-      lineItems: lineItems
+      lineItems: lineItems,
     };
   }
 
   async createQuote(quoteData: any): Promise<any> {
-    const [quote] = await db
-      .insert(quotes)
-      .values(quoteData)
-      .returning();
+    const [quote] = await db.insert(quotes).values(quoteData).returning();
     return quote;
   }
 
@@ -2305,11 +3235,13 @@ export class DatabaseStorage implements IStorage {
         .select({ id: quotes.id })
         .from(quotes)
         .innerJoin(users, eq(quotes.userId, users.id))
-        .where(and(
-          eq(quotes.id, id),
-          eq(users.organizationId, organizationId),
-          eq(quotes.isDeleted, false)
-        ));
+        .where(
+          and(
+            eq(quotes.id, id),
+            eq(users.organizationId, organizationId),
+            eq(quotes.isDeleted, false),
+          ),
+        );
 
       if (!quote.length) {
         return false;
@@ -2321,13 +3253,13 @@ export class DatabaseStorage implements IStorage {
         .set({
           isDeleted: true,
           deletedAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(quotes.id, id));
 
       return true;
     } catch (error) {
-      console.error('Error in deleteQuote:', error);
+      console.error("Error in deleteQuote:", error);
       return false;
     }
   }
@@ -2342,15 +3274,17 @@ export class DatabaseStorage implements IStorage {
           username: users.username,
           firstName: users.firstName,
           lastName: users.lastName,
-        }
+        },
       })
       .from(quotes)
       .innerJoin(users, eq(quotes.userId, users.id))
       .leftJoin(customers, eq(quotes.customerId, customers.id))
-      .where(and(
-        eq(users.organizationId, organizationId),
-        sql`${quotes.isDeleted} IS TRUE`
-      ))
+      .where(
+        and(
+          eq(users.organizationId, organizationId),
+          sql`${quotes.isDeleted} IS TRUE`,
+        ),
+      )
       .orderBy(desc(quotes.deletedAt));
 
     // Get line items for each quote
@@ -2360,15 +3294,15 @@ export class DatabaseStorage implements IStorage {
         .select()
         .from(quoteLineItems)
         .where(eq(quoteLineItems.quoteId, row.quote.id));
-      
+
       result.push({
         ...row.quote,
         customer: row.customer,
         user: row.user,
-        lineItems: lineItems
+        lineItems: lineItems,
       });
     }
-    
+
     return result;
   }
 
@@ -2379,11 +3313,13 @@ export class DatabaseStorage implements IStorage {
         .select({ id: quotes.id })
         .from(quotes)
         .innerJoin(users, eq(quotes.userId, users.id))
-        .where(and(
-          eq(quotes.id, id),
-          eq(users.organizationId, organizationId),
-          eq(quotes.isDeleted, true)
-        ));
+        .where(
+          and(
+            eq(quotes.id, id),
+            eq(users.organizationId, organizationId),
+            eq(quotes.isDeleted, true),
+          ),
+        );
 
       if (!quote.length) {
         return false;
@@ -2395,13 +3331,13 @@ export class DatabaseStorage implements IStorage {
         .set({
           isDeleted: false,
           deletedAt: null,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(quotes.id, id));
 
       return true;
     } catch (error) {
-      console.error('Error in restoreQuote:', error);
+      console.error("Error in restoreQuote:", error);
       return false;
     }
   }
@@ -2413,11 +3349,13 @@ export class DatabaseStorage implements IStorage {
         .select({ id: quotes.id })
         .from(quotes)
         .innerJoin(users, eq(quotes.userId, users.id))
-        .where(and(
-          eq(quotes.id, id),
-          eq(users.organizationId, organizationId),
-          eq(quotes.isDeleted, true)
-        ));
+        .where(
+          and(
+            eq(quotes.id, id),
+            eq(users.organizationId, organizationId),
+            eq(quotes.isDeleted, true),
+          ),
+        );
 
       if (!quote.length) {
         return false;
@@ -2425,34 +3363,38 @@ export class DatabaseStorage implements IStorage {
 
       // First delete the line items
       await db.delete(quoteLineItems).where(eq(quoteLineItems.quoteId, id));
-      
+
       // Then permanently delete the quote
       await db.delete(quotes).where(eq(quotes.id, id));
 
       return true;
     } catch (error) {
-      console.error('Error in hardDeleteQuote:', error);
+      console.error("Error in hardDeleteQuote:", error);
       return false;
     }
   }
 
   async createQuoteLineItems(quoteId: number, lineItems: any[]): Promise<void> {
     if (lineItems && lineItems.length > 0) {
-      const lineItemsWithQuoteId = lineItems.map(item => ({
+      const lineItemsWithQuoteId = lineItems.map((item) => ({
         ...item,
         quoteId: quoteId,
         quantity: item.quantity.toString(),
         amount: item.amount.toString(),
       }));
-      
+
       await db.insert(quoteLineItems).values(lineItemsWithQuoteId);
     }
   }
 
   // Quote token-based response methods (no auth required)
-  async getQuoteByToken(action: 'approve' | 'deny', token: string): Promise<any> {
-    const tokenField = action === 'approve' ? quotes.approvalToken : quotes.denialToken;
-    
+  async getQuoteByToken(
+    action: "approve" | "deny",
+    token: string,
+  ): Promise<any> {
+    const tokenField =
+      action === "approve" ? quotes.approvalToken : quotes.denialToken;
+
     const [quoteWithCustomer] = await db
       .select({
         quote: quotes,
@@ -2469,16 +3411,13 @@ export class DatabaseStorage implements IStorage {
           name: organizations.name,
           email: organizations.email,
           phone: organizations.phone,
-        }
+        },
       })
       .from(quotes)
       .innerJoin(users, eq(quotes.userId, users.id))
       .innerJoin(organizations, eq(users.organizationId, organizations.id))
       .leftJoin(customers, eq(quotes.customerId, customers.id))
-      .where(and(
-        eq(tokenField, token),
-        eq(quotes.isDeleted, false)
-      ));
+      .where(and(eq(tokenField, token), eq(quotes.isDeleted, false)));
 
     if (!quoteWithCustomer) {
       return null;
@@ -2489,69 +3428,83 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(quoteLineItems)
       .where(eq(quoteLineItems.quoteId, quoteWithCustomer.quote.id));
-    
+
     return {
       ...quoteWithCustomer.quote,
       customer: quoteWithCustomer.customer,
       user: quoteWithCustomer.user,
       organization: quoteWithCustomer.organization,
-      lineItems: lineItems
+      lineItems: lineItems,
     };
   }
 
-  async generateQuoteTokens(quoteId: number): Promise<{ approvalToken: string; denialToken: string }> {
-    const crypto = require('crypto');
-    const approvalToken = crypto.randomBytes(32).toString('hex');
-    const denialToken = crypto.randomBytes(32).toString('hex');
-    
+  async generateQuoteTokens(
+    quoteId: number,
+  ): Promise<{ approvalToken: string; denialToken: string }> {
+    const crypto = require("crypto");
+    const approvalToken = crypto.randomBytes(32).toString("hex");
+    const denialToken = crypto.randomBytes(32).toString("hex");
+
     await db
       .update(quotes)
       .set({
         approvalToken,
         denialToken,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(eq(quotes.id, quoteId));
-    
+
     return { approvalToken, denialToken };
   }
 
-  async updateQuoteResponse(action: 'approve' | 'deny', token: string, responseMethod: string = 'email'): Promise<any> {
-    const tokenField = action === 'approve' ? quotes.approvalToken : quotes.denialToken;
-    const newStatus = action === 'approve' ? 'accepted' : 'rejected';
-    
+  async updateQuoteResponse(
+    action: "approve" | "deny",
+    token: string,
+    responseMethod: string = "email",
+  ): Promise<any> {
+    const tokenField =
+      action === "approve" ? quotes.approvalToken : quotes.denialToken;
+    const newStatus = action === "approve" ? "accepted" : "rejected";
+
     const [updatedQuote] = await db
       .update(quotes)
       .set({
         status: newStatus,
         respondedAt: new Date(),
         responseMethod,
-        ...(action === 'approve' ? { acceptedAt: new Date() } : {}),
-        updatedAt: new Date()
+        ...(action === "approve" ? { acceptedAt: new Date() } : {}),
+        updatedAt: new Date(),
       })
-      .where(and(
-        eq(tokenField, token),
-        eq(quotes.isDeleted, false),
-        // Only allow updating if not already responded
-        eq(quotes.respondedAt, null as any)
-      ))
+      .where(
+        and(
+          eq(tokenField, token),
+          eq(quotes.isDeleted, false),
+          // Only allow updating if not already responded
+          eq(quotes.respondedAt, null as any),
+        ),
+      )
       .returning();
-    
+
     return updatedQuote;
   }
 
   // Project/Job methods
-  async getProjects(organizationId: number, userId?: number, userRole?: string, status?: string): Promise<any[]> {
+  async getProjects(
+    organizationId: number,
+    userId?: number,
+    userRole?: string,
+    status?: string,
+  ): Promise<any[]> {
     // Build the base query
     let whereConditions = [eq(users.organizationId, organizationId)];
-    
+
     // Add status filtering if specified
     if (status) {
       whereConditions.push(eq(projects.status, status));
     }
-    
+
     // If user-specific filtering is requested and not admin, apply sharing rules
-    if (userId && userRole !== 'admin') {
+    if (userId && userRole !== "admin") {
       // User can see jobs if:
       // 1. They created the job (projects.userId = userId)
       // 2. Job is shared with team (shareWithTeam = true)
@@ -2560,14 +3513,19 @@ export class DatabaseStorage implements IStorage {
         or(
           eq(projects.userId, userId), // Job creator
           eq(projects.shareWithTeam, true), // Shared with team
-          exists( // User is assigned to project
-            db.select().from(projectUsers)
-              .where(and(
-                eq(projectUsers.projectId, projects.id),
-                eq(projectUsers.userId, userId)
-              ))
-          )
-        )
+          exists(
+            // User is assigned to project
+            db
+              .select()
+              .from(projectUsers)
+              .where(
+                and(
+                  eq(projectUsers.projectId, projects.id),
+                  eq(projectUsers.userId, userId),
+                ),
+              ),
+          ),
+        ),
       );
     }
 
@@ -2619,11 +3577,13 @@ export class DatabaseStorage implements IStorage {
           .from(tasks)
           .where(eq(tasks.projectId, project.id));
 
-        const customer = project.customerId ? await db
-          .select()
-          .from(customers)
-          .where(eq(customers.id, project.customerId))
-          .limit(1) : [];
+        const customer = project.customerId
+          ? await db
+              .select()
+              .from(customers)
+              .where(eq(customers.id, project.customerId))
+              .limit(1)
+          : [];
 
         const projectTeam = await db
           .select({
@@ -2633,18 +3593,20 @@ export class DatabaseStorage implements IStorage {
               lastName: users.lastName,
               email: users.email,
               role: projectUsers.role,
-            }
+            },
           })
           .from(projectUsers)
           .innerJoin(users, eq(projectUsers.userId, users.id))
           .where(eq(projectUsers.projectId, project.id));
 
         // Fetch lead information if leadId exists
-        const lead = project.leadId ? await db
-          .select()
-          .from(leads)
-          .where(eq(leads.id, project.leadId))
-          .limit(1) : [];
+        const lead = project.leadId
+          ? await db
+              .select()
+              .from(leads)
+              .where(eq(leads.id, project.leadId))
+              .limit(1)
+          : [];
 
         return {
           ...project,
@@ -2654,7 +3616,7 @@ export class DatabaseStorage implements IStorage {
           users: projectTeam || [],
           lead: lead[0] || null,
         };
-      })
+      }),
     );
 
     return projectsWithDetails;
@@ -2687,11 +3649,13 @@ export class DatabaseStorage implements IStorage {
       .where(eq(tasks.projectId, project.id));
 
     // Get customer info
-    const customer = project.customerId ? await db
-      .select()
-      .from(customers)
-      .where(eq(customers.id, project.customerId))
-      .limit(1) : [];
+    const customer = project.customerId
+      ? await db
+          .select()
+          .from(customers)
+          .where(eq(customers.id, project.customerId))
+          .limit(1)
+      : [];
 
     // Get project team members
     const projectTeam = await db
@@ -2702,7 +3666,7 @@ export class DatabaseStorage implements IStorage {
           lastName: users.lastName,
           email: users.email,
           role: projectUsers.role,
-        }
+        },
       })
       .from(projectUsers)
       .innerJoin(users, eq(projectUsers.userId, users.id))
@@ -2717,34 +3681,32 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
-
-
   async createProject(projectData: any): Promise<any> {
     // Generate automatic job number if not provided
     let jobNumber = projectData.jobNumber;
     if (!jobNumber) {
       try {
-        console.log('🔢 Generating job number for organization:', projectData.organizationId);
+        console.log(
+          "🔢 Generating job number for organization:",
+          projectData.organizationId,
+        );
         jobNumber = await this.generateJobNumber(projectData.organizationId);
-        console.log('✅ Generated job number:', jobNumber);
+        console.log("✅ Generated job number:", jobNumber);
       } catch (error) {
-        console.error('❌ Error generating job number:', error);
+        console.error("❌ Error generating job number:", error);
         jobNumber = undefined; // Let it be null instead of fallback
       }
     }
-    
+
     const insertData = {
       ...projectData,
       jobNumber,
-      userId: projectData.userId || projectData.organizationId // Handle both userId and organizationId
+      userId: projectData.userId || projectData.organizationId, // Handle both userId and organizationId
     };
-    
-    console.log('📝 Creating project with data:', { ...insertData, jobNumber });
-    
-    const [project] = await db
-      .insert(projects)
-      .values(insertData)
-      .returning();
+
+    console.log("📝 Creating project with data:", { ...insertData, jobNumber });
+
+    const [project] = await db.insert(projects).values(insertData).returning();
     return project;
   }
 
@@ -2756,7 +3718,7 @@ export class DatabaseStorage implements IStorage {
         .from(projects)
         .where(eq(projects.organizationId, organizationId))
         .orderBy(desc(projects.jobNumber));
-      
+
       // Extract the highest number and increment
       let nextNumber = 1;
       if (existingJobs.length > 0) {
@@ -2773,11 +3735,11 @@ export class DatabaseStorage implements IStorage {
           }
         }
       }
-      
+
       // Return simple 2-digit number as string
       return nextNumber.toString();
     } catch (error) {
-      console.error('Error generating job number:', error);
+      console.error("Error generating job number:", error);
       // Fallback to timestamp-based number if generation fails
       return Date.now().toString();
     }
@@ -2786,7 +3748,7 @@ export class DatabaseStorage implements IStorage {
   async updateProject(id: number, updates: any): Promise<any> {
     // Support for dispatch routing fields and ensure proper date handling
     const updateData = { ...updates, updatedAt: new Date() };
-    
+
     // Handle dispatch routing fields specifically
     if (updates.scheduledDate !== undefined) {
       updateData.scheduledDate = updates.scheduledDate;
@@ -2803,7 +3765,7 @@ export class DatabaseStorage implements IStorage {
     if (updates.dispatchNotes !== undefined) {
       updateData.dispatchNotes = updates.dispatchNotes;
     }
-    
+
     const [project] = await db
       .update(projects)
       .set(updateData)
@@ -2825,10 +3787,12 @@ export class DatabaseStorage implements IStorage {
         .select({ id: projects.id })
         .from(projects)
         .innerJoin(users, eq(projects.userId, users.id))
-        .where(and(
-          eq(projects.id, id),
-          eq(users.organizationId, user.organizationId)
-        ))
+        .where(
+          and(
+            eq(projects.id, id),
+            eq(users.organizationId, user.organizationId),
+          ),
+        )
         .limit(1);
 
       if (existingProject.length === 0) {
@@ -2838,16 +3802,16 @@ export class DatabaseStorage implements IStorage {
       // Update project status to 'deleted' instead of actually deleting
       const [project] = await db
         .update(projects)
-        .set({ 
-          status: 'deleted',
-          updatedAt: new Date()
+        .set({
+          status: "deleted",
+          updatedAt: new Date(),
         })
         .where(eq(projects.id, id))
         .returning();
-      
+
       return !!project;
     } catch (error) {
-      console.error('Error deleting project:', error);
+      console.error("Error deleting project:", error);
       return false;
     }
   }
@@ -2865,10 +3829,12 @@ export class DatabaseStorage implements IStorage {
         .select({ id: projects.id })
         .from(projects)
         .innerJoin(users, eq(projects.userId, users.id))
-        .where(and(
-          eq(projects.id, id),
-          eq(users.organizationId, user.organizationId)
-        ))
+        .where(
+          and(
+            eq(projects.id, id),
+            eq(users.organizationId, user.organizationId),
+          ),
+        )
         .limit(1);
 
       if (existingProject.length === 0) {
@@ -2878,61 +3844,70 @@ export class DatabaseStorage implements IStorage {
       // Update project status to 'cancelled'
       const [project] = await db
         .update(projects)
-        .set({ 
-          status: 'cancelled',
-          updatedAt: new Date()
+        .set({
+          status: "cancelled",
+          updatedAt: new Date(),
         })
         .where(eq(projects.id, id))
         .returning();
-      
+
       return !!project;
     } catch (error) {
-      console.error('Error cancelling project:', error);
+      console.error("Error cancelling project:", error);
       return false;
     }
   }
 
-  async getDeletedProjects(organizationId: number, userId?: number): Promise<any[]> {
+  async getDeletedProjects(
+    organizationId: number,
+    userId?: number,
+  ): Promise<any[]> {
     try {
-      console.log(`🔍 STORAGE: Fetching deleted projects for org ${organizationId}, user ${userId}`);
-      
+      console.log(
+        `🔍 STORAGE: Fetching deleted projects for org ${organizationId}, user ${userId}`,
+      );
+
       // Use a much simpler query first to test
-      const result = await db.select({
-        id: projects.id,
-        userId: projects.userId,
-        name: projects.name,
-        description: projects.description,
-        status: projects.status,
-        priority: projects.priority,
-        startDate: projects.startDate,
-        endDate: projects.endDate,
-        address: projects.address,
-        city: projects.city,
-        state: projects.state,
-        zipCode: projects.zipCode,
-        createdAt: projects.createdAt,
-        updatedAt: projects.updatedAt
-      })
-      .from(projects)
-      .innerJoin(users, eq(projects.userId, users.id))
-      .where(
-        and(
-          eq(projects.status, 'deleted'),
-          eq(users.organizationId, organizationId),
-          userId ? eq(projects.userId, userId) : undefined
+      const result = await db
+        .select({
+          id: projects.id,
+          userId: projects.userId,
+          name: projects.name,
+          description: projects.description,
+          status: projects.status,
+          priority: projects.priority,
+          startDate: projects.startDate,
+          endDate: projects.endDate,
+          address: projects.address,
+          city: projects.city,
+          state: projects.state,
+          zipCode: projects.zipCode,
+          createdAt: projects.createdAt,
+          updatedAt: projects.updatedAt,
+        })
+        .from(projects)
+        .innerJoin(users, eq(projects.userId, users.id))
+        .where(
+          and(
+            eq(projects.status, "deleted"),
+            eq(users.organizationId, organizationId),
+            userId ? eq(projects.userId, userId) : undefined,
+          ),
         )
-      )
-      .orderBy(desc(projects.updatedAt));
+        .orderBy(desc(projects.updatedAt));
 
       console.log(`✅ STORAGE: Found ${result.length} deleted projects`);
       return result;
     } catch (error) {
-      console.error('❌ STORAGE ERROR:', error);
+      console.error("❌ STORAGE ERROR:", error);
       throw error;
     }
   }
 
-  async getCancelledProjects(organizationId: number, userId?: number): Promise<any[]> {
+  async getCancelledProjects(
+    organizationId: number,
+    userId?: number,
+  ): Promise<any[]> {
     try {
       if (userId) {
         const result = await db.execute(sql`
@@ -3012,7 +3987,7 @@ export class DatabaseStorage implements IStorage {
         return result.rows as any[];
       }
     } catch (error) {
-      console.error('Error fetching cancelled projects:', error);
+      console.error("Error fetching cancelled projects:", error);
       return [];
     }
   }
@@ -3035,14 +4010,16 @@ export class DatabaseStorage implements IStorage {
         .select()
         .from(projects)
         .leftJoin(users, eq(projects.userId, users.id))
-        .where(and(
-          eq(projects.id, id),
-          or(
-            eq(projects.status, 'deleted'),
-            eq(projects.status, 'cancelled')
+        .where(
+          and(
+            eq(projects.id, id),
+            or(
+              eq(projects.status, "deleted"),
+              eq(projects.status, "cancelled"),
+            ),
+            eq(users.organizationId, user[0].organizationId),
           ),
-          eq(users.organizationId, user[0].organizationId)
-        ))
+        )
         .limit(1);
 
       if (existingProject.length === 0) {
@@ -3052,44 +4029,54 @@ export class DatabaseStorage implements IStorage {
       // Restore project status to 'active'
       const [project] = await db
         .update(projects)
-        .set({ 
-          status: 'active',
-          updatedAt: new Date()
+        .set({
+          status: "active",
+          updatedAt: new Date(),
         })
         .where(eq(projects.id, id))
         .returning();
-      
+
       return !!project;
     } catch (error) {
-      console.error('Error restoring project:', error);
+      console.error("Error restoring project:", error);
       return false;
     }
   }
 
-  async assignUserToProject(userId: number, projectId: number, role: string = "member"): Promise<any> {
+  async assignUserToProject(
+    userId: number,
+    projectId: number,
+    role: string = "member",
+  ): Promise<any> {
     const [assignment] = await db
       .insert(projectUsers)
       .values({ userId, projectId, role })
       .onConflictDoNothing()
       .returning();
-    
+
     // If assignment exists, return the existing assignment
     if (!assignment) {
       const [existing] = await db
         .select()
         .from(projectUsers)
-        .where(and(
-          eq(projectUsers.userId, userId),
-          eq(projectUsers.projectId, projectId)
-        ))
+        .where(
+          and(
+            eq(projectUsers.userId, userId),
+            eq(projectUsers.projectId, projectId),
+          ),
+        )
         .limit(1);
       return existing;
     }
-    
+
     return assignment;
   }
 
-  async assignProjectToUser(projectId: number, userId: number, role: string = "member"): Promise<any> {
+  async assignProjectToUser(
+    projectId: number,
+    userId: number,
+    role: string = "member",
+  ): Promise<any> {
     // Alias for assignUserToProject with parameters reversed for convenience
     return this.assignUserToProject(userId, projectId, role);
   }
@@ -3098,17 +4085,19 @@ export class DatabaseStorage implements IStorage {
     try {
       // Build where conditions based on filters
       const whereConditions = [];
-      
+
       if (filters.userId) {
         // Get user to check if they're admin
         const user = await this.getUser(filters.userId);
-        if (user?.role !== 'admin') {
+        if (user?.role !== "admin") {
           whereConditions.push(eq(projects.userId, filters.userId));
         } else if (user.organizationId) {
           // For admin users, filter by organization through user table join
           // We'll need to get users from the same organization
-          const orgUsers = await this.getUsersByOrganization(user.organizationId);
-          const orgUserIds = orgUsers.map(u => u.id);
+          const orgUsers = await this.getUsersByOrganization(
+            user.organizationId,
+          );
+          const orgUserIds = orgUsers.map((u) => u.id);
           if (orgUserIds.length > 0) {
             whereConditions.push(inArray(projects.userId, orgUserIds));
           }
@@ -3117,7 +4106,7 @@ export class DatabaseStorage implements IStorage {
 
       // Filter projects that have location data
       whereConditions.push(isNotNull(projects.address));
-      whereConditions.push(ne(projects.address, ''));
+      whereConditions.push(ne(projects.address, ""));
 
       const projectsData = await db
         .select({
@@ -3165,36 +4154,45 @@ export class DatabaseStorage implements IStorage {
             ...project,
             users: projectTeam || [],
           };
-        })
+        }),
       );
 
       return projectsWithUsers;
     } catch (error) {
-      console.error('Error in getProjectsWithLocation:', error);
+      console.error("Error in getProjectsWithLocation:", error);
       return [];
     }
   }
 
-  async removeUserFromProject(userId: number, projectId: number): Promise<void> {
+  async removeUserFromProject(
+    userId: number,
+    projectId: number,
+  ): Promise<void> {
     await db
       .delete(projectUsers)
-      .where(and(eq(projectUsers.userId, userId), eq(projectUsers.projectId, projectId)));
+      .where(
+        and(
+          eq(projectUsers.userId, userId),
+          eq(projectUsers.projectId, projectId),
+        ),
+      );
   }
 
   // Project waiver methods
-  async attachWaiversToProject(projectId: number, waiverIds: number[], attachedBy: number): Promise<void> {
+  async attachWaiversToProject(
+    projectId: number,
+    waiverIds: number[],
+    attachedBy: number,
+  ): Promise<void> {
     if (waiverIds.length === 0) return;
-    
-    const waiverData = waiverIds.map(fileId => ({
+
+    const waiverData = waiverIds.map((fileId) => ({
       projectId,
       fileId,
       attachedBy,
     }));
 
-    await db
-      .insert(projectWaivers)
-      .values(waiverData)
-      .onConflictDoNothing(); // Avoid duplicates
+    await db.insert(projectWaivers).values(waiverData).onConflictDoNothing(); // Avoid duplicates
   }
 
   async getProjectWaivers(projectId: number): Promise<any[]> {
@@ -3217,10 +4215,18 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(projectWaivers.attachedAt));
   }
 
-  async removeWaiverFromProject(projectId: number, fileId: number): Promise<void> {
+  async removeWaiverFromProject(
+    projectId: number,
+    fileId: number,
+  ): Promise<void> {
     await db
       .delete(projectWaivers)
-      .where(and(eq(projectWaivers.projectId, projectId), eq(projectWaivers.fileId, fileId)));
+      .where(
+        and(
+          eq(projectWaivers.projectId, projectId),
+          eq(projectWaivers.fileId, fileId),
+        ),
+      );
   }
 
   // Recurring job methods
@@ -3244,19 +4250,27 @@ export class DatabaseStorage implements IStorage {
         isActive: seriesData.isActive,
         createdBy: seriesData.createdBy,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .returning();
     return series;
   }
 
-  async generateRecurringJobOccurrences(seriesId: number, organizationId: number): Promise<void> {
+  async generateRecurringJobOccurrences(
+    seriesId: number,
+    organizationId: number,
+  ): Promise<void> {
     // Get the series details
     const [series] = await db
       .select()
       .from(recurringJobSeries)
-      .where(and(eq(recurringJobSeries.id, seriesId), eq(recurringJobSeries.organizationId, organizationId)));
-    
+      .where(
+        and(
+          eq(recurringJobSeries.id, seriesId),
+          eq(recurringJobSeries.organizationId, organizationId),
+        ),
+      );
+
     if (!series) {
       throw new Error(`Recurring job series ${seriesId} not found`);
     }
@@ -3273,19 +4287,19 @@ export class DatabaseStorage implements IStorage {
 
     // Generate occurrences based on pattern
     const occurrences = this.generateOccurrenceSchedule(series);
-    
+
     // Insert occurrences
     if (occurrences.length > 0) {
-      const occurrenceData = occurrences.map(occurrence => ({
+      const occurrenceData = occurrences.map((occurrence) => ({
         seriesId: seriesId,
         organizationId: organizationId,
         scheduledDate: occurrence.scheduledDate,
         startTime: occurrence.startTime,
         estimatedDuration: series.estimatedDuration,
         assignedTechnicians: series.defaultTechnicians,
-        status: 'scheduled' as const,
+        status: "scheduled" as const,
         isGenerated: true,
-        createdAt: new Date()
+        createdAt: new Date(),
       }));
 
       await db
@@ -3295,31 +4309,41 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  private generateOccurrenceSchedule(series: any): Array<{scheduledDate: Date, startTime: string}> {
-    const occurrences: Array<{scheduledDate: Date, startTime: string}> = [];
+  private generateOccurrenceSchedule(
+    series: any,
+  ): Array<{ scheduledDate: Date; startTime: string }> {
+    const occurrences: Array<{ scheduledDate: Date; startTime: string }> = [];
     const startDate = new Date();
-    const maxDate = series.seriesEndDate ? new Date(series.seriesEndDate) : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000); // 1 year from now
+    const maxDate = series.seriesEndDate
+      ? new Date(series.seriesEndDate)
+      : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000); // 1 year from now
     const maxCount = series.maxOccurrences || 52; // Default to 52 occurrences
-    
+
     let currentDate = new Date(startDate);
     let count = 0;
 
     while (currentDate <= maxDate && count < maxCount) {
       let shouldInclude = false;
 
-      if (series.recurrencePattern === 'daily') {
+      if (series.recurrencePattern === "daily") {
         shouldInclude = true;
-      } else if (series.recurrencePattern === 'weekly' && series.selectedDays && series.selectedDays.length > 0) {
-        const dayName = currentDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+      } else if (
+        series.recurrencePattern === "weekly" &&
+        series.selectedDays &&
+        series.selectedDays.length > 0
+      ) {
+        const dayName = currentDate
+          .toLocaleDateString("en-US", { weekday: "long" })
+          .toLowerCase();
         shouldInclude = series.selectedDays.includes(dayName);
-      } else if (series.recurrencePattern === 'monthly' && series.dayOfMonth) {
+      } else if (series.recurrencePattern === "monthly" && series.dayOfMonth) {
         shouldInclude = currentDate.getDate() === series.dayOfMonth;
       }
 
       if (shouldInclude) {
         occurrences.push({
           scheduledDate: new Date(currentDate),
-          startTime: series.recurringStartTime
+          startTime: series.recurringStartTime,
         });
         count++;
       }
@@ -3353,7 +4377,7 @@ export class DatabaseStorage implements IStorage {
         createdAt: recurringJobSeries.createdAt,
         updatedAt: recurringJobSeries.updatedAt,
         templateProjectName: projects.name,
-        createdByName: users.firstName
+        createdByName: users.firstName,
       })
       .from(recurringJobSeries)
       .leftJoin(projects, eq(recurringJobSeries.templateProjectId, projects.id))
@@ -3378,11 +4402,17 @@ export class DatabaseStorage implements IStorage {
         createdAt: recurringJobOccurrences.createdAt,
         completedAt: recurringJobOccurrences.completedAt,
         seriesName: recurringJobSeries.name,
-        projectName: projects.name
+        projectName: projects.name,
       })
       .from(recurringJobOccurrences)
-      .leftJoin(recurringJobSeries, eq(recurringJobOccurrences.seriesId, recurringJobSeries.id))
-      .leftJoin(projects, eq(recurringJobOccurrences.actualProjectId, projects.id))
+      .leftJoin(
+        recurringJobSeries,
+        eq(recurringJobOccurrences.seriesId, recurringJobSeries.id),
+      )
+      .leftJoin(
+        projects,
+        eq(recurringJobOccurrences.actualProjectId, projects.id),
+      )
       .where(eq(recurringJobOccurrences.seriesId, seriesId))
       .orderBy(asc(recurringJobOccurrences.scheduledDate));
   }
@@ -3392,7 +4422,7 @@ export class DatabaseStorage implements IStorage {
       .update(recurringJobSeries)
       .set({
         ...updates,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(eq(recurringJobSeries.id, seriesId))
       .returning();
@@ -3404,7 +4434,7 @@ export class DatabaseStorage implements IStorage {
       .update(recurringJobSeries)
       .set({
         isActive: false,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(eq(recurringJobSeries.id, seriesId));
   }
@@ -3435,7 +4465,10 @@ export class DatabaseStorage implements IStorage {
     return envelope;
   }
 
-  async updateFileSignatureStatus(fileId: number, signatureData: any): Promise<any> {
+  async updateFileSignatureStatus(
+    fileId: number,
+    signatureData: any,
+  ): Promise<any> {
     const [file] = await db
       .update(fileManager)
       .set({
@@ -3456,7 +4489,7 @@ export class DatabaseStorage implements IStorage {
     let isAdmin = false;
     if (userId) {
       const user = await this.getUser(userId);
-      isAdmin = user?.role === 'admin';
+      isAdmin = user?.role === "admin";
     }
 
     const results = await db
@@ -3484,14 +4517,16 @@ export class DatabaseStorage implements IStorage {
         createdAt: expenses.createdAt,
         updatedAt: expenses.updatedAt,
         userRole: users.role,
-        userName: sql<string>`CONCAT(${users.firstName}, ' ', ${users.lastName})`
+        userName: sql<string>`CONCAT(${users.firstName}, ' ', ${users.lastName})`,
       })
       .from(expenses)
       .innerJoin(users, eq(expenses.userId, users.id))
-      .where(and(
-        isNull(expenses.deletedAt), // Only show non-deleted expenses
-        isAdmin ? undefined : eq(users.organizationId, organizationId)
-      ))
+      .where(
+        and(
+          isNull(expenses.deletedAt), // Only show non-deleted expenses
+          isAdmin ? undefined : eq(users.organizationId, organizationId),
+        ),
+      )
       .orderBy(desc(expenses.createdAt));
 
     return results;
@@ -3500,52 +4535,51 @@ export class DatabaseStorage implements IStorage {
   async createExpense(expenseData: any): Promise<any> {
     const insertData = {
       ...expenseData,
-      userId: expenseData.userId || expenseData.organizationId // Handle both userId and organizationId
+      userId: expenseData.userId || expenseData.organizationId, // Handle both userId and organizationId
     };
-    
-    const [expense] = await db
-      .insert(expenses)
-      .values(insertData)
-      .returning();
+
+    const [expense] = await db.insert(expenses).values(insertData).returning();
     return expense;
   }
 
   async updateExpense(id: number, userId: number, updates: any): Promise<any> {
     // Filter out undefined values to avoid database errors
     const cleanUpdates = Object.fromEntries(
-      Object.entries(updates).filter(([_, value]) => value !== undefined)
+      Object.entries(updates).filter(([_, value]) => value !== undefined),
     );
-    
+
     // Add updatedAt timestamp
     cleanUpdates.updatedAt = new Date();
-    
+
     // Get the current user to check permissions
     const currentUser = await this.getUser(userId);
-    
+
     // If user is admin, allow updating any expense in their organization
     // Otherwise, only allow updating their own expenses
     let whereCondition;
-    if (currentUser?.role === 'admin') {
+    if (currentUser?.role === "admin") {
       // Admin can update any expense in their organization
       const [existingExpense] = await db
         .select({ userId: expenses.userId })
         .from(expenses)
         .innerJoin(users, eq(expenses.userId, users.id))
-        .where(and(
-          eq(expenses.id, id),
-          eq(users.organizationId, currentUser.organizationId)
-        ));
-      
+        .where(
+          and(
+            eq(expenses.id, id),
+            eq(users.organizationId, currentUser.organizationId),
+          ),
+        );
+
       if (!existingExpense) {
         return null; // Expense not found in user's organization
       }
-      
+
       whereCondition = eq(expenses.id, id);
     } else {
       // Regular user can only update their own expenses
       whereCondition = and(eq(expenses.id, id), eq(expenses.userId, userId));
     }
-    
+
     const [expense] = await db
       .update(expenses)
       .set(cleanUpdates)
@@ -3566,10 +4600,10 @@ export class DatabaseStorage implements IStorage {
     // Soft delete - set deletedAt timestamp instead of actually deleting
     const [expense] = await db
       .update(expenses)
-      .set({ 
+      .set({
         deletedAt: new Date(),
         deletedBy: userId,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(eq(expenses.id, id))
       .returning();
@@ -3579,11 +4613,11 @@ export class DatabaseStorage implements IStorage {
   async approveExpense(id: number, approvedBy: number): Promise<boolean> {
     const [expense] = await db
       .update(expenses)
-      .set({ 
-        status: 'approved', 
-        approvedBy, 
+      .set({
+        status: "approved",
+        approvedBy,
         approvedAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(eq(expenses.id, id))
       .returning();
@@ -3591,7 +4625,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Expense trash management methods
-  async getTrashedExpenses(organizationId: number, userId?: number): Promise<any[]> {
+  async getTrashedExpenses(
+    organizationId: number,
+    userId?: number,
+  ): Promise<any[]> {
     try {
       // Validate organizationId and ensure it's a number
       const orgId = Number(organizationId);
@@ -3604,11 +4641,11 @@ export class DatabaseStorage implements IStorage {
       let isAdmin = false;
       if (userId) {
         const user = await this.getUser(userId);
-        isAdmin = user?.role === 'admin';
+        isAdmin = user?.role === "admin";
       }
 
       const whereConditions = [isNotNull(expenses.deletedAt)];
-      
+
       // If not admin, filter by organization - ensure proper type conversion
       if (!isAdmin) {
         whereConditions.push(eq(users.organizationId, orgId));
@@ -3641,8 +4678,8 @@ export class DatabaseStorage implements IStorage {
           updatedAt: expenses.updatedAt,
           project: {
             id: projects.id,
-            name: projects.name
-          }
+            name: projects.name,
+          },
         })
         .from(expenses)
         .innerJoin(users, eq(expenses.userId, users.id))
@@ -3661,10 +4698,10 @@ export class DatabaseStorage implements IStorage {
     // Restore expense by clearing deletedAt and deletedBy
     const [expense] = await db
       .update(expenses)
-      .set({ 
+      .set({
         deletedAt: null,
         deletedBy: null,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(eq(expenses.id, id))
       .returning();
@@ -3698,15 +4735,17 @@ export class DatabaseStorage implements IStorage {
     return await db
       .select()
       .from(vendors)
-      .where(and(eq(vendors.organizationId, organizationId), eq(vendors.isActive, true)))
+      .where(
+        and(
+          eq(vendors.organizationId, organizationId),
+          eq(vendors.isActive, true),
+        ),
+      )
       .orderBy(vendors.name);
   }
 
   async createVendor(vendorData: any): Promise<any> {
-    const [vendor] = await db
-      .insert(vendors)
-      .values(vendorData)
-      .returning();
+    const [vendor] = await db.insert(vendors).values(vendorData).returning();
     return vendor;
   }
 
@@ -3731,7 +4770,9 @@ export class DatabaseStorage implements IStorage {
     const [vendor] = await db
       .select()
       .from(vendors)
-      .where(and(eq(vendors.name, name), eq(vendors.organizationId, organizationId)))
+      .where(
+        and(eq(vendors.name, name), eq(vendors.organizationId, organizationId)),
+      )
       .limit(1);
     return vendor;
   }
@@ -3760,10 +4801,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createLead(leadData: any): Promise<any> {
-    const [lead] = await db
-      .insert(leads)
-      .values(leadData)
-      .returning();
+    const [lead] = await db.insert(leads).values(leadData).returning();
     return lead;
   }
 
@@ -3801,8 +4839,8 @@ export class DatabaseStorage implements IStorage {
           invoice: {
             id: invoices.id,
             invoiceNumber: invoices.invoiceNumber,
-            total: invoices.total
-          }
+            total: invoices.total,
+          },
         })
         .from(payments)
         .innerJoin(invoices, eq(payments.invoiceId, invoices.id))
@@ -3818,10 +4856,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createPayment(paymentData: any): Promise<any> {
-    const [payment] = await db
-      .insert(payments)
-      .values(paymentData)
-      .returning();
+    const [payment] = await db.insert(payments).values(paymentData).returning();
     return payment;
   }
 
@@ -3840,13 +4875,13 @@ export class DatabaseStorage implements IStorage {
         .select()
         .from(settings)
         .where(like(settings.key, `${category}_%`));
-      
+
       const settingsObj: any = {};
-      settingsArray.forEach(setting => {
-        const key = setting.key.replace(`${category}_`, '');
+      settingsArray.forEach((setting) => {
+        const key = setting.key.replace(`${category}_`, "");
         settingsObj[key] = setting.value;
       });
-      
+
       return settingsObj;
     } catch (error) {
       console.error(`Error fetching settings for ${category}:`, error);
@@ -3866,9 +4901,13 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async updateSetting(category: string, key: string, value: string): Promise<void> {
+  async updateSetting(
+    category: string,
+    key: string,
+    value: string,
+  ): Promise<void> {
     const fullKey = key.startsWith(`${category}_`) ? key : `${category}_${key}`;
-    
+
     try {
       const existingSetting = await db
         .select()
@@ -3882,15 +4921,13 @@ export class DatabaseStorage implements IStorage {
           .set({ value, updatedAt: new Date() })
           .where(eq(settings.key, fullKey));
       } else {
-        await db
-          .insert(settings)
-          .values({
-            key: fullKey,
-            value,
-            category,
-            createdAt: new Date(),
-            updatedAt: new Date()
-          });
+        await db.insert(settings).values({
+          key: fullKey,
+          value,
+          category,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
       }
     } catch (error) {
       console.error(`Error updating setting ${fullKey}:`, error);
@@ -3919,15 +4956,13 @@ export class DatabaseStorage implements IStorage {
           .set({ value, updatedAt: new Date() })
           .where(eq(settings.key, key));
       } else {
-        await db
-          .insert(settings)
-          .values({
-            key: key,
-            value,
-            category: 'system',
-            createdAt: new Date(),
-            updatedAt: new Date()
-          });
+        await db.insert(settings).values({
+          key: key,
+          value,
+          category: "system",
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
       }
     } catch (error) {
       console.error(`Error updating system setting ${key}:`, error);
@@ -3952,7 +4987,7 @@ export class DatabaseStorage implements IStorage {
         hasIntegrations: organizations.hasIntegrations,
         hasPrioritySupport: organizations.hasPrioritySupport,
         createdAt: organizations.createdAt,
-        updatedAt: organizations.updatedAt
+        updatedAt: organizations.updatedAt,
       })
       .from(organizations)
       .orderBy(desc(organizations.createdAt));
@@ -3988,7 +5023,12 @@ export class DatabaseStorage implements IStorage {
     return [...fileManagerFiles, ...projectFilesData];
   }
 
-  async updateFileLocation(id: number, filePath: string, fileUrl: string, useS3: boolean): Promise<any> {
+  async updateFileLocation(
+    id: number,
+    filePath: string,
+    fileUrl: string,
+    useS3: boolean,
+  ): Promise<any> {
     // Try updating in fileManager table first
     try {
       const [file] = await db
@@ -3996,7 +5036,7 @@ export class DatabaseStorage implements IStorage {
         .set({ filePath, fileUrl: fileUrl, useS3 })
         .where(eq(fileManager.id, id))
         .returning();
-      
+
       if (file) return file;
     } catch (error) {
       // File might be in projectFiles table
@@ -4008,25 +5048,25 @@ export class DatabaseStorage implements IStorage {
       .set({ filePath })
       .where(eq(projectFiles.id, id))
       .returning();
-    
+
     return projectFile;
   }
 
   async getFiles(organizationId: number, folderId?: number): Promise<any[]> {
     let whereCondition;
-    
+
     if (folderId) {
       whereCondition = and(
         eq(fileManager.organizationId, organizationId),
-        eq(fileManager.folderId, folderId)
+        eq(fileManager.folderId, folderId),
       );
     } else {
       whereCondition = and(
         eq(fileManager.organizationId, organizationId),
-        sql`${fileManager.folderId} IS NULL`
+        sql`${fileManager.folderId} IS NULL`,
       );
     }
-    
+
     const results = await db
       .select({
         id: fileManager.id,
@@ -4057,14 +5097,14 @@ export class DatabaseStorage implements IStorage {
         // User fields
         userUsername: users.username,
         userFirstName: users.firstName,
-        userLastName: users.lastName
+        userLastName: users.lastName,
       })
       .from(fileManager)
       .leftJoin(users, eq(fileManager.uploadedBy, users.id))
       .where(whereCondition)
       .orderBy(desc(fileManager.createdAt));
-    
-    return results.map(row => ({
+
+    return results.map((row) => ({
       id: row.id,
       organizationId: row.organizationId,
       uploadedBy: row.uploadedBy,
@@ -4087,35 +5127,37 @@ export class DatabaseStorage implements IStorage {
       signedDocumentUrl: row.signedDocumentUrl,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
-      uploadedByUser: row.userUsername ? {
-        username: row.userUsername,
-        firstName: row.userFirstName,
-        lastName: row.userLastName
-      } : null
+      uploadedByUser: row.userUsername
+        ? {
+            username: row.userUsername,
+            firstName: row.userFirstName,
+            lastName: row.userLastName,
+          }
+        : null,
     }));
   }
 
   async createFile(fileData: any): Promise<any> {
-    console.log('🔍 DATABASE CREATEFILE - Raw fileData:', fileData);
-    console.log('🔍 DATABASE CREATEFILE - Tags field details:', {
+    console.log("🔍 DATABASE CREATEFILE - Raw fileData:", fileData);
+    console.log("🔍 DATABASE CREATEFILE - Tags field details:", {
       tags: fileData.tags,
       tagsType: typeof fileData.tags,
       isArray: Array.isArray(fileData.tags),
-      tagsStringified: JSON.stringify(fileData.tags)
+      tagsStringified: JSON.stringify(fileData.tags),
     });
-    
+
     // Ensure tags is an array
     if (fileData.tags !== undefined && !Array.isArray(fileData.tags)) {
-      console.log('🔧 Converting tags to array:', fileData.tags);
+      console.log("🔧 Converting tags to array:", fileData.tags);
       fileData.tags = fileData.tags ? [fileData.tags] : [];
     }
-    
-    console.log('🔍 DATABASE CREATEFILE - Final fileData before insert:', fileData);
-    
-    const [file] = await db
-      .insert(fileManager)
-      .values(fileData)
-      .returning();
+
+    console.log(
+      "🔍 DATABASE CREATEFILE - Final fileData before insert:",
+      fileData,
+    );
+
+    const [file] = await db.insert(fileManager).values(fileData).returning();
     return file;
   }
 
@@ -4138,10 +5180,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async uploadProjectFile(fileData: any): Promise<any> {
-    const [file] = await db
-      .insert(projectFiles)
-      .values(fileData)
-      .returning();
+    const [file] = await db.insert(projectFiles).values(fileData).returning();
     return file;
   }
 
@@ -4167,7 +5206,7 @@ export class DatabaseStorage implements IStorage {
           lastName: users.lastName,
           email: users.email,
           phone: users.phone,
-        }
+        },
       })
       .from(projectFiles)
       .leftJoin(users, eq(projectFiles.uploadedById, users.id))
@@ -4195,28 +5234,27 @@ export class DatabaseStorage implements IStorage {
       return await db
         .select()
         .from(timeEntries)
-        .where(and(
-          eq(timeEntries.projectId, projectId),
-          eq(timeEntries.userId, userId)
-        ))
+        .where(
+          and(
+            eq(timeEntries.projectId, projectId),
+            eq(timeEntries.userId, userId),
+          ),
+        )
         .orderBy(desc(timeEntries.clockInTime));
     } catch (error) {
-      console.error('Error fetching time entries:', error);
+      console.error("Error fetching time entries:", error);
       return [];
     }
   }
 
-
-
-
-
-
-
   // Inspection Methods
-  async getInspectionTemplates(organizationId: number, type?: string): Promise<any[]> {
+  async getInspectionTemplates(
+    organizationId: number,
+    type?: string,
+  ): Promise<any[]> {
     const whereConditions = [
       eq(inspectionTemplates.organizationId, organizationId),
-      eq(inspectionTemplates.isActive, true)
+      eq(inspectionTemplates.isActive, true),
     ];
 
     if (type) {
@@ -4242,10 +5280,12 @@ export class DatabaseStorage implements IStorage {
     return await db
       .select()
       .from(inspectionItems)
-      .where(and(
-        eq(inspectionItems.templateId, templateId),
-        eq(inspectionItems.isActive, true)
-      ))
+      .where(
+        and(
+          eq(inspectionItems.templateId, templateId),
+          eq(inspectionItems.isActive, true),
+        ),
+      )
       .orderBy(inspectionItems.sortOrder, inspectionItems.name);
   }
 
@@ -4274,22 +5314,26 @@ export class DatabaseStorage implements IStorage {
     return result.rowCount > 0;
   }
 
-  async getInspectionRecords(userId: number | null, organizationId: number, type?: string): Promise<any[]> {
+  async getInspectionRecords(
+    userId: number | null,
+    organizationId: number,
+    type?: string,
+  ): Promise<any[]> {
     // Build where conditions
     const whereConditions = [
-      eq(inspectionRecords.organizationId, organizationId)
+      eq(inspectionRecords.organizationId, organizationId),
     ];
-    
+
     // Only filter by userId if provided
     if (userId !== null) {
       whereConditions.push(eq(inspectionRecords.userId, userId));
     }
-    
+
     // Add type filter if provided
     if (type) {
       whereConditions.push(eq(inspectionRecords.type, type));
     }
-    
+
     const query = db
       .select({
         id: inspectionRecords.id,
@@ -4306,10 +5350,13 @@ export class DatabaseStorage implements IStorage {
         photos: inspectionRecords.photos,
         signature: inspectionRecords.signature,
         createdAt: inspectionRecords.createdAt,
-        templateName: inspectionTemplates.name
+        templateName: inspectionTemplates.name,
       })
       .from(inspectionRecords)
-      .innerJoin(inspectionTemplates, eq(inspectionRecords.templateId, inspectionTemplates.id))
+      .innerJoin(
+        inspectionTemplates,
+        eq(inspectionRecords.templateId, inspectionTemplates.id),
+      )
       .where(and(...whereConditions))
       .orderBy(desc(inspectionRecords.createdAt));
 
@@ -4324,7 +5371,10 @@ export class DatabaseStorage implements IStorage {
     return record;
   }
 
-  async getInspectionRecord(recordId: number, organizationId: number): Promise<any> {
+  async getInspectionRecord(
+    recordId: number,
+    organizationId: number,
+  ): Promise<any> {
     // Use raw SQL query to bypass Drizzle ORM issue
     const results = await db.execute(sql`
       SELECT 
@@ -4349,7 +5399,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Get all inspection records for organization (Manager/Admin only)
-  async getAllOrganizationInspectionRecords(organizationId: number, type?: string): Promise<any[]> {
+  async getAllOrganizationInspectionRecords(
+    organizationId: number,
+    type?: string,
+  ): Promise<any[]> {
     let query = db
       .select({
         id: inspectionRecords.id,
@@ -4368,28 +5421,42 @@ export class DatabaseStorage implements IStorage {
         createdAt: inspectionRecords.createdAt,
         templateName: inspectionTemplates.name,
         reviewerName: users.firstName,
-        technicianName: sql<string>`COALESCE(CONCAT(${users.firstName}, ' ', ${users.lastName}), ${users.username})`.as('technicianName'),
-        technicianEmail: users.email
+        technicianName:
+          sql<string>`COALESCE(CONCAT(${users.firstName}, ' ', ${users.lastName}), ${users.username})`.as(
+            "technicianName",
+          ),
+        technicianEmail: users.email,
       })
       .from(inspectionRecords)
-      .innerJoin(inspectionTemplates, eq(inspectionRecords.templateId, inspectionTemplates.id))
+      .innerJoin(
+        inspectionTemplates,
+        eq(inspectionRecords.templateId, inspectionTemplates.id),
+      )
       .leftJoin(users, eq(inspectionRecords.reviewedBy, users.id))
-      .innerJoin(sql`${users} AS technician_user`, sql`${inspectionRecords.userId} = technician_user.id`)
+      .innerJoin(
+        sql`${users} AS technician_user`,
+        sql`${inspectionRecords.userId} = technician_user.id`,
+      )
       .where(eq(inspectionRecords.organizationId, organizationId))
       .orderBy(desc(inspectionRecords.createdAt));
 
     if (type) {
-      query = query.where(and(
-        eq(inspectionRecords.organizationId, organizationId),
-        eq(inspectionRecords.type, type)
-      ));
+      query = query.where(
+        and(
+          eq(inspectionRecords.organizationId, organizationId),
+          eq(inspectionRecords.type, type),
+        ),
+      );
     }
 
     return await query;
   }
 
   // Get specific inspection record for organization (Manager/Admin only)
-  async getOrganizationInspectionRecord(recordId: number, organizationId: number): Promise<any> {
+  async getOrganizationInspectionRecord(
+    recordId: number,
+    organizationId: number,
+  ): Promise<any> {
     const results = await db
       .select({
         id: inspectionRecords.id,
@@ -4407,16 +5474,24 @@ export class DatabaseStorage implements IStorage {
         signature: inspectionRecords.signature,
         createdAt: inspectionRecords.createdAt,
         templateName: inspectionTemplates.name,
-        technicianName: sql<string>`COALESCE(CONCAT(${users.firstName}, ' ', ${users.lastName}), ${users.username})`.as('technicianName'),
-        technicianEmail: users.email
+        technicianName:
+          sql<string>`COALESCE(CONCAT(${users.firstName}, ' ', ${users.lastName}), ${users.username})`.as(
+            "technicianName",
+          ),
+        technicianEmail: users.email,
       })
       .from(inspectionRecords)
-      .innerJoin(inspectionTemplates, eq(inspectionRecords.templateId, inspectionTemplates.id))
+      .innerJoin(
+        inspectionTemplates,
+        eq(inspectionRecords.templateId, inspectionTemplates.id),
+      )
       .innerJoin(users, eq(inspectionRecords.userId, users.id))
-      .where(and(
-        eq(inspectionRecords.id, recordId),
-        eq(inspectionRecords.organizationId, organizationId)
-      ))
+      .where(
+        and(
+          eq(inspectionRecords.id, recordId),
+          eq(inspectionRecords.organizationId, organizationId),
+        ),
+      )
       .limit(1);
 
     return results.length > 0 ? results[0] : null;
@@ -4437,10 +5512,13 @@ export class DatabaseStorage implements IStorage {
         itemDescription: inspectionItems.description,
         isRequired: inspectionItems.isRequired,
         gasCardId: inspectionResponses.gasCardId,
-        gasCardName: sql<string | null>`${gasCards.cardName}`.as('gasCardName')
+        gasCardName: sql<string | null>`${gasCards.cardName}`.as("gasCardName"),
       })
       .from(inspectionResponses)
-      .innerJoin(inspectionItems, eq(inspectionResponses.itemId, inspectionItems.id))
+      .innerJoin(
+        inspectionItems,
+        eq(inspectionResponses.itemId, inspectionItems.id),
+      )
       .leftJoin(gasCards, eq(inspectionResponses.gasCardId, gasCards.id))
       .where(eq(inspectionResponses.recordId, recordId))
       .orderBy(asc(inspectionItems.sortOrder));
@@ -4481,10 +5559,13 @@ export class DatabaseStorage implements IStorage {
         isRead: inspectionNotifications.isRead,
         sentAt: inspectionNotifications.sentAt,
         inspectionType: inspectionRecords.type,
-        submitterName: users.firstName
+        submitterName: users.firstName,
       })
       .from(inspectionNotifications)
-      .innerJoin(inspectionRecords, eq(inspectionNotifications.recordId, inspectionRecords.id))
+      .innerJoin(
+        inspectionRecords,
+        eq(inspectionNotifications.recordId, inspectionRecords.id),
+      )
       .innerJoin(users, eq(inspectionRecords.userId, users.id))
       .where(eq(inspectionNotifications.sentTo, userId))
       .orderBy(desc(inspectionNotifications.sentAt));
@@ -4508,19 +5589,23 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(projects, eq(tasks.projectId, projects.id))
       .where(eq(tasks.createdById, userId))
       .orderBy(desc(tasks.createdAt));
-    
-    return results.map(row => ({
+
+    return results.map((row) => ({
       ...row.tasks,
-      assignedTo: row.users ? {
-        id: row.users.id,
-        firstName: row.users.firstName,
-        lastName: row.users.lastName,
-        username: row.users.username
-      } : null,
-      project: row.projects ? {
-        id: row.projects.id,
-        name: row.projects.name
-      } : null
+      assignedTo: row.users
+        ? {
+            id: row.users.id,
+            firstName: row.users.firstName,
+            lastName: row.users.lastName,
+            username: row.users.username,
+          }
+        : null,
+      project: row.projects
+        ? {
+            id: row.projects.id,
+            name: row.projects.name,
+          }
+        : null,
     }));
   }
 
@@ -4532,36 +5617,40 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(projects, eq(tasks.projectId, projects.id))
       .where(eq(tasks.assignedToId, userId))
       .orderBy(desc(tasks.createdAt));
-    
-    return results.map(row => ({
+
+    return results.map((row) => ({
       ...row.tasks,
-      assignedBy: row.users ? {
-        id: row.users.id,
-        firstName: row.users.firstName,
-        lastName: row.users.lastName,
-        username: row.users.username
-      } : null,
-      project: row.projects ? {
-        id: row.projects.id,
-        name: row.projects.name
-      } : null
+      assignedBy: row.users
+        ? {
+            id: row.users.id,
+            firstName: row.users.firstName,
+            lastName: row.users.lastName,
+            username: row.users.username,
+          }
+        : null,
+      project: row.projects
+        ? {
+            id: row.projects.id,
+            name: row.projects.name,
+          }
+        : null,
     }));
   }
 
   async createTask(taskData: any): Promise<any> {
     // Ensure required fields are provided
     const processedData = { ...taskData };
-    
+
     // Map createdById field properly
     if (processedData.createdById) {
       processedData.createdById = processedData.createdById;
     } else if (processedData.userId) {
       processedData.createdById = processedData.userId;
     }
-    
+
     // Set default values for enhanced task fields
     if (processedData.type === undefined) {
-      processedData.type = 'checkbox';
+      processedData.type = "checkbox";
     }
     if (processedData.isRequired === undefined) {
       processedData.isRequired = false;
@@ -4569,55 +5658,51 @@ export class DatabaseStorage implements IStorage {
     if (processedData.isCompleted === undefined) {
       processedData.isCompleted = false;
     }
-    
-    const [task] = await db
-      .insert(tasks)
-      .values(processedData)
-      .returning();
+
+    const [task] = await db.insert(tasks).values(processedData).returning();
     return task;
   }
 
   async getTaskById(taskId: number): Promise<any> {
-    const [task] = await db
-      .select()
-      .from(tasks)
-      .where(eq(tasks.id, taskId));
+    const [task] = await db.select().from(tasks).where(eq(tasks.id, taskId));
     return task;
   }
 
   async deleteTask(taskId: number): Promise<boolean> {
-    const result = await db
-      .delete(tasks)
-      .where(eq(tasks.id, taskId));
+    const result = await db.delete(tasks).where(eq(tasks.id, taskId));
     return result.rowCount > 0;
   }
 
-  async createTaskForOrganization(organizationId: number, taskData: any, userId: number): Promise<any> {
+  async createTaskForOrganization(
+    organizationId: number,
+    taskData: any,
+    userId: number,
+  ): Promise<any> {
     const processedData = { ...taskData };
     if (!processedData.projectId) {
       processedData.projectId = 8; // Use the default tasks project ID
     }
-    
+
     // Set the createdById field properly
     processedData.createdById = userId;
-    
-    const [task] = await db
-      .insert(tasks)
-      .values(processedData)
-      .returning();
+
+    const [task] = await db.insert(tasks).values(processedData).returning();
     return task;
   }
 
-  async canUserDelegateTask(userId: number, assignedToId: number): Promise<boolean> {
+  async canUserDelegateTask(
+    userId: number,
+    assignedToId: number,
+  ): Promise<boolean> {
     // Get user's role to check delegation permissions
     const user = await this.getUser(userId);
-    return user?.role === 'admin' || user?.role === 'manager';
+    return user?.role === "admin" || user?.role === "manager";
   }
 
   async getTasks(projectId: number, userId: number): Promise<any[]> {
     const assignedUser = users;
     const completedUser = users;
-    
+
     const result = await db
       .select({
         id: tasks.id,
@@ -4655,7 +5740,7 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(assignedUser, eq(tasks.assignedToId, assignedUser.id))
       .leftJoin(projects, eq(tasks.projectId, projects.id))
       .where(eq(tasks.projectId, projectId));
-    
+
     return result;
   }
 
@@ -4690,7 +5775,7 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(userProjects, eq(projects.id, userProjects.projectId))
       .innerJoin(orgUsers, eq(userProjects.userId, orgUsers.id))
       .where(eq(orgUsers.organizationId, organizationId));
-    
+
     return result;
   }
 
@@ -4718,9 +5803,9 @@ export class DatabaseStorage implements IStorage {
         .select({ id: projects.id })
         .from(projects)
         .where(eq(projects.organizationId, organizationId));
-      
-      const projectIds = orgProjects.map(p => p.id);
-      
+
+      const projectIds = orgProjects.map((p) => p.id);
+
       if (projectIds.length === 0) {
         return {
           totalTasks: 0,
@@ -4729,7 +5814,7 @@ export class DatabaseStorage implements IStorage {
           completedToday: 0,
           completedThisWeek: 0,
           averageCompletionTime: 0,
-          topPerformers: []
+          topPerformers: [],
         };
       }
 
@@ -4740,57 +5825,73 @@ export class DatabaseStorage implements IStorage {
         .where(inArray(tasks.projectId, projectIds));
 
       const totalTasks = allTasks.length;
-      const completedTasks = allTasks.filter(task => task.isCompleted).length;
-      const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+      const completedTasks = allTasks.filter((task) => task.isCompleted).length;
+      const completionRate =
+        totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
       // Tasks completed today
-      const completedToday = allTasks.filter(task => 
-        task.isCompleted && 
-        task.completedAt && 
-        new Date(task.completedAt) >= today
+      const completedToday = allTasks.filter(
+        (task) =>
+          task.isCompleted &&
+          task.completedAt &&
+          new Date(task.completedAt) >= today,
       ).length;
 
       // Tasks completed this week
-      const completedThisWeek = allTasks.filter(task => 
-        task.isCompleted && 
-        task.completedAt && 
-        new Date(task.completedAt) >= weekAgo
+      const completedThisWeek = allTasks.filter(
+        (task) =>
+          task.isCompleted &&
+          task.completedAt &&
+          new Date(task.completedAt) >= weekAgo,
       ).length;
 
       // Calculate average completion time in hours
-      const completedTasksWithTime = allTasks.filter(task => 
-        task.isCompleted && task.completedAt && task.createdAt
+      const completedTasksWithTime = allTasks.filter(
+        (task) => task.isCompleted && task.completedAt && task.createdAt,
       );
-      
+
       let averageCompletionTime = 0;
       if (completedTasksWithTime.length > 0) {
-        const totalCompletionTime = completedTasksWithTime.reduce((sum, task) => {
-          const created = new Date(task.createdAt);
-          const completed = new Date(task.completedAt!);
-          return sum + (completed.getTime() - created.getTime());
-        }, 0);
-        averageCompletionTime = Math.round(totalCompletionTime / completedTasksWithTime.length / (1000 * 60 * 60)); // Convert to hours
+        const totalCompletionTime = completedTasksWithTime.reduce(
+          (sum, task) => {
+            const created = new Date(task.createdAt);
+            const completed = new Date(task.completedAt!);
+            return sum + (completed.getTime() - created.getTime());
+          },
+          0,
+        );
+        averageCompletionTime = Math.round(
+          totalCompletionTime /
+            completedTasksWithTime.length /
+            (1000 * 60 * 60),
+        ); // Convert to hours
       }
 
       // Get user information for top performers
-      const userIds = [...new Set(allTasks.filter(t => t.completedById).map(t => t.completedById!))];
-      const usersData = userIds.length > 0 ? await db
-        .select({
-          id: users.id,
-          firstName: users.firstName,
-          lastName: users.lastName,
-          username: users.username
-        })
-        .from(users)
-        .where(inArray(users.id, userIds))
-        : [];
+      const userIds = [
+        ...new Set(
+          allTasks.filter((t) => t.completedById).map((t) => t.completedById!),
+        ),
+      ];
+      const usersData =
+        userIds.length > 0
+          ? await db
+              .select({
+                id: users.id,
+                firstName: users.firstName,
+                lastName: users.lastName,
+                username: users.username,
+              })
+              .from(users)
+              .where(inArray(users.id, userIds))
+          : [];
 
       // Create user lookup map
-      const userMap = new Map(usersData.map(u => [u.id, u]));
+      const userMap = new Map(usersData.map((u) => [u.id, u]));
 
       // Calculate user performance stats
       const userStats = new Map();
-      allTasks.forEach(task => {
+      allTasks.forEach((task) => {
         if (task.completedById) {
           const userId = task.completedById;
           const user = userMap.get(userId);
@@ -4798,9 +5899,12 @@ export class DatabaseStorage implements IStorage {
             if (!userStats.has(userId)) {
               userStats.set(userId, {
                 userId,
-                name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'Unknown',
+                name:
+                  `${user.firstName || ""} ${user.lastName || ""}`.trim() ||
+                  user.username ||
+                  "Unknown",
                 totalTasks: 0,
-                completedTasks: 0
+                completedTasks: 0,
               });
             }
             const stats = userStats.get(userId);
@@ -4813,9 +5917,12 @@ export class DatabaseStorage implements IStorage {
       });
 
       const topPerformers = Array.from(userStats.values())
-        .map(stats => ({
+        .map((stats) => ({
           ...stats,
-          completionRate: stats.totalTasks > 0 ? Math.round((stats.completedTasks / stats.totalTasks) * 100) : 0
+          completionRate:
+            stats.totalTasks > 0
+              ? Math.round((stats.completedTasks / stats.totalTasks) * 100)
+              : 0,
         }))
         .sort((a, b) => b.completedTasks - a.completedTasks)
         .slice(0, 5);
@@ -4827,10 +5934,10 @@ export class DatabaseStorage implements IStorage {
         completedToday,
         completedThisWeek,
         averageCompletionTime,
-        topPerformers
+        topPerformers,
       };
     } catch (error) {
-      console.error('Error in getTaskCompletionAnalytics:', error);
+      console.error("Error in getTaskCompletionAnalytics:", error);
       return {
         totalTasks: 0,
         completedTasks: 0,
@@ -4838,7 +5945,7 @@ export class DatabaseStorage implements IStorage {
         completedToday: 0,
         completedThisWeek: 0,
         averageCompletionTime: 0,
-        topPerformers: []
+        topPerformers: [],
       };
     }
   }
@@ -4870,118 +5977,136 @@ export class DatabaseStorage implements IStorage {
         .from(tasks)
         .innerJoin(projects, eq(tasks.projectId, projects.id))
         .where(eq(projects.organizationId, organizationId));
-      
+
       return result;
     } catch (error) {
-      console.error('Error in getAllTasks:', error);
+      console.error("Error in getAllTasks:", error);
       return [];
     }
   }
 
   async updateTask(id: number, userId: number, updates: any): Promise<any> {
     // Get current task to access existing description
-    const [currentTask] = await db
-      .select()
-      .from(tasks)
-      .where(eq(tasks.id, id));
+    const [currentTask] = await db.select().from(tasks).where(eq(tasks.id, id));
 
     if (!currentTask) {
-      throw new Error('Task not found');
+      throw new Error("Task not found");
     }
 
     const updateData = { ...updates, updatedAt: new Date() };
-    
+
     // Track startedAt when status changes to in-progress
-    if (updates.status === 'in-progress' && currentTask.status !== 'in-progress' && !currentTask.startedAt) {
+    if (
+      updates.status === "in-progress" &&
+      currentTask.status !== "in-progress" &&
+      !currentTask.startedAt
+    ) {
       updateData.startedAt = new Date();
     }
-    
+
     // If completing the task, set completedById and add completion timestamp to description
     if (updates.isCompleted === true && !currentTask.isCompleted) {
       updateData.completedById = userId;
       updateData.completedAt = new Date();
-      
+
       // Calculate actual hours if task was started
       if (currentTask.startedAt || updateData.startedAt) {
         const startTime = currentTask.startedAt || updateData.startedAt;
         const completionTime = updateData.completedAt;
-        const durationMs = completionTime.getTime() - new Date(startTime).getTime();
-        const actualHours = parseFloat((durationMs / (1000 * 60 * 60)).toFixed(2));
+        const durationMs =
+          completionTime.getTime() - new Date(startTime).getTime();
+        const actualHours = parseFloat(
+          (durationMs / (1000 * 60 * 60)).toFixed(2),
+        );
         updateData.actualHours = actualHours;
       }
-      
+
       // Get user info for completion timestamp
       const [user] = await db
         .select({ firstName: users.firstName, lastName: users.lastName })
         .from(users)
         .where(eq(users.id, userId));
-      
-      const userName = user ? `${user.firstName} ${user.lastName}` : 'Unknown User';
-      const completionTimestamp = new Date().toLocaleString('en-US', {
-        weekday: 'short',
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        timeZoneName: 'short'
+
+      const userName = user
+        ? `${user.firstName} ${user.lastName}`
+        : "Unknown User";
+      const completionTimestamp = new Date().toLocaleString("en-US", {
+        weekday: "short",
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZoneName: "short",
       });
-      
+
       // Append completion info to description
       const completionNote = `\n\n✅ Completed by ${userName} on ${completionTimestamp}`;
-      updateData.description = (currentTask.description || '') + completionNote;
+      updateData.description = (currentTask.description || "") + completionNote;
     }
-    
+
     // Also handle status-based completion for legacy compatibility
-    if (updates.status === 'completed' && currentTask.status !== 'completed') {
+    if (updates.status === "completed" && currentTask.status !== "completed") {
       updateData.isCompleted = true;
       updateData.completedById = userId;
       updateData.completedAt = new Date();
-      
+
       // Calculate actual hours if task was started
       if (currentTask.startedAt || updateData.startedAt) {
         const startTime = currentTask.startedAt || updateData.startedAt;
         const completionTime = updateData.completedAt;
-        const durationMs = completionTime.getTime() - new Date(startTime).getTime();
-        const actualHours = parseFloat((durationMs / (1000 * 60 * 60)).toFixed(2));
+        const durationMs =
+          completionTime.getTime() - new Date(startTime).getTime();
+        const actualHours = parseFloat(
+          (durationMs / (1000 * 60 * 60)).toFixed(2),
+        );
         updateData.actualHours = actualHours;
       }
-      
+
       // Get user info for completion timestamp if not already added
-      if (!updateData.description || !updateData.description.includes('✅ Completed by')) {
+      if (
+        !updateData.description ||
+        !updateData.description.includes("✅ Completed by")
+      ) {
         const [user] = await db
           .select({ firstName: users.firstName, lastName: users.lastName })
           .from(users)
           .where(eq(users.id, userId));
-        
-        const userName = user ? `${user.firstName} ${user.lastName}` : 'Unknown User';
-        const completionTimestamp = new Date().toLocaleString('en-US', {
-          weekday: 'short',
-          year: 'numeric',
-          month: 'short',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-          timeZoneName: 'short'
+
+        const userName = user
+          ? `${user.firstName} ${user.lastName}`
+          : "Unknown User";
+        const completionTimestamp = new Date().toLocaleString("en-US", {
+          weekday: "short",
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          timeZoneName: "short",
         });
-        
+
         // Append completion info to description
         const completionNote = `\n\n✅ Completed by ${userName} on ${completionTimestamp}`;
-        updateData.description = (currentTask.description || '') + completionNote;
+        updateData.description =
+          (currentTask.description || "") + completionNote;
       }
     }
-    
+
     // If uncompleting the task, remove completion info
     if (updates.isCompleted === false) {
       updateData.completedAt = null;
       updateData.completedById = null;
-      
+
       // Remove completion timestamp from description if it exists
       if (currentTask.description) {
-        updateData.description = currentTask.description.replace(/\n\n✅ Completed by .+ on .+/g, '');
+        updateData.description = currentTask.description.replace(
+          /\n\n✅ Completed by .+ on .+/g,
+          "",
+        );
       }
     }
-    
+
     const [task] = await db
       .update(tasks)
       .set(updateData)
@@ -5001,14 +6126,16 @@ export class DatabaseStorage implements IStorage {
       token: sessionData.token,
       expiresAt: sessionData.expiresAt,
       userAgent: sessionData.userAgent,
-      ipAddress: sessionData.ipAddress
+      ipAddress: sessionData.ipAddress,
     };
-    
+
     if (sessionData.latitude) insertData.latitude = sessionData.latitude;
     if (sessionData.longitude) insertData.longitude = sessionData.longitude;
-    if (sessionData.locationAccuracy) insertData.locationAccuracy = sessionData.locationAccuracy;
+    if (sessionData.locationAccuracy)
+      insertData.locationAccuracy = sessionData.locationAccuracy;
     if (sessionData.deviceType) insertData.deviceType = sessionData.deviceType;
-    if (sessionData.locationTimestamp) insertData.locationTimestamp = sessionData.locationTimestamp;
+    if (sessionData.locationTimestamp)
+      insertData.locationTimestamp = sessionData.locationTimestamp;
 
     const [session] = await db
       .insert(userSessions)
@@ -5032,7 +6159,7 @@ export class DatabaseStorage implements IStorage {
         deviceType: userSessions.deviceType,
         locationTimestamp: userSessions.locationTimestamp,
         userAgent: userSessions.userAgent,
-        ipAddress: userSessions.ipAddress
+        ipAddress: userSessions.ipAddress,
       })
       .from(userSessions)
       .innerJoin(users, eq(userSessions.userId, users.id))
@@ -5040,11 +6167,11 @@ export class DatabaseStorage implements IStorage {
         and(
           eq(users.organizationId, organizationId),
           isNotNull(userSessions.latitude),
-          isNotNull(userSessions.longitude)
-        )
+          isNotNull(userSessions.longitude),
+        ),
       )
       .orderBy(desc(userSessions.createdAt));
-    
+
     return sessions;
   }
 
@@ -5053,7 +6180,7 @@ export class DatabaseStorage implements IStorage {
       .select({
         totalSessions: sql<number>`count(*)`,
         mobileSessions: sql<number>`count(*) filter (where ${userSessions.deviceType} = 'mobile')`,
-        recentSessions: sql<number>`count(*) filter (where ${userSessions.createdAt} >= now() - interval '24 hours')`
+        recentSessions: sql<number>`count(*) filter (where ${userSessions.createdAt} >= now() - interval '24 hours')`,
       })
       .from(userSessions)
       .innerJoin(users, eq(userSessions.userId, users.id))
@@ -5061,8 +6188,8 @@ export class DatabaseStorage implements IStorage {
         and(
           eq(users.organizationId, organizationId),
           isNotNull(userSessions.latitude),
-          isNotNull(userSessions.longitude)
-        )
+          isNotNull(userSessions.longitude),
+        ),
       );
 
     const result = stats[0];
@@ -5070,7 +6197,10 @@ export class DatabaseStorage implements IStorage {
       totalSessions: result.totalSessions || 0,
       mobileSessions: result.mobileSessions || 0,
       recentSessions: result.recentSessions || 0,
-      mobilePercentage: result.totalSessions > 0 ? Math.round((result.mobileSessions / result.totalSessions) * 100) : 0
+      mobilePercentage:
+        result.totalSessions > 0
+          ? Math.round((result.mobileSessions / result.totalSessions) * 100)
+          : 0,
     };
   }
 
@@ -5083,31 +6213,111 @@ export class DatabaseStorage implements IStorage {
         .where(eq(smsMessages.organizationId, organizationId))
         .orderBy(desc(smsMessages.createdAt));
     } catch (error) {
-      console.error('Error fetching SMS messages:', error);
+      console.error("Error fetching SMS messages:", error);
       return [];
+    }
+  }
+
+  // Compatibility helper: return SMS messages for a user by resolving their organization
+  async getMessages(userId: number): Promise<any[]> {
+    try {
+      // Try to resolve user -> organizationId
+      const user = await this.getUser(userId);
+      const orgId =
+        user &&
+        (user.organizationId ||
+          user.organization_id ||
+          user.orgId ||
+          user.organization)
+          ? user.organizationId ||
+            user.organization_id ||
+            user.orgId ||
+            user.organization
+          : null;
+      if (orgId && typeof this.getSmsMessages === "function") {
+        return await this.getSmsMessages(orgId);
+      }
+      // Fallback: attempt to return internal messages if available
+      if (typeof (this as any).getInternalMessages === "function") {
+        return await (this as any).getInternalMessages(userId);
+      }
+      return [];
+    } catch (error) {
+      console.error("Error in storage.getMessages shim:", error);
+      return [];
+    }
+  }
+
+  async createMessage(messageData: any): Promise<any> {
+    try {
+      // Get user's organizationId
+      const user = await this.getUser(messageData.userId);
+      if (!user || !user.organizationId) {
+        throw new Error("User not found or missing organization");
+      }
+
+      const [message] = await db
+        .insert(smsMessages)
+        .values({
+          organizationId: user.organizationId,
+          recipient: messageData.to,
+          message: messageData.body,
+          status: messageData.status || "pending",
+          sentBy: messageData.userId,
+          twilioSid: messageData.twilioSid || null,
+          errorMessage: messageData.errorMessage || null,
+        })
+        .returning();
+      return message;
+    } catch (error: any) {
+      console.error("Error creating message:", error);
+      throw new Error("Failed to create message: " + error.message);
+    }
+  }
+
+  async updateMessageStatus(messageSid: string, status: string, errorCode?: string, errorMessage?: string): Promise<void> {
+    try {
+      const updateData: any = { status };
+      if (status === "sent") {
+        updateData.sentAt = new Date();
+      } else if (status === "delivered") {
+        updateData.deliveredAt = new Date();
+      }
+      if (errorMessage) {
+        updateData.errorMessage = errorMessage;
+      }
+
+      await db
+        .update(smsMessages)
+        .set(updateData)
+        .where(eq(smsMessages.twilioSid, messageSid));
+    } catch (error: any) {
+      console.error("Error updating message status:", error);
+      throw new Error("Failed to update message status");
     }
   }
 
   async createSmsMessage(messageData: any): Promise<any> {
     try {
-      const [smsMessage] = await db.insert(smsMessages)
+      const [smsMessage] = await db
+        .insert(smsMessages)
         .values({
           organizationId: messageData.organizationId,
           recipient: messageData.recipient,
           message: messageData.message,
-          status: messageData.status || 'pending',
+          status: messageData.status || "pending",
           sentAt: messageData.sentAt,
           deliveredAt: messageData.deliveredAt,
-          cost: messageData.cost || '0',
+          cost: messageData.cost || "0",
           twilioSid: messageData.twilioSid,
           errorMessage: messageData.errorMessage,
-          sentBy: messageData.sentBy
+          sentBy: messageData.sentBy,
         })
         .returning();
       return smsMessage;
     } catch (error: any) {
-      console.error('Error creating SMS message:', error);
-      throw new Error('Failed to create SMS message');
+      console.error("Error creating SMS message:", error);
+      throw new Error("Failed to create SMS message");
     }
   }
 
@@ -5116,32 +6326,35 @@ export class DatabaseStorage implements IStorage {
       return await db
         .select()
         .from(smsTemplates)
-        .where(and(
-          eq(smsTemplates.organizationId, organizationId),
-          eq(smsTemplates.isActive, true)
-        ))
+        .where(
+          and(
+            eq(smsTemplates.organizationId, organizationId),
+            eq(smsTemplates.isActive, true),
+          ),
+        )
         .orderBy(asc(smsTemplates.name));
     } catch (error) {
-      console.error('Error fetching SMS templates:', error);
+      console.error("Error fetching SMS templates:", error);
       return [];
     }
   }
 
   async createSmsTemplate(templateData: any): Promise<any> {
     try {
-      const [template] = await db.insert(smsTemplates)
+      const [template] = await db
+        .insert(smsTemplates)
         .values({
           organizationId: templateData.organizationId,
           name: templateData.name,
           content: templateData.content,
           category: templateData.category,
-          createdBy: templateData.createdBy
+          createdBy: templateData.createdBy,
         })
         .returning();
       return template;
     } catch (error: any) {
-      console.error('Error creating SMS template:', error);
-      throw new Error('Failed to create SMS template');
+      console.error("Error creating SMS template:", error);
+      throw new Error("Failed to create SMS template");
     }
   }
 
@@ -5150,7 +6363,7 @@ export class DatabaseStorage implements IStorage {
       // Return empty array for now as reviewRequests table may not exist
       return [];
     } catch (error) {
-      console.error('Error fetching review requests:', error);
+      console.error("Error fetching review requests:", error);
       return [];
     }
   }
@@ -5164,10 +6377,10 @@ export class DatabaseStorage implements IStorage {
         completedReviews: 0,
         averageRating: 0,
         clickRate: 0,
-        conversionRate: 0
+        conversionRate: 0,
       };
     } catch (error) {
-      console.error('Error fetching review analytics:', error);
+      console.error("Error fetching review analytics:", error);
       return {
         totalRequests: 0,
         sentRequests: 0,
@@ -5175,7 +6388,7 @@ export class DatabaseStorage implements IStorage {
         completedReviews: 0,
         averageRating: 0,
         clickRate: 0,
-        conversionRate: 0
+        conversionRate: 0,
       };
     }
   }
@@ -5187,10 +6400,10 @@ export class DatabaseStorage implements IStorage {
         id: Date.now(),
         ...requestData,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       };
     } catch (error) {
-      console.error('Error creating review request:', error);
+      console.error("Error creating review request:", error);
       throw error;
     }
   }
@@ -5201,12 +6414,12 @@ export class DatabaseStorage implements IStorage {
       return {
         id: 1,
         userId,
-        businessName: 'Your Business',
-        reviewUrl: 'https://g.page/yourbusiness/review',
-        isActive: true
+        businessName: "Your Business",
+        reviewUrl: "https://g.page/yourbusiness/review",
+        isActive: true,
       };
     } catch (error) {
-      console.error('Error fetching Google My Business settings:', error);
+      console.error("Error fetching Google My Business settings:", error);
       return null;
     }
   }
@@ -5214,10 +6427,13 @@ export class DatabaseStorage implements IStorage {
   // Gas card methods
   async getGasCards(): Promise<GasCard[]> {
     try {
-      const result = await db.select().from(gasCards).orderBy(gasCards.createdAt);
+      const result = await db
+        .select()
+        .from(gasCards)
+        .orderBy(gasCards.createdAt);
       return result;
     } catch (error) {
-      console.error('Error fetching gas cards:', error);
+      console.error("Error fetching gas cards:", error);
       return [];
     }
   }
@@ -5227,8 +6443,12 @@ export class DatabaseStorage implements IStorage {
     return gasCard;
   }
 
-  async updateGasCard(id: number, data: Partial<InsertGasCard>): Promise<GasCard> {
-    const [gasCard] = await db.update(gasCards)
+  async updateGasCard(
+    id: number,
+    data: Partial<InsertGasCard>,
+  ): Promise<GasCard> {
+    const [gasCard] = await db
+      .update(gasCards)
       .set(data)
       .where(eq(gasCards.id, id))
       .returning();
@@ -5242,161 +6462,182 @@ export class DatabaseStorage implements IStorage {
 
   async getGasCardAssignments(): Promise<GasCardAssignment[]> {
     try {
-      const result = await db.select({
-        id: gasCardAssignments.id,
-        cardId: gasCardAssignments.cardId,
-        assignedToUserId: gasCardAssignments.assignedToUserId,
-        assignedBy: gasCardAssignments.assignedBy,
-        assignedDate: gasCardAssignments.assignedDate,
-        expectedReturnDate: gasCardAssignments.expectedReturnDate,
-        returnedDate: gasCardAssignments.returnedDate,
-        purpose: gasCardAssignments.purpose,
-        notes: gasCardAssignments.notes,
-        status: gasCardAssignments.status,
-        createdAt: gasCardAssignments.createdAt,
-        updatedAt: gasCardAssignments.updatedAt,
-        // Gas card details
-        gasCardId: gasCards.id,
-        gasCardName: gasCards.cardName,
-        gasCardNumber: gasCards.cardNumber,
-        gasCardProvider: gasCards.provider,
-        gasCardStatus: gasCards.status,
-        // Assigned to user details
-        assignedToUserUsername: users.username,
-        assignedToUserFirstName: users.firstName,
-        assignedToUserLastName: users.lastName,
-      })
-      .from(gasCardAssignments)
-      .leftJoin(gasCards, eq(gasCardAssignments.cardId, gasCards.id))
-      .leftJoin(users, eq(gasCardAssignments.assignedToUserId, users.id))
-      .orderBy(gasCardAssignments.createdAt);
+      const result = await db
+        .select({
+          id: gasCardAssignments.id,
+          cardId: gasCardAssignments.cardId,
+          assignedToUserId: gasCardAssignments.assignedToUserId,
+          assignedBy: gasCardAssignments.assignedBy,
+          assignedDate: gasCardAssignments.assignedDate,
+          expectedReturnDate: gasCardAssignments.expectedReturnDate,
+          returnedDate: gasCardAssignments.returnedDate,
+          purpose: gasCardAssignments.purpose,
+          notes: gasCardAssignments.notes,
+          status: gasCardAssignments.status,
+          createdAt: gasCardAssignments.createdAt,
+          updatedAt: gasCardAssignments.updatedAt,
+          // Gas card details
+          gasCardId: gasCards.id,
+          gasCardName: gasCards.cardName,
+          gasCardNumber: gasCards.cardNumber,
+          gasCardProvider: gasCards.provider,
+          gasCardStatus: gasCards.status,
+          // Assigned to user details
+          assignedToUserUsername: users.username,
+          assignedToUserFirstName: users.firstName,
+          assignedToUserLastName: users.lastName,
+        })
+        .from(gasCardAssignments)
+        .leftJoin(gasCards, eq(gasCardAssignments.cardId, gasCards.id))
+        .leftJoin(users, eq(gasCardAssignments.assignedToUserId, users.id))
+        .orderBy(gasCardAssignments.createdAt);
 
       // Now get assigned by user details separately and merge
       const assignments = [];
       for (const assignment of result) {
         let assignedByUser = null;
         if (assignment.assignedBy) {
-          const [assignedBy] = await db.select({
-            id: users.id,
-            username: users.username,
-            firstName: users.firstName,
-            lastName: users.lastName
-          })
-          .from(users)
-          .where(eq(users.id, assignment.assignedBy));
+          const [assignedBy] = await db
+            .select({
+              id: users.id,
+              username: users.username,
+              firstName: users.firstName,
+              lastName: users.lastName,
+            })
+            .from(users)
+            .where(eq(users.id, assignment.assignedBy));
           assignedByUser = assignedBy;
         }
 
         assignments.push({
           ...assignment,
-          gasCard: assignment.gasCardId ? {
-            id: assignment.gasCardId,
-            cardName: assignment.gasCardName,
-            cardNumber: assignment.gasCardNumber,
-            provider: assignment.gasCardProvider,
-            status: assignment.gasCardStatus
-          } : null,
-          assignedToUser: assignment.assignedToUserId ? {
-            id: assignment.assignedToUserId,
-            username: assignment.assignedToUserUsername,
-            firstName: assignment.assignedToUserFirstName,
-            lastName: assignment.assignedToUserLastName
-          } : null,
-          assignedByUser
+          gasCard: assignment.gasCardId
+            ? {
+                id: assignment.gasCardId,
+                cardName: assignment.gasCardName,
+                cardNumber: assignment.gasCardNumber,
+                provider: assignment.gasCardProvider,
+                status: assignment.gasCardStatus,
+              }
+            : null,
+          assignedToUser: assignment.assignedToUserId
+            ? {
+                id: assignment.assignedToUserId,
+                username: assignment.assignedToUserUsername,
+                firstName: assignment.assignedToUserFirstName,
+                lastName: assignment.assignedToUserLastName,
+              }
+            : null,
+          assignedByUser,
         });
       }
 
       return assignments as any;
     } catch (error) {
-      console.error('Error fetching gas card assignments:', error);
+      console.error("Error fetching gas card assignments:", error);
       return [];
     }
   }
 
   async getActiveGasCardAssignments(): Promise<GasCardAssignment[]> {
     try {
-      const result = await db.select({
-        id: gasCardAssignments.id,
-        cardId: gasCardAssignments.cardId,
-        assignedToUserId: gasCardAssignments.assignedToUserId,
-        assignedBy: gasCardAssignments.assignedBy,
-        assignedDate: gasCardAssignments.assignedDate,
-        expectedReturnDate: gasCardAssignments.expectedReturnDate,
-        returnedDate: gasCardAssignments.returnedDate,
-        purpose: gasCardAssignments.purpose,
-        notes: gasCardAssignments.notes,
-        status: gasCardAssignments.status,
-        createdAt: gasCardAssignments.createdAt,
-        updatedAt: gasCardAssignments.updatedAt,
-        // Gas card details
-        gasCardId: gasCards.id,
-        gasCardName: gasCards.cardName,
-        gasCardNumber: gasCards.cardNumber,
-        gasCardProvider: gasCards.provider,
-        gasCardStatus: gasCards.status,
-        // Assigned to user details
-        assignedToUserUsername: users.username,
-        assignedToUserFirstName: users.firstName,
-        assignedToUserLastName: users.lastName,
-      })
-      .from(gasCardAssignments)
-      .leftJoin(gasCards, eq(gasCardAssignments.cardId, gasCards.id))
-      .leftJoin(users, eq(gasCardAssignments.assignedToUserId, users.id))
-      .where(isNull(gasCardAssignments.returnedDate))
-      .orderBy(gasCardAssignments.assignedDate);
+      const result = await db
+        .select({
+          id: gasCardAssignments.id,
+          cardId: gasCardAssignments.cardId,
+          assignedToUserId: gasCardAssignments.assignedToUserId,
+          assignedBy: gasCardAssignments.assignedBy,
+          assignedDate: gasCardAssignments.assignedDate,
+          expectedReturnDate: gasCardAssignments.expectedReturnDate,
+          returnedDate: gasCardAssignments.returnedDate,
+          purpose: gasCardAssignments.purpose,
+          notes: gasCardAssignments.notes,
+          status: gasCardAssignments.status,
+          createdAt: gasCardAssignments.createdAt,
+          updatedAt: gasCardAssignments.updatedAt,
+          // Gas card details
+          gasCardId: gasCards.id,
+          gasCardName: gasCards.cardName,
+          gasCardNumber: gasCards.cardNumber,
+          gasCardProvider: gasCards.provider,
+          gasCardStatus: gasCards.status,
+          // Assigned to user details
+          assignedToUserUsername: users.username,
+          assignedToUserFirstName: users.firstName,
+          assignedToUserLastName: users.lastName,
+        })
+        .from(gasCardAssignments)
+        .leftJoin(gasCards, eq(gasCardAssignments.cardId, gasCards.id))
+        .leftJoin(users, eq(gasCardAssignments.assignedToUserId, users.id))
+        .where(isNull(gasCardAssignments.returnedDate))
+        .orderBy(gasCardAssignments.assignedDate);
 
       // Now get assigned by user details separately and merge
       const assignments = [];
       for (const assignment of result) {
         let assignedByUser = null;
         if (assignment.assignedBy) {
-          const [assignedBy] = await db.select({
-            id: users.id,
-            username: users.username,
-            firstName: users.firstName,
-            lastName: users.lastName
-          })
-          .from(users)
-          .where(eq(users.id, assignment.assignedBy));
+          const [assignedBy] = await db
+            .select({
+              id: users.id,
+              username: users.username,
+              firstName: users.firstName,
+              lastName: users.lastName,
+            })
+            .from(users)
+            .where(eq(users.id, assignment.assignedBy));
           assignedByUser = assignedBy;
         }
 
         assignments.push({
           ...assignment,
-          gasCard: assignment.gasCardId ? {
-            id: assignment.gasCardId,
-            cardName: assignment.gasCardName,
-            cardNumber: assignment.gasCardNumber,
-            provider: assignment.gasCardProvider,
-            status: assignment.gasCardStatus
-          } : null,
-          assignedToUser: assignment.assignedToUserId ? {
-            id: assignment.assignedToUserId,
-            username: assignment.assignedToUserUsername,
-            firstName: assignment.assignedToUserFirstName,
-            lastName: assignment.assignedToUserLastName
-          } : null,
-          assignedByUser
+          gasCard: assignment.gasCardId
+            ? {
+                id: assignment.gasCardId,
+                cardName: assignment.gasCardName,
+                cardNumber: assignment.gasCardNumber,
+                provider: assignment.gasCardProvider,
+                status: assignment.gasCardStatus,
+              }
+            : null,
+          assignedToUser: assignment.assignedToUserId
+            ? {
+                id: assignment.assignedToUserId,
+                username: assignment.assignedToUserUsername,
+                firstName: assignment.assignedToUserFirstName,
+                lastName: assignment.assignedToUserLastName,
+              }
+            : null,
+          assignedByUser,
         });
       }
 
       return assignments as any;
     } catch (error) {
-      console.error('Error fetching active gas card assignments:', error);
+      console.error("Error fetching active gas card assignments:", error);
       return [];
     }
   }
 
-  async createGasCardAssignment(data: InsertGasCardAssignment): Promise<GasCardAssignment> {
-    const [assignment] = await db.insert(gasCardAssignments).values(data).returning();
+  async createGasCardAssignment(
+    data: InsertGasCardAssignment,
+  ): Promise<GasCardAssignment> {
+    const [assignment] = await db
+      .insert(gasCardAssignments)
+      .values(data)
+      .returning();
     return assignment;
   }
 
-  async returnGasCard(assignmentId: number, returnedDate: Date): Promise<GasCardAssignment> {
-    const [assignment] = await db.update(gasCardAssignments)
-      .set({ 
+  async returnGasCard(
+    assignmentId: number,
+    returnedDate: Date,
+  ): Promise<GasCardAssignment> {
+    const [assignment] = await db
+      .update(gasCardAssignments)
+      .set({
         returnedDate,
-        status: 'returned'
+        status: "returned",
       })
       .where(eq(gasCardAssignments.id, assignmentId))
       .returning();
@@ -5405,51 +6646,70 @@ export class DatabaseStorage implements IStorage {
 
   // Time Clock Methods
   async getCurrentTimeClockEntry(userId: number): Promise<any> {
-    const [entry] = await db.select({
-      id: timeClock.id,
-      userId: timeClock.userId,
-      clockInTime: timeClock.clockInTime,
-      clockOutTime: timeClock.clockOutTime,
-      breakStart: timeClock.breakStart,
-      breakEnd: timeClock.breakEnd,
-      status: timeClock.status,
-      clockInLocation: timeClock.clockInLocation,
-      clockOutLocation: timeClock.clockOutLocation,
-      totalHours: timeClock.totalHours,
-      breakDuration: timeClock.breakDuration,
-      notes: timeClock.notes
-    })
+    const [entry] = await db
+      .select({
+        id: timeClock.id,
+        userId: timeClock.userId,
+        clockInTime: timeClock.clockInTime,
+        clockOutTime: timeClock.clockOutTime,
+        breakStart: timeClock.breakStart,
+        breakEnd: timeClock.breakEnd,
+        status: timeClock.status,
+        clockInLocation: timeClock.clockInLocation,
+        clockOutLocation: timeClock.clockOutLocation,
+        totalHours: timeClock.totalHours,
+        breakDuration: timeClock.breakDuration,
+        notes: timeClock.notes,
+      })
       .from(timeClock)
-      .where(and(
-        eq(timeClock.userId, userId),
-        or(eq(timeClock.status, "clocked_in"), eq(timeClock.status, "on_break"))
-      ))
+      .where(
+        and(
+          eq(timeClock.userId, userId),
+          or(
+            eq(timeClock.status, "clocked_in"),
+            eq(timeClock.status, "on_break"),
+          ),
+        ),
+      )
       .orderBy(desc(timeClock.clockInTime))
       .limit(1);
-    
+
     return entry;
   }
 
-  async clockIn(userId: number, organizationId: number, location?: string, ipAddress?: string): Promise<any> {
+  async clockIn(
+    userId: number,
+    organizationId: number,
+    location?: string,
+    ipAddress?: string,
+  ): Promise<any> {
     const existing = await this.getCurrentTimeClockEntry(userId);
     if (existing) {
       throw new Error("User is already clocked in");
     }
 
-    const [entry] = await db.insert(timeClock).values({
-      userId,
-      organizationId,
-      clockInTime: new Date(),
-      clockInLocation: location,
-      clockInIP: ipAddress,
-      status: "clocked_in"
-    }).returning();
+    const [entry] = await db
+      .insert(timeClock)
+      .values({
+        userId,
+        organizationId,
+        clockInTime: new Date(),
+        clockInLocation: location,
+        clockInIP: ipAddress,
+        status: "clocked_in",
+      })
+      .returning();
 
     // Process time clock triggers for clock_in event
     try {
-      await this.processTriggerForTimeClockEvent(userId, organizationId, 'clock_in', { location, ipAddress });
+      await this.processTriggerForTimeClockEvent(
+        userId,
+        organizationId,
+        "clock_in",
+        { location, ipAddress },
+      );
     } catch (error) {
-      console.error('Failed to process clock_in triggers:', error);
+      console.error("Failed to process clock_in triggers:", error);
     }
 
     return entry;
@@ -5457,19 +6717,26 @@ export class DatabaseStorage implements IStorage {
 
   async clockOut(userId: number, notes?: string): Promise<any> {
     // Get user's organization ID for trigger checking
-    const [user] = await db.select({ organizationId: users.organizationId })
+    const [user] = await db
+      .select({ organizationId: users.organizationId })
       .from(users)
       .where(eq(users.id, userId))
       .limit(1);
 
     if (!user) {
-      throw new Error('User not found');
+      throw new Error("User not found");
     }
 
     // Check if there are any active triggers preventing clock-out
-    const clockOutCheck = await this.checkClockOutPreventionTriggers(userId, user.organizationId);
+    const clockOutCheck = await this.checkClockOutPreventionTriggers(
+      userId,
+      user.organizationId,
+    );
     if (!clockOutCheck.canClockOut) {
-      throw new Error(clockOutCheck.blockMessage || 'Complete required tasks before clocking out');
+      throw new Error(
+        clockOutCheck.blockMessage ||
+          "Complete required tasks before clocking out",
+      );
     }
 
     const current = await this.getCurrentTimeClockEntry(userId);
@@ -5478,15 +6745,18 @@ export class DatabaseStorage implements IStorage {
     }
 
     const clockOutTime = new Date();
-    const totalHours = (clockOutTime.getTime() - current.clockInTime.getTime()) / (1000 * 60 * 60);
+    const totalHours =
+      (clockOutTime.getTime() - current.clockInTime.getTime()) /
+      (1000 * 60 * 60);
 
-    const [entry] = await db.update(timeClock)
+    const [entry] = await db
+      .update(timeClock)
       .set({
         clockOutTime,
         totalHours: totalHours.toString(),
         status: "clocked_out",
         notes,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(eq(timeClock.id, current.id))
       .returning();
@@ -5494,15 +6764,20 @@ export class DatabaseStorage implements IStorage {
     // Process time clock triggers for clock_out event
     try {
       if (user) {
-        await this.processTriggerForTimeClockEvent(userId, user.organizationId, 'clock_out', { 
-          notes, 
-          totalHours: totalHours.toString(),
-          clockInTime: current.clockInTime,
-          clockOutTime 
-        });
+        await this.processTriggerForTimeClockEvent(
+          userId,
+          user.organizationId,
+          "clock_out",
+          {
+            notes,
+            totalHours: totalHours.toString(),
+            clockInTime: current.clockInTime,
+            clockOutTime,
+          },
+        );
       }
     } catch (error) {
-      console.error('Failed to process clock_out triggers:', error);
+      console.error("Failed to process clock_out triggers:", error);
     }
 
     return entry;
@@ -5517,17 +6792,19 @@ export class DatabaseStorage implements IStorage {
       throw new Error("User is already on break");
     }
 
-    const [entry] = await db.update(timeClock)
+    const [entry] = await db
+      .update(timeClock)
       .set({
         breakStart: new Date(),
         status: "on_break",
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(eq(timeClock.id, current.id))
       .returning();
 
     // Get user's organization ID for trigger processing
-    const [user] = await db.select({ organizationId: users.organizationId })
+    const [user] = await db
+      .select({ organizationId: users.organizationId })
       .from(users)
       .where(eq(users.id, userId))
       .limit(1);
@@ -5535,10 +6812,14 @@ export class DatabaseStorage implements IStorage {
     // Process time clock triggers for break_start event
     try {
       if (user) {
-        await this.processTriggerForTimeClockEvent(userId, user.organizationId, 'break_start');
+        await this.processTriggerForTimeClockEvent(
+          userId,
+          user.organizationId,
+          "break_start",
+        );
       }
     } catch (error) {
-      console.error('Failed to process break_start triggers:', error);
+      console.error("Failed to process break_start triggers:", error);
     }
 
     return entry;
@@ -5551,23 +6832,27 @@ export class DatabaseStorage implements IStorage {
     }
 
     const breakEnd = new Date();
-    const breakDuration = current.breakStart ? 
-      (breakEnd.getTime() - current.breakStart.getTime()) / (1000 * 60 * 60) : 0;
+    const breakDuration = current.breakStart
+      ? (breakEnd.getTime() - current.breakStart.getTime()) / (1000 * 60 * 60)
+      : 0;
 
-    const totalBreakDuration = parseFloat(current.breakDuration || "0") + breakDuration;
+    const totalBreakDuration =
+      parseFloat(current.breakDuration || "0") + breakDuration;
 
-    const [entry] = await db.update(timeClock)
+    const [entry] = await db
+      .update(timeClock)
       .set({
         breakEnd,
         breakDuration: totalBreakDuration.toString(),
         status: "clocked_in",
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(eq(timeClock.id, current.id))
       .returning();
 
     // Get user's organization ID for trigger processing
-    const [user] = await db.select({ organizationId: users.organizationId })
+    const [user] = await db
+      .select({ organizationId: users.organizationId })
       .from(users)
       .where(eq(users.id, userId))
       .limit(1);
@@ -5575,19 +6860,28 @@ export class DatabaseStorage implements IStorage {
     // Process time clock triggers for break_end event
     try {
       if (user) {
-        await this.processTriggerForTimeClockEvent(userId, user.organizationId, 'break_end', {
-          breakDuration: breakDuration.toString(),
-          totalBreakDuration: totalBreakDuration.toString()
-        });
+        await this.processTriggerForTimeClockEvent(
+          userId,
+          user.organizationId,
+          "break_end",
+          {
+            breakDuration: breakDuration.toString(),
+            totalBreakDuration: totalBreakDuration.toString(),
+          },
+        );
       }
     } catch (error) {
-      console.error('Failed to process break_end triggers:', error);
+      console.error("Failed to process break_end triggers:", error);
     }
 
     return entry;
   }
 
-  async getTimeClockEntries(userId: number, startDate?: Date, endDate?: Date): Promise<any[]> {
+  async getTimeClockEntries(
+    userId: number,
+    startDate?: Date,
+    endDate?: Date,
+  ): Promise<any[]> {
     let whereConditions = [eq(timeClock.userId, userId)];
 
     if (startDate) {
@@ -5601,36 +6895,41 @@ export class DatabaseStorage implements IStorage {
       whereConditions.push(lte(timeClock.clockInTime, endDatePlusOne));
     }
 
-    const entries = await db.select({
-      id: timeClock.id,
-      userId: timeClock.userId,
-      clockInTime: timeClock.clockInTime,
-      clockOutTime: timeClock.clockOutTime,
-      totalHours: timeClock.totalHours,
-      breakDuration: timeClock.breakDuration,
-      status: timeClock.status,
-      notes: timeClock.notes,
-      supervisorApproval: timeClock.supervisorApproval,
-      clockInLocation: timeClock.clockInLocation,
-      clockOutLocation: timeClock.clockOutLocation,
-      clockInIP: timeClock.clockInIP,
-      clockOutIP: timeClock.clockOutIP,
-      createdAt: timeClock.createdAt
-    })
-    .from(timeClock)
-    .where(and(...whereConditions))
-    .orderBy(desc(timeClock.clockInTime));
+    const entries = await db
+      .select({
+        id: timeClock.id,
+        userId: timeClock.userId,
+        clockInTime: timeClock.clockInTime,
+        clockOutTime: timeClock.clockOutTime,
+        totalHours: timeClock.totalHours,
+        breakDuration: timeClock.breakDuration,
+        status: timeClock.status,
+        notes: timeClock.notes,
+        supervisorApproval: timeClock.supervisorApproval,
+        clockInLocation: timeClock.clockInLocation,
+        clockOutLocation: timeClock.clockOutLocation,
+        clockInIP: timeClock.clockInIP,
+        clockOutIP: timeClock.clockOutIP,
+        createdAt: timeClock.createdAt,
+      })
+      .from(timeClock)
+      .where(and(...whereConditions))
+      .orderBy(desc(timeClock.clockInTime));
 
     return entries;
   }
 
-  async getTimeClockEntriesForOrganization(organizationId: number, startDate?: Date, endDate?: Date): Promise<any[]> {
-    console.log('🕒 ORG TIME CLOCK DEBUG:', {
+  async getTimeClockEntriesForOrganization(
+    organizationId: number,
+    startDate?: Date,
+    endDate?: Date,
+  ): Promise<any[]> {
+    console.log("🕒 ORG TIME CLOCK DEBUG:", {
       organizationId,
       startDate: startDate?.toISOString(),
       endDate: endDate?.toISOString(),
       startDateValid: startDate instanceof Date && !isNaN(startDate.getTime()),
-      endDateValid: endDate instanceof Date && !isNaN(endDate.getTime())
+      endDateValid: endDate instanceof Date && !isNaN(endDate.getTime()),
     });
 
     let whereConditions = [eq(timeClock.organizationId, organizationId)];
@@ -5646,49 +6945,51 @@ export class DatabaseStorage implements IStorage {
       whereConditions.push(lte(timeClock.clockInTime, endDatePlusOne));
     }
 
-    const entries = await db.select({
-      id: timeClock.id,
-      userId: timeClock.userId,
-      userName: users.firstName,
-      userLastName: users.lastName,
-      userRole: users.role,
-      clockInTime: timeClock.clockInTime,
-      clockOutTime: timeClock.clockOutTime,
-      totalHours: timeClock.totalHours,
-      breakDuration: timeClock.breakDuration,
-      status: timeClock.status,
-      notes: timeClock.notes,
-      supervisorApproval: timeClock.supervisorApproval,
-      clockInLocation: timeClock.clockInLocation,
-      clockOutLocation: timeClock.clockOutLocation,
-      clockInIP: timeClock.clockInIP,
-      clockOutIP: timeClock.clockOutIP,
-      createdAt: timeClock.createdAt
-    })
-    .from(timeClock)
-    .leftJoin(users, eq(timeClock.userId, users.id))
-    .where(and(...whereConditions))
-    .orderBy(desc(timeClock.clockInTime));
+    const entries = await db
+      .select({
+        id: timeClock.id,
+        userId: timeClock.userId,
+        userName: users.firstName,
+        userLastName: users.lastName,
+        userRole: users.role,
+        clockInTime: timeClock.clockInTime,
+        clockOutTime: timeClock.clockOutTime,
+        totalHours: timeClock.totalHours,
+        breakDuration: timeClock.breakDuration,
+        status: timeClock.status,
+        notes: timeClock.notes,
+        supervisorApproval: timeClock.supervisorApproval,
+        clockInLocation: timeClock.clockInLocation,
+        clockOutLocation: timeClock.clockOutLocation,
+        clockInIP: timeClock.clockInIP,
+        clockOutIP: timeClock.clockOutIP,
+        createdAt: timeClock.createdAt,
+      })
+      .from(timeClock)
+      .leftJoin(users, eq(timeClock.userId, users.id))
+      .where(and(...whereConditions))
+      .orderBy(desc(timeClock.clockInTime));
 
-    console.log('🕒 ORG TIME CLOCK RESULTS:', {
+    console.log("🕒 ORG TIME CLOCK RESULTS:", {
       entriesCount: entries.length,
-      entries: entries.map(e => ({
+      entries: entries.map((e) => ({
         id: e.id,
         userId: e.userId,
         status: e.status,
         clockInTime: e.clockInTime,
-        userName: e.userName
-      }))
+        userName: e.userName,
+      })),
     });
 
     return entries;
   }
 
   async updateTimeClockEntry(id: number, updates: any): Promise<any> {
-    const [entry] = await db.update(timeClock)
+    const [entry] = await db
+      .update(timeClock)
       .set({
         ...updates,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(eq(timeClock.id, id))
       .returning();
@@ -5697,7 +6998,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getTimeClockSettings(organizationId: number): Promise<any> {
-    const [settings] = await db.select()
+    const [settings] = await db
+      .select()
       .from(timeClockSettings)
       .where(eq(timeClockSettings.organizationId, organizationId))
       .limit(1);
@@ -5705,23 +7007,28 @@ export class DatabaseStorage implements IStorage {
     return settings;
   }
 
-  async updateTimeClockSettings(organizationId: number, settingsData: any): Promise<any> {
+  async updateTimeClockSettings(
+    organizationId: number,
+    settingsData: any,
+  ): Promise<any> {
     const existing = await this.getTimeClockSettings(organizationId);
 
     if (existing) {
-      const [updated] = await db.update(timeClockSettings)
+      const [updated] = await db
+        .update(timeClockSettings)
         .set({
           ...settingsData,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(timeClockSettings.organizationId, organizationId))
         .returning();
       return updated;
     } else {
-      const [created] = await db.insert(timeClockSettings)
+      const [created] = await db
+        .insert(timeClockSettings)
         .values({
           organizationId,
-          ...settingsData
+          ...settingsData,
         })
         .returning();
       return created;
@@ -5729,129 +7036,165 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Time Clock Task Triggers methods
-  async getTimeClockTaskTriggers(organizationId: number, userId?: number): Promise<any[]> {
-    let whereConditions = [eq(timeClockTaskTriggers.organizationId, organizationId)];
-    
-    if (userId) {
-      whereConditions.push(
-        or(
-          eq(timeClockTaskTriggers.userId, userId),
-          isNull(timeClockTaskTriggers.userId) // Include organization-wide triggers
-        )
-      );
-    }
-
-    const triggers = await db.select({
-      id: timeClockTaskTriggers.id,
-      organizationId: timeClockTaskTriggers.organizationId,
-      userId: timeClockTaskTriggers.userId,
-      triggerEvent: timeClockTaskTriggers.triggerEvent,
-      isActive: timeClockTaskTriggers.isActive,
-      taskTitle: timeClockTaskTriggers.taskTitle,
-      taskDescription: timeClockTaskTriggers.taskDescription,
-      taskType: timeClockTaskTriggers.taskType,
-      isRequired: timeClockTaskTriggers.isRequired,
-      priority: timeClockTaskTriggers.priority,
-      assignToMode: timeClockTaskTriggers.assignToMode,
-      assignToUserId: timeClockTaskTriggers.assignToUserId,
-      projectId: timeClockTaskTriggers.projectId,
-      createProjectIfNone: timeClockTaskTriggers.createProjectIfNone,
-      projectTemplate: timeClockTaskTriggers.projectTemplate,
-      delayMinutes: timeClockTaskTriggers.delayMinutes,
-      daysOfWeek: timeClockTaskTriggers.daysOfWeek,
-      timeRange: timeClockTaskTriggers.timeRange,
-      frequency: timeClockTaskTriggers.frequency,
-      lastTriggered: timeClockTaskTriggers.lastTriggered,
-      triggerCount: timeClockTaskTriggers.triggerCount,
-      createdBy: timeClockTaskTriggers.createdBy,
-      createdAt: timeClockTaskTriggers.createdAt,
-      // Join creator info
-      creatorName: users.firstName,
-      creatorLastName: users.lastName,
-      // Join assigned user info if applicable
-      assignedUserName: sql`assigned_user.first_name`.as('assignedUserName'),
-      assignedUserLastName: sql`assigned_user.last_name`.as('assignedUserLastName'),
-      // Join project info if applicable
-      projectName: projects.name
-    })
-    .from(timeClockTaskTriggers)
-    .leftJoin(users, eq(timeClockTaskTriggers.createdBy, users.id))
-    .leftJoin(sql`users assigned_user`, sql`${timeClockTaskTriggers.assignToUserId} = assigned_user.id`)
-    .leftJoin(projects, eq(timeClockTaskTriggers.projectId, projects.id))
-    .where(and(...whereConditions))
-    .orderBy(desc(timeClockTaskTriggers.createdAt));
-
-    return triggers;
-  }
-
-  async getTimeClockTaskTrigger(id: number, organizationId: number): Promise<any> {
-    const [trigger] = await db.select()
-      .from(timeClockTaskTriggers)
-      .leftJoin(users, eq(timeClockTaskTriggers.createdBy, users.id))
-      .leftJoin(projects, eq(timeClockTaskTriggers.projectId, projects.id))
-      .where(and(
-        eq(timeClockTaskTriggers.id, id),
-        eq(timeClockTaskTriggers.organizationId, organizationId)
-      ))
-      .limit(1);
-
-    return trigger;
-  }
-
-  async createTimeClockTaskTrigger(triggerData: any): Promise<any> {
-    const [trigger] = await db.insert(timeClockTaskTriggers)
-      .values({
-        ...triggerData,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      })
-      .returning();
-
-    return trigger;
-  }
-
-  async updateTimeClockTaskTrigger(id: number, organizationId: number, updates: any): Promise<any> {
-    const [trigger] = await db.update(timeClockTaskTriggers)
-      .set({
-        ...updates,
-        updatedAt: new Date()
-      })
-      .where(and(
-        eq(timeClockTaskTriggers.id, id),
-        eq(timeClockTaskTriggers.organizationId, organizationId)
-      ))
-      .returning();
-
-    return trigger;
-  }
-
-  async deleteTimeClockTaskTrigger(id: number, organizationId: number): Promise<boolean> {
-    const result = await db.delete(timeClockTaskTriggers)
-      .where(and(
-        eq(timeClockTaskTriggers.id, id),
-        eq(timeClockTaskTriggers.organizationId, organizationId)
-      ));
-
-    return result.rowCount > 0;
-  }
-
-  async getActiveTriggersForEvent(organizationId: number, triggerEvent: string, userId?: number): Promise<any[]> {
+  async getTimeClockTaskTriggers(
+    organizationId: number,
+    userId?: number,
+  ): Promise<any[]> {
     let whereConditions = [
       eq(timeClockTaskTriggers.organizationId, organizationId),
-      eq(timeClockTaskTriggers.triggerEvent, triggerEvent),
-      eq(timeClockTaskTriggers.isActive, true)
     ];
 
     if (userId) {
       whereConditions.push(
         or(
           eq(timeClockTaskTriggers.userId, userId),
-          isNull(timeClockTaskTriggers.userId) // Include organization-wide triggers
-        )
+          isNull(timeClockTaskTriggers.userId), // Include organization-wide triggers
+        ),
       );
     }
 
-    const triggers = await db.select()
+    const triggers = await db
+      .select({
+        id: timeClockTaskTriggers.id,
+        organizationId: timeClockTaskTriggers.organizationId,
+        userId: timeClockTaskTriggers.userId,
+        triggerEvent: timeClockTaskTriggers.triggerEvent,
+        isActive: timeClockTaskTriggers.isActive,
+        taskTitle: timeClockTaskTriggers.taskTitle,
+        taskDescription: timeClockTaskTriggers.taskDescription,
+        taskType: timeClockTaskTriggers.taskType,
+        isRequired: timeClockTaskTriggers.isRequired,
+        priority: timeClockTaskTriggers.priority,
+        assignToMode: timeClockTaskTriggers.assignToMode,
+        assignToUserId: timeClockTaskTriggers.assignToUserId,
+        projectId: timeClockTaskTriggers.projectId,
+        createProjectIfNone: timeClockTaskTriggers.createProjectIfNone,
+        projectTemplate: timeClockTaskTriggers.projectTemplate,
+        delayMinutes: timeClockTaskTriggers.delayMinutes,
+        daysOfWeek: timeClockTaskTriggers.daysOfWeek,
+        timeRange: timeClockTaskTriggers.timeRange,
+        frequency: timeClockTaskTriggers.frequency,
+        lastTriggered: timeClockTaskTriggers.lastTriggered,
+        triggerCount: timeClockTaskTriggers.triggerCount,
+        createdBy: timeClockTaskTriggers.createdBy,
+        createdAt: timeClockTaskTriggers.createdAt,
+        // Join creator info
+        creatorName: users.firstName,
+        creatorLastName: users.lastName,
+        // Join assigned user info if applicable
+        assignedUserName: sql`assigned_user.first_name`.as("assignedUserName"),
+        assignedUserLastName: sql`assigned_user.last_name`.as(
+          "assignedUserLastName",
+        ),
+        // Join project info if applicable
+        projectName: projects.name,
+      })
+      .from(timeClockTaskTriggers)
+      .leftJoin(users, eq(timeClockTaskTriggers.createdBy, users.id))
+      .leftJoin(
+        sql`users assigned_user`,
+        sql`${timeClockTaskTriggers.assignToUserId} = assigned_user.id`,
+      )
+      .leftJoin(projects, eq(timeClockTaskTriggers.projectId, projects.id))
+      .where(and(...whereConditions))
+      .orderBy(desc(timeClockTaskTriggers.createdAt));
+
+    return triggers;
+  }
+
+  async getTimeClockTaskTrigger(
+    id: number,
+    organizationId: number,
+  ): Promise<any> {
+    const [trigger] = await db
+      .select()
+      .from(timeClockTaskTriggers)
+      .leftJoin(users, eq(timeClockTaskTriggers.createdBy, users.id))
+      .leftJoin(projects, eq(timeClockTaskTriggers.projectId, projects.id))
+      .where(
+        and(
+          eq(timeClockTaskTriggers.id, id),
+          eq(timeClockTaskTriggers.organizationId, organizationId),
+        ),
+      )
+      .limit(1);
+
+    return trigger;
+  }
+
+  async createTimeClockTaskTrigger(triggerData: any): Promise<any> {
+    const [trigger] = await db
+      .insert(timeClockTaskTriggers)
+      .values({
+        ...triggerData,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning();
+
+    return trigger;
+  }
+
+  async updateTimeClockTaskTrigger(
+    id: number,
+    organizationId: number,
+    updates: any,
+  ): Promise<any> {
+    const [trigger] = await db
+      .update(timeClockTaskTriggers)
+      .set({
+        ...updates,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(timeClockTaskTriggers.id, id),
+          eq(timeClockTaskTriggers.organizationId, organizationId),
+        ),
+      )
+      .returning();
+
+    return trigger;
+  }
+
+  async deleteTimeClockTaskTrigger(
+    id: number,
+    organizationId: number,
+  ): Promise<boolean> {
+    const result = await db
+      .delete(timeClockTaskTriggers)
+      .where(
+        and(
+          eq(timeClockTaskTriggers.id, id),
+          eq(timeClockTaskTriggers.organizationId, organizationId),
+        ),
+      );
+
+    return result.rowCount > 0;
+  }
+
+  async getActiveTriggersForEvent(
+    organizationId: number,
+    triggerEvent: string,
+    userId?: number,
+  ): Promise<any[]> {
+    let whereConditions = [
+      eq(timeClockTaskTriggers.organizationId, organizationId),
+      eq(timeClockTaskTriggers.triggerEvent, triggerEvent),
+      eq(timeClockTaskTriggers.isActive, true),
+    ];
+
+    if (userId) {
+      whereConditions.push(
+        or(
+          eq(timeClockTaskTriggers.userId, userId),
+          isNull(timeClockTaskTriggers.userId), // Include organization-wide triggers
+        ),
+      );
+    }
+
+    const triggers = await db
+      .select()
       .from(timeClockTaskTriggers)
       .where(and(...whereConditions))
       .orderBy(asc(timeClockTaskTriggers.delayMinutes));
@@ -5859,26 +7202,50 @@ export class DatabaseStorage implements IStorage {
     return triggers;
   }
 
-  async processTriggerForTimeClockEvent(userId: number, organizationId: number, triggerEvent: string, eventData?: any): Promise<void> {
+  async processTriggerForTimeClockEvent(
+    userId: number,
+    organizationId: number,
+    triggerEvent: string,
+    eventData?: any,
+  ): Promise<void> {
     // Get active triggers for this event
-    const triggers = await this.getActiveTriggersForEvent(organizationId, triggerEvent, userId);
-    
+    const triggers = await this.getActiveTriggersForEvent(
+      organizationId,
+      triggerEvent,
+      userId,
+    );
+
     for (const trigger of triggers) {
       // Check frequency constraints
       const now = new Date();
-      if (trigger.frequency === 'once_per_day' && trigger.lastTriggered) {
+      if (trigger.frequency === "once_per_day" && trigger.lastTriggered) {
         const lastTriggered = new Date(trigger.lastTriggered);
-        const daysDiff = Math.floor((now.getTime() - lastTriggered.getTime()) / (1000 * 60 * 60 * 24));
+        const daysDiff = Math.floor(
+          (now.getTime() - lastTriggered.getTime()) / (1000 * 60 * 60 * 24),
+        );
         if (daysDiff < 1) continue;
-      } else if (trigger.frequency === 'once_per_week' && trigger.lastTriggered) {
+      } else if (
+        trigger.frequency === "once_per_week" &&
+        trigger.lastTriggered
+      ) {
         const lastTriggered = new Date(trigger.lastTriggered);
-        const daysDiff = Math.floor((now.getTime() - lastTriggered.getTime()) / (1000 * 60 * 60 * 24));
+        const daysDiff = Math.floor(
+          (now.getTime() - lastTriggered.getTime()) / (1000 * 60 * 60 * 24),
+        );
         if (daysDiff < 7) continue;
       }
 
       // Check day of week constraints
       if (trigger.daysOfWeek && trigger.daysOfWeek.length > 0) {
-        const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const dayNames = [
+          "Sunday",
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday",
+          "Saturday",
+        ];
         const currentDay = dayNames[now.getDay()];
         if (!trigger.daysOfWeek.includes(currentDay)) continue;
       }
@@ -5886,32 +7253,40 @@ export class DatabaseStorage implements IStorage {
       // Check time range constraints
       if (trigger.timeRange) {
         const currentTime = now.toTimeString().slice(0, 5); // HH:MM format
-        if (trigger.timeRange.start && currentTime < trigger.timeRange.start) continue;
-        if (trigger.timeRange.end && currentTime > trigger.timeRange.end) continue;
+        if (trigger.timeRange.start && currentTime < trigger.timeRange.start)
+          continue;
+        if (trigger.timeRange.end && currentTime > trigger.timeRange.end)
+          continue;
       }
 
       // Determine who to assign the task to
       let assignToUserId = userId; // Default to the trigger user
-      if (trigger.assignToMode === 'specific_user' && trigger.assignToUserId) {
+      if (trigger.assignToMode === "specific_user" && trigger.assignToUserId) {
         assignToUserId = trigger.assignToUserId;
-      } else if (trigger.assignToMode === 'manager') {
+      } else if (trigger.assignToMode === "manager") {
         // Find a manager in the organization (simplified)
-        const [manager] = await db.select()
+        const [manager] = await db
+          .select()
           .from(users)
-          .where(and(
-            eq(users.organizationId, organizationId),
-            eq(users.role, 'manager')
-          ))
+          .where(
+            and(
+              eq(users.organizationId, organizationId),
+              eq(users.role, "manager"),
+            ),
+          )
           .limit(1);
         if (manager) assignToUserId = manager.id;
-      } else if (trigger.assignToMode === 'admin') {
+      } else if (trigger.assignToMode === "admin") {
         // Find an admin in the organization
-        const [admin] = await db.select()
+        const [admin] = await db
+          .select()
           .from(users)
-          .where(and(
-            eq(users.organizationId, organizationId),
-            eq(users.role, 'admin')
-          ))
+          .where(
+            and(
+              eq(users.organizationId, organizationId),
+              eq(users.role, "admin"),
+            ),
+          )
           .limit(1);
         if (admin) assignToUserId = admin.id;
       }
@@ -5924,11 +7299,13 @@ export class DatabaseStorage implements IStorage {
           if (!projectId && trigger.createProjectIfNone) {
             // Create a new project using the template
             const projectData = {
-              name: trigger.projectTemplate || `Auto-created for ${trigger.taskTitle}`,
+              name:
+                trigger.projectTemplate ||
+                `Auto-created for ${trigger.taskTitle}`,
               description: `Project automatically created by time clock trigger: ${trigger.taskTitle}`,
               organizationId,
               createdBy: userId,
-              status: 'active'
+              status: "active",
             };
             const newProject = await this.createProject(projectData);
             projectId = newProject.id;
@@ -5946,22 +7323,22 @@ export class DatabaseStorage implements IStorage {
             projectId,
             isCompleted: false,
             createdAt: new Date(),
-            updatedAt: new Date()
+            updatedAt: new Date(),
           };
 
           await this.createTask(taskData);
 
           // Update trigger statistics
-          await db.update(timeClockTaskTriggers)
+          await db
+            .update(timeClockTaskTriggers)
             .set({
               lastTriggered: new Date(),
               triggerCount: sql`${timeClockTaskTriggers.triggerCount} + 1`,
-              updatedAt: new Date()
+              updatedAt: new Date(),
             })
             .where(eq(timeClockTaskTriggers.id, trigger.id));
-
         } catch (error) {
-          console.error('Failed to create task from trigger:', error);
+          console.error("Failed to create task from trigger:", error);
         }
       };
 
@@ -5986,28 +7363,31 @@ export class DatabaseStorage implements IStorage {
           triggerType: triggerData.triggerType,
           isActive: triggerData.isActive ?? true,
           hasFlashingAlert: triggerData.hasFlashingAlert ?? true,
-          flashColor: triggerData.flashColor || '#ff0000',
+          flashColor: triggerData.flashColor || "#ff0000",
           flashDuration: triggerData.flashDuration || 5000,
           hasSoundAlert: triggerData.hasSoundAlert ?? true,
-          soundType: triggerData.soundType || 'notification',
+          soundType: triggerData.soundType || "notification",
           soundVolume: triggerData.soundVolume || 70,
           displayDuration: triggerData.displayDuration || 10000,
           autoHide: triggerData.autoHide ?? true,
           title: triggerData.title,
           message: triggerData.message,
-          buttonText: triggerData.buttonText || 'Mark Complete',
+          buttonText: triggerData.buttonText || "Mark Complete",
           preventClockOut: triggerData.preventClockOut ?? false,
-          clockOutBlockMessage: triggerData.clockOutBlockMessage || 'Complete required tasks before clocking out',
+          clockOutBlockMessage:
+            triggerData.clockOutBlockMessage ||
+            "Complete required tasks before clocking out",
           assignedToUserId: triggerData.assignedToUserId || null,
           assignedToRole: triggerData.assignedToRole || null,
           requiresCompletion: triggerData.requiresCompletion ?? true,
-          allowMultipleCompletions: triggerData.allowMultipleCompletions ?? false,
+          allowMultipleCompletions:
+            triggerData.allowMultipleCompletions ?? false,
           createdBy: triggerData.createdBy,
         })
         .returning();
       return trigger;
     } catch (error) {
-      console.error('Error creating task trigger:', error);
+      console.error("Error creating task trigger:", error);
       throw error;
     }
   }
@@ -6053,7 +7433,7 @@ export class DatabaseStorage implements IStorage {
         .orderBy(taskTriggers.createdAt);
       return triggers;
     } catch (error) {
-      console.error('Error getting task triggers:', error);
+      console.error("Error getting task triggers:", error);
       throw error;
     }
   }
@@ -6063,16 +7443,25 @@ export class DatabaseStorage implements IStorage {
       const [trigger] = await db
         .select()
         .from(taskTriggers)
-        .where(and(eq(taskTriggers.id, id), eq(taskTriggers.organizationId, organizationId)))
+        .where(
+          and(
+            eq(taskTriggers.id, id),
+            eq(taskTriggers.organizationId, organizationId),
+          ),
+        )
         .limit(1);
       return trigger;
     } catch (error) {
-      console.error('Error getting task trigger:', error);
+      console.error("Error getting task trigger:", error);
       throw error;
     }
   }
 
-  async updateTaskTrigger(id: number, organizationId: number, updates: any): Promise<any> {
+  async updateTaskTrigger(
+    id: number,
+    organizationId: number,
+    updates: any,
+  ): Promise<any> {
     try {
       const [trigger] = await db
         .update(taskTriggers)
@@ -6080,39 +7469,59 @@ export class DatabaseStorage implements IStorage {
           ...updates,
           updatedAt: new Date(),
         })
-        .where(and(eq(taskTriggers.id, id), eq(taskTriggers.organizationId, organizationId)))
+        .where(
+          and(
+            eq(taskTriggers.id, id),
+            eq(taskTriggers.organizationId, organizationId),
+          ),
+        )
         .returning();
       return trigger;
     } catch (error) {
-      console.error('Error updating task trigger:', error);
+      console.error("Error updating task trigger:", error);
       throw error;
     }
   }
 
-  async deleteTaskTrigger(id: number, organizationId: number): Promise<boolean> {
+  async deleteTaskTrigger(
+    id: number,
+    organizationId: number,
+  ): Promise<boolean> {
     try {
       await db
         .delete(taskTriggers)
-        .where(and(eq(taskTriggers.id, id), eq(taskTriggers.organizationId, organizationId)));
+        .where(
+          and(
+            eq(taskTriggers.id, id),
+            eq(taskTriggers.organizationId, organizationId),
+          ),
+        );
       return true;
     } catch (error) {
-      console.error('Error deleting task trigger:', error);
+      console.error("Error deleting task trigger:", error);
       return false;
     }
   }
 
   // Process task triggers for time clock events
-  async processTriggerForTimeClockEvent(userId: number, organizationId: number, eventType: string, context: any = {}): Promise<void> {
+  async processTriggerForTimeClockEvent(
+    userId: number,
+    organizationId: number,
+    eventType: string,
+    context: any = {},
+  ): Promise<void> {
     try {
       // Get active triggers for this event type
       const applicableTriggers = await db
         .select()
         .from(taskTriggers)
-        .where(and(
-          eq(taskTriggers.organizationId, organizationId),
-          eq(taskTriggers.triggerType, eventType),
-          eq(taskTriggers.isActive, true)
-        ));
+        .where(
+          and(
+            eq(taskTriggers.organizationId, organizationId),
+            eq(taskTriggers.triggerType, eventType),
+            eq(taskTriggers.isActive, true),
+          ),
+        );
 
       // Get user details for role-based filtering
       const [user] = await db
@@ -6124,11 +7533,11 @@ export class DatabaseStorage implements IStorage {
       for (const trigger of applicableTriggers) {
         // Check assignment filters
         let shouldTrigger = true;
-        
+
         if (trigger.assignedToUserId && trigger.assignedToUserId !== userId) {
           shouldTrigger = false;
         }
-        
+
         if (trigger.assignedToRole && user?.role !== trigger.assignedToRole) {
           shouldTrigger = false;
         }
@@ -6139,41 +7548,46 @@ export class DatabaseStorage implements IStorage {
             const existingCompletion = await db
               .select()
               .from(taskTriggerCompletions)
-              .where(and(
-                eq(taskTriggerCompletions.triggerId, trigger.id),
-                eq(taskTriggerCompletions.userId, userId)
-              ))
+              .where(
+                and(
+                  eq(taskTriggerCompletions.triggerId, trigger.id),
+                  eq(taskTriggerCompletions.userId, userId),
+                ),
+              )
               .limit(1);
-            
+
             if (existingCompletion.length > 0) {
               continue; // Skip if already completed and multiple completions not allowed
             }
           }
 
           // Create trigger instance
-          await db
-            .insert(taskTriggerInstances)
-            .values({
-              triggerId: trigger.id,
-              userId,
-              organizationId,
-              triggeredBy: eventType,
-              timeClockEntryId: context.timeClockEntryId || null,
-              status: 'active',
-              isVisible: true,
-              triggeredAt: new Date(),
-              expiresAt: trigger.displayDuration > 0 ? 
-                new Date(Date.now() + trigger.displayDuration) : null,
-            });
+          await db.insert(taskTriggerInstances).values({
+            triggerId: trigger.id,
+            userId,
+            organizationId,
+            triggeredBy: eventType,
+            timeClockEntryId: context.timeClockEntryId || null,
+            status: "active",
+            isVisible: true,
+            triggeredAt: new Date(),
+            expiresAt:
+              trigger.displayDuration > 0
+                ? new Date(Date.now() + trigger.displayDuration)
+                : null,
+          });
         }
       }
     } catch (error) {
-      console.error('Error processing task triggers:', error);
+      console.error("Error processing task triggers:", error);
     }
   }
 
   // Get active trigger instances for a user
-  async getActiveTriggerInstances(userId: number, organizationId: number): Promise<any[]> {
+  async getActiveTriggerInstances(
+    userId: number,
+    organizationId: number,
+  ): Promise<any[]> {
     try {
       const instances = await db
         .select({
@@ -6200,24 +7614,34 @@ export class DatabaseStorage implements IStorage {
           requiresCompletion: taskTriggers.requiresCompletion,
         })
         .from(taskTriggerInstances)
-        .innerJoin(taskTriggers, eq(taskTriggerInstances.triggerId, taskTriggers.id))
-        .where(and(
-          eq(taskTriggerInstances.userId, userId),
-          eq(taskTriggerInstances.organizationId, organizationId),
-          eq(taskTriggerInstances.status, 'active'),
-          eq(taskTriggerInstances.isVisible, true)
-        ))
+        .innerJoin(
+          taskTriggers,
+          eq(taskTriggerInstances.triggerId, taskTriggers.id),
+        )
+        .where(
+          and(
+            eq(taskTriggerInstances.userId, userId),
+            eq(taskTriggerInstances.organizationId, organizationId),
+            eq(taskTriggerInstances.status, "active"),
+            eq(taskTriggerInstances.isVisible, true),
+          ),
+        )
         .orderBy(taskTriggerInstances.triggeredAt);
-      
+
       return instances;
     } catch (error) {
-      console.error('Error getting active trigger instances:', error);
+      console.error("Error getting active trigger instances:", error);
       throw error;
     }
   }
 
   // Complete a trigger instance
-  async completeTriggerInstance(instanceId: number, userId: number, organizationId: number, notes?: string): Promise<boolean> {
+  async completeTriggerInstance(
+    instanceId: number,
+    userId: number,
+    organizationId: number,
+    notes?: string,
+  ): Promise<boolean> {
     try {
       // Get the instance and trigger details
       const [instance] = await db
@@ -6227,11 +7651,13 @@ export class DatabaseStorage implements IStorage {
           timeClockEntryId: taskTriggerInstances.timeClockEntryId,
         })
         .from(taskTriggerInstances)
-        .where(and(
-          eq(taskTriggerInstances.id, instanceId),
-          eq(taskTriggerInstances.userId, userId),
-          eq(taskTriggerInstances.organizationId, organizationId)
-        ))
+        .where(
+          and(
+            eq(taskTriggerInstances.id, instanceId),
+            eq(taskTriggerInstances.userId, userId),
+            eq(taskTriggerInstances.organizationId, organizationId),
+          ),
+        )
         .limit(1);
 
       if (!instance) return false;
@@ -6240,7 +7666,7 @@ export class DatabaseStorage implements IStorage {
       await db
         .update(taskTriggerInstances)
         .set({
-          status: 'completed',
+          status: "completed",
           completedAt: new Date(),
           completedBy: userId,
           updatedAt: new Date(),
@@ -6248,75 +7674,87 @@ export class DatabaseStorage implements IStorage {
         .where(eq(taskTriggerInstances.id, instanceId));
 
       // Create completion record
-      await db
-        .insert(taskTriggerCompletions)
-        .values({
-          triggerId: instance.triggerId,
-          userId,
-          organizationId,
-          notes,
-          timeClockEntryId: instance.timeClockEntryId,
-          triggerContext: { completedInstanceId: instanceId },
-        });
+      await db.insert(taskTriggerCompletions).values({
+        triggerId: instance.triggerId,
+        userId,
+        organizationId,
+        notes,
+        timeClockEntryId: instance.timeClockEntryId,
+        triggerContext: { completedInstanceId: instanceId },
+      });
 
       return true;
     } catch (error) {
-      console.error('Error completing trigger instance:', error);
+      console.error("Error completing trigger instance:", error);
       return false;
     }
   }
 
   // Dismiss a trigger instance
-  async dismissTriggerInstance(instanceId: number, userId: number, organizationId: number): Promise<boolean> {
+  async dismissTriggerInstance(
+    instanceId: number,
+    userId: number,
+    organizationId: number,
+  ): Promise<boolean> {
     try {
       await db
         .update(taskTriggerInstances)
         .set({
-          status: 'dismissed',
+          status: "dismissed",
           dismissedAt: new Date(),
           isVisible: false,
           updatedAt: new Date(),
         })
-        .where(and(
-          eq(taskTriggerInstances.id, instanceId),
-          eq(taskTriggerInstances.userId, userId),
-          eq(taskTriggerInstances.organizationId, organizationId)
-        ));
+        .where(
+          and(
+            eq(taskTriggerInstances.id, instanceId),
+            eq(taskTriggerInstances.userId, userId),
+            eq(taskTriggerInstances.organizationId, organizationId),
+          ),
+        );
       return true;
     } catch (error) {
-      console.error('Error dismissing trigger instance:', error);
+      console.error("Error dismissing trigger instance:", error);
       return false;
     }
   }
 
   // Check if user has active triggers that prevent clock-out
-  async checkClockOutPreventionTriggers(userId: number, organizationId: number): Promise<{ canClockOut: boolean; blockMessage?: string }> {
+  async checkClockOutPreventionTriggers(
+    userId: number,
+    organizationId: number,
+  ): Promise<{ canClockOut: boolean; blockMessage?: string }> {
     try {
       const preventionTriggers = await db
         .select({
           clockOutBlockMessage: taskTriggers.clockOutBlockMessage,
         })
         .from(taskTriggerInstances)
-        .innerJoin(taskTriggers, eq(taskTriggerInstances.triggerId, taskTriggers.id))
-        .where(and(
-          eq(taskTriggerInstances.userId, userId),
-          eq(taskTriggerInstances.organizationId, organizationId),
-          eq(taskTriggerInstances.status, 'active'),
-          eq(taskTriggers.preventClockOut, true),
-          eq(taskTriggers.requiresCompletion, true)
-        ))
+        .innerJoin(
+          taskTriggers,
+          eq(taskTriggerInstances.triggerId, taskTriggers.id),
+        )
+        .where(
+          and(
+            eq(taskTriggerInstances.userId, userId),
+            eq(taskTriggerInstances.organizationId, organizationId),
+            eq(taskTriggerInstances.status, "active"),
+            eq(taskTriggers.preventClockOut, true),
+            eq(taskTriggers.requiresCompletion, true),
+          ),
+        )
         .limit(1);
 
       if (preventionTriggers.length > 0) {
         return {
           canClockOut: false,
-          blockMessage: preventionTriggers[0].clockOutBlockMessage
+          blockMessage: preventionTriggers[0].clockOutBlockMessage,
         };
       }
 
       return { canClockOut: true };
     } catch (error) {
-      console.error('Error checking clock-out prevention triggers:', error);
+      console.error("Error checking clock-out prevention triggers:", error);
       return { canClockOut: true }; // Default to allowing clock-out on error
     }
   }
@@ -6328,7 +7766,7 @@ export class DatabaseStorage implements IStorage {
       if (imageData.organizationId) {
         await ensureOrganizationFolders(imageData.organizationId);
       }
-      
+
       const [image] = await db
         .insert(images)
         .values({
@@ -6346,7 +7784,7 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return image;
     } catch (error) {
-      console.error('Error creating image:', error);
+      console.error("Error creating image:", error);
       throw error;
     }
   }
@@ -6368,15 +7806,15 @@ export class DatabaseStorage implements IStorage {
           updatedAt: images.updatedAt,
           userId: images.userId,
           projectId: images.projectId,
-          organizationId: users.organizationId
+          organizationId: users.organizationId,
         })
         .from(images)
         .leftJoin(users, eq(images.userId, users.id))
         .where(eq(images.id, imageId));
-      
+
       return image || null;
     } catch (error) {
-      console.error('Error fetching image by ID:', error);
+      console.error("Error fetching image by ID:", error);
       return null;
     }
   }
@@ -6385,14 +7823,14 @@ export class DatabaseStorage implements IStorage {
     try {
       const userInfo = await this.getUser(userId);
       if (!userInfo) {
-        console.log('🔍 IMAGES DEBUG: No user info found for userId:', userId);
+        console.log("🔍 IMAGES DEBUG: No user info found for userId:", userId);
         return [];
       }
 
-      console.log('🔍 IMAGES DEBUG: User info:', {
+      console.log("🔍 IMAGES DEBUG: User info:", {
         userId: userInfo.id,
         organizationId: userInfo.organizationId,
-        username: userInfo.username
+        username: userInfo.username,
       });
 
       // Get images filtered by organization and exclude deleted images
@@ -6402,19 +7840,19 @@ export class DatabaseStorage implements IStorage {
         .where(
           and(
             eq(images.organizationId, userInfo.organizationId),
-            isNull(images.deletedAt)
-          )
+            isNull(images.deletedAt),
+          ),
         )
         .orderBy(desc(images.createdAt));
 
-      console.log('🔍 IMAGES DEBUG: Raw query results:', {
+      console.log("🔍 IMAGES DEBUG: Raw query results:", {
         count: imageResults.length,
         organizationId: userInfo.organizationId,
-        results: imageResults.slice(0, 2) // Log first 2 results for debugging
+        results: imageResults.slice(0, 2), // Log first 2 results for debugging
       });
 
       // Add correct URL paths for organization-based file structure and map date field
-      return imageResults.map(image => {
+      return imageResults.map((image) => {
         // If the image has a cloudinaryUrl (newer uploads), use that
         let imageUrl;
         if (image.cloudinaryUrl) {
@@ -6427,11 +7865,11 @@ export class DatabaseStorage implements IStorage {
         return {
           ...image,
           uploadDate: image.createdAt, // Map createdAt to uploadDate for frontend compatibility
-          url: imageUrl
+          url: imageUrl,
         };
       });
     } catch (error) {
-      console.error('Error fetching images:', error);
+      console.error("Error fetching images:", error);
       return [];
     }
   }
@@ -6445,41 +7883,41 @@ export class DatabaseStorage implements IStorage {
       const imageResults = await db
         .select()
         .from(images)
-        .where(
-          and(
-            inArray(images.id, imageIds),
-            isNull(images.deletedAt)
-          )
-        )
+        .where(and(inArray(images.id, imageIds), isNull(images.deletedAt)))
         .orderBy(desc(images.createdAt));
 
-      console.log('📸 SHARED PHOTOS DEBUG: Found images for IDs:', {
+      console.log("📸 SHARED PHOTOS DEBUG: Found images for IDs:", {
         requestedIds: imageIds,
-        foundCount: imageResults.length
+        foundCount: imageResults.length,
       });
 
-      return imageResults.map(image => ({
+      return imageResults.map((image) => ({
         ...image,
-        uploadDate: image.createdAt // Map createdAt to uploadDate for frontend compatibility
+        uploadDate: image.createdAt, // Map createdAt to uploadDate for frontend compatibility
       }));
     } catch (error) {
-      console.error('Error fetching images by IDs:', error);
+      console.error("Error fetching images by IDs:", error);
       return [];
     }
   }
 
-  async saveImageAnnotations(imageId: number, userId: number, annotations: any, annotatedImageUrl: string): Promise<void> {
+  async saveImageAnnotations(
+    imageId: number,
+    userId: number,
+    annotations: any,
+    annotatedImageUrl: string,
+  ): Promise<void> {
     try {
       await db
         .update(images)
         .set({
           annotations: JSON.stringify(annotations),
           annotatedImageUrl,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(images.id, imageId));
     } catch (error) {
-      console.error('Error saving image annotations:', error);
+      console.error("Error saving image annotations:", error);
       throw error;
     }
   }
@@ -6492,22 +7930,22 @@ export class DatabaseStorage implements IStorage {
       // Soft delete the image
       const result = await db
         .update(images)
-        .set({ 
+        .set({
           isDeleted: true,
           deletedAt: new Date(),
           deletedBy: userId,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(
           and(
             eq(images.id, imageId),
-            eq(images.organizationId, userInfo.organizationId)
-          )
+            eq(images.organizationId, userInfo.organizationId),
+          ),
         );
-      
+
       return result.rowCount > 0;
     } catch (error) {
-      console.error('Error deleting image:', error);
+      console.error("Error deleting image:", error);
       return false;
     }
   }
@@ -6537,21 +7975,21 @@ export class DatabaseStorage implements IStorage {
           deletedByUser: {
             firstName: users.firstName,
             lastName: users.lastName,
-            email: users.email
-          }
+            email: users.email,
+          },
         })
         .from(images)
         .leftJoin(users, eq(images.deletedBy, users.id))
         .where(
           and(
             eq(images.organizationId, userInfo.organizationId),
-            eq(images.isDeleted, true)
-          )
+            eq(images.isDeleted, true),
+          ),
         )
         .orderBy(desc(images.deletedAt));
 
       // Add correct URL paths and format data
-      return deletedImageResults.map(image => {
+      return deletedImageResults.map((image) => {
         let imageUrl;
         if (image.cloudinaryUrl) {
           imageUrl = image.cloudinaryUrl;
@@ -6562,13 +8000,14 @@ export class DatabaseStorage implements IStorage {
         return {
           ...image,
           url: imageUrl,
-          deletedByName: image.deletedByUser?.firstName && image.deletedByUser?.lastName
-            ? `${image.deletedByUser.firstName} ${image.deletedByUser.lastName}`
-            : image.deletedByUser?.email || 'Unknown User'
+          deletedByName:
+            image.deletedByUser?.firstName && image.deletedByUser?.lastName
+              ? `${image.deletedByUser.firstName} ${image.deletedByUser.lastName}`
+              : image.deletedByUser?.email || "Unknown User",
         };
       });
     } catch (error) {
-      console.error('Error fetching deleted images:', error);
+      console.error("Error fetching deleted images:", error);
       return [];
     }
   }
@@ -6581,28 +8020,31 @@ export class DatabaseStorage implements IStorage {
       // Restore image by clearing soft delete flags
       const result = await db
         .update(images)
-        .set({ 
+        .set({
           isDeleted: false,
           deletedAt: null,
           deletedBy: null,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(
           and(
             eq(images.id, imageId),
             eq(images.organizationId, userInfo.organizationId),
-            eq(images.isDeleted, true)
-          )
+            eq(images.isDeleted, true),
+          ),
         );
-      
+
       return result.rowCount > 0;
     } catch (error) {
-      console.error('Error restoring image:', error);
+      console.error("Error restoring image:", error);
       return false;
     }
   }
 
-  async permanentlyDeleteImage(imageId: number, userId: number): Promise<boolean> {
+  async permanentlyDeleteImage(
+    imageId: number,
+    userId: number,
+  ): Promise<boolean> {
     try {
       const userInfo = await this.getUser(userId);
       if (!userInfo) return false;
@@ -6614,13 +8056,13 @@ export class DatabaseStorage implements IStorage {
           and(
             eq(images.id, imageId),
             eq(images.organizationId, userInfo.organizationId),
-            eq(images.isDeleted, true)
-          )
+            eq(images.isDeleted, true),
+          ),
         );
-      
+
       return result.rowCount > 0;
     } catch (error) {
-      console.error('Error permanently deleting image:', error);
+      console.error("Error permanently deleting image:", error);
       return false;
     }
   }
@@ -6632,38 +8074,50 @@ export class DatabaseStorage implements IStorage {
       if (!userInfo) return [];
 
       let whereCondition;
-      
+
       // If user is admin, show all messages within their organization
-      if (userInfo.role === 'admin') {
+      if (userInfo.role === "admin") {
         // For admins, get all messages where sender or any recipient is in the same organization
         whereCondition = and(
           or(
             // Messages sent by users in the same organization
             exists(
-              db.select()
+              db
+                .select()
                 .from(users)
-                .where(and(
-                  eq(users.id, internalMessages.senderId),
-                  eq(users.organizationId, userInfo.organizationId)
-                ))
+                .where(
+                  and(
+                    eq(users.id, internalMessages.senderId),
+                    eq(users.organizationId, userInfo.organizationId),
+                  ),
+                ),
             ),
             // Messages received by users in the same organization
             exists(
-              db.select()
+              db
+                .select()
                 .from(internalMessageRecipients)
-                .innerJoin(users, eq(internalMessageRecipients.recipientId, users.id))
-                .where(and(
-                  eq(internalMessageRecipients.messageId, internalMessages.id),
-                  eq(users.organizationId, userInfo.organizationId)
-                ))
-            )
-          )
+                .innerJoin(
+                  users,
+                  eq(internalMessageRecipients.recipientId, users.id),
+                )
+                .where(
+                  and(
+                    eq(
+                      internalMessageRecipients.messageId,
+                      internalMessages.id,
+                    ),
+                    eq(users.organizationId, userInfo.organizationId),
+                  ),
+                ),
+            ),
+          ),
         );
       } else {
         // For regular users, only show messages they sent or received
         whereCondition = or(
           eq(internalMessages.senderId, userId),
-          eq(internalMessageRecipients.recipientId, userId)
+          eq(internalMessageRecipients.recipientId, userId),
         );
       }
 
@@ -6685,11 +8139,14 @@ export class DatabaseStorage implements IStorage {
             'recipientId', ${internalMessageRecipients.recipientId},
             'isRead', ${internalMessageRecipients.isRead},
             'readAt', ${internalMessageRecipients.readAt}
-          ))`
+          ))`,
         })
         .from(internalMessages)
         .innerJoin(users, eq(internalMessages.senderId, users.id))
-        .leftJoin(internalMessageRecipients, eq(internalMessages.id, internalMessageRecipients.messageId))
+        .leftJoin(
+          internalMessageRecipients,
+          eq(internalMessages.id, internalMessageRecipients.messageId),
+        )
         .where(whereCondition)
         .groupBy(
           internalMessages.id,
@@ -6703,18 +8160,21 @@ export class DatabaseStorage implements IStorage {
           internalMessages.updatedAt,
           users.username,
           users.firstName,
-          users.lastName
+          users.lastName,
         )
         .orderBy(desc(internalMessages.createdAt));
 
       return messagesWithRecipients;
     } catch (error) {
-      console.error('Error fetching internal messages:', error);
+      console.error("Error fetching internal messages:", error);
       return [];
     }
   }
 
-  async createInternalMessage(messageData: any, recipientIds: number[]): Promise<any> {
+  async createInternalMessage(
+    messageData: any,
+    recipientIds: number[],
+  ): Promise<any> {
     try {
       // Create the message
       const [message] = await db
@@ -6723,23 +8183,21 @@ export class DatabaseStorage implements IStorage {
           senderId: messageData.senderId,
           subject: messageData.subject,
           content: messageData.content,
-          messageType: messageData.messageType || 'individual',
-          priority: messageData.priority || 'normal',
-          parentMessageId: messageData.parentMessageId || null
+          messageType: messageData.messageType || "individual",
+          priority: messageData.priority || "normal",
+          parentMessageId: messageData.parentMessageId || null,
         })
         .returning();
 
       // Create recipients
       if (recipientIds && recipientIds.length > 0) {
-        const recipientData = recipientIds.map(recipientId => ({
+        const recipientData = recipientIds.map((recipientId) => ({
           messageId: message.id,
           recipientId: recipientId,
-          isRead: false
+          isRead: false,
         }));
 
-        await db
-          .insert(internalMessageRecipients)
-          .values(recipientData);
+        await db.insert(internalMessageRecipients).values(recipientData);
       }
 
       // Fetch the complete message with sender info
@@ -6756,7 +8214,7 @@ export class DatabaseStorage implements IStorage {
           updatedAt: internalMessages.updatedAt,
           senderUsername: users.username,
           senderFirstName: users.firstName,
-          senderLastName: users.lastName
+          senderLastName: users.lastName,
         })
         .from(internalMessages)
         .innerJoin(users, eq(internalMessages.senderId, users.id))
@@ -6764,7 +8222,7 @@ export class DatabaseStorage implements IStorage {
 
       return completeMessage;
     } catch (error) {
-      console.error('Error creating internal message:', error);
+      console.error("Error creating internal message:", error);
       throw error;
     }
   }
@@ -6775,23 +8233,26 @@ export class DatabaseStorage implements IStorage {
         .update(internalMessageRecipients)
         .set({
           isRead: true,
-          readAt: new Date()
+          readAt: new Date(),
         })
         .where(
           and(
             eq(internalMessageRecipients.messageId, messageId),
-            eq(internalMessageRecipients.recipientId, userId)
-          )
+            eq(internalMessageRecipients.recipientId, userId),
+          ),
         );
 
       return result.rowCount > 0;
     } catch (error) {
-      console.error('Error marking message as read:', error);
+      console.error("Error marking message as read:", error);
       return false;
     }
   }
 
-  async deleteInternalMessage(messageId: number, userId: number): Promise<boolean> {
+  async deleteInternalMessage(
+    messageId: number,
+    userId: number,
+  ): Promise<boolean> {
     try {
       // Check if user is the sender
       const [message] = await db
@@ -6800,8 +8261,8 @@ export class DatabaseStorage implements IStorage {
         .where(
           and(
             eq(internalMessages.id, messageId),
-            eq(internalMessages.senderId, userId)
-          )
+            eq(internalMessages.senderId, userId),
+          ),
         );
 
       if (!message) return false;
@@ -6818,7 +8279,7 @@ export class DatabaseStorage implements IStorage {
 
       return result.rowCount > 0;
     } catch (error) {
-      console.error('Error deleting internal message:', error);
+      console.error("Error deleting internal message:", error);
       return false;
     }
   }
@@ -6838,24 +8299,27 @@ export class DatabaseStorage implements IStorage {
           updatedAt: internalMessages.updatedAt,
           senderUsername: users.username,
           senderFirstName: users.firstName,
-          senderLastName: users.lastName
+          senderLastName: users.lastName,
         })
         .from(internalMessages)
         .innerJoin(users, eq(internalMessages.senderId, users.id))
-        .leftJoin(internalMessageRecipients, eq(internalMessages.id, internalMessageRecipients.messageId))
+        .leftJoin(
+          internalMessageRecipients,
+          eq(internalMessages.id, internalMessageRecipients.messageId),
+        )
         .where(
           and(
             eq(internalMessages.id, messageId),
             or(
               eq(internalMessages.senderId, userId),
-              eq(internalMessageRecipients.recipientId, userId)
-            )
-          )
+              eq(internalMessageRecipients.recipientId, userId),
+            ),
+          ),
         );
 
       return message || null;
     } catch (error) {
-      console.error('Error fetching internal message:', error);
+      console.error("Error fetching internal message:", error);
       return null;
     }
   }
@@ -6868,11 +8332,11 @@ export class DatabaseStorage implements IStorage {
         .from(messageGroupMembers)
         .where(eq(messageGroupMembers.groupId, groupId));
 
-      const recipientIds = groupMembers.map(member => member.userId);
-      
+      const recipientIds = groupMembers.map((member) => member.userId);
+
       return await this.createInternalMessage(messageData, recipientIds);
     } catch (error) {
-      console.error('Error sending group message:', error);
+      console.error("Error sending group message:", error);
       throw error;
     }
   }
@@ -6893,8 +8357,8 @@ export class DatabaseStorage implements IStorage {
       .where(
         and(
           eq(gasCardProviders.id, id),
-          eq(gasCardProviders.organizationId, organizationId)
-        )
+          eq(gasCardProviders.organizationId, organizationId),
+        ),
       );
     return provider || null;
   }
@@ -6907,34 +8371,46 @@ export class DatabaseStorage implements IStorage {
     return provider;
   }
 
-  async updateGasCardProvider(id: number, organizationId: number, updates: any): Promise<any> {
+  async updateGasCardProvider(
+    id: number,
+    organizationId: number,
+    updates: any,
+  ): Promise<any> {
     const [provider] = await db
       .update(gasCardProviders)
       .set({ ...updates, updatedAt: new Date() })
       .where(
         and(
           eq(gasCardProviders.id, id),
-          eq(gasCardProviders.organizationId, organizationId)
-        )
+          eq(gasCardProviders.organizationId, organizationId),
+        ),
       )
       .returning();
     return provider;
   }
 
-  async deleteGasCardProvider(id: number, organizationId: number): Promise<boolean> {
+  async deleteGasCardProvider(
+    id: number,
+    organizationId: number,
+  ): Promise<boolean> {
     const result = await db
       .delete(gasCardProviders)
       .where(
         and(
           eq(gasCardProviders.id, id),
-          eq(gasCardProviders.organizationId, organizationId)
-        )
+          eq(gasCardProviders.organizationId, organizationId),
+        ),
       );
     return result.rowCount > 0;
   }
 
   // Gas card usage tracking methods
-  async getGasCardUsage(organizationId: number, cardId?: number, startDate?: Date, endDate?: Date): Promise<GasCardUsage[]> {
+  async getGasCardUsage(
+    organizationId: number,
+    cardId?: number,
+    startDate?: Date,
+    endDate?: Date,
+  ): Promise<GasCardUsage[]> {
     try {
       let query = db
         .select({
@@ -6965,7 +8441,7 @@ export class DatabaseStorage implements IStorage {
           cardName: gasCards.cardName,
           userName: users.username,
           userFirstName: users.firstName,
-          userLastName: users.lastName
+          userLastName: users.lastName,
         })
         .from(gasCardUsage)
         .innerJoin(gasCards, eq(gasCardUsage.cardId, gasCards.id))
@@ -6973,21 +8449,36 @@ export class DatabaseStorage implements IStorage {
         .where(eq(gasCardUsage.organizationId, organizationId));
 
       if (cardId) {
-        query = query.where(and(eq(gasCardUsage.organizationId, organizationId), eq(gasCardUsage.cardId, cardId)));
+        query = query.where(
+          and(
+            eq(gasCardUsage.organizationId, organizationId),
+            eq(gasCardUsage.cardId, cardId),
+          ),
+        );
       }
 
       if (startDate) {
-        query = query.where(and(eq(gasCardUsage.organizationId, organizationId), gte(gasCardUsage.purchaseDate, startDate)));
+        query = query.where(
+          and(
+            eq(gasCardUsage.organizationId, organizationId),
+            gte(gasCardUsage.purchaseDate, startDate),
+          ),
+        );
       }
 
       if (endDate) {
-        query = query.where(and(eq(gasCardUsage.organizationId, organizationId), lte(gasCardUsage.purchaseDate, endDate)));
+        query = query.where(
+          and(
+            eq(gasCardUsage.organizationId, organizationId),
+            lte(gasCardUsage.purchaseDate, endDate),
+          ),
+        );
       }
 
       const usage = await query.orderBy(desc(gasCardUsage.purchaseDate));
       return usage as GasCardUsage[];
     } catch (error) {
-      console.error('Error fetching gas card usage:', error);
+      console.error("Error fetching gas card usage:", error);
       return [];
     }
   }
@@ -6999,29 +8490,32 @@ export class DatabaseStorage implements IStorage {
         .values({
           ...data,
           createdAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .returning();
       return usage;
     } catch (error) {
-      console.error('Error creating gas card usage:', error);
+      console.error("Error creating gas card usage:", error);
       throw error;
     }
   }
 
-  async updateGasCardUsage(id: number, data: Partial<InsertGasCardUsage>): Promise<GasCardUsage> {
+  async updateGasCardUsage(
+    id: number,
+    data: Partial<InsertGasCardUsage>,
+  ): Promise<GasCardUsage> {
     try {
       const [usage] = await db
         .update(gasCardUsage)
         .set({
           ...data,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(gasCardUsage.id, id))
         .returning();
       return usage;
     } catch (error) {
-      console.error('Error updating gas card usage:', error);
+      console.error("Error updating gas card usage:", error);
       throw error;
     }
   }
@@ -7033,12 +8527,15 @@ export class DatabaseStorage implements IStorage {
         .where(eq(gasCardUsage.id, id));
       return result.rowCount > 0;
     } catch (error) {
-      console.error('Error deleting gas card usage:', error);
+      console.error("Error deleting gas card usage:", error);
       return false;
     }
   }
 
-  async approveGasCardUsage(id: number, approvedBy: number): Promise<GasCardUsage> {
+  async approveGasCardUsage(
+    id: number,
+    approvedBy: number,
+  ): Promise<GasCardUsage> {
     try {
       const [usage] = await db
         .update(gasCardUsage)
@@ -7046,13 +8543,13 @@ export class DatabaseStorage implements IStorage {
           isApproved: true,
           approvedBy,
           approvedAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(gasCardUsage.id, id))
         .returning();
       return usage;
     } catch (error) {
-      console.error('Error approving gas card usage:', error);
+      console.error("Error approving gas card usage:", error);
       throw error;
     }
   }
@@ -7066,7 +8563,7 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return link;
     } catch (error) {
-      console.error('Error creating shared photo link:', error);
+      console.error("Error creating shared photo link:", error);
       throw error;
     }
   }
@@ -7080,7 +8577,7 @@ export class DatabaseStorage implements IStorage {
         .orderBy(desc(sharedPhotoLinks.createdAt));
       return links;
     } catch (error) {
-      console.error('Error fetching shared photo links:', error);
+      console.error("Error fetching shared photo links:", error);
       throw error;
     }
   }
@@ -7105,20 +8602,24 @@ export class DatabaseStorage implements IStorage {
           lastAccessedAt: sharedPhotoLinks.lastAccessedAt,
           project: {
             id: projects.id,
-            name: projects.name
-          }
+            name: projects.name,
+          },
         })
         .from(sharedPhotoLinks)
         .leftJoin(projects, eq(sharedPhotoLinks.projectId, projects.id))
-        .where(and(
-          eq(sharedPhotoLinks.shareToken, token),
-          eq(sharedPhotoLinks.isActive, true)
-        ));
+        .where(
+          and(
+            eq(sharedPhotoLinks.shareToken, token),
+            eq(sharedPhotoLinks.isActive, true),
+          ),
+        );
 
       if (!link) return null;
 
       // Get images based on imageIds
-      const imageIdsArray = Array.isArray(link.imageIds) ? link.imageIds : JSON.parse(link.imageIds as string);
+      const imageIdsArray = Array.isArray(link.imageIds)
+        ? link.imageIds
+        : JSON.parse(link.imageIds as string);
       const imageList = await db
         .select()
         .from(images)
@@ -7126,10 +8627,10 @@ export class DatabaseStorage implements IStorage {
 
       return {
         ...link,
-        images: imageList
+        images: imageList,
       };
     } catch (error) {
-      console.error('Error fetching shared photo link:', error);
+      console.error("Error fetching shared photo link:", error);
       throw error;
     }
   }
@@ -7140,63 +8641,78 @@ export class DatabaseStorage implements IStorage {
         .update(sharedPhotoLinks)
         .set({
           accessCount: sql`${sharedPhotoLinks.accessCount} + 1`,
-          lastAccessedAt: new Date()
+          lastAccessedAt: new Date(),
         })
         .where(eq(sharedPhotoLinks.shareToken, token))
         .returning();
       return link;
     } catch (error) {
-      console.error('Error updating shared photo link access:', error);
+      console.error("Error updating shared photo link access:", error);
       throw error;
     }
   }
 
-  async deactivateSharedPhotoLink(linkId: number, userId: number): Promise<boolean> {
+  async deactivateSharedPhotoLink(
+    linkId: number,
+    userId: number,
+  ): Promise<boolean> {
     try {
       const result = await db
         .update(sharedPhotoLinks)
         .set({ isActive: false })
-        .where(and(
-          eq(sharedPhotoLinks.id, linkId),
-          eq(sharedPhotoLinks.createdBy, userId)
-        ));
+        .where(
+          and(
+            eq(sharedPhotoLinks.id, linkId),
+            eq(sharedPhotoLinks.createdBy, userId),
+          ),
+        );
       return result.rowCount > 0;
     } catch (error) {
-      console.error('Error deactivating shared photo link:', error);
+      console.error("Error deactivating shared photo link:", error);
       return false;
     }
   }
 
-  async deleteSharedPhotoLink(linkId: number, userId: number): Promise<boolean> {
+  async deleteSharedPhotoLink(
+    linkId: number,
+    userId: number,
+  ): Promise<boolean> {
     try {
       const result = await db
         .delete(sharedPhotoLinks)
-        .where(and(
-          eq(sharedPhotoLinks.id, linkId),
-          eq(sharedPhotoLinks.createdBy, userId)
-        ));
+        .where(
+          and(
+            eq(sharedPhotoLinks.id, linkId),
+            eq(sharedPhotoLinks.createdBy, userId),
+          ),
+        );
       return result.rowCount > 0;
     } catch (error) {
-      console.error('Error deleting shared photo link:', error);
+      console.error("Error deleting shared photo link:", error);
       return false;
     }
   }
 
   // Image annotation methods
-  async saveImageAnnotations(imageId: number, userId: number, annotations: any, annotatedImageUrl: string): Promise<any> {
+  async saveImageAnnotations(
+    imageId: number,
+    userId: number,
+    annotations: any,
+    annotatedImageUrl: string,
+  ): Promise<any> {
     try {
       const [updatedImage] = await db
         .update(images)
         .set({
           annotations: JSON.stringify(annotations),
           annotatedImageUrl: annotatedImageUrl,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(images.id, imageId))
         .returning();
       return updatedImage;
     } catch (error) {
-      console.error('Error saving image annotations:', error);
+      console.error("Error saving image annotations:", error);
       throw error;
     }
   }
@@ -7209,7 +8725,7 @@ export class DatabaseStorage implements IStorage {
         .from(fileSecuritySettings)
         .where(eq(fileSecuritySettings.organizationId, organizationId))
         .limit(1);
-      
+
       if (!settings) {
         // Create default settings if none exist
         const [newSettings] = await db
@@ -7218,28 +8734,31 @@ export class DatabaseStorage implements IStorage {
           .returning();
         return newSettings;
       }
-      
+
       return settings;
     } catch (error) {
-      console.error('Error getting file security settings:', error);
+      console.error("Error getting file security settings:", error);
       throw error;
     }
   }
 
-  async updateFileSecuritySettings(organizationId: number, settings: any): Promise<any> {
+  async updateFileSecuritySettings(
+    organizationId: number,
+    settings: any,
+  ): Promise<any> {
     try {
       const [updatedSettings] = await db
         .update(fileSecuritySettings)
         .set({
           ...settings,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(fileSecuritySettings.organizationId, organizationId))
         .returning();
-      
+
       return updatedSettings;
     } catch (error) {
-      console.error('Error updating file security settings:', error);
+      console.error("Error updating file security settings:", error);
       throw error;
     }
   }
@@ -7250,15 +8769,18 @@ export class DatabaseStorage implements IStorage {
         .insert(fileSecurityScans)
         .values(scanData)
         .returning();
-      
+
       return scan;
     } catch (error) {
-      console.error('Error creating file security scan:', error);
+      console.error("Error creating file security scan:", error);
       throw error;
     }
   }
 
-  async getFileSecurityScans(organizationId: number, limit: number = 50): Promise<any[]> {
+  async getFileSecurityScans(
+    organizationId: number,
+    limit: number = 50,
+  ): Promise<any[]> {
     try {
       const scans = await db
         .select()
@@ -7266,18 +8788,18 @@ export class DatabaseStorage implements IStorage {
         .where(eq(fileSecurityScans.organizationId, organizationId))
         .orderBy(desc(fileSecurityScans.createdAt))
         .limit(limit);
-      
+
       return scans;
     } catch (error) {
-      console.error('Error getting file security scans:', error);
+      console.error("Error getting file security scans:", error);
       throw error;
     }
   }
 
   async getFileSecurityStats(organizationId: number): Promise<any> {
     try {
-      const thirtyDaysAgo = new Date(Date.now() - (30 * 24 * 60 * 60 * 1000));
-      
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
       const [
         totalScans,
         recentScans,
@@ -7286,91 +8808,103 @@ export class DatabaseStorage implements IStorage {
         totalAccess,
         recentAccess,
         suspiciousActivity,
-        deniedAccess
+        deniedAccess,
       ] = await Promise.all([
         // Total scans
-        db.select({ count: sql`count(*)` })
+        db
+          .select({ count: sql`count(*)` })
           .from(fileSecurityScans)
           .where(eq(fileSecurityScans.organizationId, organizationId)),
-        
+
         // Recent scans (last 30 days)
-        db.select({ count: sql`count(*)` })
+        db
+          .select({ count: sql`count(*)` })
           .from(fileSecurityScans)
           .where(
             and(
               eq(fileSecurityScans.organizationId, organizationId),
-              gte(fileSecurityScans.createdAt, thirtyDaysAgo)
-            )
+              gte(fileSecurityScans.createdAt, thirtyDaysAgo),
+            ),
           ),
-        
+
         // Threats detected
-        db.select({ count: sql`count(*)` })
+        db
+          .select({ count: sql`count(*)` })
           .from(fileSecurityScans)
           .where(
             and(
               eq(fileSecurityScans.organizationId, organizationId),
-              gt(fileSecurityScans.threatCount, 0)
-            )
+              gt(fileSecurityScans.threatCount, 0),
+            ),
           ),
-        
+
         // Quarantined files
-        db.select({ count: sql`count(*)` })
+        db
+          .select({ count: sql`count(*)` })
           .from(fileSecurityScans)
           .where(
             and(
               eq(fileSecurityScans.organizationId, organizationId),
-              eq(fileSecurityScans.actionTaken, 'quarantined')
-            )
+              eq(fileSecurityScans.actionTaken, "quarantined"),
+            ),
           ),
-        
+
         // Total access logs
-        db.select({ count: sql`count(*)` })
+        db
+          .select({ count: sql`count(*)` })
           .from(fileAccessLogs)
           .where(eq(fileAccessLogs.organizationId, organizationId)),
-        
+
         // Recent access (last 30 days)
-        db.select({ count: sql`count(*)` })
+        db
+          .select({ count: sql`count(*)` })
           .from(fileAccessLogs)
           .where(
             and(
               eq(fileAccessLogs.organizationId, organizationId),
-              gte(fileAccessLogs.createdAt, thirtyDaysAgo)
-            )
+              gte(fileAccessLogs.createdAt, thirtyDaysAgo),
+            ),
           ),
-        
+
         // Suspicious activity
-        db.select({ count: sql`count(*)` })
+        db
+          .select({ count: sql`count(*)` })
           .from(fileAccessLogs)
           .where(
             and(
               eq(fileAccessLogs.organizationId, organizationId),
-              eq(fileAccessLogs.suspiciousActivity, true)
-            )
+              eq(fileAccessLogs.suspiciousActivity, true),
+            ),
           ),
-        
+
         // Denied access
-        db.select({ count: sql`count(*)` })
+        db
+          .select({ count: sql`count(*)` })
           .from(fileAccessLogs)
           .where(
             and(
               eq(fileAccessLogs.organizationId, organizationId),
-              eq(fileAccessLogs.accessDenied, true)
-            )
-          )
+              eq(fileAccessLogs.accessDenied, true),
+            ),
+          ),
       ]);
-      
+
       return {
-        totalScans: parseInt(totalScans[0]?.count?.toString() || '0'),
-        recentScans: parseInt(recentScans[0]?.count?.toString() || '0'),
-        threatsDetected: parseInt(threatsDetected[0]?.count?.toString() || '0'),
-        quarantinedFiles: parseInt(quarantinedFiles[0]?.count?.toString() || '0'),
-        totalAccess: parseInt(totalAccess[0]?.count?.toString() || '0'),
-        recentAccess: parseInt(recentAccess[0]?.count?.toString() || '0'),
-        suspiciousActivity: parseInt(suspiciousActivity[0]?.count?.toString() || '0'),
-        deniedAccess: parseInt(deniedAccess[0]?.count?.toString() || '0'),
+        totalScans: parseInt(totalScans[0]?.count?.toString() || "0"),
+        recentScans: parseInt(recentScans[0]?.count?.toString() || "0"),
+        threatsDetected: parseInt(threatsDetected[0]?.count?.toString() || "0"),
+        quarantinedFiles: parseInt(
+          quarantinedFiles[0]?.count?.toString() || "0",
+        ),
+        totalAccess: parseInt(totalAccess[0]?.count?.toString() || "0"),
+        recentAccess: parseInt(recentAccess[0]?.count?.toString() || "0"),
+        suspiciousActivity: parseInt(
+          suspiciousActivity[0]?.count?.toString() || "0",
+        ),
+        deniedAccess: parseInt(deniedAccess[0]?.count?.toString() || "0"),
       };
     } catch (error) {
-      console.error('Error getting file security stats:', error);
+      console.error("Error getting file security stats:", error);
       throw error;
     }
   }
@@ -7381,15 +8915,18 @@ export class DatabaseStorage implements IStorage {
         .insert(fileAccessLogs)
         .values(accessData)
         .returning();
-      
+
       return accessLog;
     } catch (error) {
-      console.error('Error logging file access:', error);
+      console.error("Error logging file access:", error);
       throw error;
     }
   }
 
-  async getFileAccessLogs(organizationId: number, limit: number = 100): Promise<any[]> {
+  async getFileAccessLogs(
+    organizationId: number,
+    limit: number = 100,
+  ): Promise<any[]> {
     try {
       const logs = await db
         .select()
@@ -7397,10 +8934,10 @@ export class DatabaseStorage implements IStorage {
         .where(eq(fileAccessLogs.organizationId, organizationId))
         .orderBy(desc(fileAccessLogs.createdAt))
         .limit(limit);
-      
+
       return logs;
     } catch (error) {
-      console.error('Error getting file access logs:', error);
+      console.error("Error getting file access logs:", error);
       throw error;
     }
   }
@@ -7416,14 +8953,14 @@ export class DatabaseStorage implements IStorage {
           filePath: projectFiles.filePath,
           fileSize: projectFiles.fileSize,
           mimeType: projectFiles.mimeType,
-          createdAt: projectFiles.createdAt
+          createdAt: projectFiles.createdAt,
         })
         .from(projectFiles)
         .orderBy(desc(projectFiles.createdAt));
-      
+
       return files;
     } catch (error) {
-      console.error('Error getting all project files:', error);
+      console.error("Error getting all project files:", error);
       throw error;
     }
   }
@@ -7433,10 +8970,10 @@ export class DatabaseStorage implements IStorage {
       const result = await db
         .delete(projectFiles)
         .where(eq(projectFiles.id, fileId));
-      
+
       return true;
     } catch (error) {
-      console.error('Error deleting project file:', error);
+      console.error("Error deleting project file:", error);
       throw error;
     }
   }
@@ -7448,10 +8985,10 @@ export class DatabaseStorage implements IStorage {
         .insert(digitalSignatures)
         .values(signatureData)
         .returning();
-      
+
       return signature;
     } catch (error) {
-      console.error('Error creating digital signature:', error);
+      console.error("Error creating digital signature:", error);
       throw error;
     }
   }
@@ -7463,10 +9000,10 @@ export class DatabaseStorage implements IStorage {
         .from(digitalSignatures)
         .where(eq(digitalSignatures.projectId, projectId))
         .orderBy(desc(digitalSignatures.signedAt));
-      
+
       return signatures;
     } catch (error) {
-      console.error('Error getting project signatures:', error);
+      console.error("Error getting project signatures:", error);
       throw error;
     }
   }
@@ -7476,10 +9013,10 @@ export class DatabaseStorage implements IStorage {
       await db
         .delete(digitalSignatures)
         .where(eq(digitalSignatures.id, signatureId));
-      
+
       return true;
     } catch (error) {
-      console.error('Error deleting signature:', error);
+      console.error("Error deleting signature:", error);
       throw error;
     }
   }
@@ -7492,10 +9029,10 @@ export class DatabaseStorage implements IStorage {
         .from(departments)
         .where(eq(departments.organizationId, organizationId))
         .orderBy(asc(departments.name));
-      
+
       return departmentList;
     } catch (error) {
-      console.error('Error getting departments:', error);
+      console.error("Error getting departments:", error);
       throw error;
     }
   }
@@ -7506,10 +9043,10 @@ export class DatabaseStorage implements IStorage {
         .select()
         .from(departments)
         .where(eq(departments.id, id));
-      
+
       return department || undefined;
     } catch (error) {
-      console.error('Error getting department:', error);
+      console.error("Error getting department:", error);
       throw error;
     }
   }
@@ -7526,13 +9063,13 @@ export class DatabaseStorage implements IStorage {
           budget: departmentData.budget,
           location: departmentData.location,
           createdAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .returning();
-      
+
       return department;
     } catch (error) {
-      console.error('Error creating department:', error);
+      console.error("Error creating department:", error);
       throw error;
     }
   }
@@ -7543,27 +9080,25 @@ export class DatabaseStorage implements IStorage {
         .update(departments)
         .set({
           ...updates,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(departments.id, id))
         .returning();
-      
+
       return department;
     } catch (error) {
-      console.error('Error updating department:', error);
+      console.error("Error updating department:", error);
       throw error;
     }
   }
 
   async deleteDepartment(id: number): Promise<boolean> {
     try {
-      const result = await db
-        .delete(departments)
-        .where(eq(departments.id, id));
-      
+      const result = await db.delete(departments).where(eq(departments.id, id));
+
       return result.rowCount > 0;
     } catch (error) {
-      console.error('Error deleting department:', error);
+      console.error("Error deleting department:", error);
       return false;
     }
   }
@@ -7576,10 +9111,10 @@ export class DatabaseStorage implements IStorage {
         .from(employees)
         .where(eq(employees.organizationId, organizationId))
         .orderBy(asc(employees.firstName), asc(employees.lastName));
-      
+
       return employeeList;
     } catch (error) {
-      console.error('Error getting employees:', error);
+      console.error("Error getting employees:", error);
       throw error;
     }
   }
@@ -7590,10 +9125,10 @@ export class DatabaseStorage implements IStorage {
         .select()
         .from(employees)
         .where(eq(employees.id, id));
-      
+
       return employee || undefined;
     } catch (error) {
-      console.error('Error getting employee:', error);
+      console.error("Error getting employee:", error);
       throw error;
     }
   }
@@ -7604,10 +9139,10 @@ export class DatabaseStorage implements IStorage {
         .select()
         .from(employees)
         .where(eq(employees.userId, userId));
-      
+
       return employee || undefined;
     } catch (error) {
-      console.error('Error getting employee by user ID:', error);
+      console.error("Error getting employee by user ID:", error);
       throw error;
     }
   }
@@ -7628,17 +9163,17 @@ export class DatabaseStorage implements IStorage {
           department: employeeData.department,
           hireDate: employeeData.hireDate || new Date(),
           salary: employeeData.salary,
-          status: employeeData.status || 'active',
+          status: employeeData.status || "active",
           managerId: employeeData.managerId,
           location: employeeData.location,
           emergencyContact: employeeData.emergencyContact,
           notes: employeeData.notes,
         })
         .returning();
-      
+
       return employee;
     } catch (error) {
-      console.error('Error creating employee:', error);
+      console.error("Error creating employee:", error);
       throw error;
     }
   }
@@ -7653,59 +9188,67 @@ export class DatabaseStorage implements IStorage {
         })
         .where(eq(employees.id, id))
         .returning();
-      
+
       return employee;
     } catch (error) {
-      console.error('Error updating employee:', error);
+      console.error("Error updating employee:", error);
       throw error;
     }
   }
 
   async deleteEmployee(id: number): Promise<boolean> {
     try {
-      await db
-        .delete(employees)
-        .where(eq(employees.id, id));
-      
+      await db.delete(employees).where(eq(employees.id, id));
+
       return true;
     } catch (error) {
-      console.error('Error deleting employee:', error);
+      console.error("Error deleting employee:", error);
       throw error;
     }
   }
 
   // Employee Document methods
-  async getEmployeeDocuments(employeeId: number, organizationId: number): Promise<any[]> {
+  async getEmployeeDocuments(
+    employeeId: number,
+    organizationId: number,
+  ): Promise<any[]> {
     try {
       const documents = await db
         .select()
         .from(employeeDocuments)
-        .where(and(
-          eq(employeeDocuments.employeeId, employeeId),
-          eq(employeeDocuments.organizationId, organizationId)
-        ))
+        .where(
+          and(
+            eq(employeeDocuments.employeeId, employeeId),
+            eq(employeeDocuments.organizationId, organizationId),
+          ),
+        )
         .orderBy(desc(employeeDocuments.createdAt));
-      
+
       return documents;
     } catch (error) {
-      console.error('Error getting employee documents:', error);
+      console.error("Error getting employee documents:", error);
       throw error;
     }
   }
 
-  async getEmployeeDocument(id: number, organizationId: number): Promise<any | undefined> {
+  async getEmployeeDocument(
+    id: number,
+    organizationId: number,
+  ): Promise<any | undefined> {
     try {
       const [document] = await db
         .select()
         .from(employeeDocuments)
-        .where(and(
-          eq(employeeDocuments.id, id),
-          eq(employeeDocuments.organizationId, organizationId)
-        ));
-      
+        .where(
+          and(
+            eq(employeeDocuments.id, id),
+            eq(employeeDocuments.organizationId, organizationId),
+          ),
+        );
+
       return document || undefined;
     } catch (error) {
-      console.error('Error getting employee document:', error);
+      console.error("Error getting employee document:", error);
       throw error;
     }
   }
@@ -7731,16 +9274,16 @@ export class DatabaseStorage implements IStorage {
           tags: documentData.tags,
           confidentialityLevel: documentData.confidentialityLevel,
           accessLevel: documentData.accessLevel,
-          status: documentData.status || 'active',
+          status: documentData.status || "active",
           expirationDate: documentData.expirationDate,
           reminderDate: documentData.reminderDate,
           notes: documentData.notes,
         })
         .returning();
-      
+
       return document;
     } catch (error) {
-      console.error('Error creating employee document:', error);
+      console.error("Error creating employee document:", error);
       throw error;
     }
   }
@@ -7755,45 +9298,48 @@ export class DatabaseStorage implements IStorage {
         })
         .where(eq(employeeDocuments.id, id))
         .returning();
-      
+
       return document;
     } catch (error) {
-      console.error('Error updating employee document:', error);
+      console.error("Error updating employee document:", error);
       throw error;
     }
   }
 
   async deleteEmployeeDocument(id: number): Promise<boolean> {
     try {
-      await db
-        .delete(employeeDocuments)
-        .where(eq(employeeDocuments.id, id));
-      
+      await db.delete(employeeDocuments).where(eq(employeeDocuments.id, id));
+
       return true;
     } catch (error) {
-      console.error('Error deleting employee document:', error);
+      console.error("Error deleting employee document:", error);
       return false;
     }
   }
 
   // Time off request methods
-  async getTimeOffRequests(organizationId: number, employeeId?: number): Promise<TimeOffRequest[]> {
+  async getTimeOffRequests(
+    organizationId: number,
+    employeeId?: number,
+  ): Promise<TimeOffRequest[]> {
     try {
-      const whereConditions = [eq(timeOffRequests.organizationId, organizationId)];
-      
+      const whereConditions = [
+        eq(timeOffRequests.organizationId, organizationId),
+      ];
+
       if (employeeId) {
         whereConditions.push(eq(timeOffRequests.employeeId, employeeId));
       }
-      
+
       const requests = await db
         .select()
         .from(timeOffRequests)
         .where(and(...whereConditions))
         .orderBy(desc(timeOffRequests.requestedAt));
-        
+
       return requests;
     } catch (error) {
-      console.error('Error getting time off requests:', error);
+      console.error("Error getting time off requests:", error);
       return [];
     }
   }
@@ -7804,15 +9350,18 @@ export class DatabaseStorage implements IStorage {
         .insert(timeOffRequests)
         .values(requestData)
         .returning();
-      
+
       return request;
     } catch (error) {
-      console.error('Error creating time off request:', error);
+      console.error("Error creating time off request:", error);
       throw error;
     }
   }
 
-  async updateTimeOffRequest(id: number, updates: any): Promise<TimeOffRequest> {
+  async updateTimeOffRequest(
+    id: number,
+    updates: any,
+  ): Promise<TimeOffRequest> {
     try {
       const [request] = await db
         .update(timeOffRequests)
@@ -7822,40 +9371,47 @@ export class DatabaseStorage implements IStorage {
         })
         .where(eq(timeOffRequests.id, id))
         .returning();
-      
+
       return request;
     } catch (error) {
-      console.error('Error updating time off request:', error);
+      console.error("Error updating time off request:", error);
       throw error;
     }
   }
 
-  async approveTimeOffRequest(id: number, approvedBy: number): Promise<TimeOffRequest> {
+  async approveTimeOffRequest(
+    id: number,
+    approvedBy: number,
+  ): Promise<TimeOffRequest> {
     try {
       const [request] = await db
         .update(timeOffRequests)
         .set({
-          status: 'approved',
+          status: "approved",
           approvedBy,
           approvedAt: new Date(),
           updatedAt: new Date(),
         })
         .where(eq(timeOffRequests.id, id))
         .returning();
-      
+
       return request;
     } catch (error) {
-      console.error('Error approving time off request:', error);
+      console.error("Error approving time off request:", error);
       throw error;
     }
   }
 
-  async rejectTimeOffRequest(id: number, approvedBy: number, reason: string): Promise<TimeOffRequest> {
+  async rejectTimeOffRequest(
+    id: number,
+    approvedBy: number,
+    reason: string,
+  ): Promise<TimeOffRequest> {
     try {
       const [request] = await db
         .update(timeOffRequests)
         .set({
-          status: 'rejected',
+          status: "rejected",
           approvedBy,
           rejectedReason: reason,
           approvedAt: new Date(),
@@ -7863,30 +9419,33 @@ export class DatabaseStorage implements IStorage {
         })
         .where(eq(timeOffRequests.id, id))
         .returning();
-      
+
       return request;
     } catch (error) {
-      console.error('Error rejecting time off request:', error);
+      console.error("Error rejecting time off request:", error);
       throw error;
     }
   }
 
   // Performance review methods
-  async getPerformanceReviews(organizationId: number, employeeId?: number): Promise<PerformanceReview[]> {
+  async getPerformanceReviews(
+    organizationId: number,
+    employeeId?: number,
+  ): Promise<PerformanceReview[]> {
     try {
       let query = db
         .select()
         .from(performanceReviews)
         .where(eq(performanceReviews.organizationId, organizationId));
-      
+
       if (employeeId) {
         query = query.where(eq(performanceReviews.employeeId, employeeId));
       }
-      
+
       const reviews = await query.orderBy(desc(performanceReviews.createdAt));
       return reviews;
     } catch (error) {
-      console.error('Error getting performance reviews:', error);
+      console.error("Error getting performance reviews:", error);
       throw error;
     }
   }
@@ -7897,15 +9456,18 @@ export class DatabaseStorage implements IStorage {
         .insert(performanceReviews)
         .values(reviewData)
         .returning();
-      
+
       return review;
     } catch (error) {
-      console.error('Error creating performance review:', error);
+      console.error("Error creating performance review:", error);
       throw error;
     }
   }
 
-  async updatePerformanceReview(id: number, updates: any): Promise<PerformanceReview> {
+  async updatePerformanceReview(
+    id: number,
+    updates: any,
+  ): Promise<PerformanceReview> {
     try {
       const [review] = await db
         .update(performanceReviews)
@@ -7915,33 +9477,38 @@ export class DatabaseStorage implements IStorage {
         })
         .where(eq(performanceReviews.id, id))
         .returning();
-      
+
       return review;
     } catch (error) {
-      console.error('Error updating performance review:', error);
+      console.error("Error updating performance review:", error);
       throw error;
     }
   }
 
   // Disciplinary action methods
-  async getDisciplinaryActions(organizationId: number, employeeId?: number): Promise<DisciplinaryAction[]> {
+  async getDisciplinaryActions(
+    organizationId: number,
+    employeeId?: number,
+  ): Promise<DisciplinaryAction[]> {
     try {
       let query = db
         .select()
         .from(disciplinaryActions)
-        .where(and(
-          eq(disciplinaryActions.organizationId, organizationId),
-          eq(disciplinaryActions.isActive, true)
-        ));
-      
+        .where(
+          and(
+            eq(disciplinaryActions.organizationId, organizationId),
+            eq(disciplinaryActions.isActive, true),
+          ),
+        );
+
       if (employeeId) {
         query = query.where(eq(disciplinaryActions.employeeId, employeeId));
       }
-      
+
       const actions = await query.orderBy(desc(disciplinaryActions.createdAt));
       return actions;
     } catch (error) {
-      console.error('Error getting disciplinary actions:', error);
+      console.error("Error getting disciplinary actions:", error);
       throw error;
     }
   }
@@ -7952,15 +9519,18 @@ export class DatabaseStorage implements IStorage {
         .insert(disciplinaryActions)
         .values(actionData)
         .returning();
-      
+
       return action;
     } catch (error) {
-      console.error('Error creating disciplinary action:', error);
+      console.error("Error creating disciplinary action:", error);
       throw error;
     }
   }
 
-  async updateDisciplinaryAction(id: number, updates: any): Promise<DisciplinaryAction> {
+  async updateDisciplinaryAction(
+    id: number,
+    updates: any,
+  ): Promise<DisciplinaryAction> {
     try {
       const [action] = await db
         .update(disciplinaryActions)
@@ -7970,10 +9540,10 @@ export class DatabaseStorage implements IStorage {
         })
         .where(eq(disciplinaryActions.id, id))
         .returning();
-      
+
       return action;
     } catch (error) {
-      console.error('Error updating disciplinary action:', error);
+      console.error("Error updating disciplinary action:", error);
       throw error;
     }
   }
@@ -7981,14 +9551,15 @@ export class DatabaseStorage implements IStorage {
   // User-specific dashboard settings
   async getUserDashboardSettings(userId: number): Promise<any> {
     try {
-      const [result] = await db.select()
+      const [result] = await db
+        .select()
         .from(userDashboardSettings)
         .where(eq(userDashboardSettings.userId, userId));
-      
+
       if (result) {
         return JSON.parse(result.settings);
       }
-      
+
       // Return default settings if none exist
       return {
         showStatsCards: true,
@@ -8003,17 +9574,17 @@ export class DatabaseStorage implements IStorage {
         showCalendarWidget: false,
         showMessagesWidget: false,
         showTeamOverview: false,
-        layoutType: 'grid',
+        layoutType: "grid",
         gridColumns: 3,
-        widgetSize: 'medium',
-        colorTheme: 'default',
+        widgetSize: "medium",
+        colorTheme: "default",
         animationsEnabled: true,
         statsCardsCount: 4,
         recentItemsCount: 5,
         refreshInterval: 30,
         showWelcomeMessage: true,
         compactMode: false,
-        widgetOrder: ['stats', 'revenue', 'activity', 'invoices']
+        widgetOrder: ["stats", "revenue", "activity", "invoices"],
       };
     } catch (error) {
       console.error("Error getting user dashboard settings:", error);
@@ -8021,30 +9592,34 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async saveUserDashboardSettings(userId: number, settings: any): Promise<void> {
+  async saveUserDashboardSettings(
+    userId: number,
+    settings: any,
+  ): Promise<void> {
     try {
       // Check if settings already exist for this user
-      const [existing] = await db.select()
+      const [existing] = await db
+        .select()
         .from(userDashboardSettings)
         .where(eq(userDashboardSettings.userId, userId));
 
       if (existing) {
         // Update existing settings
-        await db.update(userDashboardSettings)
+        await db
+          .update(userDashboardSettings)
           .set({
             settings: JSON.stringify(settings),
-            updatedAt: new Date()
+            updatedAt: new Date(),
           })
           .where(eq(userDashboardSettings.userId, userId));
       } else {
         // Insert new settings
-        await db.insert(userDashboardSettings)
-          .values({
-            userId,
-            settings: JSON.stringify(settings),
-            createdAt: new Date(),
-            updatedAt: new Date()
-          });
+        await db.insert(userDashboardSettings).values({
+          userId,
+          settings: JSON.stringify(settings),
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
       }
     } catch (error) {
       console.error("Error saving user dashboard settings:", error);
@@ -8055,7 +9630,10 @@ export class DatabaseStorage implements IStorage {
   // Dashboard Profile methods
   async getDashboardProfiles(): Promise<any[]> {
     try {
-      return await db.select().from(dashboardProfiles).orderBy(asc(dashboardProfiles.name));
+      return await db
+        .select()
+        .from(dashboardProfiles)
+        .orderBy(asc(dashboardProfiles.name));
     } catch (error) {
       console.error("Error getting dashboard profiles:", error);
       throw error;
@@ -8105,40 +9683,51 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async updateUserDashboardSettings(userId: number, organizationId: number, settings: any): Promise<any> {
+  async updateUserDashboardSettings(
+    userId: number,
+    organizationId: number,
+    settings: any,
+  ): Promise<any> {
     try {
       // Check if settings already exist for this user
-      const [existing] = await db.select()
+      const [existing] = await db
+        .select()
         .from(userDashboardSettings)
-        .where(and(
-          eq(userDashboardSettings.userId, userId),
-          eq(userDashboardSettings.organizationId, organizationId)
-        ));
+        .where(
+          and(
+            eq(userDashboardSettings.userId, userId),
+            eq(userDashboardSettings.organizationId, organizationId),
+          ),
+        );
 
       const settingsData = {
         userId,
         organizationId,
-        profileType: settings.profileType || 'user',
+        profileType: settings.profileType || "user",
         settings: JSON.stringify(settings),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       };
 
       if (existing) {
         // Update existing settings
-        const [updated] = await db.update(userDashboardSettings)
+        const [updated] = await db
+          .update(userDashboardSettings)
           .set(settingsData)
-          .where(and(
-            eq(userDashboardSettings.userId, userId),
-            eq(userDashboardSettings.organizationId, organizationId)
-          ))
+          .where(
+            and(
+              eq(userDashboardSettings.userId, userId),
+              eq(userDashboardSettings.organizationId, organizationId),
+            ),
+          )
           .returning();
         return updated;
       } else {
         // Insert new settings
-        const [created] = await db.insert(userDashboardSettings)
+        const [created] = await db
+          .insert(userDashboardSettings)
           .values({
             ...settingsData,
-            createdAt: new Date()
+            createdAt: new Date(),
           })
           .returning();
         return created;
@@ -8149,7 +9738,11 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async applyDashboardProfile(userId: number, organizationId: number, profileType: string): Promise<any> {
+  async applyDashboardProfile(
+    userId: number,
+    organizationId: number,
+    profileType: string,
+  ): Promise<any> {
     try {
       // Get the profile template
       const profile = await this.getDashboardProfile(profileType);
@@ -8182,11 +9775,15 @@ export class DatabaseStorage implements IStorage {
         refreshInterval: 30,
         showWelcomeMessage: true,
         compactMode: false,
-        widgetOrder: ['stats', 'revenue', 'activity', 'invoices']
+        widgetOrder: ["stats", "revenue", "activity", "invoices"],
       };
 
       // Apply the profile settings
-      return await this.updateUserDashboardSettings(userId, organizationId, profileSettings);
+      return await this.updateUserDashboardSettings(
+        userId,
+        organizationId,
+        profileSettings,
+      );
     } catch (error) {
       console.error("Error applying dashboard profile:", error);
       throw error;
@@ -8194,42 +9791,53 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Navigation order methods
-  async getNavigationOrder(userId: number, organizationId: number): Promise<NavigationOrder | undefined> {
+  async getNavigationOrder(
+    userId: number,
+    organizationId: number,
+  ): Promise<NavigationOrder | undefined> {
     try {
       const [order] = await db
         .select()
         .from(navigationOrder)
-        .where(and(
-          eq(navigationOrder.userId, userId),
-          eq(navigationOrder.organizationId, organizationId)
-        ));
-      
+        .where(
+          and(
+            eq(navigationOrder.userId, userId),
+            eq(navigationOrder.organizationId, organizationId),
+          ),
+        );
+
       return order || undefined;
     } catch (error) {
-      console.error('Error getting navigation order:', error);
+      console.error("Error getting navigation order:", error);
       throw error;
     }
   }
 
-  async saveNavigationOrder(userId: number, organizationId: number, navigationItems: string[]): Promise<NavigationOrder> {
+  async saveNavigationOrder(
+    userId: number,
+    organizationId: number,
+    navigationItems: string[],
+  ): Promise<NavigationOrder> {
     try {
       // Check if order already exists
       const existing = await this.getNavigationOrder(userId, organizationId);
-      
+
       if (existing) {
         // Update existing order
         const [order] = await db
           .update(navigationOrder)
           .set({
             navigationItems: navigationItems,
-            updatedAt: new Date()
+            updatedAt: new Date(),
           })
-          .where(and(
-            eq(navigationOrder.userId, userId),
-            eq(navigationOrder.organizationId, organizationId)
-          ))
+          .where(
+            and(
+              eq(navigationOrder.userId, userId),
+              eq(navigationOrder.organizationId, organizationId),
+            ),
+          )
           .returning();
-        
+
         return order;
       } else {
         // Create new order
@@ -8240,45 +9848,52 @@ export class DatabaseStorage implements IStorage {
             organizationId,
             navigationItems: navigationItems,
             createdAt: new Date(),
-            updatedAt: new Date()
+            updatedAt: new Date(),
           })
           .returning();
-        
+
         return order;
       }
     } catch (error) {
-      console.error('Error saving navigation order:', error);
+      console.error("Error saving navigation order:", error);
       throw error;
     }
   }
 
-  async resetNavigationOrder(userId: number, organizationId: number): Promise<boolean> {
+  async resetNavigationOrder(
+    userId: number,
+    organizationId: number,
+  ): Promise<boolean> {
     try {
       const result = await db
         .delete(navigationOrder)
-        .where(and(
-          eq(navigationOrder.userId, userId),
-          eq(navigationOrder.organizationId, organizationId)
-        ));
-      
+        .where(
+          and(
+            eq(navigationOrder.userId, userId),
+            eq(navigationOrder.organizationId, organizationId),
+          ),
+        );
+
       return result.rowCount > 0;
     } catch (error) {
-      console.error('Error resetting navigation order:', error);
+      console.error("Error resetting navigation order:", error);
       return false;
     }
   }
 
   // Backup methods
-  async getBackupSettings(organizationId: number): Promise<BackupSettings | undefined> {
+  async getBackupSettings(
+    organizationId: number,
+  ): Promise<BackupSettings | undefined> {
     try {
       const [settings] = await db
         .select()
         .from(backupSettings)
         .where(eq(backupSettings.organizationId, organizationId));
-      
+
       return settings || undefined;
     } catch (error) {
-      console.error('Error getting backup settings:', error);
+      console.error("Error getting backup settings:", error);
       throw error;
     }
   }
@@ -8289,33 +9904,39 @@ export class DatabaseStorage implements IStorage {
         .insert(backupSettings)
         .values(settingsData)
         .returning();
-      
+
       return settings;
     } catch (error) {
-      console.error('Error creating backup settings:', error);
+      console.error("Error creating backup settings:", error);
       throw error;
     }
   }
 
-  async updateBackupSettings(organizationId: number, updates: any): Promise<BackupSettings> {
+  async updateBackupSettings(
+    organizationId: number,
+    updates: any,
+  ): Promise<BackupSettings> {
     try {
       const [settings] = await db
         .update(backupSettings)
         .set({
           ...updates,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(backupSettings.organizationId, organizationId))
         .returning();
-      
+
       return settings;
     } catch (error) {
-      console.error('Error updating backup settings:', error);
+      console.error("Error updating backup settings:", error);
       throw error;
     }
   }
 
-  async getBackupJobs(organizationId: number, limit: number = 20): Promise<BackupJob[]> {
+  async getBackupJobs(
+    organizationId: number,
+    limit: number = 20,
+  ): Promise<BackupJob[]> {
     try {
       const jobs = await db
         .select()
@@ -8323,24 +9944,21 @@ export class DatabaseStorage implements IStorage {
         .where(eq(backupJobs.organizationId, organizationId))
         .orderBy(desc(backupJobs.createdAt))
         .limit(limit);
-      
+
       return jobs;
     } catch (error) {
-      console.error('Error getting backup jobs:', error);
+      console.error("Error getting backup jobs:", error);
       throw error;
     }
   }
 
   async createBackupJob(jobData: any): Promise<BackupJob> {
     try {
-      const [job] = await db
-        .insert(backupJobs)
-        .values(jobData)
-        .returning();
-      
+      const [job] = await db.insert(backupJobs).values(jobData).returning();
+
       return job;
     } catch (error) {
-      console.error('Error creating backup job:', error);
+      console.error("Error creating backup job:", error);
       throw error;
     }
   }
@@ -8351,48 +9969,56 @@ export class DatabaseStorage implements IStorage {
         .update(backupJobs)
         .set({
           ...updates,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(backupJobs.id, id))
         .returning();
-      
+
       return job;
     } catch (error) {
-      console.error('Error updating backup job:', error);
+      console.error("Error updating backup job:", error);
       throw error;
     }
   }
 
-  async createManualBackup(organizationId: number, userId: number, options: any): Promise<any> {
+  async createManualBackup(
+    organizationId: number,
+    userId: number,
+    options: any,
+  ): Promise<any> {
     try {
       // Create backup job record
       const job = await this.createBackupJob({
         organizationId,
-        status: 'running',
-        type: 'manual',
+        status: "running",
+        type: "manual",
         createdBy: userId,
         startedAt: new Date(),
-        includedTables: options.includedTables || []
+        includedTables: options.includedTables || [],
       });
 
       // Start backup process in background
-      this.processBackup(job.id, organizationId, options).catch(error => {
-        console.error('Backup process failed:', error);
+      this.processBackup(job.id, organizationId, options).catch((error) => {
+        console.error("Backup process failed:", error);
         this.updateBackupJob(job.id, {
-          status: 'failed',
+          status: "failed",
           errorMessage: error.message,
-          completedAt: new Date()
+          completedAt: new Date(),
         });
       });
 
       return job;
     } catch (error) {
-      console.error('Error creating manual backup:', error);
+      console.error("Error creating manual backup:", error);
       throw error;
     }
   }
 
-  private async processBackup(jobId: number, organizationId: number, options: any): Promise<void> {
+  private async processBackup(
+    jobId: number,
+    organizationId: number,
+    options: any,
+  ): Promise<void> {
     const startTime = Date.now();
     let recordCount = 0;
     const includedTables: string[] = [];
@@ -8401,63 +10027,87 @@ export class DatabaseStorage implements IStorage {
     try {
       // Include different data types based on options
       if (options.includeCustomers) {
-        const customers = await db.select().from(customers).where(eq(customers.organizationId, organizationId));
+        const customers = await db
+          .select()
+          .from(customers)
+          .where(eq(customers.organizationId, organizationId));
         backupData.customers = customers;
         recordCount += customers.length;
-        includedTables.push('customers');
+        includedTables.push("customers");
       }
 
       if (options.includeProjects) {
-        const projects = await db.select().from(projects).where(eq(projects.organizationId, organizationId));
+        const projects = await db
+          .select()
+          .from(projects)
+          .where(eq(projects.organizationId, organizationId));
         backupData.projects = projects;
         recordCount += projects.length;
-        includedTables.push('projects');
+        includedTables.push("projects");
       }
 
       if (options.includeInvoices) {
-        const invoices = await db.select().from(invoices).where(eq(invoices.organizationId, organizationId));
+        const invoices = await db
+          .select()
+          .from(invoices)
+          .where(eq(invoices.organizationId, organizationId));
         backupData.invoices = invoices;
         recordCount += invoices.length;
-        includedTables.push('invoices');
+        includedTables.push("invoices");
       }
 
       if (options.includeExpenses) {
-        const expenses = await db.select().from(expenses).where(eq(expenses.organizationId, organizationId));
+        const expenses = await db
+          .select()
+          .from(expenses)
+          .where(eq(expenses.organizationId, organizationId));
         backupData.expenses = expenses;
         recordCount += expenses.length;
-        includedTables.push('expenses');
+        includedTables.push("expenses");
       }
 
       if (options.includeUsers) {
-        const users = await db.select().from(users).where(eq(users.organizationId, organizationId));
-        backupData.users = users.map(user => ({ ...user, password: '[REDACTED]' })); // Don't backup passwords
+        const users = await db
+          .select()
+          .from(users)
+          .where(eq(users.organizationId, organizationId));
+        backupData.users = users.map((user) => ({
+          ...user,
+          password: "[REDACTED]",
+        })); // Don't backup passwords
         recordCount += users.length;
-        includedTables.push('users');
+        includedTables.push("users");
       }
 
       if (options.includeSettings) {
-        const settings = await db.select().from(settings).where(eq(settings.organizationId, organizationId));
+        const settings = await db
+          .select()
+          .from(settings)
+          .where(eq(settings.organizationId, organizationId));
         backupData.settings = settings;
         recordCount += settings.length;
-        includedTables.push('settings');
+        includedTables.push("settings");
       }
 
       if (options.includeMessages) {
-        const messages = await db.select().from(internalMessages).where(eq(internalMessages.organizationId, organizationId));
+        const messages = await db
+          .select()
+          .from(internalMessages)
+          .where(eq(internalMessages.organizationId, organizationId));
         backupData.messages = messages;
         recordCount += messages.length;
-        includedTables.push('messages');
+        includedTables.push("messages");
       }
 
       // Generate backup file
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
       const fileName = `backup-org-${organizationId}-${timestamp}.json`;
       const filePath = `./backups/${fileName}`;
-      
+
       // Create backups directory if it doesn't exist
-      const fs = require('fs');
-      const path = require('path');
-      const backupDir = './backups';
+      const fs = require("fs");
+      const path = require("path");
+      const backupDir = "./backups";
       if (!fs.existsSync(backupDir)) {
         fs.mkdirSync(backupDir, { recursive: true });
       }
@@ -8467,38 +10117,37 @@ export class DatabaseStorage implements IStorage {
         metadata: {
           organizationId,
           backupDate: new Date().toISOString(),
-          version: '1.0',
+          version: "1.0",
           includedTables,
-          recordCount
+          recordCount,
         },
-        data: backupData
+        data: backupData,
       };
 
       // Write backup file
       fs.writeFileSync(filePath, JSON.stringify(backupWithMetadata, null, 2));
-      
+
       const fileSize = fs.statSync(filePath).size;
       const duration = Math.round((Date.now() - startTime) / 1000);
 
       // Update job as completed
       await this.updateBackupJob(jobId, {
-        status: 'completed',
+        status: "completed",
         fileName,
         filePath,
         fileSize,
         recordCount,
         includedTables,
         duration,
-        completedAt: new Date()
+        completedAt: new Date(),
       });
-
     } catch (error) {
       const duration = Math.round((Date.now() - startTime) / 1000);
       await this.updateBackupJob(jobId, {
-        status: 'failed',
+        status: "failed",
         errorMessage: error.message,
         duration,
-        completedAt: new Date()
+        completedAt: new Date(),
       });
       throw error;
     }
@@ -8512,38 +10161,49 @@ export class DatabaseStorage implements IStorage {
         .where(
           and(
             eq(fileManager.id, id),
-            eq(fileManager.organizationId, organizationId)
-          )
+            eq(fileManager.organizationId, organizationId),
+          ),
         )
         .limit(1);
-      
+
       return file || null;
     } catch (error) {
-      console.error('Error getting file:', error);
+      console.error("Error getting file:", error);
       throw error;
     }
   }
 
-  async createTextFile(organizationId: number, userId: number, name: string, content: string, folderId?: number): Promise<any> {
+  async createTextFile(
+    organizationId: number,
+    userId: number,
+    name: string,
+    content: string,
+    folderId?: number,
+  ): Promise<any> {
     try {
-      const fs = require('fs');
-      const path = require('path');
-      
+      const fs = require("fs");
+      const path = require("path");
+
       // Create the organization folder if it doesn't exist
-      const orgDir = path.join(process.cwd(), 'uploads', `org-${organizationId}`, 'files');
+      const orgDir = path.join(
+        process.cwd(),
+        "uploads",
+        `org-${organizationId}`,
+        "files",
+      );
       if (!fs.existsSync(orgDir)) {
         fs.mkdirSync(orgDir, { recursive: true });
       }
-      
+
       // Create the file
       const fileName = `${name}.txt`;
       const filePath = path.join(orgDir, fileName);
       fs.writeFileSync(filePath, content);
-      
+
       // Get file stats
       const stats = fs.statSync(filePath);
       const relativePath = `uploads/org-${organizationId}/files/${fileName}`;
-      
+
       // Save to database
       const [file] = await db
         .insert(fileManager)
@@ -8554,45 +10214,45 @@ export class DatabaseStorage implements IStorage {
           originalName: fileName,
           filePath: relativePath,
           fileSize: stats.size,
-          mimeType: 'text/plain',
-          fileType: 'text',
-          description: 'Text file',
+          mimeType: "text/plain",
+          fileType: "text",
+          description: "Text file",
           folderId,
           isPublic: false,
           downloadCount: 0,
         })
         .returning();
-      
+
       return file;
     } catch (error) {
-      console.error('Error creating text file:', error);
+      console.error("Error creating text file:", error);
       throw error;
     }
   }
 
   async updateTextFile(id: number, content: string): Promise<any> {
     try {
-      const fs = require('fs');
-      const path = require('path');
-      
+      const fs = require("fs");
+      const path = require("path");
+
       // Get the file record
       const [file] = await db
         .select()
         .from(fileManager)
         .where(eq(fileManager.id, id))
         .limit(1);
-      
+
       if (!file) {
-        throw new Error('File not found');
+        throw new Error("File not found");
       }
-      
+
       // Update the file content
       const fullPath = path.join(process.cwd(), file.filePath);
       fs.writeFileSync(fullPath, content);
-      
+
       // Update file stats
       const stats = fs.statSync(fullPath);
-      
+
       // Update database record
       const [updatedFile] = await db
         .update(fileManager)
@@ -8602,20 +10262,20 @@ export class DatabaseStorage implements IStorage {
         })
         .where(eq(fileManager.id, id))
         .returning();
-      
+
       return updatedFile;
     } catch (error) {
-      console.error('Error updating text file:', error);
+      console.error("Error updating text file:", error);
       throw error;
     }
   }
 
   async convertToPdf(fileId: number, organizationId: number): Promise<string> {
     try {
-      const fs = require('fs');
-      const path = require('path');
-      const { textToPdf } = require('./pdfConverter');
-      
+      const fs = require("fs");
+      const path = require("path");
+      const { textToPdf } = require("./pdfConverter");
+
       // Get the file record
       const [file] = await db
         .select()
@@ -8623,29 +10283,35 @@ export class DatabaseStorage implements IStorage {
         .where(
           and(
             eq(fileManager.id, fileId),
-            eq(fileManager.organizationId, organizationId)
-          )
+            eq(fileManager.organizationId, organizationId),
+          ),
         )
         .limit(1);
-      
+
       if (!file) {
-        throw new Error('File not found');
+        throw new Error("File not found");
       }
-      
+
       // Read the file content
       const fullPath = path.join(process.cwd(), file.filePath);
-      const content = fs.readFileSync(fullPath, 'utf8');
-      
+      const content = fs.readFileSync(fullPath, "utf8");
+
       // Generate PDF
-      const pdfFileName = file.fileName.replace(/\.[^/.]+$/, '.pdf');
-      const pdfPath = path.join(process.cwd(), 'uploads', `org-${organizationId}`, 'files', pdfFileName);
-      
+      const pdfFileName = file.fileName.replace(/\.[^/.]+$/, ".pdf");
+      const pdfPath = path.join(
+        process.cwd(),
+        "uploads",
+        `org-${organizationId}`,
+        "files",
+        pdfFileName,
+      );
+
       await textToPdf(content, pdfPath);
-      
+
       // Create a new file record for the PDF
       const stats = fs.statSync(pdfPath);
       const relativePath = `uploads/org-${organizationId}/files/${pdfFileName}`;
-      
+
       const [pdfFile] = await db
         .insert(fileManager)
         .values({
@@ -8655,18 +10321,18 @@ export class DatabaseStorage implements IStorage {
           originalName: pdfFileName,
           filePath: relativePath,
           fileSize: stats.size,
-          mimeType: 'application/pdf',
-          fileType: 'pdf',
+          mimeType: "application/pdf",
+          fileType: "pdf",
           description: `PDF version of ${file.fileName}`,
           folderId: file.folderId,
           isPublic: false,
           downloadCount: 0,
         })
         .returning();
-      
+
       return relativePath;
     } catch (error) {
-      console.error('Error converting to PDF:', error);
+      console.error("Error converting to PDF:", error);
       throw error;
     }
   }
@@ -8675,28 +10341,28 @@ export class DatabaseStorage implements IStorage {
   async getFolders(organizationId: number, parentId?: number): Promise<any[]> {
     try {
       let whereCondition;
-      
+
       if (parentId) {
         whereCondition = and(
           eq(fileFolders.organizationId, organizationId),
-          eq(fileFolders.parentFolderId, parentId)
+          eq(fileFolders.parentFolderId, parentId),
         );
       } else {
         whereCondition = and(
           eq(fileFolders.organizationId, organizationId),
-          isNull(fileFolders.parentFolderId)
+          isNull(fileFolders.parentFolderId),
         );
       }
-      
+
       const folders = await db
         .select()
         .from(fileFolders)
         .where(whereCondition)
         .orderBy(asc(fileFolders.name));
-      
+
       return folders;
     } catch (error) {
-      console.error('Error getting folders:', error);
+      console.error("Error getting folders:", error);
       throw error;
     }
   }
@@ -8707,10 +10373,10 @@ export class DatabaseStorage implements IStorage {
         .insert(fileFolders)
         .values(folderData)
         .returning();
-      
+
       return folder;
     } catch (error) {
-      console.error('Error creating folder:', error);
+      console.error("Error creating folder:", error);
       throw error;
     }
   }
@@ -8725,27 +10391,29 @@ export class DatabaseStorage implements IStorage {
         })
         .where(eq(fileFolders.id, id))
         .returning();
-      
+
       return folder;
     } catch (error) {
-      console.error('Error updating folder:', error);
+      console.error("Error updating folder:", error);
       throw error;
     }
   }
 
   async deleteFolder(id: number): Promise<void> {
     try {
-      await db
-        .delete(fileFolders)
-        .where(eq(fileFolders.id, id));
+      await db.delete(fileFolders).where(eq(fileFolders.id, id));
     } catch (error) {
-      console.error('Error deleting folder:', error);
+      console.error("Error deleting folder:", error);
       throw error;
     }
   }
 
   // Drag and drop methods
-  async moveFileToFolder(fileId: number, folderId: number | null, userId: number): Promise<{ file: any; previousFolderId: number | null }> {
+  async moveFileToFolder(
+    fileId: number,
+    folderId: number | null,
+    userId: number,
+  ): Promise<{ file: any; previousFolderId: number | null }> {
     try {
       // Get the current folder ID before moving
       const currentFile = await db
@@ -8753,13 +10421,13 @@ export class DatabaseStorage implements IStorage {
         .from(fileManager)
         .where(eq(fileManager.id, fileId))
         .limit(1);
-      
+
       if (currentFile.length === 0) {
-        throw new Error('File not found');
+        throw new Error("File not found");
       }
-      
+
       const previousFolderId = currentFile[0].folderId;
-      
+
       // Update the file's folder
       const [updatedFile] = await db
         .update(fileManager)
@@ -8769,15 +10437,19 @@ export class DatabaseStorage implements IStorage {
         })
         .where(eq(fileManager.id, fileId))
         .returning();
-      
+
       return { file: updatedFile, previousFolderId };
     } catch (error) {
-      console.error('Error moving file to folder:', error);
+      console.error("Error moving file to folder:", error);
       throw error;
     }
   }
 
-  async undoFileMove(fileId: number, previousFolderId: number | null, userId: number): Promise<any> {
+  async undoFileMove(
+    fileId: number,
+    previousFolderId: number | null,
+    userId: number,
+  ): Promise<any> {
     try {
       const [restoredFile] = await db
         .update(fileManager)
@@ -8787,21 +10459,26 @@ export class DatabaseStorage implements IStorage {
         })
         .where(eq(fileManager.id, fileId))
         .returning();
-      
+
       return restoredFile;
     } catch (error) {
-      console.error('Error undoing file move:', error);
+      console.error("Error undoing file move:", error);
       throw error;
     }
   }
 
   // Digital signature methods
-  async signDocument(fileId: number, signatureData: string, signerName: string, userId: number): Promise<any> {
+  async signDocument(
+    fileId: number,
+    signatureData: string,
+    signerName: string,
+    userId: number,
+  ): Promise<any> {
     try {
       const [updatedFile] = await db
         .update(fileManager)
         .set({
-          signatureStatus: 'signed',
+          signatureStatus: "signed",
           signatureData,
           signedBy: signerName,
           signedByUserId: userId,
@@ -8813,7 +10490,7 @@ export class DatabaseStorage implements IStorage {
 
       return updatedFile;
     } catch (error) {
-      console.error('Error signing document:', error);
+      console.error("Error signing document:", error);
       throw error;
     }
   }
@@ -8825,13 +10502,13 @@ export class DatabaseStorage implements IStorage {
         .from(fileManager)
         .where(eq(fileManager.id, fileId));
 
-      if (!file || file.signatureStatus !== 'signed') {
-        throw new Error('Signed document not found');
+      if (!file || file.signatureStatus !== "signed") {
+        throw new Error("Signed document not found");
       }
 
       return file;
     } catch (error) {
-      console.error('Error getting signed document:', error);
+      console.error("Error getting signed document:", error);
       throw error;
     }
   }
@@ -8846,7 +10523,7 @@ export class DatabaseStorage implements IStorage {
 
       return field;
     } catch (error) {
-      console.error('Error creating signature field:', error);
+      console.error("Error creating signature field:", error);
       throw error;
     }
   }
@@ -8861,7 +10538,7 @@ export class DatabaseStorage implements IStorage {
 
       return fields;
     } catch (error) {
-      console.error('Error getting signature fields:', error);
+      console.error("Error getting signature fields:", error);
       throw error;
     }
   }
@@ -8879,7 +10556,7 @@ export class DatabaseStorage implements IStorage {
 
       return field;
     } catch (error) {
-      console.error('Error updating signature field:', error);
+      console.error("Error updating signature field:", error);
       throw error;
     }
   }
@@ -8890,12 +10567,17 @@ export class DatabaseStorage implements IStorage {
         .delete(documentSignatureFields)
         .where(eq(documentSignatureFields.id, fieldId));
     } catch (error) {
-      console.error('Error deleting signature field:', error);
+      console.error("Error deleting signature field:", error);
       throw error;
     }
   }
 
-  async signDocumentField(fieldId: number, signatureData: string, signerName: string, userId: number): Promise<any> {
+  async signDocumentField(
+    fieldId: number,
+    signatureData: string,
+    signerName: string,
+    userId: number,
+  ): Promise<any> {
     try {
       const [field] = await db
         .update(documentSignatureFields)
@@ -8904,7 +10586,7 @@ export class DatabaseStorage implements IStorage {
           signedBy: signerName,
           signedByUserId: userId,
           signedAt: new Date(),
-          status: 'signed',
+          status: "signed",
           updatedAt: new Date(),
         })
         .where(eq(documentSignatureFields.id, fieldId))
@@ -8912,7 +10594,7 @@ export class DatabaseStorage implements IStorage {
 
       return field;
     } catch (error) {
-      console.error('Error signing document field:', error);
+      console.error("Error signing document field:", error);
       throw error;
     }
   }
@@ -8926,7 +10608,7 @@ export class DatabaseStorage implements IStorage {
         .orderBy(asc(subscriptionPlans.sortOrder), asc(subscriptionPlans.id));
       return plans;
     } catch (error) {
-      console.error('Error fetching subscription plans:', error);
+      console.error("Error fetching subscription plans:", error);
       return [];
     }
   }
@@ -8939,7 +10621,7 @@ export class DatabaseStorage implements IStorage {
         .where(eq(subscriptionPlans.id, id));
       return plan || null;
     } catch (error) {
-      console.error('Error fetching subscription plan:', error);
+      console.error("Error fetching subscription plan:", error);
       return null;
     }
   }
@@ -8956,7 +10638,7 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return plan;
     } catch (error) {
-      console.error('Error creating subscription plan:', error);
+      console.error("Error creating subscription plan:", error);
       throw error;
     }
   }
@@ -8973,18 +10655,16 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return plan;
     } catch (error) {
-      console.error('Error updating subscription plan:', error);
+      console.error("Error updating subscription plan:", error);
       throw error;
     }
   }
 
   async deleteSubscriptionPlan(id: number): Promise<void> {
     try {
-      await db
-        .delete(subscriptionPlans)
-        .where(eq(subscriptionPlans.id, id));
+      await db.delete(subscriptionPlans).where(eq(subscriptionPlans.id, id));
     } catch (error) {
-      console.error('Error deleting subscription plan:', error);
+      console.error("Error deleting subscription plan:", error);
       throw error;
     }
   }
@@ -9010,11 +10690,18 @@ export class DatabaseStorage implements IStorage {
     return []; // Placeholder for dynamic features
   }
 
-  async setPlanFeatureValue(planId: number, featureId: number, value: any): Promise<any> {
+  async setPlanFeatureValue(
+    planId: number,
+    featureId: number,
+    value: any,
+  ): Promise<any> {
     return {}; // Placeholder for dynamic features
   }
 
-  async deletePlanFeatureValue(planId: number, featureId: number): Promise<void> {
+  async deletePlanFeatureValue(
+    planId: number,
+    featureId: number,
+  ): Promise<void> {
     // Placeholder for dynamic features
   }
 
@@ -9024,14 +10711,16 @@ export class DatabaseStorage implements IStorage {
       const parts = await db
         .select()
         .from(partsSupplies)
-        .where(and(
-          eq(partsSupplies.organizationId, organizationId),
-          eq(partsSupplies.isActive, true)
-        ))
+        .where(
+          and(
+            eq(partsSupplies.organizationId, organizationId),
+            eq(partsSupplies.isActive, true),
+          ),
+        )
         .orderBy(asc(partsSupplies.name));
       return parts;
     } catch (error) {
-      console.error('Error fetching parts and supplies:', error);
+      console.error("Error fetching parts and supplies:", error);
       return [];
     }
   }
@@ -9041,13 +10730,15 @@ export class DatabaseStorage implements IStorage {
       const [part] = await db
         .select()
         .from(partsSupplies)
-        .where(and(
-          eq(partsSupplies.id, id),
-          eq(partsSupplies.organizationId, organizationId)
-        ));
+        .where(
+          and(
+            eq(partsSupplies.id, id),
+            eq(partsSupplies.organizationId, organizationId),
+          ),
+        );
       return part;
     } catch (error) {
-      console.error('Error fetching part supply:', error);
+      console.error("Error fetching part supply:", error);
       return null;
     }
   }
@@ -9059,7 +10750,7 @@ export class DatabaseStorage implements IStorage {
         .values({
           ...partData,
           isLowStock: partData.currentStock <= partData.minStockLevel,
-          isOutOfStock: partData.currentStock === 0
+          isOutOfStock: partData.currentStock === 0,
         })
         .returning();
 
@@ -9068,15 +10759,15 @@ export class DatabaseStorage implements IStorage {
         await this.createStockAlert({
           organizationId: newPart.organizationId,
           partId: newPart.id,
-          alertType: newPart.isOutOfStock ? 'OUT_OF_STOCK' : 'LOW_STOCK',
+          alertType: newPart.isOutOfStock ? "OUT_OF_STOCK" : "LOW_STOCK",
           currentStock: newPart.currentStock,
-          minStockLevel: newPart.minStockLevel
+          minStockLevel: newPart.minStockLevel,
         });
       }
 
       return newPart;
     } catch (error) {
-      console.error('Error creating part supply:', error);
+      console.error("Error creating part supply:", error);
       throw error;
     }
   }
@@ -9088,10 +10779,14 @@ export class DatabaseStorage implements IStorage {
         .set({
           ...updates,
           updatedAt: new Date(),
-          isLowStock: updates.currentStock !== undefined ? 
-            updates.currentStock <= (updates.minStockLevel ?? 0) : undefined,
-          isOutOfStock: updates.currentStock !== undefined ? 
-            updates.currentStock === 0 : undefined
+          isLowStock:
+            updates.currentStock !== undefined
+              ? updates.currentStock <= (updates.minStockLevel ?? 0)
+              : undefined,
+          isOutOfStock:
+            updates.currentStock !== undefined
+              ? updates.currentStock === 0
+              : undefined,
         })
         .where(eq(partsSupplies.id, id))
         .returning();
@@ -9103,24 +10798,30 @@ export class DatabaseStorage implements IStorage {
 
       return updatedPart;
     } catch (error) {
-      console.error('Error updating part supply:', error);
+      console.error("Error updating part supply:", error);
       throw error;
     }
   }
 
   async deletePartSupply(id: number): Promise<boolean> {
     try {
-      await db.update(partsSupplies)
+      await db
+        .update(partsSupplies)
         .set({ isActive: false, updatedAt: new Date() })
         .where(eq(partsSupplies.id, id));
       return true;
     } catch (error) {
-      console.error('Error deleting part supply:', error);
+      console.error("Error deleting part supply:", error);
       return false;
     }
   }
 
-  async updatePartStock(partId: number, newStock: number, userId: number, reason?: string): Promise<any> {
+  async updatePartStock(
+    partId: number,
+    newStock: number,
+    userId: number,
+    reason?: string,
+  ): Promise<any> {
     try {
       // Get current part
       const [currentPart] = await db
@@ -9129,7 +10830,7 @@ export class DatabaseStorage implements IStorage {
         .where(eq(partsSupplies.id, partId));
 
       if (!currentPart) {
-        throw new Error('Part not found');
+        throw new Error("Part not found");
       }
 
       const previousStock = currentPart.currentStock;
@@ -9142,7 +10843,7 @@ export class DatabaseStorage implements IStorage {
           currentStock: newStock,
           isLowStock: newStock <= currentPart.minStockLevel,
           isOutOfStock: newStock === 0,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(partsSupplies.id, partId))
         .returning();
@@ -9151,12 +10852,12 @@ export class DatabaseStorage implements IStorage {
       await this.createInventoryTransaction({
         organizationId: currentPart.organizationId,
         partId: partId,
-        transactionType: quantity > 0 ? 'IN' : 'OUT',
+        transactionType: quantity > 0 ? "IN" : "OUT",
         quantity: Math.abs(quantity),
         previousStock,
         newStock,
-        reason: reason || 'Manual adjustment',
-        createdBy: userId
+        reason: reason || "Manual adjustment",
+        createdBy: userId,
       });
 
       // Check for low stock alerts
@@ -9164,7 +10865,7 @@ export class DatabaseStorage implements IStorage {
 
       return updatedPart;
     } catch (error) {
-      console.error('Error updating part stock:', error);
+      console.error("Error updating part stock:", error);
       throw error;
     }
   }
@@ -9175,13 +10876,15 @@ export class DatabaseStorage implements IStorage {
       return await db
         .select()
         .from(partsCategories)
-        .where(and(
-          eq(partsCategories.organizationId, organizationId),
-          eq(partsCategories.isActive, true)
-        ))
+        .where(
+          and(
+            eq(partsCategories.organizationId, organizationId),
+            eq(partsCategories.isActive, true),
+          ),
+        )
         .orderBy(asc(partsCategories.name));
     } catch (error) {
-      console.error('Error fetching parts categories:', error);
+      console.error("Error fetching parts categories:", error);
       return [];
     }
   }
@@ -9194,7 +10897,7 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return category;
     } catch (error) {
-      console.error('Error creating parts category:', error);
+      console.error("Error creating parts category:", error);
       throw error;
     }
   }
@@ -9208,25 +10911,29 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return category;
     } catch (error) {
-      console.error('Error updating parts category:', error);
+      console.error("Error updating parts category:", error);
       throw error;
     }
   }
 
   async deletePartsCategory(id: number): Promise<boolean> {
     try {
-      await db.update(partsCategories)
+      await db
+        .update(partsCategories)
         .set({ isActive: false, updatedAt: new Date() })
         .where(eq(partsCategories.id, id));
       return true;
     } catch (error) {
-      console.error('Error deleting parts category:', error);
+      console.error("Error deleting parts category:", error);
       return false;
     }
   }
 
   // Inventory Transaction methods
-  async getInventoryTransactions(organizationId: number, partId?: number): Promise<any[]> {
+  async getInventoryTransactions(
+    organizationId: number,
+    partId?: number,
+  ): Promise<any[]> {
     try {
       let query = db
         .select({
@@ -9247,10 +10954,13 @@ export class DatabaseStorage implements IStorage {
           createdAt: inventoryTransactions.createdAt,
           createdBy: inventoryTransactions.createdBy,
           partName: partsSupplies.name,
-          partSku: partsSupplies.sku
+          partSku: partsSupplies.sku,
         })
         .from(inventoryTransactions)
-        .leftJoin(partsSupplies, eq(inventoryTransactions.partId, partsSupplies.id))
+        .leftJoin(
+          partsSupplies,
+          eq(inventoryTransactions.partId, partsSupplies.id),
+        )
         .where(eq(inventoryTransactions.organizationId, organizationId));
 
       if (partId) {
@@ -9259,7 +10969,7 @@ export class DatabaseStorage implements IStorage {
 
       return await query.orderBy(desc(inventoryTransactions.createdAt));
     } catch (error) {
-      console.error('Error fetching inventory transactions:', error);
+      console.error("Error fetching inventory transactions:", error);
       return [];
     }
   }
@@ -9272,13 +10982,16 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return transaction;
     } catch (error) {
-      console.error('Error creating inventory transaction:', error);
+      console.error("Error creating inventory transaction:", error);
       throw error;
     }
   }
 
   // Stock Alert methods
-  async getStockAlerts(organizationId: number, activeOnly: boolean = true): Promise<any[]> {
+  async getStockAlerts(
+    organizationId: number,
+    activeOnly: boolean = true,
+  ): Promise<any[]> {
     try {
       let query = db
         .select({
@@ -9294,7 +11007,7 @@ export class DatabaseStorage implements IStorage {
           createdAt: stockAlerts.createdAt,
           partName: partsSupplies.name,
           partSku: partsSupplies.sku,
-          partCategory: partsSupplies.category
+          partCategory: partsSupplies.category,
         })
         .from(stockAlerts)
         .leftJoin(partsSupplies, eq(stockAlerts.partId, partsSupplies.id))
@@ -9306,7 +11019,7 @@ export class DatabaseStorage implements IStorage {
 
       return await query.orderBy(desc(stockAlerts.createdAt));
     } catch (error) {
-      console.error('Error fetching stock alerts:', error);
+      console.error("Error fetching stock alerts:", error);
       return [];
     }
   }
@@ -9319,7 +11032,7 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return alert;
     } catch (error) {
-      console.error('Error creating stock alert:', error);
+      console.error("Error creating stock alert:", error);
       throw error;
     }
   }
@@ -9332,13 +11045,13 @@ export class DatabaseStorage implements IStorage {
           isRead: true,
           acknowledgedBy: userId,
           acknowledgedAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(stockAlerts.id, alertId))
         .returning();
       return alert;
     } catch (error) {
-      console.error('Error acknowledging stock alert:', error);
+      console.error("Error acknowledging stock alert:", error);
       throw error;
     }
   }
@@ -9349,14 +11062,16 @@ export class DatabaseStorage implements IStorage {
       const lowStockParts = await db
         .select()
         .from(partsSupplies)
-        .where(and(
-          eq(partsSupplies.organizationId, organizationId),
-          eq(partsSupplies.isActive, true),
-          or(
-            eq(partsSupplies.isLowStock, true),
-            eq(partsSupplies.isOutOfStock, true)
-          )
-        ));
+        .where(
+          and(
+            eq(partsSupplies.organizationId, organizationId),
+            eq(partsSupplies.isActive, true),
+            or(
+              eq(partsSupplies.isLowStock, true),
+              eq(partsSupplies.isOutOfStock, true),
+            ),
+          ),
+        );
 
       const newAlerts = [];
 
@@ -9365,19 +11080,21 @@ export class DatabaseStorage implements IStorage {
         const [existingAlert] = await db
           .select()
           .from(stockAlerts)
-          .where(and(
-            eq(stockAlerts.partId, part.id),
-            eq(stockAlerts.isActive, true)
-          ));
+          .where(
+            and(
+              eq(stockAlerts.partId, part.id),
+              eq(stockAlerts.isActive, true),
+            ),
+          );
 
         if (!existingAlert) {
-          const alertType = part.isOutOfStock ? 'OUT_OF_STOCK' : 'LOW_STOCK';
+          const alertType = part.isOutOfStock ? "OUT_OF_STOCK" : "LOW_STOCK";
           const alert = await this.createStockAlert({
             organizationId: part.organizationId,
             partId: part.id,
             alertType,
             currentStock: part.currentStock,
-            minStockLevel: part.minStockLevel
+            minStockLevel: part.minStockLevel,
           });
           newAlerts.push(alert);
         }
@@ -9385,13 +11102,15 @@ export class DatabaseStorage implements IStorage {
 
       return newAlerts;
     } catch (error) {
-      console.error('Error checking and creating low stock alerts:', error);
+      console.error("Error checking and creating low stock alerts:", error);
       return [];
     }
   }
 
   // Smart Capture methods
-  async getSmartCaptureLists(organizationId: number): Promise<SmartCaptureList[]> {
+  async getSmartCaptureLists(
+    organizationId: number,
+  ): Promise<SmartCaptureList[]> {
     try {
       return await db
         .select()
@@ -9399,28 +11118,37 @@ export class DatabaseStorage implements IStorage {
         .where(eq(smartCaptureLists.organizationId, organizationId))
         .orderBy(desc(smartCaptureLists.createdAt));
     } catch (error) {
-      console.error('Error fetching smart capture lists:', error);
+      console.error("Error fetching smart capture lists:", error);
       return [];
     }
   }
 
-  async getSmartCaptureList(id: number, organizationId: number): Promise<SmartCaptureList | undefined> {
+  async getSmartCaptureList(
+    id: number,
+    organizationId: number,
+  ): Promise<SmartCaptureList | undefined> {
     try {
       const [list] = await db
         .select()
         .from(smartCaptureLists)
-        .where(and(
-          eq(smartCaptureLists.id, id),
-          eq(smartCaptureLists.organizationId, organizationId)
-        ));
+        .where(
+          and(
+            eq(smartCaptureLists.id, id),
+            eq(smartCaptureLists.organizationId, organizationId),
+          ),
+        );
       return list;
     } catch (error) {
-      console.error('Error fetching smart capture list:', error);
+      console.error("Error fetching smart capture list:", error);
       return null;
     }
   }
 
-  async createSmartCaptureList(listData: InsertSmartCaptureList, organizationId: number, userId: number): Promise<SmartCaptureList> {
+  async createSmartCaptureList(
+    listData: InsertSmartCaptureList,
+    organizationId: number,
+    userId: number,
+  ): Promise<SmartCaptureList> {
     try {
       const [list] = await db
         .insert(smartCaptureLists)
@@ -9432,12 +11160,16 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return list;
     } catch (error) {
-      console.error('Error creating smart capture list:', error);
-      throw new Error('Failed to create smart capture list');
+      console.error("Error creating smart capture list:", error);
+      throw new Error("Failed to create smart capture list");
     }
   }
 
-  async updateSmartCaptureList(id: number, organizationId: number, updates: Partial<InsertSmartCaptureList>): Promise<SmartCaptureList> {
+  async updateSmartCaptureList(
+    id: number,
+    organizationId: number,
+    updates: Partial<InsertSmartCaptureList>,
+  ): Promise<SmartCaptureList> {
     try {
       const [list] = await db
         .update(smartCaptureLists)
@@ -9445,43 +11177,55 @@ export class DatabaseStorage implements IStorage {
           ...updates,
           updatedAt: new Date(),
         })
-        .where(and(
-          eq(smartCaptureLists.id, id),
-          eq(smartCaptureLists.organizationId, organizationId)
-        ))
+        .where(
+          and(
+            eq(smartCaptureLists.id, id),
+            eq(smartCaptureLists.organizationId, organizationId),
+          ),
+        )
         .returning();
       return list;
     } catch (error) {
-      console.error('Error updating smart capture list:', error);
-      throw new Error('Failed to update smart capture list');
+      console.error("Error updating smart capture list:", error);
+      throw new Error("Failed to update smart capture list");
     }
   }
 
-  async deleteSmartCaptureList(id: number, organizationId: number): Promise<boolean> {
+  async deleteSmartCaptureList(
+    id: number,
+    organizationId: number,
+  ): Promise<boolean> {
     try {
       // First delete all items in the list
       await db
         .delete(smartCaptureItems)
-        .where(and(
-          eq(smartCaptureItems.listId, id),
-          eq(smartCaptureItems.organizationId, organizationId)
-        ));
+        .where(
+          and(
+            eq(smartCaptureItems.listId, id),
+            eq(smartCaptureItems.organizationId, organizationId),
+          ),
+        );
 
       // Then delete the list itself
       const result = await db
         .delete(smartCaptureLists)
-        .where(and(
-          eq(smartCaptureLists.id, id),
-          eq(smartCaptureLists.organizationId, organizationId)
-        ));
+        .where(
+          and(
+            eq(smartCaptureLists.id, id),
+            eq(smartCaptureLists.organizationId, organizationId),
+          ),
+        );
       return result.rowCount > 0;
     } catch (error) {
-      console.error('Error deleting smart capture list:', error);
+      console.error("Error deleting smart capture list:", error);
       return false;
     }
   }
 
-  async getSmartCaptureItems(listId: number, organizationId: number): Promise<SmartCaptureItem[]> {
+  async getSmartCaptureItems(
+    listId: number,
+    organizationId: number,
+  ): Promise<SmartCaptureItem[]> {
     try {
       const items = await db
         .select({
@@ -9515,39 +11259,52 @@ export class DatabaseStorage implements IStorage {
         })
         .from(smartCaptureItems)
         .leftJoin(users, eq(smartCaptureItems.submittedBy, users.id))
-        .where(and(
-          eq(smartCaptureItems.listId, listId),
-          eq(smartCaptureItems.organizationId, organizationId)
-        ))
+        .where(
+          and(
+            eq(smartCaptureItems.listId, listId),
+            eq(smartCaptureItems.organizationId, organizationId),
+          ),
+        )
         .orderBy(smartCaptureItems.createdAt);
-        
+
       // Return items as-is (decimal values are strings in Drizzle)
       return items;
     } catch (error) {
-      console.error('Error fetching smart capture items:', error);
+      console.error("Error fetching smart capture items:", error);
       return [];
     }
   }
 
-  async createSmartCaptureItem(listId: number, organizationId: number, itemData: InsertSmartCaptureItem, userId: number): Promise<SmartCaptureItem> {
+  async createSmartCaptureItem(
+    listId: number,
+    organizationId: number,
+    itemData: InsertSmartCaptureItem,
+    userId: number,
+  ): Promise<SmartCaptureItem> {
     try {
       // SECURITY: Verify the list belongs to this organization before creating items
       const list = await db
         .select()
         .from(smartCaptureLists)
-        .where(and(
-          eq(smartCaptureLists.id, listId),
-          eq(smartCaptureLists.organizationId, organizationId)
-        ))
+        .where(
+          and(
+            eq(smartCaptureLists.id, listId),
+            eq(smartCaptureLists.organizationId, organizationId),
+          ),
+        )
         .limit(1);
 
       if (list.length === 0) {
-        throw new Error('List not found or access denied');
+        throw new Error("List not found or access denied");
       }
 
       // SECURITY: Override any client-supplied listId/organizationId with server values
-      const { listId: _, organizationId: __, ...safeItemData } = itemData as any;
-      
+      const {
+        listId: _,
+        organizationId: __,
+        ...safeItemData
+      } = itemData as any;
+
       const [item] = await db
         .insert(smartCaptureItems)
         .values({
@@ -9560,35 +11317,57 @@ export class DatabaseStorage implements IStorage {
 
       // Auto-create draft invoice for Smart Capture projects when first item is added
       if (item && item.projectId) {
-        await this.ensureDraftInvoiceForSmartCaptureProject(item.projectId, organizationId, userId);
-        
+        await this.ensureDraftInvoiceForSmartCaptureProject(
+          item.projectId,
+          organizationId,
+          userId,
+        );
+
         // Add this item to the draft invoice
-        const draftInvoice = await this.getDraftInvoiceForProject(item.projectId, organizationId);
+        const draftInvoice = await this.getDraftInvoiceForProject(
+          item.projectId,
+          organizationId,
+        );
         if (draftInvoice) {
-          await this.upsertDraftInvoiceLineItem(draftInvoice.id, {
-            description: item.description || item.partNumber || item.vehicleNumber || item.inventoryNumber || 'Smart Capture Item',
-            quantity: item.quantity.toString(),
-            rate: item.masterPrice.toString(),
-            sourceType: 'smart_capture',
-            smartCaptureItemId: item.id
-          }, organizationId);
-          
-          console.log(`✅ Auto-created/updated draft invoice line item for new Smart Capture item ${item.id}`);
+          await this.upsertDraftInvoiceLineItem(
+            draftInvoice.id,
+            {
+              description:
+                item.description ||
+                item.partNumber ||
+                item.vehicleNumber ||
+                item.inventoryNumber ||
+                "Smart Capture Item",
+              quantity: item.quantity.toString(),
+              rate: item.masterPrice.toString(),
+              sourceType: "smart_capture",
+              smartCaptureItemId: item.id,
+            },
+            organizationId,
+          );
+
+          console.log(
+            `✅ Auto-created/updated draft invoice line item for new Smart Capture item ${item.id}`,
+          );
         }
       }
 
       return item;
     } catch (error) {
-      console.error('Error creating smart capture item:', error);
-      throw new Error('Failed to create smart capture item');
+      console.error("Error creating smart capture item:", error);
+      throw new Error("Failed to create smart capture item");
     }
   }
 
-  async updateSmartCaptureItem(itemId: number, organizationId: number, updates: Partial<InsertSmartCaptureItem>): Promise<SmartCaptureItem> {
+  async updateSmartCaptureItem(
+    itemId: number,
+    organizationId: number,
+    updates: Partial<InsertSmartCaptureItem>,
+  ): Promise<SmartCaptureItem> {
     try {
       // SECURITY: Strip listId and organizationId from updates to prevent cross-tenant moves
       const { listId, organizationId: _, ...safeUpdates } = updates as any;
-      
+
       // Simple approach: use basic UPDATE with security check
       const result = await db.execute(sql`
         UPDATE smart_capture_items 
@@ -9601,58 +11380,71 @@ export class DatabaseStorage implements IStorage {
         )
         RETURNING *
       `);
-      
+
       if (!result.rows || result.rows.length === 0) {
-        throw new Error('Item not found or access denied');
+        throw new Error("Item not found or access denied");
       }
       return result.rows[0] as SmartCaptureItem;
     } catch (error) {
-      console.error('Error updating smart capture item:', error);
-      throw new Error('Failed to update smart capture item');
+      console.error("Error updating smart capture item:", error);
+      throw new Error("Failed to update smart capture item");
     }
   }
 
-  async deleteSmartCaptureItem(itemId: number, organizationId: number): Promise<boolean> {
+  async deleteSmartCaptureItem(
+    itemId: number,
+    organizationId: number,
+  ): Promise<boolean> {
     try {
       // SECURITY: Verify the item's list belongs to this organization using join
-      const result = await db
-        .delete(smartCaptureItems)
-        .where(and(
+      const result = await db.delete(smartCaptureItems).where(
+        and(
           eq(smartCaptureItems.id, itemId),
           exists(
-            db.select()
+            db
+              .select()
               .from(smartCaptureLists)
-              .where(and(
-                eq(smartCaptureLists.id, smartCaptureItems.listId),
-                eq(smartCaptureLists.organizationId, organizationId)
-              ))
-          )
-        ));
+              .where(
+                and(
+                  eq(smartCaptureLists.id, smartCaptureItems.listId),
+                  eq(smartCaptureLists.organizationId, organizationId),
+                ),
+              ),
+          ),
+        ),
+      );
       return result.rowCount > 0;
     } catch (error) {
-      console.error('Error deleting smart capture item:', error);
+      console.error("Error deleting smart capture item:", error);
       return false;
     }
   }
 
-  async createSmartCaptureItemsBulk(listId: number, organizationId: number, items: InsertSmartCaptureItem[], userId: number): Promise<SmartCaptureItem[]> {
+  async createSmartCaptureItemsBulk(
+    listId: number,
+    organizationId: number,
+    items: InsertSmartCaptureItem[],
+    userId: number,
+  ): Promise<SmartCaptureItem[]> {
     try {
       // SECURITY: Verify the list belongs to this organization before bulk creating items
       const list = await db
         .select()
         .from(smartCaptureLists)
-        .where(and(
-          eq(smartCaptureLists.id, listId),
-          eq(smartCaptureLists.organizationId, organizationId)
-        ))
+        .where(
+          and(
+            eq(smartCaptureLists.id, listId),
+            eq(smartCaptureLists.organizationId, organizationId),
+          ),
+        )
         .limit(1);
 
       if (list.length === 0) {
-        throw new Error('List not found or access denied');
+        throw new Error("List not found or access denied");
       }
 
       // SECURITY: Override any client-supplied listId/organizationId with server values
-      const itemsWithMeta = items.map(item => {
+      const itemsWithMeta = items.map((item) => {
         const { listId: _, organizationId: __, ...safeItemData } = item as any;
         return {
           ...safeItemData,
@@ -9661,49 +11453,74 @@ export class DatabaseStorage implements IStorage {
           submittedBy: userId,
         };
       });
-      
+
       const createdItems = await db
         .insert(smartCaptureItems)
         .values(itemsWithMeta)
         .returning();
 
       // Auto-create draft invoice for Smart Capture projects when items are added
-      const projectItems = createdItems.filter(item => item.projectId);
-      const projectIds = [...new Set(projectItems.map(item => item.projectId))];
-      
+      const projectItems = createdItems.filter((item) => item.projectId);
+      const projectIds = [
+        ...new Set(projectItems.map((item) => item.projectId)),
+      ];
+
       for (const projectId of projectIds) {
         if (projectId) {
-          await this.ensureDraftInvoiceForSmartCaptureProject(projectId, organizationId, userId);
-          
+          await this.ensureDraftInvoiceForSmartCaptureProject(
+            projectId,
+            organizationId,
+            userId,
+          );
+
           // Add all items for this project to the draft invoice
-          const draftInvoice = await this.getDraftInvoiceForProject(projectId, organizationId);
+          const draftInvoice = await this.getDraftInvoiceForProject(
+            projectId,
+            organizationId,
+          );
           if (draftInvoice) {
-            const projectSpecificItems = projectItems.filter(item => item.projectId === projectId);
-            
+            const projectSpecificItems = projectItems.filter(
+              (item) => item.projectId === projectId,
+            );
+
             for (const item of projectSpecificItems) {
-              await this.upsertDraftInvoiceLineItem(draftInvoice.id, {
-                description: item.description || item.partNumber || item.vehicleNumber || item.inventoryNumber || 'Smart Capture Item',
-                quantity: item.quantity.toString(),
-                rate: item.masterPrice.toString(),
-                sourceType: 'smart_capture',
-                smartCaptureItemId: item.id
-              }, organizationId);
+              await this.upsertDraftInvoiceLineItem(
+                draftInvoice.id,
+                {
+                  description:
+                    item.description ||
+                    item.partNumber ||
+                    item.vehicleNumber ||
+                    item.inventoryNumber ||
+                    "Smart Capture Item",
+                  quantity: item.quantity.toString(),
+                  rate: item.masterPrice.toString(),
+                  sourceType: "smart_capture",
+                  smartCaptureItemId: item.id,
+                },
+                organizationId,
+              );
             }
-            
-            console.log(`✅ Auto-created/updated draft invoice line items for ${projectSpecificItems.length} new Smart Capture items in project ${projectId}`);
+
+            console.log(
+              `✅ Auto-created/updated draft invoice line items for ${projectSpecificItems.length} new Smart Capture items in project ${projectId}`,
+            );
           }
         }
       }
 
       return createdItems;
     } catch (error) {
-      console.error('Error creating bulk smart capture items:', error);
-      throw new Error('Failed to create smart capture items');
+      console.error("Error creating bulk smart capture items:", error);
+      throw new Error("Failed to create smart capture items");
     }
   }
 
   // Project-specific Smart Capture methods
-  async getSmartCaptureItemsByProject(projectId: number, organizationId: number): Promise<any[]> {
+  async getSmartCaptureItemsByProject(
+    projectId: number,
+    organizationId: number,
+  ): Promise<any[]> {
     try {
       const result = await db.execute(sql`
         SELECT 
@@ -9743,35 +11560,44 @@ export class DatabaseStorage implements IStorage {
       `);
       return result.rows || [];
     } catch (error) {
-      console.error('Error fetching project smart capture items:', error);
+      console.error("Error fetching project smart capture items:", error);
       return [];
     }
   }
 
-  async createProjectSmartCaptureItem(projectId: number, organizationId: number, itemData: InsertSmartCaptureItem, userId: number): Promise<SmartCaptureItem> {
+  async createProjectSmartCaptureItem(
+    projectId: number,
+    organizationId: number,
+    itemData: InsertSmartCaptureItem,
+    userId: number,
+  ): Promise<SmartCaptureItem> {
     try {
       // SECURITY: Verify the project belongs to this organization
       const project = await db
         .select()
         .from(projects)
-        .where(and(
-          eq(projects.id, projectId),
-          eq(projects.organizationId, organizationId)
-        ))
+        .where(
+          and(
+            eq(projects.id, projectId),
+            eq(projects.organizationId, organizationId),
+          ),
+        )
         .limit(1);
 
       if (project.length === 0) {
-        throw new Error('Project not found or access denied');
+        throw new Error("Project not found or access denied");
       }
 
       // For project-specific items, we need a default list or create one
       let defaultList = await db
         .select()
         .from(smartCaptureLists)
-        .where(and(
-          eq(smartCaptureLists.organizationId, organizationId),
-          eq(smartCaptureLists.name, `Project ${projectId} Items`)
-        ))
+        .where(
+          and(
+            eq(smartCaptureLists.organizationId, organizationId),
+            eq(smartCaptureLists.name, `Project ${projectId} Items`),
+          ),
+        )
         .limit(1);
 
       if (defaultList.length === 0) {
@@ -9782,7 +11608,7 @@ export class DatabaseStorage implements IStorage {
             organizationId,
             name: `Project ${projectId} Items`,
             description: `Smart Capture items for project: ${project[0].name}`,
-            status: 'active',
+            status: "active",
             createdBy: project[0].userId, // Use project creator as list creator
           })
           .returning();
@@ -9790,8 +11616,13 @@ export class DatabaseStorage implements IStorage {
       }
 
       // SECURITY: Override any client-supplied values with server values
-      const { listId: _, organizationId: __, projectId: ___, ...safeItemData } = itemData as any;
-      
+      const {
+        listId: _,
+        organizationId: __,
+        projectId: ___,
+        ...safeItemData
+      } = itemData as any;
+
       const [item] = await db
         .insert(smartCaptureItems)
         .values({
@@ -9804,50 +11635,70 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return item;
     } catch (error) {
-      console.error('Error creating project smart capture item:', error);
-      throw new Error('Failed to create project smart capture item');
+      console.error("Error creating project smart capture item:", error);
+      throw new Error("Failed to create project smart capture item");
     }
   }
 
   // Smart Capture search and linking methods
-  async searchSmartCaptureItems(organizationId: number, filters: { query?: string; partNumber?: string; vehicleNumber?: string; inventoryNumber?: string; limit?: number }): Promise<SmartCaptureItem[]> {
+  async searchSmartCaptureItems(
+    organizationId: number,
+    filters: {
+      query?: string;
+      partNumber?: string;
+      vehicleNumber?: string;
+      inventoryNumber?: string;
+      limit?: number;
+    },
+  ): Promise<SmartCaptureItem[]> {
     try {
-      const { query, partNumber, vehicleNumber, inventoryNumber, limit = 50 } = filters;
-      
+      const {
+        query,
+        partNumber,
+        vehicleNumber,
+        inventoryNumber,
+        limit = 50,
+      } = filters;
+
       // Build conditions for organization scoping and master list filtering
       const conditions: any[] = [
         eq(smartCaptureItems.organizationId, organizationId),
         eq(smartCaptureLists.organizationId, organizationId),
         isNull(smartCaptureLists.projectId), // Only master lists (lists with no project_id)
-        isNull(smartCaptureItems.projectId) // Only master items, not project-specific items
+        isNull(smartCaptureItems.projectId), // Only master items, not project-specific items
       ];
 
       if (partNumber) {
         conditions.push(eq(smartCaptureItems.partNumber, partNumber));
       }
-      
+
       if (vehicleNumber) {
         conditions.push(eq(smartCaptureItems.vehicleNumber, vehicleNumber));
       }
-      
+
       if (inventoryNumber) {
         conditions.push(eq(smartCaptureItems.inventoryNumber, inventoryNumber));
       }
-      
+
       if (query) {
         conditions.push(
           or(
             ilike(smartCaptureItems.description, `%${query}%`),
             ilike(smartCaptureItems.partNumber, `%${query}%`),
             ilike(smartCaptureItems.vehicleNumber, `%${query}%`),
-            ilike(smartCaptureItems.inventoryNumber, `%${query}%`)
-          )
+            ilike(smartCaptureItems.inventoryNumber, `%${query}%`),
+          ),
         );
       }
 
       // Build WHERE conditions for raw SQL
-      let whereConditions = [`sci.organization_id = ${organizationId}`, `scl.organization_id = ${organizationId}`, `scl.project_id IS NULL`, `sci.project_id IS NULL`];
-      
+      let whereConditions = [
+        `sci.organization_id = ${organizationId}`,
+        `scl.organization_id = ${organizationId}`,
+        `scl.project_id IS NULL`,
+        `sci.project_id IS NULL`,
+      ];
+
       if (partNumber) {
         whereConditions.push(`sci.part_number = '${partNumber}'`);
       }
@@ -9859,9 +11710,11 @@ export class DatabaseStorage implements IStorage {
       }
       if (query) {
         const escapedQuery = `%${query.replace(/'/g, "''")}%`;
-        whereConditions.push(`(sci.description ILIKE '${escapedQuery}' OR sci.part_number ILIKE '${escapedQuery}' OR sci.vehicle_number ILIKE '${escapedQuery}' OR sci.inventory_number ILIKE '${escapedQuery}')`);
+        whereConditions.push(
+          `(sci.description ILIKE '${escapedQuery}' OR sci.part_number ILIKE '${escapedQuery}' OR sci.vehicle_number ILIKE '${escapedQuery}' OR sci.inventory_number ILIKE '${escapedQuery}')`,
+        );
       }
-      
+
       const result = await db.execute(sql`
         SELECT sci.id, sci.list_id as "listId", sci.organization_id as "organizationId", sci.project_id as "projectId", 
                sci.part_number as "partNumber", sci.vehicle_number as "vehicleNumber", 
@@ -9871,19 +11724,22 @@ export class DatabaseStorage implements IStorage {
                sci.derived_vehicle_id as "derivedVehicleId", sci.created_at as "createdAt", sci.updated_at as "updatedAt"
         FROM smart_capture_items sci
         INNER JOIN smart_capture_lists scl ON sci.list_id = scl.id
-        WHERE ${sql.raw(whereConditions.join(' AND '))}
+        WHERE ${sql.raw(whereConditions.join(" AND "))}
         ORDER BY sci.created_at DESC
         LIMIT ${Math.min(limit, 100)}
       `);
 
       return result.rows || [];
     } catch (error) {
-      console.error('Error searching smart capture items:', error);
+      console.error("Error searching smart capture items:", error);
       return [];
     }
   }
 
-  async getSmartCaptureItemById(id: number, organizationId: number): Promise<SmartCaptureItem | null> {
+  async getSmartCaptureItemById(
+    id: number,
+    organizationId: number,
+  ): Promise<SmartCaptureItem | null> {
     try {
       const result = await db.execute(sql`
         SELECT * FROM smart_capture_items 
@@ -9893,30 +11749,34 @@ export class DatabaseStorage implements IStorage {
       `);
       return result.rows?.[0] || null;
     } catch (error) {
-      console.error('Error fetching smart capture item by ID:', error);
+      console.error("Error fetching smart capture item by ID:", error);
       return null;
     }
   }
 
-  async linkProjectSmartCaptureItem(projectItemId: number, masterItemId: number, organizationId: number): Promise<SmartCaptureItem> {
+  async linkProjectSmartCaptureItem(
+    projectItemId: number,
+    masterItemId: number,
+    organizationId: number,
+  ): Promise<SmartCaptureItem> {
     try {
       // Prevent self-referencing links
       if (projectItemId === masterItemId) {
-        throw new Error('Cannot link item to itself');
+        throw new Error("Cannot link item to itself");
       }
 
       // SECURITY: Verify both items belong to the organization and get their details
       const [projectItem, masterItem] = await Promise.all([
         this.getSmartCaptureItemById(projectItemId, organizationId),
-        this.getSmartCaptureItemById(masterItemId, organizationId)
+        this.getSmartCaptureItemById(masterItemId, organizationId),
       ]);
 
       if (!projectItem) {
-        throw new Error('Project item not found or access denied');
+        throw new Error("Project item not found or access denied");
       }
-      
+
       if (!masterItem) {
-        throw new Error('Master item not found or access denied');
+        throw new Error("Master item not found or access denied");
       }
 
       // Check if already linked to avoid redundant operations (idempotency)
@@ -9928,14 +11788,18 @@ export class DatabaseStorage implements IStorage {
       const masterList = await db
         .select()
         .from(smartCaptureLists)
-        .where(and(
-          eq(smartCaptureLists.id, masterItem.listId),
-          eq(smartCaptureLists.organizationId, organizationId)
-        ))
+        .where(
+          and(
+            eq(smartCaptureLists.id, masterItem.listId),
+            eq(smartCaptureLists.organizationId, organizationId),
+          ),
+        )
         .limit(1);
 
-      if (!masterList.length || masterList[0].name.startsWith('Project ')) {
-        throw new Error('Target item must belong to a master Smart Capture list, not a project-specific list');
+      if (!masterList.length || masterList[0].name.startsWith("Project ")) {
+        throw new Error(
+          "Target item must belong to a master Smart Capture list, not a project-specific list",
+        );
       }
 
       // Atomically update the project item with master link and price snapshot
@@ -9946,39 +11810,50 @@ export class DatabaseStorage implements IStorage {
           masterPriceSnapshot: masterItem.price,
           updatedAt: new Date(),
         })
-        .where(and(
-          eq(smartCaptureItems.id, projectItemId),
-          eq(smartCaptureItems.organizationId, organizationId)
-        ))
+        .where(
+          and(
+            eq(smartCaptureItems.id, projectItemId),
+            eq(smartCaptureItems.organizationId, organizationId),
+          ),
+        )
         .returning();
 
       if (!updatedItem) {
-        throw new Error('Failed to link items - item may have been deleted');
+        throw new Error("Failed to link items - item may have been deleted");
       }
 
       return updatedItem;
     } catch (error) {
-      console.error('Error linking smart capture items:', error);
+      console.error("Error linking smart capture items:", error);
       throw new Error(`Failed to link items: ${error.message}`);
     }
   }
 
-  async refreshProjectSmartCapturePrice(projectItemId: number, organizationId: number): Promise<SmartCaptureItem> {
+  async refreshProjectSmartCapturePrice(
+    projectItemId: number,
+    organizationId: number,
+  ): Promise<SmartCaptureItem> {
     try {
       // Get the project item to find its master link
-      const projectItem = await this.getSmartCaptureItemById(projectItemId, organizationId);
-      
+      const projectItem = await this.getSmartCaptureItemById(
+        projectItemId,
+        organizationId,
+      );
+
       if (!projectItem) {
-        throw new Error('Project item not found or access denied');
+        throw new Error("Project item not found or access denied");
       }
-      
+
       if (!projectItem.masterItemId) {
-        throw new Error('Project item is not linked to a master item');
+        throw new Error("Project item is not linked to a master item");
       }
 
       // Get the master item for current price
-      const masterItem = await this.getSmartCaptureItemById(projectItem.masterItemId, organizationId);
-      
+      const masterItem = await this.getSmartCaptureItemById(
+        projectItem.masterItemId,
+        organizationId,
+      );
+
       if (!masterItem) {
         // Handle case where master item was deleted - clear the link
         const [clearedItem] = await db
@@ -9988,13 +11863,15 @@ export class DatabaseStorage implements IStorage {
             masterPriceSnapshot: null,
             updatedAt: new Date(),
           })
-          .where(and(
-            eq(smartCaptureItems.id, projectItemId),
-            eq(smartCaptureItems.organizationId, organizationId)
-          ))
+          .where(
+            and(
+              eq(smartCaptureItems.id, projectItemId),
+              eq(smartCaptureItems.organizationId, organizationId),
+            ),
+          )
           .returning();
-        
-        throw new Error('Master item no longer exists - link has been cleared');
+
+        throw new Error("Master item no longer exists - link has been cleared");
       }
 
       // Atomically update the project item with fresh price snapshot
@@ -10004,34 +11881,43 @@ export class DatabaseStorage implements IStorage {
           masterPriceSnapshot: masterItem.price,
           updatedAt: new Date(),
         })
-        .where(and(
-          eq(smartCaptureItems.id, projectItemId),
-          eq(smartCaptureItems.organizationId, organizationId),
-          eq(smartCaptureItems.masterItemId, projectItem.masterItemId) // Ensure link hasn't changed
-        ))
+        .where(
+          and(
+            eq(smartCaptureItems.id, projectItemId),
+            eq(smartCaptureItems.organizationId, organizationId),
+            eq(smartCaptureItems.masterItemId, projectItem.masterItemId), // Ensure link hasn't changed
+          ),
+        )
         .returning();
 
       if (!updatedItem) {
-        throw new Error('Failed to refresh price - item may have been modified or deleted');
+        throw new Error(
+          "Failed to refresh price - item may have been modified or deleted",
+        );
       }
 
       return updatedItem;
     } catch (error) {
-      console.error('Error refreshing smart capture item price:', error);
+      console.error("Error refreshing smart capture item price:", error);
       throw new Error(`Failed to refresh price: ${error.message}`);
     }
   }
 
   // Market Research Competitors methods
-  async getMarketResearchCompetitors(organizationId: number, businessNiche?: string): Promise<any[]> {
+  async getMarketResearchCompetitors(
+    organizationId: number,
+    businessNiche?: string,
+  ): Promise<any[]> {
     try {
       const conditions = [
         eq(marketResearchCompetitors.organizationId, organizationId),
-        eq(marketResearchCompetitors.isActive, true)
+        eq(marketResearchCompetitors.isActive, true),
       ];
 
       if (businessNiche) {
-        conditions.push(eq(marketResearchCompetitors.businessNiche, businessNiche));
+        conditions.push(
+          eq(marketResearchCompetitors.businessNiche, businessNiche),
+        );
       }
 
       const query = db
@@ -10041,12 +11927,15 @@ export class DatabaseStorage implements IStorage {
 
       return await query.orderBy(marketResearchCompetitors.name);
     } catch (error) {
-      console.error('Error fetching market research competitors:', error);
+      console.error("Error fetching market research competitors:", error);
       throw error;
     }
   }
 
-  async getMarketResearchCompetitor(id: number, organizationId: number): Promise<any> {
+  async getMarketResearchCompetitor(
+    id: number,
+    organizationId: number,
+  ): Promise<any> {
     try {
       const [competitor] = await db
         .select()
@@ -10054,13 +11943,13 @@ export class DatabaseStorage implements IStorage {
         .where(
           and(
             eq(marketResearchCompetitors.id, id),
-            eq(marketResearchCompetitors.organizationId, organizationId)
-          )
+            eq(marketResearchCompetitors.organizationId, organizationId),
+          ),
         );
 
       return competitor;
     } catch (error) {
-      console.error('Error fetching market research competitor:', error);
+      console.error("Error fetching market research competitor:", error);
       throw error;
     }
   }
@@ -10075,7 +11964,9 @@ export class DatabaseStorage implements IStorage {
           location: competitorData.location,
           services: competitorData.services || [],
           pricing: competitorData.pricing,
-          rating: competitorData.rating ? parseFloat(competitorData.rating) : null,
+          rating: competitorData.rating
+            ? parseFloat(competitorData.rating)
+            : null,
           website: competitorData.website,
           facebookUrl: competitorData.facebookUrl,
           instagramUrl: competitorData.instagramUrl,
@@ -10089,13 +11980,13 @@ export class DatabaseStorage implements IStorage {
           strengths: competitorData.strengths || [],
           weaknesses: competitorData.weaknesses || [],
           notes: competitorData.notes,
-          isActive: true
+          isActive: true,
         })
         .returning();
 
       return competitor;
     } catch (error) {
-      console.error('Error creating market research competitor:', error);
+      console.error("Error creating market research competitor:", error);
       throw error;
     }
   }
@@ -10103,26 +11994,41 @@ export class DatabaseStorage implements IStorage {
   async updateMarketResearchCompetitor(id: number, updates: any): Promise<any> {
     try {
       const updateData: any = {};
-      
+
       if (updates.name !== undefined) updateData.name = updates.name;
-      if (updates.location !== undefined) updateData.location = updates.location;
-      if (updates.services !== undefined) updateData.services = updates.services;
+      if (updates.location !== undefined)
+        updateData.location = updates.location;
+      if (updates.services !== undefined)
+        updateData.services = updates.services;
       if (updates.pricing !== undefined) updateData.pricing = updates.pricing;
-      if (updates.rating !== undefined) updateData.rating = updates.rating ? parseFloat(updates.rating) : null;
+      if (updates.rating !== undefined)
+        updateData.rating = updates.rating ? parseFloat(updates.rating) : null;
       if (updates.website !== undefined) updateData.website = updates.website;
-      if (updates.facebookUrl !== undefined) updateData.facebookUrl = updates.facebookUrl;
-      if (updates.instagramUrl !== undefined) updateData.instagramUrl = updates.instagramUrl;
-      if (updates.twitterUrl !== undefined) updateData.twitterUrl = updates.twitterUrl;
-      if (updates.linkedinUrl !== undefined) updateData.linkedinUrl = updates.linkedinUrl;
-      if (updates.youtubeUrl !== undefined) updateData.youtubeUrl = updates.youtubeUrl;
-      if (updates.googleBusinessUrl !== undefined) updateData.googleBusinessUrl = updates.googleBusinessUrl;
-      if (updates.businessNiche !== undefined) updateData.businessNiche = updates.businessNiche;
-      if (updates.marketShare !== undefined) updateData.marketShare = updates.marketShare;
-      if (updates.estimatedRevenue !== undefined) updateData.estimatedRevenue = updates.estimatedRevenue;
-      if (updates.strengths !== undefined) updateData.strengths = updates.strengths;
-      if (updates.weaknesses !== undefined) updateData.weaknesses = updates.weaknesses;
+      if (updates.facebookUrl !== undefined)
+        updateData.facebookUrl = updates.facebookUrl;
+      if (updates.instagramUrl !== undefined)
+        updateData.instagramUrl = updates.instagramUrl;
+      if (updates.twitterUrl !== undefined)
+        updateData.twitterUrl = updates.twitterUrl;
+      if (updates.linkedinUrl !== undefined)
+        updateData.linkedinUrl = updates.linkedinUrl;
+      if (updates.youtubeUrl !== undefined)
+        updateData.youtubeUrl = updates.youtubeUrl;
+      if (updates.googleBusinessUrl !== undefined)
+        updateData.googleBusinessUrl = updates.googleBusinessUrl;
+      if (updates.businessNiche !== undefined)
+        updateData.businessNiche = updates.businessNiche;
+      if (updates.marketShare !== undefined)
+        updateData.marketShare = updates.marketShare;
+      if (updates.estimatedRevenue !== undefined)
+        updateData.estimatedRevenue = updates.estimatedRevenue;
+      if (updates.strengths !== undefined)
+        updateData.strengths = updates.strengths;
+      if (updates.weaknesses !== undefined)
+        updateData.weaknesses = updates.weaknesses;
       if (updates.notes !== undefined) updateData.notes = updates.notes;
-      if (updates.isActive !== undefined) updateData.isActive = updates.isActive;
+      if (updates.isActive !== undefined)
+        updateData.isActive = updates.isActive;
 
       updateData.updatedAt = new Date();
 
@@ -10134,7 +12040,7 @@ export class DatabaseStorage implements IStorage {
 
       return competitor;
     } catch (error) {
-      console.error('Error updating market research competitor:', error);
+      console.error("Error updating market research competitor:", error);
       throw error;
     }
   }
@@ -10146,7 +12052,7 @@ export class DatabaseStorage implements IStorage {
         .set({ isActive: false, updatedAt: new Date() })
         .where(eq(marketResearchCompetitors.id, id));
     } catch (error) {
-      console.error('Error deleting market research competitor:', error);
+      console.error("Error deleting market research competitor:", error);
       throw error;
     }
   }
@@ -10173,19 +12079,21 @@ export class DatabaseStorage implements IStorage {
             SELECT COUNT(*)::int 
             FROM ${taskTemplates} 
             WHERE ${taskTemplates.taskGroupId} = ${taskGroups.id}
-          )`
+          )`,
         })
         .from(taskGroups)
         .leftJoin(users, eq(taskGroups.createdById, users.id))
-        .where(and(
-          eq(taskGroups.organizationId, organizationId),
-          eq(taskGroups.isActive, true)
-        ))
+        .where(
+          and(
+            eq(taskGroups.organizationId, organizationId),
+            eq(taskGroups.isActive, true),
+          ),
+        )
         .orderBy(desc(taskGroups.createdAt));
 
       return groups;
     } catch (error) {
-      console.error('Error getting task groups:', error);
+      console.error("Error getting task groups:", error);
       throw error;
     }
   }
@@ -10206,28 +12114,30 @@ export class DatabaseStorage implements IStorage {
             id: users.id,
             firstName: users.firstName,
             lastName: users.lastName,
-          }
+          },
         })
         .from(taskGroups)
         .leftJoin(users, eq(taskGroups.createdById, users.id))
-        .where(and(
-          eq(taskGroups.id, id),
-          eq(taskGroups.organizationId, organizationId),
-          eq(taskGroups.isActive, true)
-        ))
+        .where(
+          and(
+            eq(taskGroups.id, id),
+            eq(taskGroups.organizationId, organizationId),
+            eq(taskGroups.isActive, true),
+          ),
+        )
         .limit(1);
 
       if (!group) return null;
 
       // Get templates for this group
       const templates = await this.getTaskTemplates(id);
-      
+
       return {
         ...group,
-        templates
+        templates,
       };
     } catch (error) {
-      console.error('Error getting task group:', error);
+      console.error("Error getting task group:", error);
       throw error;
     }
   }
@@ -10240,39 +12150,47 @@ export class DatabaseStorage implements IStorage {
           organizationId: groupData.organizationId,
           name: groupData.name,
           description: groupData.description,
-          color: groupData.color || '#3B82F6',
+          color: groupData.color || "#3B82F6",
           createdById: groupData.createdById,
         })
         .returning();
 
       return group;
     } catch (error) {
-      console.error('Error creating task group:', error);
+      console.error("Error creating task group:", error);
       throw error;
     }
   }
 
-  async updateTaskGroup(id: number, organizationId: number, updates: any): Promise<any> {
+  async updateTaskGroup(
+    id: number,
+    organizationId: number,
+    updates: any,
+  ): Promise<any> {
     try {
       const updateData: any = { updatedAt: new Date() };
-      
+
       if (updates.name !== undefined) updateData.name = updates.name;
-      if (updates.description !== undefined) updateData.description = updates.description;
+      if (updates.description !== undefined)
+        updateData.description = updates.description;
       if (updates.color !== undefined) updateData.color = updates.color;
-      if (updates.isActive !== undefined) updateData.isActive = updates.isActive;
+      if (updates.isActive !== undefined)
+        updateData.isActive = updates.isActive;
 
       const [group] = await db
         .update(taskGroups)
         .set(updateData)
-        .where(and(
-          eq(taskGroups.id, id),
-          eq(taskGroups.organizationId, organizationId)
-        ))
+        .where(
+          and(
+            eq(taskGroups.id, id),
+            eq(taskGroups.organizationId, organizationId),
+          ),
+        )
         .returning();
 
       return group;
     } catch (error) {
-      console.error('Error updating task group:', error);
+      console.error("Error updating task group:", error);
       throw error;
     }
   }
@@ -10282,14 +12200,16 @@ export class DatabaseStorage implements IStorage {
       const result = await db
         .update(taskGroups)
         .set({ isActive: false, updatedAt: new Date() })
-        .where(and(
-          eq(taskGroups.id, id),
-          eq(taskGroups.organizationId, organizationId)
-        ));
+        .where(
+          and(
+            eq(taskGroups.id, id),
+            eq(taskGroups.organizationId, organizationId),
+          ),
+        );
 
       return result.rowCount > 0;
     } catch (error) {
-      console.error('Error deleting task group:', error);
+      console.error("Error deleting task group:", error);
       throw error;
     }
   }
@@ -10305,7 +12225,7 @@ export class DatabaseStorage implements IStorage {
 
       return templates;
     } catch (error) {
-      console.error('Error getting task templates:', error);
+      console.error("Error getting task templates:", error);
       throw error;
     }
   }
@@ -10320,7 +12240,7 @@ export class DatabaseStorage implements IStorage {
 
       return template;
     } catch (error) {
-      console.error('Error getting task template:', error);
+      console.error("Error getting task template:", error);
       throw error;
     }
   }
@@ -10333,9 +12253,9 @@ export class DatabaseStorage implements IStorage {
           taskGroupId: templateData.taskGroupId,
           title: templateData.title,
           description: templateData.description,
-          type: templateData.type || 'checkbox',
+          type: templateData.type || "checkbox",
           isRequired: templateData.isRequired || false,
-          priority: templateData.priority || 'medium',
+          priority: templateData.priority || "medium",
           estimatedHours: templateData.estimatedHours,
           order: templateData.order || 0,
         })
@@ -10343,7 +12263,7 @@ export class DatabaseStorage implements IStorage {
 
       return template;
     } catch (error) {
-      console.error('Error creating task template:', error);
+      console.error("Error creating task template:", error);
       throw error;
     }
   }
@@ -10351,13 +12271,17 @@ export class DatabaseStorage implements IStorage {
   async updateTaskTemplate(id: number, updates: any): Promise<any> {
     try {
       const updateData: any = { updatedAt: new Date() };
-      
+
       if (updates.title !== undefined) updateData.title = updates.title;
-      if (updates.description !== undefined) updateData.description = updates.description;
+      if (updates.description !== undefined)
+        updateData.description = updates.description;
       if (updates.type !== undefined) updateData.type = updates.type;
-      if (updates.isRequired !== undefined) updateData.isRequired = updates.isRequired;
-      if (updates.priority !== undefined) updateData.priority = updates.priority;
-      if (updates.estimatedHours !== undefined) updateData.estimatedHours = updates.estimatedHours;
+      if (updates.isRequired !== undefined)
+        updateData.isRequired = updates.isRequired;
+      if (updates.priority !== undefined)
+        updateData.priority = updates.priority;
+      if (updates.estimatedHours !== undefined)
+        updateData.estimatedHours = updates.estimatedHours;
       if (updates.order !== undefined) updateData.order = updates.order;
 
       const [template] = await db
@@ -10368,7 +12292,7 @@ export class DatabaseStorage implements IStorage {
 
       return template;
     } catch (error) {
-      console.error('Error updating task template:', error);
+      console.error("Error updating task template:", error);
       throw error;
     }
   }
@@ -10381,18 +12305,22 @@ export class DatabaseStorage implements IStorage {
 
       return result.rowCount > 0;
     } catch (error) {
-      console.error('Error deleting task template:', error);
+      console.error("Error deleting task template:", error);
       throw error;
     }
   }
 
-  async createTasksFromGroup(projectId: number, taskGroupId: number, userId: number): Promise<any[]> {
+  async createTasksFromGroup(
+    projectId: number,
+    taskGroupId: number,
+    userId: number,
+  ): Promise<any[]> {
     try {
       // Get all templates from the group
       const templates = await this.getTaskTemplates(taskGroupId);
-      
+
       const createdTasks = [];
-      
+
       for (const template of templates) {
         const [task] = await db
           .insert(tasks)
@@ -10405,22 +12333,25 @@ export class DatabaseStorage implements IStorage {
             isRequired: template.isRequired,
             priority: template.priority,
             estimatedHours: template.estimatedHours,
-            status: 'todo',
+            status: "todo",
           })
           .returning();
-          
+
         createdTasks.push(task);
       }
-      
+
       return createdTasks;
     } catch (error) {
-      console.error('Error creating tasks from group:', error);
+      console.error("Error creating tasks from group:", error);
       throw error;
     }
   }
 
   // File and Folder Permissions methods
-  async getFilePermissions(fileId: number, organizationId: number): Promise<any[]> {
+  async getFilePermissions(
+    fileId: number,
+    organizationId: number,
+  ): Promise<any[]> {
     try {
       return await db
         .select({
@@ -10440,24 +12371,27 @@ export class DatabaseStorage implements IStorage {
           // User details if specific user
           userName: users.firstName,
           userLastName: users.lastName,
-          userEmail: users.email
+          userEmail: users.email,
         })
         .from(filePermissions)
         .leftJoin(users, eq(filePermissions.userId, users.id))
         .where(
           and(
             eq(filePermissions.fileId, fileId),
-            eq(filePermissions.organizationId, organizationId)
-          )
+            eq(filePermissions.organizationId, organizationId),
+          ),
         )
         .orderBy(filePermissions.createdAt);
     } catch (error) {
-      console.error('Error getting file permissions:', error);
+      console.error("Error getting file permissions:", error);
       throw error;
     }
   }
 
-  async getFolderPermissions(folderId: number, organizationId: number): Promise<any[]> {
+  async getFolderPermissions(
+    folderId: number,
+    organizationId: number,
+  ): Promise<any[]> {
     try {
       return await db
         .select({
@@ -10478,19 +12412,19 @@ export class DatabaseStorage implements IStorage {
           // User details if specific user
           userName: users.firstName,
           userLastName: users.lastName,
-          userEmail: users.email
+          userEmail: users.email,
         })
         .from(folderPermissions)
         .leftJoin(users, eq(folderPermissions.userId, users.id))
         .where(
           and(
             eq(folderPermissions.folderId, folderId),
-            eq(folderPermissions.organizationId, organizationId)
-          )
+            eq(folderPermissions.organizationId, organizationId),
+          ),
         )
         .orderBy(folderPermissions.createdAt);
     } catch (error) {
-      console.error('Error getting folder permissions:', error);
+      console.error("Error getting folder permissions:", error);
       throw error;
     }
   }
@@ -10502,13 +12436,13 @@ export class DatabaseStorage implements IStorage {
         .values({
           ...permissionData,
           createdAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .returning();
-      
+
       return permission;
     } catch (error) {
-      console.error('Error creating file permission:', error);
+      console.error("Error creating file permission:", error);
       throw error;
     }
   }
@@ -10520,13 +12454,13 @@ export class DatabaseStorage implements IStorage {
         .values({
           ...permissionData,
           createdAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .returning();
-      
+
       return permission;
     } catch (error) {
-      console.error('Error creating folder permission:', error);
+      console.error("Error creating folder permission:", error);
       throw error;
     }
   }
@@ -10537,14 +12471,14 @@ export class DatabaseStorage implements IStorage {
         .update(filePermissions)
         .set({
           ...updates,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(filePermissions.id, id))
         .returning();
-      
+
       return permission;
     } catch (error) {
-      console.error('Error updating file permission:', error);
+      console.error("Error updating file permission:", error);
       throw error;
     }
   }
@@ -10555,14 +12489,14 @@ export class DatabaseStorage implements IStorage {
         .update(folderPermissions)
         .set({
           ...updates,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(folderPermissions.id, id))
         .returning();
-      
+
       return permission;
     } catch (error) {
-      console.error('Error updating folder permission:', error);
+      console.error("Error updating folder permission:", error);
       throw error;
     }
   }
@@ -10572,10 +12506,10 @@ export class DatabaseStorage implements IStorage {
       const result = await db
         .delete(filePermissions)
         .where(eq(filePermissions.id, id));
-      
+
       return result.rowCount > 0;
     } catch (error) {
-      console.error('Error deleting file permission:', error);
+      console.error("Error deleting file permission:", error);
       throw error;
     }
   }
@@ -10585,15 +12519,19 @@ export class DatabaseStorage implements IStorage {
       const result = await db
         .delete(folderPermissions)
         .where(eq(folderPermissions.id, id));
-      
+
       return result.rowCount > 0;
     } catch (error) {
-      console.error('Error deleting folder permission:', error);
+      console.error("Error deleting folder permission:", error);
       throw error;
     }
   }
 
-  async getUserFilePermissions(userId: number, fileId: number, organizationId: number): Promise<any> {
+  async getUserFilePermissions(
+    userId: number,
+    fileId: number,
+    organizationId: number,
+  ): Promise<any> {
     try {
       // Get user role first
       const user = await this.getUser(userId);
@@ -10607,8 +12545,8 @@ export class DatabaseStorage implements IStorage {
           and(
             eq(filePermissions.fileId, fileId),
             eq(filePermissions.userId, userId),
-            eq(filePermissions.organizationId, organizationId)
-          )
+            eq(filePermissions.organizationId, organizationId),
+          ),
         )
         .limit(1);
 
@@ -10625,19 +12563,23 @@ export class DatabaseStorage implements IStorage {
             eq(filePermissions.fileId, fileId),
             eq(filePermissions.userRole, user.role),
             eq(filePermissions.organizationId, organizationId),
-            isNull(filePermissions.userId)
-          )
+            isNull(filePermissions.userId),
+          ),
         )
         .limit(1);
 
       return rolePermission || null;
     } catch (error) {
-      console.error('Error getting user file permissions:', error);
+      console.error("Error getting user file permissions:", error);
       throw error;
     }
   }
 
-  async getUserFolderPermissions(userId: number, folderId: number, organizationId: number): Promise<any> {
+  async getUserFolderPermissions(
+    userId: number,
+    folderId: number,
+    organizationId: number,
+  ): Promise<any> {
     try {
       // Get user role first
       const user = await this.getUser(userId);
@@ -10651,8 +12593,8 @@ export class DatabaseStorage implements IStorage {
           and(
             eq(folderPermissions.folderId, folderId),
             eq(folderPermissions.userId, userId),
-            eq(folderPermissions.organizationId, organizationId)
-          )
+            eq(folderPermissions.organizationId, organizationId),
+          ),
         )
         .limit(1);
 
@@ -10669,14 +12611,14 @@ export class DatabaseStorage implements IStorage {
             eq(folderPermissions.folderId, folderId),
             eq(folderPermissions.userRole, user.role),
             eq(folderPermissions.organizationId, organizationId),
-            isNull(folderPermissions.userId)
-          )
+            isNull(folderPermissions.userId),
+          ),
         )
         .limit(1);
 
       return rolePermission || null;
     } catch (error) {
-      console.error('Error getting user folder permissions:', error);
+      console.error("Error getting user folder permissions:", error);
       throw error;
     }
   }
@@ -10689,12 +12631,17 @@ export class DatabaseStorage implements IStorage {
         .where(eq(defaultPermissions.organizationId, organizationId))
         .orderBy(defaultPermissions.userRole, defaultPermissions.resourceType);
     } catch (error) {
-      console.error('Error getting default permissions:', error);
+      console.error("Error getting default permissions:", error);
       throw error;
     }
   }
 
-  async setDefaultPermissions(organizationId: number, userRole: string, resourceType: string, permissions: any): Promise<any> {
+  async setDefaultPermissions(
+    organizationId: number,
+    userRole: string,
+    resourceType: string,
+    permissions: any,
+  ): Promise<any> {
     try {
       // Check if default permission already exists
       const [existing] = await db
@@ -10704,8 +12651,8 @@ export class DatabaseStorage implements IStorage {
           and(
             eq(defaultPermissions.organizationId, organizationId),
             eq(defaultPermissions.userRole, userRole),
-            eq(defaultPermissions.resourceType, resourceType)
-          )
+            eq(defaultPermissions.resourceType, resourceType),
+          ),
         )
         .limit(1);
 
@@ -10715,11 +12662,11 @@ export class DatabaseStorage implements IStorage {
           .update(defaultPermissions)
           .set({
             ...permissions,
-            updatedAt: new Date()
+            updatedAt: new Date(),
           })
           .where(eq(defaultPermissions.id, existing.id))
           .returning();
-        
+
         return updated;
       } else {
         // Create new
@@ -10731,30 +12678,39 @@ export class DatabaseStorage implements IStorage {
             resourceType,
             ...permissions,
             createdAt: new Date(),
-            updatedAt: new Date()
+            updatedAt: new Date(),
           })
           .returning();
-        
+
         return created;
       }
     } catch (error) {
-      console.error('Error setting default permissions:', error);
+      console.error("Error setting default permissions:", error);
       throw error;
     }
   }
 
-  async checkFileAccess(userId: number, fileId: number, organizationId: number, action: string): Promise<boolean> {
+  async checkFileAccess(
+    userId: number,
+    fileId: number,
+    organizationId: number,
+    action: string,
+  ): Promise<boolean> {
     try {
       // Get user to check role
       const user = await this.getUser(userId);
       if (!user) return false;
 
       // Admins have full access
-      if (user.role === 'admin') return true;
+      if (user.role === "admin") return true;
 
       // Get file permissions
-      const permissions = await this.getUserFilePermissions(userId, fileId, organizationId);
-      
+      const permissions = await this.getUserFilePermissions(
+        userId,
+        fileId,
+        organizationId,
+      );
+
       if (!permissions) {
         // No specific permissions, check default permissions
         const [defaultPerm] = await db
@@ -10764,54 +12720,77 @@ export class DatabaseStorage implements IStorage {
             and(
               eq(defaultPermissions.organizationId, organizationId),
               eq(defaultPermissions.userRole, user.role),
-              eq(defaultPermissions.resourceType, 'file')
-            )
+              eq(defaultPermissions.resourceType, "file"),
+            ),
           )
           .limit(1);
-        
+
         if (defaultPerm) {
           switch (action) {
-            case 'view': return defaultPerm.canView || false;
-            case 'download': return defaultPerm.canDownload || false;
-            case 'edit': return defaultPerm.canEdit || false;
-            case 'delete': return defaultPerm.canDelete || false;
-            case 'share': return defaultPerm.canShare || false;
-            case 'move': return defaultPerm.canMove || false;
-            default: return false;
+            case "view":
+              return defaultPerm.canView || false;
+            case "download":
+              return defaultPerm.canDownload || false;
+            case "edit":
+              return defaultPerm.canEdit || false;
+            case "delete":
+              return defaultPerm.canDelete || false;
+            case "share":
+              return defaultPerm.canShare || false;
+            case "move":
+              return defaultPerm.canMove || false;
+            default:
+              return false;
           }
         }
-        
+
         return false; // No permissions found
       }
 
       // Check specific action permission
       switch (action) {
-        case 'view': return permissions.canView || false;
-        case 'download': return permissions.canDownload || false;
-        case 'edit': return permissions.canEdit || false;
-        case 'delete': return permissions.canDelete || false;
-        case 'share': return permissions.canShare || false;
-        case 'move': return permissions.canMove || false;
-        default: return false;
+        case "view":
+          return permissions.canView || false;
+        case "download":
+          return permissions.canDownload || false;
+        case "edit":
+          return permissions.canEdit || false;
+        case "delete":
+          return permissions.canDelete || false;
+        case "share":
+          return permissions.canShare || false;
+        case "move":
+          return permissions.canMove || false;
+        default:
+          return false;
       }
     } catch (error) {
-      console.error('Error checking file access:', error);
+      console.error("Error checking file access:", error);
       return false;
     }
   }
 
-  async checkFolderAccess(userId: number, folderId: number, organizationId: number, action: string): Promise<boolean> {
+  async checkFolderAccess(
+    userId: number,
+    folderId: number,
+    organizationId: number,
+    action: string,
+  ): Promise<boolean> {
     try {
       // Get user to check role
       const user = await this.getUser(userId);
       if (!user) return false;
 
       // Admins have full access
-      if (user.role === 'admin') return true;
+      if (user.role === "admin") return true;
 
       // Get folder permissions
-      const permissions = await this.getUserFolderPermissions(userId, folderId, organizationId);
-      
+      const permissions = await this.getUserFolderPermissions(
+        userId,
+        folderId,
+        organizationId,
+      );
+
       if (!permissions) {
         // No specific permissions, check default permissions
         const [defaultPerm] = await db
@@ -10821,40 +12800,56 @@ export class DatabaseStorage implements IStorage {
             and(
               eq(defaultPermissions.organizationId, organizationId),
               eq(defaultPermissions.userRole, user.role),
-              eq(defaultPermissions.resourceType, 'folder')
-            )
+              eq(defaultPermissions.resourceType, "folder"),
+            ),
           )
           .limit(1);
-        
+
         if (defaultPerm) {
           switch (action) {
-            case 'view': return defaultPerm.canView || false;
-            case 'upload': return defaultPerm.canUpload || false;
-            case 'edit': return defaultPerm.canEdit || false;
-            case 'delete': return defaultPerm.canDelete || false;
-            case 'share': return defaultPerm.canShare || false;
-            case 'move': return defaultPerm.canMove || false;
-            case 'manage_permissions': return defaultPerm.canManagePermissions || false;
-            default: return false;
+            case "view":
+              return defaultPerm.canView || false;
+            case "upload":
+              return defaultPerm.canUpload || false;
+            case "edit":
+              return defaultPerm.canEdit || false;
+            case "delete":
+              return defaultPerm.canDelete || false;
+            case "share":
+              return defaultPerm.canShare || false;
+            case "move":
+              return defaultPerm.canMove || false;
+            case "manage_permissions":
+              return defaultPerm.canManagePermissions || false;
+            default:
+              return false;
           }
         }
-        
+
         return false; // No permissions found
       }
 
       // Check specific action permission
       switch (action) {
-        case 'view': return permissions.canView || false;
-        case 'upload': return permissions.canUpload || false;
-        case 'edit': return permissions.canEdit || false;
-        case 'delete': return permissions.canDelete || false;
-        case 'share': return permissions.canShare || false;
-        case 'move': return permissions.canMove || false;
-        case 'manage_permissions': return permissions.canManagePermissions || false;
-        default: return false;
+        case "view":
+          return permissions.canView || false;
+        case "upload":
+          return permissions.canUpload || false;
+        case "edit":
+          return permissions.canEdit || false;
+        case "delete":
+          return permissions.canDelete || false;
+        case "share":
+          return permissions.canShare || false;
+        case "move":
+          return permissions.canMove || false;
+        case "manage_permissions":
+          return permissions.canManagePermissions || false;
+        default:
+          return false;
       }
     } catch (error) {
-      console.error('Error checking folder access:', error);
+      console.error("Error checking folder access:", error);
       return false;
     }
   }
@@ -10862,9 +12857,9 @@ export class DatabaseStorage implements IStorage {
   // File Share methods
   async createFileShare(shareData: any): Promise<any> {
     try {
-      const { nanoid } = await import('nanoid');
+      const { nanoid } = await import("nanoid");
       const shareToken = nanoid(32);
-      
+
       const [share] = await db
         .insert(fileShares)
         .values({
@@ -10873,10 +12868,10 @@ export class DatabaseStorage implements IStorage {
           createdAt: new Date(),
         })
         .returning();
-      
+
       return share;
     } catch (error) {
-      console.error('Error creating file share:', error);
+      console.error("Error creating file share:", error);
       throw error;
     }
   }
@@ -10888,10 +12883,10 @@ export class DatabaseStorage implements IStorage {
         .from(fileShares)
         .where(eq(fileShares.id, id))
         .limit(1);
-      
+
       return share;
     } catch (error) {
-      console.error('Error getting file share:', error);
+      console.error("Error getting file share:", error);
       throw error;
     }
   }
@@ -10906,39 +12901,42 @@ export class DatabaseStorage implements IStorage {
         .from(fileShares)
         .leftJoin(fileManager, eq(fileShares.fileId, fileManager.id))
         .where(
-          and(
-            eq(fileShares.shareToken, token),
-            eq(fileShares.isActive, true)
-          )
+          and(eq(fileShares.shareToken, token), eq(fileShares.isActive, true)),
         )
         .limit(1);
-      
+
       if (!share) return null;
-      
-      if (share.share.expiresAt && new Date(share.share.expiresAt) < new Date()) {
+
+      if (
+        share.share.expiresAt &&
+        new Date(share.share.expiresAt) < new Date()
+      ) {
         await db
           .update(fileShares)
           .set({ isActive: false })
           .where(eq(fileShares.id, share.share.id));
         return null;
       }
-      
-      if (share.share.maxAccess && share.share.accessCount >= share.share.maxAccess) {
+
+      if (
+        share.share.maxAccess &&
+        share.share.accessCount >= share.share.maxAccess
+      ) {
         await db
           .update(fileShares)
           .set({ isActive: false })
           .where(eq(fileShares.id, share.share.id));
         return null;
       }
-      
+
       await db
         .update(fileShares)
         .set({ accessCount: sql`${fileShares.accessCount} + 1` })
         .where(eq(fileShares.id, share.share.id));
-      
+
       return { ...share.share, file: share.file };
     } catch (error) {
-      console.error('Error getting file share by token:', error);
+      console.error("Error getting file share by token:", error);
       throw error;
     }
   }
@@ -10950,23 +12948,21 @@ export class DatabaseStorage implements IStorage {
         .set(updates)
         .where(eq(fileShares.id, id))
         .returning();
-      
+
       return share;
     } catch (error) {
-      console.error('Error updating file share:', error);
+      console.error("Error updating file share:", error);
       throw error;
     }
   }
 
   async deleteFileShare(id: number): Promise<boolean> {
     try {
-      await db
-        .delete(fileShares)
-        .where(eq(fileShares.id, id));
-      
+      await db.delete(fileShares).where(eq(fileShares.id, id));
+
       return true;
     } catch (error) {
-      console.error('Error deleting file share:', error);
+      console.error("Error deleting file share:", error);
       return false;
     }
   }
@@ -10995,7 +12991,7 @@ export class DatabaseStorage implements IStorage {
         .where(eq(fileShares.fileId, fileId))
         .orderBy(desc(fileShares.createdAt));
     } catch (error) {
-      console.error('Error getting file shares:', error);
+      console.error("Error getting file shares:", error);
       throw error;
     }
   }
@@ -11006,10 +13002,15 @@ export class DatabaseStorage implements IStorage {
       return await db
         .select()
         .from(vehicles)
-        .where(and(eq(vehicles.organizationId, organizationId), eq(vehicles.isActive, true)))
+        .where(
+          and(
+            eq(vehicles.organizationId, organizationId),
+            eq(vehicles.isActive, true),
+          ),
+        )
         .orderBy(asc(vehicles.vehicleNumber));
     } catch (error) {
-      console.error('Error getting vehicles:', error);
+      console.error("Error getting vehicles:", error);
       throw error;
     }
   }
@@ -11019,11 +13020,17 @@ export class DatabaseStorage implements IStorage {
       const [vehicle] = await db
         .select()
         .from(vehicles)
-        .where(and(eq(vehicles.id, id), eq(vehicles.organizationId, organizationId), eq(vehicles.isActive, true)))
+        .where(
+          and(
+            eq(vehicles.id, id),
+            eq(vehicles.organizationId, organizationId),
+            eq(vehicles.isActive, true),
+          ),
+        )
         .limit(1);
       return vehicle;
     } catch (error) {
-      console.error('Error getting vehicle:', error);
+      console.error("Error getting vehicle:", error);
       throw error;
     }
   }
@@ -11035,29 +13042,35 @@ export class DatabaseStorage implements IStorage {
         .values({
           ...vehicleData,
           createdAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .returning();
       return vehicle;
     } catch (error) {
-      console.error('Error creating vehicle:', error);
+      console.error("Error creating vehicle:", error);
       throw error;
     }
   }
 
-  async updateVehicle(id: number, organizationId: number, updates: any): Promise<any> {
+  async updateVehicle(
+    id: number,
+    organizationId: number,
+    updates: any,
+  ): Promise<any> {
     try {
       const [vehicle] = await db
         .update(vehicles)
         .set({
           ...updates,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
-        .where(and(eq(vehicles.id, id), eq(vehicles.organizationId, organizationId)))
+        .where(
+          and(eq(vehicles.id, id), eq(vehicles.organizationId, organizationId)),
+        )
         .returning();
       return vehicle;
     } catch (error) {
-      console.error('Error updating vehicle:', error);
+      console.error("Error updating vehicle:", error);
       throw error;
     }
   }
@@ -11066,68 +13079,85 @@ export class DatabaseStorage implements IStorage {
     try {
       const result = await db
         .update(vehicles)
-        .set({ 
-          isActive: false, 
-          updatedAt: new Date() 
+        .set({
+          isActive: false,
+          updatedAt: new Date(),
         })
-        .where(and(eq(vehicles.id, id), eq(vehicles.organizationId, organizationId)));
+        .where(
+          and(eq(vehicles.id, id), eq(vehicles.organizationId, organizationId)),
+        );
       return result.rowCount > 0;
     } catch (error) {
-      console.error('Error deleting vehicle:', error);
+      console.error("Error deleting vehicle:", error);
       throw error;
     }
   }
 
-  async getVehicleByNumber(vehicleNumber: string, organizationId: number): Promise<any> {
+  async getVehicleByNumber(
+    vehicleNumber: string,
+    organizationId: number,
+  ): Promise<any> {
     try {
       const [vehicle] = await db
         .select()
         .from(vehicles)
-        .where(and(
-          eq(vehicles.vehicleNumber, vehicleNumber), 
-          eq(vehicles.organizationId, organizationId),
-          eq(vehicles.isActive, true)
-        ))
+        .where(
+          and(
+            eq(vehicles.vehicleNumber, vehicleNumber),
+            eq(vehicles.organizationId, organizationId),
+            eq(vehicles.isActive, true),
+          ),
+        )
         .limit(1);
       return vehicle;
     } catch (error) {
-      console.error('Error getting vehicle by number:', error);
+      console.error("Error getting vehicle by number:", error);
       throw error;
     }
   }
 
-  async getVehicleByLicensePlate(licensePlate: string, organizationId: number): Promise<any> {
+  async getVehicleByLicensePlate(
+    licensePlate: string,
+    organizationId: number,
+  ): Promise<any> {
     try {
       const [vehicle] = await db
         .select()
         .from(vehicles)
-        .where(and(
-          eq(vehicles.licensePlate, licensePlate), 
-          eq(vehicles.organizationId, organizationId),
-          eq(vehicles.isActive, true)
-        ))
+        .where(
+          and(
+            eq(vehicles.licensePlate, licensePlate),
+            eq(vehicles.organizationId, organizationId),
+            eq(vehicles.isActive, true),
+          ),
+        )
         .limit(1);
       return vehicle;
     } catch (error) {
-      console.error('Error getting vehicle by license plate:', error);
+      console.error("Error getting vehicle by license plate:", error);
       throw error;
     }
   }
 
   // Vehicle Maintenance Interval methods
-  async getVehicleMaintenanceIntervals(vehicleId: number, organizationId: number): Promise<any[]> {
+  async getVehicleMaintenanceIntervals(
+    vehicleId: number,
+    organizationId: number,
+  ): Promise<any[]> {
     try {
       return await db
         .select()
         .from(vehicleMaintenanceIntervals)
-        .where(and(
-          eq(vehicleMaintenanceIntervals.vehicleId, vehicleId),
-          eq(vehicleMaintenanceIntervals.organizationId, organizationId),
-          eq(vehicleMaintenanceIntervals.isActive, true)
-        ))
+        .where(
+          and(
+            eq(vehicleMaintenanceIntervals.vehicleId, vehicleId),
+            eq(vehicleMaintenanceIntervals.organizationId, organizationId),
+            eq(vehicleMaintenanceIntervals.isActive, true),
+          ),
+        )
         .orderBy(asc(vehicleMaintenanceIntervals.maintenanceType));
     } catch (error) {
-      console.error('Error getting vehicle maintenance intervals:', error);
+      console.error("Error getting vehicle maintenance intervals:", error);
       throw error;
     }
   }
@@ -11139,109 +13169,123 @@ export class DatabaseStorage implements IStorage {
         .values({
           ...intervalData,
           createdAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .returning();
       return interval;
     } catch (error) {
-      console.error('Error creating vehicle maintenance interval:', error);
+      console.error("Error creating vehicle maintenance interval:", error);
       throw error;
     }
   }
 
-  async updateVehicleMaintenanceInterval(id: number, organizationId: number, updates: any): Promise<any> {
+  async updateVehicleMaintenanceInterval(
+    id: number,
+    organizationId: number,
+    updates: any,
+  ): Promise<any> {
     try {
       const [interval] = await db
         .update(vehicleMaintenanceIntervals)
         .set({
           ...updates,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
-        .where(and(
-          eq(vehicleMaintenanceIntervals.id, id),
-          eq(vehicleMaintenanceIntervals.organizationId, organizationId)
-        ))
+        .where(
+          and(
+            eq(vehicleMaintenanceIntervals.id, id),
+            eq(vehicleMaintenanceIntervals.organizationId, organizationId),
+          ),
+        )
         .returning();
       return interval;
     } catch (error) {
-      console.error('Error updating vehicle maintenance interval:', error);
+      console.error("Error updating vehicle maintenance interval:", error);
       throw error;
     }
   }
 
-  async deleteVehicleMaintenanceInterval(id: number, organizationId: number): Promise<boolean> {
+  async deleteVehicleMaintenanceInterval(
+    id: number,
+    organizationId: number,
+  ): Promise<boolean> {
     try {
       const result = await db
         .update(vehicleMaintenanceIntervals)
-        .set({ 
-          isActive: false, 
-          updatedAt: new Date() 
+        .set({
+          isActive: false,
+          updatedAt: new Date(),
         })
-        .where(and(
-          eq(vehicleMaintenanceIntervals.id, id),
-          eq(vehicleMaintenanceIntervals.organizationId, organizationId)
-        ));
+        .where(
+          and(
+            eq(vehicleMaintenanceIntervals.id, id),
+            eq(vehicleMaintenanceIntervals.organizationId, organizationId),
+          ),
+        );
       return result.rowCount > 0;
     } catch (error) {
-      console.error('Error deleting vehicle maintenance interval:', error);
+      console.error("Error deleting vehicle maintenance interval:", error);
       throw error;
     }
   }
 
-  async createDefaultMaintenanceIntervals(vehicleId: number, organizationId: number): Promise<any[]> {
+  async createDefaultMaintenanceIntervals(
+    vehicleId: number,
+    organizationId: number,
+  ): Promise<any[]> {
     try {
       const defaultIntervals = [
         {
           vehicleId,
           organizationId,
-          maintenanceType: 'oil_change',
+          maintenanceType: "oil_change",
           intervalMiles: 3000,
           intervalDays: 90,
-          status: 'due'
+          status: "due",
         },
         {
           vehicleId,
           organizationId,
-          maintenanceType: 'tire_pressure',
+          maintenanceType: "tire_pressure",
           intervalDays: 30,
-          status: 'due'
+          status: "due",
         },
         {
           vehicleId,
           organizationId,
-          maintenanceType: 'windshield_wash_fluid',
+          maintenanceType: "windshield_wash_fluid",
           intervalDays: 60,
-          status: 'due'
+          status: "due",
         },
         {
           vehicleId,
           organizationId,
-          maintenanceType: 'oil_level',
+          maintenanceType: "oil_level",
           intervalDays: 14,
-          status: 'due'
+          status: "due",
         },
         {
           vehicleId,
           organizationId,
-          maintenanceType: 'coolant_level',
+          maintenanceType: "coolant_level",
           intervalDays: 30,
-          status: 'due'
+          status: "due",
         },
         {
           vehicleId,
           organizationId,
-          maintenanceType: 'tire_rotation',
+          maintenanceType: "tire_rotation",
           intervalMiles: 6000,
           intervalDays: 180,
-          status: 'due'
+          status: "due",
         },
         {
           vehicleId,
           organizationId,
-          maintenanceType: 'wipers',
+          maintenanceType: "wipers",
           intervalDays: 365,
-          status: 'due'
-        }
+          status: "due",
+        },
       ];
 
       const intervals = [];
@@ -11251,23 +13295,27 @@ export class DatabaseStorage implements IStorage {
           .values({
             ...intervalData,
             createdAt: new Date(),
-            updatedAt: new Date()
+            updatedAt: new Date(),
           })
           .returning();
         intervals.push(interval);
       }
-      
+
       return intervals;
     } catch (error) {
-      console.error('Error creating default maintenance intervals:', error);
+      console.error("Error creating default maintenance intervals:", error);
       throw error;
     }
   }
 
-  async createCustomMaintenanceIntervals(vehicleId: number, organizationId: number, customIntervals: any[]): Promise<any[]> {
+  async createCustomMaintenanceIntervals(
+    vehicleId: number,
+    organizationId: number,
+    customIntervals: any[],
+  ): Promise<any[]> {
     try {
       const intervals = [];
-      
+
       for (const customInterval of customIntervals) {
         const intervalData = {
           vehicleId,
@@ -11275,7 +13323,7 @@ export class DatabaseStorage implements IStorage {
           maintenanceType: customInterval.maintenanceType,
           intervalDays: customInterval.intervalDays || null,
           intervalMiles: customInterval.intervalMiles || null,
-          status: 'due'
+          status: "due",
         };
 
         const [interval] = await db
@@ -11283,32 +13331,37 @@ export class DatabaseStorage implements IStorage {
           .values({
             ...intervalData,
             createdAt: new Date(),
-            updatedAt: new Date()
+            updatedAt: new Date(),
           })
           .returning();
         intervals.push(interval);
       }
-      
+
       return intervals;
     } catch (error) {
-      console.error('Error creating custom maintenance intervals:', error);
+      console.error("Error creating custom maintenance intervals:", error);
       throw error;
     }
   }
 
   // Vehicle Maintenance Record methods
-  async getVehicleMaintenanceRecords(vehicleId: number, organizationId: number): Promise<any[]> {
+  async getVehicleMaintenanceRecords(
+    vehicleId: number,
+    organizationId: number,
+  ): Promise<any[]> {
     try {
       return await db
         .select()
         .from(vehicleMaintenanceRecords)
-        .where(and(
-          eq(vehicleMaintenanceRecords.vehicleId, vehicleId),
-          eq(vehicleMaintenanceRecords.organizationId, organizationId)
-        ))
+        .where(
+          and(
+            eq(vehicleMaintenanceRecords.vehicleId, vehicleId),
+            eq(vehicleMaintenanceRecords.organizationId, organizationId),
+          ),
+        )
         .orderBy(desc(vehicleMaintenanceRecords.performedDate));
     } catch (error) {
-      console.error('Error getting vehicle maintenance records:', error);
+      console.error("Error getting vehicle maintenance records:", error);
       throw error;
     }
   }
@@ -11320,81 +13373,104 @@ export class DatabaseStorage implements IStorage {
         .values({
           ...recordData,
           createdAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .returning();
       return record;
     } catch (error) {
-      console.error('Error creating vehicle maintenance record:', error);
+      console.error("Error creating vehicle maintenance record:", error);
       throw error;
     }
   }
 
-  async updateMaintenanceStatus(intervalId: number, organizationId: number, status: string): Promise<any> {
+  async updateMaintenanceStatus(
+    intervalId: number,
+    organizationId: number,
+    status: string,
+  ): Promise<any> {
     try {
       const [interval] = await db
         .update(vehicleMaintenanceIntervals)
         .set({
           status,
-          lastMaintenanceDate: status === 'completed' ? new Date() : undefined,
-          updatedAt: new Date()
+          lastMaintenanceDate: status === "completed" ? new Date() : undefined,
+          updatedAt: new Date(),
         })
-        .where(and(
-          eq(vehicleMaintenanceIntervals.id, intervalId),
-          eq(vehicleMaintenanceIntervals.organizationId, organizationId)
-        ))
+        .where(
+          and(
+            eq(vehicleMaintenanceIntervals.id, intervalId),
+            eq(vehicleMaintenanceIntervals.organizationId, organizationId),
+          ),
+        )
         .returning();
       return interval;
     } catch (error) {
-      console.error('Error updating maintenance status:', error);
+      console.error("Error updating maintenance status:", error);
       throw error;
     }
   }
 
-  async getMaintenanceStatusForVehicle(vehicleId: number, organizationId: number): Promise<any[]> {
+  async getMaintenanceStatusForVehicle(
+    vehicleId: number,
+    organizationId: number,
+  ): Promise<any[]> {
     try {
       const intervals = await db
         .select()
         .from(vehicleMaintenanceIntervals)
-        .where(and(
-          eq(vehicleMaintenanceIntervals.vehicleId, vehicleId),
-          eq(vehicleMaintenanceIntervals.organizationId, organizationId),
-          eq(vehicleMaintenanceIntervals.isActive, true)
-        ));
+        .where(
+          and(
+            eq(vehicleMaintenanceIntervals.vehicleId, vehicleId),
+            eq(vehicleMaintenanceIntervals.organizationId, organizationId),
+            eq(vehicleMaintenanceIntervals.isActive, true),
+          ),
+        );
 
       // Calculate status for each interval based on current date and mileage
       const now = new Date();
-      const statusResults = intervals.map(interval => {
-        let status = 'due';
-        
+      const statusResults = intervals.map((interval) => {
+        let status = "due";
+
         if (interval.lastMaintenanceDate) {
           const daysSinceLastMaintenance = Math.floor(
-            (now.getTime() - new Date(interval.lastMaintenanceDate).getTime()) / (1000 * 60 * 60 * 24)
+            (now.getTime() - new Date(interval.lastMaintenanceDate).getTime()) /
+              (1000 * 60 * 60 * 24),
           );
-          
-          if (interval.intervalDays && daysSinceLastMaintenance > interval.intervalDays) {
-            status = 'overdue';
-          } else if (interval.intervalDays && daysSinceLastMaintenance <= interval.intervalDays) {
-            status = 'completed';
+
+          if (
+            interval.intervalDays &&
+            daysSinceLastMaintenance > interval.intervalDays
+          ) {
+            status = "overdue";
+          } else if (
+            interval.intervalDays &&
+            daysSinceLastMaintenance <= interval.intervalDays
+          ) {
+            status = "completed";
           }
         }
 
         return {
           ...interval,
           calculatedStatus: status,
-          maintenanceTypeDisplay: interval.maintenanceType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+          maintenanceTypeDisplay: interval.maintenanceType
+            .replace(/_/g, " ")
+            .replace(/\b\w/g, (l) => l.toUpperCase()),
         };
       });
 
       return statusResults;
     } catch (error) {
-      console.error('Error getting maintenance status for vehicle:', error);
+      console.error("Error getting maintenance status for vehicle:", error);
       throw error;
     }
   }
 
   // Vehicle Job Assignment Methods
-  async getVehicleJobAssignments(organizationId: number, date?: string): Promise<any[]> {
+  async getVehicleJobAssignments(
+    organizationId: number,
+    date?: string,
+  ): Promise<any[]> {
     try {
       let query = db
         .select({
@@ -11419,33 +13495,41 @@ export class DatabaseStorage implements IStorage {
           projectName: projects.name,
           projectDescription: projects.description,
           projectAddress: projects.address,
-          projectStatus: projects.status
+          projectStatus: projects.status,
         })
         .from(vehicleJobAssignments)
         .leftJoin(users, eq(vehicleJobAssignments.userId, users.id))
         .leftJoin(vehicles, eq(vehicleJobAssignments.vehicleId, vehicles.id))
         .leftJoin(projects, eq(vehicleJobAssignments.projectId, projects.id))
-        .where(and(
-          eq(vehicleJobAssignments.organizationId, organizationId),
-          eq(vehicleJobAssignments.isActive, true)
-        ));
+        .where(
+          and(
+            eq(vehicleJobAssignments.organizationId, organizationId),
+            eq(vehicleJobAssignments.isActive, true),
+          ),
+        );
 
       if (date) {
-        query = query.where(and(
-          eq(vehicleJobAssignments.organizationId, organizationId),
-          eq(vehicleJobAssignments.isActive, true),
-          sql`DATE(${vehicleJobAssignments.inspectionDate}) = ${date}`
-        ));
+        query = query.where(
+          and(
+            eq(vehicleJobAssignments.organizationId, organizationId),
+            eq(vehicleJobAssignments.isActive, true),
+            sql`DATE(${vehicleJobAssignments.inspectionDate}) = ${date}`,
+          ),
+        );
       }
 
       return await query.orderBy(desc(vehicleJobAssignments.assignmentDate));
     } catch (error) {
-      console.error('Error getting vehicle job assignments:', error);
+      console.error("Error getting vehicle job assignments:", error);
       throw error;
     }
   }
 
-  async getVehicleJobAssignmentsByUser(userId: number, organizationId: number, date?: string): Promise<any[]> {
+  async getVehicleJobAssignmentsByUser(
+    userId: number,
+    organizationId: number,
+    date?: string,
+  ): Promise<any[]> {
     try {
       let query = db
         .select({
@@ -11464,34 +13548,42 @@ export class DatabaseStorage implements IStorage {
           projectName: projects.name,
           projectDescription: projects.description,
           projectAddress: projects.address,
-          projectStatus: projects.status
+          projectStatus: projects.status,
         })
         .from(vehicleJobAssignments)
         .leftJoin(vehicles, eq(vehicleJobAssignments.vehicleId, vehicles.id))
         .leftJoin(projects, eq(vehicleJobAssignments.projectId, projects.id))
-        .where(and(
-          eq(vehicleJobAssignments.userId, userId),
-          eq(vehicleJobAssignments.organizationId, organizationId),
-          eq(vehicleJobAssignments.isActive, true)
-        ));
+        .where(
+          and(
+            eq(vehicleJobAssignments.userId, userId),
+            eq(vehicleJobAssignments.organizationId, organizationId),
+            eq(vehicleJobAssignments.isActive, true),
+          ),
+        );
 
       if (date) {
-        query = query.where(and(
-          eq(vehicleJobAssignments.userId, userId),
-          eq(vehicleJobAssignments.organizationId, organizationId),
-          eq(vehicleJobAssignments.isActive, true),
-          sql`DATE(${vehicleJobAssignments.inspectionDate}) = ${date}`
-        ));
+        query = query.where(
+          and(
+            eq(vehicleJobAssignments.userId, userId),
+            eq(vehicleJobAssignments.organizationId, organizationId),
+            eq(vehicleJobAssignments.isActive, true),
+            sql`DATE(${vehicleJobAssignments.inspectionDate}) = ${date}`,
+          ),
+        );
       }
 
       return await query.orderBy(desc(vehicleJobAssignments.assignmentDate));
     } catch (error) {
-      console.error('Error getting vehicle job assignments by user:', error);
+      console.error("Error getting vehicle job assignments by user:", error);
       throw error;
     }
   }
 
-  async getVehicleJobAssignmentsByVehicle(vehicleId: number, organizationId: number, date?: string): Promise<any[]> {
+  async getVehicleJobAssignmentsByVehicle(
+    vehicleId: number,
+    organizationId: number,
+    date?: string,
+  ): Promise<any[]> {
     try {
       let query = db
         .select({
@@ -11509,29 +13601,33 @@ export class DatabaseStorage implements IStorage {
           projectName: projects.name,
           projectDescription: projects.description,
           projectAddress: projects.address,
-          projectStatus: projects.status
+          projectStatus: projects.status,
         })
         .from(vehicleJobAssignments)
         .leftJoin(users, eq(vehicleJobAssignments.userId, users.id))
         .leftJoin(projects, eq(vehicleJobAssignments.projectId, projects.id))
-        .where(and(
-          eq(vehicleJobAssignments.vehicleId, vehicleId),
-          eq(vehicleJobAssignments.organizationId, organizationId),
-          eq(vehicleJobAssignments.isActive, true)
-        ));
+        .where(
+          and(
+            eq(vehicleJobAssignments.vehicleId, vehicleId),
+            eq(vehicleJobAssignments.organizationId, organizationId),
+            eq(vehicleJobAssignments.isActive, true),
+          ),
+        );
 
       if (date) {
-        query = query.where(and(
-          eq(vehicleJobAssignments.vehicleId, vehicleId),
-          eq(vehicleJobAssignments.organizationId, organizationId),
-          eq(vehicleJobAssignments.isActive, true),
-          sql`DATE(${vehicleJobAssignments.inspectionDate}) = ${date}`
-        ));
+        query = query.where(
+          and(
+            eq(vehicleJobAssignments.vehicleId, vehicleId),
+            eq(vehicleJobAssignments.organizationId, organizationId),
+            eq(vehicleJobAssignments.isActive, true),
+            sql`DATE(${vehicleJobAssignments.inspectionDate}) = ${date}`,
+          ),
+        );
       }
 
       return await query.orderBy(desc(vehicleJobAssignments.assignmentDate));
     } catch (error) {
-      console.error('Error getting vehicle job assignments by vehicle:', error);
+      console.error("Error getting vehicle job assignments by vehicle:", error);
       throw error;
     }
   }
@@ -11544,55 +13640,69 @@ export class DatabaseStorage implements IStorage {
           ...assignmentData,
           assignmentDate: new Date(),
           createdAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .returning();
-      
+
       return assignment;
     } catch (error) {
-      console.error('Error creating vehicle job assignment:', error);
+      console.error("Error creating vehicle job assignment:", error);
       throw error;
     }
   }
 
-  async updateVehicleJobAssignment(id: number, organizationId: number, updates: any): Promise<any> {
+  async updateVehicleJobAssignment(
+    id: number,
+    organizationId: number,
+    updates: any,
+  ): Promise<any> {
     try {
       const [assignment] = await db
         .update(vehicleJobAssignments)
         .set({
           ...updates,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
-        .where(and(
-          eq(vehicleJobAssignments.id, id),
-          eq(vehicleJobAssignments.organizationId, organizationId)
-        ))
+        .where(
+          and(
+            eq(vehicleJobAssignments.id, id),
+            eq(vehicleJobAssignments.organizationId, organizationId),
+          ),
+        )
         .returning();
-      
+
       return assignment;
     } catch (error) {
-      console.error('Error updating vehicle job assignment:', error);
+      console.error("Error updating vehicle job assignment:", error);
       throw error;
     }
   }
 
-  async deleteVehicleJobAssignment(id: number, organizationId: number): Promise<boolean> {
+  async deleteVehicleJobAssignment(
+    id: number,
+    organizationId: number,
+  ): Promise<boolean> {
     try {
       const result = await db
         .delete(vehicleJobAssignments)
-        .where(and(
-          eq(vehicleJobAssignments.id, id),
-          eq(vehicleJobAssignments.organizationId, organizationId)
-        ));
+        .where(
+          and(
+            eq(vehicleJobAssignments.id, id),
+            eq(vehicleJobAssignments.organizationId, organizationId),
+          ),
+        );
 
       return result.rowCount > 0;
     } catch (error) {
-      console.error('Error deleting vehicle job assignment:', error);
+      console.error("Error deleting vehicle job assignment:", error);
       throw error;
     }
   }
 
-  async getUsersWithVehicleInspections(organizationId: number, date: string): Promise<any[]> {
+  async getUsersWithVehicleInspections(
+    organizationId: number,
+    date: string,
+  ): Promise<any[]> {
     try {
       // Find users who completed vehicle inspections on the specified date
       const inspectionUsers = await db
@@ -11605,29 +13715,37 @@ export class DatabaseStorage implements IStorage {
           vehicleNumber: sql`${inspectionRecords.vehicleInfo}->>'vehicleNumber'`,
           licensePlate: sql`${inspectionRecords.vehicleInfo}->>'licensePlate'`,
           inspectionDate: inspectionRecords.createdAt,
-          inspectionType: inspectionRecords.type
+          inspectionType: inspectionRecords.type,
         })
         .from(inspectionRecords)
         .leftJoin(users, eq(inspectionRecords.userId, users.id))
-        .where(and(
-          eq(inspectionRecords.organizationId, organizationId),
-          sql`DATE(${inspectionRecords.createdAt}) = ${date}`,
-          sql`${inspectionRecords.vehicleInfo}->>'vehicleId' IS NOT NULL`
-        ))
+        .where(
+          and(
+            eq(inspectionRecords.organizationId, organizationId),
+            sql`DATE(${inspectionRecords.createdAt}) = ${date}`,
+            sql`${inspectionRecords.vehicleInfo}->>'vehicleId' IS NOT NULL`,
+          ),
+        )
         .orderBy(desc(inspectionRecords.createdAt));
 
       return inspectionUsers;
     } catch (error) {
-      console.error('Error getting users with vehicle inspections:', error);
+      console.error("Error getting users with vehicle inspections:", error);
       throw error;
     }
   }
 
-  async connectUsersToVehicleJobs(organizationId: number, date: string): Promise<any[]> {
+  async connectUsersToVehicleJobs(
+    organizationId: number,
+    date: string,
+  ): Promise<any[]> {
     try {
       // Get users who completed vehicle inspections on the specified date
-      const inspectionUsers = await this.getUsersWithVehicleInspections(organizationId, date);
-      
+      const inspectionUsers = await this.getUsersWithVehicleInspections(
+        organizationId,
+        date,
+      );
+
       // Get all jobs assigned to users on the specified date
       const jobsForDate = await db
         .select({
@@ -11638,36 +13756,42 @@ export class DatabaseStorage implements IStorage {
           projectStatus: projects.status,
           userId: projectUsers.userId,
           userRole: projectUsers.role,
-          scheduledDate: projects.scheduledDate
+          scheduledDate: projects.scheduledDate,
         })
         .from(projects)
         .leftJoin(projectUsers, eq(projects.id, projectUsers.projectId))
         .leftJoin(users, eq(projectUsers.userId, users.id))
-        .where(and(
-          eq(users.organizationId, organizationId),
-          sql`DATE(${projects.scheduledDate}) = ${date}`,
-          isNotNull(projectUsers.userId)
-        ));
+        .where(
+          and(
+            eq(users.organizationId, organizationId),
+            sql`DATE(${projects.scheduledDate}) = ${date}`,
+            isNotNull(projectUsers.userId),
+          ),
+        );
 
       // Create vehicle job assignments for users who both completed inspections and are assigned to jobs
       const assignments = [];
-      
+
       for (const inspectionUser of inspectionUsers) {
         // Find jobs assigned to this user on this date
-        const userJobs = jobsForDate.filter(job => job.userId === inspectionUser.userId);
-        
+        const userJobs = jobsForDate.filter(
+          (job) => job.userId === inspectionUser.userId,
+        );
+
         for (const job of userJobs) {
           // Check if assignment already exists
           const existingAssignment = await db
             .select()
             .from(vehicleJobAssignments)
-            .where(and(
-              eq(vehicleJobAssignments.userId, inspectionUser.userId),
-              eq(vehicleJobAssignments.vehicleId, inspectionUser.vehicleId),
-              eq(vehicleJobAssignments.projectId, job.projectId),
-              eq(vehicleJobAssignments.organizationId, organizationId),
-              sql`DATE(${vehicleJobAssignments.inspectionDate}) = ${date}`
-            ))
+            .where(
+              and(
+                eq(vehicleJobAssignments.userId, inspectionUser.userId),
+                eq(vehicleJobAssignments.vehicleId, inspectionUser.vehicleId),
+                eq(vehicleJobAssignments.projectId, job.projectId),
+                eq(vehicleJobAssignments.organizationId, organizationId),
+                sql`DATE(${vehicleJobAssignments.inspectionDate}) = ${date}`,
+              ),
+            )
             .limit(1);
 
           if (existingAssignment.length === 0) {
@@ -11678,9 +13802,9 @@ export class DatabaseStorage implements IStorage {
               vehicleId: inspectionUser.vehicleId,
               projectId: job.projectId,
               inspectionDate: new Date(date),
-              notes: `Auto-assigned based on vehicle inspection: ${inspectionUser.vehicleNumber} (${inspectionUser.licensePlate})`
+              notes: `Auto-assigned based on vehicle inspection: ${inspectionUser.vehicleNumber} (${inspectionUser.licensePlate})`,
             });
-            
+
             assignments.push({
               ...newAssignment,
               userFirstName: inspectionUser.userFirstName,
@@ -11689,15 +13813,15 @@ export class DatabaseStorage implements IStorage {
               vehicleNumber: inspectionUser.vehicleNumber,
               licensePlate: inspectionUser.licensePlate,
               projectName: job.projectName,
-              projectAddress: job.projectAddress
+              projectAddress: job.projectAddress,
             });
           }
         }
       }
-      
+
       return assignments;
     } catch (error) {
-      console.error('Error connecting users to vehicle jobs:', error);
+      console.error("Error connecting users to vehicle jobs:", error);
       throw error;
     }
   }
@@ -11709,10 +13833,14 @@ export class DatabaseStorage implements IStorage {
         .select()
         .from(frontendCategories)
         .where(eq(frontendCategories.organizationId, organizationId))
-        .orderBy(asc(frontendCategories.type), asc(frontendCategories.sortOrder), asc(frontendCategories.name));
+        .orderBy(
+          asc(frontendCategories.type),
+          asc(frontendCategories.sortOrder),
+          asc(frontendCategories.name),
+        );
       return categories;
     } catch (error) {
-      console.error('Error fetching frontend categories:', error);
+      console.error("Error fetching frontend categories:", error);
       return [];
     }
   }
@@ -11722,10 +13850,15 @@ export class DatabaseStorage implements IStorage {
       const [category] = await db
         .select()
         .from(frontendCategories)
-        .where(and(eq(frontendCategories.id, id), eq(frontendCategories.organizationId, organizationId)));
+        .where(
+          and(
+            eq(frontendCategories.id, id),
+            eq(frontendCategories.organizationId, organizationId),
+          ),
+        );
       return category || null;
     } catch (error) {
-      console.error('Error fetching frontend category:', error);
+      console.error("Error fetching frontend category:", error);
       return null;
     }
   }
@@ -11742,12 +13875,16 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return category;
     } catch (error) {
-      console.error('Error creating frontend category:', error);
+      console.error("Error creating frontend category:", error);
       throw error;
     }
   }
 
-  async updateFrontendCategory(id: number, organizationId: number, updates: any): Promise<any> {
+  async updateFrontendCategory(
+    id: number,
+    organizationId: number,
+    updates: any,
+  ): Promise<any> {
     try {
       const [category] = await db
         .update(frontendCategories)
@@ -11755,23 +13892,36 @@ export class DatabaseStorage implements IStorage {
           ...updates,
           updatedAt: new Date(),
         })
-        .where(and(eq(frontendCategories.id, id), eq(frontendCategories.organizationId, organizationId)))
+        .where(
+          and(
+            eq(frontendCategories.id, id),
+            eq(frontendCategories.organizationId, organizationId),
+          ),
+        )
         .returning();
       return category;
     } catch (error) {
-      console.error('Error updating frontend category:', error);
+      console.error("Error updating frontend category:", error);
       throw error;
     }
   }
 
-  async deleteFrontendCategory(id: number, organizationId: number): Promise<boolean> {
+  async deleteFrontendCategory(
+    id: number,
+    organizationId: number,
+  ): Promise<boolean> {
     try {
       await db
         .delete(frontendCategories)
-        .where(and(eq(frontendCategories.id, id), eq(frontendCategories.organizationId, organizationId)));
+        .where(
+          and(
+            eq(frontendCategories.id, id),
+            eq(frontendCategories.organizationId, organizationId),
+          ),
+        );
       return true;
     } catch (error) {
-      console.error('Error deleting frontend category:', error);
+      console.error("Error deleting frontend category:", error);
       return false;
     }
   }
@@ -11785,7 +13935,7 @@ export class DatabaseStorage implements IStorage {
         .orderBy(asc(frontendPages.sortOrder), asc(frontendPages.title));
       return pages;
     } catch (error) {
-      console.error('Error fetching frontend pages:', error);
+      console.error("Error fetching frontend pages:", error);
       return [];
     }
   }
@@ -11795,10 +13945,15 @@ export class DatabaseStorage implements IStorage {
       const [page] = await db
         .select()
         .from(frontendPages)
-        .where(and(eq(frontendPages.id, id), eq(frontendPages.organizationId, organizationId)));
+        .where(
+          and(
+            eq(frontendPages.id, id),
+            eq(frontendPages.organizationId, organizationId),
+          ),
+        );
       return page || null;
     } catch (error) {
-      console.error('Error fetching frontend page:', error);
+      console.error("Error fetching frontend page:", error);
       return null;
     }
   }
@@ -11815,12 +13970,16 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return page;
     } catch (error) {
-      console.error('Error creating frontend page:', error);
+      console.error("Error creating frontend page:", error);
       throw error;
     }
   }
 
-  async updateFrontendPage(id: number, organizationId: number, updates: any): Promise<any> {
+  async updateFrontendPage(
+    id: number,
+    organizationId: number,
+    updates: any,
+  ): Promise<any> {
     try {
       const [page] = await db
         .update(frontendPages)
@@ -11828,28 +13987,44 @@ export class DatabaseStorage implements IStorage {
           ...updates,
           updatedAt: new Date(),
         })
-        .where(and(eq(frontendPages.id, id), eq(frontendPages.organizationId, organizationId)))
+        .where(
+          and(
+            eq(frontendPages.id, id),
+            eq(frontendPages.organizationId, organizationId),
+          ),
+        )
         .returning();
       return page;
     } catch (error) {
-      console.error('Error updating frontend page:', error);
+      console.error("Error updating frontend page:", error);
       throw error;
     }
   }
 
-  async deleteFrontendPage(id: number, organizationId: number): Promise<boolean> {
+  async deleteFrontendPage(
+    id: number,
+    organizationId: number,
+  ): Promise<boolean> {
     try {
       await db
         .delete(frontendPages)
-        .where(and(eq(frontendPages.id, id), eq(frontendPages.organizationId, organizationId)));
+        .where(
+          and(
+            eq(frontendPages.id, id),
+            eq(frontendPages.organizationId, organizationId),
+          ),
+        );
       return true;
     } catch (error) {
-      console.error('Error deleting frontend page:', error);
+      console.error("Error deleting frontend page:", error);
       return false;
     }
   }
 
-  async getPublishedFrontendPageBySlug(orgSlug: string, pageSlug: string): Promise<any> {
+  async getPublishedFrontendPageBySlug(
+    orgSlug: string,
+    pageSlug: string,
+  ): Promise<any> {
     try {
       const result = await db
         .select({
@@ -11857,12 +14032,17 @@ export class DatabaseStorage implements IStorage {
           organization: organizations,
         })
         .from(frontendPages)
-        .innerJoin(organizations, eq(frontendPages.organizationId, organizations.id))
-        .where(and(
-          eq(organizations.slug, orgSlug),
-          eq(frontendPages.slug, pageSlug),
-          eq(frontendPages.isPublished, true)
-        ))
+        .innerJoin(
+          organizations,
+          eq(frontendPages.organizationId, organizations.id),
+        )
+        .where(
+          and(
+            eq(organizations.slug, orgSlug),
+            eq(frontendPages.slug, pageSlug),
+            eq(frontendPages.isPublished, true),
+          ),
+        )
         .limit(1);
 
       if (result.length === 0) {
@@ -11880,31 +14060,41 @@ export class DatabaseStorage implements IStorage {
 
       return {
         ...page,
-        organization: { id: organization.id, name: organization.name, slug: organization.slug },
+        organization: {
+          id: organization.id,
+          name: organization.name,
+          slug: organization.slug,
+        },
         components,
       };
     } catch (error) {
-      console.error('Error fetching published frontend page by slug:', error);
+      console.error("Error fetching published frontend page by slug:", error);
       return null;
     }
   }
 
-  async saveFrontendPageComponents(pageId: number, organizationId: number, components: any[]): Promise<boolean> {
+  async saveFrontendPageComponents(
+    pageId: number,
+    organizationId: number,
+    components: any[],
+  ): Promise<boolean> {
     try {
       // Delete existing components for this page
       await db
         .delete(frontendComponents)
-        .where(and(
-          eq(frontendComponents.pageId, pageId),
-          eq(frontendComponents.organizationId, organizationId)
-        ));
+        .where(
+          and(
+            eq(frontendComponents.pageId, pageId),
+            eq(frontendComponents.organizationId, organizationId),
+          ),
+        );
 
       // Insert new components
       if (components && components.length > 0) {
         const componentsToInsert = components.map((comp, index) => ({
           organizationId,
           pageId,
-          type: comp.type || 'text',
+          type: comp.type || "text",
           props: comp.props || {},
           style: comp.style || {},
           sortOrder: comp.sortOrder !== undefined ? comp.sortOrder : index,
@@ -11917,7 +14107,7 @@ export class DatabaseStorage implements IStorage {
 
       return true;
     } catch (error) {
-      console.error('Error saving frontend page components:', error);
+      console.error("Error saving frontend page components:", error);
       return false;
     }
   }
@@ -11931,7 +14121,7 @@ export class DatabaseStorage implements IStorage {
         .orderBy(asc(frontendSliders.sortOrder), asc(frontendSliders.title));
       return sliders;
     } catch (error) {
-      console.error('Error fetching frontend sliders:', error);
+      console.error("Error fetching frontend sliders:", error);
       return [];
     }
   }
@@ -11941,10 +14131,15 @@ export class DatabaseStorage implements IStorage {
       const [slider] = await db
         .select()
         .from(frontendSliders)
-        .where(and(eq(frontendSliders.id, id), eq(frontendSliders.organizationId, organizationId)));
+        .where(
+          and(
+            eq(frontendSliders.id, id),
+            eq(frontendSliders.organizationId, organizationId),
+          ),
+        );
       return slider || null;
     } catch (error) {
-      console.error('Error fetching frontend slider:', error);
+      console.error("Error fetching frontend slider:", error);
       return null;
     }
   }
@@ -11961,12 +14156,16 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return slider;
     } catch (error) {
-      console.error('Error creating frontend slider:', error);
+      console.error("Error creating frontend slider:", error);
       throw error;
     }
   }
 
-  async updateFrontendSlider(id: number, organizationId: number, updates: any): Promise<any> {
+  async updateFrontendSlider(
+    id: number,
+    organizationId: number,
+    updates: any,
+  ): Promise<any> {
     try {
       const [slider] = await db
         .update(frontendSliders)
@@ -11974,23 +14173,36 @@ export class DatabaseStorage implements IStorage {
           ...updates,
           updatedAt: new Date(),
         })
-        .where(and(eq(frontendSliders.id, id), eq(frontendSliders.organizationId, organizationId)))
+        .where(
+          and(
+            eq(frontendSliders.id, id),
+            eq(frontendSliders.organizationId, organizationId),
+          ),
+        )
         .returning();
       return slider;
     } catch (error) {
-      console.error('Error updating frontend slider:', error);
+      console.error("Error updating frontend slider:", error);
       throw error;
     }
   }
 
-  async deleteFrontendSlider(id: number, organizationId: number): Promise<boolean> {
+  async deleteFrontendSlider(
+    id: number,
+    organizationId: number,
+  ): Promise<boolean> {
     try {
       await db
         .delete(frontendSliders)
-        .where(and(eq(frontendSliders.id, id), eq(frontendSliders.organizationId, organizationId)));
+        .where(
+          and(
+            eq(frontendSliders.id, id),
+            eq(frontendSliders.organizationId, organizationId),
+          ),
+        );
       return true;
     } catch (error) {
-      console.error('Error deleting frontend slider:', error);
+      console.error("Error deleting frontend slider:", error);
       return false;
     }
   }
@@ -12005,7 +14217,7 @@ export class DatabaseStorage implements IStorage {
         .orderBy(desc(websitePopups.priority), desc(websitePopups.createdAt));
       return popups;
     } catch (error) {
-      console.error('Error fetching website popups:', error);
+      console.error("Error fetching website popups:", error);
       return [];
     }
   }
@@ -12015,10 +14227,15 @@ export class DatabaseStorage implements IStorage {
       const [popup] = await db
         .select()
         .from(websitePopups)
-        .where(and(eq(websitePopups.id, id), eq(websitePopups.organizationId, organizationId)));
+        .where(
+          and(
+            eq(websitePopups.id, id),
+            eq(websitePopups.organizationId, organizationId),
+          ),
+        );
       return popup || null;
     } catch (error) {
-      console.error('Error fetching website popup:', error);
+      console.error("Error fetching website popup:", error);
       return null;
     }
   }
@@ -12035,12 +14252,16 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return popup;
     } catch (error) {
-      console.error('Error creating website popup:', error);
+      console.error("Error creating website popup:", error);
       throw error;
     }
   }
 
-  async updateWebsitePopup(id: number, organizationId: number, updates: any): Promise<any> {
+  async updateWebsitePopup(
+    id: number,
+    organizationId: number,
+    updates: any,
+  ): Promise<any> {
     try {
       const [popup] = await db
         .update(websitePopups)
@@ -12048,30 +14269,51 @@ export class DatabaseStorage implements IStorage {
           ...updates,
           updatedAt: new Date(),
         })
-        .where(and(eq(websitePopups.id, id), eq(websitePopups.organizationId, organizationId)))
+        .where(
+          and(
+            eq(websitePopups.id, id),
+            eq(websitePopups.organizationId, organizationId),
+          ),
+        )
         .returning();
       return popup;
     } catch (error) {
-      console.error('Error updating website popup:', error);
+      console.error("Error updating website popup:", error);
       throw error;
     }
   }
 
-  async deleteWebsitePopup(id: number, organizationId: number): Promise<boolean> {
+  async deleteWebsitePopup(
+    id: number,
+    organizationId: number,
+  ): Promise<boolean> {
     try {
       await db
         .delete(websitePopups)
-        .where(and(eq(websitePopups.id, id), eq(websitePopups.organizationId, organizationId)));
+        .where(
+          and(
+            eq(websitePopups.id, id),
+            eq(websitePopups.organizationId, organizationId),
+          ),
+        );
       return true;
     } catch (error) {
-      console.error('Error deleting website popup:', error);
+      console.error("Error deleting website popup:", error);
       return false;
     }
   }
 
-  async recordPopupImpression(id: number, action: 'view' | 'click' | 'dismiss'): Promise<void> {
+  async recordPopupImpression(
+    id: number,
+    action: "view" | "click" | "dismiss",
+  ): Promise<void> {
     try {
-      const field = action === 'view' ? 'views' : action === 'click' ? 'clicks' : 'dismissals';
+      const field =
+        action === "view"
+          ? "views"
+          : action === "click"
+            ? "clicks"
+            : "dismissals";
       await db
         .update(websitePopups)
         .set({
@@ -12080,36 +14322,42 @@ export class DatabaseStorage implements IStorage {
         })
         .where(eq(websitePopups.id, id));
     } catch (error) {
-      console.error('Error recording popup impression:', error);
+      console.error("Error recording popup impression:", error);
     }
   }
 
-  async getActivePopupsForPage(organizationId: number, pagePath: string): Promise<any[]> {
+  async getActivePopupsForPage(
+    organizationId: number,
+    pagePath: string,
+  ): Promise<any[]> {
     try {
       const allPopups = await db
         .select()
         .from(websitePopups)
-        .where(and(
-          eq(websitePopups.organizationId, organizationId),
-          eq(websitePopups.isActive, true)
-        ))
+        .where(
+          and(
+            eq(websitePopups.organizationId, organizationId),
+            eq(websitePopups.isActive, true),
+          ),
+        )
         .orderBy(desc(websitePopups.priority));
-      
+
       // Filter popups that match the page path
-      const matchingPopups = allPopups.filter(popup => {
-        if (!popup.displayPages || popup.displayPages.includes('all')) {
+      const matchingPopups = allPopups.filter((popup) => {
+        if (!popup.displayPages || popup.displayPages.includes("all")) {
           return true;
         }
         return popup.displayPages.some((page: string) => {
           if (page === pagePath) return true;
-          if (page.endsWith('*') && pagePath.startsWith(page.slice(0, -1))) return true;
+          if (page.endsWith("*") && pagePath.startsWith(page.slice(0, -1)))
+            return true;
           return false;
         });
       });
-      
+
       return matchingPopups;
     } catch (error) {
-      console.error('Error fetching active popups for page:', error);
+      console.error("Error fetching active popups for page:", error);
       return [];
     }
   }
@@ -12121,42 +14369,47 @@ export class DatabaseStorage implements IStorage {
         .select()
         .from(websiteLayoutSettings)
         .where(eq(websiteLayoutSettings.organizationId, organizationId));
-      
+
       // Return defaults if not found
       if (!settings) {
         return {
           organizationId,
           contactBarTitle: "Ready to Transform Your Field Service Business?",
-          contactBarSubtitle: "Get started with a free demo or speak with our team",
+          contactBarSubtitle:
+            "Get started with a free demo or speak with our team",
           contactBarPhone: "(555) 123-4567",
           contactBarEmail: "sales@profieldmanager.com",
           contactBarButtonText: "Start Free Demo",
           contactBarButtonLink: "/demo-signup",
           contactBarBackgroundColor: "#2563eb",
           footerCompanyName: "Pro Field Manager",
-          footerCompanyDescription: "Professional field service management software designed to streamline your operations and grow your business.",
+          footerCompanyDescription:
+            "Professional field service management software designed to streamline your operations and grow your business.",
           footerAddress: "123 Business Ave, Suite 100, Austin, TX 78701",
           footerPhone: "(555) 123-4567",
           footerEmail: "sales@profieldmanager.com",
-          footerCopyright: "Pro Field Manager. All rights reserved."
+          footerCopyright: "Pro Field Manager. All rights reserved.",
         };
       }
-      
+
       return settings;
     } catch (error) {
-      console.error('Error fetching website layout settings:', error);
+      console.error("Error fetching website layout settings:", error);
       throw error;
     }
   }
 
-  async updateWebsiteLayoutSettings(organizationId: number, data: any): Promise<any> {
+  async updateWebsiteLayoutSettings(
+    organizationId: number,
+    data: any,
+  ): Promise<any> {
     try {
       // Check if settings exist
       const existing = await db
         .select()
         .from(websiteLayoutSettings)
         .where(eq(websiteLayoutSettings.organizationId, organizationId));
-      
+
       if (existing.length > 0) {
         // Update existing settings
         const [updated] = await db
@@ -12182,7 +14435,7 @@ export class DatabaseStorage implements IStorage {
         return created;
       }
     } catch (error) {
-      console.error('Error updating website layout settings:', error);
+      console.error("Error updating website layout settings:", error);
       throw error;
     }
   }
@@ -12196,7 +14449,7 @@ export class DatabaseStorage implements IStorage {
         .orderBy(asc(websiteSocialLinks.sortOrder));
       return links;
     } catch (error) {
-      console.error('Error fetching website social links:', error);
+      console.error("Error fetching website social links:", error);
       return [];
     }
   }
@@ -12213,7 +14466,7 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return link;
     } catch (error) {
-      console.error('Error creating website social link:', error);
+      console.error("Error creating website social link:", error);
       throw error;
     }
   }
@@ -12230,19 +14483,17 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return link;
     } catch (error) {
-      console.error('Error updating website social link:', error);
+      console.error("Error updating website social link:", error);
       throw error;
     }
   }
 
   async deleteWebsiteSocialLink(id: number): Promise<boolean> {
     try {
-      await db
-        .delete(websiteSocialLinks)
-        .where(eq(websiteSocialLinks.id, id));
+      await db.delete(websiteSocialLinks).where(eq(websiteSocialLinks.id, id));
       return true;
     } catch (error) {
-      console.error('Error deleting website social link:', error);
+      console.error("Error deleting website social link:", error);
       return false;
     }
   }
@@ -12264,7 +14515,7 @@ export class DatabaseStorage implements IStorage {
         .from(websiteFooterSections)
         .where(eq(websiteFooterSections.organizationId, organizationId))
         .orderBy(asc(websiteFooterSections.sortOrder));
-      
+
       // Fetch links for each section
       const sectionsWithLinks = await Promise.all(
         sections.map(async (section) => {
@@ -12273,17 +14524,17 @@ export class DatabaseStorage implements IStorage {
             .from(websiteFooterLinks)
             .where(eq(websiteFooterLinks.sectionId, section.id))
             .orderBy(asc(websiteFooterLinks.sortOrder));
-          
+
           return {
             ...section,
             links,
           };
-        })
+        }),
       );
-      
+
       return sectionsWithLinks;
     } catch (error) {
-      console.error('Error fetching website footer sections:', error);
+      console.error("Error fetching website footer sections:", error);
       return [];
     }
   }
@@ -12300,7 +14551,7 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return section;
     } catch (error) {
-      console.error('Error creating website footer section:', error);
+      console.error("Error creating website footer section:", error);
       throw error;
     }
   }
@@ -12317,7 +14568,7 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return section;
     } catch (error) {
-      console.error('Error updating website footer section:', error);
+      console.error("Error updating website footer section:", error);
       throw error;
     }
   }
@@ -12328,15 +14579,15 @@ export class DatabaseStorage implements IStorage {
       await db
         .delete(websiteFooterLinks)
         .where(eq(websiteFooterLinks.sectionId, id));
-      
+
       // Then delete the section
       await db
         .delete(websiteFooterSections)
         .where(eq(websiteFooterSections.id, id));
-      
+
       return true;
     } catch (error) {
-      console.error('Error deleting website footer section:', error);
+      console.error("Error deleting website footer section:", error);
       return false;
     }
   }
@@ -12350,7 +14601,7 @@ export class DatabaseStorage implements IStorage {
         .orderBy(asc(websiteFooterLinks.sortOrder));
       return links;
     } catch (error) {
-      console.error('Error fetching website footer links:', error);
+      console.error("Error fetching website footer links:", error);
       return [];
     }
   }
@@ -12367,7 +14618,7 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return link;
     } catch (error) {
-      console.error('Error creating website footer link:', error);
+      console.error("Error creating website footer link:", error);
       throw error;
     }
   }
@@ -12384,19 +14635,17 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return link;
     } catch (error) {
-      console.error('Error updating website footer link:', error);
+      console.error("Error updating website footer link:", error);
       throw error;
     }
   }
 
   async deleteWebsiteFooterLink(id: number): Promise<boolean> {
     try {
-      await db
-        .delete(websiteFooterLinks)
-        .where(eq(websiteFooterLinks.id, id));
+      await db.delete(websiteFooterLinks).where(eq(websiteFooterLinks.id, id));
       return true;
     } catch (error) {
-      console.error('Error deleting website footer link:', error);
+      console.error("Error deleting website footer link:", error);
       return false;
     }
   }
@@ -12413,12 +14662,15 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return session;
     } catch (error) {
-      console.error('Error creating live chat session:', error);
+      console.error("Error creating live chat session:", error);
       throw error;
     }
   }
 
-  async getLiveChatSessions(organizationId: number, status?: string): Promise<any[]> {
+  async getLiveChatSessions(
+    organizationId: number,
+    status?: string,
+  ): Promise<any[]> {
     try {
       let baseQuery = db
         .select({
@@ -12441,18 +14693,20 @@ export class DatabaseStorage implements IStorage {
         .from(liveChatSessions)
         .leftJoin(
           liveChatDepartments,
-          eq(liveChatSessions.departmentId, liveChatDepartments.id)
+          eq(liveChatSessions.departmentId, liveChatDepartments.id),
         )
         .where(eq(liveChatSessions.organizationId, organizationId));
-      
+
       if (status) {
         baseQuery = baseQuery.where(eq(liveChatSessions.status, status));
       }
-      
-      const sessions = await baseQuery.orderBy(desc(liveChatSessions.startedAt));
+
+      const sessions = await baseQuery.orderBy(
+        desc(liveChatSessions.startedAt),
+      );
       return sessions;
     } catch (error) {
-      console.error('Error fetching live chat sessions:', error);
+      console.error("Error fetching live chat sessions:", error);
       return [];
     }
   }
@@ -12465,18 +14719,22 @@ export class DatabaseStorage implements IStorage {
         .where(eq(liveChatSessions.id, id));
       return session || null;
     } catch (error) {
-      console.error('Error fetching live chat session:', error);
+      console.error("Error fetching live chat session:", error);
       return null;
     }
   }
 
-  async updateLiveChatSessionStatus(id: number, status: string, endedAt?: Date): Promise<any> {
+  async updateLiveChatSessionStatus(
+    id: number,
+    status: string,
+    endedAt?: Date,
+  ): Promise<any> {
     try {
       const updates: any = { status };
       if (endedAt) {
         updates.endedAt = endedAt;
       }
-      
+
       const [session] = await db
         .update(liveChatSessions)
         .set(updates)
@@ -12484,25 +14742,29 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return session;
     } catch (error) {
-      console.error('Error updating live chat session status:', error);
+      console.error("Error updating live chat session status:", error);
       throw error;
     }
   }
 
-  async assignLiveChatAgent(sessionId: number, agentId: number, agentName: string): Promise<any> {
+  async assignLiveChatAgent(
+    sessionId: number,
+    agentId: number,
+    agentName: string,
+  ): Promise<any> {
     try {
       const [session] = await db
         .update(liveChatSessions)
         .set({
           assignedAgentId: agentId,
           assignedAgentName: agentName,
-          status: 'active',
+          status: "active",
         })
         .where(eq(liveChatSessions.id, sessionId))
         .returning();
       return session;
     } catch (error) {
-      console.error('Error assigning live chat agent:', error);
+      console.error("Error assigning live chat agent:", error);
       throw error;
     }
   }
@@ -12512,14 +14774,14 @@ export class DatabaseStorage implements IStorage {
       const [session] = await db
         .update(liveChatSessions)
         .set({
-          status: 'closed',
+          status: "closed",
           endedAt: new Date(),
         })
         .where(eq(liveChatSessions.id, id))
         .returning();
       return session;
     } catch (error) {
-      console.error('Error closing live chat session:', error);
+      console.error("Error closing live chat session:", error);
       throw error;
     }
   }
@@ -12535,7 +14797,7 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return message;
     } catch (error) {
-      console.error('Error creating live chat message:', error);
+      console.error("Error creating live chat message:", error);
       throw error;
     }
   }
@@ -12549,7 +14811,7 @@ export class DatabaseStorage implements IStorage {
         .orderBy(asc(liveChatMessages.createdAt));
       return messages;
     } catch (error) {
-      console.error('Error fetching live chat messages:', error);
+      console.error("Error fetching live chat messages:", error);
       return [];
     }
   }
@@ -12561,7 +14823,7 @@ export class DatabaseStorage implements IStorage {
         .set({ isRead: true })
         .where(eq(liveChatMessages.id, messageId));
     } catch (error) {
-      console.error('Error marking chat message as read:', error);
+      console.error("Error marking chat message as read:", error);
     }
   }
 
@@ -12571,26 +14833,34 @@ export class DatabaseStorage implements IStorage {
         .select()
         .from(liveChatDepartments)
         .where(eq(liveChatDepartments.organizationId, organizationId))
-        .orderBy(asc(liveChatDepartments.displayOrder), asc(liveChatDepartments.name));
+        .orderBy(
+          asc(liveChatDepartments.displayOrder),
+          asc(liveChatDepartments.name),
+        );
       return departments;
     } catch (error) {
-      console.error('Error fetching live chat departments:', error);
+      console.error("Error fetching live chat departments:", error);
       return [];
     }
   }
 
-  async getLiveChatDepartment(id: number, organizationId: number): Promise<any> {
+  async getLiveChatDepartment(
+    id: number,
+    organizationId: number,
+  ): Promise<any> {
     try {
       const [department] = await db
         .select()
         .from(liveChatDepartments)
-        .where(and(
-          eq(liveChatDepartments.id, id),
-          eq(liveChatDepartments.organizationId, organizationId)
-        ));
+        .where(
+          and(
+            eq(liveChatDepartments.id, id),
+            eq(liveChatDepartments.organizationId, organizationId),
+          ),
+        );
       return department;
     } catch (error) {
-      console.error('Error fetching live chat department:', error);
+      console.error("Error fetching live chat department:", error);
       return null;
     }
   }
@@ -12607,12 +14877,16 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return department;
     } catch (error) {
-      console.error('Error creating live chat department:', error);
+      console.error("Error creating live chat department:", error);
       throw error;
     }
   }
 
-  async updateLiveChatDepartment(id: number, organizationId: number, updates: any): Promise<any> {
+  async updateLiveChatDepartment(
+    id: number,
+    organizationId: number,
+    updates: any,
+  ): Promise<any> {
     try {
       const [department] = await db
         .update(liveChatDepartments)
@@ -12620,29 +14894,36 @@ export class DatabaseStorage implements IStorage {
           ...updates,
           updatedAt: new Date(),
         })
-        .where(and(
-          eq(liveChatDepartments.id, id),
-          eq(liveChatDepartments.organizationId, organizationId)
-        ))
+        .where(
+          and(
+            eq(liveChatDepartments.id, id),
+            eq(liveChatDepartments.organizationId, organizationId),
+          ),
+        )
         .returning();
       return department;
     } catch (error) {
-      console.error('Error updating live chat department:', error);
+      console.error("Error updating live chat department:", error);
       throw error;
     }
   }
 
-  async deleteLiveChatDepartment(id: number, organizationId: number): Promise<boolean> {
+  async deleteLiveChatDepartment(
+    id: number,
+    organizationId: number,
+  ): Promise<boolean> {
     try {
       await db
         .delete(liveChatDepartments)
-        .where(and(
-          eq(liveChatDepartments.id, id),
-          eq(liveChatDepartments.organizationId, organizationId)
-        ));
+        .where(
+          and(
+            eq(liveChatDepartments.id, id),
+            eq(liveChatDepartments.organizationId, organizationId),
+          ),
+        );
       return true;
     } catch (error) {
-      console.error('Error deleting live chat department:', error);
+      console.error("Error deleting live chat department:", error);
       return false;
     }
   }
@@ -12654,12 +14935,12 @@ export class DatabaseStorage implements IStorage {
         .select()
         .from(liveChatSettings)
         .where(eq(liveChatSettings.organizationId, organizationId));
-      
+
       // If settings exist, return them
       if (existingSettings) {
         return existingSettings;
       }
-      
+
       // Auto-initialize with defaults if not exists
       const [newSettings] = await db
         .insert(liveChatSettings)
@@ -12668,19 +14949,22 @@ export class DatabaseStorage implements IStorage {
           // All defaults are set in the schema
         })
         .returning();
-      
+
       return newSettings;
     } catch (error) {
-      console.error('Error getting live chat settings:', error);
+      console.error("Error getting live chat settings:", error);
       throw error;
     }
   }
 
-  async updateLiveChatSettings(organizationId: number, updates: any): Promise<any> {
+  async updateLiveChatSettings(
+    organizationId: number,
+    updates: any,
+  ): Promise<any> {
     try {
       // Ensure settings exist first
       await this.getLiveChatSettings(organizationId);
-      
+
       // Update the settings
       const [updatedSettings] = await db
         .update(liveChatSettings)
@@ -12690,29 +14974,32 @@ export class DatabaseStorage implements IStorage {
         })
         .where(eq(liveChatSettings.organizationId, organizationId))
         .returning();
-      
+
       return updatedSettings;
     } catch (error) {
-      console.error('Error updating live chat settings:', error);
+      console.error("Error updating live chat settings:", error);
       throw error;
     }
   }
 
-  async getFrontendComponents(organizationId: number, pageId?: number): Promise<any[]> {
+  async getFrontendComponents(
+    organizationId: number,
+    pageId?: number,
+  ): Promise<any[]> {
     try {
       let query = db
         .select()
         .from(frontendComponents)
         .where(eq(frontendComponents.organizationId, organizationId));
-      
+
       if (pageId) {
         query = query.where(eq(frontendComponents.pageId, pageId));
       }
-      
+
       const components = await query.orderBy(asc(frontendComponents.sortOrder));
       return components;
     } catch (error) {
-      console.error('Error fetching frontend components:', error);
+      console.error("Error fetching frontend components:", error);
       return [];
     }
   }
@@ -12722,10 +15009,15 @@ export class DatabaseStorage implements IStorage {
       const [component] = await db
         .select()
         .from(frontendComponents)
-        .where(and(eq(frontendComponents.id, id), eq(frontendComponents.organizationId, organizationId)));
+        .where(
+          and(
+            eq(frontendComponents.id, id),
+            eq(frontendComponents.organizationId, organizationId),
+          ),
+        );
       return component || null;
     } catch (error) {
-      console.error('Error fetching frontend component:', error);
+      console.error("Error fetching frontend component:", error);
       return null;
     }
   }
@@ -12742,12 +15034,16 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return component;
     } catch (error) {
-      console.error('Error creating frontend component:', error);
+      console.error("Error creating frontend component:", error);
       throw error;
     }
   }
 
-  async updateFrontendComponent(id: number, organizationId: number, updates: any): Promise<any> {
+  async updateFrontendComponent(
+    id: number,
+    organizationId: number,
+    updates: any,
+  ): Promise<any> {
     try {
       const [component] = await db
         .update(frontendComponents)
@@ -12755,23 +15051,36 @@ export class DatabaseStorage implements IStorage {
           ...updates,
           updatedAt: new Date(),
         })
-        .where(and(eq(frontendComponents.id, id), eq(frontendComponents.organizationId, organizationId)))
+        .where(
+          and(
+            eq(frontendComponents.id, id),
+            eq(frontendComponents.organizationId, organizationId),
+          ),
+        )
         .returning();
       return component;
     } catch (error) {
-      console.error('Error updating frontend component:', error);
+      console.error("Error updating frontend component:", error);
       throw error;
     }
   }
 
-  async deleteFrontendComponent(id: number, organizationId: number): Promise<boolean> {
+  async deleteFrontendComponent(
+    id: number,
+    organizationId: number,
+  ): Promise<boolean> {
     try {
       await db
         .delete(frontendComponents)
-        .where(and(eq(frontendComponents.id, id), eq(frontendComponents.organizationId, organizationId)));
+        .where(
+          and(
+            eq(frontendComponents.id, id),
+            eq(frontendComponents.organizationId, organizationId),
+          ),
+        );
       return true;
     } catch (error) {
-      console.error('Error deleting frontend component:', error);
+      console.error("Error deleting frontend component:", error);
       return false;
     }
   }
@@ -12785,7 +15094,7 @@ export class DatabaseStorage implements IStorage {
         .orderBy(asc(frontendIcons.category), asc(frontendIcons.name));
       return icons;
     } catch (error) {
-      console.error('Error fetching frontend icons:', error);
+      console.error("Error fetching frontend icons:", error);
       return [];
     }
   }
@@ -12795,10 +15104,15 @@ export class DatabaseStorage implements IStorage {
       const [icon] = await db
         .select()
         .from(frontendIcons)
-        .where(and(eq(frontendIcons.id, id), eq(frontendIcons.organizationId, organizationId)));
+        .where(
+          and(
+            eq(frontendIcons.id, id),
+            eq(frontendIcons.organizationId, organizationId),
+          ),
+        );
       return icon || null;
     } catch (error) {
-      console.error('Error fetching frontend icon:', error);
+      console.error("Error fetching frontend icon:", error);
       return null;
     }
   }
@@ -12815,12 +15129,16 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return icon;
     } catch (error) {
-      console.error('Error creating frontend icon:', error);
+      console.error("Error creating frontend icon:", error);
       throw error;
     }
   }
 
-  async updateFrontendIcon(id: number, organizationId: number, updates: any): Promise<any> {
+  async updateFrontendIcon(
+    id: number,
+    organizationId: number,
+    updates: any,
+  ): Promise<any> {
     try {
       const [icon] = await db
         .update(frontendIcons)
@@ -12828,28 +15146,44 @@ export class DatabaseStorage implements IStorage {
           ...updates,
           updatedAt: new Date(),
         })
-        .where(and(eq(frontendIcons.id, id), eq(frontendIcons.organizationId, organizationId)))
+        .where(
+          and(
+            eq(frontendIcons.id, id),
+            eq(frontendIcons.organizationId, organizationId),
+          ),
+        )
         .returning();
       return icon;
     } catch (error) {
-      console.error('Error updating frontend icon:', error);
+      console.error("Error updating frontend icon:", error);
       throw error;
     }
   }
 
-  async deleteFrontendIcon(id: number, organizationId: number): Promise<boolean> {
+  async deleteFrontendIcon(
+    id: number,
+    organizationId: number,
+  ): Promise<boolean> {
     try {
       await db
         .delete(frontendIcons)
-        .where(and(eq(frontendIcons.id, id), eq(frontendIcons.organizationId, organizationId)));
+        .where(
+          and(
+            eq(frontendIcons.id, id),
+            eq(frontendIcons.organizationId, organizationId),
+          ),
+        );
       return true;
     } catch (error) {
-      console.error('Error deleting frontend icon:', error);
+      console.error("Error deleting frontend icon:", error);
       return false;
     }
   }
 
-  async getFrontendBoxes(organizationId: number, pageId?: number): Promise<any[]> {
+  async getFrontendBoxes(
+    organizationId: number,
+    pageId?: number,
+  ): Promise<any[]> {
     try {
       let query = db
         .select({
@@ -12874,15 +15208,15 @@ export class DatabaseStorage implements IStorage {
         .from(frontendBoxes)
         .leftJoin(frontendIcons, eq(frontendBoxes.iconId, frontendIcons.id))
         .where(eq(frontendBoxes.organizationId, organizationId));
-      
+
       if (pageId) {
         query = query.where(eq(frontendBoxes.pageId, pageId));
       }
-      
+
       const boxes = await query.orderBy(asc(frontendBoxes.sortOrder));
       return boxes;
     } catch (error) {
-      console.error('Error fetching frontend boxes:', error);
+      console.error("Error fetching frontend boxes:", error);
       return [];
     }
   }
@@ -12892,10 +15226,15 @@ export class DatabaseStorage implements IStorage {
       const [box] = await db
         .select()
         .from(frontendBoxes)
-        .where(and(eq(frontendBoxes.id, id), eq(frontendBoxes.organizationId, organizationId)));
+        .where(
+          and(
+            eq(frontendBoxes.id, id),
+            eq(frontendBoxes.organizationId, organizationId),
+          ),
+        );
       return box || null;
     } catch (error) {
-      console.error('Error fetching frontend box:', error);
+      console.error("Error fetching frontend box:", error);
       return null;
     }
   }
@@ -12912,12 +15251,16 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return box;
     } catch (error) {
-      console.error('Error creating frontend box:', error);
+      console.error("Error creating frontend box:", error);
       throw error;
     }
   }
 
-  async updateFrontendBox(id: number, organizationId: number, updates: any): Promise<any> {
+  async updateFrontendBox(
+    id: number,
+    organizationId: number,
+    updates: any,
+  ): Promise<any> {
     try {
       const [box] = await db
         .update(frontendBoxes)
@@ -12925,28 +15268,44 @@ export class DatabaseStorage implements IStorage {
           ...updates,
           updatedAt: new Date(),
         })
-        .where(and(eq(frontendBoxes.id, id), eq(frontendBoxes.organizationId, organizationId)))
+        .where(
+          and(
+            eq(frontendBoxes.id, id),
+            eq(frontendBoxes.organizationId, organizationId),
+          ),
+        )
         .returning();
       return box;
     } catch (error) {
-      console.error('Error updating frontend box:', error);
+      console.error("Error updating frontend box:", error);
       throw error;
     }
   }
 
-  async deleteFrontendBox(id: number, organizationId: number): Promise<boolean> {
+  async deleteFrontendBox(
+    id: number,
+    organizationId: number,
+  ): Promise<boolean> {
     try {
       await db
         .delete(frontendBoxes)
-        .where(and(eq(frontendBoxes.id, id), eq(frontendBoxes.organizationId, organizationId)));
+        .where(
+          and(
+            eq(frontendBoxes.id, id),
+            eq(frontendBoxes.organizationId, organizationId),
+          ),
+        );
       return true;
     } catch (error) {
-      console.error('Error deleting frontend box:', error);
+      console.error("Error deleting frontend box:", error);
       return false;
     }
   }
 
-  async updateFrontendBoxOrder(organizationId: number, boxUpdates: any[]): Promise<any[]> {
+  async updateFrontendBoxOrder(
+    organizationId: number,
+    boxUpdates: any[],
+  ): Promise<any[]> {
     try {
       const updatedBoxes = [];
       for (const update of boxUpdates) {
@@ -12957,25 +15316,38 @@ export class DatabaseStorage implements IStorage {
             sortOrder: update.sortOrder,
             updatedAt: new Date(),
           })
-          .where(and(eq(frontendBoxes.id, update.id), eq(frontendBoxes.organizationId, organizationId)))
+          .where(
+            and(
+              eq(frontendBoxes.id, update.id),
+              eq(frontendBoxes.organizationId, organizationId),
+            ),
+          )
           .returning();
         updatedBoxes.push(box);
       }
       return updatedBoxes;
     } catch (error) {
-      console.error('Error updating frontend box order:', error);
+      console.error("Error updating frontend box order:", error);
       throw error;
     }
   }
 
   // Tutorial System methods
-  async getTutorials(organizationId?: number, category?: string): Promise<any[]> {
+  async getTutorials(
+    organizationId?: number,
+    category?: string,
+  ): Promise<any[]> {
     try {
       let query = db.select().from(tutorials);
       const conditions = [];
 
       if (organizationId) {
-        conditions.push(or(eq(tutorials.organizationId, organizationId), isNull(tutorials.organizationId)));
+        conditions.push(
+          or(
+            eq(tutorials.organizationId, organizationId),
+            isNull(tutorials.organizationId),
+          ),
+        );
       }
       if (category) {
         conditions.push(eq(tutorials.category, category));
@@ -12986,10 +15358,13 @@ export class DatabaseStorage implements IStorage {
         query = query.where(and(...conditions));
       }
 
-      const tutorialList = await query.orderBy(asc(tutorials.sortOrder), asc(tutorials.title));
+      const tutorialList = await query.orderBy(
+        asc(tutorials.sortOrder),
+        asc(tutorials.title),
+      );
       return tutorialList;
     } catch (error) {
-      console.error('Error fetching tutorials:', error);
+      console.error("Error fetching tutorials:", error);
       return [];
     }
   }
@@ -13002,7 +15377,7 @@ export class DatabaseStorage implements IStorage {
         .where(eq(tutorials.id, id));
       return tutorial || undefined;
     } catch (error) {
-      console.error('Error fetching tutorial:', error);
+      console.error("Error fetching tutorial:", error);
       return undefined;
     }
   }
@@ -13019,7 +15394,7 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return tutorial;
     } catch (error) {
-      console.error('Error creating tutorial:', error);
+      console.error("Error creating tutorial:", error);
       throw error;
     }
   }
@@ -13036,7 +15411,7 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return tutorial;
     } catch (error) {
-      console.error('Error updating tutorial:', error);
+      console.error("Error updating tutorial:", error);
       throw error;
     }
   }
@@ -13045,7 +15420,7 @@ export class DatabaseStorage implements IStorage {
     try {
       await db.delete(tutorials).where(eq(tutorials.id, id));
     } catch (error) {
-      console.error('Error deleting tutorial:', error);
+      console.error("Error deleting tutorial:", error);
       throw error;
     }
   }
@@ -13056,7 +15431,12 @@ export class DatabaseStorage implements IStorage {
       const conditions = [];
 
       if (organizationId) {
-        conditions.push(or(eq(tutorialCategories.organizationId, organizationId), isNull(tutorialCategories.organizationId)));
+        conditions.push(
+          or(
+            eq(tutorialCategories.organizationId, organizationId),
+            isNull(tutorialCategories.organizationId),
+          ),
+        );
       }
       conditions.push(eq(tutorialCategories.isActive, true));
 
@@ -13064,10 +15444,13 @@ export class DatabaseStorage implements IStorage {
         query = query.where(and(...conditions));
       }
 
-      const categories = await query.orderBy(asc(tutorialCategories.sortOrder), asc(tutorialCategories.name));
+      const categories = await query.orderBy(
+        asc(tutorialCategories.sortOrder),
+        asc(tutorialCategories.name),
+      );
       return categories;
     } catch (error) {
-      console.error('Error fetching tutorial categories:', error);
+      console.error("Error fetching tutorial categories:", error);
       return [];
     }
   }
@@ -13084,7 +15467,7 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return category;
     } catch (error) {
-      console.error('Error creating tutorial category:', error);
+      console.error("Error creating tutorial category:", error);
       throw error;
     }
   }
@@ -13101,7 +15484,7 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return category;
     } catch (error) {
-      console.error('Error updating tutorial category:', error);
+      console.error("Error updating tutorial category:", error);
       throw error;
     }
   }
@@ -13110,12 +15493,15 @@ export class DatabaseStorage implements IStorage {
     try {
       await db.delete(tutorialCategories).where(eq(tutorialCategories.id, id));
     } catch (error) {
-      console.error('Error deleting tutorial category:', error);
+      console.error("Error deleting tutorial category:", error);
       throw error;
     }
   }
 
-  async getTutorialProgress(userId: number, tutorialId?: number): Promise<any[]> {
+  async getTutorialProgress(
+    userId: number,
+    tutorialId?: number,
+  ): Promise<any[]> {
     try {
       let query = db
         .select({
@@ -13143,35 +15529,54 @@ export class DatabaseStorage implements IStorage {
         .where(eq(tutorialProgress.userId, userId));
 
       if (tutorialId) {
-        query = query.where(and(eq(tutorialProgress.userId, userId), eq(tutorialProgress.tutorialId, tutorialId)));
+        query = query.where(
+          and(
+            eq(tutorialProgress.userId, userId),
+            eq(tutorialProgress.tutorialId, tutorialId),
+          ),
+        );
       }
 
       const progress = await query.orderBy(desc(tutorialProgress.updatedAt));
       return progress;
     } catch (error) {
-      console.error('Error fetching tutorial progress:', error);
+      console.error("Error fetching tutorial progress:", error);
       return [];
     }
   }
 
-  async startTutorial(userId: number, tutorialId: number, organizationId: number): Promise<any> {
+  async startTutorial(
+    userId: number,
+    tutorialId: number,
+    organizationId: number,
+  ): Promise<any> {
     try {
       // Check if progress already exists
       const [existingProgress] = await db
         .select()
         .from(tutorialProgress)
-        .where(and(eq(tutorialProgress.userId, userId), eq(tutorialProgress.tutorialId, tutorialId)));
+        .where(
+          and(
+            eq(tutorialProgress.userId, userId),
+            eq(tutorialProgress.tutorialId, tutorialId),
+          ),
+        );
 
       if (existingProgress) {
         // Update existing progress to start again
         const [updatedProgress] = await db
           .update(tutorialProgress)
           .set({
-            status: 'in_progress',
+            status: "in_progress",
             startedAt: new Date(),
             updatedAt: new Date(),
           })
-          .where(and(eq(tutorialProgress.userId, userId), eq(tutorialProgress.tutorialId, tutorialId)))
+          .where(
+            and(
+              eq(tutorialProgress.userId, userId),
+              eq(tutorialProgress.tutorialId, tutorialId),
+            ),
+          )
           .returning();
         return updatedProgress;
       } else {
@@ -13182,7 +15587,7 @@ export class DatabaseStorage implements IStorage {
             userId,
             tutorialId,
             organizationId,
-            status: 'in_progress',
+            status: "in_progress",
             currentStep: 0,
             completedSteps: [],
             startedAt: new Date(),
@@ -13194,12 +15599,16 @@ export class DatabaseStorage implements IStorage {
         return newProgress;
       }
     } catch (error) {
-      console.error('Error starting tutorial:', error);
+      console.error("Error starting tutorial:", error);
       throw error;
     }
   }
 
-  async updateTutorialProgress(userId: number, tutorialId: number, progressData: any): Promise<any> {
+  async updateTutorialProgress(
+    userId: number,
+    tutorialId: number,
+    progressData: any,
+  ): Promise<any> {
     try {
       const [progress] = await db
         .update(tutorialProgress)
@@ -13207,27 +15616,42 @@ export class DatabaseStorage implements IStorage {
           ...progressData,
           updatedAt: new Date(),
         })
-        .where(and(eq(tutorialProgress.userId, userId), eq(tutorialProgress.tutorialId, tutorialId)))
+        .where(
+          and(
+            eq(tutorialProgress.userId, userId),
+            eq(tutorialProgress.tutorialId, tutorialId),
+          ),
+        )
         .returning();
       return progress;
     } catch (error) {
-      console.error('Error updating tutorial progress:', error);
+      console.error("Error updating tutorial progress:", error);
       throw error;
     }
   }
 
-  async completeTutorial(userId: number, tutorialId: number, rating?: number, feedback?: string): Promise<any> {
+  async completeTutorial(
+    userId: number,
+    tutorialId: number,
+    rating?: number,
+    feedback?: string,
+  ): Promise<any> {
     try {
       const [progress] = await db
         .update(tutorialProgress)
         .set({
-          status: 'completed',
+          status: "completed",
           completedAt: new Date(),
           rating,
           feedback,
           updatedAt: new Date(),
         })
-        .where(and(eq(tutorialProgress.userId, userId), eq(tutorialProgress.tutorialId, tutorialId)))
+        .where(
+          and(
+            eq(tutorialProgress.userId, userId),
+            eq(tutorialProgress.tutorialId, tutorialId),
+          ),
+        )
         .returning();
 
       // Update tutorial rating if rating was provided
@@ -13239,7 +15663,9 @@ export class DatabaseStorage implements IStorage {
 
         if (tutorial) {
           const newTotalRatings = tutorial.totalRatings + 1;
-          const newAverageRating = ((tutorial.averageRating * tutorial.totalRatings) + rating) / newTotalRatings;
+          const newAverageRating =
+            (tutorial.averageRating * tutorial.totalRatings + rating) /
+            newTotalRatings;
 
           await db
             .update(tutorials)
@@ -13254,7 +15680,7 @@ export class DatabaseStorage implements IStorage {
 
       return progress;
     } catch (error) {
-      console.error('Error completing tutorial:', error);
+      console.error("Error completing tutorial:", error);
       throw error;
     }
   }
@@ -13264,23 +15690,29 @@ export class DatabaseStorage implements IStorage {
       const [stats] = await db
         .select({
           totalTutorials: count(tutorialProgress.id),
-          completedTutorials: sum(sql`CASE WHEN ${tutorialProgress.status} = 'completed' THEN 1 ELSE 0 END`),
-          inProgressTutorials: sum(sql`CASE WHEN ${tutorialProgress.status} = 'in_progress' THEN 1 ELSE 0 END`),
+          completedTutorials: sum(
+            sql`CASE WHEN ${tutorialProgress.status} = 'completed' THEN 1 ELSE 0 END`,
+          ),
+          inProgressTutorials: sum(
+            sql`CASE WHEN ${tutorialProgress.status} = 'in_progress' THEN 1 ELSE 0 END`,
+          ),
           totalTimeSpent: sum(tutorialProgress.timeSpent),
           averageRating: avg(tutorialProgress.rating),
         })
         .from(tutorialProgress)
         .where(eq(tutorialProgress.userId, userId));
 
-      return stats || {
-        totalTutorials: 0,
-        completedTutorials: 0,
-        inProgressTutorials: 0,
-        totalTimeSpent: 0,
-        averageRating: 0,
-      };
+      return (
+        stats || {
+          totalTutorials: 0,
+          completedTutorials: 0,
+          inProgressTutorials: 0,
+          totalTimeSpent: 0,
+          averageRating: 0,
+        }
+      );
     } catch (error) {
-      console.error('Error fetching user tutorial stats:', error);
+      console.error("Error fetching user tutorial stats:", error);
       return {
         totalTutorials: 0,
         completedTutorials: 0,
@@ -13321,52 +15753,71 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Meeting Operations
-  async getMeetings(organizationId: number, userId?: number): Promise<Meeting[]> {
-    let query = db.select().from(meetings).where(eq(meetings.organizationId, organizationId));
-    
+  async getMeetings(
+    organizationId: number,
+    userId?: number,
+  ): Promise<Meeting[]> {
+    let query = db
+      .select()
+      .from(meetings)
+      .where(eq(meetings.organizationId, organizationId));
+
     if (userId) {
       // For now, just get meetings where user is the host
-      query = query.where(and(
-        eq(meetings.organizationId, organizationId),
-        eq(meetings.hostId, userId)
-      ));
+      query = query.where(
+        and(
+          eq(meetings.organizationId, organizationId),
+          eq(meetings.hostId, userId),
+        ),
+      );
     }
-    
+
     return await query.orderBy(desc(meetings.createdAt));
   }
 
-  async getMeeting(id: number, organizationId: number): Promise<Meeting | undefined> {
+  async getMeeting(
+    id: number,
+    organizationId: number,
+  ): Promise<Meeting | undefined> {
     const [meeting] = await db
       .select()
       .from(meetings)
-      .where(and(eq(meetings.id, id), eq(meetings.organizationId, organizationId)));
+      .where(
+        and(eq(meetings.id, id), eq(meetings.organizationId, organizationId)),
+      );
     return meeting;
   }
 
   async createMeeting(meetingData: InsertMeeting): Promise<Meeting> {
     const [meeting] = await db.insert(meetings).values(meetingData).returning();
-    
+
     // Auto-join the host as a participant with admitted status
     if (meetingData.hostId) {
       await db.insert(meetingParticipants).values({
         meetingId: meeting.id,
         userId: meetingData.hostId,
-        role: 'host',
-        status: 'admitted',
+        role: "host",
+        status: "admitted",
         joinedAt: new Date(),
         admittedAt: new Date(),
-        admittedBy: meetingData.hostId
+        admittedBy: meetingData.hostId,
       });
     }
-    
+
     return meeting;
   }
 
-  async updateMeeting(id: number, organizationId: number, updates: Partial<InsertMeeting>): Promise<Meeting> {
+  async updateMeeting(
+    id: number,
+    organizationId: number,
+    updates: Partial<InsertMeeting>,
+  ): Promise<Meeting> {
     const [meeting] = await db
       .update(meetings)
       .set({ ...updates, updatedAt: new Date() })
-      .where(and(eq(meetings.id, id), eq(meetings.organizationId, organizationId)))
+      .where(
+        and(eq(meetings.id, id), eq(meetings.organizationId, organizationId)),
+      )
       .returning();
     return meeting;
   }
@@ -13374,66 +15825,100 @@ export class DatabaseStorage implements IStorage {
   async deleteMeeting(id: number, organizationId: number): Promise<boolean> {
     const result = await db
       .delete(meetings)
-      .where(and(eq(meetings.id, id), eq(meetings.organizationId, organizationId)));
+      .where(
+        and(eq(meetings.id, id), eq(meetings.organizationId, organizationId)),
+      );
     return result.rowCount > 0;
   }
 
-  async joinMeeting(meetingId: number, userId: number): Promise<MeetingParticipant> {
+  async joinMeeting(
+    meetingId: number,
+    userId: number,
+  ): Promise<MeetingParticipant> {
     // Check if user is already a participant
     const [existingParticipant] = await db
       .select()
       .from(meetingParticipants)
-      .where(and(eq(meetingParticipants.meetingId, meetingId), eq(meetingParticipants.userId, userId)));
+      .where(
+        and(
+          eq(meetingParticipants.meetingId, meetingId),
+          eq(meetingParticipants.userId, userId),
+        ),
+      );
 
     if (existingParticipant) {
       // Update existing participant to rejoin
       const [participant] = await db
         .update(meetingParticipants)
         .set({ joinedAt: new Date(), leftAt: null })
-        .where(and(eq(meetingParticipants.meetingId, meetingId), eq(meetingParticipants.userId, userId)))
+        .where(
+          and(
+            eq(meetingParticipants.meetingId, meetingId),
+            eq(meetingParticipants.userId, userId),
+          ),
+        )
         .returning();
       return participant;
     } else {
       // Create new participant
       const [participant] = await db
         .insert(meetingParticipants)
-        .values({ meetingId, userId, role: 'participant', joinedAt: new Date() })
+        .values({
+          meetingId,
+          userId,
+          role: "participant",
+          joinedAt: new Date(),
+        })
         .returning();
       return participant;
     }
   }
 
-  async joinMeetingWithStatus(meetingId: number, userId: number, status: string): Promise<MeetingParticipant> {
+  async joinMeetingWithStatus(
+    meetingId: number,
+    userId: number,
+    status: string,
+  ): Promise<MeetingParticipant> {
     // Check if user is already a participant
     const [existingParticipant] = await db
       .select()
       .from(meetingParticipants)
-      .where(and(eq(meetingParticipants.meetingId, meetingId), eq(meetingParticipants.userId, userId)));
+      .where(
+        and(
+          eq(meetingParticipants.meetingId, meetingId),
+          eq(meetingParticipants.userId, userId),
+        ),
+      );
 
     if (existingParticipant) {
       // Update existing participant status
       const [participant] = await db
         .update(meetingParticipants)
-        .set({ 
+        .set({
           status,
           joinedAt: status === "admitted" ? new Date() : null,
           admittedAt: status === "admitted" ? new Date() : null,
-          leftAt: null 
+          leftAt: null,
         })
-        .where(and(eq(meetingParticipants.meetingId, meetingId), eq(meetingParticipants.userId, userId)))
+        .where(
+          and(
+            eq(meetingParticipants.meetingId, meetingId),
+            eq(meetingParticipants.userId, userId),
+          ),
+        )
         .returning();
       return participant;
     } else {
       // Create new participant with waiting room status
       const [participant] = await db
         .insert(meetingParticipants)
-        .values({ 
-          meetingId, 
-          userId, 
-          role: 'participant', 
+        .values({
+          meetingId,
+          userId,
+          role: "participant",
           status,
           joinedAt: status === "admitted" ? new Date() : null,
-          admittedAt: status === "admitted" ? new Date() : null
+          admittedAt: status === "admitted" ? new Date() : null,
         })
         .returning();
       return participant;
@@ -13444,11 +15929,18 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .update(meetingParticipants)
       .set({ leftAt: new Date(), status: "left" })
-      .where(and(eq(meetingParticipants.meetingId, meetingId), eq(meetingParticipants.userId, userId)));
+      .where(
+        and(
+          eq(meetingParticipants.meetingId, meetingId),
+          eq(meetingParticipants.userId, userId),
+        ),
+      );
     return result.rowCount > 0;
   }
 
-  async getMeetingParticipants(meetingId: number): Promise<MeetingParticipant[]> {
+  async getMeetingParticipants(
+    meetingId: number,
+  ): Promise<MeetingParticipant[]> {
     return await db
       .select()
       .from(meetingParticipants)
@@ -13456,44 +15948,55 @@ export class DatabaseStorage implements IStorage {
       .orderBy(asc(meetingParticipants.joinedAt));
   }
 
-  async getWaitingRoomParticipants(meetingId: number): Promise<MeetingParticipant[]> {
+  async getWaitingRoomParticipants(
+    meetingId: number,
+  ): Promise<MeetingParticipant[]> {
     return await db
       .select()
       .from(meetingParticipants)
-      .where(and(
-        eq(meetingParticipants.meetingId, meetingId),
-        eq(meetingParticipants.status, "waiting")
-      ))
+      .where(
+        and(
+          eq(meetingParticipants.meetingId, meetingId),
+          eq(meetingParticipants.status, "waiting"),
+        ),
+      )
       .orderBy(asc(meetingParticipants.id));
   }
 
-  async admitParticipant(participantId: number, admittedBy: number): Promise<boolean> {
+  async admitParticipant(
+    participantId: number,
+    admittedBy: number,
+  ): Promise<boolean> {
     const result = await db
       .update(meetingParticipants)
-      .set({ 
+      .set({
         status: "admitted",
         admittedAt: new Date(),
         admittedBy,
-        joinedAt: new Date()
+        joinedAt: new Date(),
       })
-      .where(and(
-        eq(meetingParticipants.id, participantId),
-        eq(meetingParticipants.status, "waiting")
-      ));
+      .where(
+        and(
+          eq(meetingParticipants.id, participantId),
+          eq(meetingParticipants.status, "waiting"),
+        ),
+      );
     return result.rowCount > 0;
   }
 
   async denyParticipant(participantId: number): Promise<boolean> {
     const result = await db
       .update(meetingParticipants)
-      .set({ 
+      .set({
         status: "denied",
-        leftAt: new Date()
+        leftAt: new Date(),
       })
-      .where(and(
-        eq(meetingParticipants.id, participantId),
-        eq(meetingParticipants.status, "waiting")
-      ));
+      .where(
+        and(
+          eq(meetingParticipants.id, participantId),
+          eq(meetingParticipants.status, "waiting"),
+        ),
+      );
     return result.rowCount > 0;
   }
 
@@ -13505,30 +16008,54 @@ export class DatabaseStorage implements IStorage {
       .orderBy(asc(meetingMessages.sentAt));
   }
 
-  async createMeetingMessage(messageData: InsertMeetingMessage): Promise<MeetingMessage> {
-    const [message] = await db.insert(meetingMessages).values(messageData).returning();
+  async createMeetingMessage(
+    messageData: InsertMeetingMessage,
+  ): Promise<MeetingMessage> {
+    const [message] = await db
+      .insert(meetingMessages)
+      .values(messageData)
+      .returning();
     return message;
   }
 
-  async getMeetingRecordings(meetingId: number, organizationId: number): Promise<MeetingRecording[]> {
+  async getMeetingRecordings(
+    meetingId: number,
+    organizationId: number,
+  ): Promise<MeetingRecording[]> {
     return await db
       .select()
       .from(meetingRecordings)
       .leftJoin(meetings, eq(meetingRecordings.meetingId, meetings.id))
-      .where(and(eq(meetingRecordings.meetingId, meetingId), eq(meetings.organizationId, organizationId)))
-      .then(rows => rows.map(row => row.meeting_recordings));
+      .where(
+        and(
+          eq(meetingRecordings.meetingId, meetingId),
+          eq(meetings.organizationId, organizationId),
+        ),
+      )
+      .then((rows) => rows.map((row) => row.meeting_recordings));
   }
 
-  async createMeetingRecording(recordingData: InsertMeetingRecording): Promise<MeetingRecording> {
-    const [recording] = await db.insert(meetingRecordings).values(recordingData).returning();
+  async createMeetingRecording(
+    recordingData: InsertMeetingRecording,
+  ): Promise<MeetingRecording> {
+    const [recording] = await db
+      .insert(meetingRecordings)
+      .values(recordingData)
+      .returning();
     return recording;
   }
 
-  async updateMeetingStatus(id: number, organizationId: number, status: string): Promise<Meeting> {
+  async updateMeetingStatus(
+    id: number,
+    organizationId: number,
+    status: string,
+  ): Promise<Meeting> {
     const [meeting] = await db
       .update(meetings)
       .set({ status, updatedAt: new Date() })
-      .where(and(eq(meetings.id, id), eq(meetings.organizationId, organizationId)))
+      .where(
+        and(eq(meetings.id, id), eq(meetings.organizationId, organizationId)),
+      )
       .returning();
     return meeting;
   }
@@ -13536,8 +16063,8 @@ export class DatabaseStorage implements IStorage {
   async cleanupExpiredMeetings(): Promise<number> {
     try {
       const now = new Date();
-      const twoDaysAgo = new Date(now.getTime() - (2 * 24 * 60 * 60 * 1000)); // 2 days ago
-      
+      const twoDaysAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000); // 2 days ago
+
       // Find expired meetings that are older than 2 days past their scheduled end time
       const expiredMeetings = await db
         .select({ id: meetings.id, organizationId: meetings.organizationId })
@@ -13545,8 +16072,8 @@ export class DatabaseStorage implements IStorage {
         .where(
           and(
             lt(meetings.scheduledEndTime, twoDaysAgo),
-            isNotNull(meetings.scheduledEndTime)
-          )
+            isNotNull(meetings.scheduledEndTime),
+          ),
         );
 
       if (expiredMeetings.length === 0) {
@@ -13575,15 +16102,16 @@ export class DatabaseStorage implements IStorage {
       }
 
       // Finally delete the meetings
-      const deletedMeetingIds = expiredMeetings.map(m => m.id);
-      await db
-        .delete(meetings)
-        .where(inArray(meetings.id, deletedMeetingIds));
+      const deletedMeetingIds = expiredMeetings.map((m) => m.id);
+      await db.delete(meetings).where(inArray(meetings.id, deletedMeetingIds));
 
-      console.log(`🧹 Cleaned up ${expiredMeetings.length} expired meetings:`, deletedMeetingIds);
+      console.log(
+        `🧹 Cleaned up ${expiredMeetings.length} expired meetings:`,
+        deletedMeetingIds,
+      );
       return expiredMeetings.length;
     } catch (error) {
-      console.error('Error cleaning up expired meetings:', error);
+      console.error("Error cleaning up expired meetings:", error);
       throw error;
     }
   }
@@ -13598,12 +16126,21 @@ export class DatabaseStorage implements IStorage {
           email: organizations.email,
           subscriptionPlan: organizations.subscriptionPlan,
           canAccessCallManager: organizations.canAccessCallManager,
-          phoneNumbersCount: count(phoneNumbers.id)
+          phoneNumbersCount: count(phoneNumbers.id),
         })
         .from(organizations)
-        .leftJoin(phoneNumbers, eq(organizations.id, phoneNumbers.organizationId))
+        .leftJoin(
+          phoneNumbers,
+          eq(organizations.id, phoneNumbers.organizationId),
+        )
         .where(eq(organizations.canAccessCallManager, true))
-        .groupBy(organizations.id, organizations.name, organizations.email, organizations.subscriptionPlan, organizations.canAccessCallManager)
+        .groupBy(
+          organizations.id,
+          organizations.name,
+          organizations.email,
+          organizations.subscriptionPlan,
+          organizations.canAccessCallManager,
+        )
         .orderBy(organizations.name);
 
       // Get phone numbers for each organization
@@ -13612,14 +16149,14 @@ export class DatabaseStorage implements IStorage {
           const phones = await this.getPhoneNumbersByOrganization(org.id);
           return {
             ...org,
-            phoneNumbers: phones
+            phoneNumbers: phones,
           };
-        })
+        }),
       );
 
       return orgsWithPhones;
     } catch (error) {
-      console.error('Error fetching organizations with Call Manager:', error);
+      console.error("Error fetching organizations with Call Manager:", error);
       throw error;
     }
   }
@@ -13632,7 +16169,7 @@ export class DatabaseStorage implements IStorage {
         .where(eq(phoneNumbers.organizationId, organizationId))
         .orderBy(phoneNumbers.phoneNumber);
     } catch (error) {
-      console.error('Error fetching phone numbers for organization:', error);
+      console.error("Error fetching phone numbers for organization:", error);
       throw error;
     }
   }
@@ -13645,7 +16182,7 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return phoneNumber;
     } catch (error) {
-      console.error('Error creating phone number:', error);
+      console.error("Error creating phone number:", error);
       throw error;
     }
   }
@@ -13659,7 +16196,7 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return phoneNumber;
     } catch (error) {
-      console.error('Error updating phone number:', error);
+      console.error("Error updating phone number:", error);
       throw error;
     }
   }
@@ -13671,7 +16208,7 @@ export class DatabaseStorage implements IStorage {
         .where(eq(phoneNumbers.id, id));
       return result.rowCount > 0;
     } catch (error) {
-      console.error('Error deleting phone number:', error);
+      console.error("Error deleting phone number:", error);
       throw error;
     }
   }
@@ -13690,7 +16227,7 @@ export class DatabaseStorage implements IStorage {
         .orderBy(desc(phoneNumbers.createdAt));
       return results;
     } catch (error) {
-      console.error('Error fetching phone numbers:', error);
+      console.error("Error fetching phone numbers:", error);
       return [];
     }
   }
@@ -13700,13 +16237,15 @@ export class DatabaseStorage implements IStorage {
       const [phoneNumber] = await db
         .select()
         .from(phoneNumbers)
-        .where(and(
-          eq(phoneNumbers.id, id),
-          eq(phoneNumbers.organizationId, organizationId)
-        ));
+        .where(
+          and(
+            eq(phoneNumbers.id, id),
+            eq(phoneNumbers.organizationId, organizationId),
+          ),
+        );
       return phoneNumber;
     } catch (error) {
-      console.error('Error fetching phone number:', error);
+      console.error("Error fetching phone number:", error);
       return undefined;
     }
   }
@@ -13719,45 +16258,59 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return phoneNumber;
     } catch (error) {
-      console.error('Error creating phone number:', error);
+      console.error("Error creating phone number:", error);
       throw error;
     }
   }
 
-  async updatePhoneNumber(id: number, organizationId: number, updates: any): Promise<any> {
+  async updatePhoneNumber(
+    id: number,
+    organizationId: number,
+    updates: any,
+  ): Promise<any> {
     try {
       const [phoneNumber] = await db
         .update(phoneNumbers)
         .set(updates)
-        .where(and(
-          eq(phoneNumbers.id, id),
-          eq(phoneNumbers.organizationId, organizationId)
-        ))
+        .where(
+          and(
+            eq(phoneNumbers.id, id),
+            eq(phoneNumbers.organizationId, organizationId),
+          ),
+        )
         .returning();
       return phoneNumber;
     } catch (error) {
-      console.error('Error updating phone number:', error);
+      console.error("Error updating phone number:", error);
       throw error;
     }
   }
 
-  async deletePhoneNumber(id: number, organizationId: number): Promise<boolean> {
+  async deletePhoneNumber(
+    id: number,
+    organizationId: number,
+  ): Promise<boolean> {
     try {
       const result = await db
         .delete(phoneNumbers)
-        .where(and(
-          eq(phoneNumbers.id, id),
-          eq(phoneNumbers.organizationId, organizationId)
-        ));
+        .where(
+          and(
+            eq(phoneNumbers.id, id),
+            eq(phoneNumbers.organizationId, organizationId),
+          ),
+        );
       return result.rowCount > 0;
     } catch (error) {
-      console.error('Error deleting phone number:', error);
+      console.error("Error deleting phone number:", error);
       throw error;
     }
   }
 
   // Call Record methods
-  async getCallRecords(organizationId: number, phoneNumberId?: number): Promise<any[]> {
+  async getCallRecords(
+    organizationId: number,
+    phoneNumberId?: number,
+  ): Promise<any[]> {
     try {
       let query = db
         .select()
@@ -13771,7 +16324,7 @@ export class DatabaseStorage implements IStorage {
       const results = await query.orderBy(desc(callRecords.createdAt));
       return results;
     } catch (error) {
-      console.error('Error fetching call records:', error);
+      console.error("Error fetching call records:", error);
       return [];
     }
   }
@@ -13781,13 +16334,15 @@ export class DatabaseStorage implements IStorage {
       const [callRecord] = await db
         .select()
         .from(callRecords)
-        .where(and(
-          eq(callRecords.id, id),
-          eq(callRecords.organizationId, organizationId)
-        ));
+        .where(
+          and(
+            eq(callRecords.id, id),
+            eq(callRecords.organizationId, organizationId),
+          ),
+        );
       return callRecord;
     } catch (error) {
-      console.error('Error fetching call record:', error);
+      console.error("Error fetching call record:", error);
       return undefined;
     }
   }
@@ -13800,30 +16355,39 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return callRecord;
     } catch (error) {
-      console.error('Error creating call record:', error);
+      console.error("Error creating call record:", error);
       throw error;
     }
   }
 
-  async updateCallRecord(id: number, organizationId: number, updates: any): Promise<any> {
+  async updateCallRecord(
+    id: number,
+    organizationId: number,
+    updates: any,
+  ): Promise<any> {
     try {
       const [callRecord] = await db
         .update(callRecords)
         .set(updates)
-        .where(and(
-          eq(callRecords.id, id),
-          eq(callRecords.organizationId, organizationId)
-        ))
+        .where(
+          and(
+            eq(callRecords.id, id),
+            eq(callRecords.organizationId, organizationId),
+          ),
+        )
         .returning();
       return callRecord;
     } catch (error) {
-      console.error('Error updating call record:', error);
+      console.error("Error updating call record:", error);
       throw error;
     }
   }
 
   // Call Recording methods
-  async getCallRecordings(organizationId: number, callRecordId?: number): Promise<any[]> {
+  async getCallRecordings(
+    organizationId: number,
+    callRecordId?: number,
+  ): Promise<any[]> {
     try {
       let query = db
         .select()
@@ -13837,7 +16401,7 @@ export class DatabaseStorage implements IStorage {
       const results = await query.orderBy(desc(callRecordings.createdAt));
       return results;
     } catch (error) {
-      console.error('Error fetching call recordings:', error);
+      console.error("Error fetching call recordings:", error);
       return [];
     }
   }
@@ -13850,13 +16414,16 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return recording;
     } catch (error) {
-      console.error('Error creating call recording:', error);
+      console.error("Error creating call recording:", error);
       throw error;
     }
   }
 
   // Voicemail methods
-  async getVoicemails(organizationId: number, phoneNumberId?: number): Promise<any[]> {
+  async getVoicemails(
+    organizationId: number,
+    phoneNumberId?: number,
+  ): Promise<any[]> {
     try {
       let query = db
         .select()
@@ -13870,7 +16437,7 @@ export class DatabaseStorage implements IStorage {
       const results = await query.orderBy(desc(voicemails.createdAt));
       return results;
     } catch (error) {
-      console.error('Error fetching voicemails:', error);
+      console.error("Error fetching voicemails:", error);
       return [];
     }
   }
@@ -13883,24 +16450,30 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return voicemail;
     } catch (error) {
-      console.error('Error creating voicemail:', error);
+      console.error("Error creating voicemail:", error);
       throw error;
     }
   }
 
-  async updateVoicemail(id: number, organizationId: number, updates: any): Promise<any> {
+  async updateVoicemail(
+    id: number,
+    organizationId: number,
+    updates: any,
+  ): Promise<any> {
     try {
       const [voicemail] = await db
         .update(voicemails)
         .set(updates)
-        .where(and(
-          eq(voicemails.id, id),
-          eq(voicemails.organizationId, organizationId)
-        ))
+        .where(
+          and(
+            eq(voicemails.id, id),
+            eq(voicemails.organizationId, organizationId),
+          ),
+        )
         .returning();
       return voicemail;
     } catch (error) {
-      console.error('Error updating voicemail:', error);
+      console.error("Error updating voicemail:", error);
       throw error;
     }
   }
@@ -13909,13 +16482,15 @@ export class DatabaseStorage implements IStorage {
     try {
       const result = await db
         .delete(voicemails)
-        .where(and(
-          eq(voicemails.id, id),
-          eq(voicemails.organizationId, organizationId)
-        ));
+        .where(
+          and(
+            eq(voicemails.id, id),
+            eq(voicemails.organizationId, organizationId),
+          ),
+        );
       return result.rowCount > 0;
     } catch (error) {
-      console.error('Error deleting voicemail:', error);
+      console.error("Error deleting voicemail:", error);
       throw error;
     }
   }
@@ -13930,37 +16505,40 @@ export class DatabaseStorage implements IStorage {
         .orderBy(desc(callQueues.createdAt));
       return results;
     } catch (error) {
-      console.error('Error fetching call queues:', error);
+      console.error("Error fetching call queues:", error);
       return [];
     }
   }
 
   async createCallQueue(queueData: any): Promise<any> {
     try {
-      const [queue] = await db
-        .insert(callQueues)
-        .values(queueData)
-        .returning();
+      const [queue] = await db.insert(callQueues).values(queueData).returning();
       return queue;
     } catch (error) {
-      console.error('Error creating call queue:', error);
+      console.error("Error creating call queue:", error);
       throw error;
     }
   }
 
-  async updateCallQueue(id: number, organizationId: number, updates: any): Promise<any> {
+  async updateCallQueue(
+    id: number,
+    organizationId: number,
+    updates: any,
+  ): Promise<any> {
     try {
       const [queue] = await db
         .update(callQueues)
         .set(updates)
-        .where(and(
-          eq(callQueues.id, id),
-          eq(callQueues.organizationId, organizationId)
-        ))
+        .where(
+          and(
+            eq(callQueues.id, id),
+            eq(callQueues.organizationId, organizationId),
+          ),
+        )
         .returning();
       return queue;
     } catch (error) {
-      console.error('Error updating call queue:', error);
+      console.error("Error updating call queue:", error);
       throw error;
     }
   }
@@ -13969,13 +16547,15 @@ export class DatabaseStorage implements IStorage {
     try {
       const result = await db
         .delete(callQueues)
-        .where(and(
-          eq(callQueues.id, id),
-          eq(callQueues.organizationId, organizationId)
-        ));
+        .where(
+          and(
+            eq(callQueues.id, id),
+            eq(callQueues.organizationId, organizationId),
+          ),
+        );
       return result.rowCount > 0;
     } catch (error) {
-      console.error('Error deleting call queue:', error);
+      console.error("Error deleting call queue:", error);
       throw error;
     }
   }
@@ -13983,7 +16563,9 @@ export class DatabaseStorage implements IStorage {
   // Organization Twilio Settings methods
   async getOrganizationTwilioSettings(organizationId: number): Promise<any> {
     try {
-      console.log(`🔍 STORAGE: Getting Twilio settings for org ${organizationId}`);
+      console.log(
+        `🔍 STORAGE: Getting Twilio settings for org ${organizationId}`,
+      );
       const [settings] = await db
         .select()
         .from(organizationTwilioSettings)
@@ -13992,11 +16574,11 @@ export class DatabaseStorage implements IStorage {
         exists: !!settings,
         accountSidExists: !!settings?.accountSid,
         authTokenExists: !!settings?.authToken,
-        settingsKeys: settings ? Object.keys(settings) : []
+        settingsKeys: settings ? Object.keys(settings) : [],
       });
       return settings;
     } catch (error) {
-      console.error('Error fetching organization Twilio settings:', error);
+      console.error("Error fetching organization Twilio settings:", error);
       return undefined;
     }
   }
@@ -14009,12 +16591,15 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return settings;
     } catch (error) {
-      console.error('Error creating organization Twilio settings:', error);
+      console.error("Error creating organization Twilio settings:", error);
       throw error;
     }
   }
 
-  async updateOrganizationTwilioSettings(organizationId: number, updates: any): Promise<any> {
+  async updateOrganizationTwilioSettings(
+    organizationId: number,
+    updates: any,
+  ): Promise<any> {
     try {
       const [settings] = await db
         .update(organizationTwilioSettings)
@@ -14023,13 +16608,17 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return settings;
     } catch (error) {
-      console.error('Error updating organization Twilio settings:', error);
+      console.error("Error updating organization Twilio settings:", error);
       throw error;
     }
   }
 
   // Organization Call Analytics methods
-  async getOrganizationCallAnalytics(organizationId: number, periodStart?: Date, periodEnd?: Date): Promise<any[]> {
+  async getOrganizationCallAnalytics(
+    organizationId: number,
+    periodStart?: Date,
+    periodEnd?: Date,
+  ): Promise<any[]> {
     try {
       let query = db
         .select()
@@ -14037,16 +16626,20 @@ export class DatabaseStorage implements IStorage {
         .where(eq(organizationCallAnalytics.organizationId, organizationId));
 
       if (periodStart && periodEnd) {
-        query = query.where(and(
-          gte(organizationCallAnalytics.periodStart, periodStart),
-          lte(organizationCallAnalytics.periodEnd, periodEnd)
-        ));
+        query = query.where(
+          and(
+            gte(organizationCallAnalytics.periodStart, periodStart),
+            lte(organizationCallAnalytics.periodEnd, periodEnd),
+          ),
+        );
       }
 
-      const results = await query.orderBy(desc(organizationCallAnalytics.createdAt));
+      const results = await query.orderBy(
+        desc(organizationCallAnalytics.createdAt),
+      );
       return results;
     } catch (error) {
-      console.error('Error fetching organization call analytics:', error);
+      console.error("Error fetching organization call analytics:", error);
       return [];
     }
   }
@@ -14059,24 +16652,30 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return analytics;
     } catch (error) {
-      console.error('Error creating organization call analytics:', error);
+      console.error("Error creating organization call analytics:", error);
       throw error;
     }
   }
 
-  async updateOrganizationCallAnalytics(id: number, organizationId: number, updates: any): Promise<any> {
+  async updateOrganizationCallAnalytics(
+    id: number,
+    organizationId: number,
+    updates: any,
+  ): Promise<any> {
     try {
       const [analytics] = await db
         .update(organizationCallAnalytics)
         .set(updates)
-        .where(and(
-          eq(organizationCallAnalytics.id, id),
-          eq(organizationCallAnalytics.organizationId, organizationId)
-        ))
+        .where(
+          and(
+            eq(organizationCallAnalytics.id, id),
+            eq(organizationCallAnalytics.organizationId, organizationId),
+          ),
+        )
         .returning();
       return analytics;
     } catch (error) {
-      console.error('Error updating organization call analytics:', error);
+      console.error("Error updating organization call analytics:", error);
       throw error;
     }
   }
@@ -14087,29 +16686,36 @@ export class DatabaseStorage implements IStorage {
       return await db
         .select()
         .from(streamSessions)
-        .where(and(
-          eq(streamSessions.organizationId, organizationId),
-          eq(streamSessions.status, "active")
-        ))
+        .where(
+          and(
+            eq(streamSessions.organizationId, organizationId),
+            eq(streamSessions.status, "active"),
+          ),
+        )
         .orderBy(desc(streamSessions.startedAt));
     } catch (error) {
-      console.error('Error fetching active streams:', error);
+      console.error("Error fetching active streams:", error);
       throw error;
     }
   }
 
-  async getStreamSession(streamId: string, organizationId: number): Promise<StreamSession | undefined> {
+  async getStreamSession(
+    streamId: string,
+    organizationId: number,
+  ): Promise<StreamSession | undefined> {
     try {
       const [session] = await db
         .select()
         .from(streamSessions)
-        .where(and(
-          eq(streamSessions.id, streamId),
-          eq(streamSessions.organizationId, organizationId)
-        ));
+        .where(
+          and(
+            eq(streamSessions.id, streamId),
+            eq(streamSessions.organizationId, organizationId),
+          ),
+        );
       return session;
     } catch (error) {
-      console.error('Error fetching stream session:', error);
+      console.error("Error fetching stream session:", error);
       throw error;
     }
   }
@@ -14122,48 +16728,59 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return session;
     } catch (error) {
-      console.error('Error creating stream session:', error);
+      console.error("Error creating stream session:", error);
       throw error;
     }
   }
 
-  async updateStreamSession(streamId: string, organizationId: number, updates: any): Promise<StreamSession> {
+  async updateStreamSession(
+    streamId: string,
+    organizationId: number,
+    updates: any,
+  ): Promise<StreamSession> {
     try {
       const [session] = await db
         .update(streamSessions)
         .set({
           ...updates,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
-        .where(and(
-          eq(streamSessions.id, streamId),
-          eq(streamSessions.organizationId, organizationId)
-        ))
+        .where(
+          and(
+            eq(streamSessions.id, streamId),
+            eq(streamSessions.organizationId, organizationId),
+          ),
+        )
         .returning();
       return session;
     } catch (error) {
-      console.error('Error updating stream session:', error);
+      console.error("Error updating stream session:", error);
       throw error;
     }
   }
 
-  async endStreamSession(streamId: string, organizationId: number): Promise<StreamSession> {
+  async endStreamSession(
+    streamId: string,
+    organizationId: number,
+  ): Promise<StreamSession> {
     try {
       const [session] = await db
         .update(streamSessions)
         .set({
           status: "ended",
           endedAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
-        .where(and(
-          eq(streamSessions.id, streamId),
-          eq(streamSessions.organizationId, organizationId)
-        ))
+        .where(
+          and(
+            eq(streamSessions.id, streamId),
+            eq(streamSessions.organizationId, organizationId),
+          ),
+        )
         .returning();
       return session;
     } catch (error) {
-      console.error('Error ending stream session:', error);
+      console.error("Error ending stream session:", error);
       throw error;
     }
   }
@@ -14176,24 +16793,27 @@ export class DatabaseStorage implements IStorage {
         .where(eq(streamViewers.streamId, streamId))
         .orderBy(desc(streamViewers.joinedAt));
     } catch (error) {
-      console.error('Error fetching stream viewers:', error);
+      console.error("Error fetching stream viewers:", error);
       throw error;
     }
   }
 
-  async addStreamViewer(streamId: string, userId: number): Promise<StreamViewer> {
+  async addStreamViewer(
+    streamId: string,
+    userId: number,
+  ): Promise<StreamViewer> {
     try {
       const [viewer] = await db
         .insert(streamViewers)
         .values({
           streamId,
           userId,
-          isActive: true
+          isActive: true,
         })
         .returning();
       return viewer;
     } catch (error) {
-      console.error('Error adding stream viewer:', error);
+      console.error("Error adding stream viewer:", error);
       throw error;
     }
   }
@@ -14204,111 +16824,133 @@ export class DatabaseStorage implements IStorage {
         .update(streamViewers)
         .set({
           leftAt: new Date(),
-          isActive: false
+          isActive: false,
         })
-        .where(and(
-          eq(streamViewers.streamId, streamId),
-          eq(streamViewers.userId, userId),
-          eq(streamViewers.isActive, true)
-        ));
+        .where(
+          and(
+            eq(streamViewers.streamId, streamId),
+            eq(streamViewers.userId, userId),
+            eq(streamViewers.isActive, true),
+          ),
+        );
       return true;
     } catch (error) {
-      console.error('Error removing stream viewer:', error);
+      console.error("Error removing stream viewer:", error);
       throw error;
     }
   }
 
   // Stream invitation methods
-  async createStreamInvitation(invitationData: InsertStreamInvitation): Promise<StreamInvitation> {
+  async createStreamInvitation(
+    invitationData: InsertStreamInvitation,
+  ): Promise<StreamInvitation> {
     try {
       const [invitation] = await db
         .insert(streamInvitations)
         .values({
           ...invitationData,
-          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
         })
         .returning();
       return invitation;
     } catch (error) {
-      console.error('Error creating stream invitation:', error);
+      console.error("Error creating stream invitation:", error);
       throw error;
     }
   }
 
-  async getStreamInvitations(streamId: string, organizationId: number): Promise<StreamInvitation[]> {
+  async getStreamInvitations(
+    streamId: string,
+    organizationId: number,
+  ): Promise<StreamInvitation[]> {
     try {
       return await db
         .select()
         .from(streamInvitations)
-        .where(and(
-          eq(streamInvitations.streamId, streamId),
-          eq(streamInvitations.organizationId, organizationId)
-        ))
+        .where(
+          and(
+            eq(streamInvitations.streamId, streamId),
+            eq(streamInvitations.organizationId, organizationId),
+          ),
+        )
         .orderBy(desc(streamInvitations.sentAt));
     } catch (error) {
-      console.error('Error fetching stream invitations:', error);
+      console.error("Error fetching stream invitations:", error);
       throw error;
     }
   }
 
-  async getUserStreamInvitations(userId: number, organizationId: number): Promise<StreamInvitation[]> {
+  async getUserStreamInvitations(
+    userId: number,
+    organizationId: number,
+  ): Promise<StreamInvitation[]> {
     try {
       return await db
         .select()
         .from(streamInvitations)
-        .where(and(
-          eq(streamInvitations.invitedUserId, userId),
-          eq(streamInvitations.organizationId, organizationId),
-          eq(streamInvitations.status, "pending"),
-          or(
-            isNull(streamInvitations.expiresAt),
-            gt(streamInvitations.expiresAt, new Date())
-          )
-        ))
+        .where(
+          and(
+            eq(streamInvitations.invitedUserId, userId),
+            eq(streamInvitations.organizationId, organizationId),
+            eq(streamInvitations.status, "pending"),
+            or(
+              isNull(streamInvitations.expiresAt),
+              gt(streamInvitations.expiresAt, new Date()),
+            ),
+          ),
+        )
         .orderBy(desc(streamInvitations.sentAt));
     } catch (error) {
-      console.error('Error fetching user stream invitations:', error);
+      console.error("Error fetching user stream invitations:", error);
       throw error;
     }
   }
 
-  async updateStreamInvitation(invitationId: number, updates: any): Promise<StreamInvitation> {
+  async updateStreamInvitation(
+    invitationId: number,
+    updates: any,
+  ): Promise<StreamInvitation> {
     try {
       const [invitation] = await db
         .update(streamInvitations)
         .set({
           ...updates,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(streamInvitations.id, invitationId))
         .returning();
       return invitation;
     } catch (error) {
-      console.error('Error updating stream invitation:', error);
+      console.error("Error updating stream invitation:", error);
       throw error;
     }
   }
 
-  async respondToStreamInvitation(invitationId: number, status: 'accepted' | 'declined'): Promise<StreamInvitation> {
+  async respondToStreamInvitation(
+    invitationId: number,
+    status: "accepted" | "declined",
+  ): Promise<StreamInvitation> {
     try {
       const [invitation] = await db
         .update(streamInvitations)
         .set({
           status,
           respondedAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(streamInvitations.id, invitationId))
         .returning();
       return invitation;
     } catch (error) {
-      console.error('Error responding to stream invitation:', error);
+      console.error("Error responding to stream invitation:", error);
       throw error;
     }
   }
 
   // Stream notification methods
-  async createStreamNotification(notificationData: InsertStreamNotification): Promise<StreamNotification> {
+  async createStreamNotification(
+    notificationData: InsertStreamNotification,
+  ): Promise<StreamNotification> {
     try {
       const [notification] = await db
         .insert(streamNotifications)
@@ -14316,52 +16958,62 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return notification;
     } catch (error) {
-      console.error('Error creating stream notification:', error);
+      console.error("Error creating stream notification:", error);
       throw error;
     }
   }
 
-  async getUserStreamNotifications(userId: number, organizationId: number): Promise<StreamNotification[]> {
+  async getUserStreamNotifications(
+    userId: number,
+    organizationId: number,
+  ): Promise<StreamNotification[]> {
     try {
       return await db
         .select()
         .from(streamNotifications)
-        .where(and(
-          eq(streamNotifications.userId, userId),
-          eq(streamNotifications.organizationId, organizationId)
-        ))
+        .where(
+          and(
+            eq(streamNotifications.userId, userId),
+            eq(streamNotifications.organizationId, organizationId),
+          ),
+        )
         .orderBy(desc(streamNotifications.createdAt))
         .limit(50);
     } catch (error) {
-      console.error('Error fetching user stream notifications:', error);
+      console.error("Error fetching user stream notifications:", error);
       throw error;
     }
   }
 
-  async markStreamNotificationAsRead(notificationId: number): Promise<StreamNotification> {
+  async markStreamNotificationAsRead(
+    notificationId: number,
+  ): Promise<StreamNotification> {
     try {
       const [notification] = await db
         .update(streamNotifications)
         .set({
           isRead: true,
           readAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(streamNotifications.id, notificationId))
         .returning();
       return notification;
     } catch (error) {
-      console.error('Error marking stream notification as read:', error);
+      console.error("Error marking stream notification as read:", error);
       throw error;
     }
   }
 
-  async markStreamNotificationAsDelivered(notificationId: number, deliveryType: 'websocket' | 'email'): Promise<StreamNotification> {
+  async markStreamNotificationAsDelivered(
+    notificationId: number,
+    deliveryType: "websocket" | "email",
+  ): Promise<StreamNotification> {
     try {
       const updateData: any = { updatedAt: new Date() };
-      if (deliveryType === 'websocket') {
+      if (deliveryType === "websocket") {
         updateData.deliveredViaWebSocket = true;
-      } else if (deliveryType === 'email') {
+      } else if (deliveryType === "email") {
         updateData.deliveredViaEmail = true;
       }
 
@@ -14372,7 +17024,7 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return notification;
     } catch (error) {
-      console.error('Error marking stream notification as delivered:', error);
+      console.error("Error marking stream notification as delivered:", error);
       throw error;
     }
   }
